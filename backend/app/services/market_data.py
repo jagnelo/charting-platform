@@ -7,18 +7,24 @@ from constituent bars and written to the standard ohlcv_bar table so the rest
 of the system (chart, alert, indicator, screener) reads them transparently.
 """
 
+import asyncio
+import hashlib
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Any, TypeVar
 
 import numpy as np
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
+from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_observation import (
     DatasetStatus,
@@ -31,10 +37,52 @@ from app.models.provider_observation import (
 from app.models.provider_runtime import ProviderCapability
 from app.providers import (
     ensure_data_source,
+    get_provider,
     provider_symbol_for_instrument,
 )
+from app.providers.alpaca import (
+    estimate_latest_ohlcv_request_count,
+    estimate_ohlcv_request_count,
+)
 from app.providers.base import InstrumentProfile
+from app.providers.binance import (
+    estimate_latest_ohlcv_request_weight,
+    estimate_ohlcv_request_weight,
+)
+from app.providers.crypto_market_data import (
+    estimate_coinbase_latest_ohlcv_request_count,
+    estimate_coinbase_ohlcv_request_count,
+    estimate_kraken_latest_ohlcv_request_count,
+    estimate_kraken_ohlcv_request_count,
+)
+from app.providers.errors import bounded_redact_provider_message
+from app.providers.ibkr import (
+    estimate_ibkr_current_price_request_count,
+    estimate_ibkr_latest_ohlcv_request_count,
+    estimate_ibkr_ohlcv_request_count,
+)
+from app.providers.massive import (
+    estimate_latest_ohlcv_request_count as estimate_massive_latest_ohlcv_request_count,
+)
+from app.providers.massive import (
+    estimate_ohlcv_request_count as estimate_massive_ohlcv_request_count,
+)
+from app.providers.optional_market_data import (
+    estimate_fmp_ohlcv_request_count,
+    estimate_marketdata_app_latest_ohlcv_credit_count,
+    estimate_marketdata_app_ohlcv_credit_count,
+    estimate_marketstack_latest_ohlcv_request_count,
+    estimate_marketstack_ohlcv_request_count,
+    estimate_tiingo_ohlcv_request_count,
+    estimate_twelve_data_latest_ohlcv_request_count,
+    estimate_twelve_data_ohlcv_request_count,
+)
+from app.services.distributed_locks import (
+    redis_distributed_lock,
+    shared_redis_lock_client,
+)
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
+from app.services.market_series import SeriesScope, get_or_create_series
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_observations import (
     store_latest_price_snapshot,
@@ -47,8 +95,64 @@ from app.services.provider_runtime import (
 )
 
 logger = logging.getLogger(__name__)
+_T = TypeVar("_T")
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+_OHLCV_CONFLICT_COLUMNS = [
+    "instrument_id",
+    "timeframe",
+    "ts",
+    "is_adjusted",
+    "scope_key",
+]
+
+# Process-local coalescing for identical interactive refreshes. Durable
+# background refresh jobs provide cross-worker coalescing; this map prevents
+# concurrent requests handled by one process from independently spending the
+# same provider quota before the first transaction commits its bars.
+_OHLCV_REFRESH_LOCKS: dict[tuple[int, str, datetime, datetime | None, bool], asyncio.Lock] = {}
+_OHLCV_REFRESH_LOCK_USERS: dict[tuple[int, str, datetime, datetime | None, bool], int] = {}
+_LATEST_PRICE_REFRESH_LOCKS: dict[int, asyncio.Lock] = {}
+_LATEST_PRICE_REFRESH_LOCK_USERS: dict[int, int] = {}
+
+
+def _ohlcv_refresh_lock_key(
+    instrument: Instrument,
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime | None,
+    adjusted: bool,
+) -> tuple[int, str, datetime, datetime | None, bool]:
+    return (
+        instrument.id,
+        timeframe.value,
+        _as_utc(start),
+        _as_utc(end) if end is not None else None,
+        adjusted,
+    )
+
+
+async def _acquire_database_refresh_lock(
+    db: AsyncSession,
+    lock_key: tuple[int, str, datetime, datetime | None, bool],
+) -> None:
+    """Serialize an exact refresh key across PostgreSQL workers/hosts.
+
+    PostgreSQL transaction-scoped advisory locks are deliberately optional:
+    SQLite/unit doubles have no equivalent and continue using only the local
+    asyncio gate. The lock is held until the refresh transaction commits or
+    rolls back, so a waiter can safely re-read the newly persisted coverage.
+    """
+
+    bind = getattr(db, "bind", None)
+    if bind is None:
+        bind = getattr(getattr(db, "sync_session", None), "bind", None)
+    if getattr(getattr(bind, "dialect", None), "name", None) != "postgresql":
+        return
+
+    digest = hashlib.sha256(repr(lock_key).encode("utf-8")).digest()
+    advisory_key = int.from_bytes(digest[:8], byteorder="big", signed=True)
+    await db.execute(select(func.pg_advisory_xact_lock(advisory_key)))
 
 
 def _e2e_fixture_bar_condition():
@@ -62,6 +166,85 @@ def _e2e_fixture_bar_condition():
     return (
         OHLCVBar.data_source_id
         == select(DataSource.id).where(DataSource.name == "e2e_reference").scalar_subquery()
+    )
+
+
+def _default_series_bar_condition(
+    instrument_id: int,
+    timeframe: Timeframe,
+    adjusted: bool,
+):
+    """Restrict compatibility reads to one selected series.
+
+    New provider writes create an explicit default mapping.  The canonical
+    series fallback handles rows created before that mapping existed, while
+    the legacy branch keeps old symbol-based rows readable when no series has
+    ever been recorded for the scope.
+    """
+
+    mapping = select(MarketSeriesDefault.market_series_id).where(
+        MarketSeriesDefault.instrument_id == instrument_id,
+        MarketSeriesDefault.timeframe == timeframe.value,
+        MarketSeriesDefault.is_adjusted == adjusted,
+    )
+    mapped_id = mapping.scalar_subquery()
+    mapped_bar = aliased(OHLCVBar)
+    mapping_target_has_bars = (
+        select(MarketSeriesDefault.id)
+        .join(MarketSeries, MarketSeries.id == MarketSeriesDefault.market_series_id)
+        .join(mapped_bar, mapped_bar.market_series_id == MarketSeries.id)
+        .where(
+            MarketSeriesDefault.instrument_id == instrument_id,
+            MarketSeriesDefault.timeframe == timeframe.value,
+            MarketSeriesDefault.is_adjusted == adjusted,
+            MarketSeries.is_active.is_(True),
+            mapped_bar.instrument_id == instrument_id,
+            mapped_bar.timeframe == timeframe,
+            mapped_bar.is_adjusted == adjusted,
+        )
+        .exists()
+    )
+    adjustment_predicate = (
+        MarketSeries.adjustment_basis != AdjustmentBasis.RAW
+        if adjusted
+        else MarketSeries.adjustment_basis == AdjustmentBasis.RAW
+    )
+    canonical = (
+        select(MarketSeries.id)
+        .where(
+            MarketSeries.instrument_id == instrument_id,
+            MarketSeries.timeframe == timeframe.value,
+            MarketSeries.is_canonical.is_(True),
+            MarketSeries.is_active.is_(True),
+            adjustment_predicate,
+        )
+        .order_by(MarketSeries.id)
+        .limit(1)
+    )
+    canonical_id = canonical.scalar_subquery()
+    canonical_bar = aliased(OHLCVBar)
+    canonical_has_bars = (
+        select(canonical_bar.id)
+        .where(
+            canonical_bar.instrument_id == instrument_id,
+            canonical_bar.timeframe == timeframe,
+            canonical_bar.is_adjusted == adjusted,
+            canonical_bar.market_series_id == canonical_id,
+        )
+        .exists()
+    )
+    return or_(
+        and_(mapping_target_has_bars, OHLCVBar.market_series_id == mapped_id),
+        and_(
+            ~mapping_target_has_bars,
+            canonical_has_bars,
+            OHLCVBar.market_series_id == canonical_id,
+        ),
+        and_(
+            ~mapping_target_has_bars,
+            ~canonical_has_bars,
+            OHLCVBar.market_series_id.is_(None),
+        ),
     )
 
 
@@ -283,25 +466,31 @@ async def _record_bar_observations(
         return
     observed_at = observed_at or datetime.now(UTC)
     await db.execute(
-        pg_insert(MarketBarObservation).on_conflict_do_update(
-            constraint="uq_market_bar_observation",
-            set_={
-                "provider_symbol": pg_insert(MarketBarObservation).excluded.provider_symbol,
-                "observed_at": pg_insert(MarketBarObservation).excluded.observed_at,
-                "open": pg_insert(MarketBarObservation).excluded.open,
-                "high": pg_insert(MarketBarObservation).excluded.high,
-                "low": pg_insert(MarketBarObservation).excluded.low,
-                "close": pg_insert(MarketBarObservation).excluded.close,
-                "volume": pg_insert(MarketBarObservation).excluded.volume,
-                "vwap": pg_insert(MarketBarObservation).excluded.vwap,
-            },
+        # Use the column conflict target instead of the constraint name so the
+        # persistence boundary remains executable on both PostgreSQL and the
+        # SQLite-backed unit/integration fixtures.  Raw observations are
+        # immutable evidence: a retry with the same observation timestamp must
+        # never overwrite the provider payload already retained.
+        pg_insert(MarketBarObservation).on_conflict_do_nothing(
+            index_elements=[
+                "instrument_id",
+                "data_source_id",
+                "timeframe",
+                "ts",
+                "is_adjusted",
+                "scope_key",
+                "observed_at",
+            ]
         ),
         [
             {
                 "instrument_id": bar.instrument_id,
                 "data_source_id": data_source_id,
+                "market_series_id": bar.market_series_id,
                 "provider_symbol": provider_symbol,
                 "timeframe": bar.timeframe,
+                "session": bar.session,
+                "scope_key": _bar_scope_key(bar),
                 "ts": bar.ts,
                 "observed_at": observed_at,
                 "open": bar.open,
@@ -311,6 +500,9 @@ async def _record_bar_observations(
                 "volume": bar.volume,
                 "vwap": bar.vwap,
                 "is_adjusted": bar.is_adjusted,
+                "adjustment_basis": bar.adjustment_basis,
+                "adjustment_version": bar.adjustment_version,
+                "source_payload": bar.provenance,
             }
             for bar in bars
         ],
@@ -381,7 +573,7 @@ async def persist_price_history_bars(
     insert_stmt = pg_insert(OHLCVBar)
     if use_upsert:
         insert_stmt = insert_stmt.on_conflict_do_update(
-            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+            index_elements=_OHLCV_CONFLICT_COLUMNS,
             set_={
                 "open": insert_stmt.excluded.open,
                 "high": insert_stmt.excluded.high,
@@ -390,12 +582,16 @@ async def persist_price_history_bars(
                 "volume": insert_stmt.excluded.volume,
                 "vwap": insert_stmt.excluded.vwap,
                 "data_source_id": insert_stmt.excluded.data_source_id,
+                "market_series_id": insert_stmt.excluded.market_series_id,
+                "session": insert_stmt.excluded.session,
+                "scope_key": insert_stmt.excluded.scope_key,
+                "adjustment_basis": insert_stmt.excluded.adjustment_basis,
+                "adjustment_version": insert_stmt.excluded.adjustment_version,
+                "provenance": insert_stmt.excluded.provenance,
             },
         )
     else:
-        insert_stmt = insert_stmt.on_conflict_do_nothing(
-            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
-        )
+        insert_stmt = insert_stmt.on_conflict_do_nothing(index_elements=_OHLCV_CONFLICT_COLUMNS)
     await db.execute(insert_stmt, [_bar_as_dict(bar) for bar in bars])
     await _touch_ohlcv_dataset_state(
         db,
@@ -449,6 +645,7 @@ async def recompute_synthetic_ohlcv(
                 OHLCVBar.instrument_id == c.constituent_instrument_id,
                 OHLCVBar.timeframe == timeframe,
                 OHLCVBar.is_adjusted.is_(True),
+                _default_series_bar_condition(c.constituent_instrument_id, timeframe, True),
             )
             .order_by(OHLCVBar.ts)
         )
@@ -463,7 +660,7 @@ async def recompute_synthetic_ohlcv(
                     try:
                         await db.execute(
                             pg_insert(OHLCVBar).on_conflict_do_nothing(
-                                index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                                index_elements=_OHLCV_CONFLICT_COLUMNS
                             ),
                             [_bar_as_dict(b) for b in new_bars],
                         )
@@ -532,6 +729,17 @@ async def recompute_synthetic_ohlcv(
                 "volume": None,
                 "vwap": None,
                 "is_adjusted": True,
+                "session": "regular",
+                "scope_key": "legacy:regular",
+                "adjustment_basis": "derived",
+                "adjustment_version": "expression-engine",
+                "provenance": {
+                    "provider": "synthetic_expression",
+                    "expression": instrument.expression,
+                    "constituent_instrument_ids": [
+                        c.constituent_instrument_id for c in constituents
+                    ],
+                },
             }
         )
 
@@ -539,12 +747,17 @@ async def recompute_synthetic_ohlcv(
         try:
             await db.execute(
                 pg_insert(OHLCVBar).on_conflict_do_update(
-                    index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+                    index_elements=_OHLCV_CONFLICT_COLUMNS,
                     set_={
                         "open": pg_insert(OHLCVBar).excluded.open,
                         "high": pg_insert(OHLCVBar).excluded.high,
                         "low": pg_insert(OHLCVBar).excluded.low,
                         "close": pg_insert(OHLCVBar).excluded.close,
+                        "data_source_id": pg_insert(OHLCVBar).excluded.data_source_id,
+                        "session": pg_insert(OHLCVBar).excluded.session,
+                        "adjustment_basis": pg_insert(OHLCVBar).excluded.adjustment_basis,
+                        "adjustment_version": pg_insert(OHLCVBar).excluded.adjustment_version,
+                        "provenance": pg_insert(OHLCVBar).excluded.provenance,
                     },
                 ),
                 new_bars,
@@ -557,13 +770,156 @@ async def recompute_synthetic_ohlcv(
     # Return ORM objects
     stmt = (
         select(OHLCVBar)
-        .where(OHLCVBar.instrument_id == instrument.id, OHLCVBar.timeframe == timeframe)
+        .where(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted.is_(True),
+            _default_series_bar_condition(instrument.id, timeframe, True),
+        )
         .order_by(OHLCVBar.ts)
     )
     return list((await db.execute(stmt)).scalars().all())
 
 
 async def fetch_ohlcv(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime | None = None,
+    adjusted: bool = True,
+    *,
+    allow_provider_fetch: bool = True,
+    redis: Any = None,
+) -> list[OHLCVBar]:
+    """Read/refresh OHLCV with identical in-process requests coalesced.
+
+    The lock covers the complete cache-read, provider-refresh, and persistence
+    transaction. A waiter therefore re-enters the implementation only after
+    the first caller has committed, allowing the normal coverage check to
+    return the newly persisted bars without another provider request. Local
+    only and synthetic reads remain lock-free. When explicitly enabled, the
+    same key is also held in Redis so deployments that do not share one
+    PostgreSQL transaction boundary still coalesce refreshes safely.
+    """
+
+    return await _with_ohlcv_refresh_gate(
+        instrument,
+        timeframe,
+        start,
+        end,
+        adjusted,
+        allow_provider_fetch=allow_provider_fetch,
+        redis=redis,
+        operation=lambda: _fetch_ohlcv_impl(
+            db,
+            instrument,
+            timeframe,
+            start,
+            end,
+            adjusted,
+            allow_provider_fetch=allow_provider_fetch,
+        ),
+    )
+
+
+async def _with_ohlcv_refresh_gate(
+    instrument: Instrument,
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime | None,
+    adjusted: bool,
+    *,
+    allow_provider_fetch: bool,
+    redis: Any = None,
+    operation: Callable[[], Awaitable[_T]],
+) -> _T:
+    """Coalesce one provider-capable OHLCV operation in this process.
+
+    The operation is supplied as a coroutine factory so cache-only and
+    synthetic reads avoid creating or retaining an unnecessary lock. Callers
+    use stable sentinels for implicit latest/page ranges, keeping those paths
+    coordinated without pretending that their provider request shape is the
+    same as an explicit historical range.
+    """
+
+    if not allow_provider_fetch or instrument.is_synthetic:
+        return await operation()
+
+    lock_key = _ohlcv_refresh_lock_key(instrument, timeframe, start, end, adjusted)
+    lock = _OHLCV_REFRESH_LOCKS.setdefault(lock_key, asyncio.Lock())
+    _OHLCV_REFRESH_LOCK_USERS[lock_key] = _OHLCV_REFRESH_LOCK_USERS.get(lock_key, 0) + 1
+    try:
+        async with lock:
+            distributed_redis = None
+            if settings.OHLCV_DISTRIBUTED_LOCK_ENABLED:
+                distributed_redis = redis or shared_redis_lock_client()
+            if distributed_redis is None:
+                return await operation()
+            async with redis_distributed_lock(
+                distributed_redis,
+                namespace="ohlcv-refresh",
+                identity=repr(lock_key),
+                ttl_seconds=settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS,
+                blocking_timeout_seconds=settings.OHLCV_DISTRIBUTED_LOCK_WAIT_SECONDS,
+                retry_interval_seconds=settings.OHLCV_DISTRIBUTED_LOCK_RETRY_SECONDS,
+            ):
+                return await operation()
+    finally:
+        remaining = _OHLCV_REFRESH_LOCK_USERS[lock_key] - 1
+        if remaining:
+            _OHLCV_REFRESH_LOCK_USERS[lock_key] = remaining
+        else:
+            _OHLCV_REFRESH_LOCK_USERS.pop(lock_key, None)
+            _OHLCV_REFRESH_LOCKS.pop(lock_key, None)
+
+
+async def _with_latest_price_refresh_gate(
+    instrument: Instrument,
+    *,
+    redis: Any = None,
+    operation: Callable[[], Awaitable[_T]],
+) -> _T:
+    """Coalesce latest-price refreshes across local workers and opt-in Redis.
+
+    The latest-price cache is checked again inside the gate by the operation
+    factory. This ensures a waiter returns the first worker's persisted
+    observation instead of issuing a second provider request. The Redis leg
+    is opt-in and fail-closed under the same bounded deployment settings as
+    canonical OHLCV refresh coordination.
+    """
+
+    lock_key = int(instrument.id)
+    lock = _LATEST_PRICE_REFRESH_LOCKS.setdefault(lock_key, asyncio.Lock())
+    _LATEST_PRICE_REFRESH_LOCK_USERS[lock_key] = (
+        _LATEST_PRICE_REFRESH_LOCK_USERS.get(lock_key, 0) + 1
+    )
+    try:
+        async with lock:
+            distributed_redis = None
+            if settings.OHLCV_DISTRIBUTED_LOCK_ENABLED:
+                distributed_redis = redis or shared_redis_lock_client()
+            if distributed_redis is None:
+                return await operation()
+            async with redis_distributed_lock(
+                distributed_redis,
+                namespace="latest-price-refresh",
+                identity=repr(lock_key),
+                ttl_seconds=settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS,
+                blocking_timeout_seconds=settings.OHLCV_DISTRIBUTED_LOCK_WAIT_SECONDS,
+                retry_interval_seconds=settings.OHLCV_DISTRIBUTED_LOCK_RETRY_SECONDS,
+            ):
+                return await operation()
+    finally:
+        remaining = _LATEST_PRICE_REFRESH_LOCK_USERS[lock_key] - 1
+        if remaining:
+            _LATEST_PRICE_REFRESH_LOCK_USERS[lock_key] = remaining
+        else:
+            _LATEST_PRICE_REFRESH_LOCK_USERS.pop(lock_key, None)
+            _LATEST_PRICE_REFRESH_LOCKS.pop(lock_key, None)
+
+
+async def _fetch_ohlcv_impl(
     db: AsyncSession,
     instrument: Instrument,
     timeframe: Timeframe,
@@ -580,6 +936,11 @@ async def fetch_ohlcv(
             end = datetime.now(UTC)
         return [b for b in bars if b.ts >= start and b.ts <= end]
 
+    await _acquire_database_refresh_lock(
+        db,
+        _ohlcv_refresh_lock_key(instrument, timeframe, start, end, adjusted),
+    )
+
     if end is None:
         end = datetime.now(UTC)
 
@@ -589,6 +950,7 @@ async def fetch_ohlcv(
         OHLCVBar.ts >= start,
         OHLCVBar.ts <= end,
         OHLCVBar.is_adjusted == adjusted,
+        _default_series_bar_condition(instrument.id, timeframe, adjusted),
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
@@ -630,30 +992,15 @@ async def fetch_ohlcv(
                     "Skipping unavailable provider repair slice %s to %s: %s",
                     repair_start,
                     repair_end,
-                    exc,
+                    bounded_redact_provider_message(exc),
                 )
         if new_bars:
             try:
                 await db.execute(
                     pg_insert(OHLCVBar).on_conflict_do_nothing(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                        index_elements=_OHLCV_CONFLICT_COLUMNS
                     ),
-                    [
-                        {
-                            "instrument_id": b.instrument_id,
-                            "data_source_id": b.data_source_id,
-                            "timeframe": b.timeframe,
-                            "ts": b.ts,
-                            "open": b.open,
-                            "high": b.high,
-                            "low": b.low,
-                            "close": b.close,
-                            "volume": b.volume,
-                            "vwap": b.vwap,
-                            "is_adjusted": b.is_adjusted,
-                        }
-                        for b in new_bars
-                    ],
+                    [_bar_as_dict(b) for b in new_bars],
                 )
                 await db.commit()
             except Exception as e:
@@ -679,6 +1026,7 @@ _TF_STALENESS: dict[Timeframe, timedelta] = {
     Timeframe.D1: timedelta(days=1),
     Timeframe.W1: timedelta(weeks=1),
     Timeframe.MN: timedelta(days=31),
+    Timeframe.Y1: timedelta(days=366),
 }
 
 
@@ -738,11 +1086,41 @@ async def _fetch_provider(
     end: datetime,
     adjusted: bool,
 ) -> list[OHLCVBar]:
+    alpaca_cost = estimate_ohlcv_request_count(timeframe, start, end)
+    binance_cost = estimate_ohlcv_request_weight(timeframe, start, end)
+    coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, start, end)
+    kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, start, end)
+    massive_cost = estimate_massive_ohlcv_request_count(timeframe, start, end)
+    marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, start, end)
+    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, start, end)
+    ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, start, end)
+    marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(timeframe, start, end)
+    fmp_cost = estimate_fmp_ohlcv_request_count(timeframe, start, end)
+    tiingo_cost = estimate_tiingo_ohlcv_request_count(timeframe, start, end)
+    operation_cost_overrides = {
+        **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
+        **({"binance": binance_cost} if binance_cost is not None else {}),
+        **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
+        **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"massive": massive_cost} if massive_cost is not None else {}),
+        **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
+        **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
+        **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
+        **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
+        **({"fmp": fmp_cost} if fmp_cost is not None else {}),
+        **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
+    }
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
         f"fetch_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(
+            instrument, provider_name
+        ),
+        operation_cost_overrides=operation_cost_overrides or None,
+        adjusted=adjusted,
+        history_start=start,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
@@ -756,10 +1134,13 @@ async def _fetch_provider(
         treat_empty_as_failure=True,
     )
     provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
-    bars = execution.result
-    for bar in bars:
-        bar.instrument_id = instrument.id
-        bar.data_source_id = execution.data_source.id
+    bars = await _attach_provider_series(
+        db,
+        instrument,
+        timeframe,
+        adjusted,
+        execution,
+    )
     await _record_bar_observations(
         db,
         bars,
@@ -784,6 +1165,84 @@ async def _fetch_provider(
     return bars
 
 
+async def _attach_provider_series(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    adjusted: bool,
+    execution: Any,
+    *,
+    bars: list[OHLCVBar] | None = None,
+) -> list[OHLCVBar]:
+    """Attach a deterministic canonical series to every provider bar result.
+
+    Historical and latest-window fetches share the same persistence path. The
+    helper keeps both paths from falling back to legacy ``NULL`` series IDs,
+    which would otherwise be hidden once a default mapping is created.
+    """
+
+    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
+    bars = execution.result if bars is None else bars
+    for bar in bars:
+        bar.instrument_id = instrument.id
+        bar.data_source_id = execution.data_source.id
+    if not bars:
+        return bars
+
+    grouped: dict[tuple[str, AdjustmentBasis, str, str], list[OHLCVBar]] = {}
+    for bar in bars:
+        try:
+            basis_value = getattr(bar.adjustment_basis, "value", bar.adjustment_basis)
+            adjustment_basis = AdjustmentBasis(str(basis_value))
+        except ValueError:
+            adjustment_basis = (
+                AdjustmentBasis.PROVIDER_ADJUSTED if adjusted else AdjustmentBasis.RAW
+            )
+        session_code = str(bar.session or "regular").strip() or "regular"
+        adjustment_version = str(bar.adjustment_version or "legacy")
+        feed_scope = str((bar.provenance or {}).get("feed") or "provider_native")
+        grouped.setdefault(
+            (session_code, adjustment_basis, adjustment_version, feed_scope), []
+        ).append(bar)
+
+    for (
+        session_code,
+        adjustment_basis,
+        adjustment_version,
+        feed_scope,
+    ), scoped_bars in grouped.items():
+        series = await get_or_create_series(
+            db,
+            SeriesScope(
+                instrument_id=instrument.id,
+                data_source_id=execution.data_source.id,
+                feed_scope=feed_scope,
+                session_code=session_code,
+                timeframe=timeframe.value,
+                adjustment_basis=adjustment_basis,
+                adjustment_version=adjustment_version,
+            ),
+            canonical=True,
+            source_series_key=(
+                f"{execution.provider_name}:{provider_symbol}:{timeframe.value}:"
+                f"{feed_scope}:{session_code}:{adjustment_basis.value}:{adjustment_version}"
+            ),
+            provenance={
+                "provider": execution.provider_name,
+                "provider_symbol": provider_symbol,
+                "feed_scope": feed_scope,
+                "session": session_code,
+                "timeframe": timeframe.value,
+                "adjustment_basis": adjustment_basis.value,
+                "adjustment_version": adjustment_version,
+                "bar_count": len(scoped_bars),
+            },
+        )
+        for bar in scoped_bars:
+            bar.market_series_id = series.id
+    return bars
+
+
 async def fetch_ohlcv_latest(
     db: AsyncSession,
     instrument: Instrument,
@@ -792,18 +1251,50 @@ async def fetch_ohlcv_latest(
     adjusted: bool = True,
     *,
     allow_provider_fetch: bool = True,
+    redis: Any = None,
 ) -> list[OHLCVBar]:
-    """Return the most recent `limit` bars from the DB, refreshing from the configured provider if stale.
+    """Return the most recent ``limit`` bars with refresh coalescing."""
+    return await _with_ohlcv_refresh_gate(
+        instrument,
+        timeframe,
+        _EPOCH,
+        None,
+        adjusted,
+        allow_provider_fetch=allow_provider_fetch,
+        redis=redis,
+        operation=lambda: _fetch_ohlcv_latest_impl(
+            db,
+            instrument,
+            timeframe,
+            limit,
+            adjusted,
+            allow_provider_fetch=allow_provider_fetch,
+        ),
+    )
 
-    For synthetic instruments the full computed series is returned (limit applied).
-    """
+
+async def _fetch_ohlcv_latest_impl(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    limit: int,
+    adjusted: bool = True,
+    *,
+    allow_provider_fetch: bool = True,
+) -> list[OHLCVBar]:
+    """Implementation for :func:`fetch_ohlcv_latest` after gate admission."""
     if instrument.is_synthetic:
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
         return bars[-limit:] if len(bars) > limit else bars
+    await _acquire_database_refresh_lock(
+        db,
+        _ohlcv_refresh_lock_key(instrument, timeframe, _EPOCH, None, adjusted),
+    )
     predicates = [
         OHLCVBar.instrument_id == instrument.id,
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted == adjusted,
+        _default_series_bar_condition(instrument.id, timeframe, adjusted),
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
@@ -824,7 +1315,7 @@ async def fetch_ohlcv_latest(
             try:
                 await db.execute(
                     pg_insert(OHLCVBar).on_conflict_do_nothing(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                        index_elements=_OHLCV_CONFLICT_COLUMNS
                     ),
                     [_bar_as_dict(b) for b in new_bars],
                 )
@@ -859,7 +1350,7 @@ async def fetch_ohlcv_latest(
                 try:
                     await db.execute(
                         pg_insert(OHLCVBar).on_conflict_do_update(
-                            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+                            index_elements=_OHLCV_CONFLICT_COLUMNS,
                             set_={
                                 "open": pg_insert(OHLCVBar).excluded.open,
                                 "high": pg_insert(OHLCVBar).excluded.high,
@@ -867,6 +1358,14 @@ async def fetch_ohlcv_latest(
                                 "close": pg_insert(OHLCVBar).excluded.close,
                                 "volume": pg_insert(OHLCVBar).excluded.volume,
                                 "vwap": pg_insert(OHLCVBar).excluded.vwap,
+                                "data_source_id": pg_insert(OHLCVBar).excluded.data_source_id,
+                                "market_series_id": pg_insert(OHLCVBar).excluded.market_series_id,
+                                "session": pg_insert(OHLCVBar).excluded.session,
+                                "adjustment_basis": pg_insert(OHLCVBar).excluded.adjustment_basis,
+                                "adjustment_version": pg_insert(
+                                    OHLCVBar
+                                ).excluded.adjustment_version,
+                                "provenance": pg_insert(OHLCVBar).excluded.provenance,
                             },
                         ),
                         [_bar_as_dict(b) for b in repair_bars],
@@ -892,7 +1391,7 @@ async def fetch_ohlcv_latest(
             try:
                 await db.execute(
                     pg_insert(OHLCVBar).on_conflict_do_update(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+                        index_elements=_OHLCV_CONFLICT_COLUMNS,
                         set_={
                             "open": pg_insert(OHLCVBar).excluded.open,
                             "high": pg_insert(OHLCVBar).excluded.high,
@@ -900,6 +1399,12 @@ async def fetch_ohlcv_latest(
                             "close": pg_insert(OHLCVBar).excluded.close,
                             "volume": pg_insert(OHLCVBar).excluded.volume,
                             "vwap": pg_insert(OHLCVBar).excluded.vwap,
+                            "data_source_id": pg_insert(OHLCVBar).excluded.data_source_id,
+                            "market_series_id": pg_insert(OHLCVBar).excluded.market_series_id,
+                            "session": pg_insert(OHLCVBar).excluded.session,
+                            "adjustment_basis": pg_insert(OHLCVBar).excluded.adjustment_basis,
+                            "adjustment_version": pg_insert(OHLCVBar).excluded.adjustment_version,
+                            "provenance": pg_insert(OHLCVBar).excluded.provenance,
                         },
                     ),
                     [_bar_as_dict(b) for b in new_bars],
@@ -923,13 +1428,40 @@ async def fetch_ohlcv_page_before(
     adjusted: bool = True,
     *,
     allow_provider_fetch: bool = True,
+    redis: Any = None,
 ) -> list[OHLCVBar]:
-    """
-    Return up to `limit` bars strictly before `before`.
+    """Return up to ``limit`` bars strictly before ``before`` with coalescing."""
+    return await _with_ohlcv_refresh_gate(
+        instrument,
+        timeframe,
+        _EPOCH,
+        before,
+        adjusted,
+        allow_provider_fetch=allow_provider_fetch,
+        redis=redis,
+        operation=lambda: _fetch_ohlcv_page_before_impl(
+            db,
+            instrument,
+            timeframe,
+            before,
+            limit,
+            adjusted,
+            allow_provider_fetch=allow_provider_fetch,
+        ),
+    )
 
-    For synthetic instruments the full computed series is filtered instead of
-    hitting the external provider.
-    """
+
+async def _fetch_ohlcv_page_before_impl(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    before: datetime,
+    limit: int,
+    adjusted: bool = True,
+    *,
+    allow_provider_fetch: bool = True,
+) -> list[OHLCVBar]:
+    """Implementation for :func:`fetch_ohlcv_page_before` after gate admission."""
     if instrument.is_synthetic:
         from app.models.synthetic_constituent import SyntheticConstituent
 
@@ -961,6 +1493,11 @@ async def fetch_ohlcv_page_before(
         filtered = [b for b in bars if b.ts < before]
         return filtered[-limit:] if len(filtered) > limit else filtered
 
+    await _acquire_database_refresh_lock(
+        db,
+        _ohlcv_refresh_lock_key(instrument, timeframe, _EPOCH, before, adjusted),
+    )
+
     """
     DB-first: queries the local cache. If the DB has fewer rows than requested,
     falls back to a live provider fetch for the missing historical range
@@ -973,6 +1510,7 @@ async def fetch_ohlcv_page_before(
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted == adjusted,
         OHLCVBar.ts < before,
+        _default_series_bar_condition(instrument.id, timeframe, adjusted),
     ]
     if _seeded_market_data():
         predicates.append(_e2e_fixture_bar_condition())
@@ -1005,7 +1543,7 @@ async def fetch_ohlcv_page_before(
             try:
                 await db.execute(
                     pg_insert(OHLCVBar).on_conflict_do_nothing(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
+                        index_elements=_OHLCV_CONFLICT_COLUMNS
                     ),
                     [_bar_as_dict(b) for b in fetched],
                 )
@@ -1022,12 +1560,24 @@ async def fetch_ohlcv_page_before(
     return rows
 
 
+def _bar_scope_key(b: OHLCVBar) -> str:
+    """Return the persisted conflict key for a scoped or legacy bar."""
+
+    session = str(b.session or "regular").strip() or "regular"
+    if b.market_series_id is None:
+        return f"legacy:{session}"
+    return f"series:{b.market_series_id}:{session}"
+
+
 def _bar_as_dict(b: OHLCVBar) -> dict:
     return {
         "instrument_id": b.instrument_id,
         "data_source_id": b.data_source_id,
+        "market_series_id": b.market_series_id,
         "timeframe": b.timeframe,
         "ts": b.ts,
+        "session": b.session,
+        "scope_key": _bar_scope_key(b),
         "open": b.open,
         "high": b.high,
         "low": b.low,
@@ -1035,6 +1585,9 @@ def _bar_as_dict(b: OHLCVBar) -> dict:
         "volume": b.volume,
         "vwap": b.vwap,
         "is_adjusted": b.is_adjusted,
+        "adjustment_basis": b.adjustment_basis,
+        "adjustment_version": b.adjustment_version,
+        "provenance": b.provenance,
     }
 
 
@@ -1046,11 +1599,57 @@ async def _fetch_provider_latest(
     adjusted: bool,
 ) -> list[OHLCVBar]:
     """Fetch approximately `limit` recent bars from the configured provider when DB is cold."""
+    alpaca_cost = estimate_latest_ohlcv_request_count(timeframe, limit)
+    binance_cost = estimate_latest_ohlcv_request_weight(timeframe, limit)
+    coinbase_cost = estimate_coinbase_latest_ohlcv_request_count(timeframe, limit)
+    kraken_cost = estimate_kraken_latest_ohlcv_request_count(timeframe, limit)
+    massive_cost = estimate_massive_latest_ohlcv_request_count(timeframe, limit)
+    marketstack_cost = estimate_marketstack_latest_ohlcv_request_count(timeframe, limit)
+    twelve_data_cost = estimate_twelve_data_latest_ohlcv_request_count(timeframe, limit)
+    ibkr_cost = estimate_ibkr_latest_ohlcv_request_count(timeframe, limit)
+    marketdata_app_cost = estimate_marketdata_app_latest_ohlcv_credit_count(timeframe, limit)
+    fmp_provider = get_provider("fmp")
+    fmp_cost = estimate_fmp_ohlcv_request_count(
+        timeframe,
+        fmp_provider.latest_window_start(timeframe, limit),
+        datetime.now(UTC),
+    )
+    tiingo_provider = get_provider("tiingo")
+    tiingo_cost = estimate_tiingo_ohlcv_request_count(
+        timeframe,
+        tiingo_provider.latest_window_start(timeframe, limit),
+        datetime.now(UTC),
+    )
+    operation_cost_overrides = {
+        **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
+        **({"binance": binance_cost} if binance_cost is not None else {}),
+        **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
+        **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"massive": massive_cost} if massive_cost is not None else {}),
+        **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
+        **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
+        **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
+        **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
+        **({"fmp": fmp_cost} if fmp_cost is not None else {}),
+        **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
+    }
+
+    def provider_history_start(provider_name: str) -> datetime:
+        """Return the provider's actual latest-window start for bound admission."""
+
+        return get_provider(provider_name).latest_window_start(timeframe, limit)
+
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
         f"fetch_latest_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(
+            instrument, provider_name
+        ),
+        operation_cost_overrides=operation_cost_overrides or None,
+        adjusted=adjusted,
+        history_start=provider_history_start,
         invoke=lambda provider, _provider_symbol: provider.fetch_latest_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
@@ -1062,11 +1661,16 @@ async def _fetch_provider_latest(
         response_items=lambda result: len(result),
         treat_empty_as_failure=True,
     )
-    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
     bars = execution.result[-limit:] if len(execution.result) > limit else execution.result
-    for bar in bars:
-        bar.instrument_id = instrument.id
-        bar.data_source_id = execution.data_source.id
+    bars = await _attach_provider_series(
+        db,
+        instrument,
+        timeframe,
+        adjusted,
+        execution,
+        bars=bars,
+    )
+    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
     await _record_bar_observations(
         db,
         bars,
@@ -1087,30 +1691,56 @@ async def _fetch_provider_latest(
 async def get_current_price_async(
     db: AsyncSession,
     instrument: Instrument,
+    *,
+    redis: Any = None,
 ) -> float | None:
     cached = await _fresh_latest_price_from_cache(db, instrument)
     if cached is not None:
         return cached
-    execution = await execute_provider_call(
-        db,
-        ProviderCapability.LATEST_PRICE,
-        "get_current_price",
-        instrument_id=instrument.id,
-        invoke=lambda provider, _provider_symbol: provider.get_current_price(
-            provider_symbol_for_instrument(instrument, provider.name)
-        ),
-        response_items=lambda result: 1 if result is not None else 0,
-        treat_empty_as_failure=True,
-    )
-    provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
-    await store_latest_price_snapshot(
-        db,
-        instrument_id=instrument.id,
-        data_source_id=execution.data_source.id,
-        provider_symbol=provider_symbol,
-        price=execution.result,
-    )
-    return execution.result
+
+    async def _refresh() -> float | None:
+        # A waiter may have entered after the first worker persisted its
+        # observation, so always re-check the cache while holding the gate.
+        cached_inside_gate = await _fresh_latest_price_from_cache(db, instrument)
+        if cached_inside_gate is not None:
+            return cached_inside_gate
+        execution = await execute_provider_call(
+            db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            instrument_id=instrument.id,
+            operation_cost_overrides={
+                "ibkr": estimate_ibkr_current_price_request_count(
+                    provider_symbol_for_instrument(instrument, "ibkr")
+                )
+            },
+            usage_identity=lambda provider_name: provider_symbol_for_instrument(
+                instrument, provider_name
+            ),
+            invoke=lambda provider, _provider_symbol: provider.get_current_price(
+                provider_symbol_for_instrument(instrument, provider.name)
+            ),
+            response_items=lambda result: 1 if result is not None else 0,
+            treat_empty_as_failure=True,
+            capture_response_payloads=True,
+        )
+        provider_symbol = provider_symbol_for_instrument(instrument, execution.provider_name)
+        await store_latest_price_snapshot(
+            db,
+            instrument_id=instrument.id,
+            data_source_id=execution.data_source.id,
+            provider_symbol=provider_symbol,
+            price=execution.result,
+            payload=(
+                getattr(execution, "response_payloads", ())[-1]
+                if getattr(execution, "response_payloads", ())
+                else None
+            ),
+            payloads=getattr(execution, "response_payloads", ()) or None,
+        )
+        return execution.result
+
+    return await _with_latest_price_refresh_gate(instrument, redis=redis, operation=_refresh)
 
 
 def get_current_price(provider_symbol: str) -> float | None:
@@ -1196,6 +1826,7 @@ async def get_provider_profile_async(
             "get_instrument_profile",
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
+            usage_identity=provider_symbol,
             provider_name=provider_name,
             invoke=lambda provider, actual_symbol: provider.get_instrument_profile(
                 actual_symbol or provider_symbol

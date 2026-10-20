@@ -1,5 +1,28 @@
 # ETF integration checkpoint: etf-holdings-integration-1
 
+## Current Provider producer release — 2026-10-20 20:58Z
+
+Provider is accepted and released in synchronized green staging at exact SHA
+`9b230ba4c97126a2937667138c6eb2a0aa297baf`; exact CI `39484176087` and
+Exhaustive job `118849529356` are terminal green. The coordinator's release
+record and canonical receipt are linked from the current ETF handoff and plan.
+This supersedes prior unreleased-Provider statements only for this release. It
+does not accept ETF or close any of its fourteen roadmap criteria.
+
+The ETF owner fetched and verified the exact staging ref and is reconciling
+that single SHA in the assigned ETF branch. Staging omitted/deleted ETF-owned
+source and durable workstream records; those exact ETF files are being
+preserved while shared source conflicts are resolved semantically. Provider's
+imported workstream remains byte-for-byte as released. After merge, inspect the
+actual producer API—not earlier candidate notes—before implementing
+`ETF_HOLDINGS`, its additive capability enum/schema/disabled seed, identity and
+issuer policy bindings, per-attempt shared admission and settlement, recurring
+budget admission, health and request/artifact lineage. Preserve all
+zero-transport denial cases and the pre-existing current/degraded/stale/partial/
+unavailable and historical/PIT consumer contracts. Unknown/unreviewed routes
+remain held; no issuer sweep or replay is authorized. The required local
+`full_stack_browser` gate awaits a coordinator-assigned safe fixture slot.
+
 Prepared under the human's 2026-10-15 central-first resume direction. Planning
 is authorized; implementation checkpoint acceptance remains pending. The full
 objective and fourteen original criteria remain verbatim in `plan.yaml` under

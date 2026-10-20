@@ -47,6 +47,10 @@ class RadarRunCreate(BaseModel):
     timeframe: Timeframe = Timeframe.D1
     universe_type: str = "all"
     universe_filter: dict | None = None
+    # A repair request only enqueues durable OHLCV work; the radar evaluator
+    # never performs provider I/O. Keep it opt-in so existing runs preserve
+    # their read-only behavior.
+    queue_repairs: bool = False
 
 
 class RadarWatchlistActionCreate(BaseModel):
@@ -268,6 +272,7 @@ async def trigger_radar_run(
         universe_type=(body.universe_type if body else "all"),
         universe_filter=(body.universe_filter if body else None),
         user_id=current_user.id,
+        queue_repairs=bool(body.queue_repairs) if body else False,
     )
     return run
 

@@ -1,5 +1,43 @@
 # feat/etf-holdings-constituents
 
+## Accepted Provider release and ETF-only reconciliation — 2026-10-20 20:58Z
+
+Provider is accepted and released in synchronized green staging at exact SHA
+`9b230ba4c97126a2937667138c6eb2a0aa297baf`. The canonical coordinator
+record is
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-green-release-20261020.md`
+and receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261020T205101Z-9b230ba4c971.json`.
+Exact CI `39484176087` and Exhaustive job `118849529356` are terminal green;
+the coordinator independently verified 155 functional and 104 visual cases,
+zero retries. The older Provider-unreleased reminders below describe their
+historical state and are superseded only for this exact release.
+
+The ETF owner verified the existing claim/worktree, fetched origin staging and
+confirmed its tip exactly matches the release SHA. The authorized merge is in
+progress in this ETF worktree only. Staging removed ETF-owned source/tests and
+workstream files; the merge explicitly restores those exact ETF files before
+semantic reconciliation so feature code, historical evidence, and the full
+roadmap are not silently deleted. Conflicts in shared consumers retain both
+the staged market-data/analysis behavior and ETF behavior. The
+`allow_external_identifier` guard remains: ETF-internal materialization must
+not synthesize a canonical external identity. Provider workstream records
+imported from staging remain untouched.
+
+Next: finish merge validation, record exact migration heads, then implement the
+ETF-owned `ETF_HOLDINGS` enum/additive schema/seed and the shared-runtime
+consumer bridge against the released code. Tests must prove each actual
+redirect/retry/page/client fallback/SEC attempt is admitted and settled once,
+and that unknown, held, malformed, exhausted, or unreviewed requests perform
+zero adapter/reservation/transport work. Preserve shared recurring-cost,
+identity, entitlement, quota, health, and request-log ownership; do not add an
+ETF ledger. Preserve historical/PIT network-free reads and current/degraded/
+stale/partial/unavailable lineage. MSMR/QQQ and Militia/GOOG remain unresolved
+and quarantined. The required local `full_stack_browser` profile remains open
+until the coordinator assigns a safe fixture slot. No live issuer/provider/SEC
+request, quota spend, paid/trial activation, deployment, staging/sibling write,
+or ETF checkpoint acceptance occurred.
+
 ## CI39409144862 rejection-contract repair — 2026-10-20
 
 Exact-source Actions run `39409144862` for `3b820888ebedc7417ddcb04b41679f332e0b5da9`

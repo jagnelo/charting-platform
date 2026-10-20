@@ -1,8 +1,14 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
-from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
+import pytest
+from sqlalchemy.dialects import postgresql
+
+from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
+from app.services import market_data
 from app.services.market_data import (
+    _bar_as_dict,
     _historical_repair_start,
     _is_positive_repair_slice,
     _is_recoverable_provider_gap,
@@ -47,7 +53,261 @@ def test_cached_ranges_tolerate_expected_provider_availability_failures():
         )
         is True
     )
+
+
+def _semantic_bar() -> OHLCVBar:
+    return OHLCVBar(
+        instrument_id=42,
+        data_source_id=7,
+        market_series_id=99,
+        timeframe=Timeframe.D1,
+        ts=datetime(2026, 1, 2, tzinfo=UTC),
+        session="regular",
+        open=100,
+        high=102,
+        low=99,
+        close=101,
+        volume=1234,
+        vwap=100.5,
+        is_adjusted=True,
+        adjustment_basis="provider_adjusted",
+        adjustment_version="alpaca-all",
+        provenance={"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
+    )
+
+
+def test_bar_insert_mapping_preserves_series_adjustment_and_provenance():
+    mapped = _bar_as_dict(_semantic_bar())
+
+    assert mapped == {
+        "instrument_id": 42,
+        "data_source_id": 7,
+        "market_series_id": 99,
+        "timeframe": Timeframe.D1,
+        "ts": datetime(2026, 1, 2, tzinfo=UTC),
+        "session": "regular",
+        "scope_key": "series:99:regular",
+        "open": 100,
+        "high": 102,
+        "low": 99,
+        "close": 101,
+        "volume": 1234,
+        "vwap": 100.5,
+        "is_adjusted": True,
+        "adjustment_basis": "provider_adjusted",
+        "adjustment_version": "alpaca-all",
+        "provenance": {"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
+    }
+
+
+@pytest.mark.asyncio
+async def test_observation_insert_mapping_preserves_series_adjustment_and_payload():
+    class _Db:
+        def __init__(self):
+            self.parameters = None
+
+        async def execute(self, _statement, parameters):
+            self.parameters = parameters
+
+    db = _Db()
+    await market_data._record_bar_observations(
+        db,
+        [_semantic_bar()],
+        data_source_id=7,
+        provider_symbol="AAPL",
+        observed_at=datetime(2026, 1, 3, tzinfo=UTC),
+    )
+
+    assert db.parameters == [
+        {
+            "instrument_id": 42,
+            "data_source_id": 7,
+            "market_series_id": 99,
+            "provider_symbol": "AAPL",
+            "timeframe": Timeframe.D1,
+            "session": "regular",
+            "scope_key": "series:99:regular",
+            "ts": datetime(2026, 1, 2, tzinfo=UTC),
+            "observed_at": datetime(2026, 1, 3, tzinfo=UTC),
+            "open": 100,
+            "high": 102,
+            "low": 99,
+            "close": 101,
+            "volume": 1234,
+            "vwap": 100.5,
+            "is_adjusted": True,
+            "adjustment_basis": "provider_adjusted",
+            "adjustment_version": "alpaca-all",
+            "source_payload": {"provider": "alpaca", "provider_payload": {"t": "2026-01-02"}},
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_bar_observation_insert_is_append_only_for_same_observation_timestamp():
+    class _Db:
+        def __init__(self):
+            self.statement = None
+
+        async def execute(self, statement, _parameters):
+            self.statement = statement
+
+    db = _Db()
+    await market_data._record_bar_observations(
+        db,
+        [_semantic_bar()],
+        data_source_id=7,
+        provider_symbol="AAPL",
+        observed_at=datetime(2026, 1, 3, tzinfo=UTC),
+    )
+
+    assert "DO NOTHING" in str(db.statement.compile(dialect=postgresql.dialect()))
     assert _is_recoverable_provider_gap(RuntimeError("unexpected programming failure")) is False
+
+
+@pytest.mark.asyncio
+async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
+    bar = _semantic_bar()
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=17),
+        result=[bar],
+    )
+    captured: dict[str, object] = {}
+
+    async def fake_execute(*_args, **_kwargs):
+        captured["execute_kwargs"] = _kwargs
+        return execution
+
+    async def fake_get_or_create(_db, scope, **kwargs):
+        captured["scope"] = scope
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(id=123)
+
+    async def fake_record(*_args, **_kwargs):
+        return None
+
+    async def fake_touch(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+    monkeypatch.setattr(market_data, "_record_bar_observations", fake_record)
+    monkeypatch.setattr(market_data, "_touch_ohlcv_dataset_state", fake_touch)
+
+    instrument = SimpleNamespace(id=42)
+    result = await market_data._fetch_provider(
+        object(),
+        instrument,
+        Timeframe.D1,
+        datetime(2020, 1, 1, tzinfo=UTC),
+        datetime(2023, 1, 1, tzinfo=UTC),
+        True,
+    )
+
+    scope = captured["scope"]
+    assert scope.instrument_id == 42
+    assert scope.data_source_id == 17
+    assert scope.feed_scope == "provider_native"
+    assert scope.session_code == "regular"
+    assert scope.timeframe == "D1"
+    assert scope.adjustment_basis.value == "provider_adjusted"
+    assert scope.adjustment_version == "alpaca-all"
+    assert captured["kwargs"]["canonical"] is True
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["marketdata_app"] == 2
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["fmp"] == 1
+    assert result[0].market_series_id == 123
+
+
+@pytest.mark.asyncio
+async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch):
+    bar = _semantic_bar()
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=17),
+        result=[bar],
+    )
+    captured: dict[str, object] = {}
+
+    async def fake_execute(*_args, **_kwargs):
+        captured["execute_kwargs"] = _kwargs
+        return execution
+
+    async def fake_get_or_create(_db, scope, **kwargs):
+        captured["scope"] = scope
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(id=456)
+
+    async def fake_record(*_args, **_kwargs):
+        return None
+
+    async def fake_touch(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    expected_history_start = datetime(2025, 12, 1, tzinfo=UTC)
+    monkeypatch.setattr(
+        market_data,
+        "get_provider",
+        lambda _provider_name: SimpleNamespace(
+            latest_window_start=lambda _timeframe, _limit: expected_history_start
+        ),
+    )
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+    monkeypatch.setattr(market_data, "_record_bar_observations", fake_record)
+    monkeypatch.setattr(market_data, "_touch_ohlcv_dataset_state", fake_touch)
+
+    result = await market_data._fetch_provider_latest(
+        object(),
+        SimpleNamespace(id=42),
+        Timeframe.D1,
+        10,
+        True,
+    )
+
+    scope = captured["scope"]
+    assert scope.instrument_id == 42
+    assert scope.data_source_id == 17
+    assert scope.timeframe == "D1"
+    assert captured["kwargs"]["canonical"] is True
+    assert captured["execute_kwargs"]["history_start"]("alpaca") == expected_history_start
+    assert captured["execute_kwargs"]["operation_cost_overrides"]["fmp"] == 1
+    assert result[0].market_series_id == 456
+
+
+@pytest.mark.asyncio
+async def test_provider_refresh_splits_mixed_sessions_into_distinct_series(monkeypatch):
+    regular = _semantic_bar()
+    extended = _semantic_bar()
+    extended.session = "extended"
+    extended.provenance = {"provider": "alpaca", "feed": "iex"}
+    execution = SimpleNamespace(
+        provider_name="alpaca",
+        data_source=SimpleNamespace(id=17),
+        result=[regular, extended],
+    )
+    scopes = []
+
+    async def fake_get_or_create(_db, scope, **_kwargs):
+        scopes.append(scope)
+        return SimpleNamespace(id=100 + len(scopes))
+
+    monkeypatch.setattr(market_data, "get_or_create_series", fake_get_or_create)
+    monkeypatch.setattr(market_data, "provider_symbol_for_instrument", lambda *_args: "AAPL")
+
+    result = await market_data._attach_provider_series(
+        object(),
+        SimpleNamespace(id=42),
+        Timeframe.D1,
+        True,
+        execution,
+    )
+
+    assert len(scopes) == 2
+    assert {scope.session_code for scope in scopes} == {"regular", "extended"}
+    assert {bar.market_series_id for bar in result} == {101, 102}
 
 
 def _bar(ts: datetime, timeframe: Timeframe = Timeframe.D1):
@@ -139,3 +399,346 @@ def test_coverage_planner_reports_cold_range_and_bounded_slice():
     assert assessment.status is CoverageStatus.MISSING
     assert assessment.missing_slices == ((start, end),)
     assert assessment.bar_count == 0
+
+
+@pytest.mark.asyncio
+async def test_identical_provider_refreshes_are_coalesced_per_process(monkeypatch):
+    active = 0
+    max_active = 0
+    provider_calls = 0
+    cache_ready = False
+
+    async def fake_impl(*_args, **_kwargs):
+        nonlocal active, max_active, provider_calls, cache_ready
+        if cache_ready:
+            return ["cached"]
+        provider_calls += 1
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0)
+        active -= 1
+        cache_ready = True
+        return ["fresh"]
+
+    monkeypatch.setattr(market_data, "_fetch_ohlcv_impl", fake_impl)
+    instrument = SimpleNamespace(id=42, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    results = await asyncio.gather(
+        market_data.fetch_ohlcv(object(), instrument, Timeframe.D1, start),
+        market_data.fetch_ohlcv(object(), instrument, Timeframe.D1, start),
+    )
+
+    assert results == [["fresh"], ["cached"]]
+    assert provider_calls == 1
+    assert max_active == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["latest", "page_before"])
+async def test_implicit_ohlcv_refresh_paths_are_coalesced_per_process(monkeypatch, operation):
+    active = 0
+    provider_calls = 0
+    cache_ready = False
+
+    async def fake_impl(*_args, **_kwargs):
+        nonlocal active, provider_calls, cache_ready
+        if cache_ready:
+            return ["cached"]
+        provider_calls += 1
+        active += 1
+        assert active == 1
+        await asyncio.sleep(0)
+        active -= 1
+        cache_ready = True
+        return ["fresh"]
+
+    instrument = SimpleNamespace(id=43, is_synthetic=False)
+    before = datetime(2026, 2, 1, tzinfo=UTC)
+    if operation == "latest":
+        monkeypatch.setattr(market_data, "_fetch_ohlcv_latest_impl", fake_impl)
+        calls = [
+            market_data.fetch_ohlcv_latest(object(), instrument, Timeframe.D1, 10),
+            market_data.fetch_ohlcv_latest(object(), instrument, Timeframe.D1, 10),
+        ]
+    else:
+        monkeypatch.setattr(market_data, "_fetch_ohlcv_page_before_impl", fake_impl)
+        calls = [
+            market_data.fetch_ohlcv_page_before(object(), instrument, Timeframe.D1, before, 10),
+            market_data.fetch_ohlcv_page_before(object(), instrument, Timeframe.D1, before, 10),
+        ]
+
+    assert await asyncio.gather(*calls) == [["fresh"], ["cached"]]
+    assert provider_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_postgres_refresh_lock_uses_transaction_scoped_advisory_lock():
+    executed = []
+
+    class _Db:
+        bind = SimpleNamespace(dialect=SimpleNamespace(name="postgresql"))
+
+        async def execute(self, statement):
+            executed.append(statement)
+
+    key = (42, Timeframe.D1.value, datetime(2026, 1, 1, tzinfo=UTC), None, True)
+    await market_data._acquire_database_refresh_lock(_Db(), key)
+
+    assert len(executed) == 1
+
+
+@pytest.mark.asyncio
+async def test_non_postgres_refresh_lock_is_a_noop():
+    class _Db:
+        bind = SimpleNamespace(dialect=SimpleNamespace(name="sqlite"))
+
+        async def execute(self, _statement):
+            raise AssertionError("SQLite must not receive PostgreSQL advisory SQL")
+
+    key = (42, Timeframe.D1.value, datetime(2026, 1, 1, tzinfo=UTC), None, True)
+    await market_data._acquire_database_refresh_lock(_Db(), key)
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_wraps_operation_and_releases_ownership(monkeypatch):
+    calls: list[tuple] = []
+
+    class _Lock:
+        async def acquire(self):
+            calls.append(("acquire",))
+            return True
+
+        async def release(self):
+            calls.append(("release",))
+
+    class _Redis:
+        def lock(self, *args, **kwargs):
+            calls.append(("lock", args, kwargs))
+            return _Lock()
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    instrument = SimpleNamespace(id=44, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    async def operation():
+        calls.append(("operation",))
+        return ["fresh"]
+
+    result = await market_data._with_ohlcv_refresh_gate(
+        instrument,
+        Timeframe.D1,
+        start,
+        None,
+        True,
+        allow_provider_fetch=True,
+        redis=_Redis(),
+        operation=operation,
+    )
+
+    assert result == ["fresh"]
+    assert [call[0] for call in calls] == ["lock", "acquire", "operation", "release"]
+    assert calls[0][2]["timeout"] == market_data.settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_timeout_fails_closed_without_operation(monkeypatch):
+    called = False
+
+    class _Lock:
+        async def acquire(self):
+            return False
+
+        async def release(self):
+            raise AssertionError("a lock not acquired must not be released")
+
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            return _Lock()
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    instrument = SimpleNamespace(id=45, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    async def operation():
+        nonlocal called
+        called = True
+        return ["unsafe"]
+
+    from app.services.distributed_locks import DistributedLockError
+
+    with pytest.raises(DistributedLockError, match="timed out"):
+        await market_data._with_ohlcv_refresh_gate(
+            instrument,
+            Timeframe.D1,
+            start,
+            None,
+            True,
+            allow_provider_fetch=True,
+            redis=_Redis(),
+            operation=operation,
+        )
+    assert called is False
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_is_not_used_until_explicitly_enabled(monkeypatch):
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            raise AssertionError("disabled mode must not contact Redis")
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", False)
+    instrument = SimpleNamespace(id=46, is_synthetic=False)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    async def operation():
+        return ["local"]
+
+    assert await market_data._with_ohlcv_refresh_gate(
+        instrument,
+        Timeframe.D1,
+        start,
+        None,
+        True,
+        allow_provider_fetch=True,
+        redis=_Redis(),
+        operation=operation,
+    ) == ["local"]
+
+
+@pytest.mark.asyncio
+async def test_latest_price_refresh_rechecks_cache_inside_process_gate(monkeypatch):
+    instrument = SimpleNamespace(
+        id=47,
+        symbol="AAPL",
+        listings=[],
+        provider_symbols=[],
+    )
+    state = {"price": None}
+    execute_calls = 0
+    stored_payloads: list[object] = []
+    stored_response_sets: list[object] = []
+
+    async def fake_cache(_db, _instrument):
+        return state["price"]
+
+    async def fake_execute(*_args, **_kwargs):
+        nonlocal execute_calls
+        execute_calls += 1
+        await asyncio.sleep(0)
+        return SimpleNamespace(
+            provider_name="yfinance",
+            data_source=SimpleNamespace(id=1),
+            result=123.45,
+            response_payloads=({"price": 123.45, "symbol": "AAPL"},),
+        )
+
+    async def fake_store(*_args, **_kwargs):
+        state["price"] = 123.45
+        stored_payloads.append(_kwargs["payload"])
+        stored_response_sets.append(_kwargs["payloads"])
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", False)
+    monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "store_latest_price_snapshot", fake_store)
+
+    results = await asyncio.gather(
+        market_data.get_current_price_async(object(), instrument),
+        market_data.get_current_price_async(object(), instrument),
+    )
+
+    assert results == [123.45, 123.45]
+    assert execute_calls == 1
+    assert stored_payloads == [{"price": 123.45, "symbol": "AAPL"}]
+    assert stored_response_sets == [({"price": 123.45, "symbol": "AAPL"},)]
+
+
+@pytest.mark.asyncio
+async def test_latest_price_refresh_uses_opt_in_redis_gate(monkeypatch):
+    calls: list[tuple] = []
+    instrument = SimpleNamespace(
+        id=48,
+        symbol="MSFT",
+        listings=[],
+        provider_symbols=[],
+    )
+    state = {"price": None}
+
+    class _Lock:
+        async def acquire(self):
+            calls.append(("acquire",))
+            return True
+
+        async def release(self):
+            calls.append(("release",))
+
+    class _Redis:
+        def lock(self, *args, **kwargs):
+            calls.append(("lock", args, kwargs))
+            return _Lock()
+
+    async def fake_cache(_db, _instrument):
+        return state["price"]
+
+    async def fake_execute(*_args, **_kwargs):
+        calls.append(("provider",))
+        return SimpleNamespace(
+            provider_name="yfinance",
+            data_source=SimpleNamespace(id=1),
+            result=234.56,
+        )
+
+    async def fake_store(*_args, **_kwargs):
+        state["price"] = 234.56
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "store_latest_price_snapshot", fake_store)
+
+    result = await market_data.get_current_price_async(object(), instrument, redis=_Redis())
+
+    assert result == 234.56
+    assert [call[0] for call in calls] == ["lock", "acquire", "provider", "release"]
+    assert calls[0][2]["timeout"] == market_data.settings.OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS
+
+
+@pytest.mark.asyncio
+async def test_latest_price_refresh_redis_timeout_fails_closed_without_provider(monkeypatch):
+    instrument = SimpleNamespace(
+        id=49,
+        symbol="NVDA",
+        listings=[],
+        provider_symbols=[],
+    )
+    provider_called = False
+
+    class _Lock:
+        async def acquire(self):
+            return False
+
+        async def release(self):
+            raise AssertionError("a lock not acquired must not be released")
+
+    class _Redis:
+        def lock(self, *_args, **_kwargs):
+            return _Lock()
+
+    async def fake_cache(_db, _instrument):
+        return None
+
+    async def fake_execute(*_args, **_kwargs):
+        nonlocal provider_called
+        provider_called = True
+        raise AssertionError("provider must not run when latest-price lock times out")
+
+    monkeypatch.setattr(market_data.settings, "OHLCV_DISTRIBUTED_LOCK_ENABLED", True)
+    monkeypatch.setattr(market_data, "_fresh_latest_price_from_cache", fake_cache)
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+
+    from app.services.distributed_locks import DistributedLockError
+
+    with pytest.raises(DistributedLockError, match="timed out"):
+        await market_data.get_current_price_async(object(), instrument, redis=_Redis())
+    assert provider_called is False

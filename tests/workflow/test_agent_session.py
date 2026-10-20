@@ -1,5 +1,8 @@
 import importlib.util
+import json
+import re
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def text(path: str) -> str:
@@ -126,6 +129,46 @@ def test_cleanup_and_readiness_are_scoped_to_the_current_worktree() -> None:
     assert "validation_evidence_current" in session
 
 
+def test_session_record_refreshes_legacy_remote_sha_with_origin_ref(
+    tmp_path: Path, monkeypatch
+) -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_remote_ref",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    commit = "a" * 40
+
+    def git(command: str, *args: str, **kwargs) -> str:
+        if command == "rev-parse" and args == ("HEAD",):
+            return commit
+        if command == "rev-parse" and args == ("origin/feat-example",):
+            return commit
+        raise AssertionError((command, args))
+
+    monkeypatch.setattr(module, "git", git)
+    monkeypatch.setattr(module, "acceptance_criteria", lambda _plan: [])
+    monkeypatch.setattr(module, "dirty_paths", lambda _path: [])
+    monkeypatch.setattr(module, "plan_hash", lambda _path: "plan-hash")
+    monkeypatch.setattr(module, "docker_status", lambda *_args: {"available": False})
+    monkeypatch.setattr(module, "project_names", lambda _branch: [])
+
+    record = module.session_record(
+        "feat-example",
+        tmp_path,
+        {"goal": "test", "local_validation_profile": "unit"},
+        "worktree-id",
+        "session-id",
+    )
+
+    assert record["head"] == commit
+    assert record["remote"] == commit
+    assert record["remote_sha"] == commit
+    assert record["remote_synchronized"] is True
+
+
 def test_goal_request_is_objective_only_and_validation_can_be_profile_scoped(
     tmp_path: Path,
 ) -> None:
@@ -166,3 +209,143 @@ def test_validation_profile_classifier_cannot_weaken_runtime_boundaries() -> Non
     assert not module.profile_is_sufficient(
         "unit", {"owned_paths": ["frontend/src/views/Workstation.vue"]}
     )
+
+
+def test_provider_live_evidence_requires_full_matrix_and_metadata_only_tail(
+    tmp_path: Path, monkeypatch
+) -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_provider_live",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    stream = tmp_path / "feat-market-data-provider-platform"
+    stream.mkdir()
+    (stream / "plan.yaml").write_text(
+        "approved_execution_decisions:\n"
+        "  providers:\n"
+        "    tradier: 'Deferred by user; keep non-routable.'\n"
+    )
+    (stream / "validation.jsonl").write_text(
+        json.dumps(
+            {
+                "kind": "provider_live_matrix",
+                "scope": "full_matrix",
+                "result": "passed",
+                "source_sha": "a" * 40,
+                "case_count": 4,
+                "passed_cases": 4,
+                "failed_cases": 0,
+                "skipped_cases": 0,
+                "dirty_source_paths": [],
+                "approved_deferrals": {
+                    "tradier": "Deferred by user; keep non-routable."
+                },
+            }
+        )
+        + "\n"
+    )
+    monkeypatch.setattr(
+        module,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0),
+    )
+    monkeypatch.setattr(
+        module,
+        "git",
+        lambda *args,
+        **kwargs: "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
+    )
+    assert module.provider_live_evidence_current(stream, "b" * 40, tmp_path)
+
+    monkeypatch.setattr(
+        module, "git", lambda *args, **kwargs: "backend/app/providers/alpaca.py"
+    )
+    assert not module.provider_live_evidence_current(stream, "b" * 40, tmp_path)
+
+
+def test_provider_live_policy_covers_adapter_and_runtime_configuration_paths() -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_external_paths",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    assert module.external_service_path("backend/app/providers/alpaca.py")
+    assert module.external_service_path("backend/app/config.py")
+    assert module.external_service_path(".github/workflows/provider-live.yml")
+    assert module.external_service_path("backend/app/tasks/market_data_refresh.py")
+    assert module.external_service_path("docs/data-providers.md")
+    assert module.external_service_path(".env.example")
+    assert module.external_service_path(
+        "backend/app/services/provider_quota_coordinator.py"
+    )
+    assert module.external_service_path("backend/app/services/market_events.py")
+    assert module.external_service_path("backend/app/services/short_interest.py")
+    assert module.external_service_path("backend/app/routers/market_data_admin.py")
+    assert not module.external_service_path("frontend/src/views/Workstation.vue")
+
+
+def test_all_provider_calling_services_require_full_live_acceptance() -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_provider_service_paths",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+
+    root = Path(__file__).parents[2]
+    services = root / "backend" / "app" / "services"
+    call_pattern = re.compile(r"\b(?:execute_provider_call|get_provider)\s*\(")
+    uncovered = [
+        path.relative_to(root).as_posix()
+        for path in services.glob("*.py")
+        if call_pattern.search(path.read_text())
+        and not module.external_service_path(path.relative_to(root).as_posix())
+    ]
+    assert uncovered == []
+
+
+def test_external_service_acceptance_requires_precommit_candidate_live_matrix() -> None:
+    root = Path(__file__).parents[2]
+    policy = root.joinpath("docs/agent-orchestration.md").read_text()
+    runner = root.joinpath("scripts/run-live-provider-probes.py").read_text()
+
+    assert "Before committing provider source changes" in policy
+    assert "--allow-staged-candidate" in policy
+    assert "git rev-parse HEAD^{tree}" in policy
+    assert "candidate_tree_sha" in runner
+    assert "staged_candidate_full_matrix_passed" in runner
+    assert "checkout-index" in runner
+    assert "redact_runner_output" in runner
+    assert "staged_secret_findings" in runner
+
+
+def test_dirty_paths_preserves_leading_porcelain_status_column(
+    tmp_path: Path, monkeypatch
+) -> None:
+    session = importlib.util.spec_from_file_location(
+        "agent_session_dirty_paths",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    porcelain = (
+        " M ops/workstreams/feat-market-data-provider-platform/session.json\n"
+        " M backend/app/config.py\n"
+    )
+    monkeypatch.setattr(
+        module,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout=porcelain),
+    )
+
+    assert module.dirty_paths(tmp_path) == [
+        "ops/workstreams/feat-market-data-provider-platform/session.json",
+        "backend/app/config.py",
+    ]

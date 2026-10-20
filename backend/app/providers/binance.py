@@ -7,7 +7,12 @@ Capabilities:
   - DiscoveryProvider    : crypto universe (USDT-quoted pairs)
 
 Auth: None required — all endpoints used here are public.
-Rate limits: 1 200 request-weight/minute (weight=1 per klines request).
+Rate limits: the current Spot REST documentation exposes a 6,000
+request-weight/minute IP ceiling. The adapter records the exact documented
+weights for single-symbol price (2) and exchange-info discovery (20).
+Historical OHLCV calculates its potentially multi-page request count before
+execution so the runtime can reserve the full documented weight; it must never
+be charged as one request by default.
 
 Symbol convention:
   Platform canonical : BTC-USD
@@ -20,11 +25,21 @@ from __future__ import annotations
 import logging
 import time
 from datetime import UTC, datetime, timedelta
+from math import isfinite
 from typing import Any
 
 import httpx
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimension
+from app.providers.errors import (
+    ProviderRateLimitError,
+    ProviderResponseError,
+    provider_response_headers,
+    raise_for_provider_error_envelope,
+    redact_provider_message,
+)
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +75,9 @@ _TF_SECONDS: dict[Timeframe, int] = {
     Timeframe.MN: 2592000,
 }
 
+_KLINES_LIMIT = 1000
+_KLINES_WEIGHT = 2
+
 # Module-level universe cache
 _usdt_pairs: list[dict] = []
 _usdt_pairs_ts: float = 0.0
@@ -72,6 +90,96 @@ class BinanceProvider:
         "Binance public API — crypto OHLCV (all timeframes), "
         "current prices, and USDT-quoted universe discovery"
     )
+
+    def fetch_account_usage(self) -> ProviderAccountUsage:
+        """Read Binance's native one-minute request-weight counter.
+
+        ``/api/v3/time`` is the provider's smallest public REST probe.  The
+        response's ``X-MBX-USED-WEIGHT-1M`` header is cumulative for the
+        current fixed one-minute window; the documented 6,000 weight ceiling
+        and the next UTC minute boundary are retained as an explicit,
+        provider-specific account-usage dimension.  Missing or malformed
+        headers are rejected rather than treated as an unused account.
+        """
+
+        try:
+            response = httpx.get(f"{_BASE}/time", timeout=10)
+            observe_response(response)
+            response.raise_for_status()
+            payload = response.json()
+            raise_for_provider_error_envelope(
+                self.name,
+                payload,
+                response.status_code,
+                headers=provider_response_headers(response),
+            )
+        except httpx.HTTPStatusError as exc:
+            response = exc.response
+            if response is not None and response.status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    self.name,
+                    f"Binance request rejected for capacity (HTTP {response.status_code})",
+                    status_code=response.status_code,
+                    headers=provider_response_headers(response),
+                ) from exc
+            status_code = response.status_code if response is not None else None
+            raise ProviderResponseError(
+                self.name,
+                f"Binance request failed with HTTP {status_code}",
+                status_code=status_code,
+            ) from exc
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(
+                self.name, "Binance account-usage transport failure"
+            ) from exc
+        except (TypeError, ValueError, KeyError) as exc:
+            raise ProviderResponseError(
+                self.name, "Binance returned invalid account-usage JSON"
+            ) from exc
+
+        if not isinstance(payload, dict) or not isinstance(payload.get("serverTime"), int):
+            raise ProviderResponseError(
+                self.name, "Binance returned an invalid server-time payload"
+            )
+        headers = {
+            str(key).lower(): str(value)
+            for key, value in provider_response_headers(response).items()
+        }
+        try:
+            used = int(headers["x-mbx-used-weight-1m"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name,
+                "Binance omitted the native X-MBX-USED-WEIGHT-1M counter",
+            ) from exc
+        if used < 0 or used > 6000:
+            raise ProviderResponseError(
+                self.name, "Binance returned an invalid request-weight counter"
+            )
+
+        observed_at = datetime.now(UTC)
+        reset_at = observed_at.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        dimension = ProviderAccountUsageDimension(
+            name="request_weight_per_minute",
+            unit="weight",
+            limit=6000,
+            remaining=6000 - used,
+            consumed=used,
+            reset_at=reset_at,
+        )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="weight",
+            limit=dimension.limit,
+            remaining=dimension.remaining,
+            consumed=dimension.consumed,
+            reset_at=dimension.reset_at,
+            account_plan="public",
+            dimensions=(dimension,),
+            raw_payload=payload,
+            response_headers=provider_response_headers(response),
+        )
 
     # ── Price History ─────────────────────────────────────────────────────────
 
@@ -86,14 +194,24 @@ class BinanceProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        if adjusted:
+            raise ProviderResponseError(
+                self.name,
+                "Binance exchange candles are raw; request adjusted=False",
+            )
         tf_str = _TF_MAP.get(timeframe)
         binance_sym = _to_binance(symbol)
-        if tf_str is None or binance_sym is None:
+        if tf_str is None:
+            raise ProviderResponseError(
+                self.name, f"Binance does not support timeframe {timeframe.value}"
+            )
+        if binance_sym is None:
             return []
 
         start_ms = int(start.timestamp() * 1000)
         end_ms = int(end.timestamp() * 1000)
         bars: list[OHLCVBar] = []
+        previous_last_open_ms: int | None = None
 
         while start_ms < end_ms:
             try:
@@ -108,42 +226,96 @@ class BinanceProvider:
                     },
                     timeout=30,
                 )
+                observe_response(r)
                 r.raise_for_status()
                 klines = r.json()
-            except Exception as exc:
-                logger.warning("binance fetch_ohlcv %s: %s", symbol, exc)
-                break
+                raise_for_provider_error_envelope(
+                    "binance", klines, r.status_code, headers=provider_response_headers(r)
+                )
+            except httpx.HTTPStatusError as exc:
+                if r.status_code in {418, 429}:
+                    raise ProviderRateLimitError(
+                        self.name,
+                        f"Binance request rejected for capacity (HTTP {r.status_code})",
+                        status_code=r.status_code,
+                        headers=provider_response_headers(r),
+                    ) from exc
+                raise ProviderResponseError(
+                    self.name,
+                    f"Binance request failed with HTTP {r.status_code}",
+                    status_code=r.status_code,
+                ) from exc
+            except httpx.RequestError as exc:
+                logger.warning(
+                    "binance fetch_ohlcv %s: %s", symbol, redact_provider_message(exc)[:1000]
+                )
+                raise ProviderResponseError("binance", f"transport failure: {exc}") from exc
+            except (TypeError, ValueError, IndexError, KeyError, OverflowError, OSError) as exc:
+                raise ProviderResponseError("binance", f"malformed klines response: {exc}") from exc
+
+            if not isinstance(klines, list):
+                raise ProviderResponseError("binance", "malformed klines response: expected a list")
 
             if not klines:
                 break
 
-            for k in klines:
-                try:
-                    # klines: [open_time, open, high, low, close, volume, close_time, ...]
-                    ts = datetime.fromtimestamp(k[0] / 1000, tz=UTC)
-                    bars.append(
-                        OHLCVBar(
-                            instrument_id=instrument_id,
-                            data_source_id=data_source_id,
-                            timeframe=timeframe,
-                            ts=ts,
-                            open=float(k[1]),
-                            high=float(k[2]),
-                            low=float(k[3]),
-                            close=float(k[4]),
-                            volume=float(k[5]) if k[5] else None,
-                            vwap=None,
-                            is_adjusted=True,
-                        )
+            parsed_rows = _parse_kline_rows(klines)
+            if not parsed_rows:
+                raise ProviderResponseError("binance", "malformed klines response: empty page")
+            if previous_last_open_ms is not None and parsed_rows[0][0] <= previous_last_open_ms:
+                raise ProviderResponseError(
+                    "binance", "malformed klines response: pagination did not advance"
+                )
+            for open_ms, open_price, high, low, close, volume in parsed_rows:
+                bars.append(
+                    OHLCVBar(
+                        instrument_id=instrument_id,
+                        data_source_id=data_source_id,
+                        timeframe=timeframe,
+                        ts=_open_time_datetime(open_ms),
+                        open=open_price,
+                        high=high,
+                        low=low,
+                        close=close,
+                        volume=volume,
+                        vwap=None,
+                        is_adjusted=False,
+                        adjustment_basis="raw",
+                        adjustment_version="provider-native",
+                        provenance={
+                            "provider": self.name,
+                            "endpoint": "/api/v3/klines",
+                            "provider_symbol": binance_sym,
+                            "interval": tf_str,
+                            "provider_payload": {
+                                "open_time": open_ms,
+                                "open": open_price,
+                                "high": high,
+                                "low": low,
+                                "close": close,
+                                "volume": volume,
+                            },
+                        },
                     )
-                except (IndexError, ValueError):
-                    continue
+                )
 
             # Advance cursor past the last returned open_time
-            last_open_ms = klines[-1][0]
+            last_open_ms = parsed_rows[-1][0]
             if last_open_ms <= start_ms:
+                if last_open_ms < start_ms or len(parsed_rows) > 1:
+                    raise ProviderResponseError(
+                        "binance", "malformed klines response: non-progressing pagination"
+                    )
                 break
+            previous_last_open_ms = last_open_ms
             start_ms = last_open_ms + 1
+
+            # Binance fills each response up to ``limit`` whenever another
+            # page exists. A short page is complete for this requested range;
+            # querying once more would waste request weight (often returning
+            # an empty page when the current candle has not opened yet).
+            if len(klines) < _KLINES_LIMIT:
+                break
 
         return bars
 
@@ -170,7 +342,11 @@ class BinanceProvider:
         return bars[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
-        seconds = _TF_SECONDS.get(timeframe, 86400)
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(
+                self.name, f"Binance does not support timeframe {timeframe.value}"
+            )
         lookback = timedelta(seconds=seconds * limit * 1.4 + 86400)
         return datetime.now(UTC) - lookback
 
@@ -186,11 +362,38 @@ class BinanceProvider:
                 params={"symbol": binance_sym},
                 timeout=10,
             )
+            observe_response(r)
             r.raise_for_status()
-            return float(r.json()["price"])
-        except Exception as exc:
-            logger.debug("binance get_current_price %s: %s", symbol, exc)
-            return None
+            payload = r.json()
+            raise_for_provider_error_envelope(
+                "binance", payload, r.status_code, headers=provider_response_headers(r)
+            )
+        except httpx.HTTPStatusError as exc:
+            if r.status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    self.name,
+                    f"Binance request rejected for capacity (HTTP {r.status_code})",
+                    status_code=r.status_code,
+                    headers=provider_response_headers(r),
+                ) from exc
+            raise ProviderResponseError(
+                self.name,
+                f"Binance request failed with HTTP {r.status_code}",
+                status_code=r.status_code,
+            ) from exc
+        except httpx.RequestError as exc:
+            logger.debug(
+                "binance get_current_price %s: %s", symbol, redact_provider_message(exc)[:1000]
+            )
+            raise ProviderResponseError("binance", f"transport failure: {exc}") from exc
+        except (TypeError, ValueError, KeyError, OverflowError) as exc:
+            raise ProviderResponseError("binance", f"malformed ticker response: {exc}") from exc
+        if not isinstance(payload, dict):
+            raise ProviderResponseError("binance", "malformed ticker response: expected an object")
+        try:
+            return _finite_float(payload["price"], "ticker price")
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            raise ProviderResponseError("binance", f"malformed ticker response: {exc}") from exc
 
     # ── Universe Discovery ────────────────────────────────────────────────────
 
@@ -209,12 +412,50 @@ class BinanceProvider:
         return ["CRYPTOCURRENCY"]
 
 
+def estimate_ohlcv_request_weight(
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+) -> int | None:
+    """Return the exact conservative `/klines` weight before execution.
+
+    Binance permits at most 1,000 candles per `/klines` request and the
+    documented endpoint weight for this adapter is two per request.  The
+    estimate intentionally rounds up: a short final page is still a request,
+    and a provider returning fewer rows can never make the reservation unsafe.
+    """
+    seconds = _TF_SECONDS.get(timeframe)
+    if seconds is None or end <= start:
+        return None
+    # Binance treats both startTime and endTime as inclusive. Add one candle
+    # beyond the ceiling of the span so an end exactly on a candle boundary
+    # cannot cause an under-reserved extra page.
+    candles = max(
+        1,
+        int((end - start).total_seconds() + seconds - 1) // seconds + 1,
+    )
+    requests = (candles + _KLINES_LIMIT - 1) // _KLINES_LIMIT
+    return requests * _KLINES_WEIGHT
+
+
+def estimate_latest_ohlcv_request_weight(timeframe: Timeframe, limit: int) -> int | None:
+    seconds = _TF_SECONDS.get(timeframe)
+    if limit <= 0 or seconds is None:
+        return None
+    # ``fetch_latest_ohlcv`` deliberately asks for a 1.4x lookback plus one
+    # day, then trims to ``limit`` bars. Reserve against that actual request
+    # range (with one extra candle for the clock advancing between estimation
+    # and invocation), not merely against the number returned to the caller.
+    requested_candles = int((int(limit) * 1.4) + (86400 / seconds)) + 1
+    return max(1, (requested_candles + _KLINES_LIMIT - 1) // _KLINES_LIMIT) * _KLINES_WEIGHT
+
+
 # ── Module helpers ────────────────────────────────────────────────────────────
 
 
 def _to_binance(symbol: str) -> str | None:
     """BTC-USD → BTCUSDT; returns None if not a USD crypto pair."""
-    if "-" in symbol:
+    if isinstance(symbol, str) and "-" in symbol:
         base, quote = symbol.split("-", 1)
         if quote.upper() == "USD":
             return base.upper() + "USDT"
@@ -223,7 +464,7 @@ def _to_binance(symbol: str) -> str | None:
 
 def _from_binance(binance_sym: str) -> str | None:
     """BTCUSDT → BTC-USD; returns None if not a USDT pair."""
-    if binance_sym.endswith("USDT"):
+    if isinstance(binance_sym, str) and binance_sym.endswith("USDT"):
         return binance_sym[:-4] + "-USD"
     return None
 
@@ -235,21 +476,60 @@ def _cached_usdt_pairs() -> list[dict]:
         return _usdt_pairs
     try:
         r = httpx.get(f"{_BASE}/exchangeInfo", timeout=30)
+        observe_response(r)
         r.raise_for_status()
-        symbols = r.json().get("symbols", [])
+        payload = r.json()
+        raise_for_provider_error_envelope(
+            "binance", payload, r.status_code, headers=provider_response_headers(r)
+        )
+        if not isinstance(payload, dict) or not isinstance(payload.get("symbols"), list):
+            raise ProviderResponseError(
+                "binance", "malformed exchange-info response: expected symbols list"
+            )
+        symbols = payload["symbols"]
+        if any(not isinstance(symbol, dict) for symbol in symbols):
+            raise ProviderResponseError(
+                "binance", "malformed exchange-info response: invalid symbol row"
+            )
+        for symbol in symbols:
+            for field in ("symbol", "baseAsset", "quoteAsset", "status"):
+                if not isinstance(symbol.get(field), str) or not symbol[field].strip():
+                    raise ProviderResponseError(
+                        "binance", f"malformed exchange-info response: invalid {field}"
+                    )
+            if not isinstance(symbol.get("isSpotTradingAllowed"), bool):
+                raise ProviderResponseError(
+                    "binance", "malformed exchange-info response: invalid spot-trading flag"
+                )
         pairs = [
             s
             for s in symbols
-            if s.get("quoteAsset") == "USDT"
+            if isinstance(s, dict)
+            and s.get("quoteAsset") == "USDT"
             and s.get("status") == "TRADING"
             and s.get("isSpotTradingAllowed")
         ]
         _usdt_pairs = pairs
         _usdt_pairs_ts = now
         return pairs
-    except Exception as exc:
-        logger.warning("binance _cached_usdt_pairs: %s", exc)
-        return _usdt_pairs
+    except httpx.HTTPStatusError as exc:
+        if r.status_code in {418, 429}:
+            raise ProviderRateLimitError(
+                "binance",
+                f"Binance request rejected for capacity (HTTP {r.status_code})",
+                status_code=r.status_code,
+                headers=provider_response_headers(r),
+            ) from exc
+        raise ProviderResponseError(
+            "binance",
+            f"Binance request failed with HTTP {r.status_code}",
+            status_code=r.status_code,
+        ) from exc
+    except httpx.RequestError as exc:
+        logger.warning("binance _cached_usdt_pairs: %s", redact_provider_message(exc)[:1000])
+        raise ProviderResponseError("binance", f"transport failure: {exc}") from exc
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ProviderResponseError("binance", f"malformed exchange-info response: {exc}") from exc
 
 
 def _pair_to_quote(pair: dict) -> dict[str, Any]:
@@ -262,3 +542,56 @@ def _pair_to_quote(pair: dict) -> dict[str, Any]:
         "exchange": "Binance",
         "currency": "USD",
     }
+
+
+def _finite_float(value: Any, field: str) -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{field} is boolean")
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{field} is not numeric") from exc
+    if not isfinite(result):
+        raise ValueError(f"{field} is non-finite")
+    return result
+
+
+def _open_time_ms(value: Any) -> int:
+    numeric = _finite_float(value, "kline open time")
+    if not numeric.is_integer():
+        raise ValueError("kline open time is not an integer")
+    result = int(numeric)
+    if result < 0:
+        raise ValueError("kline open time is negative")
+    return result
+
+
+def _open_time_datetime(open_ms: int) -> datetime:
+    try:
+        return datetime.fromtimestamp(open_ms / 1000, tz=UTC)
+    except (OverflowError, OSError, ValueError) as exc:
+        raise ProviderResponseError("binance", "malformed klines row: invalid open time") from exc
+
+
+def _parse_kline_rows(
+    klines: list[Any],
+) -> list[tuple[int, float, float, float, float, float]]:
+    parsed: list[tuple[int, float, float, float, float, float]] = []
+    previous_open_ms: int | None = None
+    for row in klines:
+        if not isinstance(row, list | tuple) or len(row) < 6:
+            raise ProviderResponseError("binance", "malformed klines row: expected six values")
+        try:
+            open_ms = _open_time_ms(row[0])
+            values = tuple(
+                _finite_float(row[index], f"kline field {index}") for index in range(1, 6)
+            )
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ProviderResponseError("binance", f"malformed klines row: {exc}") from exc
+        if previous_open_ms is not None and open_ms <= previous_open_ms:
+            raise ProviderResponseError(
+                "binance", "malformed klines response: rows are not increasing"
+            )
+        parsed.append((open_ms, *values))
+        previous_open_ms = open_ms
+    return parsed

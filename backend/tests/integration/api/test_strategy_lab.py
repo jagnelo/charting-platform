@@ -65,7 +65,7 @@ class TestStrategyLabAPI:
         }
 
     def test_promoted_python_signal_run_queues_isolated_research(
-        self, client, auth_headers, instrument, ohlcv_bars
+        self, client, auth_headers, instrument, ohlcv_bars, tmp_path
     ):
         asset_res = client.post(
             "/api/v1/code/assets",
@@ -108,6 +108,8 @@ class TestStrategyLabAPI:
         assert run["result_summary"]["result_kind"] == "python_signal_research"
         assert isinstance(run["result_summary"]["research_run_id"], int)
         assert run["result_summary"]["output_contract"] == "boolean"
+        queued_job = tmp_path / "research-jobs" / f"{run['result_summary']['research_run_id']}.json"
+        assert queued_job.is_file()
 
     def test_create_list_version_and_run_strategy(
         self, client, auth_headers, db, instrument, ohlcv_bars
@@ -223,6 +225,8 @@ class TestStrategyLabAPI:
         assert run_payload["result_summary"]["result_kind"] == "rules_backtest"
         assert run_payload["result_summary"]["coverage"]["instrument_count"] == 1
         assert run_payload["result_summary"]["coverage"]["total_bars"] >= 1
+        assert run_payload["result_summary"]["coverage"]["preflight"]["status"] == "full"
+        assert run_payload["result_summary"]["coverage"]["preflight"]["ready_instrument_count"] == 1
         assert run_payload["result_summary"]["performance"]["trade_count"] is not None
         assert len(run_payload["result_summary"]["equity_curve"]) >= len(ohlcv_bars)
         assert len(run_payload["result_summary"]["portfolio_timeline"]) >= len(ohlcv_bars)

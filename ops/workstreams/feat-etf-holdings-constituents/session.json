@@ -64,7 +64,7 @@
     "coordinator_owns_conditional_acceptance": true,
     "human_answer": "Yes\u2014approve that initial scope and handle checkpoint acceptance",
     "not_authorized": "This does not accept ETF source, waive validation, authorize feature-worker staging integration, deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup. Full roadmap remains open.",
-    "provider_product_checkpoint": "unaccepted; actual ETF_HOLDINGS bridge remains gated",
+    "provider_product_checkpoint": "accepted_and_released_in_green_staging_9b230ba4c97126a2937667138c6eb2a0aa297baf; ETF checkpoint remains unaccepted and ETF_HOLDINGS consumer bridge is now owned work",
     "recorded_at": "2026-10-15T22:55:31Z"
   },
   "claim": {
@@ -78,7 +78,17 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "2026-10-19 23:44Z: ETF common-baseline merge 4fd48056c3fb7d54678f9ba7741fa5fd06b0c473 is synchronized and exact CI39340838524 is green, but staging281a57bd9fb782c0f85bfb5127c713ea15037f68 contains common repairs only and product checkpoints remain 0/4. Provider candidate 023d30c615ae1bfea3a79f90d4d814242cd5711e adds shared operation-level checkpoint holds before adapter construction/reservation/transport, but is unaccepted/unreleased while its combined profile and operation review continue. ProviderCapability.ETF_HOLDINGS is absent. The bridge remains externally gated. The 15 Tier-0 and 156 Tier-1 investigations remain preserved; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence.",
+  "provider_release": {
+    "recorded_at": "2026-10-20T20:58:03Z",
+    "status": "accepted_and_released_in_synchronized_green_staging",
+    "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
+    "release_record": "/home/m920q/charting-platform/.ai/staging-attempts/provider-green-release-20261020.md",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261020T205101Z-9b230ba4c971.json",
+    "exact_ci_run": 39484176087,
+    "exhaustive_gate_job": 118849529356,
+    "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance."
+  },
+  "current_blocker_latest": "2026-10-20 20:58Z: Provider product checkpoint is accepted/released at synchronized green staging 9b230ba4c97126a2937667138c6eb2a0aa297baf (CI39484176087, Exhaustive118849529356). The ETF owner is merging only that exact SHA and preserving its own capability, tests, roadmap, and durable workstream. Remaining ETF work is the actual shared-runtime ETF_HOLDINGS enum/schema/seed and transport-level consumer bridge, deterministic negative/lineage tests, current-source full_stack_browser when the coordinator assigns a safe fixture slot, and exact-source CI. Preserve the 15 Tier-0 and 156 Tier-1 investigations and 496/422/74 registry split. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence; unknown/quota-held/paid/trial/unsafe operations stay disabled.",
   "dirty_paths": [],
   "docker": {
     "available": false,
@@ -102,9 +112,9 @@
     "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
   },
   "goal_request_state": "ready",
-  "goal_state": "resumed_after_takeover",
+  "goal_state": "blocked_in_codex_goal_api; coordinator-directed continuation is active in this original owner session; no goal state or accounting reset requested or performed",
   "goal_unavailable_reason": null,
-  "head": "4fd48056c3fb7d54678f9ba7741fa5fd06b0c473",
+  "head": "476f002e4d405b4f94597cadba58e79800029030",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -291,14 +301,14 @@
     "completed": [
       "EICP1"
     ],
-    "current_blocker": "Common staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 is published in ETF merge 4fd48056c3fb7d54678f9ba7741fa5fd06b0c473 with exact CI39340838524 green, but it contains common repairs only and product checkpoints remain 0/4. Provider candidate 023d30c615ae1bfea3a79f90d4d814242cd5711e adds operation-level checkpoint holds before adapter construction/reservation/transport but remains unaccepted/unreleased; ProviderCapability.ETF_HOLDINGS is absent. The bridge remains gated. The evidence-backed ledgers retain 15 Tier-0 and 156 Tier-1 investigations; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response body or parsed-row evidence. Unknown/quota-held/paid/trial/unsafe operations remain disabled, and full_stack_browser remains open.",
-    "current_phase": "common_baseline_published_green_waiting_accepted_provider_release",
-    "next_action": "Wait for the coordinator's accepted Provider release in exact green staging, merge only that SHA, then implement the documented ETF_HOLDINGS bridge including released operation-hold zero-transport tests. Keep MSMR/QQQ and Militia/GOOG quarantined; full_stack_browser remains a mandatory later gate.",
+    "current_blocker": "Provider product checkpoint is accepted/released at synchronized green staging 9b230ba4c97126a2937667138c6eb2a0aa297baf (exact CI39484176087; Exhaustive118849529356). The merge of only that SHA into this ETF branch is in progress, with semantic conflict reconciliation preserving ETF-owned source/workstream behavior and the ETF test invariants. The ETF_HOLDINGS enum/schema/seed, shared per-attempt transport admission/settlement, artifact and request lineage, exact denial/zero-transport tests, and current/degraded/stale/partial/unavailable plus historical/PIT consumer tests remain active implementation. The 15 Tier-0 and 156 Tier-1 investigations are preserved; 496/422/74 registry split remains source-derived. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined without retained response/row evidence. Unknown/quota-held/paid/trial/unsafe operations remain disabled. Current-source full_stack_browser remains required and awaits a coordinator-assigned safe fixture slot.",
+    "current_phase": "provider_release_reconciled_etf_bridge_implementation",
+    "next_action": "Complete and validate the exact staging 9b230ba4c97126a2937667138c6eb2a0aa297baf merge in ETF only, recording migration heads and preserving the ETF workstream files, then implement ETF_HOLDINGS against staged runtime interfaces. Add deterministic per-request admission/settlement and no-bypass tests before attempting any full fixture. Keep all routes without reviewed evidence held; do not issue live calls. Full_stack_browser awaits a coordinator-assigned safe fixture slot; continue to ready_for_human_review, not acceptance.",
     "total": 7,
-    "updated_at": "2026-10-19T23:44:19.000000+00:00"
+    "updated_at": "2026-10-20T20:58:03.000000+00:00"
   },
   "remote": "4fd48056c3fb7d54678f9ba7741fa5fd06b0c473",
-  "remote_sha": "4fd48056c3fb7d54678f9ba7741fa5fd06b0c473",
+  "remote_sha": "476f002e4d405b4f94597cadba58e79800029030",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

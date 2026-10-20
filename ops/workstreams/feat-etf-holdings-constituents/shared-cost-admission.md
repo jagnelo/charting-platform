@@ -1,11 +1,36 @@
 # Shared cost admission: ETF consumer contract
 
+## Current producer release (2026-10-20)
+
+The historical candidate analysis below predates Provider acceptance and must
+not be used as the current runtime contract. Provider is accepted and released
+at synchronized green staging `9b230ba4c97126a2937667138c6eb2a0aa297baf`
+(CI `39484176087`, Exhaustive `118849529356`). The actual staged APIs are
+being re-read from the ETF merge result before implementation. Provider owns
+the sole durable quota/usage/recurring-cost ledger and shared health/request
+log; ETF must not create a duplicate ledger. Missing publisher/account/host/
+operation evidence remains non-routable, regardless of a default-free flag or
+public URL. No quota or recurring cost is inferred from a capability-level
+wrapper.
+
 Status: ETF-owned integration preparation, not an implemented shared API or an
 accepted scope reduction. The original roadmap still requires one shared
 aggregate monthly ceiling of 20 EUR/USD-equivalent across active providers.
 No subscription, paid probe, deployment, trial, or routing activation is
 authorized by this document. The staging coordinator reconciles the producer
 contract with the Provider owner before accepting the ETF checkpoint.
+
+## Current producer release (2026-10-20)
+
+The earlier read-only candidate analysis below predates Provider acceptance and
+must not be used as the current runtime contract. Provider is accepted and
+released at synchronized green staging `9b230ba4c97126a2937667138c6eb2a0aa297baf`
+(CI `39484176087`, Exhaustive `118849529356`). The actual staged APIs are being
+re-read from the ETF merge result before implementation. Provider owns the sole
+durable quota/usage/recurring-cost ledger and shared health/request log; ETF
+must not create a duplicate ledger. Missing publisher/account/host/operation
+evidence remains non-routable, regardless of a default-free flag or public URL.
+No quota or recurring cost is inferred from a capability-level wrapper.
 
 ## Evidence boundary
 

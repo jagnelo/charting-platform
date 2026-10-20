@@ -7,8 +7,11 @@ Integration tests for background tasks:
 These tests patch provider-facing market data calls and OneSignal while using a real DB.
 """
 
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 class AsyncSessionAdapter:
@@ -49,6 +52,90 @@ class AsyncSessionContext:
 
     async def __aexit__(self, exc_type, exc, tb):
         return False
+
+
+@pytest.mark.asyncio
+async def test_refresh_job_lease_token_blocks_stale_worker_mutation(db, instrument):
+    """A reclaimed PostgreSQL job cannot be completed by its prior worker."""
+
+    from app.services.market_refresh_queue import (
+        RefreshLeaseLostError,
+        claim_refresh_jobs,
+        complete_refresh_job,
+        enqueue_refresh_job,
+    )
+
+    async_db = AsyncSessionAdapter(db)
+    now = datetime(2026, 9, 12, 12, tzinfo=UTC)
+    await enqueue_refresh_job(
+        async_db,
+        request_key=f"integration-lease:{instrument.id}",
+        capability="price_history",
+        instrument_id=instrument.id,
+        timeframe="D1",
+        now=now,
+    )
+    first_claim = (await claim_refresh_jobs(async_db, now=now, lease_seconds=30))[0]
+    first_token = first_claim.lease_token
+    assert first_token
+
+    first_claim.leased_until = now - timedelta(seconds=1)
+    await async_db.flush()
+    second_claim = (await claim_refresh_jobs(async_db, now=now, lease_seconds=30))[0]
+    assert second_claim.lease_token
+    assert second_claim.lease_token != first_token
+
+    with pytest.raises(RefreshLeaseLostError):
+        await complete_refresh_job(async_db, second_claim, now=now, lease_token=first_token)
+
+    await complete_refresh_job(async_db, second_claim, now=now)
+    assert second_claim.status == "completed"
+
+
+@pytest.mark.asyncio
+async def test_redis_refresh_lock_coordinates_independent_worker_clients(redis_url):
+    """Independent worker clients contend on one shared Redis lock safely."""
+
+    from redis.asyncio import Redis
+
+    from app.services.distributed_locks import DistributedLockError, redis_distributed_lock
+
+    first = Redis.from_url(redis_url, decode_responses=False)
+    second = Redis.from_url(redis_url, decode_responses=False)
+    try:
+        async with redis_distributed_lock(
+            first,
+            namespace="integration-refresh",
+            identity="same-refresh",
+            ttl_seconds=30,
+            blocking_timeout_seconds=0.01,
+            retry_interval_seconds=0.005,
+        ):
+            with pytest.raises(DistributedLockError, match="timed out"):
+                async with redis_distributed_lock(
+                    second,
+                    namespace="integration-refresh",
+                    identity="same-refresh",
+                    ttl_seconds=30,
+                    blocking_timeout_seconds=0.01,
+                    retry_interval_seconds=0.005,
+                ):
+                    raise AssertionError("a contended refresh lock must not enter its operation")
+
+        # Ownership is released only by the client that acquired the token;
+        # the second independent client can acquire after the first exits.
+        async with redis_distributed_lock(
+            second,
+            namespace="integration-refresh",
+            identity="same-refresh",
+            ttl_seconds=30,
+            blocking_timeout_seconds=0.01,
+            retry_interval_seconds=0.005,
+        ):
+            pass
+    finally:
+        await first.aclose()
+        await second.aclose()
 
 
 # ── Alert engine ───────────────────────────────────────────────────────────────

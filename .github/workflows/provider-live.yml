@@ -1,0 +1,260 @@
+name: Credentialed Provider Live Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      dinari_sandbox_canary:
+        description: "Run only the explicit non-persisting Dinari Sandbox canary"
+        required: false
+        default: false
+        type: boolean
+      max_http_requests:
+        description: "Reviewed maximum HTTP transport attempts for this run (non-negative integer; no default)"
+        required: true
+        type: string
+
+concurrency:
+  group: provider-live-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  provider-live:
+    name: Bounded credentialed provider probes
+    if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ github.ref == 'refs/heads/staging' && 'provider-live-staging' || 'provider-live-master' }}
+    env:
+      RUN_LIVE_PROVIDER_TESTS: "1"
+      FORCE_LIVE_PROVIDER_PROBES: "1"
+      # The owner has made a final private single-user retention decision.
+      # This does not bypass entitlement, quota, or jurisdiction controls.
+      PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK: "true"
+      PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.ref_name }}
+      # GitHub runners are ephemeral. The environment-specific durable
+      # coordinator is required before any provider call; a temp SQLite file
+      # or uploaded receipt is not cross-run quota admission.
+      PROVIDER_QUOTA_LEDGER_DATABASE_URL: ${{ secrets.PROVIDER_QUOTA_LEDGER_DATABASE_URL }}
+      PROVIDER_QUOTA_ACCOUNT_SCOPES: ${{ vars.PROVIDER_QUOTA_ACCOUNT_SCOPES || '{}' }}
+      PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES: ${{ vars.PROVIDER_QUOTA_EXCLUSIVE_ACCOUNT_SCOPES || '{}' }}
+      PROVIDER_QUOTA_CONCURRENCY_LEASE_GRACE_SECONDS: ${{ vars.PROVIDER_QUOTA_CONCURRENCY_LEASE_GRACE_SECONDS || '10' }}
+      PROVIDER_RATE_LIMIT_SEEDS: ${{ vars.PROVIDER_RATE_LIMIT_SEEDS || '__CODE_DEFAULT__' }}
+      PROVIDER_FRESHNESS_SEEDS: ${{ vars.PROVIDER_FRESHNESS_SEEDS || '__CODE_DEFAULT__' }}
+      PROVIDER_USAGE_PROFILE_SEEDS: ${{ vars.PROVIDER_USAGE_PROFILE_SEEDS || '__CODE_DEFAULT__' }}
+      PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED: ${{ vars.PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED || 'false' }}
+      PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS: ${{ vars.PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS || '[]' }}
+      EDGAR_USER_AGENT: ${{ vars.EDGAR_USER_AGENT }}
+      EDGAR_REVIEWED_RESET: ${{ vars.EDGAR_REVIEWED_RESET || '' }}
+      EDGAR_QUOTA_EVIDENCE: ${{ vars.EDGAR_QUOTA_EVIDENCE || '' }}
+      NASDAQ_USER_AGENT: ${{ vars.NASDAQ_USER_AGENT || 'charting-platform market-data-universe' }}
+      OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+      OPENFIGI_TIMEOUT_SECONDS: ${{ vars.OPENFIGI_TIMEOUT_SECONDS || '10' }}
+      FINRA_OTC_SOURCE_KIND: ${{ vars.FINRA_OTC_SOURCE_KIND || '' }}
+      FINRA_OTC_SYMBOL_DIRECTORY_URL: ${{ vars.FINRA_OTC_SYMBOL_DIRECTORY_URL }}
+      FINRA_OTC_INACTIVE_SECURITY_MASTER_URL: ${{ vars.FINRA_OTC_INACTIVE_SECURITY_MASTER_URL || '' }}
+      FINRA_TOKEN_URL: ${{ vars.FINRA_TOKEN_URL || 'https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token' }}
+      FINRA_API_BASE_URL: ${{ vars.FINRA_API_BASE_URL || 'https://api.finra.org' }}
+      FINRA_SHORT_INTEREST_URL: ${{ vars.FINRA_SHORT_INTEREST_URL || '' }}
+      FINRA_OTC_DAILY_LIST_URL: ${{ vars.FINRA_OTC_DAILY_LIST_URL || '' }}
+      FINRA_OTC_OPERATION_COSTS: ${{ vars.FINRA_OTC_OPERATION_COSTS || '{}' }}
+      FINRA_OTC_SOURCE_REVIEWED: ${{ vars.FINRA_OTC_SOURCE_REVIEWED || 'false' }}
+      FINRA_OTC_SOURCE_EVIDENCE: ${{ vars.FINRA_OTC_SOURCE_EVIDENCE || '' }}
+      FINRA_OTC_REVIEWED_SOURCE_URL: ${{ vars.FINRA_OTC_REVIEWED_SOURCE_URL || '' }}
+      FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL: ${{ vars.FINRA_OTC_REVIEWED_INACTIVE_SOURCE_URL || '' }}
+      FINRA_OTC_TERMS_REVIEWED: ${{ vars.FINRA_OTC_TERMS_REVIEWED || 'false' }}
+      FINRA_OTC_COMPLETENESS_REVIEWED: ${{ vars.FINRA_OTC_COMPLETENESS_REVIEWED || 'false' }}
+      FINRA_OTC_REDISTRIBUTION_REVIEWED: ${{ vars.FINRA_OTC_REDISTRIBUTION_REVIEWED || 'false' }}
+      FINRA_OTC_POLL_INTERVAL_SECONDS: ${{ vars.FINRA_OTC_POLL_INTERVAL_SECONDS || '0' }}
+      FINRA_ORF_CUSIP_LICENSED: ${{ vars.FINRA_ORF_CUSIP_LICENSED || 'false' }}
+      FINRA_ORF_CUSIP_LICENSE_EVIDENCE: ${{ vars.FINRA_ORF_CUSIP_LICENSE_EVIDENCE || '' }}
+      MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}
+      MARKETSTACK_REVIEWED_MONTHLY_LIMIT: ${{ vars.MARKETSTACK_REVIEWED_MONTHLY_LIMIT || '100' }}
+      MARKETSTACK_REVIEWED_MONTHLY_RESET: ${{ vars.MARKETSTACK_REVIEWED_MONTHLY_RESET || '' }}
+      MARKETSTACK_QUOTA_EVIDENCE: ${{ vars.MARKETSTACK_QUOTA_EVIDENCE || '' }}
+      MARKETSTACK_DISCOVERY_MAX_PAGE_COST: ${{ vars.MARKETSTACK_DISCOVERY_MAX_PAGE_COST || '0' }}
+      MARKETSTACK_DISCOVERY_COST_EVIDENCE: ${{ vars.MARKETSTACK_DISCOVERY_COST_EVIDENCE || '' }}
+      MARKETSTACK_PROVIDER_ARCHIVE_TERMS_AUTHORIZED: ${{ vars.MARKETSTACK_PROVIDER_ARCHIVE_TERMS_AUTHORIZED || 'false' }}
+      MARKETSTACK_PROVIDER_ARCHIVE_TERMS_EVIDENCE: ${{ vars.MARKETSTACK_PROVIDER_ARCHIVE_TERMS_EVIDENCE || '' }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      ALPACA_DATA_FEED: ${{ vars.ALPACA_DATA_FEED || 'iex' }}
+      ALPACA_TRADING_BASE_URL: ${{ vars.ALPACA_TRADING_BASE_URL || 'https://paper-api.alpaca.markets/v2' }}
+      ALPACA_CORPORATE_ACTIONS_MAX_PAGES: ${{ vars.ALPACA_CORPORATE_ACTIONS_MAX_PAGES || '0' }}
+      ALPACA_REVIEWED_RESET: ${{ vars.ALPACA_REVIEWED_RESET || '' }}
+      ALPACA_QUOTA_EVIDENCE: ${{ vars.ALPACA_QUOTA_EVIDENCE || '' }}
+      MASSIVE_CORPORATE_ACTIONS_MAX_PAGES: ${{ vars.MASSIVE_CORPORATE_ACTIONS_MAX_PAGES || '0' }}
+      MASSIVE_REVIEWED_RESET: ${{ vars.MASSIVE_REVIEWED_RESET || '' }}
+      MASSIVE_QUOTA_EVIDENCE: ${{ vars.MASSIVE_QUOTA_EVIDENCE || '' }}
+      MASSIVE_MARKET_DATA_USE_AUTHORIZED: ${{ vars.MASSIVE_MARKET_DATA_USE_AUTHORIZED || 'false' }}
+      MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE: ${{ vars.MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE || '' }}
+      MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE: ${{ vars.MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE || '' }}
+      MASSIVE_MARKET_DATA_USE_REVIEWED_AT: ${{ vars.MASSIVE_MARKET_DATA_USE_REVIEWED_AT || '' }}
+      MASSIVE_MARKET_DATA_USE_EXPIRES_AT: ${{ vars.MASSIVE_MARKET_DATA_USE_EXPIRES_AT || '' }}
+      MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+      MARKETDATA_API_KEY: ${{ secrets.MARKETDATA_API_KEY }}
+      ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+      ALPHA_VANTAGE_REVIEWED_RESET: ${{ vars.ALPHA_VANTAGE_REVIEWED_RESET || '' }}
+      ALPHA_VANTAGE_QUOTA_EVIDENCE: ${{ vars.ALPHA_VANTAGE_QUOTA_EVIDENCE || '' }}
+      COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      FRED_REVIEWED_LIMIT_SCOPE: ${{ vars.FRED_REVIEWED_LIMIT_SCOPE || '' }}
+      FRED_REVIEWED_REQUESTS_PER_MINUTE: ${{ vars.FRED_REVIEWED_REQUESTS_PER_MINUTE || '0' }}
+      FRED_REVIEWED_QUOTA_EVIDENCE: ${{ vars.FRED_REVIEWED_QUOTA_EVIDENCE || '' }}
+      FRED_REVIEWED_RESET: ${{ vars.FRED_REVIEWED_RESET || '' }}
+      FRED_RESET_EVIDENCE: ${{ vars.FRED_RESET_EVIDENCE || '' }}
+      FRED_APPLICATION_USER_SCOPE: ${{ vars.FRED_APPLICATION_USER_SCOPE || '' }}
+      FRED_APPLICATION_USER_SCOPE_EVIDENCE: ${{ vars.FRED_APPLICATION_USER_SCOPE_EVIDENCE || '' }}
+      FRED_AUTOMATED_USE_AUTHORIZED: ${{ vars.FRED_AUTOMATED_USE_AUTHORIZED || 'false' }}
+      FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE: ${{ vars.FRED_AUTOMATED_USE_AUTHORITY_EVIDENCE || '' }}
+      FRED_SERIES_RIGHTS_EVIDENCE: ${{ vars.FRED_SERIES_RIGHTS_EVIDENCE || '{}' }}
+      FINRA_CLIENT_ID: ${{ secrets.FINRA_CLIENT_ID }}
+      FINRA_CLIENT_SECRET: ${{ secrets.FINRA_CLIENT_SECRET }}
+      FINRA_ORF_USERNAME: ${{ secrets.FINRA_ORF_USERNAME }}
+      FINRA_ORF_REFRESH_TOKEN: ${{ secrets.FINRA_ORF_REFRESH_TOKEN }}
+      # Only a persistent, private path on a self-hosted runner is safe for
+      # refresh-token rotation. GitHub-hosted runner disks are ephemeral.
+      FINRA_ORF_REFRESH_TOKEN_STATE_FILE: ${{ vars.FINRA_ORF_REFRESH_TOKEN_STATE_FILE || '' }}
+      FINRA_ORF_TOKEN_URL: ${{ vars.FINRA_ORF_TOKEN_URL || 'https://apidownload.finratraqs.org/refresh' }}
+      FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}
+      MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ENABLED || 'false' }}
+      MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_ISSUERS || '50' }}
+      MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_EVENTS_PER_ISSUER || '100' }}
+      MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_MAX_SUBMISSIONS_REQUESTS || '0' }}
+      MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_ISSUER_MATERIALIZATION_MODE || 'disabled' }}
+      MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT: ${{ vars.MARKET_EVENTS_EDGAR_DIRECTORY_SCAN_REVIEWED_CYCLE_COUNT || '0' }}
+      TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
+      TIINGO_PROVIDER_ARCHIVE_TERMS_AUTHORIZED: ${{ vars.TIINGO_PROVIDER_ARCHIVE_TERMS_AUTHORIZED || 'false' }}
+      TIINGO_PROVIDER_ARCHIVE_TERMS_EVIDENCE: ${{ vars.TIINGO_PROVIDER_ARCHIVE_TERMS_EVIDENCE || '' }}
+      TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '__CODE_DEFAULT__' }}
+      TIINGO_REVIEWED_PLAN: ${{ vars.TIINGO_REVIEWED_PLAN || 'starter' }}
+      TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH: ${{ vars.TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH || '0' }}
+      TIINGO_CUSTOM_REQUESTS_PER_HOUR: ${{ vars.TIINGO_CUSTOM_REQUESTS_PER_HOUR || '0' }}
+      TIINGO_CUSTOM_REQUESTS_PER_DAY: ${{ vars.TIINGO_CUSTOM_REQUESTS_PER_DAY || '0' }}
+      TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH: ${{ vars.TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH || '0' }}
+      TIINGO_CUSTOM_QUOTA_EVIDENCE: ${{ vars.TIINGO_CUSTOM_QUOTA_EVIDENCE || '' }}
+      TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET: ${{ vars.TIINGO_REVIEWED_UNIQUE_SYMBOL_RESET || '' }}
+      TIINGO_REVIEWED_HOURLY_RESET: ${{ vars.TIINGO_REVIEWED_HOURLY_RESET || '' }}
+      TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE: ${{ vars.TIINGO_UNIQUE_SYMBOL_QUOTA_EVIDENCE || '' }}
+      TIINGO_HOURLY_QUOTA_EVIDENCE: ${{ vars.TIINGO_HOURLY_QUOTA_EVIDENCE || '' }}
+      TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+      TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_AUTHORIZED: ${{ vars.TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_AUTHORIZED || 'false' }}
+      TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_EVIDENCE: ${{ vars.TWELVE_DATA_PROVIDER_ARCHIVE_TERMS_EVIDENCE || '' }}
+      FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+      FINNHUB_REVIEWED_MINUTE_RESET: ${{ vars.FINNHUB_REVIEWED_MINUTE_RESET || '' }}
+      FINNHUB_REVIEWED_SECOND_RESET: ${{ vars.FINNHUB_REVIEWED_SECOND_RESET || '' }}
+      FINNHUB_MINUTE_QUOTA_EVIDENCE: ${{ vars.FINNHUB_MINUTE_QUOTA_EVIDENCE || '' }}
+      FINNHUB_SECOND_QUOTA_EVIDENCE: ${{ vars.FINNHUB_SECOND_QUOTA_EVIDENCE || '' }}
+      MARKETSTACK_API_KEY: ${{ secrets.MARKETSTACK_API_KEY }}
+      EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+      EODHD_REVIEWED_MINUTE_LIMIT: ${{ vars.EODHD_REVIEWED_MINUTE_LIMIT || '0' }}
+      EODHD_REVIEWED_MINUTE_RESET: ${{ vars.EODHD_REVIEWED_MINUTE_RESET || '' }}
+      EODHD_MINUTE_QUOTA_EVIDENCE: ${{ vars.EODHD_MINUTE_QUOTA_EVIDENCE || '' }}
+      EODHD_PROVIDER_DISPLAY_TERMS_AUTHORIZED: ${{ vars.EODHD_PROVIDER_DISPLAY_TERMS_AUTHORIZED || 'false' }}
+      EODHD_PROVIDER_DISPLAY_TERMS_EVIDENCE: ${{ vars.EODHD_PROVIDER_DISPLAY_TERMS_EVIDENCE || '' }}
+      FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+      FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED: ${{ vars.FMP_PROVIDER_ARCHIVE_TERMS_AUTHORIZED || 'false' }}
+      FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE: ${{ vars.FMP_PROVIDER_ARCHIVE_TERMS_EVIDENCE || '' }}
+      FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '__CODE_DEFAULT__' }}
+      FMP_REVIEWED_PLAN: ${{ vars.FMP_REVIEWED_PLAN || 'basic' }}
+      FMP_STOCK_LIST_ENTITLED: ${{ vars.FMP_STOCK_LIST_ENTITLED || 'false' }}
+      FMP_REVIEWED_DAILY_RESET: ${{ vars.FMP_REVIEWED_DAILY_RESET || '' }}
+      FMP_REVIEWED_CALL_RESET: ${{ vars.FMP_REVIEWED_CALL_RESET || '' }}
+      FMP_REVIEWED_BANDWIDTH_RESET: ${{ vars.FMP_REVIEWED_BANDWIDTH_RESET || '' }}
+      FMP_CALL_QUOTA_EVIDENCE: ${{ vars.FMP_CALL_QUOTA_EVIDENCE || '' }}
+      FMP_DAILY_QUOTA_EVIDENCE: ${{ vars.FMP_DAILY_QUOTA_EVIDENCE || '' }}
+      FMP_BANDWIDTH_QUOTA_EVIDENCE: ${{ vars.FMP_BANDWIDTH_QUOTA_EVIDENCE || '' }}
+      TRADIER_API_KEY: ${{ secrets.TRADIER_API_KEY }}
+      MARKETDATA_APP_API_KEY: ${{ secrets.MARKETDATA_APP_API_KEY }}
+      MARKETDATA_APP_REVIEWED_PLAN: ${{ vars.MARKETDATA_APP_REVIEWED_PLAN || '' }}
+      MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT: ${{ vars.MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT || '0' }}
+      MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT: ${{ vars.MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT || '' }}
+      MARKETDATA_APP_PROVIDER_RETENTION_TERMS_AUTHORIZED: ${{ vars.MARKETDATA_APP_PROVIDER_RETENTION_TERMS_AUTHORIZED || 'false' }}
+      MARKETDATA_APP_PROVIDER_RETENTION_TERMS_EVIDENCE: ${{ vars.MARKETDATA_APP_PROVIDER_RETENTION_TERMS_EVIDENCE || '' }}
+      MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS: ${{ vars.MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS || '0' }}
+      ALLOW_PAID_PROVIDER_ROUTING: ${{ vars.ALLOW_PAID_PROVIDER_ROUTING || 'false' }}
+      DINARI_API_KEY_ID: ${{ secrets.DINARI_API_KEY_ID }}
+      DINARI_API_SECRET_KEY: ${{ secrets.DINARI_API_SECRET_KEY }}
+      DINARI_API_BASE_URL: ${{ vars.DINARI_API_BASE_URL || 'https://api-enterprise.sandbox.dinari.com/api/v2' }}
+      DINARI_SANDBOX_QUOTA_PROFILE: ${{ vars.DINARI_SANDBOX_QUOTA_PROFILE || '__CODE_DEFAULT__' }}
+      DINARI_SANDBOX_CANARY_AUTHORIZED: ${{ vars.DINARI_SANDBOX_CANARY_AUTHORIZED || 'false' }}
+      DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE: ${{ vars.DINARI_SANDBOX_CANARY_AUTHORITY_REFERENCE || '' }}
+      DINARI_SANDBOX_CANARY_MAX_REQUESTS: ${{ vars.DINARI_SANDBOX_CANARY_MAX_REQUESTS || '' }}
+      ONDO_GLOBAL_MARKETS_API_KEY: ${{ secrets.ONDO_GLOBAL_MARKETS_API_KEY }}
+      IBKR_READ_ONLY_URL: ${{ vars.IBKR_READ_ONLY_URL || '' }}
+      IBKR_READ_ONLY_SESSION_COOKIE: ${{ secrets.IBKR_READ_ONLY_SESSION_COOKIE }}
+      IBKR_READ_ONLY_VERIFY_TLS: ${{ vars.IBKR_READ_ONLY_VERIFY_TLS || 'true' }}
+      IBKR_READ_ONLY_TIMEOUT_SECONDS: ${{ vars.IBKR_READ_ONLY_TIMEOUT_SECONDS || '30' }}
+      IBKR_CONID_MAP: ${{ vars.IBKR_CONID_MAP || '{}' }}
+      XSTOCKS_API_KEY: ${{ secrets.XSTOCKS_API_KEY }}
+      XSTOCKS_MARKET_DATA_USE_AUTHORIZED: ${{ vars.XSTOCKS_MARKET_DATA_USE_AUTHORIZED || 'false' }}
+      XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE: ${{ vars.XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE || '' }}
+      XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE: ${{ vars.XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE || '' }}
+      XSTOCKS_MARKET_DATA_USE_REVIEWED_AT: ${{ vars.XSTOCKS_MARKET_DATA_USE_REVIEWED_AT || '' }}
+      XSTOCKS_MARKET_DATA_USE_EXPIRES_AT: ${{ vars.XSTOCKS_MARKET_DATA_USE_EXPIRES_AT || '' }}
+      BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED: ${{ vars.BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORIZED || 'false' }}
+      BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE: ${{ vars.BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_REFERENCE || '' }}
+      BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE: ${{ vars.BYBIT_XSTOCKS_MARKET_DATA_USE_AUTHORITY_SCOPE || '' }}
+      BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT: ${{ vars.BYBIT_XSTOCKS_MARKET_DATA_USE_REVIEWED_AT || '' }}
+      BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT: ${{ vars.BYBIT_XSTOCKS_MARKET_DATA_USE_EXPIRES_AT || '' }}
+      BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED: ${{ vars.BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_AUTHORIZED || 'false' }}
+      BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE: ${{ vars.BYBIT_XSTOCKS_MARKET_DATA_USE_EGRESS_JURISDICTION_EVIDENCE || '' }}
+      COINBASE_API_KEY: ${{ secrets.COINBASE_API_KEY }}
+      COINBASE_MARKET_DATA_USE_AUTHORIZED: ${{ vars.COINBASE_MARKET_DATA_USE_AUTHORIZED || 'false' }}
+      COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE: ${{ vars.COINBASE_MARKET_DATA_USE_AUTHORITY_REFERENCE || '' }}
+      COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE: ${{ vars.COINBASE_MARKET_DATA_USE_AUTHORITY_SCOPE || '' }}
+      COINBASE_MARKET_DATA_USE_REVIEWED_AT: ${{ vars.COINBASE_MARKET_DATA_USE_REVIEWED_AT || '' }}
+      COINBASE_MARKET_DATA_USE_EXPIRES_AT: ${{ vars.COINBASE_MARKET_DATA_USE_EXPIRES_AT || '' }}
+      KRAKEN_MARKET_DATA_USE_AUTHORIZED: ${{ vars.KRAKEN_MARKET_DATA_USE_AUTHORIZED || 'false' }}
+      KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE: ${{ vars.KRAKEN_MARKET_DATA_USE_AUTHORITY_REFERENCE || '' }}
+      KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE: ${{ vars.KRAKEN_MARKET_DATA_USE_AUTHORITY_SCOPE || '' }}
+      KRAKEN_MARKET_DATA_USE_REVIEWED_AT: ${{ vars.KRAKEN_MARKET_DATA_USE_REVIEWED_AT || '' }}
+      KRAKEN_MARKET_DATA_USE_EXPIRES_AT: ${{ vars.KRAKEN_MARKET_DATA_USE_EXPIRES_AT || '' }}
+      KRAKEN_API_KEY: ${{ secrets.KRAKEN_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7.15"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install locked backend dependencies
+        run: bash scripts/ci-retry.sh -- bash -c 'cd backend && uv sync --frozen --dev'
+
+      - name: Run one bounded live read per provider
+        env:
+          # runner context is available at step level, not jobs.<job_id>.env.
+          # Keep aggregate-only usage telemetry in the runner temp area; the
+          # artifact step below uploads only this redacted ledger.
+          PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl
+          # Keep dispatch input data out of the generated shell source.
+          PROVIDER_LIVE_RUN_HTTP_LIMIT: ${{ inputs.max_http_requests }}
+        run: |
+          if [ "${{ inputs.dinari_sandbox_canary }}" = "true" ]; then
+            uv run --project backend python scripts/run-live-provider-probes.py \
+              --provider dinari --dinari-sandbox-canary \
+              --max-http-requests "$PROVIDER_LIVE_RUN_HTTP_LIMIT"
+          else
+            uv run --project backend python scripts/run-live-provider-probes.py \
+              --max-http-requests "$PROVIDER_LIVE_RUN_HTTP_LIMIT"
+          fi
+
+      - name: Preserve redacted live usage receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-live-usage-${{ github.run_id }}
+          path: ${{ runner.temp }}/provider-live-usage.jsonl
+          if-no-files-found: ignore
+          retention-days: 90

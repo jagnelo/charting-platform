@@ -70,6 +70,24 @@ integration_checkpoint:
       reserved heavy-validation slot, merge that exact synchronized staging SHA
       into this same branch, implement/test the real ETF_HOLDINGS bridge, then
       run the combined full profile and exact-source CI.
+  latest_provider_release:
+    recorded_at: "2026-10-20T20:58:03Z"
+    status: accepted_and_released_in_synchronized_green_staging
+    staging_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    release_record: /home/m920q/charting-platform/.ai/staging-attempts/provider-green-release-20261020.md
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261020T205101Z-9b230ba4c971.json
+    exact_ci_run: 39484176087
+    exhaustive_gate_job: 118849529356
+    evidence: >-
+      Terminal green exact-source CI and Exhaustive Integration Gate; coordinator
+      independently confirmed 155 functional and 104 visual cases with zero
+      retries. This releases Provider only, not ETF acceptance. Origin staging
+      was fetched and independently verified at this exact SHA.
+    prior_unreleased_provider_holds: superseded_for_this_exact_release_only
+    remaining_boundary: >-
+      ETF source checkpoint remains in_progress/not accepted. Implement and
+      validate the ETF-owned bridge in this branch; no live issuer replay, paid
+      or trial operation, staging write, deployment, or whole-roadmap acceptance.
   checkpoint_acceptance_delegation:
     recorded_at: "2026-10-15T22:55:31Z"
     exact_question: >-
@@ -91,9 +109,12 @@ integration_checkpoint:
       paid or trial activation, operational trial, unsafe transport, or retained
       data cleanup. Full roadmaps remain open.
     current_source_state: >-
-      Provider producer contract/release remains unaccepted; quota-held and
-      unreviewed operations stay disabled. The actual ETF_HOLDINGS shared bridge
-      remains externally gated; no product checkpoint is currently accepted.
+      Provider producer checkpoint is accepted and released at staging
+      9b230ba4c97126a2937667138c6eb2a0aa297baf with exact green CI39484176087
+      and Exhaustive job118849529356. This does not accept ETF source. ETF owns
+      the consumer enum/schema/seed/bridge and required validation. Quota-held,
+      unreviewed, paid/trial, and unsafe operations remain disabled; no product
+      checkpoint is currently accepted for ETF.
     coordinator_receipt: /home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json
     coordinator_receipt_key: checkpoint_acceptance_delegation_question
   latest_coordinator_update:
@@ -451,22 +472,21 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: common_baseline_published_green_waiting_accepted_provider_release
+current_phase: provider_release_reconciled_etf_bridge_implementation
 current_blocker: >-
-  Common staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 is published in
-  the ETF branch as merge 4fd48056c3fb7d54678f9ba7741fa5fd06b0c473;
-  exact Actions39340838524 is green for Backend, Frontend Unit,
-  Branch-declared and Playwright. The baseline contains common workflow/F8u/F9c
-  repairs only and product checkpoints remain 0/4. Provider candidate
-  023d30c615ae1bfea3a79f90d4d814242cd5711e adds operation-level checkpoint
-  holds but remains unaccepted and unreleased while its combined profile and
-  operation review continue. ProviderCapability still lacks ETF_HOLDINGS, so
-  implementation remains gated on an exact accepted green staging release.
+  Provider is accepted/released at exact green staging
+  9b230ba4c97126a2937667138c6eb2a0aa297baf (CI39484176087;
+  Exhaustive118849529356); this supersedes older Provider-unreleased status
+  only for this release. ETF has begun merging that exact source into its own
+  branch and reconciling conflicts while preserving ETF source/workstream
+  behavior. The ETF_HOLDINGS enum, additive migration, safe disabled default,
+  per-attempt shared admission/settlement transport bridge, artifact lineage,
+  and combined consumer tests remain implementation work.
   The 15 Tier-0 and 156 Tier-1 investigations and 496/422/74 registry split are
   preserved. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no
   retained response body or parsed-row evidence. Unknown/quota-held/paid/trial/
   unsafe operations remain disabled. The required combined full_stack_browser
-  gate remains open.
+  gate is open and awaits a coordinator-assigned safe fixture slot.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1455,11 +1475,11 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Wait for the coordinator's explicit accepted Provider release in an exact
-  synchronized green staging SHA. Verify
-  the release/CI/acceptance record,
-  merge only that SHA into this clean unfrozen ETF branch, record source and
-  migration heads, and execute the documented bridge checklist: additive
+  Complete the in-progress merge of only released staging
+  9b230ba4c97126a2937667138c6eb2a0aa297baf into this ETF branch, retaining the
+  ETF-owned workstream and feature behavior while reconciling semantic
+  conflicts. Record source and migration heads. Then execute the documented
+  bridge checklist: additive
   ETF_HOLDINGS enum/schema/seed/availability reconciliation; evidence-backed
   issuer/account/host/operation bindings; shared recurring-cost onboarding;
   released operation-hold mapping with zero-adapter/zero-reservation/
@@ -1470,7 +1490,7 @@ next_action: >-
   tests; truthful current/degraded/stale/partial/unavailable and historical/PIT
   consumers. Then run focused/database validation, current-source
   full_stack_browser and exact-source CI and stop at ready_for_human_review.
-  Until release, do not import sibling source, issue live requests, guess
-  costs/quotas/FX, create a second ledger, weaken MSMR or Militia quarantines,
+  Do not issue live requests, guess costs/quotas/FX, create a second ledger,
+  weaken MSMR or Militia quarantines,
   write staging, deploy or activate paid/trial operations. Preserve the complete
   fourteen-criterion roadmap and later observation gate.

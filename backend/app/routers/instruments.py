@@ -32,6 +32,7 @@ from app.providers import ensure_data_source
 from app.providers.base import InstrumentProfile
 from app.schemas.instrument import InstrumentMembership, InstrumentOut, InstrumentSearchResult
 from app.services.bulk_fetch import get_fetch_progress
+from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.expression_engine import (
     ExpressionError,
     extract_tickers,
@@ -162,6 +163,8 @@ async def search_instruments(
             exchange=_instrument_search_exchange(i),
             type=i.instrument_type.name if i.instrument_type else "",
             instrument_id=i.id,
+            domain_key=i.domain_key,
+            identity_status=i.identity_status,
         )
         for i in local
     ]:
@@ -273,6 +276,8 @@ async def browse_instruments(
                 "id": inst.id,
                 "symbol": inst.symbol,
                 "name": inst.name,
+                "domain_key": inst.domain_key,
+                "identity_status": inst.identity_status,
                 "currency": inst.currency,
                 "type": inst.instrument_type.name if inst.instrument_type else None,
                 "sector": eq.sector if eq else None,
@@ -395,6 +400,7 @@ class SeasonalityMonth(BaseModel):
 class SeasonalityResponse(BaseModel):
     symbol: str
     months: list[SeasonalityMonth]
+    coverage_preflight: dict[str, object] = Field(default_factory=dict)
 
 
 class ResolveExpressionBody(BaseModel):
@@ -606,28 +612,79 @@ async def get_heatmap_data(
     for bar in bars_result.scalars().all():
         bars_by_id[bar.instrument_id].append(bar)
 
-    # ── 2b. Fetch selected timeframe bars through the normal OHLCV cache path.
-    # This keeps heatmap sparklines DB-first but still populates missing W1/MN
-    # bars instead of silently reusing daily data.
+    daily_preflight = await preflight_ohlcv(
+        db,
+        evaluator="instrument_heatmap_daily",
+        instrument_ids=instrument_ids,
+        timeframe=Timeframe.D1,
+        date_from=None,
+        date_to=None,
+        adjusted=True,
+        cached_bars=bars_by_id,
+        minimum_bars=252,
+    )
+
+    # ── 2b. Read selected-timeframe bars from the local cache only.
+    # Broad evaluators must not fan out to providers while rendering a request.
+    # Missing sparkline history remains explicit in the per-row preflight report
+    # and is repaired by the normal refresh queue/worker path.
     sparkline_bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
+    raw_sparkline_bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
     if body.include_sparklines:
-        for instr_id in instrument_ids:
-            inst = instruments.get(instr_id)
-            if inst is None:
-                continue
-            try:
-                sparkline_bars_by_id[instr_id] = await fetch_ohlcv_latest(
-                    db,
-                    inst,
-                    body.timeframe,
-                    body.sparkline_bars,
-                    True,
+        if body.timeframe == Timeframe.D1:
+            raw_sparkline_bars_by_id.update(bars_by_id)
+        else:
+            sparkline_ranked = (
+                select(
+                    OHLCVBar.id.label("bar_id"),
+                    func.row_number()
+                    .over(
+                        partition_by=OHLCVBar.instrument_id,
+                        order_by=OHLCVBar.ts.desc(),
+                    )
+                    .label("row_number"),
                 )
-            except Exception:
-                if body.timeframe == Timeframe.D1:
-                    sparkline_bars_by_id[instr_id] = bars_by_id.get(instr_id, [])[
-                        -body.sparkline_bars :
-                    ]
+                .where(
+                    OHLCVBar.instrument_id.in_(instrument_ids),
+                    OHLCVBar.timeframe == body.timeframe,
+                    OHLCVBar.is_adjusted.is_(True),
+                )
+                .subquery()
+            )
+            sparkline_result = await db.execute(
+                select(OHLCVBar)
+                .join(sparkline_ranked, OHLCVBar.id == sparkline_ranked.c.bar_id)
+                .where(sparkline_ranked.c.row_number <= body.sparkline_bars)
+                .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+            )
+            for bar in sparkline_result.scalars().all():
+                raw_sparkline_bars_by_id[bar.instrument_id].append(bar)
+        for instr_id in instrument_ids:
+            sparkline_bars_by_id[instr_id] = raw_sparkline_bars_by_id.get(instr_id, [])[
+                -body.sparkline_bars :
+            ]
+
+    sparkline_preflight = (
+        await preflight_ohlcv(
+            db,
+            evaluator="instrument_heatmap_sparkline",
+            instrument_ids=instrument_ids,
+            timeframe=body.timeframe,
+            date_from=None,
+            date_to=None,
+            adjusted=True,
+            cached_bars=raw_sparkline_bars_by_id,
+            minimum_bars=1,
+        )
+        if body.include_sparklines
+        else None
+    )
+    daily_items = {item.instrument_id: item.to_dict() for item in daily_preflight.items}
+    sparkline_items = (
+        {item.instrument_id: item.to_dict() for item in sparkline_preflight.items}
+        if sparkline_preflight is not None
+        else {}
+    )
 
     # ── 3. Compute metrics per instrument ─────────────────────────────────────
     today_utc = datetime.now(UTC).date()
@@ -664,6 +721,10 @@ async def get_heatmap_data(
         eq = inst.equity_detail
         stats = inst.stats
         n = len(bars)
+        coverage_preflight = {
+            "daily": daily_items.get(instr_id),
+            "sparkline": sparkline_items.get(instr_id) if body.include_sparklines else None,
+        }
 
         # Base metadata
         market_cap = float(stats.market_cap) if stats and stats.market_cap else None
@@ -671,7 +732,7 @@ async def get_heatmap_data(
         week52_high = float(stats.week52_high) if stats and stats.week52_high else None
         week52_low = float(stats.week52_low) if stats and stats.week52_low else None
 
-        if not bars:
+        if not bars or instr_id not in daily_preflight.ready_instrument_ids:
             rows.append(
                 {
                     "instrument_id": instr_id,
@@ -693,6 +754,7 @@ async def get_heatmap_data(
                     "dist_52w_high": None,
                     "dist_52w_low": None,
                     "sparkline": _sparkline_for(instr_id),
+                    "coverage_preflight": coverage_preflight,
                 }
             )
             continue
@@ -759,6 +821,7 @@ async def get_heatmap_data(
                 "dist_52w_high": dist_52w_high,
                 "dist_52w_low": dist_52w_low,
                 "sparkline": _sparkline_for(instr_id),
+                "coverage_preflight": coverage_preflight,
             }
         )
 
@@ -795,7 +858,30 @@ async def get_monthly_seasonality(
         raise HTTPException(404, f"Instrument '{symbol}' not found")
     await db.refresh(instrument, ["listings"])
 
-    bars = await fetch_ohlcv_latest(db, instrument, Timeframe.MN, limit, True)
+    # Seasonality is an evaluator, so it must never turn a user request into
+    # a provider fan-out.  A refresh worker can populate the canonical monthly
+    # series; this request only evaluates what is already local and reports
+    # whether the requested sample is complete.
+    bars = await fetch_ohlcv_latest(
+        db,
+        instrument,
+        Timeframe.MN,
+        limit,
+        True,
+        allow_provider_fetch=False,
+    )
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="instrument_seasonality",
+        instrument_ids=[instrument.id],
+        timeframe=Timeframe.MN,
+        date_from=None,
+        date_to=None,
+        mode="historical",
+        adjusted=True,
+        cached_bars={instrument.id: bars},
+        minimum_bars=limit,
+    )
     records_by_month: dict[int, list[SeasonalityRecord]] = {m: [] for m in range(1, 13)}
 
     previous_volume: float | None = None
@@ -858,7 +944,11 @@ async def get_monthly_seasonality(
             )
         )
 
-    return SeasonalityResponse(symbol=instrument.symbol, months=months)
+    return SeasonalityResponse(
+        symbol=instrument.symbol,
+        months=months,
+        coverage_preflight=coverage_preflight.to_dict(),
+    )
 
 
 @router.get("/{instrument_id}/membership", response_model=InstrumentMembership)

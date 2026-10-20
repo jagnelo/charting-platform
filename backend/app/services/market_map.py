@@ -40,7 +40,9 @@ from app.services.breadth import (
     build_equal_reference_series,
     evaluate_breadth,
     evaluate_condition,
+    required_bars_for_condition,
 )
+from app.services.evaluator_preflight import EvaluatorCoverageItem, preflight_ohlcv
 from app.services.watchlist_sources import (
     CurrentAnalysisSourceError,
     current_analysis_source_error_detail,
@@ -97,6 +99,27 @@ def _period_bounds(request: MarketMapRequest, latest: datetime) -> tuple[datetim
     # persisted session before the requested window, never a forward-filled value.
     days = {"1D": 7, "1W": 14, "1M": 45, "3M": 120, "6M": 240, "1Y": 450}[period]
     return end - timedelta(days=days), end
+
+
+def _period_required_bars(period: str) -> int:
+    """Return the local bars required for the map's return calculation."""
+
+    return _OFFSETS.get(period.upper(), 1) + 1
+
+
+def _market_map_required_bars(request: MarketMapRequest) -> int:
+    """Derive one conservative OHLCV floor for every map calculation."""
+
+    required = _period_required_bars(request.period)
+    if request.color_metric == "breadth":
+        required = max(required, required_bars_for_condition(request.condition))
+    elif request.color_metric == "rsi_14":
+        required = max(required, 15)
+    elif request.color_metric == "relative_volume":
+        required = max(required, 51)
+    elif request.color_metric in {"distance_52w_high", "distance_52w_low"}:
+        required = max(required, 252)
+    return required
 
 
 def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: datetime):
@@ -768,6 +791,7 @@ def _cache_key(
     profile_snapshot_ids: list[int] | None = None,
     profile_snapshot_policy_fingerprint: str | None = None,
     classification_snapshot_ids: list[int] | None = None,
+    freshness_stale_ids: list[int] | None = None,
 ) -> str:
     """Build a deterministic identity for one source/data snapshot.
 
@@ -777,7 +801,7 @@ def _cache_key(
     """
 
     payload = request.model_dump(mode="json") | {
-        "calculation_version": "market-map-v1",
+        "calculation_version": "market-map-v2",
         "membership_version": membership_version,
         "member_ids": sorted(member_ids),
         "bar_watermark": bar_watermark.isoformat() if bar_watermark else None,
@@ -793,6 +817,7 @@ def _cache_key(
         "profile_snapshot_ids": sorted(profile_snapshot_ids or []),
         "profile_snapshot_policy_fingerprint": profile_snapshot_policy_fingerprint,
         "classification_snapshot_ids": sorted(classification_snapshot_ids or []),
+        "freshness_stale_ids": sorted(freshness_stale_ids or []),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -825,7 +850,7 @@ async def build_market_map(
     # Imported lazily to avoid the analysis router/service import cycle.  The
     # existing helper is intentionally reused so freshness semantics stay
     # identical across batch analysis surfaces.
-    from app.routers.analysis import _batch_freshness
+    from app.routers.analysis import _batch_freshness, _stale_instrument_ids
 
     # A map's explicit ``end`` is also the evaluation timestamp for system-
     # managed sources with disclosed composition history. Personal/managed and
@@ -894,10 +919,47 @@ async def build_market_map(
     bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
     for bar in bars:
         bars_by_id[bar.instrument_id].append(bar)
+    # Current maps must never calculate signals from an explicitly expired
+    # persisted OHLCV snapshot.  An explicit ``as_of`` or a disclosed
+    # point-in-time source evaluation retains historical semantics and skips
+    # this current-freshness boundary.
+    historical_evaluation = request.as_of is not None or membership_as_of is not None
+    stale_member_ids = (
+        set()
+        if historical_evaluation
+        else await _stale_instrument_ids(db, member_ids, timeframe, request.adjusted)
+    )
+    for instrument_id in stale_member_ids:
+        bars_by_id[instrument_id] = []
+        exclusions.append(
+            _warning(
+                "stale_data",
+                "Persisted OHLCV freshness has expired; map values were withheld.",
+                instrument_id,
+            )
+        )
     latest = max((bar.ts for rows in bars_by_id.values() for bar in rows), default=None)
     if latest is None:
         latest = end_hint
     period_start, period_end = _period_bounds(request, latest)
+    required_bars = _market_map_required_bars(request)
+    coverage_preflight = await preflight_ohlcv(
+        db,
+        evaluator="market_map",
+        instrument_ids=[
+            instrument_id for instrument_id in member_ids if instrument_id in instruments
+        ],
+        timeframe=timeframe,
+        date_from=None,
+        date_to=None,
+        mode="historical",
+        now=period_end,
+        cached_bars=bars_by_id,
+        minimum_bars=required_bars,
+    )
+    coverage_items_by_id: dict[int, EvaluatorCoverageItem] = {
+        item.instrument_id: item for item in coverage_preflight.items
+    }
     profile_snapshots_by_id: dict[int, InstrumentProfileSnapshot] = {}
     profile_snapshot_watermark: datetime | None = None
     profile_snapshot_ids: list[int] = []
@@ -1040,6 +1102,7 @@ async def build_market_map(
     reference_source_member_ids: list[int] = []
     reference_source_membership_version: str | None = None
     reference_series_method: str | None = None
+    stale_reference_ids: set[int] = set()
     if request.reference_symbol:
         reference = (
             await db.execute(
@@ -1064,6 +1127,19 @@ async def build_market_map(
                 .scalars()
                 .all()
             )
+            if not historical_evaluation:
+                stale_reference_ids = await _stale_instrument_ids(
+                    db, [reference.id], timeframe, request.adjusted
+                )
+                if reference.id in stale_reference_ids:
+                    reference_bars = []
+                    exclusions.append(
+                        _warning(
+                            "stale_data",
+                            "Persisted OHLCV freshness has expired; relative reference values were withheld.",
+                            reference.id,
+                        )
+                    )
         else:
             exclusions.append(
                 _warning("reference_not_found", "The relative-return reference is not canonical.")
@@ -1102,6 +1178,10 @@ async def build_market_map(
         reference_source_member_ids = list(
             dict.fromkeys(member.instrument_id for member in reference_resolved.members)
         )
+        if not historical_evaluation:
+            stale_reference_ids = await _stale_instrument_ids(
+                db, reference_source_member_ids, timeframe, request.adjusted
+            )
         reference_source_bars = (
             (
                 await db.execute(
@@ -1119,6 +1199,18 @@ async def build_market_map(
             .scalars()
             .all()
         )
+        if stale_reference_ids:
+            reference_source_bars = [
+                bar for bar in reference_source_bars if bar.instrument_id not in stale_reference_ids
+            ]
+            exclusions.extend(
+                _warning(
+                    "stale_data",
+                    "Persisted OHLCV freshness has expired; a reference-source member was excluded.",
+                    instrument_id,
+                )
+                for instrument_id in sorted(stale_reference_ids)
+            )
         reference_bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
         for bar in reference_source_bars:
             reference_bars_by_id[bar.instrument_id].append(bar)
@@ -1172,6 +1264,16 @@ async def build_market_map(
             benchmark_bars=reference_bars,
         )
         cross_sectional_results = {item.instrument_id: item for item in cross_sectional_results}
+    freshness_ids = list(
+        dict.fromkeys(
+            [
+                *member_ids,
+                *([reference.id] if reference is not None else []),
+                *reference_source_member_ids,
+            ]
+        )
+    )
+    freshness_stale_ids = sorted(stale_member_ids | stale_reference_ids)
     cache_key = _cache_key(
         request,
         resolved.descriptor.membership_version,
@@ -1185,6 +1287,7 @@ async def build_market_map(
         profile_snapshot_ids,
         profile_snapshot_policy_fingerprint,
         classification_snapshot_ids,
+        freshness_stale_ids,
     )
     python_values, python_output_contract = ({}, "")
     if (
@@ -1206,9 +1309,31 @@ async def build_market_map(
         rows = [bar for bar in bars_by_id.get(instrument_id, []) if bar.ts <= period_end]
         result, observed, code, message = _return(rows, request.period, period_start, period_end)
         warnings: list[MarketMapWarning] = []
+        if instrument_id in stale_member_ids:
+            result, observed, code, message = (
+                None,
+                None,
+                "stale_data",
+                "Persisted OHLCV freshness has expired; map values were withheld.",
+            )
+        coverage_item = coverage_items_by_id.get(instrument_id)
         if code:
             warnings.append(_warning(code, message or code, instrument_id=instrument_id))
-        if cross_sectional_condition:
+        if instrument_id in stale_member_ids:
+            colour, colour_code, condition_value, condition_metric = (
+                None,
+                "stale_data",
+                None,
+                None,
+            )
+        elif reference and reference.id in stale_reference_ids:
+            colour, colour_code, condition_value, condition_metric = (
+                None,
+                "stale_data",
+                None,
+                None,
+            )
+        elif cross_sectional_condition:
             cross_sectional_result = cross_sectional_results.get(instrument_id)
             if cross_sectional_result is None:
                 colour, colour_code, condition_value, condition_metric = (
@@ -1235,15 +1360,34 @@ async def build_market_map(
                 reference_bars=reference_bars,
                 events=events_by_id.get(instrument_id),
             )
-        if request.color_metric == "relative_return":
+        if (
+            request.color_metric == "relative_return"
+            and instrument_id not in stale_member_ids
+            and not (reference and reference.id in stale_reference_ids)
+        ):
             if result is None or ref_return is None:
                 colour = None
                 colour_code = colour_code or "unaligned_reference"
             else:
                 colour = result - ref_return
+        if (
+            coverage_item is not None
+            and coverage_item.status.value != "ready"
+            and instrument_id not in stale_member_ids
+            and request.color_metric != "python"
+            and colour is not None
+        ):
+            colour, condition_value, condition_metric, colour_code = (
+                None,
+                None,
+                None,
+                "coverage_preflight",
+            )
         if colour_code:
             message = (
-                "The cross-sectional breadth target is unavailable for this member."
+                "Persisted OHLCV freshness has expired; map colour was withheld."
+                if colour_code == "stale_data"
+                else "The cross-sectional breadth target is unavailable for this member."
                 if cross_sectional_condition
                 else "The isolated Python colour output is unavailable for this member."
                 if request.color_metric == "python"
@@ -1627,7 +1771,7 @@ async def build_market_map(
         )
         nodes = [root, *nodes]
     freshness, freshness_detail = await _batch_freshness(
-        db, member_ids, timeframe, request.adjusted
+        db, freshness_ids, timeframe, request.adjusted
     )
     exclusions.extend(
         _warning(
@@ -1649,6 +1793,10 @@ async def build_market_map(
         area_field=request.area_field,
         color_metric=request.color_metric,
         condition=request.condition,
+        coverage_preflight={
+            **coverage_preflight.to_dict(),
+            "required_bars": required_bars,
+        },
         python_run_id=request.python_run_id,
         reference_symbol=request.reference_symbol.upper() if request.reference_symbol else None,
         reference_source=reference_source,

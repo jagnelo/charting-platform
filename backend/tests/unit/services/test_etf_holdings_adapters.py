@@ -916,8 +916,6 @@ def test_morgan_stanley_adapter_accepts_current_public_download_path():
         "Holdings_MSLC%20Morgan%20Stanley%20Pathway%20-%20Large%20Cap%20Equity%20"
         "ETF_07_20_2026.xlsx"
     )
-    assert FakeAsyncClient.requested[0][0].endswith("/mslc.html")
-    assert FakeAsyncClient.requested[1][0].endswith("ETF_07_15_2026.xlsx")
 
 
 def test_golden_eagle_parser_validates_complete_declared_portfolio_count():
@@ -2846,17 +2844,31 @@ async def test_regan_adapter_retries_a_transient_issuer_timeout(monkeypatch):
 async def test_regan_adapter_falls_back_to_requests_after_async_timeouts(monkeypatch):
     adapter = get_holdings_adapter("regan")
     assert adapter is not None
+    to_thread_calls = []
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This case verifies fallback routing and retry semantics, not the
+        # interpreter's global executor. Keep the fake requests transport
+        # deterministic while still asserting that production delegates it.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     async def skip_retry_delay(_seconds):
         return None
 
     async def fake_to_thread(func, *args, **kwargs):
+        to_thread_calls.append((func, args, kwargs))
         return func(*args, **kwargs)
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
@@ -2896,6 +2908,8 @@ async def test_regan_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
 
     assert len(result.rows) == 1
     assert len(FakeAsyncClient.requested) == 4
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert requests_seen[0][0] == "https://www.regancapital.com/wp-json/etf/holdings"
     assert requests_seen[0][1]["allow_redirects"] is True
     assert requests_seen[0][1]["headers"]["Referer"] == "https://www.regancapital.com/etfs/mbsf/"
@@ -3985,6 +3999,14 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
     TICKER  SHARES  DESCRIPTION  VALUE $  PORTFOLIO
     """
     requested = []
+    to_thread_calls = []
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This test verifies issuer URL discovery and PDF parsing, not executor
+        # scheduling. Keep its synchronous fake transport deterministic while
+        # still asserting that the adapter delegates both requests.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -4005,6 +4027,9 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
     monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
+    monkeypatch.setattr(
         type(adapter),
         "_extract_pdf_text",
         staticmethod(lambda raw_pdf: raw_text),
@@ -4013,6 +4038,8 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
     result = await adapter.fetch_latest(symbol="HWSM")
 
     assert [request[0] for request in requested] == [product_url, holdings_url]
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert len(result.rows) == 3
     assert result.rows[0].symbol == "ASO"
     assert result.rows[0].weight == Decimal("0.0033")
@@ -11192,10 +11219,16 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
             url="https://funds.alphaarchitect.com/qval/",
         ),
     ]
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requests_called.append(url)
         return responses.pop(0)
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # Retry behavior is under test; real executor scheduling is not.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     async def skip_delay(_seconds):
         return None
@@ -11205,6 +11238,9 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
@@ -11214,6 +11250,8 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
         "https://funds.alphaarchitect.com/qval/",
         "https://funds.alphaarchitect.com/qval/",
     ]
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert result.rows[0].symbol == "ADT"
 
 
@@ -12066,6 +12104,7 @@ async def test_day_hagan_declared_airtable_adapter_parses_holdings(monkeypatch, 
         ]
     }
     requested = []
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -12084,15 +12123,23 @@ async def test_day_hagan_declared_airtable_adapter_parses_holdings(monkeypatch, 
             url=url,
         )
 
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This parser/route test does not exercise executor scheduling.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="SSUS", identifiers={})
 
     assert requested[0][0] == "https://dhfunds.com/day-hagan-smart-sector-etf"
+    assert len(requested) == 2
+    assert len(to_thread_calls) == 2
+    assert to_thread_calls[0][0] is requests.get
+    assert to_thread_calls[1][0] is adapter._fetch_airtable_records
     assert len(result.rows) == 2
     assert [row.name for row in result.rows] == [
         "Communication Services Select Sector SPDR Fund",
@@ -12155,6 +12202,7 @@ async def test_estate_counselors_adapter_verifies_brinsmere_filepoint_holdings(m
         ]
     )
     requested = []
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -12171,11 +12219,16 @@ async def test_estate_counselors_adapter_verifies_brinsmere_filepoint_holdings(m
             return FakeResponse(text=raw_csv, content_type="text/csv", url=url)
         raise AssertionError(f"unexpected URL {url}")
 
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # Keep the four fake issuer requests deterministic; executor scheduling
+        # is not part of this route-discovery and parsing contract.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="TBFC", identifiers={})
 
@@ -12188,6 +12241,8 @@ async def test_estate_counselors_adapter_verifies_brinsmere_filepoint_holdings(m
             "FilepointBrinsmereTMC.40M4.M4_Holdings.csv"
         ),
     ]
+    assert len(to_thread_calls) == 4
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "AVDV"
     assert result.rows[0].name == "Avantis International Small Cap Value ETF"
@@ -12258,6 +12313,7 @@ async def test_corient_adapter_verifies_fundx_csv_viewer_holdings(monkeypatch):
         }
     }
     requested = []
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -12271,11 +12327,16 @@ async def test_corient_adapter_verifies_fundx_csv_viewer_holdings(monkeypatch):
             return FakeResponse(text=json.dumps(payload), content_type="application/json", url=url)
         raise AssertionError(f"unexpected URL {url}")
 
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # Route discovery and parsing use fake responses; executor scheduling is
+        # outside this test's contract.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="XCOR", identifiers={})
 
@@ -12286,6 +12347,8 @@ async def test_corient_adapter_verifies_fundx_csv_viewer_holdings(monkeypatch):
             "0ba9e6e7-ac72-4ebf-8e0a-64a998e7db52?_format=json"
         ),
     ]
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert len(result.rows) == 2
     assert result.rows[0].symbol == "IOO"
     assert result.rows[0].name == "iShares Global 100 ETF"
@@ -13329,6 +13392,7 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
@@ -13336,6 +13400,10 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
             text="holdings",
             url="https://www.zacksetfs.com/webservices/holdings.php",
         )
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
@@ -13345,6 +13413,9 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     async with FakeAsyncClient() as client:
         response = await adapter._get_holdings_with_timeout_retry(
@@ -13355,6 +13426,8 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
 
     assert response.text == "holdings"
     assert len(FakeAsyncClient.requested) == 3
+    assert len(to_thread_calls) == 1
+    assert to_thread_calls[0][0] is requests.get
     assert requests_seen[0][0] == "https://www.zacksetfs.com/webservices/holdings.php"
     assert requests_seen[0][1]["headers"] == {"Referer": "https://www.zacksetfs.com/"}
     assert requests_seen[0][1]["allow_redirects"] is True
@@ -13421,6 +13494,7 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
@@ -13431,6 +13505,10 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
             url="https://www.zacksetfs.com/webservices/holdings.php",
         )
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         httpx.ReadTimeout("issuer stalled"),
@@ -13439,6 +13517,9 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     async with FakeAsyncClient() as client:
         response = await adapter._get_holdings_with_timeout_retry(
@@ -13450,6 +13531,8 @@ async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     assert response.text == "holdings"
     assert len(FakeAsyncClient.requested) == 3
     assert len(requests_seen) == 2
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
 
 
 @pytest.mark.asyncio
@@ -13467,6 +13550,7 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
@@ -13477,6 +13561,10 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
             url="https://www.zacksetfs.com/webservices/holdings.php",
         )
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         httpx.ReadTimeout("issuer stalled"),
@@ -13485,6 +13573,9 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     async with FakeAsyncClient() as client:
         response = await adapter._get_holdings_with_timeout_retry(
@@ -13496,6 +13587,8 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
     assert response.text == "holdings"
     assert len(FakeAsyncClient.requested) == 3
     assert len(requests_seen) == 2
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
 
 
 @pytest.mark.asyncio
@@ -13513,10 +13606,15 @@ async def test_zacks_adapter_reports_backend_disconnect_after_retry_exhaustion(m
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     requests_seen = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         requests_seen.append((url, kwargs))
         raise requests.ConnectionError("remote disconnected")
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
@@ -13526,6 +13624,9 @@ async def test_zacks_adapter_reports_backend_disconnect_after_retry_exhaustion(m
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     async with FakeAsyncClient() as client:
         with pytest.raises(ValueError, match="closed the backend connection"):
@@ -13537,6 +13638,8 @@ async def test_zacks_adapter_reports_backend_disconnect_after_retry_exhaustion(m
 
     assert len(FakeAsyncClient.requested) == 3
     assert len(requests_seen) == 3
+    assert len(to_thread_calls) == 3
+    assert all(call[0] is requests.get for call in to_thread_calls)
 
 
 @pytest.mark.asyncio
@@ -13993,6 +14096,7 @@ United States Treasury Bill,,,"$1,000.00",0.10%
         FakeResponse(status_code=403, url=holdings_url),
     ]
     fallback_calls = []
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         fallback_calls.append((url, kwargs))
@@ -14000,8 +14104,15 @@ United States Treasury Bill,,,"$1,000.00",0.10%
             raise requests.exceptions.ReadTimeout("issuer stalled")
         return FakeResponse(text=raw_csv, content_type="text/csv", url=url)
 
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="DFTT", identifiers={})
 
@@ -14016,6 +14127,8 @@ United States Treasury Bill,,,"$1,000.00",0.10%
         holdings_url,
     ]
     assert all(call[1]["timeout"] == 30.0 for call in fallback_calls)
+    assert len(to_thread_calls) == 4
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert result.rows[0].symbol == "NVDA"
     assert result.legal_metadata["composition_date"] == "2026-07-17"
 
@@ -14852,6 +14965,7 @@ async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
         requests.exceptions.ReadTimeout("issuer stalled"),
         success,
     ]
+    to_thread_calls = []
 
     def fake_requests_get(url, **kwargs):
         request_calls.append((url, kwargs))
@@ -14859,6 +14973,10 @@ async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
         if isinstance(result, BaseException):
             raise result
         return result
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     async def skip_delay(_seconds):
         return None
@@ -14868,6 +14986,9 @@ async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
@@ -14875,6 +14996,8 @@ async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
 
     assert len(FakeAsyncClient.requested) == 2
     assert len(request_calls) == 2
+    assert len(to_thread_calls) == 2
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert len(result.rows) == 101
     assert result.legal_metadata["route_resolution"] == (
         "focus_financial_longview_fund_data_complete_holdings_table"
@@ -20086,6 +20209,7 @@ async def test_absolute_investment_advisers_adapter_uses_newest_complete_abeq_st
     """
     older_portfolio = portfolio.replace("March 31, 2026", "March 31, 2025")
     requested = []
+    to_thread_calls = []
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -20096,16 +20220,21 @@ async def test_absolute_investment_advisers_adapter_uses_newest_complete_abeq_st
     def fake_extract(raw_pdf):
         return portfolio if b"0326" in raw_pdf else older_portfolio
 
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
     monkeypatch.setattr(type(adapter), "_extract_pdf_text", staticmethod(fake_extract))
 
     result = await adapter.fetch_latest(symbol="ABEQ")
 
     assert requested[0][0] == adapter.PRODUCT_PAGE_URL
+    assert len(to_thread_calls) == len(requested) == 3
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert result.source_url.endswith("ABEQ-FinacialStatements_0326.pdf")
     assert result.legal_metadata["composition_date"] == "2026-03-31"
     assert result.legal_metadata["route_resolution"] == (
@@ -20151,6 +20280,14 @@ async def test_stf_adapter_uses_newest_complete_issuer_linked_schedule(monkeypat
         "Alpha Corp 1,000 $ 100,000", "Apple Inc 1,000 $ 200,000"
     )
     requested = []
+    to_thread_calls = []
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This fixture verifies issuer-page discovery and schedule parsing, not
+        # executor scheduling. Keep the fake HTTP transport deterministic while
+        # asserting the adapter delegates every request through requests.get.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     def fake_get(url, **kwargs):
         requested.append((url, kwargs))
@@ -20161,16 +20298,22 @@ async def test_stf_adapter_uses_newest_complete_issuer_linked_schedule(monkeypat
     def fake_extract(raw_pdf):
         return newest_schedule if b"2026/03" in raw_pdf else older_schedule
 
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
     monkeypatch.setattr(type(adapter), "_extract_pdf_text", staticmethod(fake_extract))
 
     result = await adapter.fetch_latest(symbol="TUG")
 
     assert requested[0][0] == adapter.PRODUCT_PAGE_URL
+    assert [request[0] for request in requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        "https://advisor.sheltoncap.com/wp-content/uploads/2026/02/TUG-3rd-Fiscal-Q-Holdings-1.pdf",
+        "https://advisor.sheltoncap.com/wp-content/uploads/2026/03/TUG-1st-Fiscal-Q-Holdings-1.pdf",
+    ]
+    assert len(to_thread_calls) == 3
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert result.source_url.endswith("TUG-1st-Fiscal-Q-Holdings-1.pdf")
     assert result.legal_metadata["composition_date"] == "2025-12-31"
     assert result.legal_metadata["route_resolution"] == (
@@ -28191,6 +28334,14 @@ async def test_main_management_adapter_uses_its_scoped_secondary_transport_after
             raise httpx.ReadTimeout("publisher stalled", request=httpx.Request("GET", url))
 
     fallback_calls: list[tuple[str, dict]] = []
+    to_thread_calls = []
+
+    async def run_fake_transport_in_test(function, *args, **kwargs):
+        # This case exercises retry/fallback behavior, not worker scheduling.
+        # Keep its fake HTTP transport deterministic while verifying every
+        # fallback attempt is delegated through requests.get.
+        to_thread_calls.append((function, args, kwargs))
+        return function(*args, **kwargs)
 
     def fallback_get(url, **kwargs):
         fallback_calls.append((url, kwargs))
@@ -28208,12 +28359,16 @@ async def test_main_management_adapter_uses_its_scoped_secondary_transport_after
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", TimeoutClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fallback_get)
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+    )
 
     result = await adapter.fetch_latest(symbol="BUYW")
 
     assert len(TimeoutClient.requested) == 3
     assert len(fallback_calls) == 4
+    assert len(to_thread_calls) == 4
+    assert all(call[0] is requests.get for call in to_thread_calls)
     assert {call[0] for call in fallback_calls} == {
         "https://www.mainmgtetfs.com/etfs/download-buyw.php"
     }

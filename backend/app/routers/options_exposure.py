@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +8,11 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.instrument import Instrument
 from app.models.user import User
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+)
 from app.services.options_exposure import (
     ExpiryBreakdown,
     ExposureLadderRow,
@@ -13,8 +20,10 @@ from app.services.options_exposure import (
     get_options_exposure,
     list_exposure_expirations,
 )
+from app.services.provider_runtime import ProviderNoDataError, ProviderQuotaUnknownError
 
 router = APIRouter(tags=["options-exposure"])
+logger = logging.getLogger(__name__)
 
 
 async def _load_underlying(symbol: str, db: AsyncSession) -> Instrument:
@@ -116,7 +125,21 @@ async def get_instrument_exposure_expirations(
 ):
     """Expirations list with OI and GEX stats for the expiration selector."""
     underlying = await _load_underlying(symbol, db)
-    summaries = await list_exposure_expirations(db, underlying)
+    try:
+        summaries = await list_exposure_expirations(db, underlying)
+    except (
+        ProviderNotConfiguredError,
+        ProviderNoDataError,
+        ProviderRateLimitError,
+        ProviderResponseError,
+        ProviderQuotaUnknownError,
+    ) as exc:
+        logger.warning(
+            "Options expiration refresh unavailable for %s; returning empty coverage (%s)",
+            underlying.symbol,
+            exc.__class__.__name__,
+        )
+        return []
     return [
         {
             "expiration": s.expiration,
