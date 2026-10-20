@@ -30,27 +30,20 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Superseding current status (2026-10-20T14:42Z): coordinator technical
-  acceptance covers TCP2's TC-owned local functional/visual gate only, under
-  the existing delegated authority. Exact product source
-  35ee3c0263c5255ecd8d9dafee4cd48c8e46c163 has required hosted CI run
-  39432030348 green; E2E job118663396931 reports191 passed/110 declared skips,
-  with no retries or flaky markers. The unchanged pinned-Noble four-profile
-  visual matrix ran uniformly without the host DejaVu mount: 104/104 passed in
-  15.7 minutes, one worker, zero retries, original references and0.005
-  tolerance. The matching A/B proof established that the host mount changed
-  monospace/ui-monospace fallback and caused the three earlier screenshot
-  mismatches. The prior mounted-font 101/104 red receipt and all three focused
-  A/B comparisons remain preserved; no screenshot, mask, assertion, skip or
-  tolerance changed. Use the exact TC reference runtime guidance in
-  checkpoint-runtime-validation.md; do not import Provider's font assumptions.
-
-  TCP2 is accepted only as this local technical gate. TCP3 Provider/ETF green
-  staging release and real consumer reconciliation, TCP4 combined full profile,
-  TCP5 final review/closure, and official REF-HELP-V25 parity remain open.
-  The integration checkpoint remains pending; no whole-feature acceptance,
-  freeze, staging merge or deployment is inferred. This record-only publication
-  must receive its own exact-source CI; no unchanged browser matrix is planned.
+  Superseding current status (2026-10-20T21:00Z): TCP2 local technical
+  acceptance remains limited to its owned gate (source35ee3c02, exact CI
+  39432030348, uniform pinned-Noble visual104/104 at0.005; full receipt below).
+  Provider-only TCP3 reconciliation is now authorized against released green
+  staging9b230ba4c97126a2937667138c6eb2a0aa297baf, canonical receipt
+  20261020T205101Z-9b230ba4c971.json and CI39484176087. The next action is to
+  merge only this exact staging snapshot into the existing unfrozen TC branch
+  and reconcile actual Provider identity, series/coverage, freshness and
+  preflight consumers with focused deterministic checks. This is a partial TCP3
+  phase only: ETF reconciliation and TCP3 overall completion remain gated on an
+  actual accepted green ETF staging release. TCP4 combined validation, TCP5
+  final review/closure and official REF-HELP-V25 parity remain open. No whole
+  checkpoint acceptance, staging integration, promotion or deployment is
+  inferred.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -883,8 +876,20 @@ status: in_progress
 progress:
   completed: [TCP1, TCP2]
   total: 5
-  current_phase: TCP1_NARROW_ACCEPTED;_TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;_TCP3_PROVIDER_ETF_CONSUMER_RECONCILIATION_OPEN;_TCP4_COMBINED_PROFILE_OPEN;_TCP5_FINAL_REVIEW_OPEN
+  # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
+  current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_ONLY_RECONCILIATION_ACTIVE_ETF_GATED;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
+    Current action (2026-10-20T21:01Z): merge only the released green staging
+    snapshot 9b230ba4c97126a2937667138c6eb2a0aa297baf into this TC branch and
+    reconcile actual Provider identity, series/coverage, freshness and preflight
+    consumers with bounded stack-free focused checks. Preserve imported Provider
+    and repair records byte-for-byte and all TC-owned source/tests. ETF green
+    staging plus ETF consumer reconciliation are still required for TCP3 overall
+    completion. Do not run a full Compose/browser profile, full build, live HTTP,
+    or assigned-service action until the coordinator assigns capacity.
+
+    Historical next-action record follows unchanged, superseded only for the
+    current Provider-only subphase:
     Historical pre-acceptance continuation record (superseded by
     current_checkpoint_status below): TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a is already an ancestor
     through merge d4274a9fa3119c212a9aaf2c0006c20d921812e8; no second merge is
@@ -938,21 +943,26 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    TCP2 local technical acceptance is recorded above. Remaining blockers are
-    only the ordered upstream/combined gates and final review: wait for Provider
-    then ETF accepted green staging, reconcile their actual consumer contracts
-    in this TC worktree, and perform the required combined full profile/exact
-    source CI before requesting final checkpoint review. Official V25 visual
-    parity remains required_missing. Earlier red and pending entries remain
-    historical evidence; they are superseded only for current TCP2 local-gate
-    status, not erased or relabelled.
+    Provider-only TCP3 reconciliation is active against released green staging
+    9b230ba4c97126a2937667138c6eb2a0aa297baf. Reconcile its actual consumer
+    contracts in TC-owned code/tests. ETF staging and its consumer reconciliation
+    remain gated and required before TCP3 overall completion; TCP4 combined
+    validation, TCP5 final review and official REF-HELP-V25 parity remain open.
 current_checkpoint_status: >-
-  Superseding current boundary (2026-10-20T14:42Z): coordinator technical
-  acceptance covers TCP2's TC-owned local functional/visual gate only. Product
-  source35ee3c0263c5255ecd8d9dafee4cd48c8e46c163 has exact required hosted CI
-  39432030348 green (E2E job118663396931:191 passed,110 declared skips,no
-  retry/flaky markers) and uniform pinned-Noble local visual104/104 pass in
-  15.7m,one worker,zero retries,unchanged references/tolerance0.005. The old
+  Current boundary (2026-10-20T21:00Z): TCP1 and TCP2 remain narrowly accepted
+  only as recorded. Provider-only TCP3 reconciliation is authorized against
+  exact green staging9b230ba4c97126a2937667138c6eb2a0aa297baf (receipt
+  20261020T205101Z-9b230ba4c971.json; CI39484176087). This phase may reconcile
+  only released Provider contracts in TC-owned consumers. Preserve the full
+  TCP3 acceptance criterion: ETF staging and ETF-consumer reconciliation are
+  still required before TCP3 is complete. TCP4, TCP5 and official REF-HELP-V25
+  remain open; whole-checkpoint acceptance is pending.
+
+  Historical 2026-10-20T14:42Z TCP2 evidence remains unchanged: source
+  35ee3c0263c5255ecd8d9dafee4cd48c8e46c163 has required hosted CI39432030348
+  green (E2E job118663396931:191 passed,110 declared skips,no retry/flaky
+  markers) and uniform pinned-Noble local visual104/104 pass in15.7m,one
+  worker,zero retries,unchanged references/tolerance0.005. The old
   host-DejaVu-mounted101/104 red and all matched A/B3 receipts are retained.
   Current TC fixture guidance is no host DejaVu mount for all profiles. This
   is not whole checkpoint acceptance: TCP3 Provider/ETF consumers,TCP4 combined

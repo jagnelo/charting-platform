@@ -1,5 +1,20 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-20 21:01Z: Provider-only TCP3 phase opened
+
+The coordinator released exact synchronized green staging
+`9b230ba4c97126a2937667138c6eb2a0aa297baf` for Provider-only consumer
+reconciliation (canonical receipt
+`20261020T205101Z-9b230ba4c971.json`, CI `39484176087`). This phase permits
+only the actual released Provider contracts to be reconciled in TC-owned
+consumers. TCP3's full acceptance criterion is unchanged: ETF must reach its
+own green staging release and its TC consumer reconciliation must also finish
+before TCP3 is complete. TCP4, TCP5, and official `REF-HELP-V25` remain open;
+no whole-checkpoint acceptance or staging integration is claimed. Next action:
+merge only the released SHA into this branch and follow the owned
+`post-release-reconciliation-map.md`, with bounded stack-free tests only until
+the coordinator assigns heavier capacity.
+
 ## Current status — 2026-10-20 14:42Z
 
 TCP2's local technical gate is accepted only: product source
