@@ -1,12 +1,28 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
 
 from app.config import settings
-from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
+from app.providers.base import (
+    IdentifierRecord,
+    InstrumentProfile,
+    ListingRecord,
+    ProviderAccountUsage,
+    ProviderAccountUsageDimension,
+)
+from app.providers.errors import (
+    ProviderRateLimitError,
+    ProviderResponseError,
+    provider_response_headers,
+    provider_retry_at_from_headers,
+    raise_for_provider_error_envelope,
+    redact_provider_message,
+)
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -23,20 +39,95 @@ class OpenFigiProvider:
     base_url = "https://api.openfigi.com"
     description = "OpenFIGI mapping API for stable instrument identifiers"
 
-    def fetch_stable_identifiers(self, symbol: str) -> list[IdentifierRecord]:
+    def fetch_account_usage(self) -> ProviderAccountUsage:
+        """Observe OpenFIGI's native mapping-window headers with one job.
+
+        OpenFIGI publishes the active request limit, remaining count, and
+        seconds until the current window resets.  This bounded mapping call is
+        used only to reconcile that exact native window; it does not infer a
+        different reset model or a generic daily allowance.
+        """
+
+        results, headers, raw_payload = self._mapping_request(
+            [{"idType": _OPENFIGI_ID_TYPES["ticker"], "idValue": "SPY"}]
+        )
+        # ``ratelimit-reset`` is a response-relative number of seconds, so
+        # anchor the durable observation at the response boundary rather than
+        # at request start.
+        observed_at = datetime.now(UTC)
         try:
-            results = self._mapping_results(
-                [{"idType": _OPENFIGI_ID_TYPES["ticker"], "idValue": symbol}]
+            limit = int(headers["ratelimit-limit"])
+            remaining = int(headers["ratelimit-remaining"])
+            reset_seconds = int(headers["ratelimit-reset"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                self.name,
+                "OpenFIGI omitted its native limit/remaining/reset headers",
+            ) from exc
+        if limit <= 0 or remaining < 0 or remaining > limit or reset_seconds <= 0:
+            raise ProviderResponseError(
+                self.name,
+                "OpenFIGI returned invalid native request-window counters",
             )
-            if not results:
-                return []
-            first_result = results[0]
-            if not first_result:
-                return []
-            return self._identifier_records_from_mapping(first_result[0])
-        except Exception as exc:
-            logger.debug("OpenFIGI lookup failed for %s: %s", symbol, exc)
+        reset_at = observed_at + timedelta(seconds=reset_seconds)
+        dimension_name = (
+            "mapping_requests_per_6_seconds"
+            if settings.OPENFIGI_API_KEY
+            else "mapping_requests_per_minute"
+        )
+        dimension = ProviderAccountUsageDimension(
+            name=dimension_name,
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+        )
+        return ProviderAccountUsage(
+            provider=self.name,
+            observed_at=observed_at,
+            unit="requests",
+            limit=limit,
+            remaining=remaining,
+            consumed=limit - remaining,
+            reset_at=reset_at,
+            account_plan="api_key" if settings.OPENFIGI_API_KEY else "anonymous",
+            dimensions=(dimension,),
+            raw_payload={"mapping_response": raw_payload},
+            response_headers=headers,
+        )
+
+    def fetch_stable_identifiers(
+        self,
+        symbol: str,
+        *,
+        exchange_code: str | None = None,
+        security_type: str | None = None,
+    ) -> list[IdentifierRecord]:
+        """Map a ticker only when the returned venue/type evidence is unambiguous."""
+
+        ticker = str(symbol or "").strip().upper()
+        if not ticker:
             return []
+        results = self._mapping_results(
+            [{"idType": _OPENFIGI_ID_TYPES["ticker"], "idValue": ticker}]
+        )
+        if not results:
+            return []
+        rows = results[0]
+        if exchange_code:
+            expected_exchange = str(exchange_code).strip().upper()
+            rows = [
+                row for row in rows if str(row.get("exchCode") or "").upper() == expected_exchange
+            ]
+        if security_type:
+            expected_type = str(security_type).strip().upper()
+            rows = [
+                row for row in rows if str(row.get("securityType") or "").upper() == expected_type
+            ]
+        if len(rows) != 1:
+            return []
+        return self._identifier_records_from_mapping(rows[0])
 
     def resolve_instrument_profile(
         self,
@@ -66,17 +157,7 @@ class OpenFigiProvider:
         if not requests_payload:
             return None
 
-        try:
-            responses = self._mapping_results(requests_payload)
-        except Exception as exc:
-            logger.debug(
-                "OpenFIGI identifier profile lookup failed for %s/%s/%s: %s",
-                isin,
-                cusip,
-                sedol,
-                exc,
-            )
-            return None
+        responses = self._mapping_results(requests_payload)
 
         for index, mapping_rows in enumerate(responses):
             if not mapping_rows:
@@ -91,25 +172,78 @@ class OpenFigiProvider:
         return None
 
     def _mapping_results(self, payload: list[dict[str, str]]) -> list[list[dict[str, Any]]]:
+        results, _, _ = self._mapping_request(payload)
+        return results
+
+    def _mapping_request(
+        self, payload: list[dict[str, str]]
+    ) -> tuple[list[list[dict[str, Any]]], dict[str, str], list[dict[str, Any]]]:
         headers = {"Content-Type": "application/json"}
         if settings.OPENFIGI_API_KEY:
             headers["X-OPENFIGI-APIKEY"] = settings.OPENFIGI_API_KEY
 
-        with httpx.Client(timeout=settings.OPENFIGI_TIMEOUT_SECONDS) as client:
-            response = client.post(
-                f"{self.base_url}/v3/mapping",
-                json=payload,
-                headers=headers,
+        try:
+            with httpx.Client(timeout=settings.OPENFIGI_TIMEOUT_SECONDS) as client:
+                response = client.post(
+                    f"{self.base_url}/v3/mapping",
+                    json=payload,
+                    headers=headers,
+                )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        observe_response(response)
+        response_capacity_headers = provider_response_headers(response)
+        if hasattr(response, "raise_for_status"):
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                status_code = getattr(response, "status_code", None)
+                message = redact_provider_message(str(exc))
+                if status_code in {418, 429}:
+                    raise ProviderRateLimitError(
+                        self.name,
+                        message or "OpenFIGI request rate-limited",
+                        retry_at=provider_retry_at_from_headers(response_capacity_headers),
+                        status_code=status_code,
+                        headers=response_capacity_headers,
+                    ) from exc
+                raise ProviderResponseError(
+                    self.name,
+                    message or "OpenFIGI request failed",
+                    status_code=status_code,
+                ) from exc
+        elif getattr(response, "status_code", 200) != 200:
+            status_code = getattr(response, "status_code", None)
+            if status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    self.name,
+                    "OpenFIGI request rate-limited",
+                    retry_at=provider_retry_at_from_headers(response_capacity_headers),
+                    status_code=status_code,
+                    headers=response_capacity_headers,
+                )
+            raise ProviderResponseError(
+                self.name, "OpenFIGI request failed", status_code=status_code
             )
-        if response.status_code != 200:
-            return []
 
-        raw_payload = response.json()
-        if isinstance(raw_payload, dict):
-            raw_payload = [raw_payload]
-        if not raw_payload or not isinstance(raw_payload, list):
-            return []
-        return [item.get("data") or [] for item in raw_payload if isinstance(item, dict)]
+        try:
+            raw_payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "OpenFIGI returned invalid JSON") from exc
+        raise_for_provider_error_envelope(
+            self.name, raw_payload, response.status_code, headers=response_capacity_headers
+        )
+        if not isinstance(raw_payload, list) or len(raw_payload) != len(payload):
+            raise ProviderResponseError(self.name, "OpenFIGI returned an invalid mapping response")
+        results: list[list[dict[str, Any]]] = []
+        for item in raw_payload:
+            if not isinstance(item, dict) or "data" not in item:
+                raise ProviderResponseError(self.name, "OpenFIGI omitted mapping data")
+            rows = item["data"]
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                raise ProviderResponseError(self.name, "OpenFIGI returned invalid mapping rows")
+            results.append(rows)
+        return results, response_capacity_headers, raw_payload
 
     def _identifier_records_from_mapping(
         self,
@@ -139,6 +273,7 @@ class OpenFigiProvider:
                         "security_type": mapping_row.get("securityType"),
                         "market_sector": mapping_row.get("marketSector"),
                     },
+                    raw_payload=dict(mapping_row),
                 )
             )
         if figi:
@@ -153,6 +288,7 @@ class OpenFigiProvider:
                         "name": mapping_row.get("name"),
                         "share_class_figi": share_class_figi,
                     },
+                    raw_payload=dict(mapping_row),
                 )
             )
         if share_class_figi:
@@ -162,6 +298,7 @@ class OpenFigiProvider:
                     identifier_value=str(share_class_figi),
                     source=self.name,
                     extra_data={"kind": "share_class_figi"},
+                    raw_payload=dict(mapping_row),
                 )
             )
         if original_identifier_type and original_identifier_value:
@@ -170,6 +307,7 @@ class OpenFigiProvider:
                     identifier_type=original_identifier_type.upper(),
                     identifier_value=str(original_identifier_value).strip().upper(),
                     source=self.name,
+                    raw_payload=dict(mapping_row),
                 )
             )
         if include_ticker_identity and ticker:
@@ -179,6 +317,7 @@ class OpenFigiProvider:
                     identifier_value=f"ticker:{str(ticker).strip().upper()}",
                     source=self.name,
                     extra_data={"exchange_code": exch_code},
+                    raw_payload=dict(mapping_row),
                 )
             )
         return identifiers

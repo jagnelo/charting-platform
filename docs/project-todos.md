@@ -1,5 +1,3052 @@
 # Project TODO Memory
 
+### 2026-10-04 — Bounded historical-event ingestion and acceptance refresh
+
+- [x] Added admin-only, provider/date-bounded market-event refresh with a
+      per-call page budget, durable cursor continuation, completion status, and
+      no-refetch behavior for completed windows unless explicitly forced.
+      Existing scheduled forward refresh is unchanged. Focused FINRA/event/
+      short-interest tests passed `102/102`; Docker-backed combined backend
+      tests passed `2,884/2,884` at `82.24%` coverage. Ruff, diff check,
+      workstream validation, and scoped Docker cleanup passed.
+- [x] Refreshed the full live preflight using the existing owner-only quota
+      ledger. It stopped before transport at `0/0` with 78 quota/cost/baseline,
+      11 rights/safety, and 21 operation-coverage blockers; zero provider API
+      requests were made. The detailed redacted receipt is in
+      `ops/workstreams/feat-market-data-provider-platform/validation.jsonl`.
+- [ ] Resolve the live matrix's external evidence gates before provider
+      transport: exact active-use baselines and remaining quota/reset/byte
+      contracts; written data-use/jurisdiction authority; FINRA async-result
+      bounds and an authorized complete OTC source; and GitHub/RPi/production
+      secret-store verification. Keep all blocked providers non-routable.
+- [ ] Resolve the separately recorded browser-profile failures with the
+      owning frontend workstream; do not change frontend files here. The
+      full provider matrix and final 30-day shadow phase remain unaccepted.
+
+### 2026-10-03 — Provider durable-storage rights gates extended
+
+- [x] Reconcile current first-party retention terms for MarketData.app and
+      Twelve Data against the product's explicit append-only archive goal.
+      MarketData.app requires deleting downloaded data when its subscription
+      ends; Twelve Data limits storage to the active subscription/tier and
+      requires deletion within 30 days after expiration/termination. Twelve
+      Data Basic is documented for internal non-display usage, not the
+      platform's persisted chart-display path. See the provider-specific source
+      audit and controls in `docs/data-providers.md`.
+- [x] Record the owner's one-time blanket approval for private persistent
+      storage and remove per-provider owner-storage approval gates. Keep only
+      distinct provider contract, access, entitlement, quota, and third-party
+      data-rights controls. Quota/account-introspection probes remain separate
+      from normal market-data ingestion.
+- [x] Wire non-secret controls into local examples, backend/worker Compose,
+      RPi backend/worker Compose, and protected provider-live workflow vars.
+      Focused registry/secret/live-runner tests passed `103/103`; runtime route
+      denial regressions passed `4/4`; Ruff passed. No provider request was
+      sent for this audit or implementation.
+- [ ] Obtain written archive/display authority for these account plans, or
+      keep durable MarketData.app and Twelve Data ingestion non-routable. A
+      fresh current-candidate full manifest preflight at `2026-10-03T12:16:42Z`
+      stopped before network access (`0/0`): 81 quota/cost/baseline blockers,
+      10 required live safety gates, and 21 unresolved operation cases. The
+      existing broader external gates remain in `plan.yaml` and the latest
+      redacted `validation.jsonl` receipt.
+
+### 2026-10-03 — Correct current provider quota evidence
+
+- [x] Recheck first-party FMP guidance. Its current plan page confirms 250
+      calls/day and 500 MB over a trailing 30-day bandwidth window; newer
+      official usage-limit guidance says not to promise one daily reset time
+      for every account and points to the dashboard. The code seed now keeps
+      the daily reset provider-defined until current account evidence is
+      configured; an older 3 PM Eastern claim is not a universal default.
+- [x] Confirm Tiingo Starter's published bandwidth is 1 GB/month (not 2 GB).
+      Its hourly, daily, monthly-bandwidth boundaries are documented, while
+      the distinct-symbol monthly anchor remains unspecified.
+- [x] Confirm Marketstack currently publishes 100 free requests/month and
+      charges one request per requested ticker; its FAQ separately conflicts
+      at 1,000/month and provides no monthly reset anchor. Keep the 100-call
+      ceiling and the account-specific reset gate.
+- [ ] Re-run quota contract/wiring tests and safe full-matrix preflight on
+      the corrected source; do not send provider traffic until baseline and
+      rights/cost admission succeeds.
+
+### 2026-10-02 — Exact-current preflight after tokenized pagination correction
+
+- [x] At exact pushed source `c4352c3d3`, the full provider matrix stopped
+      before transport at `0/0` with zero external requests. The redacted
+      receipt is durable in `validation.jsonl`.
+- [ ] Provider-specific usage baselines, quota/byte/reset contracts,
+      legal/source admission, deferred capabilities, deployment secret stores,
+      and the final shadow phase remain fail-closed.
+
+### 2026-10-02 — Tokenized complete-feed pagination correction
+
+- [x] Commit `56b9a3ea` distinguishes xStocks numeric pagination from
+      Robinhood's complete non-paginated corporate-action feed. A full
+      Robinhood response is no longer marked partial and replayed indefinitely
+      across scheduled jobs.
+- [x] Focused tokenized coverage passed `37/37`; the exact branch-owned unit
+      gate passed `1,960/1,960`; Docker PostgreSQL/Redis integration passed
+      `386/386`. No provider rows are intentionally discarded.
+- [ ] External provider admission, legal/source, secret-store, and final
+      shadow gates remain independent and fail-closed.
+
+### 2026-10-02 — Exact-current public/provider usage evidence refresh
+
+- [x] At exact source `52e24174b`, OpenFIGI passed `3/3` with 3 requests and
+      Binance passed `3/3` with 7 requests, including their account-usage and
+      history/profile paths.
+- [x] MarketData.app native account usage passed `1/1` with 1 request, and
+      Twelve Data native account usage passed `1/1` with 1 request. All four
+      redacted receipts are durable in `validation.jsonl`.
+- [x] The subsequent exact-source full preflight remained fail-closed at
+      `0/0` with zero additional provider requests; focused evidence does not
+      substitute for unresolved full-matrix quota, legal, or source gates.
+
+### 2026-10-02 — Exact-current Alpaca focused live validation
+
+- [x] At exact source `aa8f3b899`, the manifest-driven Alpaca focused matrix
+      passed `7/7` cases with `8` provider requests and complete same-run
+      evidence: historical and intraday OHLCV, latest price, native usage,
+      equity/crypto profiles, universe discovery, and corporate actions.
+- [x] The redacted receipt is persisted in `validation.jsonl`; no credentials
+      or response payloads entered Git. This focused run does not claim that
+      the blocked full provider matrix is complete.
+
+### 2026-10-02 — Exact-source lossless routed-response retention
+
+- [x] Commit `6eb7ab275` makes every routed provider call retain its ordered
+      response envelope in `provider_request_log`, including error paths;
+      JSON-safe serialization preserves non-JSON scalar evidence rather than
+      silently dropping it, and existing response bytes/headers remain
+      available.
+- [x] Telemetry capture is safe for streaming/unread responses: observation
+      failures are contained so instrumentation cannot fail a provider call.
+- [x] Migration `fb2c3d4e5f6a` is additive and refuses downgrade when retained
+      response evidence would be lost. Exact source passed 1,959/1,959
+      branch-owned units and 386/386 Docker PostgreSQL/Redis integration tests.
+- [x] Exact-current live preflight recorded `incomplete_preflight` at `0/0`
+      with zero external requests because provider-specific usage baselines,
+      cost/byte/reset contracts, legal/source admission, and capability gates
+      remain unresolved. No generic quota or inferred usage was introduced.
+- [ ] Complete the external provider admission and deployment/CI secret-store
+      gates before the final separately authorized 30-day shadow phase.
+
+### 2026-10-02 — Exact-current universe pagination continuity hardening
+
+- [x] Commit `6305bca0d` hardens the backend `seed_universe` discovery loop:
+      raw pages are retained before validation; provider `next_offset`,
+      `next_url`, and `complete` metadata are validated; repeated,
+      non-progressing, gap-skipping, malformed, and prematurely terminal
+      pagination fails closed instead of silently dropping later listings.
+- [x] Regression coverage proves a two-page provider continuation is followed
+      (`18/18` focused persistence tests; Ruff and diff checks clean).
+- [x] Exact pushed source `6305bca0d` passed the complete branch-owned unit
+      inventory (`1,957/1,957`, 37 warnings) and Docker PostgreSQL/Redis
+      integration (`386/386`, 57 warnings). Testcontainers cleanup was scoped;
+      no provider requests or credentials were used by either gate.
+- [x] Exact-current provider safety preflight at `6305bca0d` stopped before
+      transport (`0/0`, zero provider requests); the redacted receipt is in
+      `validation.jsonl`.
+- [ ] Provider-specific active baselines/contracts, legal/source admission,
+      deferred capability evidence, deployment secret stores, complete
+      NMS/OTC/SEC admission, and the final separately authorized shadow phase
+      remain explicit fail-closed gates.
+
+### 2026-10-02 — Exact-current safety preflight at pushed branch tip
+
+- [x] At exact pushed source `7527716ba`, the full provider manifest stopped
+      before provider transport with `0/0` cases and zero external requests.
+      The redacted receipt is appended to `validation.jsonl`.
+- [ ] Provider-specific active baselines/contracts, legal/source admission,
+      deferred capabilities, and the Nasdaq daily client-envelope exhaustion
+      remain explicit fail-closed gates. No generic limit or inferred usage was
+      introduced.
+
+### 2026-10-02 — Exact-head cross-window market-event rotation validation
+
+- [x] At exact source `9a8b71f4d`, the complete branch-owned non-ETF unit
+      inventory passed `1,911/1,911` in `137.39s` with 37 existing dependency
+      warnings. Docker PostgreSQL/Redis integration passed `386/386` in
+      `823.42s` with 57 existing dependency warnings.
+- [x] The integration session cleaned only its isolated testcontainers
+      resources; no host-wide prune, provider credentials, or external provider
+      calls were used.
+- [ ] External provider-specific quota/legal/source admissions remain separate
+      gates and are not widened by this code-level fairness correction.
+
+### 2026-10-02 — Exact-current provider safety preflight after market-event rotation
+
+- [x] At exact source `07d2b1e05`, the full provider manifest stopped before
+      provider transport with `0/0` cases and zero external requests. The
+      redacted receipt is appended to `validation.jsonl`.
+- [ ] The receipt retains provider-specific baseline/cost/byte/reset gaps,
+      legal/source admission, and deferred capabilities. Nasdaq's two-request
+      daily client envelope is also correctly exhausted by today's bounded
+      snapshot and therefore remains blocked until its next reviewed window.
+
+### 2026-10-02 — Exact-head market-event rotation validation
+
+- [x] At exact source `8d4a765e2`, the complete branch-owned non-ETF unit
+      inventory passed `1,911/1,911` in `150.01s` with 37 existing dependency
+      warnings.
+- [x] At the same exact source, Docker PostgreSQL/Redis integration passed
+      `386/386` in `764.43s` with 57 existing dependency warnings. Isolated
+      testcontainers resources were cleaned without a host-wide prune and no
+      provider credentials or external provider calls were used.
+- [ ] External provider-specific quota/legal/source admissions remain separate
+      gates; this validation does not convert unknown pools into routable ones.
+
+### 2026-10-02 — Exact-source bounded live provider coverage after rotation
+
+- [x] At exact source `3b2238d00`, bounded manifest-driven live coverage passed:
+      Alpaca `7/7` (8 requests), Binance `3/3` (7), OpenFIGI `3/3` (3),
+      Nasdaq Trader `1/1` (2), MarketData.app account usage `1/1` (1), EODHD
+      account usage `1/1` (1), Twelve Data account usage `1/1` (1), and the
+      explicitly authorized non-persisting Dinari Sandbox canary `1/1` (14).
+- [x] All receipts are redacted, serialized into the durable validation ledger,
+      and remain scoped to the current source; no provider payloads or secrets
+      were written to Git. Dinari Sandbox data remained outside canonical,
+      usage, alert, and analytics persistence.
+- [ ] Providers with unknown active baselines, unresolved cost/byte/reset or
+      legal/source controls, deferred capabilities, and the final shadow phase
+      remain fail-closed and were not represented as live passes.
+
+### 2026-10-02 — Exact-current provider safety preflight after rotation
+
+- [x] At exact pushed source `efffd8381`, the full manifest completed its
+      durable-ledger admission path and stopped before provider transport:
+      `0/0` cases and zero external requests. The redacted receipt is appended
+      to `validation.jsonl`.
+- [ ] The current blockers remain provider-specific active usage baselines or
+      cost/byte/reset contracts, capability/legal/source admission, FINRA OTC
+      controls, and the user-deferred providers. No generic limit, local zero,
+      or prior-usage inference was introduced.
+
+### 2026-10-02 — Exact-head non-ETF and Docker integration validation after per-asset rotation
+
+- [x] At exact pushed source `ef8d042ad`, the complete branch-owned non-ETF
+      unit inventory passed `1,910/1,910` in `140.94s` with 37 existing
+      dependency warnings. Only `backend/tests/unit/providers/test_etf_holdings_*.py`
+      was excluded under the explicit parallel-branch ownership boundary.
+- [x] At the same exact source, Docker PostgreSQL/Redis integration passed
+      `386/386` in `847.99s` with 57 existing dependency warnings. The isolated
+      testcontainers resources were cleaned without a host-wide prune; no
+      provider credentials or external provider calls were used.
+- [ ] Provider-specific active baselines/contracts, capability/legal/source
+      admission, FINRA OTC controls, deployment secret stores, deferred
+      providers, and the final shadow phase remain open; no generic limit or
+      inferred usage was introduced.
+
+### 2026-10-02 — Tokenized per-asset refresh fairness
+
+- [x] Add durable numeric asset cursors to tokenized quote and aggregate-
+      history batches. Per-job caps now rotate through active token IDs even
+      when a provider repeatedly fails one asset; that asset remains retryable
+      after the rest of the active set has had a turn. Focused coverage passes
+      `36/36`.
+- [ ] Provider-specific quota, terms, and deployment admission still govern
+      whether each tokenized refresh can execute; cursor rotation does not
+      override fail-closed routing or the Dinari Sandbox non-persistence rule.
+
+### 2026-10-02 — MarketData.app current account-pool reconciliation
+
+- [x] The exact-source credentialed MarketData.app account-usage case passed
+      `1/1` with one request, and its native daily-credit observation was
+      accepted by the owner-local durable quota ledger.
+- [x] The subsequent full preflight no longer reports the ordinary
+      `credits_per_day` pool as unknown; the configured account-plan and option
+      chain paths are admitted without a generic fallback.
+- [ ] Option quote history remains non-routable until a reviewed hard
+      response/credit ceiling is configured; this is independent of the daily
+      account-pool reconciliation.
+
+### 2026-10-02 — Exact-head full provider safety preflight after integration gate
+
+- [x] At exact pushed source `a3fab38aa`, the full provider manifest stopped
+      before transport with `0/0` cases and zero provider requests. The
+      redacted receipt is appended to `validation.jsonl`.
+- [ ] Provider-specific active baselines/contracts, capability/legal/source
+      admission, FINRA OTC controls, deployment secret stores, deferred
+      providers, and the final shadow phase remain open; no generic limit or
+      inferred usage was introduced.
+
+### 2026-10-02 — Exact-head Docker integration validation after provider rotation
+
+- [x] At exact pushed source `51465c701`, Docker PostgreSQL/Redis integration
+      passed `386/386` in `729.17s` with 57 existing dependency warnings.
+      Test resources were cleaned without a host-wide Docker prune and no
+      provider credentials or external calls were used.
+
+### 2026-10-02 — Exact-head non-ETF unit inventory after provider rotation
+
+- [x] At exact pushed source `eec5a6b20`, the complete branch-owned non-ETF
+      unit inventory passed `1,909/1,909` in `134.77s` with 37 existing
+      dependency warnings. Only the parallel ETF adapter test file was
+      excluded under the ownership boundary.
+- [ ] The repository-wide command remains unaccepted as a full pass until the
+      separately owned ETF adapter test file has its own reliable validation.
+
+### 2026-10-02 — Tokenized provider fairness rotation
+
+- [x] Prevent `TOKENIZED_EVENT_REFRESH_MAX_PROVIDERS` from permanently
+      selecting only the first providers in the runtime chain. Durable action
+      pagination state now rotates no/incomplete/failed providers first, then
+      completed providers by oldest successful observation before applying the
+      per-job cap. Focused tokenized coverage passes `35/35`.
+- [ ] Provider-specific quota, terms, and deployment admission still govern
+      whether each tokenized provider is eligible; rotation does not override
+      fail-closed routing or the Dinari Sandbox non-persistence boundary.
+
+### 2026-10-02 — Non-ETF unit inventory validation
+
+- [x] At exact pushed source `29a6560da4e69db30d5940a7bb4d1cbbfd8b2d61`, run
+      the complete branch-owned non-ETF unit inventory. All `1,908/1,908`
+      cases passed in `147.06s` with 37 existing dependency warnings.
+- [ ] Do not represent the repository-wide `2,453`-case command as a pass:
+      only the parallel ETF adapter test file was excluded from this receipt;
+      that file remains owned by `feat/etf-holdings-constituents` and its
+      hard-timeout behavior is a separate integration concern.
+
+### 2026-10-02 — CoinGecko native account-usage admission
+
+- [x] Implement `CoinGeckoProvider.fetch_account_usage()` against the
+      documented `/api/v3/key` endpoint. The adapter validates the plan,
+      per-minute limit, monthly limit, and monthly used/remaining arithmetic;
+      fixture coverage proves a successful native snapshot and malformed
+      counters fail closed.
+- [x] Add the usage operation to the provider quota contract and the
+      manifest-driven account-usage live matrix.
+- [x] The configured Demo key was checked live and returned HTTP 401
+      (`10005`) for `/key`; the runner records this as an expected entitlement
+      denial with one request and no reconciled baseline. This is not treated
+      as a successful provider pass, and no usage is inferred from it.
+- [ ] Re-run the same bounded probe after an authorized CoinGecko key/plan is
+      configured. Reconcile the native monthly pool before ordinary routing;
+      keep the minute pool non-routable unless native remaining/reset evidence
+      is actually returned or separately reviewed.
+
+### 2026-10-02 — CoinGecko key-pool live validation
+
+- [x] The corrected adapter's bounded account-usage case passed at source
+      `0dd2b9e56a354d26c0c716b05f1a2c2ceb17b520` with one request. The current
+      Demo key still returned HTTP 401 (`10005`), recorded as an expected
+      entitlement denial; no baseline was reconciled or inferred.
+- [ ] A key/plan authorized for `/key` is still required to validate the new
+      API-key-specific counters against a successful native payload.
+
+### 2026-10-02 — Exact-head safety preflight after key-pool correction
+
+- [x] Full manifest re-run at source
+      `1006f7807b94da2b8e0919cc51e4b9e93cd10f94` stopped before transport with
+      `0/0` cases and zero provider requests.
+- [ ] The preflight still reports the same external/admission gaps; the
+      key-specific CoinGecko correction introduced no unsafe fallback or
+      untracked request path.
+
+### 2026-10-02 — Provider-platform validation receipt
+
+- [x] Provider/configuration-focused unit matrix passed `955/955` without
+      coverage reporting, and Docker PostgreSQL/Redis integration passed
+      `386/386` in `756.15s` at the current implementation source.
+- [ ] The repository-wide `2,453`-case unit run is not yet a pass receipt:
+      both coverage-enabled and no-coverage attempts reached the large ETF
+      adapter test file and hit the hard timeout. This remains a validation
+      gap, not a provider failure; the prior exact-head complete unit receipt
+      is retained separately in the handoff.
+
+### 2026-10-02 — Exact-head full safety preflight after CoinGecko admission
+
+- [x] The full manifest was re-run at source
+      `60abc3ea07d0da8e356e36b809f5efe4d93ab42d`. It stopped before transport
+      with `0/0` cases and zero provider requests.
+- [ ] The receipt explicitly includes CoinGecko's unresolved minute baseline
+      (the native `/key` denial does not provide remaining/reset evidence),
+      plus the existing provider-specific quota/cost/byte, legal, venue,
+      capability, and deployment-secret gaps. No generic limit, prior usage,
+      or local zero was inferred.
+
+### 2026-10-02 — Pushed-head full safety preflight receipt
+
+- [x] Re-ran the same full safety preflight at the pushed branch tip
+      `dfa4adb7a5a3895c5655141ae162e06aef74f00c`; it again stopped before
+      transport with `0/0` cases and zero provider requests.
+- [ ] The unresolved admissions are unchanged: CoinGecko per-minute baseline,
+      provider-specific quota/cost/byte contracts, legal/venue/capability
+      controls, and target deployment/CI secret stores. No unsafe fallback or
+      prior-usage inference was introduced.
+
+### 2026-10-02 — Exact-head full safety preflight
+
+- [x] The full manifest was re-run after the Kraken admission audit at source
+      `1638244d8c6c6135e6527a56dd61b42ce38b4b2d`. It stopped before transport
+      with `0/0` cases and zero provider requests.
+- [ ] Remaining blockers are provider-specific active baselines or byte/cost
+      contracts (including Kraken, SEC, FINRA, CoinGecko, Coinbase, EODHD,
+      Finnhub, Twelve Data, and tokenized feeds), unresolved legal/venue
+      admission, deferred capability cases, complete OTC admission, and
+      deployment/CI secret stores. No generic limit or prior usage was
+      inferred.
+
+### 2026-10-02 — Current-source Kraken admission remains fail-closed
+
+- [x] A focused Kraken live attempt was executed through the owner-local
+      durable coordinator. The first sandboxed attempt was rejected because
+      the configured ledger path was read-only in that execution boundary;
+      the elevated retry reached provider-specific admission and made zero
+      Kraken requests.
+- [ ] Kraken's public request-per-second pool has no durable native account
+      counter in the adapter, so the active baseline remains unknown. The
+      runner correctly refuses discovery, latest-candle, and current-price
+      transport until a provider-backed or explicitly reviewed baseline is
+      available; no rate or prior usage is inferred.
+
+### 2026-10-02 — Current-source focused provider live evidence
+
+- [x] Bounded current-source live slices passed for Alpaca (`7/7`), Binance
+      (`3/3`), OpenFIGI (`3/3`), MarketData.app account usage (`1/1`), EODHD
+      account usage (`1/1`), and Twelve Data account usage (`1/1`).
+- [x] The approved Dinari Sandbox canary passed (`1/1`, 14 requests under the
+      20-request cap) with non-persisting isolation. Redacted receipts are in
+      the branch validation ledger; no secrets or payloads were persisted.
+- [ ] Providers with unknown active baselines, incomplete byte/cost/reset
+      contracts, legal/venue admission, or missing target secret stores remain
+      fail-closed and are not represented as live passes.
+
+### 2026-10-02 — Provider-symbol lifecycle history completion
+
+- [x] Persist provider-symbol `effective_at`, `known_at`, and `retired_at`
+      as first-class nullable columns through additive migration
+      `fa1b2c3d4e5f`; registration now preserves lifecycle arguments instead
+      of leaving them only in transient/provider payload metadata.
+- [x] Retire only the matching provider/venue binding after complete NMS
+      absence reaches the configured three confirmations, while retaining
+      the binding and allowing authoritative reactivation. Focused lifecycle
+      and migration coverage passed `40/40`; exact branch gates are recorded
+      in the feature workstream handoff.
+
+### 2026-10-02 — Marketstack universe totals fail closed
+
+- [x] Require strict provider-declared pagination metadata for Marketstack
+      ticker discovery and advance using raw page counts despite local
+      quote-type filtering; missing, contradictory, negative, boolean, and
+      non-integer metadata now fail closed instead of truncating or repeating
+      the universe. `total_scope: raw` keeps pagination totals separate from
+      filtered expected counts. Focused Marketstack coverage passed `21/21`
+      plus raw-total reconciliation coverage.
+
+### 2026-10-02 — Tokenized event pages fail closed on malformed rows
+
+- [x] Reject a tokenized corporate-action page containing any non-object row
+      before persisting or advancing its durable cursor. This prevents a
+      malformed provider item from being silently discarded or a partially
+      processed page from being marked complete; the failed page remains
+      retryable. Focused tokenized-event coverage passed `7/7`.
+
+### 2026-10-02 — Marketstack empty-page pagination handling
+
+- [x] Accept explicit zero-count terminal EOD pages for valid empty
+      symbol/date ranges instead of converting them into provider failures.
+- [x] Continue rejecting an empty page when the provider declares a positive
+      remaining total, preventing silent historical-row loss. Focused
+      Marketstack coverage passed `13/13`; the optional-provider suite passed
+      `113/113`.
+
+### 2026-10-01 — EODHD extra-call balance retention
+
+- [x] Preserve the documented EODHD `/user.extraLimit` balance as a named
+      `extra_calls` account-usage dimension instead of exposing only the daily
+      call pool. The value is retained as observation-only remaining balance;
+      no reset, limit, or routing entitlement is fabricated for this
+      non-expiring buffer.
+- [x] Add focused coverage for valid and malformed `extraLimit` payloads.
+- [ ] Keep ordinary EODHD routing fail-closed until the contradictory minute
+      publications and current account-specific reset/evidence controls are
+      reconciled. See `docs/data-providers.md` for the official-source audit.
+
+
+### 2026-10-01 — Market-event continuation fail-closed hardening
+
+- [x] Treat malformed Massive market-event envelopes as failed pagination
+      state, preserving the retry cursor and preventing a worker from marking
+      an incomplete scan successful.
+- [x] Reject contradictory provider responses that mark a page complete while
+      also returning a continuation. The page's normalized events remain
+      persisted, but the state is failed so the continuation cannot be silently
+      discarded.
+- [x] Add worker-restart continuation coverage. Focused market-event tests
+      passed `11/11`; the exact-head branch-owned unit gate passed `1,933/1,933`;
+      exact-head Docker PostgreSQL/Redis integration passed `386/386` in
+      `680.20s`; Ruff and diff checks are clean. The live preflight remained
+      fail-closed at `0/0` with zero provider requests.
+
+### 2026-09-25 — Massive market-event cursor retention
+
+- [x] Close the no-discard gap in market-wide event persistence. Massive IPO
+      pages are now followed through every validated cursor, with each page
+      passing through the normal quota/health runtime and every normalized
+      event retained.
+- [x] Persist the opaque continuation in `ProviderPaginationState` keyed by
+      provider and date window. A retry resumes the exact unresolved cursor
+      after a process or worker restart; a completed window is the only state
+      that resets for a fresh snapshot.
+- [x] If a later page fails (for example because the provider quota is
+      exhausted), earlier successful pages are still persisted and the typed
+      page failure plus the current retry cursor are retained for the next
+      scheduled run. Repeated or malformed cursors fail closed rather than
+      silently truncating the feed.
+- [x] Regression coverage verifies complete two-page traversal and partial
+      retention; the branch-owned unit gate passed `1,930/1,930`, Docker
+      PostgreSQL/Redis integration passed `386/386`, and Ruff/diff checks are
+      clean. Live Massive event transport remains terms-gated and was not
+      called.
+
+### 2026-09-25 — Twelve Data account-usage evidence refresh
+
+- [x] The configured Twelve Data key's account-usage-only live case passed
+      `1/1` with one request and 131 response bytes. Native credits reported an
+      `8 credits/minute` pool with `7` remaining in the measured response; the
+      separate daily account baseline remains unobservable and is not inferred.
+
+### 2026-09-25 — MarketData.app account-usage evidence refresh
+
+- [x] The configured MarketData.app key's account-usage-only live case passed
+      `1/1` with one request and 135 response bytes. The native response
+      reported a `10,000 credits/day` allowance, `10,000` remaining, and a
+      reset timestamp; the account-plan body remained absent, so the configured
+      trial-expiry/fallback policy remains authoritative rather than inferred
+      from `/user/`.
+
+### 2026-09-25 — EODHD account-usage evidence refresh
+
+- [x] The configured EODHD key's bounded native `/user` snapshot passed over
+      network-enabled execution: 1/1 case, 1 measured request, 304 response
+      bytes. The account reported a `20 calls/day` pool and native
+      `1200 requests/minute` headers; the response is retained only as
+      aggregate/redacted usage evidence outside Git.
+
+- [ ] Supply the reviewed non-secret EODHD controls in each target environment
+      (`EODHD_REVIEWED_MINUTE_LIMIT=1200`, the provider's reviewed minute reset,
+      and `EODHD_MINUTE_QUOTA_EVIDENCE`) before routing. The implementation
+      remains fail-closed until those operator-owned controls are present.
+
+### 2026-09-25 — Discovery-cache row isolation
+
+- [x] Harden the EODHD/FMP full-catalogue cache so both cached rows and rows
+      returned to callers are copied per dictionary. A caller-side mutation can
+      no longer alter later reconciliation pages; the regression is covered in
+      the optional-provider suite.
+
+- [x] Focused coverage passed `109/109`; the final branch-owned unit gate passed
+      `1,928/1,928` with `37` warnings, and Docker integration passed `386/386`
+      with `57` warnings. No ETF/frontend source changed.
+
+### 2026-09-25 — EODHD/FMP full-catalogue reuse
+
+- [x] Reuse each provider's full US discovery catalogue across successive
+      reconciliation pages for five minutes, scoped by provider and a one-way
+      credential digest. EODHD and FMP do not expose offset-aware catalogue
+      endpoints; this avoids repeated quota-consuming snapshots while retaining
+      every returned row and returning defensive copies to callers.
+
+- [x] Focused optional-provider coverage passed `109/109`; Ruff passed. The
+      exact-source branch unit gate passed `1,928/1,928`, and Docker integration
+      passed `386/386` with isolated PostgreSQL/Redis testcontainers. This is
+      a quota-preserving cache only; it does not close provider admission or
+      complete-universe gates.
+
+### 2026-09-25 — EDGAR baseline preflight
+
+- [x] Retry the bounded keyless EDGAR matrix with the supplied descriptive
+      contact and a private writable quota ledger. It stopped before transport
+      at `0/0` because SEC account-wide/IP usage is not observable; no request
+      was made and no baseline was fabricated.
+
+- [ ] Keep EDGAR fail-closed until an authoritative current baseline or an
+      explicitly reviewed shared-IP coordination boundary is available.
+
+### 2026-09-25 — Alpaca credential-scoped asset cache
+
+- [x] Scope the authenticated Alpaca asset cache to the trading host, key ID,
+      and a one-way secret digest so paper/live or credential changes cannot
+      reuse account-specific universe rows without retaining raw secrets.
+      Focused Alpaca coverage passed `51/51`; Ruff passed.
+
+- [x] Validate exact source
+      `f346ea2bf4f92fad0703b00789d6e838d5fc421c`: branch-owned unit scope
+      passed `1,926/1,926` with `37` warnings in `313.17s`; Docker integration
+      passed `386/386` with `57` warnings in `704.95s` (testcontainer session
+      `e53bcc4b-d9b4-4e4c-a9e6-173b50d5f076`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA ORF credential-scoped directory cache
+
+- [x] Scope the ORF directory cache to the TRAQS username and a one-way
+      refresh-token digest in addition to source identity, preventing
+      credential-rotation reuse without retaining raw refresh tokens. Focused
+      FINRA coverage passed `43/43`; Ruff passed.
+
+- [x] Validate exact source
+      `60653704d5643e18dd30a393f81422e9c42aa1df`: branch-owned unit scope
+      passed `1,925/1,925` with `37` warnings in `314.40s`; Docker integration
+      passed `386/386` with `57` warnings in `709.56s` (testcontainer session
+      `6d65e7e7-f2e8-42e7-982a-f8f2a192d8ca`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA OTC source-scoped directory cache
+
+- [x] Scope the in-memory OTC directory cache to the configured source kind,
+      active URL, and inactive URL so source changes cannot reuse rows from a
+      previous source during the TTL. Focused provider/registry/live-runner
+      coverage passed `114/114`; Ruff passed.
+
+- [x] Validate exact source
+      `12147907b26fe1d7940e03c6b18189e2f9715fd3`: branch-owned unit scope
+      passed `1,924/1,924` with `37` warnings in `312.96s`; Docker integration
+      passed `386/386` with `57` warnings in `709.09s` (testcontainer session
+      `93bfba88-70c7-468f-b45e-7fc3dcc8f45f`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA Gateway credential-scoped token cache
+
+- [x] Scope the in-memory FINRA Gateway OAuth cache to the client ID and a
+      one-way client-secret digest, preventing credential-rotation reuse while
+      retaining no raw secret. Focused FINRA coverage passed `41/41`; Ruff
+      passed.
+
+- [x] Validate exact source
+      `f76966ce4329ad181b75557feb39024266c648f8`: branch-owned unit scope
+      passed `1,923/1,923` with `37` warnings in `328.24s`; Docker integration
+      passed `386/386` with `57` warnings in `729.32s` (testcontainer session
+      `89b74bd8-70c8-4249-95e8-df7db0f8570c`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA ORF credential-scoped token cache
+
+- [x] Scope the in-memory ORF access-token cache to the TRAQS username and a
+      non-secret refresh-token digest, preventing credential-rotation reuse
+      while retaining no raw refresh token. Focused FINRA coverage passed
+      `40/40`; Ruff passed.
+
+- [x] Validate exact source
+      `461a7aeee9b8094e6fc84d6adfca5f81a4d83ceb`: branch-owned unit scope
+      passed `1,922/1,922` with `37` warnings in `324.59s`; Docker integration
+      passed `386/386` with `57` warnings in `711.07s` (session
+      `00cd7f28-fdac-4b17-92d1-d36d7f46d472`); cleanup completed without
+      host-wide pruning.
+
+### 2026-09-25 — FINRA ORF endpoint-path hardening and exact validation
+
+- [x] Require the documented ORF `/DownloadHandler.ashx` path before any
+      credentialed request; malformed paths are now rejected explicitly.
+      Focused ORF coverage passed `24/24` and Ruff passed.
+
+- [x] Validate exact source `f4880cb7742d943399603ece66318ba169a502ad`:
+      branch-owned unit scope passed `1,921/1,921` with `37` warnings, and
+      Docker PostgreSQL/Redis integration passed `386/386` with `57` warnings
+      in `719.08s` (session `3a62ab45-5477-4314-b858-8d2825c3f808`); cleanup
+      completed without host-wide pruning.
+
+### 2026-09-25 — FINRA ORF host correction and full validation
+
+- [x] Correct the ORF validator and branch-owned fixtures to use the official
+      `apidownload.finratraqs.org` TRAQS host; the prior spelling was invalid
+      and would reject valid source URLs. Focused provider/registry/live-runner
+      coverage passed `95/95`; Ruff passed.
+
+- [x] Validate the exact corrected source
+      `83d1225167d86b4da59a09d2b82ede3393573894`: branch-owned unit scope
+      passed `1,920/1,920` with `37` warnings in `324.49s`, and Docker
+      PostgreSQL/Redis integration passed `386/386` with `57` warnings in
+      `723.01s` (testcontainer session
+      `c2c740f0-324c-4395-afbd-9844ac07c468`); cleanup completed without
+      host-wide pruning.
+
+- [ ] Keep ORF routing fail-closed until the separate TRAQS account
+      entitlement, source/redistribution review, operation-cost bound, and
+      bounded credentialed live matrix are available.
+
+### 2026-09-25 — FINRA ORF authentication correction and exact-head validation
+
+- [x] Correct the FINRA OTC ORF integration to use its separate documented
+      TRAQS refresh-token/username flow and authenticated `POST` file requests;
+      FINRA Gateway client credentials remain restricted to the Query API.
+      Focused provider/live-runner/secret-wiring/lint/compile checks passed
+      `112/112`; no secrets were persisted.
+
+- [x] Re-run the authoritative Docker integration gate at the corrected source
+      `bb42631453c1080b81ae2bebfc5190acec56f641`: `386` tests passed with `57`
+      warnings in `726.24s` using isolated PostgreSQL/Redis testcontainers
+      (session `ee99d026-d67d-4f9a-a125-a9563390969c`); cleanup completed
+      without host-wide pruning.
+
+- [ ] Keep ORF routing fail-closed until a TRAQS ORF username and refresh token
+      entitlement are configured and the bounded live ORF matrix is run; the
+      existing FINRA Gateway credentials do not satisfy this requirement.
+
+### 2026-09-25 — Current provider-contract audit continuation
+
+- [x] Re-run the exact-head branch-owned backend unit gate, excluding only the
+      ETF adapter file owned by `feat/etf-holdings-constituents`: `1,917`
+      tests passed with `37` existing warnings in `322.75s`. The command
+      intentionally overrides repository `addopts` so its branch result is not
+      rejected by the unrelated global coverage threshold; coverage remains
+      reported and the receipt is durable in the provider workstream.
+
+- [x] Replace the generic host-ledger failure with an actionable, redacted
+      read-only SQLite diagnostic. The quota-coordinator/live-runner focused
+      suite passed `86/86`; the current preflight receipt identifies the
+      writable-ledger/PostgreSQL requirement without exposing paths or secrets.
+
+- [x] Re-run the focused FMP preflight with a private writable isolated ledger.
+      It made zero provider requests and reached the provider-specific byte,
+      reset, daily, and bandwidth evidence blockers, proving the host-ledger
+      permission issue is not masking the FMP contract gate.
+
+- [x] Re-run the authoritative Docker-backed integration gate after the FMP
+      reset-conflict and quota-ledger diagnostic changes. The exact-head
+      `make test-int` run passed `386` tests with `57` warnings in `721.87s`
+      using isolated PostgreSQL/Redis testcontainers (session
+      `119701e7-3cb6-40d6-8f2c-ad2ee013b968`); cleanup completed without
+      host-wide pruning.
+
+- [x] Make live preflight diagnostics exhaustive for FMP. Missing or malformed
+      byte maps no longer suppress the daily-reset and bandwidth-evidence
+      controls; the refreshed focused run stopped at `0/0` before transport
+      and recorded every unresolved FMP control in `validation.jsonl`.
+
+- [x] Reconcile the two current official FMP reset statements. The API FAQ
+      publishes a 15:00 America/New_York reset, while newer official limit
+      guidance says no single reset time should be promised and points to the
+      account dashboard. Keep the deterministic FAQ boundary only as fixture
+      behavior and record account-specific reset evidence as an admission
+      requirement; do not infer a reset from the conflict.
+
+- [x] Recheck current official Marketstack quota sources. Pricing/home/contact
+      guidance says 100 requests/month, one FAQ paragraph says 1,000, and no
+      official reset timestamp or machine-readable usage counter was found.
+      Preserve the lower audit ceiling and fail-closed routing; do not infer a
+      reset boundary.
+
+- [x] Refresh the exact-HEAD full provider safety preflight after the current
+      live receipts. It stopped before ordinary transport at `0/0` with zero
+      provider requests and recorded the remaining fail-closed gates in the
+      provider workstream receipt.
+- [x] Refresh the current Nasdaq Trader NMS directory at the exact source.
+      The full-directory pagination/completeness case passed `1/1` with the
+      two official files, two requests, and 892,447 response bytes. OTC
+      completeness remains a separate FINRA/OTC source gate.
+- [x] Attempt the exact-source EDGAR live matrix. It stopped before transport
+      at `0/0` because no durable account-wide/IP request baseline is
+      available; no SEC request was made and no quota was inferred.
+- [x] Refresh the keyless OpenFIGI mapping/profile/account-usage matrix at the
+      current source. It passed `3/3` with three requests; keyed-mode evidence
+      remains intentionally absent because no OpenFIGI key is configured.
+- [x] Re-run provider secret-wiring validation after the latest workflow and
+      evidence changes: `26/26` passed without contacting external services.
+
+- [x] Attempt the focused credentialed Twelve Data account-usage probe with an
+      isolated owner-only durable ledger. The first shell attempt failed before
+      transport because DNS was unavailable; the redacted failure receipt is
+      retained as environment evidence.
+- [x] Re-run the focused Twelve Data live probe from a network-enabled host.
+      It passed `1/1` with one request and native minute headers
+      `api-credits-used=1`, `api-credits-left=7`, and `api-credits-request=1`.
+- [ ] Reconcile Twelve Data's durable daily baseline before admitting
+      daily-metered routing. The exact provider reset boundary is already
+      documented as 00:00 UTC; the `/api_usage` response does not expose prior
+      daily consumption, so no daily usage is inferred.
+- [x] Refresh bounded native account-usage evidence at the current source for
+      Alpaca, MarketData.app, EODHD, Binance, and OpenFIGI. Each focused live
+      case passed `1/1` with exactly one request; redacted receipts and byte
+      totals are durable in the provider workstream.
+- [ ] Keep EODHD fail-closed until its contradictory published minute limits,
+      active account entitlement, and current daily baseline are reconciled.
+- [x] Run the explicitly capped Dinari Sandbox canary with ephemeral
+      authorization controls. It passed `1/1` with 14 requests and 125,169
+      response bytes; the redacted receipt is durable and sandbox payloads were
+      not persisted into canonical data.
+- [ ] Keep Dinari production routing disabled until its Sandbox quota/reset and
+      commercial/redistribution terms are provider-authoritatively reviewed.
+
+- [x] Refresh the exact-current full provider safety preflight at source
+      `fcb047f68531a34dc9719be48d751cc1f88e401d`; it stopped before transport
+      with `0/0` cases and zero provider requests.
+- [x] Audit Tiingo's documented account-usage route. The API URL redirects to
+      a web account page rather than a machine-readable counter endpoint, so
+      no prior usage or reset state can be established automatically. No
+      credential was forwarded across the redirect and no Tiingo data request
+      was made.
+- [ ] Obtain a reviewed machine-readable Tiingo usage source or explicit
+      operator evidence before admitting Tiingo's quota-limited routing.
+
+- [x] Preserve the EODHD provider-documented minute reset boundary in native
+      account-usage observations and allow that named dimension to reconcile
+      only against a reviewed EODHD contract. Focused tests passed `11/11`,
+      branch-owned unit tests passed `1,915/1,915`, and Docker integration
+      passed `386/386` at source
+      `d050a169c9d3f4e283187e43ca7513e9b09fe334`.
+- [ ] Reconcile the configured EODHD account's active minute entitlement and
+      current daily usage date, then replay its bounded live matrix. Until that
+      evidence exists, EODHD remains fail-closed and no quota is inferred.
+
+- [x] Record the conflicting official EODHD minute limits: the Free Starter
+      pricing row says 20 requests/minute, while the API-limits page says
+      1,000/minute on every plan. Runtime enforces 20/minute until active-key
+      evidence is reviewed and never widens automatically. The configured
+      key's bounded `/user` response reported a 20-call daily limit, stale
+      `apiRequestsDate=2026-09-15`, and native minute headers `1200/1199`.
+- [x] Run current-source keyless matrices for OpenFIGI (`3/3`) and Binance
+      (`3/3`) after native usage refreshes. Redacted receipts are durable in
+      the provider workstream; keyed OpenFIGI limits remain unproven.
+- [ ] Reconcile EODHD's active account entitlement and current daily baseline
+      from provider-authoritative evidence before enabling ordinary routing.
+
+### 2026-09-17 — Explicit provider-scoped reset safety envelopes
+
+- [x] Apply the Alpaca reset-boundary decision to the other providers whose
+      current evidence gives an exact numeric ceiling but omits a calculable
+      native bucket boundary: Massive Stocks Basic (5 calls/minute), Alpha
+      Vantage free (25 calls/day), SEC EDGAR fair-access (10 calls/second), and
+      Finnhub's independent 60 calls/minute and 30 calls/second pools.
+- [x] Retain each provider-defined reset label for audit while enforcing an
+      explicit rolling application envelope on that individual dimension. No
+      generic request, burst, concurrency, or cooldown fallback is used; an
+      optional reviewed native-reset override remains provider-specific.
+- [x] Update runtime admission, direct live-probe reservations, diagnostics,
+      examples, and focused regressions. The current Docker-backed backend gate
+      passes `2,767/2,767` with 89 warnings and 82.06% coverage.
+- [ ] Reconcile each provider's durable account baseline before executing its
+      metered live matrix. A safety envelope makes the reset calculation safe;
+      it does not fabricate prior external usage or bypass separate terms,
+      entitlement, byte-cost, or universe gates.
+
+### 2026-09-17 — Resumable, lossless event ingestion
+
+- [x] Replace Alpaca's corporate-action page bound with a durable page
+      checkpoint. Every successful page now stores its raw provider envelope,
+      normalized rows, request cursor, next cursor, query fingerprint, and
+      completion state in `instrument_event_page_snapshot` and
+      `instrument_event_fetch_state`.
+- [x] Resume incomplete queries against the same provider and cursor on the
+      next job; a provider fallback cannot consume another provider's cursor.
+      Direct Alpaca and Massive adapters follow all provider cursors to
+      completion, and unsupported Alpaca action families remain in raw page
+      snapshots instead of being discarded.
+- [x] Remove page-bound routing gates and update live/unit coverage. Local
+      fairness may stop work between pages, but no setting can mark an
+      incomplete result complete or permanently exclude a page.
+- [ ] Run the credentialed end-to-end page-resume probe in the deployed worker
+      once the target environment has the new migration applied. This is an
+      execution/environment gate, not a data-model or code-completeness gap.
+
+### 2026-09-17 — Current-head provider preflight after queue fixes
+
+- [x] Re-run the full provider matrix at source `ba3893314` after the daily
+      refresh-key and queue-throughput changes. The safety preflight stopped
+      before transport (`0/0` cases, zero provider requests) and recorded the
+      durable quota-coordinator availability blocker plus the existing
+      provider-specific quota/reset, legal/use, capability-coverage, and
+      unresolved-operation blockers.
+- [x] Preserve the result as an aggregate-only `validation.jsonl` receipt;
+      no credentials or provider payloads were consumed. This does not close
+      live acceptance, routing-promotion, deployment-secret, universe, or
+      final-shadow gates.
+- [x] Replay the same preflight with elevated access to the owner-only durable
+      quota ledger. Ledger health passed, but the matrix still stopped before
+      transport (`0/0`, zero provider requests) on provider-specific
+      reset/baseline/cost, unresolved-operation, and legal/use controls; this
+      supersedes the sandbox-only unavailable-ledger diagnostic.
+
+### 2026-09-17 — Configurable core-refresh throughput
+
+- [x] Add `MARKET_DATA_REFRESH_QUEUE_BATCH_SIZE` with a default of 100 and a
+      safe worker bound of 1–500; wire it through standard/RPi Compose and
+      deployment documentation.
+- [x] Add configuration regressions and replay the authoritative backend gate:
+      `2,370/2,370` passed with 37 warnings and 70.82% coverage; Compose,
+      Ruff, and diff checks passed.
+- [ ] Tune the value only after deployment-specific provider quota and worker
+      latency evidence exists; this setting does not override fail-closed
+      provider admission.
+
+### 2026-09-17 — Recurring core-refresh key correction
+
+- [x] Make whole-universe daily D1 refresh keys idempotent within a UTC run
+      date but distinct across dates; the previous permanent instrument key
+      could leave later daily deliveries coalesced into a completed row.
+- [x] Add direct next-day queue regression coverage and replay the full unit
+      gate: `2,367/2,367` passed with 37 warnings and 70.82% coverage.
+- [ ] Preserve the remaining provider quota, source/legal, universe,
+      deployment-secret, deferred-provider, and final-shadow gates.
+
+### 2026-09-17 — Manifest-derived usage-only selection
+
+- [x] Derive the live runner's `--account-usage-only` provider set directly
+      from manifest cases containing `account_usage`; remove the duplicate
+      hard-coded provider list.
+- [x] Add regression coverage for the derived set and replay the committed
+      Binance matrix: `3/3`, seven requests, no dirty source paths.
+- [ ] Preserve the same fail-closed quota, legal/source, universe,
+      deployment-secret, deferred-provider, and final-shadow gates while new
+      providers are added.
+
+### 2026-09-17 — Native-usage bootstrap admission correction
+
+- [x] Allow a selected provider with an explicit manifest
+      `account_usage` case to establish an expired fixed-window baseline before
+      metered cases; keep every operation reservation atomic and fail-closed.
+- [x] Add regression coverage for both sides of the boundary: unknown
+      baselines remain blocked without the explicit bootstrap, and are only
+      admitted for that provider when the bootstrap is present.
+- [x] Validate the correction against Binance's current public API: the
+      account-usage snapshot ran first and the bounded matrix passed `3/3`
+      with seven requests. The aggregate receipt is redacted and marked
+      `not_current_source` until the correction is committed.
+- [x] Replay the full backend unit gate and branch validation, commit the
+      correction as `c2907967c`, and replay the same bounded Binance suite
+      against the committed source (`3/3`, seven requests, no dirty paths).
+      Keep all other provider quota, legal/source, universe, deployment-secret,
+      and final-shadow gates unchanged.
+
+### 2026-09-17 — Configured-provider live validation
+
+- [x] Run the configured MarketData.app trial through the durable live-test
+      coordinator: focused suite passed `7/7` with `9` HTTP requests, including
+      account usage, latest price, intraday history, option chain/expirations,
+      and option quote history; the unbounded response-priced history guard
+      made no request as intended.
+- [x] Run the configured Dinari Sandbox credentials through the explicit
+      `24`-request canary: `1/1` passed. Keep this as Sandbox transport/schema
+      evidence only; unknown Sandbox quota/commercial terms keep ordinary
+      routing disabled.
+- [x] Run Alpaca's configured paper credentials through the account-usage-only
+      live case: `1/1` passed with one request. Keep ordinary routing disabled
+      until the reset boundary and current quota evidence are reviewed.
+- [x] Run EODHD, Twelve Data, and Binance account-usage-only probes: `1/1`
+      passed for each. Record OpenFIGI's current typed `429` without a blind
+      retry; earlier bounded anonymous evidence remains the accepted proof.
+- [x] Verify the live receipts contain only redacted aggregate telemetry while
+      the durable owner-local quota ledger remains outside Git; no secrets or
+      provider payloads were persisted.
+- [x] Re-run repository workflow and deployment contracts: workflow tests passed
+      `46/46`, and backend/e2e/RPi Compose configuration assertions passed.
+- [x] Replay the authoritative committed-checkout backend unit gate: `2,364`
+      passed, 37 warnings, 70.82% coverage.
+- [x] Run the current-head full live-matrix safety preflight: it stopped before
+      transport with `0/0` cases and zero provider requests, retaining exact
+      provider-specific quota/baseline/reset and legal/capability blockers.
+
+### 2026-09-17 — EODHD reviewed-entitlement routing correction
+
+- [x] Remove the obsolete routing-diagnostic ceiling that rejected reviewed
+      EODHD minute limits above the conservative 1,000/minute seed.
+- [x] Add regression coverage proving the configured 1,200/minute native
+      entitlement passes diagnostics while reset and evidence controls remain
+      required.
+- [ ] Obtain the final admission-safe reset and evidence decision before
+      promoting ordinary EODHD routing.
+
+### 2026-09-17 — FMP trailing-bandwidth contract correction
+
+- [x] Reconcile the current official FMP pricing page's free-plan bandwidth
+      contract: 500 MB over a trailing 30-day window. The provider seed now
+      uses a conservative `500,000,000`-byte ceiling and the explicit
+      `rolling_30_days` reset.
+- [x] Keep the configured account's reported 512 MB value as a documented
+      source discrepancy; do not widen the limit without account evidence.
+- [x] Retain `FMP_REVIEWED_BANDWIDTH_RESET` as an optional validated override
+      for a future plan, while requiring the daily reset review, complete
+      operation-byte map, and current entitlement evidence before routing.
+- [ ] Obtain current account evidence for the 250-call/day reset and reviewed
+      endpoint byte bounds before promoting FMP routing.
+
+### 2026-09-17 — Exact-source OpenFIGI anonymous matrix
+
+- [x] After an initial anonymous HTTP 429 was preserved as a typed rate-limit
+      failure, one provider-window delay was observed and exactly one retry was
+      made. At source `a76955954`, the native usage bootstrap passed `1/1`,
+      followed immediately by the bounded OpenFIGI matrix passing `3/3` with
+      three upstream requests and `87,895` response bytes.
+- [ ] This proves anonymous-mode mapping/profile transport and native-header
+      accounting only; keyed-mode limits remain unproven because no OpenFIGI
+      key is configured.
+
+### 2026-09-17 — Binance fixed-window live-ordering correction
+
+- [x] Retain the first Binance replay's genuine reset-boundary admission
+      failure rather than retrying blindly. Add a manifest-runner-only ordering
+      hook and regression so native account-usage snapshots run before metered
+      operations; ordinary collection is unchanged.
+- [x] At committed source `f9172617a`, refresh the current Binance weight
+      window and pass the bounded matrix `3/3` with seven requests and
+      17,616,639 response bytes across latest/history, price, discovery, and
+      native usage. No credentials or payloads were persisted.
+- [ ] Keep Binance's native one-minute observation short-lived and require a
+      fresh baseline before later transport; this does not widen any other
+      provider's quota or legal gates.
+
+### 2026-09-17 — Current-source OpenFIGI keyless matrix
+
+- [x] Refresh OpenFIGI's anonymous native rate-limit state (`1/1`, one
+      request, 8,812 response bytes), then run its bounded keyless matrix at
+      source `690b1bfdf4a950cb1e060a3e72c140f55ec87ee5`. Mapping, profile
+      resolution, and account usage passed `3/3` with three requests and
+      87,895 response bytes; receipts are redacted and durable.
+- [ ] Keep keyed-mode OpenFIGI limits unproven until an API key is supplied;
+      do not infer keyed allowances from anonymous evidence.
+
+### 2026-09-17 — Current-source Dinari Sandbox canary
+
+- [x] Run the isolated Dinari Sandbox canary at source
+      `67dc4e3736caceb3464f6f42de75a38e5933e813` with the transient
+      32-request cap. The canary passed `1/1`, made 14 bounded requests, and
+      recorded 187,388 response bytes across catalogue, identity, prices,
+      quotes, four history windows, news, dividends, splits, and corporate
+      actions. Only aggregate telemetry was retained.
+- [ ] Keep Sandbox data out of canonical persistence and ordinary routing;
+      Dinari's numeric quota/reset and commercial/redistribution terms remain
+      unresolved.
+
+### 2026-09-17 — Current-source MarketData.app bounded matrix
+
+- [x] Re-run the complete bounded MarketData.app provider matrix at source
+      `37a95bcc161ccf11a0435438bc7f730a589bd5eb`. All `7/7` selected cases
+      passed with nine upstream requests and 20,960 response bytes, covering
+      account usage, candles, latest price, option expirations/chain, and
+      bounded option history. The response-priced unbounded-history guard made
+      zero requests.
+- [ ] Keep response-priced history non-routable until a reviewed hard result
+      or credit ceiling exists; this receipt does not close the other provider,
+      legal/source, universe, secret-store, deployment, or shadow gates.
+
+### 2026-09-17 — Current-head full-matrix safety preflight
+
+- [x] Run the complete provider manifest preflight at source
+      `8a0bac156fdc3e7bf399ac44065703c50223a9c5`. It stopped before any
+      network call with `0/0` cases and zero provider requests, retaining the
+      expected quota/baseline/reset, legal/source, capability, universe, and
+      target secret-store blockers.
+- [ ] Do not treat this safety receipt as live acceptance; the provider,
+      source/terms, universe, target-secret, deployment, and final shadow gates
+      remain separately open.
+
+### 2026-09-17 — Current-source native usage refresh
+
+- [x] Re-run the bounded native account-usage cases at the exact committed
+      source `79b87e71dfc5cf001362e1d87985dc04d089b60b` for MarketData.app and
+      Alpaca. Both passed `1/1` with one request each (135 and 125 response
+      bytes respectively); redacted receipts are durable in the workstream
+      ledger and no provider payloads or credentials were persisted.
+- [ ] Keep the evidence scoped correctly: Alpaca ordinary routing still needs
+      an admission-safe reset boundary and evidence; MarketData.app remains
+      governed by the explicit Starter Trial/10,000-credit policy and expiry,
+      with paid-plan changes requiring a new provider-specific configuration.
+
+### 2026-09-16 — FRED reset-boundary admission control
+
+- [x] Correct the FRED v1 quota seed: the documented 120-requests/minute
+      threshold remains `provider_defined` for both scope and reset, with an
+      explicit unresolved `requests_per_minute_reset_boundary` dimension; the
+      separate FRED v2 2-requests/second rule is not applied.
+- [x] Add `FRED_REVIEWED_RESET` and `FRED_RESET_EVIDENCE` as independent
+      controls through settings, diagnostics, local/RPi Compose, GitHub live
+      validation, examples, documentation, and focused tests. A reviewed
+      scope/limit/rights set cannot promote FRED without reset evidence.
+- [x] Focused provider contract/registry/wiring coverage passes `159/159`,
+      and the full backend unit gate passes `2,361/2,361` with 70.80% coverage
+      and 37 warnings. The exact-current-source FRED preflight at
+      `626e672af` made zero provider requests and recorded the reset/evidence,
+      rights, and durable-ledger blockers.
+- [ ] Obtain current FRED/provider-account reset evidence and written storage,
+      automated-use, and per-series rights authority before routing or live
+      transport validation.
+
+### 2026-09-16 — SEC EDGAR reset-boundary admission control
+
+- [x] Correct the EDGAR quota seed so the documented 10-requests/second
+      ceiling is not interpreted as a provider-confirmed rolling window. The
+      contract now records `provider_defined` plus the exact unresolved
+      `requests_per_second_reset_boundary` dimension.
+- [x] Add `EDGAR_REVIEWED_RESET` and `EDGAR_QUOTA_EVIDENCE` through settings,
+      diagnostics, local/RPi Compose, GitHub live validation, examples, and
+      focused tests. A reviewed pair is required before routing; User-Agent
+      configuration and an IP baseline alone are insufficient. Focused
+      coverage passed `134/134`; the full backend unit gate passed
+      `2,360/2,360` with 70.80% coverage and 37 warnings.
+- [x] The exact-current-source preflight at `f68fdc0d7` stopped before
+      transport with zero SEC requests and recorded the new reset/evidence
+      blockers plus the missing durable IP baseline.
+- [x] Include the EDGAR quota status in the provider-to-safety-control map so
+      future live runs cannot bypass the gate through a direct manifest path;
+      the focused wiring test and full backend suite remain green.
+- [ ] Obtain current SEC/account evidence for the reset boundary and run the
+      bounded EDGAR live matrix only after that pair and the durable IP baseline
+      are available.
+
+### 2026-09-16 — Massive reset-boundary admission control
+
+- [x] Add explicit `MASSIVE_REVIEWED_RESET` and
+      `MASSIVE_QUOTA_EVIDENCE` controls for the documented Stocks Basic
+      five-requests/minute pool. The provider does not publish whether that
+      minute bucket is fixed or rolling, so blank or invalid controls keep
+      the quota contract unresolved and routing fail-closed.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, examples, and the live preflight. Focused coverage passes
+      `133/133`; the complete backend unit gate passes `2,359/2,359` with 37
+      warnings. No reset semantics are inferred from the headline allowance.
+- [ ] Obtain current provider/account evidence for the reset boundary and
+      review Massive's free-plan use/redistribution terms before promoting
+      ordinary routing or corporate-action history.
+
+### 2026-09-25 — Twelve Data daily reset source reconciliation
+
+- [x] Record the official credits documentation's exact Basic daily reset at
+      00:00 UTC as `calendar_day_utc` in the provider seed and documentation.
+- [x] Preserve fail-closed behavior for the separate prior daily-usage
+      baseline: `/api_usage` exposes minute counters only, so no daily usage is
+      inferred or copied from the minute headers.
+- [ ] Establish a durable current daily baseline from an authoritative
+      provider/account source before enabling ordinary daily-metered reads.
+
+### 2026-09-25 — FMP exact daily reset reconciliation
+
+- [x] Replace the former provider-defined/rolling safety treatment for the
+      Basic/Free 250-call pool with the official FAQ's exact 3 PM Eastern
+      reset (`15:00 America/New_York`). The boundary is timezone-aware and
+      handles daylight-saving transitions in the shared quota-window resolver.
+- [x] Keep the independent 500 MB trailing-30-day bandwidth pool, conservative
+      decimal-byte ceiling, complete operation-byte bounds, and current
+      entitlement evidence requirements unchanged. This closes only the daily
+      reset-contract gap; FMP remains non-routable until the byte/evidence gates
+      are satisfied.
+- [x] Add regression coverage for pre/post-reset window calculation and the
+      exact default/override seed contract. Official sources: [FMP pricing](https://site.financialmodelingprep.com/developer/docs/pricing)
+      and [FMP FAQ](https://site.financialmodelingprep.com/de/faqs?code=statements).
+
+### 2026-09-17 — FMP daily-cap safety envelope and independent quota controls
+
+- [x] Add explicit FMP controls for the independent 250-calls/day and
+      512 MB/30-day bandwidth pools. At that time the exact daily ceiling used
+      a provider-scoped rolling-24-hour application safety envelope; the later
+      2026-09-25 reconciliation supersedes that reset treatment with the
+      official 3 PM Eastern boundary.
+      `FMP_BANDWIDTH_QUOTA_EVIDENCE` and the complete response-byte map remain
+      mandatory, while the documented rolling-30-day bandwidth boundary is
+      used by default. No generic provider limit is inferred.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, and durable provider documentation. Focused quota/registry/
+      wiring coverage passes `216/216`; the Docker-backed full backend gate
+      passes `2,767/2,767` with 89 warnings and 82.05% coverage. The daily
+      native boundary remains audit-labelled as provider
+      defined, but the rolling safety envelope prevents unsafe admission until
+      a reviewed native reset is supplied.
+
+### 2026-09-17 — Tiingo provider-scoped reset safety envelopes
+
+- [x] Apply the provider-scoped safety-envelope decision to Tiingo's exact
+      500-unique-symbol/month and 50-request/hour pools. The native reset
+      labels remain provider-defined for audit, while rolling 31-day and
+      rolling one-hour application envelopes prevent unsafe admission. The
+      reviewed native-reset/evidence variables remain optional overrides.
+      A complete `TIINGO_OPERATION_BYTE_BOUNDS` map remains mandatory.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, and durable documentation. Focused quota/registry/wiring
+      coverage passes `216/216`; the Docker-backed full backend gate passes
+      `2,767/2,767` with 89 warnings and 82.05% coverage. No Tiingo provider
+      request was made by this change.
+
+### 2026-09-17 — FINRA public-byte safety envelope
+
+- [x] Retain FINRA's exact 10 GB public-credential allowance and its native
+      provider-defined monthly label for audit, while enforcing a conservative
+      provider-scoped rolling 31-day application envelope because the reset
+      timezone and byte convention are not published.
+- [x] Keep the 3 MB synchronous response reservation and measured-byte
+      settlement unchanged; this protects the durable ledger without dropping
+      data or treating a guessed boundary as provider fact.
+- [x] Replay the focused registry/runtime/quota/secret suite (`216/216`), the
+      Docker-backed combined backend gate (`2,767/2,767`, 89 warnings, 82.06%
+      coverage), and the committed-source preflight. The preflight stopped at
+      `0/0` with zero provider requests: FINRA's external request/byte
+      baselines are unknown and Tiingo's operation-byte map is unset. Async
+      result-byte, ORF entitlement, legal terms, and external baseline gates
+      remain independently required.
+
+### 2026-09-17 — Owner-scope native baseline refreshes
+
+- [x] Refresh Alpaca's owner-scope native account baseline and run its bounded
+      credentialed matrix: `7/7` cases passed with eight upstream requests,
+      covering equity/crypto profiles, history, latest price, assets, and
+      corporate actions.
+- [x] Refresh Twelve Data's owner-scope native minute-credit baseline: `1/1`
+      passed with one request. The separate daily-credit pool remains
+      explicitly unreconciled because its usage endpoint exposes no cumulative
+      daily counter.
+- [x] Keep both receipts aggregate-only and committed; no credentials or
+      provider payloads were persisted.
+
+### 2026-09-17 — Owner-scope full safety audit
+
+- [x] Replay the full current-source provider runner under the owner durable
+      scope. It stopped before transport at `0/0` with zero provider requests
+      and recorded the remaining provider-specific baseline, quota, legal,
+      capability, universe, and secret-store gates.
+- [x] Preserve the result as an aggregate-only committed receipt; it does not
+      promote routing or authorize the deferred shadow run.
+
+### 2026-09-17 — MarketData.app current trial matrix
+
+- [x] Re-run the configured Starter Trial matrix at the current source:
+      `7/7` passed with nine upstream requests and 21,135 response bytes,
+      covering account usage, daily/intraday candles, latest price,
+      expirations, option chain, historical option quotes, and the deliberate
+      no-request guard for unbounded response-priced history.
+- [x] Preserve the aggregate-only receipt; trial expiry and future paid-plan
+      limits remain explicit environment configuration.
+
+### 2026-09-17 — Dinari Sandbox replacement-key canary
+
+- [x] Validate the replacement Sandbox key pair through the isolated canary:
+      `1/1` passed with 14 bounded upstream requests across catalogue/identity,
+      price/quote, DAY/WEEK/MONTH/YEAR history, news, dividends, splits, and
+      corporate actions.
+- [x] Keep the canary authorization/cap transient and preserve only aggregate
+      telemetry; no Sandbox payload entered canonical persistence or normal
+      routing.
+
+### 2026-09-16 — Marketstack monthly-cap admission review
+
+- [x] Add explicit `MARKETSTACK_REVIEWED_MONTHLY_LIMIT`,
+      `MARKETSTACK_REVIEWED_MONTHLY_RESET`, and
+      `MARKETSTACK_QUOTA_EVIDENCE` controls. The pricing/FAQ conflict (100
+      versus 1,000 requests/month) remains visible; no value is silently
+      promoted and blank controls keep routing fail-closed.
+- [x] Wire the controls through local/RPi Compose, GitHub live CI, provider
+      diagnostics, and live preflight while preserving the separate discovery
+      MIC gate. Focused coverage passes `156/156`; the full backend unit suite
+      passes `2,358/2,358` with 37 warnings. No Marketstack request was made
+      by this change.
+
+### 2026-09-16 — Native account-usage baseline refresh
+
+- [x] Re-run the provider-specific account-usage-only live cases for Alpaca,
+      EODHD, Twelve Data, and MarketData.app from the committed source. All
+      four passed `1/1` with exactly one bounded request each; redacted
+      aggregate receipts are appended to `validation.jsonl` and no history,
+      quote, options, or discovery pulls were made.
+- [x] Re-run MarketData.app's complete reviewed Starter-trial focused matrix:
+      `7/7` cases passed (daily/five-minute history, latest price, expirations,
+      option chain, bounded option history, and the deliberate no-request
+      guard). The receipt is current-source evidence only; paid-plan changes
+      and response-priced history remain configuration-gated.
+- [x] Refresh the same bounded matrix at current source `5e2bfa102`: `7/7`
+      passed with the configured Starter Trial account; the redacted receipt
+      records the exact current-source evidence and no response-priced history
+      request was admitted.
+- [ ] Continue reconciling each provider's native observation against its
+      exact durable quota dimensions; a passing usage snapshot does not itself
+      authorize ordinary routing when reset semantics, terms, or plan limits
+      remain unresolved.
+
+### 2026-09-16 — Alpaca independent reset-boundary admission control (superseded)
+
+> Historical checkpoint. The current head uses the official fixed-minute
+> contract and native reset headers; the reviewed-reset pair is now optional
+> future-plan evidence.
+
+- [x] Keep Alpaca's documented 200-requests/minute account ceiling separate
+      from its native account-usage bootstrap. Commit `8808f6ba` adds
+      `ALPACA_REVIEWED_RESET` and `ALPACA_QUOTA_EVIDENCE`; ordinary market-data
+      and metadata routing remains fail-closed until both are configured with
+      an admission-safe reset label and current evidence. The one
+      `fetch_account_usage` control-plane read remains eligible to observe
+      native `X-RateLimit-*` headers without guessing a window.
+- [x] The former local corporate-action bound was replaced by durable
+      page-by-page continuation. `ALPACA_CORPORATE_ACTIONS_MAX_PAGES` remains
+      only as a compatibility/fairness setting and cannot exclude pages.
+- [x] Focused Alpaca/registry/quota/runtime/wiring coverage passed `424/424`;
+      complete backend unit coverage passed `2,356/2,356` with 37 warnings and
+      70.76% coverage; Ruff and diff checks passed. The committed-source
+      account-usage live case passed `1/1` with one authenticated request and
+      125 response bytes; the receipt records only aggregate telemetry.
+- [ ] Obtain current Alpaca reset-boundary evidence, configure the reviewed
+      pair per environment, and run the bounded credentialed live matrix; do
+      not promote ordinary routing from fixture or header observations alone.
+
+### 2026-09-16 — Finnhub independent reset-boundary admission control
+
+- [x] Preserve Finnhub's 60/minute and 30/second ceilings as independent
+      quota dimensions and add separate reviewed reset/evidence controls for
+      each. Commit `dd60e653` wires the controls through runtime diagnostics,
+      live preflight, local/RPi Compose, GitHub CI, and examples; defaults stay
+      fail-closed and do not infer rolling or fixed windows.
+- [x] Validate focused provider registry/quota/secret wiring `153/153` and
+      the complete backend unit gate `2,354/2,354` (37 warnings, 70.75%
+      coverage), plus Ruff and diff checks. No provider request or credential
+      was used.
+- [ ] Obtain current Finnhub reset-boundary evidence for both pools, then run
+      the bounded live cases; do not promote the provider from fixture evidence.
+
+### 2026-09-16 — Alpha Vantage reset-boundary admission control
+
+- [x] Replace the unresolved Alpha Vantage reset boundary with an explicit
+      provider-specific review path. Commit `2f72ad2d` adds
+      `ALPHA_VANTAGE_REVIEWED_RESET` and `ALPHA_VANTAGE_QUOTA_EVIDENCE`, keeps
+      the default 25-requests/day seed fail-closed, and promotes it only for an
+      admission-safe reset label with non-empty evidence. The controls are
+      wired through local/RPi Compose, the manual GitHub workflow, diagnostics,
+      and live preflight so future account-plan changes remain configuration-
+      driven rather than hard-coded.
+- [x] Validate focused registry/quota/secret-wiring coverage `152/152` and the
+      complete backend unit gate `2,353/2,353` (37 warnings, 70.73% coverage),
+      plus Ruff and diff checks. No provider request or credential was used.
+- [ ] Supply current provider reset-boundary evidence and run the bounded Alpha
+      weekly/monthly live case; do not promote routing from fixture evidence.
+
+### 2026-09-16 — Alpha Vantage weekly/monthly history coverage
+
+- [x] Extend the Alpha Vantage adapter beyond its daily-only restriction to
+      parse the documented raw `TIME_SERIES_WEEKLY` and
+      `TIME_SERIES_MONTHLY` endpoints. Each remains a one-query operation in
+      the reviewed quota profile; daily `compact` history keeps its explicit
+      100-point completeness guard, and all three aggregations reject adjusted
+      requests before transport because adjusted history is premium-only.
+      Fixture coverage passes `262/262` for the provider suite; no provider
+      request or credential was used by this change.
+- [ ] Add one bounded weekly or monthly credentialed live case when the
+      current Alpha Vantage daily-capacity window and exact-source live gate
+      permit it; this code change does not resolve the provider's unpublished
+      25-requests/day reset boundary.
+
+### 2026-09-16 — Tiingo reset-semantics correction
+
+- [x] Reconcile Tiingo against its current primary documentation: daily
+      requests reset at midnight EST and monthly bandwidth resets on the first
+      day of each month at midnight EST. The quota seed now records
+      `calendar_day_est` and `calendar_month_est` rather than leaving those
+      documented boundaries as generic provider-defined values.
+- [ ] Keep the 500-unique-symbol monthly reset anchor and hourly timezone/
+      boundary fail-closed because Tiingo does not define them in the reviewed
+      source. Routing also still requires a complete reviewed
+      `TIINGO_OPERATION_BYTE_BOUNDS` map; no provider request was made for this
+      correction. Focused quota coverage passes `102/102`; the fresh full
+      backend unit replay at source `98002b309` passes `2,346/2,346` with 37
+      warnings.
+
+### 2026-09-16 — MarketData.app Starter Trial configuration verification
+
+- [x] Record the owner-selected account policy without storing the credential:
+      the current local key uses `starter_trial` with `10,000` daily credits
+      through `2026-10-11T18:09:00+01:00`, calculated as 30 days from the
+      supplied 2026-09-11 18:09 Europe/Lisbon key-email time. The external
+      `~/.config/charting-platform/app.env` file contains these non-secret
+      controls and remains outside Git.
+- [x] Recheck the runtime boundary: the active trial uses the 10,000-credit
+      pool, and at/after expiry the provider-specific entitlement and durable
+      quota contract fall back to Free Forever/100 credits/day. A future paid
+      plan remains an explicit plan/limit configuration change and is
+      non-routable by default. `ALLOW_PAID_PROVIDER_ROUTING=true` can include a
+      separately reviewed plan, but is not aggregate cost admission or
+      authorization to activate paid service. The approved shared ceiling
+      remains Provider ICP2 work, with ETF consumer validation under ICP6.
+      Focused quota/registry/coordinator
+      coverage passes `163/163`; a fresh backend unit replay passes
+      `2,346/2,346` with 37 warnings; workstream validation and diff checks
+      pass.
+- [ ] Keep provider terms/redistribution, protected target secret stores,
+      complete venue reconciliation, routing activation, and the final shadow
+      run as separate gates; this configuration verification does not close
+      them.
+
+### 2026-09-16 — Alpaca fixed historical-start entitlement
+
+- [x] Model Alpaca Basic's documented stock/ETF history start (`2016-01-01`)
+      as a fixed `earliest_date` constraint rather than leaving bulk hydration
+      at an epoch sentinel or approximating the bound as a drifting number of
+      years. Routing and bulk-fetch admission share the same parser, and
+      malformed, future, mixed, or missing bound forms fail closed. Focused
+      routing/bulk coverage passes `43/43`; Ruff passes. Provider quota reset,
+      account-baseline, terms, and live transport gates remain separate.
+
+### 2026-09-16 — `per_dimension` reset and live-preflight fail-closed handling
+
+- [x] Treat `per_dimension` as an unresolved meta-label unless every
+      chargeable dimension supplies its own explicit calculable reset. Preserve
+      the intentional zero-cost exclusion for unknown account-usage bootstrap
+      pools without creating a fake window, and classify unresolved-reset
+      exceptions as live-runner blockers before transport. The full backend
+      unit suite passes `2,326/2,326` with 70.68% coverage; exact-source
+      preflight replay remains required after commit.
+
+### 2026-09-16 — Provider-defined quota reset admission hardening
+
+- [x] Prevent unresolved provider-defined reset labels from being interpreted
+      as rolling or epoch windows. The shared admission predicate now permits
+      those labels only as auditable, unverified policy state; runtime and
+      direct live-probe reservations require an explicit calculable reset for
+      every dimension. Explicit dimension-level calendar/fixed/rolling resets
+      remain supported. Focused quota coverage passed `101/101`, and the full
+      backend unit gate passed `2,324/2,324` with 70.68% coverage. Provider
+      baseline, legal/source, deployment-secret, universe, and shadow gates
+      remain separate and fail-closed.
+
+### 2026-09-16 — Direct live account-usage baseline handoff
+
+- [x] Make the direct live account-usage probes reconcile exact native
+      snapshots into the same durable coordinator used by runtime refreshes.
+      MarketData.app and Twelve Data now seed their reviewed active pools after
+      a successful usage read; EODHD remains observation-only when its reported
+      usage date is stale. Focused local checks passed `1/1` for each of the
+      two reconciled providers, and unit coverage verifies both the positive
+      and fail-closed paths. Replay at the committed source SHA before treating
+      these as acceptance evidence.
+
+### 2026-09-16 — CoinGecko Demo usage-endpoint audit
+
+- [x] Probe CoinGecko's documented `/key` account-usage endpoint once with the
+      configured Demo key. The official endpoint is Pro-only: the bounded
+      request returned HTTP 401 error code `10005`; the probe is recorded in
+      the private usage ledger. Current pricing documents 100 calls/minute,
+      10,000 successful credits/month, and a first-of-month UTC reset. The
+      Demo adapter now tracks this application's attempted minute calls and
+      monthly successful calls in its durable coordinator, and no longer
+      advertises or repeats Pro-only `/key` usage on Demo. The account-usage
+      method remains available only for a configured entitled plan. No secret
+      or response payload was committed.
+
+### 2026-09-16 — Alpha Vantage compact-history completeness guard
+
+- [x] Reject a requested daily range that predates Alpha Vantage's full-size
+      free `compact` response (latest 100 points) instead of silently returning
+      only the newer partial slice. The adapter raises a typed provider error,
+      allowing provider routing to fall back or report the bounded-history gap;
+      focused Alpha Vantage coverage passes 29/29. This does not promote the
+      provider's free plan or widen its documented 25-requests/day quota.
+
+### 2026-09-16 — Massive free-plan use-scope gate
+
+- [x] Record Massive's official Stocks Basic restriction that free access is
+      for personal, non-business, non-commercial, non-redistributed use. The
+      provider key alone no longer admits metadata, history, or event routing:
+      a deployment must explicitly configure the reviewed use scope, reference,
+      review timestamp. Invalid or expired
+      attestations remain fail-closed. Focused registry/preflight/wiring tests
+      pass 47/47; the broader provider/quota/runtime/live-runner set passes
+      435/435; the full backend unit suite passes 2,300/2,300. No provider
+      calls or credentials were used by this change.
+
+- [x] Expose Massive's optional use-attestation expiry in routing diagnostics
+      as a first-class control. An explicitly expired or malformed expiry is
+      now reported by name while an omitted expiry remains valid for a
+      non-time-limited personal-use review. Focused registry/wiring/live-runner
+      coverage passes `84/84` after this hardening.
+
+### 2026-09-16 — MarketData.app account-introspection charge correction
+
+- [x] Treat authenticated `/user/` account usage as a provider-specific,
+      explicitly routable operation that consumes the account-wide concurrency
+      lease but zero daily credits, matching the native `x-api-ratelimit-consumed`
+      observation. This prevents durable cross-session quota overcounting and
+      permits first-use account snapshots without inventing a starting credit
+      baseline. Actual market-data/options calls still require the reviewed
+      plan/limit baseline. Focused quota/runtime/coordinator coverage passes
+      5/5; the bounded credentialed MarketData.app matrix passed 7/7 cases
+      (9 requests, 17,241 response bytes), including `/user/`; its account
+      usage reservation settled with zero daily-credit units under the old
+      interpretation. The later official docs audit shows a successful `/user/`
+      response consumes at least one credit; treat this receipt as historical,
+      not current quota-safety evidence. The full backend
+      unit suite passes 2,294/2,294. The receipt is not-current-source while
+      this worktree remains dirty.
+
+### 2026-09-16 — Live-preflight provider-cost correction
+
+- [x] Treat explicitly empty per-dimension operation-cost maps as reviewed
+      zero-cost exclusions while keeping omitted operations in non-empty maps
+      fail-closed. Add exact bounded live-manifest reservations for the current
+      Binance/Coinbase/Kraken latest-candle, Massive daily-history, and
+      Marketstack daily-history cases. Focused quota/live-runner coverage passes
+      71/71 and the full backend unit suite passes 2,292/2,292; provider
+      baselines, legal/source controls, byte maps, target secret stores, and
+      current-source live acceptance remain open.
+
+### 2026-09-16 — Opt-in provider-native account-usage refresh
+
+- [x] Add a disabled-by-default daily worker path for provider-native account
+      usage snapshots. Deployments must enable
+      `PROVIDER_ACCOUNT_USAGE_REFRESH_ENABLED` and name an explicit JSON list
+      in `PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS`; an empty list never means
+      all providers. Compose/RPi/GitHub wiring, failure isolation, and worker
+      scheduling are covered. The full backend unit suite passes `2,290/2,290`;
+      provider baselines, source/legal review, target-owned secret stores, and
+      the final shadow run remain open.
+
+### 2026-09-14 — Operation-attributed live-provider usage receipts
+
+- [x] Extend the owner-managed live usage receipt and merger with a bounded
+      per-operation breakdown containing only operation count, HTTP requests,
+      response bytes, and failures. Older receipts remain readable; nested
+      totals above provider aggregates are rejected; admin usage diagnostics
+      expose `live_test_usage.operation_breakdown`.
+- [x] Require explicit operation labels across all 49 market-data and
+      tokenized live probes, including Alpaca, SEC EDGAR, MarketData.app, and
+      Dinari. Focused usage coverage passed 32/32; the final current-head live
+      matrix collected 49 cases and passed 43/49, with only the documented
+      Alpha Vantage capacity responses and missing Tradier/IBKR/Ondo
+      credentials remaining. Routing, legal, deployment, reconciliation, and
+      shadow gates remain fail-closed.
+
+### 2026-09-14 — Final Alpaca crypto metadata live validation
+
+- [x] Normalize Alpaca crypto asset metadata requests from the platform's
+      `BTC-USD` representation to the provider's `BTC/USD` path while keeping
+      provider-native listing symbols and explicit `ALPACA_ASSET_ID` identity.
+      Focused Alpaca fixture coverage passed 46/46; the credentialed BTC-USD
+      live probe passed; the final authoritative Docker-backed backend gate
+      passed 2,524/2,524 at 81.74% coverage with 89 warnings. Source checkpoint
+      `2735f038f` is pushed and no frontend or ETF-provider adapter files
+      changed.
+- [x] Re-run the complete lock-protected matrix at the final head. It
+      collected 49 cases and passed 43/49, with the three documented Alpha
+      Vantage free-key capacity responses and exact Tradier/IBKR/Ondo
+      credential preflights preserved. The owner-only redacted receipt
+      recorded 26 provider rows, 98 HTTP requests, 79 operations, 23,237,350
+      response bytes, and four failed operations; routing/legal/deployment/
+      reconciliation/shadow controls remain fail-closed.
+
+### 2026-09-14 — Alpaca instrument metadata and current-head live validation
+
+- [x] Add Alpaca's authenticated asset metadata endpoint to the common
+      `InstrumentProfile` contract. Preserve the provider UUID as
+      `ALPACA_ASSET_ID`, retain exchange/class/status/tradability fields and
+      the raw payload, add an explicit one-request quota cost, and place Alpaca
+      after EDGAR/Massive in the metadata chain. Focused unit/registry/quota
+      checks passed; the bounded paper-account `AAPL` profile probe passed;
+      the authoritative Docker-backed backend gate passed 2,523/2,523 at
+      81.74% coverage with 89 warnings. Source checkpoint `a49c5b9f1` is
+      pushed and no frontend or ETF-provider adapter files changed.
+- [x] Re-run the complete lock-protected live matrix at that source head. It
+      collected 48 cases and passed 42/48: Alpha Vantage's three calendar/
+      earnings reads returned the typed documented free-key capacity response,
+      while Tradier, IBKR, and Ondo remained exact missing-credential
+      preflights. The owner-only redacted receipt recorded 26 provider rows,
+      97 HTTP requests, 78 operations, 23,169,232 response bytes, and four
+      failed operations. This is transport evidence only; provider-specific
+      quota/legal/entitlement, deployment-secret, reconciliation, and shadow
+      gates remain fail-closed.
+
+### 2026-09-14 — Current-head complete live provider matrix
+
+- [x] Re-run the lock-protected manifest matrix against source checkpoint
+      `b6fce15e5` using the existing owner-managed keys. The 47-case run passed
+      41/47: Alpha Vantage returned its documented free-key daily-capacity
+      response for IPO-calendar and both earnings operations, while Tradier,
+      IBKR, and Ondo remained exact missing-credential preflights. The
+      aggregate-only receipt recorded 26 providers, 96 HTTP requests, 77
+      operations, and 23,167,868 response bytes in the external ledger. No
+      credentials or payloads entered Git; unresolved routing-safety controls
+      remain fail-closed and this is not acceptance evidence.
+
+### 2026-09-14 — Typed unsupported history timeframes across adapters
+
+- [x] Make direct history requests fail closed with typed provider errors when
+      a provider does not advertise the requested timeframe. Alpaca, Binance,
+      Tiingo, Twelve Data, Tradier, MarketData.app, Finnhub, Marketstack, EODHD,
+      and FMP no longer turn unsupported annual/unmapped windows into an
+      ambiguous empty result; valid empty ranges and non-crypto Binance symbol
+      filtering remain intact. Focused adapter tests passed 343/343 with
+      `--no-cov`; the authoritative Docker-backed backend gate passed
+      2,520/2,520 at 81.75% coverage with 89 warnings. Provider entitlement,
+      quota, legal, deployment-secret, and routing-promotion gates remain
+      fail-closed.
+
+### 2026-09-14 — Typed unsupported daily-provider timeframes
+
+- [x] Make Alpha Vantage and FRED reject unsupported direct and latest history
+      timeframes before transport, rather than returning an ambiguous empty
+      dataset or deriving an unsupported lookback. Focused provider/alert/
+      Nautilus coverage passed 356/356; the authoritative Docker-backed
+      backend gate passed 2,510/2,510 at 81.73% coverage with 89 warnings.
+      Provider/legal, quota, and deployment gates remain fail-closed.
+
+### 2026-09-13 — Tokenized historical documentation parity
+
+- [x] Align the provider configuration comment and data-provider guide with
+      the implemented Dinari/Ondo tokenized historical bridge and its `DAY`,
+      `WEEK`, `MONTH`, and `YEAR` windows. Focused tokenized/asset-service/
+      secret-wiring coverage passed 122/122; the authoritative Docker-backed
+      backend gate passed 2,488/2,488 at 81.72% combined coverage with 89
+      warnings. Provider/legal/quota review remains fail-closed.
+
+### 2026-09-13 — Tokenized historical deployment-chain parity
+
+- [x] Add `tokenized_historical_prices` with Dinari and Ondo to the explicit
+      provider-chain defaults in both env examples and local/RPi Compose. This
+      prevents deployment overrides from silently dropping the canonical
+      tokenized history capability. Wiring/registry/tokenized-service tests
+      passed 65/65; Compose YAML parsing and static checks passed.
+
+### 2026-09-13 — Ondo tokenized historical bridge
+
+- [x] Connect Ondo's documented primary-token daily OHLC endpoint to the
+      shared tokenized historical capability. DAY preserves source rows, while
+      WEEK/MONTH/YEAR use deterministic local rollups with raw provenance and
+      no fabricated volume. Focused tokenized/quota coverage passed 167/167;
+      the authoritative Docker-backed backend gate passed 2,484/2,484 at
+      81.71% combined coverage with 89 warnings. Ondo quota, caching,
+      display-only, and redistribution review remains fail-closed.
+
+### 2026-09-13 — Latest-bar history admission
+
+- [x] Pass a provider-specific history-start factory through latest-price
+      routing so latest-window reads use the same structured, documented
+      lookback bounds as explicit history requests. Focused market-data,
+      runtime, routing, and risk-free coverage passed 103/103; the
+      authoritative Docker-backed backend gate passed 2,483/2,483 at 81.71%
+      combined coverage with 89 warnings. No frontend or ETF-provider adapter
+      files changed.
+
+### 2026-09-13 — Current-source credentialed provider live refresh
+
+- [x] Re-run the bounded credentialed live suite against source checkpoint
+      `750f02d57`. Alpaca, SEC EDGAR, MarketData.app, and Dinari Sandbox passed
+      all 11 selected test bodies. The redacted receipt recorded 5 Alpaca
+      requests/6,487,828 bytes, 6 EDGAR requests/6,236,111 bytes, 5
+      MarketData.app requests/20,561 bytes, and 14 Dinari requests/182,346
+      bytes; aggregate usage was merged into the owner-managed ledger with
+      `accepted=4`. This is transport/schema evidence only; no credentials or
+      provider payloads entered Git and no routing entitlements were promoted.
+
+### 2026-09-13 — Risk-free historical admission
+
+- [x] Thread the risk-free-rate provider fallback's explicit 30-day historical
+      start through provider-specific structured history admission so it cannot
+      bypass documented lookback bounds. Focused risk-free/runtime/routing
+      coverage passed 77/77; the authoritative Docker-backed backend gate
+      passed 2,482/2,482 at 81.71% combined coverage with 89 warnings. No
+      frontend or ETF-provider adapter files changed.
+
+### 2026-09-13 — Provider-specific history-depth admission
+
+- [x] Replace descriptive-only history-depth routing with structured,
+      provider-specific `quota_policy.history_constraints` bounds. Massive's
+      two-year, Marketstack's one-year, EODHD's one-year, and MarketData.app
+      Free/Trial one-year documented lookbacks are enforced for normal bounded
+      OHLCV fetches; missing,
+      malformed, future, or exceeded bounds fail closed. Epoch-style bulk
+      hydration remains adaptive and persists only validated provider rows.
+      Focused routing/runtime coverage passed 76/76, and the authoritative
+      Docker-backed backend gate passed 2,482/2,482 at 81.71% combined
+      coverage. No frontend or ETF-provider adapter files changed.
+
+- [ ] Keep all other provider history limits without machine-readable,
+      documentation-backed bounds non-routable until their exact plan and
+      endpoint semantics are reviewed; do not convert prose such as
+      "plan-dependent" or "latest N points" into guessed calendar windows.
+
+### 2026-09-13 — Final current-source provider matrix receipt
+
+- [x] Run the full lock-protected provider/tokenized matrix against pushed
+      checkpoint `aedf1943f`. It collected 47 cases and passed 41/47; the six
+      explicit non-passes were Alpha Vantage IPO-calendar,
+      earnings-calendar, and earnings-history capacity responses at the
+      supplied free key's documented allowance, plus missing credential
+      preflights for intentionally deferred Tradier, IBKR, and Ondo. The
+      redacted 26-provider receipt recorded 96 upstream requests and
+      23,334,032 response bytes and merged into the owner-managed ledger with
+      `accepted=26`. This remains transport/quota evidence only, not routing
+      or acceptance proof.
+
+- [ ] Keep the provider-specific quota, entitlement, redistribution, deferred
+      credential, deployment-secret, reconciliation, and shadow-run gates open
+      until their separate reviews and evidence are complete.
+
+### 2026-09-13 — MarketData.app trial-expiry configuration boundary
+
+- [x] Enforce the provider's time-limited Starter/Trader Trial entitlement
+      at routing time with a future timezone-aware
+      `MARKETDATA_APP_REVIEWED_PLAN_EXPIRES_AT`. Empty deployment mappings are
+      normalized to unset so local/RPi Compose and the manual GitHub workflow
+      boot safely while still leaving the trial pool fail-closed. Missing,
+      naive, and elapsed values are covered by provider-policy/preflight tests;
+      the focused suite passes 128/128 and the full backend gate passes
+      2,455/2,455 at 81.68% coverage.
+
+- [ ] Keep the plan/terms and redistribution review open; this configuration
+      change does not establish a MarketData.app entitlement or promote routing.
+
+- [x] Make provider diagnostics report the complete invalid control set when a
+      trial has both a mismatched plan/limit pair and an invalid expiry. The
+      runtime and live preflight now distinguish a valid pair with a missing
+      expiry from a trial with multiple invalid controls, without weakening
+      fail-closed admission. Focused provider-policy coverage remains green;
+      the authoritative backend gate passes 2,455/2,455 at 81.68% coverage.
+
+### 2026-09-13 — MarketData.app stock-candle credit accounting
+
+- [x] Replace the previous fixed one-credit OHLCV/bulk-history charge with a
+      provider-specific, date-granular estimate: MarketData.app charges one
+      credit per 1,000 returned stock candles, and its `from`/`to` request is
+      calendar-date based. Intraday reservations therefore use a conservative
+      full-day candle upper bound; unsupported platform timeframes return no
+      estimate and remain fail-closed rather than reverting to one credit.
+      Explicit, latest, and bulk history paths now pass the calculated cost
+      into durable provider quota reservation. Focused provider/runtime/service
+      coverage passes 244/244; Ruff, compileall, and diff checks pass; the
+      authoritative Docker-backed gate passes 2,452/2,452 at 81.67% combined
+      coverage with 89 warnings. No external provider calls or credentials were
+      used for this source change.
+
+- [ ] Keep the MarketData.app plan/terms, response-priced options bound, and
+      account-wide usage review gates fail-closed until the operator records the
+      exact account entitlement and redistribution decision.
+
+### 2026-09-13 — Current-source live provider matrix receipt
+
+- [x] Forced the bounded manifest-driven provider matrix against the current
+      source using the existing operator-owned environment. It collected 47
+      cases and passed 41. The three Alpha Vantage event/earnings operations
+      returned typed documented free-key capacity responses; Tradier, IBKR,
+      and Ondo remained exact missing-credential preflights. The run exited
+      2, consumed no credentials into Git, and made no routing-entitlement
+      changes.
+
+- [ ] Keep this as non-acceptance evidence until the provider-specific
+      quota/legal/redistribution controls and deferred credentials are
+      resolved; a capacity response or missing credential is not a successful
+      data read.
+
+### 2026-09-13 — Supplied-credential provider-specific live revalidation
+
+- [x] Re-run bounded live cases for the newly supplied Alpaca, SEC EDGAR,
+      MarketData.app, and rotated Dinari Sandbox credentials. Eleven test
+      bodies passed: EDGAR profile/filings/directory (3), Alpaca
+      daily/intraday/latest/assets/corporate actions (4), MarketData.app
+      options/account-usage/intraday (3), and Dinari metadata/price/quote/
+      DAY-WEEK-MONTH-YEAR history/news/dividends/splits/corporate actions (1).
+      A fresh `--no-cov` rerun passed 11/11 against the pushed checkpoint
+      `49e8095a6`; its redacted receipt recorded 30 upstream requests and
+      12,926,846 response bytes across four provider rows, and merged into the
+      owner-managed ledger with `accepted=4`. No credential or provider
+      payload entered Git.
+
+- [ ] Keep this as transport evidence only. Provider-specific quota,
+      entitlement, legal/redistribution, and deployment-secret gates remain
+      independently required before routing or acceptance.
+
+### 2026-09-13 — Newly configured provider revalidation and IBKR futures
+
+- [x] Revalidate the newly configured Alpaca and MarketData.app credentials in
+      seven bounded live cases: Alpaca daily/intraday/latest history, assets,
+      and corporate actions plus MarketData.app options, account usage, and
+      intraday history. All seven passed; only aggregate usage telemetry was
+      written to the owner-managed external ledger.
+
+- [x] Promote IBKR's existing generic Client Portal Gateway historical path to
+      an explicit futures-history capability based on the official all-
+      instruments endpoint. Document the 1,000-bar response cap and expired-
+      futures two-year availability limit; recommend `IBKR_CONID_MAP` when
+      symbol search is ambiguous. Options-specific methods and live gateway
+      evidence remain open.
+
+### 2026-09-13 — Tokenized historical aggregate persistence
+
+- [x] Add a separate, disabled-by-default daily worker for bounded tokenized
+      historical aggregates. It admits only adapters that expose the explicit
+      `fetch_tokenized_historical_prices` operation, routes by provider asset
+      identity, reserves the provider runtime operation cost, and persists
+      canonical raw `24_7` OHLC bars with provenance and no invented volume,
+      VWAP, or adjustment. Dinari exposes native aggregate windows; Ondo now
+      exposes documented daily primary-token OHLC with deterministic local
+      DAY/WEEK/MONTH/YEAR rollups. Configuration is wired through local and RPi
+      compose/env examples, and focused coverage plus the authoritative backend
+      gate are recorded in the current Ondo bridge entry above.
+
+- [ ] Keep the scheduler disabled until Dinari and Ondo account quota, terms,
+      caching, eligibility, and redistribution reviews are recorded. The
+      credentialed Dinari Sandbox adapter live case passes 1/1 for metadata,
+      price, quote, all four documented aggregate windows, news, dividends,
+      splits, and the combined action surface; Ondo remains an exact missing-
+      credential preflight. These are transport/fixture evidence, not
+      commercial-production or routing-entitlement evidence. The latest full
+      current-source matrix remains the separately recorded non-acceptance
+      receipt above.
+
+### 2026-09-13 — Tokenized catalog discovery scheduling
+
+- [x] Schedule tokenized listing discovery as a separate bounded daily worker,
+      independent from quote polling and corporate-action polling. The job is
+      disabled by default until provider quota/terms are reviewed, uses
+      `TOKENIZED_CATALOG_REFRESH_MAX_PAGES` and
+      `TOKENIZED_CATALOG_REFRESH_PAGE_SIZE`, and clamps both values at the
+      service boundary. Focused scheduler/service/provider/config coverage
+      passed 153/153; Ruff, compileall, YAML parsing, and diff checks passed.
+      No live provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+
+- [x] Re-run the authoritative Docker-backed backend gate after catalog
+      scheduler/config changes. The complete scoped suite passes 2,441/2,441
+      with 89 warnings at 81.61% combined coverage using cleaned labeled
+      testcontainer session `824c0c11-8c12-4c6b-9186-ac86dcf5aeb7`. Provider
+      quota/terms, deployment, CI, shadow, and staging-coordinator gates
+      remain open.
+
+### 2026-09-13 — Tokenized catalog completeness evidence
+
+- [x] Make bounded tokenized-asset catalog refreshes report whether the
+      provider page stream ended before the configured `max_pages` bound. A
+      full final page now returns `status: partial`, per-provider
+      `pages_fetched`/`truncated`/`complete` evidence, and aggregate
+      completeness flags instead of being presented as a complete universe.
+      Tokenized service/provider fixtures pass 90/90; Ruff, compileall, and
+      diff checks pass. No live provider calls, frontend files, or ETF-provider
+      adapter files changed.
+
+- [x] Re-run the authoritative Docker-backed backend gate after the bounded
+      tokenized-catalog change. The complete scoped suite passes 2,436/2,436
+      with 89 warnings at 81.60% combined coverage using cleaned labeled
+      testcontainer session `05167e7e-98d4-4817-a500-a5caec09b5f6`. No live
+      provider calls or credentials were used.
+
+### 2026-09-13 — Seasonality evaluator provider boundary
+
+- [x] Make `/api/v1/instruments/{symbol}/seasonality/monthly` evaluate only
+      local canonical monthly history, with additive shared OHLCV coverage
+      evidence. Refresh workers remain responsible for provider I/O, so a
+      seasonality request cannot fan out synchronously into an external API.
+      Focused PostgreSQL integration passes 21/21 without coverage collection;
+      Ruff, compileall, and diff checks pass. The coverage-enabled focused run
+      also passed all 21 tests but exits on the repository-wide threshold when
+      run in isolation. No provider calls, frontend files, or ETF-provider
+      adapter files changed.
+
+  The authoritative Docker-backed combined backend gate then passed
+  2,434/2,434 with 89 warnings at 81.58% coverage using cleaned labeled
+  testcontainer session `adbeabea-934e-4267-b590-717cb9a78f99`.
+
+### 2026-09-13 — Heatmap sparkline query bound
+
+- [x] Bound non-daily heatmap sparkline reads with a per-instrument SQL window
+      instead of loading all historical rows for the requested universe. The
+      DB-first/no-provider-fanout contract remains intact. Focused heatmap
+      integration passes 1/1, Ruff/compileall/diff checks pass, and the
+      authoritative Docker-backed combined backend gate passes 2,433/2,433 at
+      81.52% coverage with 89 warnings. No provider calls, frontend files, or
+      ETF-provider adapter files changed.
+
+### 2026-09-13 — Heatmap evaluator coverage preflight
+
+- [x] Make `/api/v1/instruments/heatmap-data` DB-first and provider-neutral.
+      The broad evaluator no longer performs one provider-backed latest-bar
+      fetch per instrument; daily and selected-timeframe local history are
+      assessed through the shared OHLCV preflight, short histories are deferred,
+      and each row exposes additive daily/sparkline readiness evidence. Focused
+      PostgreSQL integration passes 7/7, Ruff/compileall/diff checks pass, and
+      the authoritative Docker-backed combined backend gate passes 2,433/2,433
+      at 81.53% coverage with 89 warnings. No provider calls, frontend files,
+      or ETF-provider adapter files changed.
+
+### 2026-09-13 — Indicator endpoint coverage preflight
+
+- [x] Extend the shared OHLCV coverage preflight to
+      `/api/v1/indicators/compute/{symbol}/{timeframe}`. Required history is
+      derived from the canonical indicator registry and normalized parameters;
+      under-sized local history is withheld with additive serialized coverage
+      evidence, while successful and unknown-indicator responses preserve their
+      existing shapes. Focused indicator endpoint integration passes 6/6,
+      Ruff/compileall/diff checks pass, and the authoritative Docker-backed
+      combined backend gate passes 2,432/2,432 at 81.45% coverage with 89
+      warnings. No provider calls, frontend files, or ETF-provider adapter files
+      changed.
+
+### 2026-09-13 — Generic historical breadth coverage preflight
+
+- [x] Extend the provider-neutral OHLCV preflight to the generic
+      `/analysis/breadth/history` endpoint. Historical bars are truncated at
+      `as_of` as an upper cutoff, then assessed over their observed extent
+      against the condition-derived history floor; insufficient members are
+      withheld instead of producing synthetic historical points. The response
+      now exposes additive `coverage_preflight` evidence. Focused PostgreSQL
+      integration passes 3/3, Ruff/compileall/diff checks pass, and the
+      authoritative Docker-backed combined backend gate passes 2,431/2,431 at
+      81.45% coverage with 89 warnings. No provider calls, frontend files, or
+      ETF-provider adapter files changed.
+
+### 2026-09-13 — Shared evaluator coverage preflight
+
+- [x] Extend the shared OHLCV coverage preflight to benchmark-family
+      concentration. Each delegated role is checked after membership and
+      persisted stale-ID filtering using the selected rank-period floor
+      (`offset + 1`, or a conservative 253-bar YTD/unknown-period floor),
+      with short/cold histories reported as partial/deferred. Focused
+      PostgreSQL integration passes 1/1, the complete backend unit suite passes
+      2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
+      at 81.39% coverage. No provider, frontend, or ETF-provider adapter files
+      changed.
+
+- [x] Add a provider-neutral OHLCV preflight coordinator for broad Strategy Lab
+      rules and Radar signal replay. It loads the requested local bars once per
+      instrument/timeframe, uses the exact missing-slice/freshness planner,
+      withholds unresolved instruments from evaluation, and reports full,
+      partial, deferred, stale-blocked, or empty readiness without making a
+      provider call. An explicit `queue_coverage_repairs` execution assumption
+      may enqueue only the bounded slices through the durable refresh queue;
+      default behavior is read-only. Focused preflight coverage passes 4/4 and
+      the complete Strategy Lab API suite passes 20/20. No frontend or ETF
+      provider-adapter files changed.
+- [x] Extend the same preflight contract to the current reusable `/breadth`
+      snapshot. It now evaluates the already-loaded local bars against the
+      declared condition's required history, withholds unresolved members, and
+      returns the serialized per-instrument readiness report without making a
+      provider call. Focused stale/current breadth regressions pass 2/2.
+- [x] Extend the same contract to historical benchmark-family concentration
+      and industry proxy/classified-industry snapshots. Historical roles report
+      point-in-time local readiness; industry routes use the 252-bar technical
+      floor and remain read-only with respect to provider I/O. Focused
+      PostgreSQL integration passes 2/2, the complete backend unit suite passes
+      2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
+      at 81.40% coverage. No provider, frontend, or ETF-provider adapter files
+      changed.
+- [x] Extend the same contract to the direct ETF constituent analysis consumer.
+      The point-in-time holding snapshot now exposes its shared 252-bar OHLCV
+      preflight, and benchmark-family constituent wrappers preserve it. Focused
+      PostgreSQL integration passes 4/4, the complete backend unit suite passes
+      2,029/2,029, and the authoritative Docker-backed gate passes 2,410/2,410
+      at 81.40% coverage. No ETF provider-adapter or frontend files changed;
+      reconcile the response-field contract with
+      feat/etf-holdings-constituents at staging.
+- [x] Extend the same contract to benchmark-family breadth without applying a
+      single overly-conservative history gate. Each built-in metric receives
+      its own cached-bar preflight, and the cap benchmark has a separate
+      readiness result; valid shorter-history metrics remain evaluable while
+      insufficient metrics are withheld. Focused benchmark-family integration
+      coverage passes 1/1.
+- [x] Extend the same preflight contract to both production and ARQ-compatible
+      indicator-alert execution. Grouped high-alert price polling and grouped
+      indicator OHLCV snapshots remain outside the evaluation loops; indicator
+      history requirements are derived from the canonical registry, with
+      composite windows and non-window numeric parameters handled explicitly.
+      Insufficient groups are withheld rather than evaluated from partial local
+      history. Focused alert-preflight coverage passes 8/8 and indicator
+      history-floor regressions pass 2/2 (39/39 across the two focused files),
+      the PostgreSQL worker alert checks pass 2/2, and the combined backend gate passes
+      2,402/2,402. No provider call occurs inside an alert evaluation loop.
+- [x] Extend the same contract to synchronous and streaming screeners. Their
+      existing grouped local snapshot is retained, raw rows are assessed by the
+      shared preflight, and indicator/price-change history floors are derived
+      from the actual condition tree. Insufficient primary/D1/W1 coverage is
+      withheld with an explicit exclusion and an additive preflight summary;
+      focused screener/preflight coverage passes 36/36, the database-backed
+      screener integration passes 26/26, and the complete backend gate passes
+      2,404/2,404. No provider call occurs inside a screener evaluation loop.
+- [x] Extend the shared coverage contract to Market Map evaluation. Breadth
+      conditions now derive exact local history floors (including nested and
+      cross-sectional semantics), while return/RSI/volume/52-week map metrics
+      use their own deterministic floors. Market Map exposes the serialized
+      `coverage_preflight` report and withholds non-Python colours when the
+      required local snapshot is not ready. Focused breadth/Market Map unit
+      coverage passes 34/34, the complete watchlist integration suite passes
+      49/49, and the authoritative Docker-backed gate passes 2,409/2,409 at
+      81.37% coverage. No provider, frontend, or ETF-provider files changed.
+- [x] Persist evaluator run status separately from the existing Strategy Lab
+      `completed` transport status. Research runs now retain an additive
+      `resource_usage.evaluation` record and expose `evaluation_status` on run
+      and batch-result responses; `completed` transport with datasets plus
+      exclusions is reported as `partial`, while exclusions without datasets
+      are `deferred`. Research-job unit coverage passes 5/5, the PostgreSQL
+      research API suite passes 24/24, the complete backend unit suite passes
+      2,027/2,027, and the authoritative Docker-backed gate passes 2,406/2,406
+      at 81.38% coverage. No migration head, frontend, or ETF-provider files
+      changed.
+- [x] Extend the shared OHLCV preflight to Study Lab/research dataset
+      materialization. Historical gaps and code lookback shortfalls now remain
+      explicit coverage/exclusion evidence; ready batch members continue while
+      incomplete members are withheld, and single-instrument studies are
+      deferred before isolated user code executes. Focused PostgreSQL
+      integration passes 4/4, research-runner/job unit coverage passes 110/110,
+      the complete backend unit suite passes 2,030/2,030, and the authoritative
+      Docker-backed gate passes 2,412/2,412 at 81.40% coverage. No frontend or
+      ETF-provider adapter files changed.
+- [x] Extend the same contract to the Radar signal scan. Its existing indexed
+      local-bar load and freshness/repair behavior now feed the shared
+      provider-neutral preflight with the engine's 80-bar minimum; short or
+      otherwise incomplete histories are withheld from signal evaluation,
+      repair requests are labeled `insufficient_history`, and the serialized
+      run summary preserves the per-instrument preflight evidence. Focused
+      Radar unit coverage passes 35/35 and the complete PostgreSQL API coverage
+      passes 13/13; no provider, frontend, or ETF-provider adapter files changed.
+- [x] Persist the bounded Radar repair handoff alongside the coverage report.
+      Opt-in repair runs now retain each coalescing request key, observed queue
+      status, attempt count, next-attempt timestamp, capability, timeframe, and
+      coverage reason without lease tokens or provider secrets. The admin queue
+      remains authoritative for later lifecycle transitions; focused Radar
+      coverage passes 35/35 and 13/13, and the authoritative backend gate
+      passes 2,415/2,415 at 81.41% coverage.
+- [ ] Extend the same contract to future non-Strategy signal engines beyond
+      the currently covered Strategy Lab, generic breadth,
+      benchmark-family breadth, alert, screener, and Market Map paths.
+
+### 2026-09-13 — Persist refresh-job outcomes for evaluator coordination
+
+- [x] Persist durable refresh-job `started_at`, `finished_at`, and redacted
+      `result_summary` fields. Worker completions now record observed-bar counts
+      and empty responses; retry/defer paths retain bounded error and provider
+      reset evidence. The admin refresh-queue diagnostic exposes these fields
+      without lease tokens, so operators and future evaluators can distinguish
+      completed, empty, retry, deferred, and leased work. Focused queue/worker/
+      migration coverage passes 49/49 and the admin integration coverage passes
+      3/3. Migration `5f6a7b8c9d0e` follows the provider-account-usage
+      migration; no frontend or ETF-provider files changed.
+
+### 2026-09-13 — Preserve typed options-provider failures
+
+- [x] Narrow option expiration, chain, and historical quote refresh fallbacks
+      to the explicitly safe `ProviderNotConfiguredError` and
+      `ProviderNoDataError` cases. Provider rate-limit, quota-contract,
+      malformed-response, and transport failures now remain typed and reach
+      the caller/runtime instead of being converted into empty or stale data.
+      Focused options data/exposure unit coverage passes 37/37, PostgreSQL
+      options-exposure integration passes 24/24, and the authoritative backend
+      gate passes 2,418/2,418 at 81.43% coverage.
+
+### 2026-09-13 — Close tokenized-provider secret redaction coverage
+
+- [x] Add Dinari key ID/secret and Ondo API key to the central provider-error
+      redaction allow-list. Regression coverage now proves tokenized credentials
+      are removed from typed rate-limit and response errors, complementing the
+      existing secret-wiring checks; focused coverage passes 28/28 and the
+      authoritative backend gate passes 2,421/2,421 at 81.43% coverage.
+
+### 2026-09-12 — Pagination cursor safety
+
+- [x] Reject repeated Alpaca history page tokens and malformed/repeated
+      discovery `next_url` metadata instead of looping or reprocessing the same
+      provider page. Focused pagination/provider coverage passes `60/60`, and
+      the complete backend unit suite passes `1,987/1,987` with 37 warnings;
+      Ruff, compileall, and diff checks pass. Source checkpoint `fe21e6be`; no
+      provider calls, credentials, frontend files, or ETF-provider adapter
+      files changed.
+
+### 2026-09-12 — Typed provider reset-header recovery
+
+- [x] Recover provider-declared retry timestamps in the runtime when a typed
+      adapter rate-limit error carries allow-listed reset headers but omitted
+      `retry_at`; absent or malformed reset values remain unknown rather than
+      receiving an invented delay. Focused capacity/quota coverage passes
+      `87/87`, and the complete backend unit suite passes `1,985/1,985` with
+      the known 37 warnings. Source checkpoint `a7c01524`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Quota settlement coercion hardening
+
+- [x] Reject malformed reserved/consumed/observed quota units and missing
+      transport reservation dimensions instead of converting them to zero or
+      one; explicit zero remains valid for non-applicable dimensions.
+- [x] Extend the same fail-closed behavior to legacy workload-lease settlement:
+      malformed lease/consumed units, non-boolean success flags, and invalid or
+      duplicate durable quota-window IDs now fail before any settlement lookup
+      or mutation. Focused quota/settlement coverage passes `112/112`; the
+      complete backend unit suite passes `1,984/1,984` with the known 37
+      warnings. Source checkpoints `b9435a63` and `265ec186`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Stable identity in durable universe reconciliation
+
+- [x] Extend `reconcile_us_universe` to resolve provider FIGI, composite FIGI,
+      ISIN, CUSIP, and SEDOL evidence before ticker/venue matching. Stable
+      owners survive ticker changes; unresolved identifiers never fall back to
+      ticker-only matching; cross-owner, type, alias, and ticker/venue conflicts
+      are quarantined while lifecycle observations remain auditable. Focused
+      reconciliation coverage passes 14/14 and the complete backend unit suite
+      passes 1,893/1,893 with the known 37 warnings. No provider calls,
+      frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Stable identifiers in legacy universe discovery
+
+- [x] Extend the legacy `seed_universe` promotion path to consume provider
+      FIGI, composite FIGI, ISIN, CUSIP, and SEDOL observations. Existing
+      stable owners are reused across ticker changes and venue listings;
+      unresolved stable keys never weaken to ticker-only matching, and
+      conflicting identifier owners remain fail-closed with the raw discovery
+      snapshot retained. Focused seed coverage passes 7/7 and the complete
+      backend unit suite passes 1,889/1,889 with the known 37 warnings. Changed
+      files pass Ruff, formatting, compileall, and diff checks; no provider
+      calls, frontend files, or ETF-provider adapter files were changed.
+
+### 2026-09-12 — US-first universe scope honesty
+
+- [x] Correct the discovery-service documentation so the configured provider
+      chain is described as US-venue focused (with explicitly configured crypto
+      exceptions), rather than claiming global-market completeness. Provider
+      coverage and entitlement-specific completeness remain retained as
+      observations and are not overstated.
+
+### 2026-09-12 — Venue-qualified universe identity
+
+- [x] Harden legacy `seed_universe` discovery so a ticker is never treated as
+      globally unique. Existing candidates are matched by normalized ticker,
+      canonical exchange MIC, and instrument type; a sole venue-less legacy
+      listing may be enriched once, while cross-venue collisions and duplicate
+      local keys remain fail-closed for separate reconciliation. Focused
+      seed-universe coverage passes 4/4 and the complete backend unit suite
+      passes 1,886/1,886 with the known 37 warnings. Changed-file Ruff,
+      formatting, compileall, and diff checks pass. Docker-backed migration /
+      full-stack validation remains unavailable; no frontend or ETF-provider
+      adapter files changed.
+
+### 2026-09-12 — Tokenized underlying stable-identifier retention
+
+- [x] Retain provider-published underlying FIGI, composite FIGI, ISIN, and
+      CUSIP values for xStocks and Dinari token records, persist them on the
+      tokenized-asset detail model, and resolve the underlying through the
+      canonical instrument/domain-key/active-identifier registry before any
+      ticker fallback. Added a reversible migration and focused coverage for
+      FIGI, composite FIGI, ISIN, CUSIP, ambiguity, and unresolved-identifier
+      cases. Providers that do not document these fields (for example the
+      current Robinhood public asset payload) leave them absent rather than
+      inventing identity evidence.
+
+### 2026-09-12 — Stable-ID-first tokenized underlying linkage
+
+- [x] Make tokenized-security persistence resolve an economic underlying by a
+      supplied ISIN first, checking both the canonical `Instrument.isin` field
+      and active `InstrumentIdentifier` rows. If that evidence is missing,
+      ambiguous, or unresolved, the service no longer weakens to a ticker-only
+      match; ticker fallback remains limited to one active listing.
+- [x] Persist explicit `underlying_link_status` provenance values and add
+      regressions for duplicate-ticker disambiguation, identifier-only
+      resolution, and unresolved-ISIN no-fallback behavior. Focused tokenized
+      service coverage passes 10/10 and the complete backend unit suite passes
+      1,879/1,879 with the known 37 warnings. No frontend or ETF-provider
+      adapter files changed.
+
+### 2026-09-12 — SEC ticker-directory ambiguity handling
+
+- [x] Preserve duplicate SEC ticker rows as explicit ambiguous candidates
+      instead of letting the last directory row overwrite the first CIK.
+      Profile/event lookup and issuer search now refuse ambiguous ticker-only
+      resolution until venue or security-level evidence is supplied. Focused
+      EDGAR ticker coverage passes 27/27; no provider calls were made.
+
+### 2026-09-12 — Durable bounded EDGAR issuer-universe scan
+
+- [x] Add an additive `market_event_scan_state` table and admin-only
+      `/api/v1/market-data/event-scan-state` read for durable EDGAR scan
+      cursors, cycle/batch counts, failures, and bounded provenance.
+- [x] Add a separately disabled worker/task that walks known canonical issuer
+      CIKs in bounded batches and composes the existing per-CIK EDGAR
+      IPO-pipeline service atomically with cursor updates. `partial` and
+      `complete` cycles are explicit; a complete cycle is not a claim of global
+      SEC universe coverage because issuers absent from the canonical table
+      remain outside scope.
+- [x] Add migration, service, router, and worker tests. Focused scan coverage
+      passes 56/56 and the complete backend unit suite passes 1,876/1,876 with
+      the known 37 warnings; Ruff, compileall, diff checks, and both Compose
+      YAML parses pass. Docker-backed migration/full-stack validation remains
+      unavailable.
+
+### 2026-09-12 — Audited pre-listing candidate materialization
+
+- [x] Add an additive `market_event_prelisting_candidate` table and bounded
+      backend service for future IPO/IPO-pipeline observations. Reconciled
+      observations produce one candidate and, only for validated stock evidence,
+      one inactive `provisional` instrument with provider/stable-identifier
+      provenance; conflicted or malformed evidence is quarantined or skipped.
+- [x] Add conservative promotion: only one unique active FIGI/ISIN/CUSIP match,
+      or an exact provider-symbol plus exchange-MIC match across provider
+      sources, may link a candidate to a listed instrument. Ticker-only and
+      ambiguous matches remain pending; provider events are never overwritten.
+- [x] Wire the opt-in backend/worker schedule and admin-only
+      `/api/v1/market-data/prelisting-candidates` evidence endpoint. Focused
+      prelisting/migration/router/worker coverage passes 42/42; the complete
+      backend unit suite passes 1,868/1,868 with the known 37 warnings. Docker
+      PostgreSQL/full-stack validation remains unavailable.
+
+### 2026-09-12 — Canonical bar persistence fidelity
+
+- [x] Preserve `market_series_id`, session, adjustment basis/version, and
+      provider provenance when persisting canonical OHLCV bars and provider
+      observations; upserts now update these fields instead of silently
+      dropping them.
+- [x] Add the provider-observation `session` column through additive migration
+      `8e9f0a1b2c3d`, with SQLite upgrade/default/downgrade coverage. Focused
+      persistence/provider tests pass 212/212 and the complete backend unit
+      suite passes 1,797/1,797 with the known 37 warnings. Docker-backed
+      migration/integration validation remains blocked by unavailable Docker.
+- [x] Re-run the changed Alpaca and keyless crypto history adapters live after
+      the provenance update; the bounded regression passed 4/4 under run
+      `canonical-persistence-provenance-20260912`, with aggregate usage kept
+      outside Git.
+- [x] Ensure Alpha Vantage and the shared optional REST raw-history parser also
+      identify their provider in persisted provenance. Focused provider tests
+      pass 272/272 and the complete backend unit suite passes 1,797/1,797;
+      this metadata-only change required no additional provider calls.
+
+### 2026-09-12 — Series-scoped OHLCV conflict identity
+
+- [x] Assign provider refresh results to a deterministic `MarketSeries` and
+      carry that ID into canonical bars and provider observations.
+- [x] Replace the legacy instrument/timeframe/timestamp uniqueness keys with
+      series/session-aware `scope_key` keys, while preserving a
+      `legacy:<session>` compatibility scope for older rows. Migration
+      `9f0a1b2c3d4e` and SQLite upgrade/backfill/downgrade coverage are added;
+      focused series/migration/service tests pass 19/19 and the complete
+      backend unit suite passes 1,799/1,799. PostgreSQL-backed migration and
+      full-stack validation remain blocked by unavailable Docker.
+- [x] Add the durable `market_series_default` mapping used by ordinary
+      symbol/timeframe OHLCV reads. The first admitted canonical series is
+      retained, regular-session series repair an extended-only selection, and
+      inactive mappings fall back to the first active canonical series without
+      mixing alternate feeds or legacy rows. Migration
+      `a0b1c2d3e4f5` and service/read regressions pass 21/21; the complete
+      backend unit suite passes 1,802/1,802. PostgreSQL/full-stack execution
+      remains Docker-gated.
+
+### 2026-09-12 — Latest-window series identity
+
+- [x] Route cold/latest provider fetches through the same deterministic
+      `MarketSeries` attachment used by historical repairs. Latest bars no
+      longer persist as legacy `NULL` series rows that would be excluded after
+      a default mapping is created. Focused market-data/default-mapping
+      coverage passes 21/21 and the complete backend unit suite passes
+      1,804/1,804 with the known 37 warnings; PostgreSQL/full-stack validation
+      remains Docker-gated.
+- [x] Apply the same series attachment to bulk historical refreshes and the
+      risk-free-rate provider path. Their persisted bars now participate in
+      the selected default series instead of silently creating legacy rows;
+      focused bulk/risk-free/market-data coverage passes 27/27 and the
+      complete backend unit suite passes 1,805/1,805. PostgreSQL/full-stack
+      validation remains Docker-gated.
+- [x] Constrain synthetic OHLCV readback to the same compatibility selector,
+      preventing stale alternate/legacy rows from leaking into a recomputed
+      synthetic result. The complete backend unit suite remains green at
+      1,805/1,805; PostgreSQL/full-stack validation remains Docker-gated.
+- [x] Make the selector require matching bars before suppressing legacy rows.
+      A pre-created or emptied canonical series no longer hides usable legacy
+      history; the focused selector coverage passes 22/22 and the complete
+      backend unit suite passes 1,806/1,806. PostgreSQL/full-stack validation
+      remains Docker-gated.
+- [x] Partition provider responses containing mixed session/feed/adjustment
+      metadata into separate deterministic `MarketSeries` identities. A batch
+      no longer inherits the first bar's scope; focused market-data coverage
+      passes 29/29 and the complete backend unit suite passes 1,807/1,807.
+      PostgreSQL/full-stack validation remains Docker-gated.
+
+### 2026-09-12 — Alpha Vantage earnings history capability
+
+- [x] Add strict normalization for Alpha Vantage's documented `EARNINGS`
+      endpoint, preserving annual/quarterly fiscal dates, reported EPS,
+      estimates, surprises, and explicit unknown intraday timing.
+- [x] Register the capability, charge its one-query operation explicitly, and
+      add it as the final default instrument-events fallback after the richer
+      Alpaca/EDGAR/Finnhub routes so the 25-requests/day key is not spent first.
+- [x] Re-run the credentialed live earnings probe after the prior capacity
+      response; the bounded AAPL case passed `1/1` under the operator-managed
+      environment and produced normalized provider rows.
+
+### 2026-09-12 — Finnhub earnings capability registration
+
+- [x] Register Finnhub's already-implemented per-symbol earnings history and
+      forward earnings-calendar methods under the explicit `earnings`
+      capability, with a registry regression. Focused provider/registry tests
+      pass 91/91.
+- [x] Add Finnhub to the default `instrument_events` fallback chain after
+      Alpaca and EDGAR so the live-proven earnings adapter is reachable through
+      normal capability-aware routing; configuration examples and README are
+      synchronized.
+
+### 2026-09-12 — Live-ledger crash durability and permissions
+
+- [x] Harden the owner-managed aggregate-only live-usage ledger to mode `0600`
+      during preflight and after writes, and `fsync` each receipt batch before
+      releasing its lock. Focused ledger coverage passes 12/12 and the complete
+      backend unit suite passes 1,775/1,775.
+
+### 2026-09-12 — Shared local provider admission controls
+
+- [x] Key the process-local token bucket and semaphore by the same explicit
+      provider quota group used by durable reservations, including reviewed
+      concurrent-request dimensions, so account/key/IP/session allowances are
+      not multiplied once per capability inside a worker. Keep ungrouped
+      contracts isolated by capability.
+- [x] Preserve explicitly non-applicable zero-cost dimensions during settlement
+      instead of charging the compatibility one-unit amount. Focused accounting
+      coverage passes 7/7 and the complete backend unit suite passes 1,768/1,768.
+
+### 2026-09-12 — Shared concurrency quota-group admission
+
+- [x] Include reviewed concurrent-request dimensions when deriving process-local
+      semaphore keys, keeping shared account/key/IP/session concurrency budgets
+      aligned with durable reservations; request/credit/weight token buckets
+      retain their short-window grouping. Focused accounting coverage passes 7/7
+      and the complete backend unit suite passes 1,769/1,769.
+
+### 2026-09-12 — Alpaca corporate-actions page fidelity
+
+- [x] Request Alpaca's documented 1,000-record corporate-actions page maximum
+      and retain the explicit local page-budget guard. Focused coverage passes
+      6/6, and the bounded credentialed assets/actions live case passes 1/1.
+
+### 2026-09-12 — Live-ledger writability preflight
+
+- [x] Verify the configured aggregate-only usage ledger before any
+      quota-consuming live provider call. An unwritable path now exits the live
+      session with code 2 before tests run; focused ledger coverage passes 8/8
+      and the complete backend unit suite passes 1,771/1,771.
+
+### 2026-09-12 — Live-ledger attribution preflight
+
+- [x] Require a bounded printable `PROVIDER_LIVE_USAGE_SCOPE` in every
+      quota-consuming live pytest session, including direct invocations, so
+      new receipts cannot silently use `unspecified`. Focused ledger coverage
+      passes 11/11 and the complete backend unit suite passes 1,774/1,774.
+
+### 2026-09-12 — Complete configured-provider live revalidation
+
+- [x] Re-run the full 41-case manifest with the existing configured keys and a
+      fresh usage identity. It passed 37/41; Alpha Vantage capacity and the
+      intentionally deferred Tradier/IBKR/Ondo credential preflights remain
+      explicit non-passes. The external receipt contains aggregate-only usage
+      telemetry and no credentials or payloads.
+
+### 2026-09-12 — Newly configured provider live revalidation
+
+- [x] Revalidate the supplied Alpaca paper, SEC EDGAR User-Agent, MarketData.app,
+      and Dinari Sandbox settings in one bounded fresh-run matrix. All 7 selected
+      transport/normalization cases passed; the external ledger contains only
+      aggregate counts/bytes and allow-listed headers under a unique run ID.
+
+### 2026-09-12 — Cross-session live-ledger identity hardening
+
+- [x] Generate a fresh UUID for direct live-test invocations when no explicit
+      run ID is supplied. This prevents process-ID reuse or inherited shell
+      values from merging unrelated provider usage sessions; wrapper/CI IDs
+      remain authoritative when provided. Focused ledger coverage passes 6/6.
+
+### 2026-09-12 — Explicit provider quota-group accounting
+
+- [x] Separate the durable quota bucket key from the requested capability. A
+      provider contract may now declare `dimension.quota_group` when one
+      account/key-wide allowance is shared by multiple capabilities; omitted
+      groups retain the capability-scoped compatibility key, and blank groups
+      fail closed.
+- [x] Apply this to every currently reviewed account/key/IP/session-scoped
+      contract (including MarketData.app credits/concurrency and Tiingo/FMP
+      byte pools), while retaining endpoint/pair-scoped exceptions. Expose the
+      group in admin/usage diagnostics, backfill existing rows through an
+      additive migration, and prove grouped and ungrouped behavior with unit
+      coverage.
+
+### 2026-09-12 — Strict provider credential presence checks
+
+- [x] Reject whitespace-only values in the centralized provider configuration
+      predicate, including multi-field Dinari/FINRA credentials and Massive's
+      current-or-legacy key alternatives. This keeps runtime and availability
+      admission consistent with the redacted diagnostics contract. Focused
+      registry/availability coverage passes 31/31 and the complete backend unit
+      suite passes 1,760/1,760 with the existing warnings.
+
+### 2026-09-12 — Operation-aware availability credential checks
+
+- [x] Align scheduled provider-availability preflights with the central
+      operation-aware registry contract. Multi-field providers such as Dinari
+      (key ID + secret), IBKR (gateway URL + session cookie), and SEC EDGAR
+      (validated User-Agent) are no longer reduced to a legacy single
+      `*_API_KEY` heuristic; Marketstack history/latest checks no longer
+      require its discovery MIC, while discovery still does. Focused
+      availability coverage passes 8/8 and the complete backend unit suite
+      passes 1,759/1,759 with the existing warnings.
+
+### 2026-09-12 — Operation-scoped Marketstack discovery configuration
+
+- [x] Keep Marketstack's explicit exchange/MIC requirement limited to
+      universe discovery and reconciliation. Daily history and quote routing
+      now require only `MARKETSTACK_API_KEY`, while provider-level diagnostics
+      still expose the missing discovery scope and discovery remains
+      fail-closed without it. Registry/runtime regressions pass `48/48`, and
+      the complete backend unit suite passes `1,757/1,757` with the existing
+      37 warnings.
+
+### 2026-09-12 — Tiingo bandwidth contract confirmation
+
+- [x] Recheck the current official Tiingo pricing page: the free Starter
+      contract is 500 unique symbols/month, 50 requests/hour, 1,000/day, and
+      1 GB/month bandwidth. The observed “2.00 GB” dashboard value is not
+      promoted into routing; operation byte bounds remain explicitly required.
+
+### 2026-09-12 — Compose provider-wiring validation
+
+- [x] Validate both root and RPi Compose manifests after the Dinari Sandbox
+      correction. Root Compose parses with its configured environment; RPi
+      Compose parses with non-secret deployment placeholders. No services were
+      started or restarted.
+
+### 2026-09-12 — Core bootstrap provider-error redaction
+
+- [x] Apply bounded credential redaction to core workstation history, ETF
+      bootstrap, and family-history queue error results. The existing bootstrap
+      regression now exercises a credential-bearing provider failure; focused
+      bootstrap/error coverage passes 14/14 and the full backend unit suite
+      passes 1743/1743 with Ruff and diff checks clean.
+
+### 2026-09-12 — Dinari Sandbox deployment-default correction
+
+- [x] Correct Docker Compose, RPi Compose, and the manual GitHub live workflow
+      to default Dinari to the documented Sandbox host used by the validated
+      credential pair; add a regression rejecting the retired `sbt` host.
+      Focused provider-wiring/tokenized coverage passes 63/63; the full backend
+      unit suite passes 1743/1743 with Ruff, compilation, and diff checks clean.
+
+### 2026-09-12 — Bulk-fetch returned-error redaction regression
+
+- [x] Add a regression proving bulk historical fetch failures returned to the
+      caller are credential-redacted and bounded, not merely redacted in logs.
+      Focused bulk/provider-runtime/error coverage passes 36/36; the full
+      backend unit suite passes 1742/1742 with Ruff, compilation, and diff
+      checks clean.
+
+### 2026-09-12 — Provider exception boundary hardening
+
+- [x] Extend bounded credential redaction to provider-facing market-data
+      refresh, bulk-history, alert preflight, and background refresh diagnostics,
+      including returned bulk-fetch error state. Focused coverage passes 76/76;
+      the full backend unit suite passes 1741/1741 with Ruff, compilation, and
+      diff checks clean.
+
+### 2026-09-12 — Central bounded provider diagnostics
+
+- [x] Centralize credential redaction plus bounded diagnostic output for the
+      provider runtime's request logs, health state, capacity events, fallback
+      diagnostics, and availability probes. Focused runtime/error coverage
+      passes 38/38; the full backend unit suite passes 1741/1741 with Ruff,
+      compilation, and diff checks clean.
+
+### 2026-09-12 — Bounded provider adapter diagnostics
+
+- [x] Bound redacted transport-exception messages emitted by Alpaca, Binance,
+      yfinance, instrument sync, and US-universe reconciliation to 1,000
+      characters while durable fields retain their 4,000-character limit. The
+      combined provider/service regression set passes 393/393; the full backend
+      unit suite passes 1739/1739 with Ruff, compilation, and diff checks clean.
+
+### 2026-09-12 — Provider adapter log redaction
+
+- [x] Route transport exception text through the shared credential redactor in
+      Alpaca, Binance, and legacy yfinance adapter logs. All provider unit tests
+      pass 369/369; the full backend unit suite passes 1739/1739 with Ruff,
+      compilation, and diff checks clean.
+
+### 2026-09-12 — Provider-run diagnostic error redaction
+
+- [x] Extend credential redaction to the durable instrument-sync and US-universe
+      reconciliation error fields and to their provider-failure log messages.
+      Regression coverage passes 24/24 across the affected provider/run services;
+      the full backend unit suite passes 1739/1739 with Ruff, compilation, and
+      diff checks clean.
+
+### 2026-09-12 — Provider diagnostic error redaction
+
+- [x] Enforce credential redaction at provider-availability and provider-support
+      persistence boundaries, so unexpected transport exceptions cannot leak
+      secrets through health, availability, or capability diagnostics. Focused
+      provider/queue/admin coverage passes 19/19; the full backend unit suite
+      passes 1737/1737 with Ruff, compilation, and diff checks clean.
+
+### 2026-09-12 — Durable refresh-job lease ownership
+
+- [x] Add a persisted, per-claim opaque lease token to `MarketRefreshJob` and
+      require conditional id/status/token/expiry matching for completion and
+      retry updates. A stale worker now receives an explicit lease-loss result
+      and cannot overwrite a later worker's outcome.
+- [x] Add the additive migration and unit coverage for token issuance,
+      clearing, wrong-token rejection, expiry rejection, and worker behavior
+      that avoids retrying after lease loss. Focused queue/worker coverage
+      passes 32/32; the full backend unit suite passes 1734/1734 with Ruff,
+      compilation, and diff checks clean.
+- [x] Expose bounded admin-only `/api/v1/market-data/refresh/queue` diagnostics
+      with status counts, lease-expiry/degradation state, retry metadata, and
+      last errors while deliberately omitting lease tokens. The API contract
+      regression is present; its PostgreSQL-backed execution is Docker-gated.
+- [x] Redact refresh-job errors at both persistence and admin-read boundaries,
+      covering unexpected transport exceptions as well as typed provider
+      failures. Regression coverage verifies credentials never enter the
+      durable `last_error` field.
+
+### 2026-09-12 — Dinari Sandbox default host alignment
+
+- [x] Align the checked-in configuration examples and Dinari adapter fallback with the
+      documented `https://api-enterprise.sandbox.dinari.com/api/v2` Sandbox host used by the
+      newly supplied credential pair. Production deployments must still override the base URL
+      explicitly; the key itself never selects an environment. Add a regression proving a blank
+      setting cannot fall back to the retired `api-enterprise.sbt.dinari.com` host.
+- [x] Dinari tokenized-provider unit coverage passes `49/49`; Ruff, compilation, and diff checks
+      pass. No credentials or provider payloads were persisted.
+- [x] Dinari and Ondo authenticated adapters now reject missing credentials before any HTTP
+      request, matching the existing fail-closed provider contract. Tokenized-provider coverage
+      passes `51/51`; the full backend unit suite passes `1731/1731`.
+
+### 2026-09-12 — ETF constituent analysis freshness boundary
+
+- [x] Extend the current ETF constituent snapshot consumer to honor persisted
+      OHLCV freshness. Expired holding, benchmark, and market-benchmark bars
+      are withheld with explicit `stale_data` warnings and deduplicated
+      freshness accounting; historical `as_of` snapshots retain their
+      point-in-time behavior.
+- [x] Add database-backed regression coverage for the current stale snapshot
+      boundary (focused route/unit checks are green; execution of the
+      integration case remains subject to the Docker readiness gate).
+- [ ] Reconcile the consumer contract with the parallel
+      `feat/etf-holdings-constituents` branch at staging. This branch does not
+      modify that branch's ETF provider adapters; integration must preserve
+      its adapter ownership and merge only compatible canonical identity and
+      freshness contracts.
+
+### 2026-09-12 — Market Map current-data freshness boundary
+
+- [x] Make current Market Map calculations fail closed on explicitly stale
+      member OHLCV bars, stale direct references, and stale reference-source
+      members. The cache identity includes the stale-state set, freshness
+      accounting includes comparison IDs, and explicit `as_of` maps retain
+      historical observations.
+- [x] Add regression coverage for current stale withholding and historical
+      `as_of` preservation. The full backend unit suite is green; the
+      database-backed regression remains subject to Docker readiness.
+
+### 2026-09-12 — Benchmark-family role ranking freshness boundary
+
+- [x] Apply the persisted OHLCV freshness gate to current benchmark-family
+      role rankings. Expired role bars are withheld, rankings and performance
+      cells are not produced from them, and explicit `stale_data` warnings plus
+      freshness accounting identify the affected role; historical `as_of`
+      ranking remains unchanged.
+- [x] Close the existing database-backed regression expectation for stale
+      `equal_weight` ranking data. Focused and full unit checks are green; the
+      integration case remains blocked only by Docker readiness.
+
+### 2026-09-12 — Credentialed live confirmation for newly supplied providers
+
+- [x] Run bounded live integration cases with the owner-managed runtime
+      credentials for SEC EDGAR, Alpaca, MarketData.app, and Dinari Sandbox.
+      The selected matrix passed `7/7`, including SEC directory pagination,
+      Alpaca history/latest-price reads, MarketData.app option paths, and
+      Dinari metadata/quote/history/news. Only aggregate usage telemetry was
+      written outside Git; no credentials or payloads were persisted.
+- [x] Rerun the complete 39-case manifest matrix with the same environment:
+      `35/39` passed. The four non-passes are Alpha Vantage's typed daily
+      capacity response and the intentionally deferred Tradier, IBKR, and Ondo
+      credential preflights; no provider payloads or credentials entered Git.
+- [x] Supersede that earlier matrix with the refreshed 41-case run at
+      `2026-09-12T07:21:11Z`: `37/41` passed in `79.69s`, including the newly
+      supplied Alpaca, MarketData.app, Dinari Sandbox, and SEC EDGAR cases.
+      The four remaining outcomes are unchanged and intentional: Alpha
+      Vantage's documented daily-capacity response plus the deferred Tradier,
+      IBKR, and Ondo credential preflights. The redacted 26-provider receipt
+      was merged into the owner-managed external ledger; no credentials or
+      payloads entered Git.
+- [ ] Keep the provider-specific governance gates separate from transport
+      evidence: MarketData.app still needs the exact reviewed plan/limit pair
+      and option-chain symbol bound; Dinari remains non-routable until its
+      quota/cache/redistribution terms are reviewed. SEC deployment contacts,
+      account isolation, and the 30-day shadow run remain open.
+
+### 2026-09-12 — Coalesce identical OHLCV refreshes
+
+- [x] Add a process-local refresh gate around the complete canonical
+      `fetch_ohlcv` read/refresh/persist transaction. Concurrent identical
+      instrument/timeframe/range/adjustment requests now serialize and the
+      waiting caller re-runs the normal coverage check after the first commit,
+      preventing duplicate provider quota consumption inside one backend
+      process. Local-only and synthetic reads remain unaffected; durable
+      refresh jobs continue to provide cross-worker coalescing.
+- [x] Add concurrent regression coverage and rerun OHLCV router/background
+      tests. Focused market-data coverage passes `10/10`, router/background
+      coverage passes `13/13`, and no generic quota fallback is introduced.
+- [x] Extend the same coalescing contract across PostgreSQL-backed process
+      boundaries with a transaction-scoped advisory lock derived from the exact
+      request key. The lock is held through refresh persistence, so another
+      worker rechecks committed coverage before provider execution; SQLite and
+      unit doubles safely retain the process-local gate only.
+- [x] Add explicit multi-host contention validation for deployments that cannot
+      share the same PostgreSQL transaction boundary. An opt-in Redis
+      coordinator now wraps canonical and bulk OHLCV refreshes with bounded
+      tokenized locks; acquisition failure is fail-closed, and independent
+      Redis clients have an integration contention/release regression. Durable
+      refresh-job result leases continue to use persisted per-claim tokens and
+      conditional completion/retry updates. The Redis gate remains disabled by
+      default until each deployment explicitly shares its Redis URL and sets a
+      TTL above the slowest permitted refresh.
+- [x] Extend the same process/PostgreSQL gate to implicit latest-window and
+      page-before refresh paths used by chart/instrument reads; focused
+      coalescing coverage now includes both implicit paths.
+- [x] Serialize PostgreSQL refresh-queue enqueue admission by request key so
+      concurrent workers do not race through select-then-insert before the
+      durable unique constraint; SQLite/unit adapters retain their no-op path.
+
+### 2026-09-12 — Grouped screener coverage preflight
+
+- [x] Move synchronous and streaming screener evaluation to a two-phase
+      grouped local-data flow. The condition tree is walked up front to identify
+      primary/D1/W1 dependencies; each instrument/timeframe snapshot is loaded
+      once before evaluation, and no provider or per-instrument OHLCV read is
+      performed inside the evaluation loop.
+- [x] Preserve the existing primary-timeframe missing-coverage response while
+      reporting additional missing dependency timeframes explicitly. Focused
+      screener preflight/unit coverage passes `34/34`, the database-backed
+      screener integration suite passes `26/26`, and the stream remains
+      provider-free for cold members.
+- [x] Extend the freshness/coordinator boundary to radar, chart technical,
+      relative-strength, group snapshot, group breadth, and group relative-
+      rotation plus benchmark-family relative-rotation reads. These local
+      evaluators now exclude explicitly stale current snapshots while retaining
+      historical `as_of` behavior.
+- [x] Group snapshots now include benchmark freshness in the same deduplicated
+      summary as their members. Expired benchmark bars produce an explicit
+      `stale_data` exclusion and stale relative cells rather than an ambiguous
+      unaligned-benchmark result; the historical `as_of` path remains unchanged.
+- [x] The reusable current `/breadth` evaluator now excludes stale members,
+      withholds stale direct benchmarks, and records stale derived-reference
+      members. Its historical endpoint continues to use observed point-in-time
+      bars without projecting current freshness backward.
+- [x] The current `/indicator-batch` endpoint now withholds expired OHLCV
+      snapshots and emits a per-symbol `stale_data` warning instead of
+      calculating indicators from stale bars.
+- [x] Benchmark-family ratios now withhold a current ratio when either the
+      selected role or its benchmark has expired OHLCV freshness, expose
+      per-ratio `stale_data` warnings, and include the underlying freshness
+      summary; historical `as_of` ratios remain unchanged.
+- [x] Industry-proxy and classified-industry snapshots now withhold expired
+      current proxy/member bars, label partial synthetic series coverage, and
+      emit explicit stale benchmark-relative cells; historical `as_of` reads
+      continue to use their point-in-time bars.
+- [x] Benchmark-family breadth now excludes stale current role members,
+      withholds a stale cap benchmark from relative participation, and includes
+      the role/member freshness summary; historical breadth remains unchanged.
+- [x] Derived benchmark-family equal-weight series now exclude stale current
+      members and preserve historical `as_of` calculations, with explicit stale
+      exclusions alongside partial-coverage diagnostics.
+- [x] Benchmark-family role ranking and cross-family cap ranking now withhold
+      expired current role bars, retain stale warnings, and include deduplicated
+      freshness summaries; historical ranking remains unchanged.
+- [x] Extend the same coordinator-backed preflight across the current chart and
+      analysis routes, including Market Map and benchmark-family rankings;
+      current consumers now withhold explicitly stale data while historical
+      `as_of` paths remain point-in-time.
+- [ ] Extend that contract to future breadth/signal engines and refresh-job
+      status persistence.
+
+### 2026-09-12 — Persist radar coverage outcomes
+
+- [x] Persist radar coverage separately from execution status. Each completed
+      run now records `full`, `partial`, `unavailable`, or `empty` coverage,
+      total/missing counts, timeframe, and a bounded sample of missing
+      instrument IDs. The detector remains DB-only during evaluation, so a
+      partial run cannot be mistaken for a fully evaluated universe.
+- [x] Bound persisted missing-ID evidence and cover full/partial/unavailable/
+      empty classifications with unit regression tests.
+- [x] Add freshness-aware radar preflight and an opt-in coordinator-backed
+      repair queue. Persisted `InstrumentDatasetState.stale_after` evidence (or
+      a conservative timeframe fallback when no state exists) now excludes
+      stale members from evaluation and records their bounded IDs/counts;
+      `queue_repairs=true` enqueues bounded `price_history` work without any
+      provider call in the evaluator.
+- [x] Current group-breadth reads now exclude members with explicitly stale
+      persisted OHLCV state, report missing/stale/evaluated counts, and retain
+      historical `as_of` semantics. Chart routes and other future evaluators
+      still require their own coordinator-backed preflight.
+- [ ] Extend the same coordinator-backed preflight to future breadth/signal
+      engines and refresh-job status persistence; current chart consumers are
+      covered by the stale-data boundaries recorded above.
+
+### 2026-09-12 — MarketData.app provider-native option credit accounting
+
+- [x] Preserve MarketData.app's `X-Api-Ratelimit-Limit`, `Remaining`, `Reset`,
+      and per-response `Consumed` headers through transport telemetry,
+      diagnostics, capacity events, and the external live-ledger/receipt
+      merger, filtering all other response headers.
+- [x] Parse the provider-native reset header into typed retry timing wherever
+      MarketData.app rate-limit errors are raised; malformed or absent resets
+      remain unknown rather than receiving an invented delay.
+- [x] Keep the same provider-native capacity headers available in runtime
+      capacity events, cross-session summaries, and merged live receipts, while
+      retaining FINRA pagination evidence and rejecting non-capacity secrets.
+- [x] Exercise the native credit headers through the provider runtime itself,
+      including durable cumulative-total settlement, not only isolated parser
+      helpers or direct adapter telemetry.
+- [x] Settle actual credit consumption and cumulative remaining-credit usage
+      only when the returned limit matches the reviewed 100-credit contract;
+      never infer a response-priced option charge from a generic request unit.
+- [x] Add the explicit `MARKETDATA_APP_OPTION_CHAIN_MAX_SYMBOLS` control,
+      apply the documented `strikeLimit` filter, reject responses over the
+      reviewed bound, and keep the default zero bound fail-closed. Historical
+      single-contract quote history derives its reservation from the
+      documented end-of-day date range.
+- [x] Re-run the full backend/live acceptance gates for this revision: the
+      combined backend gate passed 2073/2073 at 80.66% coverage, and the
+      complete live matrix passed 35/39 with only the documented Alpha Vantage
+      capacity response and intentional deferred-provider credential
+      preflights remaining.
+- [ ] Obtain operator review of the bound, option entitlements, and
+      redistribution terms before enabling current-chain routing.
+- [x] Record the current MarketData.app account plan explicitly. The owner
+      confirmed the 30-day Starter Trial and its 10,000-credit daily pool;
+      `MARKETDATA_APP_REVIEWED_PLAN=starter_trial`, the matching
+      `MARKETDATA_APP_REVIEWED_DAILY_CREDIT_LIMIT=10000`, and the timezone-aware
+      expiry are configured outside Git. The runtime downgrades to
+      Free-Forever/100 after expiry. Quant/Prime still require a separate
+      per-minute contract model.
+- [x] Wire the MarketData.app account-plan/limit gate through routing
+      diagnostics, local/RPi Compose, the manual GitHub live workflow, and
+      environment examples, including the operation-specific option-chain
+      symbol bound. The authoritative backend gate passed 2078/2078
+      at 80.69% coverage; the final live matrix passed 35/39 with only the
+      documented Alpha Vantage capacity response and intentionally deferred
+      Tradier/IBKR/Ondo credential preflights remaining (plus this new
+      explicit MarketData.app plan review gate).
+
+### 2026-09-10 — Ondo market-summary surface
+
+- [x] Add strict normalization for Ondo's documented per-asset market summary:
+      primary-token price changes, 24-hour price-history points, holder and
+      session metadata, plus underlying company price, 52-week, volume,
+      shares-outstanding, and market-cap fields. Preserve primary versus
+      underlying identities and raw provenance; omitted optional values remain
+      absent.
+- [x] Charge the metadata lookup plus market-summary read as two provider
+      requests and extend the credentialed live case to exercise the surface.
+- [ ] Run the credentialed live case after `ONDO_GLOBAL_MARKETS_API_KEY` is
+      provisioned; account quota/cache and display-only terms remain separate
+      governance gates.
+
+### 2026-09-10 — Tokenized-security provider adapters (Dinari and Ondo)
+
+- [x] Replace the Dinari and Ondo descriptor-only entries with concrete,
+      read-only adapters. Dinari now preserves Stock UUIDs, CAIP-10 token
+      deployments, FIGI/CIK/CUSIP metadata, fair price, bid/ask quote,
+      DAY/WEEK/MONTH/YEAR aggregate history, news, dividends, and splits.
+      Ondo now preserves chain addresses/ISIN/tags, latest indicative price,
+      and primary/underlying display-only OHLC candles with the provider's
+      documented interval/range matrix.
+- [x] Wire exact credentials (`DINARI_API_KEY_ID`,
+      `DINARI_API_SECRET_KEY`, and `ONDO_GLOBAL_MARKETS_API_KEY`) through
+      settings, registry, local/RPi Compose, GitHub manual live validation,
+      usage profiles, and fail-closed unknown-quota contracts. No credentials
+      or payloads are tracked in Git.
+- [x] Add fixture tests for provider-native identity, malformed containers,
+      finite numeric/timestamp validation, market-scope preservation, and
+      exact two-request metadata-plus-data usage accounting.
+- [x] Run the credentialed Dinari Sandbox case with operator-owned credentials;
+      metadata, quote/history, news, dividend, and split reads passed 1/1 on
+      2026-09-12. Provider-native quota/cache/redistribution terms remain
+      unreviewed, so the provider is not promoted by this live result.
+- [ ] Run the credentialed Ondo live case with operator-owned credentials and
+      record provider-native quota/cache/redistribution terms. Missing
+      credentials remain an explicit live preflight failure, not a skip; Ondo
+      remains non-routable while numeric account quotas and commercial/US
+      eligibility terms are unknown.
+- [x] Add the canonical tokenized OHLC bridge through the approved
+      `tokenized_historical_prices` storage/capability contract. Ondo's daily
+      primary-token rows now persist through the same scoped raw `24_7`
+      `OHLCVBar`/`MarketSeries` path with deterministic local rollups and raw
+      provenance; the provider remains fail-closed until its quota/terms are
+      reviewed.
+- [ ] Add a separate tokenized corporate-action bridge only after its storage
+      and capability contract is approved; tokenized history/news methods do
+      not silently become generic US venue corporate-action coverage.
+
+### 2026-09-10 — IBKR read-only gateway adapter
+
+- [x] Replace the descriptor-only IBKR market-data entry with a concrete,
+      documentation-faithful read-only Client Portal Gateway adapter covering
+      exact-symbol search/profile, raw OHLCV history with bounded cursor paging,
+      and account-context/latest-price snapshots. The adapter requires an
+      operator-created gateway session cookie, keeps IBKR `conid` values in
+      provider listing metadata rather than canonical identity, rejects
+      adjusted-history requests it cannot prove, and preserves typed pacing,
+      malformed-response, and redacted-cookie failures.
+- [x] Wire IBKR's URL/session configuration through local/RPi Compose, GitHub
+      live validation, the environment examples, capability routing, dynamic
+      history-page usage costs, and the live manifest. Fixture coverage passes;
+      live evidence remains an explicit preflight until a gateway URL and
+      interactive session cookie are supplied.
+- [ ] Keep IBKR options/futures-specific surfaces and automated gateway login
+      out of routing until separate entitlements, adapters, and live evidence
+      are implemented.
+
+### 2026-09-10 — IBKR historical pacing contract correction
+
+- [x] Reconcile the descriptor-only IBKR quota record with the current official
+      historical-market-data documentation: retain the 10 requests/second
+      session ceiling, add the 50 historical requests/minute ceiling, retain
+      the five-concurrent-history limit, and record the 1,000-bar response cap
+      as an endpoint constraint. The adapter remains intentionally non-routable
+      until a funded/session-bound read-only adapter and live evidence exist.
+
+### 2026-09-10 — Live usage attribution and provider-capacity evidence
+
+- [x] Extend the external direct-live usage ledger to retain a bounded,
+      allow-listed snapshot of provider-native capacity headers (credits,
+      reset/remaining values, `Retry-After`, FINRA pagination bounds, and
+      exchange weight state). Headers are forwarded from both ordinary and
+      tokenized live probes, exposed as the latest redacted diagnostic snapshot,
+      and rejected when they are not on the allow-list; credentials and payload
+      headers never enter the ledger.
+- [x] Require a printable, bounded `PROVIDER_LIVE_USAGE_SCOPE` during the
+      manifest live preflight. Legacy receipts remain readable as
+      `unspecified`, but new quota-consuming live runs cannot create
+      unattributed cross-environment usage. Focused ledger/usage/secret-wiring
+      coverage passes `20/20` with Ruff and diff checks clean.
+
+### 2026-09-10 — Shared provider capacity-envelope evidence
+
+- [x] Preserve provider-declared `Retry-After`/reset headers and retry times
+      when JSON quota/error envelopes arrive with HTTP 200, across all
+      registered provider adapters. Retain only allow-listed capacity headers;
+      malformed response-header objects fail safely without masking the typed
+      provider error. Focused provider/error coverage passed `247/247`, and
+      the authoritative backend gate passed `1966/1966` with `80.50%` coverage.
+- [x] Rerun the complete manifest live matrix after the transport change:
+      `27/34` passed at `2026-09-10T11:15Z`; the remaining seven cases are
+      explicit missing `EDGAR_USER_AGENT`, Alpaca, Tradier, and MarketData.app
+      credential preflights plus Alpha Vantage's documented daily-capacity
+      responses. No acceptance claim was made.
+- [x] Finalize the shared capacity-envelope evidence after the safe response
+      header extractor: focused provider/runtime/error coverage passed `327/327`
+      and the final authoritative Docker-backed gate passed `1966/1966` with
+      `80.52%` coverage (testcontainer session
+      `bc90810e-baba-4963-84c1-ef58081f42ce`, cleaned without host-wide pruning).
+- [x] Rerun the complete matrix with a temporary descriptive SEC User-Agent and
+      reviewed XNAS discovery override: `29/34` passed at `2026-09-10T11:24Z`.
+      The five failures are missing Alpaca, Tradier, and MarketData.app
+      credential domains plus typed Alpha Vantage daily-capacity responses;
+      tokenized probes remained green. A follow-up Finnhub isolation passed
+      `1/1` with the operator-owned env. This is evidence only, not acceptance;
+      deployment-owned SEC contact configuration remains required.
+- [x] Reject the documented placeholder SEC contact value during live credential
+      preflight and in the live-test helper, preventing false configured
+      evidence. Focused secret-wiring coverage passes `10/10`; the final
+      authoritative backend gate passes `1967/1967` with `80.52%` coverage and
+      89 warnings (testcontainer session
+      `aca39e7f-8836-4d71-b130-9d92033cafee`, cleaned without host-wide pruning).
+- [x] Reject all checked-in SEC contact placeholders, including
+      `contact@example.com`, `your.email@example.com`, and any `example.com`
+      value, consistently in the EDGAR adapter, registry, live preflight, and
+      live-test helper. Focused SEC/secret-wiring coverage passes `32/32` with
+      Ruff and diff checks clean; the authoritative backend gate passes
+      `1968/1968` with `80.51%` coverage and 89 warnings (testcontainer session
+      `59baf5db-b0e7-42fe-8ef9-221e13084cec`, cleaned without host-wide pruning).
+- [x] Remove invalid SEC placeholders from root/backend environment examples
+      and the provider guide, and reject `myemail@` plus angle-bracket
+      documentation placeholders in the shared validator, live preflight, and
+      live-test helper. Focused SEC/secret-wiring coverage remains `32/32`; the
+      authoritative backend gate passes `1968/1968` with `80.52%` coverage and
+      89 warnings (testcontainer session
+      `4ac59081-aebf-41f3-b579-a0784fcaf418`, cleaned without host-wide pruning).
+- [x] Extend the backend `/shadow` report with eligible core-session D1 coverage,
+      an explicit 99% threshold status, quota-capacity event totals, and open
+      anomaly counts by severity. Focused monitoring coverage passes `5/5`; the
+      authoritative backend gate passes `1969/1969` with `80.53%` coverage and
+      89 warnings (testcontainer session
+      `2f99f994-7fc5-4944-b43c-6b3308512d79`, cleaned without host-wide pruning).
+- [x] Add non-secret `PROVIDER_LIVE_USAGE_SCOPE` labels to direct live receipts,
+      API summaries, CI/Compose wiring, and merger deduplication so usage from
+      separate environments cannot be silently conflated. Legacy rows normalize
+      to `unspecified`. Focused ledger/usage/router/wiring coverage passes
+      `26/26`; the authoritative backend gate passes `1970/1970` with `80.53%`
+      coverage and 89 warnings (testcontainer session
+      `ce2882bf-eb46-4cc4-82b7-947dc03324b6`, cleaned without host-wide pruning).
+
+### 2026-09-10 — Optional provider response-contract hardening
+
+- [x] Make Tradier's documented nested history/quote wrappers fail closed on
+      scalar or malformed row containers while preserving valid empty wrappers.
+- [x] Make Marketstack EOD pagination fail closed on missing, malformed,
+      non-progressing, or contradictory metadata instead of truncating history.
+      The focused optional-provider suite passes `32/32`; the authoritative
+      Docker-backed gate passes `1892/1892` with `80.36%` line coverage and
+      89 warnings, and the owned PostgreSQL/Redis testcontainer is cleaned
+      without host-wide pruning.
+- [x] Make every concrete optional-provider documented row-list endpoint fail
+      closed on missing, scalar, or mixed row containers, and reject malformed
+      Tradier option-expiration dates/wrappers. The focused suite passes
+      `35/35`; the authoritative Docker-backed gate passes `1895/1895` with
+      `80.36%` line coverage and 89 warnings.
+- [x] Make tokenized xStocks, Robinhood, Bybit, Gate, and Kraken list, quote,
+      instrument, and corporate-action paths reject malformed response
+      containers rather than filtering rows or creating synthetic records. The
+      focused tokenized suite passes `23/23`; the authoritative Docker-backed
+      gate passes `1900/1900` with `80.35%` line coverage and 89 warnings.
+- [x] Make Coinbase and Kraken crypto candle, ticker, and directory adapters
+      reject malformed row containers and non-numeric fields instead of
+      skipping observations or returning empty/synthetic results. Focused
+      new-provider tests pass `121/121`; the authoritative Docker-backed gate
+      passes `1904/1904` with `80.35%` line coverage and 89 warnings.
+- [x] Make OpenFIGI mapping reject malformed envelopes, missing/mixed rows,
+      response-count mismatches, and non-2xx/429 failures with typed errors.
+      Focused tests pass `8/8`; the authoritative Docker-backed gate passes
+      `1907/1907` with `80.35%` line coverage and 89 warnings.
+
+### 2026-09-05 — Corrective provider quota and live-evidence gate
+
+This entry supersedes older “provider not built” notes below; historical entries
+remain for audit chronology, while `docs/data-providers.md` is the authoritative
+current capability/quota ledger.
+
+- [x] Remove inferred provider limits from runtime defaults. A provider is
+      non-routable until its provider-specific quota contract, scope, source,
+      and credential state are recorded; unknown limits are never replaced by
+      a 60/minute, 15-burst, 2-concurrent, or 30-second fallback.
+- [x] Add durable multi-dimensional reservations, provider-reset-aware
+      deferral, typed 429/418 handling, admin-visible quota state, and
+      operation-cost fail-closed behavior for weighted/credit APIs.
+- [x] Remove Marketstack's implicit single-venue (`XNYS`) discovery default;
+      ticker discovery now requires an explicit operator-selected MIC/exchange
+      setting and remains supplementary to the authoritative NMS/OTC census.
+- [x] Replace undocumented Nasdaq quote/history calls with official Nasdaq
+      Trader directory evidence; retain Coinbase/Kraken public crypto adapters,
+      FINRA OAuth configuration, OTC Daily List lifecycle-event evidence, the
+      fail-closed configurable FINRA OTC symbol-directory adapter, and
+      documentation-faithful optional adapters.
+- [x] Make universe reconciliation fail closed on cursor pages without totals
+      or explicit completion evidence, preserve Nasdaq Financial Status evidence,
+      and prevent exchange-qualified ticker merges across venues.
+- [x] Add a manifest-driven live-provider matrix. Keyless probes currently
+      pass for OpenFIGI, SEC EDGAR (profile plus full ticker/exchange-directory
+      pagination with a real contact User-Agent), Nasdaq first-page and
+      full-directory pagination for equities/ETFs, Binance, Coinbase, and
+      Kraken; backend unit and integration suites pass.
+- [x] Record Binance's official Spot REST request weights where the adapter can
+      charge them before execution: single-symbol price is weight 2 and
+      exchange-info discovery is weight 20. Multi-page historical candles stay
+      fail-closed until their complete request weight can be reserved safely.
+- [x] Store the supplied credentials outside Git in the owner-only shared local
+      env source and live-prove non-empty native results for Massive, Alpha
+      Vantage, CoinGecko, FRED, FINRA short interest and OTC Daily List, FINRA
+      OTC Security Master, Tiingo, Twelve Data, Finnhub company profile and
+      earnings, Alpha Vantage daily history,
+      Marketstack, EODHD, and FMP (`13/13`). Fix the free-plan mismatches found
+      by those probes instead of accepting skips or empty lists.
+- [x] Correct the FRED quota record after rechecking the official v1 and v2
+      documentation: v1 exposes rate-limit errors but no numeric ceiling or
+      enforcement scope, while the separate v2 2-requests/second rule must not
+      be applied to the v1 adapter. Unknown dimensions are now surfaced
+      explicitly and FRED remains non-routable until its v1 contract and terms
+      are reviewed.
+- [x] Record EODHD's conflicting official per-minute statements: its Free
+      Starter plan card says 20 requests/minute while its general limits page
+      and Quick Start say 1,000/minute for every plan. Enforce the conservative
+      20/minute plus 20 daily credits for this Free Starter account; provider
+      clarification/account evidence remains an explicit gap. Charge documented
+      endpoint credit weights only where the configured plan is entitled.
+- [x] Enforce MarketData.app's documented 50-request account-wide concurrency
+      ceiling with a durable release-only in-flight quota dimension shared by
+      direct calls and queued workload leases.
+- [x] Add an opt-in bounded tokenized quote-refresh worker path. Persisted token
+      products route provider-asset IDs through durable quota reservations and
+      retain separate token price snapshots; the schedule is disabled by
+      default and is passed only to backend/worker deployments.
+- [x] Add a dedicated tokenized-corporate-actions capability and runtime path.
+      xStocks history/upcoming feeds and Robinhood's combined action feed now
+      persist provisional canonical market events with explicit identity
+      linkage, unresolved-row retention, provider-specific operation accounting,
+      and a separately disabled worker schedule; catalogue/quote-only tokenized
+      adapters cannot be selected for corporate-action reads.
+- [x] Revalidate the complete provider matrix after the tokenized capability
+      change: 31/34 cases passed with only the exact Alpaca, Tradier, and
+      MarketData.app credential domains blocked; the clean backend gate passed
+      1,855 tests at 80.37% coverage and the dedicated tokenized suite passed
+      7/7 live probes plus 47 focused tests.
+- [x] Add safe cross-worktree env links, complete backend/worker Compose
+      pass-through, and a manual GitHub environment-scoped live workflow.
+      Routine push/PR CI receives no provider credentials. GitHub environment
+      creation/upload is externally blocked until the repository-owner
+      `jagnelo` account is authenticated in `gh`; the active
+      `an account without repository access` account received HTTP 403.
+- [x] Persist GitHub live-run aggregate usage receipts in a 90-day redacted
+      artifact from runner-temporary storage, including failed/blocked runs;
+      artifacts contain no credentials or payloads and remain separate from
+      runtime quota reservations. Operator reconciliation is still required
+      because provider account usage is not branch- or runner-scoped.
+- [x] Add a lock-protected sanitizer/merger for downloaded local/GitHub usage
+      receipts. It allow-lists aggregate fields, deduplicates run/provider rows,
+      rejects malformed input without printing values, and never promotes CI
+      observations into provider routing or runtime quota reservations.
+- [x] Correct the README provider-routing example so fresh operators see the
+      API-first Alpaca/EDGAR/OpenFIGI defaults and cannot accidentally restore
+      yfinance as the broad default route; yfinance remains an explicit,
+      disabled-by-default legacy/options compatibility path.
+- [x] Close the remaining code-owned Tradier options gap: the concrete adapter
+      now normalizes documented expiration and current-chain endpoints,
+      provider OCC symbols, calls/puts, quotes, open interest, and nested ORATS
+      Greeks; operation costs are explicit and the credentialed live matrix
+      exercises both reads when a production token is available. No sandbox
+      token or undocumented quota is promoted.
+- [x] Preserve Alpha Vantage's provider-specific daily-capacity semantics in
+      runtime deferral: explicit 25-requests/day messages, including the
+      observed CSV `Information` response, now produce a rolling 24-hour retry
+      timestamp instead of a generic cooldown or an immediate retry storm.
+- [x] Supply and live-prove the newly configured Alpaca Trading API
+      key/secret, MarketData.app token, SEC EDGAR contact, and Dinari Sandbox
+      pair. The 2026-09-12 bounded probes passed for those providers, including
+      Alpaca paper assets/corporate actions, MarketData.app option paths, EDGAR
+      filings/Company Facts, and Dinari metadata/quote/history/news/dividend/
+      split reads. Positive live evidence is a runtime prerequisite, but does
+      not by itself promote unreviewed quota, entitlement, or redistribution
+      controls; every deployment/CI environment still needs its own non-secret
+      EDGAR contact value.
+- [ ] Provision and live-prove a Tradier individual token only if that provider
+      is re-enabled by the operator. Tradier, Ondo, and IBKR are intentionally
+      deferred in the current plan, so their exact credential preflights remain
+      explicit failures rather than skipped evidence. No 30-day observation run
+      may start before the NMS/OTC reconciliation and provider-governance gates
+      are complete. Tiingo, FINRA, and FMP also remain non-routable until their
+      provider-specific bandwidth/terms constraints are reviewed.
+
+### 2026-09-04 — US-first market-data provider platform foundation
+
+- [x] Add additive, provider-agnostic identity primitives: a namespaced
+      `instrument.domain_key` (FIGI preferred), separate `issuer` legal-entity
+      records with CIK/LEI, effective-dated identifier/listing evidence, and an
+      explicit `instrument_identity_quarantine` for ambiguous or unresolved
+      candidates. OpenFIGI ticker mapping now refuses ambiguous venue/type rows.
+- [x] Add `market_series` scope for venue/feed/session/timeframe/adjustment
+      basis and preserve provenance on raw observations and canonical OHLCV
+      rows. Local rollups emit only observed buckets and never fabricate missing
+      daily sessions.
+- [x] Add versioned exchange session rules and calendar exceptions, durable
+      provider quota windows/workload leases/routing decisions, and backend-only
+      diagnostics under `/api/v1/market-data/*`.
+- [x] Add the practical optional-provider roster as disabled descriptors and
+      add QuantLib American-option Greeks with explicit model/input provenance
+      and the existing Black-Scholes fallback. Concrete opt-in REST adapters
+      now normalize Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, and FMP
+      history/profile/event surfaces without entering default routing. FMP's
+      stable `earnings-calendar` adapter is fixture- and live-covered; routing
+      remains byte-bound gated and analyst surfaces remain an explicit gate.
+- [x] Add the first concrete non-price paths: raw SEC Company Facts, FINRA
+      short-interest normalisation, Alpha Vantage market-event calendar records,
+      durable persistence helpers, and explicit crypto/futures/options capability
+      labels. Additive queue workers now separate broad D1 scheduling from
+      provider I/O and retry leases.
+- [x] Add durable coverage snapshots, shadow observations, and reviewable
+      anomaly records plus backend-only reports; these remain observational and
+      cannot enable routing by themselves.
+- [x] Add a worker-only US universe/lifecycle reconciliation path with durable
+      complete-run counts, provider symbol/venue presence, conservative
+      repeated-missing confirmation, lifecycle events, identity issues, and
+      core D1 coverage snapshots. Nasdaq public directory discovery is retained
+      as NMS venue evidence alongside SEC/Alpaca/Massive/Alpha Vantage, and the
+      FINRA OTC directory parser is present, but its `otcSecurityMaster` source
+      is now treated as unverified: current public FINRA dataset documentation
+      does not list it. A historical pagination probe is transport evidence
+      only. The provider is non-routable and is not queried until current docs
+      or written FINRA confirmation establishes availability and authorized
+      use; FINRA Daily List alone is not a complete directory.
+- [ ] Activate reviewed optional-provider entitlements, reconcile the complete
+      US venue universe in production, and complete the separate post-merge
+      30-day observation run. New routing remains disabled until the workstream
+      activation bar is met.
+
 ### 2026-08-19 — Generic breadth predicates can be reused as Study Lab definitions
 
 - [x] Add a direct persistence action to the authenticated Breadth tool for a completed
@@ -10267,8 +13314,19 @@ Why this was deferred:
 ### 9. Activate paid providers for options data and forward earnings estimates
 Status: `In progress — full completion contract still open`
 
+Historical note: the current provider adapter/quota ledger is maintained in the
+2026-09-05 entry above. This item remains open specifically for credentialed
+activation and richer options/forward-estimate surfaces, not because the basic
+MarketData.app or FMP REST adapters are absent. MarketData.app's bounded
+credentialed candle and options (expirations, current-chain normalization, and
+single-contract quote history) paths are now live-proven. Its
+response-dependent chain/quote credit cost is intentionally not routed until a
+reviewed maximum reservation bound exists; earnings entitlements remain
+separately unverified.
+
 Context:
-- The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR)
+- The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR,
+  and MarketData.app for delayed candles)
   covering US equity OHLCV, crypto, corporate actions, rates, and historical earnings.
 - The following data types have no viable free alternative and are currently covered only by
   yfinance (unofficial, no SLA):
@@ -10276,17 +13334,25 @@ Context:
   - **Forward earnings calendar** — upcoming confirmed/estimated earnings dates
   - **Analyst price targets and recommendations**
 
-Low-budget candidates already anticipated in config.py (keys are present, providers not yet built):
-- `MARKETDATA_API_KEY` → MarketData.app ($25/month) — US options with real greeks + earnings calendar
+Low-budget candidates already anticipated in config.py:
+- `MARKETDATA_APP_API_KEY` → MarketData.app — delayed US candles, current option expirations/chains, and historical single-contract quotes; response-dependent chain/quote credits require a reviewed reservation bound, and earnings surfaces still require entitlement validation
 - `FMP_API_KEY` → Financial Modeling Prep ($15/month) — forward estimates, analyst data, richer fundamentals
 - IBKR TWS API (free with account) — comprehensive US + international options, futures, real greeks;
   requires IB Gateway sidecar process and a throttled scheduler due to IBKR pacing limits
 
 What remains:
-- Implement `marketdata` provider (MarketData.app): `OptionChainProvider` with real greeks,
-  `EventProvider` for earnings calendar
-- Implement `fmp` provider (FMP): `EventProvider` for forward earnings + analyst data,
-  `InstrumentMetadataProvider` for richer fundamentals
+- Credentialed live validation and entitlement review for the remaining optional adapters;
+  Alpaca latest-price/history and MarketData.app candle/options/quote-history reads, plus Dinari
+  Sandbox tokenized reads, are now live-proven.
+- Keep validating the dedicated `OptionChainProvider`'s real-greeks path and add a
+  forward-earnings `EventProvider` only when the selected plan/API contract supports
+  those surfaces; MarketData.app chain/quote routing must remain disabled until its
+  response-dependent credit bound is reviewed.
+- Validate/activate the FMP stable `earnings-calendar` event surface and add
+  analyst-estimate/price-target adapters only when the selected plan/API
+  contract supports those surfaces. The earnings-calendar adapter now has
+  fixture and configured-key live evidence; routing still requires reviewed
+  byte bounds, and analyst-estimate/price-target coverage remains open.
 - Optionally implement `ibkr` provider (IBKR TWS): comprehensive coverage for priority instruments,
   requires IB Gateway sidecar and a pacing-aware scheduler queue
 - Demote yfinance options/events capabilities to last-resort once paid providers are active
@@ -10345,9 +13411,10 @@ Free-source provider direction confirmed from primary sources:
     - `424B*`
   - this will help us detect issuers moving through the IPO funnel earlier than a structured calendar sometimes will
   - but EDGAR should not be presented as an exact listing-date authority because it is filing-driven, not listing-calendar-driven
-- **Massive market-holiday data** is also worth folding into the same subsystem:
+- **Massive market-holiday data** is now exposed by the same backend adapter:
   - `GET /v1/marketstatus/upcoming` is forward-looking and included in Stocks Basic Free
-  - this is not an IPO feed, but it is a good example of a free market-calendar input that belongs in the same page/widget layer
+  - normalized `market_holiday` events preserve exchange, status, open/close, and raw payload fields
+  - persistence/reconciliation with the versioned exchange-session calendar remains open; this provider read is not itself a canonical holiday authority
 - **Finnhub** can be kept as an evaluation candidate, not a committed provider yet:
   - official docs expose `/calendar/ipo?from=...&to=...`
   - Finnhub also offers a free API key
@@ -10370,27 +13437,48 @@ Product goals:
 
 What remains:
 
-- Add a new provider capability for **forward market events**, distinct from the current instrument-event history model:
-  - examples:
-    - `market_event_calendar`
-    - or a clearly named equivalent
-  - do not overload the current per-instrument event fetch path with market-wide future events
-  - allow multiple providers to contribute to the same normalized market-event feed
+- The normalized `market_events` provider capability is now distinct from the
+  instrument-event history model and supports multiple contributors. A
+  backend-only, opt-in refresh service now persists provider observations with
+  exact provider-symbol/CIK linkage and per-provider failure outcomes. The
+  authenticated backend read path is now available at
+  `/api/v1/calendar/market-events` with bounded inclusive date and identity
+  filters; reads are database-only and return source/provisional payload
+  provenance. A durable, conservative `market_event_consensus_v1` pass now
+  groups only exact event-type/target/date candidates, preserves provider rows,
+  and records corroboration or field-level conflicts for the admin-only
+  `/api/v1/market-data/event-consensus` read path. A separate backend-only,
+  opt-in pre-listing workflow now materializes one auditable candidate per
+  consensus group, creates only inactive provisional stock instruments from
+  validated symbols, quarantines conflicts/malformed evidence, and promotes
+  only on a unique stable-identifier or exact venue-qualified provider-symbol
+  match. Candidates and promotion evidence are available through the admin-only
+  `/api/v1/market-data/prelisting-candidates` path. The remaining work is
+  complete EDGAR/Alpha feed coverage, global venue reconciliation, and
+  calendar-facing product surfaces; do not overload the per-instrument event
+  fetch path with market-wide future events.
 
-- Add provider implementations for the free sources that actually make sense:
-  - `massive`
-    - ingest `reference/ipos`
-    - support status filtering and pagination
-    - store the provider payload and provider-specific status semantics
-    - use this as the primary free IPO backbone
+- Provider implementations for the free sources that actually make sense are now
+  partially in place:
+  - `massive` now exposes a normalized `market_events` adapter for
+    `reference/ipos`, including local inclusive date bounds, `ipo_status`
+    filtering, verbatim provider payloads/status semantics, and an explicit
+    one-request page result with `next_url`. The adapter never follows cursors
+    implicitly, so the documented 5-requests/minute allowance cannot be
+    exceeded by a fixed one-request operation cost. A positive configured live
+    event-row observation is still required before this source can be promoted
+    as the primary free IPO backbone.
   - `alphavantage`
     - ingest `IPO_CALENDAR`
-    - later also ingest `EARNINGS_CALENDAR` into the same broader market-events system
+    - `EARNINGS_CALENDAR` is now normalized through a separate one-request
+      operation with the documented 3/6/12-month horizon choices; the worker
+      currently selects the bounded 3-month operation so its daily quota cost
+      remains explicit
     - ingest `LISTING_STATUS` into the instrument-master follow-through side so future IPO placeholders can be promoted once the listing is real
     - normalize CSV payloads into the same event schema
   - `edgar`
-    - add a supplementary IPO-pipeline detector for filings such as `S-1`, `S-1/A`, `F-1`, `F-1/A`, `424B*`
-    - use this to enrich “watchlist of possible upcoming listings” rather than to claim exact listing dates
+    - `fetch_ipo_pipeline_events` now detects recent `S-1`, `S-1/A`, `F-1`, `F-1/A`, and `424B*` filings for an explicitly supplied CIK
+    - use this to enrich “watchlist of possible upcoming listings” rather than to claim exact listing dates; archived submissions and global issuer enumeration remain explicit caller work
   - optionally `finnhub`
     - only after free-tier access is explicitly validated in practice
     - if validated, use it as another corroborating structured IPO source, not as the sole source of truth
@@ -11666,6 +14754,15 @@ Specific migration targets:
 - indicator alerts:
   - stop refreshing OHLCV separately inside each alert path
   - group by `(instrument, timeframe)` and refresh once, then evaluate all alerts from the same DB snapshot
+
+Implementation checkpoint (2026-09-12): the production APScheduler alert engine
+and the ARQ-compatible alert task now perform a grouped preflight before any
+price/indicator evaluation. Latest-price polling is once per instrument, and
+indicator OHLCV/local-bar reads are performed once per `(instrument, timeframe)`
+group. The evaluation loops consume only those immutable-in-run observations/local bars;
+provider failures leave the affected group unavailable instead of triggering
+per-alert retries. The broader coordinator migration for radar, screeners,
+and future evaluators remains open.
 - chart/instrument OHLCV routes:
   - keep read-through semantics
   - but route through the same coordinator so missing-slice and freshness policy stay consistent across the app
@@ -13154,6 +16251,7 @@ Required free-source provider roles:
 
 Primary source-documentation anchors:
 - Massive reference tickers: <https://massive.com/docs/rest/stocks/tickers/all-tickers>;
+- Massive IPO calendar: <https://massive.com/docs/rest/stocks/corporate-actions>;
 - Alpha Vantage listing status and raw daily history:
   <https://www.alphavantage.co/documentation/>;
 - Alpaca market-data plan/feed semantics:
@@ -15164,3 +18262,691 @@ The current source also passes the focused authenticated top-down browser slice 
       paths.
 - [ ] Promote the resulting definition fan-out to every compatible target (column, filter, scan,
       alert, gauge, chart plot, and Strategy Lab signal) with target-specific output validation.
+
+### 2026-09-12 — SEC EDGAR profile listing validation
+
+- [x] Reject scalar, malformed, and ticker/exchange-length-mismatched arrays in EDGAR submissions
+      profiles before creating provider-symbol/listing history.
+- [x] Add focused regression coverage and preserve the existing no-network live-provider boundary.
+- [ ] Complete/global SEC and OTC venue reconciliation remains a separate universe-coverage gate.
+
+### 2026-09-12 — Newly supplied provider credentials and Dinari cursor contract
+
+- [x] Revalidate the supplied Alpaca paper, SEC EDGAR, MarketData.app, and rotated
+      Dinari Sandbox credentials through bounded live cases. The selected provider
+      test functions passed `10/10`: EDGAR `3/3`, Alpaca `4/4`, MarketData.app
+      `2/2`, and Dinari `1/1`; exact operation/request counts and allow-listed capacity
+      headers were written only to the owner-managed external ledger.
+- [x] Update Dinari stock and stock-split reads to the current cursor-paginated
+      contract (`limit`, `order`, `next`) with instance-scoped cursor state, strict
+      continuation metadata validation, explicit legacy list fallback, and a
+      fail-closed error when split history has an unfetched continuation.
+- [x] Add regression coverage for cursor reuse, missing/malformed/repeated cursors,
+      legacy response compatibility, and split continuation truncation; focused
+      tokenized coverage passes `57/57`, the combined provider/runtime contract
+      slice passes `396/396`, and no frontend or ETF-provider files changed.
+- [ ] Dinari remains non-routable until partner/account quota, US SIP/NBBO fee,
+      display-only/no-cache, redistribution, and commercial eligibility terms are
+      reviewed; MarketData.app remains non-routable until its exact plan/credit
+      pair and response-dependent option bound are reviewed. Tradier, Ondo, and
+      IBKR remain intentionally deferred per the current provider plan.
+
+### 2026-09-12 — Dinari symbol-filter lookup completeness
+
+- [x] Use Dinari's documented `symbols[]` catalogue filter for ticker-like
+      metadata lookups, so a symbol is not missed solely because it falls after
+      the first page; preserve the UUID/unfiltered compatibility path and keep
+      cursor state isolated by filter.
+- [x] Add unit coverage and re-run the credentialed Dinari Sandbox compound
+      live case. The changed case passed `1/1`; two aggregate-only receipts were
+      merged into the owner ledger (`accepted=2`, `duplicates=0`,
+      `rejected=0`) after an overlapping retry completed.
+- [ ] Dinari quota, US eligibility, fee, display/cache, redistribution, and
+      commercial routing gates remain unchanged and fail-closed.
+
+### 2026-09-12 — Dinari corporate-action capability completeness
+
+- [x] Expose Dinari's documented split/dividend reads through the generic
+      `tokenized_corporate_actions` adapter surface. Symbol-scoped reads combine
+      per-stock dividends and splits; unscoped reads use the bounded global split
+      feed because Dinari does not publish a global dividend endpoint.
+- [x] Reject the unsupported `upcoming` semantic instead of labelling Dinari's
+      historical/global response as future data. Split reads now retain the
+      opaque `next` cursor and permit only explicit in-order continuation on the
+      same adapter instance; missing, repeated, or cross-feed cursor state fails
+      closed rather than silently truncating action history.
+- [x] Add provider/runtime/quota and scheduler regressions plus a credentialed
+      Sandbox live case. The changed case passed `1/1` with 23 HTTP requests and
+      12 measured operations; aggregate-only telemetry was merged into the
+      owner-managed ledger outside Git.
+- [ ] Dinari partner quota, US eligibility, fee, display/cache, redistribution,
+      and commercial routing gates remain unchanged and fail-closed.
+
+### 2026-09-12 — Dinari action identity linkage
+
+- [x] Recognize Dinari's provider-native `stock_id`/`stockId` fields in the
+      shared tokenized event linker, so global and symbol-scoped split/dividend
+      rows can attach to the persisted token instrument without ticker guesses.
+- [x] Add a scheduler regression proving a Dinari global split row links to the
+      matching tokenized asset; full backend unit coverage passes `1,907/1,907`
+      and changed-file lint/compile/diff checks pass.
+- [ ] Complete Dinari quota, commercial, US-eligibility, display/cache, and
+      redistribution review before any routing admission.
+
+### 2026-09-12 — Dinari paginated UUID lookup safety
+
+- [x] Treat a UUID lookup that misses the first unfiltered catalogue page but
+      receives a `next` cursor as an explicit incomplete-catalogue condition,
+      rather than returning `None` and allowing a false not-found result.
+- [x] Add a regression for the fail-closed path; fresh metadata remains fetched
+      on every lookup so ticker/lifecycle changes are not hidden by an
+      unreviewed in-memory cache. The complete provider suite passes `65/65`.
+- [ ] Complete Dinari catalogue enumeration and provider quota/terms review
+      before routing admission; callers must advance the documented cursor
+      explicitly when resolving UUIDs beyond the first page.
+
+### 2026-09-12 — Superseding credentialed provider rerun
+
+- [x] Re-run the bounded live suite after the Dinari UUID miss-safety correction
+      using the operator-configured Alpaca paper, SEC EDGAR, MarketData.app, and
+      Dinari Sandbox credentials. All `10/10` selected tests passed: EDGAR `3/3`
+      (5 operations/6 requests), Alpaca `4/4` (5/5), MarketData.app `2/2` (4/4),
+      and Dinari `1/1` (12 operations/23 requests).
+- [x] Merge only the successful aggregate-only receipt into the owner-managed
+      cross-session ledger (`accepted=4`, `duplicates=0`, `rejected=0`). The
+      preceding network-sandbox attempt measured zero requests and was excluded;
+      no credentials or provider payloads were persisted.
+- [ ] Keep provider quota, account-plan, commercial, redistribution, and
+      response-dependent routing gates fail-closed until their exact reviewed
+      contracts are supplied; this live rerun is transport/schema evidence only.
+
+### 2026-09-12 — SEC ticker-association scan path
+
+- [x] Add a separate SEC directory-backed issuer CIK pager that deduplicates
+      ambiguous ticker rows by CIK, retains all associated tickers, validates
+      bounds and pagination, and reuses the official cached ticker directory.
+- [x] Add a durable, bounded ARQ scan that persists its directory offset and
+      cycle state in `MarketEventScanState.provenance`, composes the existing
+      per-CIK IPO-pipeline parser, records typed/redacted failures, and refuses
+      simultaneous legacy issuer-table and directory scans to prevent quota
+      double-spend.
+- [x] Add disabled-by-default configuration, worker scheduling, Compose wiring,
+      unit regressions, and a live SEC probe that proves traversal of the
+      SEC ticker-association snapshot with unique CIK pagination. The SEC says
+      these files do not guarantee accuracy or scope; this does not prove
+      complete US-listed security or venue coverage. The full backend unit suite passed `1,922/1,922` before the
+      final mutual-exclusion regression, which also passes; the live probe
+      passed `1/1` and recorded only aggregate telemetry outside Git.
+- [ ] Keep activation separately reviewed: production SEC request budgeting,
+      canonical issuer materialization, broader NMS/OTC reconciliation, and
+      provider-terms gates remain open. The corrected materialization flow now
+      requires a complete clean dry cycle, exact reviewed cycle count, and
+      unchanged source fingerprint before creating only missing Issuer rows.
+
+### 2026-09-12 — Isolated SEC directory live probe
+
+- [x] Make the complete unique-CIK SEC directory live case reset its provider
+      cache before measuring transport. This keeps the case independently
+      runnable after other SEC probes and prevents a cache hit from being
+      misreported as missing live evidence.
+- [x] Re-run the bounded credentialed provider cases after the isolation fix:
+      SEC EDGAR, Alpaca paper, MarketData.app, and Dinari Sandbox passed `9/9`.
+      The complete backend unit suite passed `1,923/1,923` with 69.68%
+      coverage; the all-test command still reports only the known Docker API
+      500 integration setup errors when PostgreSQL/Redis containers are absent.
+- [x] Use pytest restoration for the SEC cache reset so the standalone probe
+      also leaves later live cases isolated; the refined credentialed probe
+      passed `1/1`.
+- [ ] Keep provider quota, account-plan, terms, redistribution, Docker,
+      deployment, and shadow gates unchanged; this test correction adds no
+      routing entitlement and persisted only aggregate usage outside Git.
+
+### 2026-09-12 — Complete provider matrix after SEC probe isolation
+
+- [x] Run the full manifest-driven live matrix with the existing operator-owned
+      credentials and the shared usage lock/ledger. `40/46` cases passed.
+- [x] Preserve the six honest non-passes: Alpha Vantage returned its typed
+      documented 25-requests/day capacity response for IPO-calendar and both
+      earnings reads; Tradier, IBKR, and Ondo remained exact intentional
+      credential preflights. No unexpected provider failure was observed.
+- [ ] Keep the matrix result non-accepting until deferred credentials and the
+      provider-specific quota, terms, routing, Docker, deployment, and shadow
+      gates are resolved; the live run changed no routing entitlement.
+
+### 2026-09-12 — Explicit SEC directory issuer-materialization policy
+
+- [x] Add an explicit `disabled`/`create_missing` policy to the complete SEC
+      issuer-directory scan. The default performs no issuer writes; the
+      reviewed `create_missing` mode validates CIK/name/ticker evidence and
+      creates only missing canonical `Issuer` rows with provenance.
+- [x] Keep security-master boundaries explicit: this path never creates or
+      updates instruments/listings, changes existing legal names, or
+      deactivates records; malformed evidence and domain conflicts fail closed.
+      Focused SEC directory/service/worker coverage passes `50/50`.
+- [ ] Operator review of the SEC submissions budget and the chosen
+      materialization policy is still required before enabling the worker; this
+      implementation does not infer tradability, listing dates, or redistribution
+      rights from the issuer directory.
+
+### 2026-09-12 — Alpaca corporate-action cursor safety (superseded by resumable ingestion)
+
+- [x] Reject repeated Alpaca corporate-action pagination-token cycles instead
+      of relying only on an immediate self-repeat. The current resumable
+      ingestion service additionally persists every page and continuation.
+      Focused corporate-action coverage passes `7/7`, and the complete backend
+      unit suite passes `1,988/1,988` with 37 warnings; Ruff, compileall, and
+      diff checks pass. Source checkpoint `f6482ed2`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Massive continuation-cursor safety
+
+- [x] Require Massive ticker-discovery and IPO `next_url` values to be strings
+      containing exactly one non-empty cursor. Malformed, cursorless, or
+      ambiguous continuations now fail closed instead of replaying pages or
+      over-running the safety bound. Focused Massive coverage passes `11/11`,
+      and the complete backend unit suite passes `1,993/1,993` with 37
+      warnings; Ruff, compileall, and diff checks pass. Source checkpoint
+      `acfbfb2a`; no provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+
+### 2026-09-12 — Dinari cursor-chain safety
+
+- [x] Reject repeated Dinari stock-catalogue and split pagination cursor cycles
+      and clear stale cursor-chain state on a fresh first-page request. Focused
+      Dinari pagination coverage passes `11/11`, and the complete backend unit
+      suite passes `1,996/1,996` with 37 warnings; Ruff, compileall, and diff
+      checks pass. Source checkpoint `3cedc9d6`; no provider calls, credentials,
+      frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Universe offset metadata safety
+
+- [x] Reject boolean, non-integer, negative, and non-progressing discovery
+      `next_offset` metadata instead of accepting Python bool values as offsets
+      or silently claiming completion. Focused universe pagination coverage
+      passes `5/5`, and the complete backend unit suite passes `2,000/2,000`
+      with 37 warnings; Ruff, compileall, and diff checks pass. Source
+      checkpoint `71faddb0`; no provider calls, credentials, frontend files,
+      or ETF-provider adapter files changed.
+### 2026-09-12 — Quota-window diagnostic safety
+
+- [x] Stop coercing malformed durable quota-window durations to one second.
+      Invalid windows are excluded from active utilization and surfaced with
+      their window ID, dimension, and exact validation reason. Focused
+      usage-window coverage passes `10/10`, and the complete backend unit suite
+      passes `2,007/2,007` with 37 warnings; Ruff, compileall, and diff checks
+      pass. Source checkpoint `ba3a721d`; no provider calls, credentials,
+      frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Explicit durable reservation windows
+
+- [x] Remove the `reserve_provider_quota` helper's implicit 60-second default;
+      every reservation now supplies its provider-reviewed `window_seconds`
+      explicitly, and omitted windows fail at the call boundary. Focused
+      routing/quota coverage passes `112/112`; the complete backend unit suite
+      passes `2,008/2,008` with 37 warnings, with Ruff, compileall, and diff
+      checks clean. Source checkpoint `ac2ce574`; no provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-12 — Docker-backed backend gate restoration
+
+- [x] Align the H4 radar and historical market-map integration fixtures with
+      the implemented timeframe/freshness semantics. The complete scoped
+      Docker-backed backend gate passes `2,386/2,386` with `81.33%` combined
+      coverage and 89 warnings; labeled test resources were cleaned. Source
+      checkpoint `a8ee8573`; no provider calls, credentials, frontend files,
+      or ETF-provider adapter files changed.
+
+### 2026-09-13 — Explicit indicator-batch coverage preflight
+
+- [x] Extend the provider-neutral evaluator preflight to the explicit-symbol
+      `/analysis/indicator-batch` endpoint. Required history is derived from
+      the canonical indicator registry; already loaded local bars are assessed
+      once without provider I/O; under-sized values are withheld with an
+      explicit `insufficient_history` warning; and the additive response
+      exposes the serialized `coverage_preflight` report.
+- [x] Focused PostgreSQL integration passes `2/2`; the complete backend unit
+      suite passes `2,029/2,029`; Ruff, compileall, and diff checks pass; and
+      the authoritative Docker-backed backend gate passes `2,410/2,410` at
+      `81.37%` combined coverage with 89 warnings. The labeled testcontainer
+      session is cleaned without host-wide pruning. No provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+- [ ] Future non-Strategy evaluator engines beyond the explicit indicator
+      batch and Market Map remain open, as do provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates.
+- [x] Align stale-state handling with the preflight report: stale dataset
+      rows are removed from the cached-bar view before readiness is assessed,
+      so the endpoint cannot report a ready snapshot while withholding the
+      corresponding value. The focused integration remains `2/2` and the
+      authoritative Docker-backed gate remains `2,410/2,410` at `81.37%`.
+
+### 2026-09-13 — Point-in-time analysis coverage preflight
+
+- [x] Extend the shared provider-neutral coverage report to technical snapshots
+      and relative-strength analysis. Technical snapshots expose the exact
+      252-bar requirement while preserving per-metric warnings; relative
+      strength exposes per-leg local coverage while retaining explicit
+      aligned-timestamp overlap diagnostics.
+- [x] Focused PostgreSQL point-in-time analysis integration passes `3/3`; the
+      complete backend unit suite passes `2,029/2,029`; changed-file Ruff,
+      compileall, and diff checks pass; and the authoritative Docker-backed
+      backend gate passes `2,410/2,410` at `81.38%` combined coverage with 89
+      warnings. The labeled testcontainer session is cleaned without host-wide
+      pruning. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+- [x] Preserve the technical-snapshot preflight in benchmark-family technical
+      responses per mapped role. Short local histories expose the same deferred
+      252-bar report at the family wrapper. Focused integration passes `1/1`,
+      the complete backend unit suite passes `2,029/2,029`, and the authoritative
+      Docker-backed gate passes `2,410/2,410` at `81.38%` coverage with 89
+      warnings. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+- [x] Extend coverage preflight to benchmark-family and arbitrary-group
+      relative-rotation responses. The raw-bar floor is derived from
+      `(2 * lookback + 1) * sampling`; existing aligned-overlap and metric
+      warnings remain unchanged. Focused integration passes `2/2`, the complete
+      backend unit suite passes `2,029/2,029`, and the authoritative
+      Docker-backed gate passes `2,410/2,410` at `81.38%` coverage with 89
+      warnings. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+- [x] Add shared coverage preflight to the general group snapshot and
+      current/historical group-breadth responses. Snapshot/current breadth use
+      a 252-bar floor; historical breadth uses a 200-bar MA200 floor. Focused
+      integration passes `3/3`, the complete backend unit suite passes
+      `2,029/2,029`, and the authoritative Docker-backed gate passes
+      `2,410/2,410` at `81.38%` coverage with 89 warnings. No provider calls,
+      credentials, frontend files, or ETF-provider adapter files changed.
+
+### 2026-09-13 — Benchmark-family ratio coverage preflight
+
+- [x] Extend the shared provider-neutral OHLCV preflight to benchmark-family
+      ratio responses. Each resolved role/benchmark leg is assessed from
+      already loaded local bars with a one-bar minimum; stale legs are removed
+      before readiness is calculated; and batches with no verified mappings
+      return an explicit empty report. Existing aligned-close ratio semantics
+      and stale-result withholding remain unchanged.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.38%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Derived equal-weight coverage preflight
+
+- [x] Add shared OHLCV coverage preflight to point-in-time derived equal-weight
+      family series after membership and persisted-staleness filtering; cold
+      and stale-filtered members remain explicit deferred/partial evidence.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.39%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Benchmark-family historical breadth coverage preflight
+
+- [x] Add per-role shared OHLCV coverage preflight to benchmark-family
+      historical breadth. Each role uses the exact 200-bar MA200 floor after
+      point-in-time membership resolution; short histories remain deferred
+      instead of being represented as ready.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.39%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Benchmark-family overview coverage preflight
+
+- [x] Preserve delegated group-snapshot coverage preflight in the
+      benchmark-family overview response; the no-cap path returns an explicit
+      empty `benchmark_family_overview` report rather than hiding readiness.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.38%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Cross-family ranking coverage preflight
+
+- [x] Extend the shared provider-neutral coverage preflight to cross-family
+      current and historical ranking responses. Both endpoints derive their
+      local history floor from the selected rank period (`offset + 1`, or 253
+      bars for YTD); current ranking removes stale legs before readiness is
+      assessed.
+- [x] Focused PostgreSQL integration passes `2/2`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.39%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Benchmark-family ranking coverage preflight
+
+- [x] Extend the shared coverage preflight to benchmark-family ranking. The
+      selected rank period determines the local history floor (`offset + 1`,
+      or a conservative 253 bars for YTD); stale role bars are removed before
+      readiness is assessed, while existing role-level withholding remains
+      unchanged.
+- [x] Focused PostgreSQL integration passes `1/1`; the complete backend unit
+      suite passes `2,029/2,029`; changed-file Ruff, compileall, and diff checks
+      pass; and the authoritative Docker-backed backend gate passes
+      `2,410/2,410` at `81.38%` combined coverage with 89 warnings. The labeled
+      testcontainer session is cleaned without host-wide pruning. No provider
+      calls, credentials, frontend files, or ETF-provider adapter files
+      changed.
+- [ ] Future non-Strategy evaluator engines, provider/legal, CI/deployment,
+      migration-compatibility, universe-reconciliation, and shadow gates
+      remain open.
+
+### 2026-09-13 — Dinari Sandbox catalogue amplification and transient 500 recovery
+
+- [x] Keep validated Dinari Stock records in an instance-scoped UUID cache so
+      downstream price, quote, aggregate-history, news, dividend, and split
+      reads do not repeatedly enumerate the full catalogue. A new adapter
+      instance still performs fresh metadata resolution, preserving lifecycle
+      visibility across runs and authenticated environments.
+- [x] Add a Dinari-only bounded recovery for intermittent Sandbox HTTP 500
+      responses (at most two retries with short linear backoff). 4xx/rate-limit
+      failures and all other providers remain typed and fail immediately; each
+      attempt remains in transport telemetry. Focused tokenized coverage passes
+      `72/72`, including retry-exhaustion coverage; the provider/registry/quota/secret
+      slice passes `197/197`, and
+      the real Dinari Sandbox compound read passes `1/1`.
+- [x] The authoritative Docker-backed backend gate passes `2,424/2,424` at
+      `81.44%` combined coverage; labeled testcontainer session
+      `9b8d2316-064e-48a9-bee5-e3ba27cf8b88` was cleaned without host-wide
+      pruning. The refreshed full live matrix passes `41/47`; the six honest
+      non-passes are Alpha Vantage's typed documented daily/one-per-second
+      capacity responses for IPO-calendar and both earnings reads, plus the
+      intentional Tradier, IBKR, and Ondo credential preflights. No routing
+      entitlement was changed and no credentials or provider payloads entered
+      Git.
+- [ ] Dinari partner quota, commercial, US-eligibility, display/cache, and
+      redistribution review remain open, as do the other provider/legal,
+      CI/deployment, universe-reconciliation, migration-compatibility, and
+      shadow gates.
+
+### 2026-09-13 — Current-source provider live matrix
+
+- [x] Rerun the lock-protected manifest-driven live matrix against the current
+      source and existing owner-managed credentials. It collected `47` cases
+      and passed `41`; the three Alpha Vantage event/earnings cases returned
+      typed documented capacity responses, while Tradier, IBKR, and Ondo
+      remained exact missing-credential preflights. The routing safety report
+      continued to enumerate the specific unreviewed controls for Alpaca
+      corporate actions, FINRA async/OTC, FRED, Nasdaq, xStocks, Bybit,
+      Marketstack discovery, MarketData.app, Tiingo, and FMP. Exit code `2`
+      made no acceptance claim; aggregate usage stayed outside Git and no
+      credentials or payloads entered Git.
+
+### 2026-09-13 — Dinari Sandbox-only retry boundary
+
+- [x] Scope Dinari's bounded HTTP 500 recovery to hosts ending in
+      `.sandbox.dinari.com`; documented production hosts now fail fast until
+      production-specific evidence supports another policy. The production
+      host regression made exactly one request and preserved the typed 500
+      response. Tokenized unit coverage passed `73/73`, including persistent
+      Sandbox-500 exhaustion and production-host no-retry coverage; the
+      provider/registry/quota/secret slice passed `198/198`.
+- [x] The complete backend unit suite passed `2,043/2,043`; the isolated
+      PostgreSQL integration suite passed `383/383`; and the authoritative
+      Docker-backed combined gate passed `2,426/2,426` at `81.44%` coverage
+      with 89 warnings using cleaned testcontainer session
+      `ea357249-d45b-488e-97cf-302ccdfcb7c3`. No provider calls, credentials,
+      or payloads entered Git. The live matrix remains `41/47` with the same
+      six honest non-passes and no acceptance claim.
+- [ ] Dinari partner quota, commercial, US-eligibility, display/cache, and
+      redistribution review remain open, as do the other provider/legal,
+      CI/deployment, universe-reconciliation, migration-compatibility, and
+      shadow gates.
+
+### 2026-09-13 — Newly configured provider matrix rerun
+
+- [x] Rerun the complete 47-case live matrix with the configured Alpaca paper,
+      MarketData.app, Dinari Sandbox, SEC EDGAR, and existing owner-managed
+      provider credentials from a network-enabled environment. `41` bounded
+      transport observations passed. The three Alpha Vantage event/earnings
+      operations returned typed documented capacity responses because the free
+      key was at its 25-requests/day / one-request-per-second capacity; the
+      intentional Tradier, IBKR, and Ondo credential preflights remained exact
+      missing-credential outcomes.
+- [x] Preserve the incomplete result as non-acceptance evidence: exit code `2`,
+      safety preflight still blocking unreviewed quota/legal/redistribution and
+      response-dependent routing controls, and aggregate-only usage in the
+      external operator ledger. No credentials or provider payloads entered
+      Git.
+- [ ] Obtain the remaining provider-specific reviews/credentials before a
+      complete matrix can be accepted; do not reinterpret a capacity response
+      or missing credential as a successful data read.
+
+### 2026-09-13 — Universe pagination total validation
+
+- [x] Tighten the generic US-universe reconciliation boundary so authoritative
+      `total` metadata must be a real integer (booleans, numeric strings, and
+      fractional values are rejected) instead of being coerced with `int(...)`.
+      Negative totals remain rejected separately, and failed pages never mark a
+      reconciliation run complete.
+- [x] Add four malformed-total regressions. The focused universe suite passes
+      `23/23`; Ruff, compileall, and diff checks pass; and the authoritative
+      Docker-backed backend unit/integration gate passes `2,430/2,430` at
+      `81.45%` coverage with 89 warnings. Labeled testcontainer session
+      `840f0c25-0cc1-4188-aefd-6dd5c77f8467` was cleaned without host-wide
+      pruning. No provider calls, credentials, frontend files, or ETF-provider
+      adapter files changed.
+- [ ] Complete/global SEC and OTC reconciliation still requires an approved
+      authoritative security-master source and its terms/polling/redistribution
+      review; this change only closes malformed pagination metadata handling.
+
+### 2026-09-13 — Universe duplicate-listing validation
+
+- [x] Reject duplicate listing keys across the complete discovery page stream
+      (symbol, normalized exchange, and row type) before observed counts or
+      completeness can be accepted. The repeated-cursor regression remains
+      independently covered; focused universe coverage passes `24/24`, Ruff,
+      compileall, and diff checks pass, and the authoritative Docker-backed
+      backend unit/integration gate passes `2,431/2,431` at `81.45%` coverage
+      with 89 warnings using cleaned testcontainer session
+      `e2ec12b5-2754-4fb0-8398-c756ed334c8e`. No provider calls, credentials,
+      frontend files, or ETF-provider adapter files changed.
+- [ ] Complete/global SEC and OTC reconciliation still requires an approved
+      authoritative security-master source and its terms/polling/redistribution
+      review; this guard only prevents duplicate rows from creating a false
+      complete snapshot.
+
+### 2026-09-13 — Provider migration graph repair
+
+- [x] Repair the provider-platform Alembic graph: rename the duplicate provider
+      revision to `ab1c2d3e4f5a`, make prelisting depend on both radar and event
+      consensus, and merge the remaining provider/radar heads through the
+      schema-neutral `bc2d3e4f5a6b` revision. `alembic heads` now reports one
+      head; staging-baseline migration compatibility passed with previous-release
+      `/health` 200 and 25 changed migration files; the focused migration smoke
+      test passed `1/1`; and the authoritative backend gate passed `2,431/2,431`
+      at `81.45%` coverage with 89 warnings using cleaned session
+      `8ee61c02-0fec-430c-a5c8-d68c398e4733`.
+- [ ] Coordinator review is still required before this migration boundary is
+      promoted through staging.
+
+### 2026-09-13 — Current-source live matrix after migration repair
+
+- [x] Refresh the lock-protected manifest at source checkpoint `db3c0eda5`.
+      It collected 47 cases and passed 41. The six honest non-passes were
+      Alpha Vantage's typed 25-requests/day and one-request-per-second capacity
+      responses, plus exact missing-credential preflights for Tradier, IBKR, and
+      Ondo. Aggregate usage stayed outside Git; no credentials or payloads were
+      persisted, and exit code `2` made no acceptance claim.
+- [ ] Provider-specific quota/legal/redistribution controls and deferred
+      credentials remain explicit review gates; do not reinterpret this live
+      receipt as routing or production approval.
+
+### 2026-09-13 — Tokenized catalog provider-failure isolation
+
+- [x] Keep one tokenized provider outage or malformed page from aborting the
+      qualified-provider refresh. Catalog refresh now records redacted
+      provider/page failure evidence, continues with the remaining providers,
+      and distinguishes all-provider `failed` from mixed-provider `partial`
+      outcomes. Tokenized service/provider fixtures pass 92/92; no live
+      provider calls or credentials were used.
+- [x] Re-run the authoritative Docker-backed backend gate: 2,438/2,438
+      passed, 81.61% combined coverage, 89 warnings, cleaned testcontainer
+      session `bcf70b7a-48f3-49d4-9a78-d26499a577f7`.
+
+### 2026-09-13 — Tokenized historical capability separation
+
+- [x] Give tokenized historical aggregates their own
+      `TOKENIZED_HISTORICAL_PRICES` capability, provider-chain seed, registry
+      getter/manifest entry, availability probe contract, and PostgreSQL enum
+      migration. Dinari is the only adapter advertising this capability;
+      historical refresh now resolves and charges it independently of
+      `TOKENIZED_ASSETS` catalogue/quote traffic.
+- [x] Focused provider/availability/tokenized coverage passes `172/172`; the
+      authoritative Docker-backed backend gate passes `2,454/2,454` at 81.67%
+      combined coverage with 89 warnings. No frontend or ETF-provider adapter
+      files changed.
+- [ ] Dinari historical routing and the disabled worker still require reviewed
+      quota, commercial, US-eligibility, caching, and redistribution terms.
+
+### 2026-09-16 — SEC/prelisting strong-evidence quarantine
+
+- [x] Tighten future-listing materialization so an inactive provisional
+      instrument is created only from a corroborated/resolved multi-provider
+      consensus with exact symbol and company-name agreement, plus either an
+      exact shared venue MIC or a stable FIGI/ISIN/CUSIP observed by at least
+      two providers. Single-source, missing-field, and conflicting evidence
+      now remains an auditable quarantined candidate; a legacy provisional row
+      is also forced inactive/quarantined if later evidence becomes ambiguous.
+- [x] Add regressions for single-source SEC evidence and conflicting symbols;
+      focused prelisting coverage passes `8/8`, Ruff, compileall, and diff
+      checks pass. No live SEC calls, credentials, migrations, frontend files,
+      or ETF-provider adapter files were involved.
+### 2026-09-16 — EODHD conflicting minute-pool admission control
+
+- [x] Stop treating the lower 20/minute EODHD publication as a confirmed
+      account limit. The checked-in seed now records the 20-versus-1,000
+      official-source conflict and unresolved reset boundary explicitly.
+- [x] Add provider-specific `EODHD_REVIEWED_MINUTE_LIMIT`,
+      `EODHD_REVIEWED_MINUTE_RESET`, and `EODHD_MINUTE_QUOTA_EVIDENCE` controls.
+      Ordinary history/profile/quote/discovery routing remains fail-closed until
+      all three are present and the selected reset is admission-safe.
+- [x] Preserve the bounded `/user` bootstrap path for the independently
+      documented daily pool; only the explicitly allow-listed unresolved minute
+      dimensions may be observed there, never treated as zero or routable.
+- [x] Resolve the EODHD minute-pool discrepancy from first-party evidence:
+      the detailed API-limits page sets 1,000/minute and the configured key's
+      2026-10-14 response reports 1,200/1,199. The repository default uses the
+      documented 1,000/minute; an explicit environment override is required
+      before using this key's 1,200 native limit.
+- [ ] Replay the full EODHD matrix against the current candidate when its
+      20-call/day free allowance has enough headroom; the 16-call full-suite
+      reservation and 10-call profile entitlement probe currently do not fit.
+      `/api/user` is zero daily credits but consumes one request/minute unit.
+
+### 2026-09-17 — Docker-backed integration validation
+
+- [x] Re-run `make test-int` at source `5fd3544b6` after the EODHD quota
+      coordinator/bootstrap fixes. All `386` PostgreSQL/Redis integration
+      tests passed in `354.16s`; the isolated testcontainer session was
+      cleaned without host-wide pruning and no provider credentials or live
+      calls were used.
+- [ ] Provider-specific quota/legal/source, complete-universe, target secret
+      store, deployment, routing-promotion, and final shadow gates remain open.
+
+### 2026-09-17 — Compose and workflow contract validation
+
+- [x] `make test-compose-contract` passed for the main and RPi Compose files,
+      including provider environment and egress/network assertions, and
+      `make test-workflow` passed `46/46` workflow tests with the isolated UV
+      cache.
+- [ ] Static wiring does not prove GitHub/RPi/production secret-store contents
+      or deployment authorization; those owner-controlled gates remain open.
+
+### 2026-09-17 — Migration compatibility against staging base
+
+- [x] Run `INTEGRATION_BASE_SHA=8b885a2f... make test-migration-compatibility`.
+      All `31` changed provider-platform migrations upgraded successfully;
+      previous-release schema head was `fe4f5a6b7c8d`, and the previous app
+      returned `/health 200` against the expanded schema. Temporary Docker and
+      worktree resources were cleaned.
+
+### 2026-09-17 — Current-source native usage snapshots
+
+- [x] Re-run the bounded Twelve Data account-usage case from committed source
+      `6047a5985`. It passed `1/1` with one upstream request and `132` response
+      bytes; the receipt is redacted in `validation.jsonl` and the durable
+      owner-local quota ledger was used.
+- [x] Re-run the bounded EODHD account-usage case from the same committed
+      source. It passed `1/1` with one upstream request and `304` response
+      bytes. This is a native usage observation only; EODHD ordinary routing
+      remains fail-closed until the conflicting minute-pool limit/reset and
+      evidence controls are reviewed.
+- [ ] These snapshots do not close provider-specific reset, legal/source,
+      complete-universe, target secret-store, deployment, routing-promotion,
+      deferred-provider, or final shadow gates.
+
+### 2026-09-17 — Exact-source live matrix replay
+
+- [x] MarketData.app passed its exact-source bounded matrix `7/7` at
+      `ac34754e1`, with nine upstream requests and `20,960` response bytes;
+      the response-priced unbounded-history guard made no request.
+- [x] Binance passed its exact-source native usage bootstrap `1/1`, followed
+      immediately by the bounded matrix `3/3` at `ac34754e1` (seven upstream
+      requests and `17,616,639` response bytes). The fixed one-minute
+      request-weight baseline was refreshed at the window boundary; a prior
+      replay that crossed the boundary was correctly rejected before transport.
+- [ ] These are bounded transport/accounting receipts only; provider-specific
+      terms, complete universe, target secret stores, deferred providers,
+      routing promotion, and the final shadow gate remain open.
+
+### 2026-09-17 — Current-SHA full safety preflight
+
+- [x] The complete live manifest preflight at source `0de1e9f9e` stopped before
+      network access with `0/0` cases and zero provider requests. It recorded
+      the current provider-specific quota/baseline, capability, legal/source,
+      complete-universe, and target secret-store blockers.
+- [ ] This is fail-closed safety evidence, not provider acceptance; no routing
+      promotion, deployment, deferred-provider activation, or shadow run is
+      authorized from this receipt.
+
+### 2026-10-04 — Massive quota buckets and durable-use restrictions
+
+- [x] Reconcile current Massive REST guidance: Stocks Basic is 5 requests/minute
+      per asset-class account bucket. The current Basic-access FAQ explicitly
+      says reference data, corporate actions, and minute aggregates work on
+      Basic, so all stock adapter operations use the shared Stocks bucket; the
+      previous separate-reference-bucket interpretation was incorrect. The
+      provider's exact reset boundary and native current-use counter remain
+      unpublished, so active usage still requires durable-ledger admission.
+- [x] Reconcile current Market Data Terms (updated 2025-08-28): Individual use
+      is personal/display-only, copying and non-display use need express prior
+      written consent, data must be deleted on account termination/restriction,
+      and any other viewer requires Business licensing. The runtime now needs
+      written authority for automated persistent archive and the actual app
+      audience; the old personal-use attestation no longer admits this archive.
+- [ ] Resolve Massive provider entitlement/terms controls and obtain a safe
+      active rolling-window usage baseline before further live probes. The
+      separate-reference-bucket evidence requirement has been removed because
+      the current first-party Basic FAQ says all stock-class REST operations
+      share the 5/minute asset-class allowance. No undocumented reset instant
+      or native current-use counter is assumed.

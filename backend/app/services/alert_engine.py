@@ -15,9 +15,11 @@ from app.database import AsyncSessionLocal
 from app.models.alert_firing_event import AlertFiringEvent
 from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
-from app.models.ohlcv import Timeframe
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
-from app.services.indicators import OHLCVSeries, get_latest_value
+from app.providers.errors import bounded_redact_provider_message
+from app.services.evaluator_preflight import preflight_ohlcv
+from app.services.indicators import OHLCVSeries, get_latest_value, required_bars_for_indicator
 from app.services.market_data import fetch_ohlcv, get_current_price_async
 from app.services.onesignal import send_alert_notification, send_indicator_alert_notification
 from app.websocket.manager import ws_manager
@@ -40,6 +42,8 @@ _TF_BAR_DURATION: dict[Timeframe, timedelta] = {
     Timeframe.D1: timedelta(days=1),
     Timeframe.W1: timedelta(weeks=1),
     Timeframe.MN: timedelta(days=31),
+    # Y1 is a calendar-year tokenized-history bucket; do not treat it as D1.
+    Timeframe.Y1: timedelta(days=366),
 }
 
 
@@ -108,14 +112,131 @@ def _indicator_condition_met(
 
 async def _load_ohlcv_series(
     db: AsyncSession, instrument: Instrument, timeframe: Timeframe
-) -> OHLCVSeries:
+) -> tuple[OHLCVSeries, list[OHLCVBar]]:
     """Fetch (and refresh if stale) the OHLCV series used for indicator evaluation."""
     bar_dur = _TF_BAR_DURATION.get(timeframe, timedelta(days=1))
     # Request enough history for the lookback window with a small buffer
     start = datetime.now(UTC) - bar_dur * INDICATOR_LOOKBACK * 2
     bars = await fetch_ohlcv(db, instrument, timeframe, start)
     bars = bars[-INDICATOR_LOOKBACK:] if len(bars) > INDICATOR_LOOKBACK else bars
-    return OHLCVSeries.from_orm_bars(bars)
+    return OHLCVSeries.from_orm_bars(bars), bars
+
+
+async def _preflight_price_alerts(
+    db: AsyncSession,
+    alerts_by_instrument: dict[int, list[PriceAlert]],
+) -> dict[int, float | None]:
+    """Acquire each high-alert instrument price once before evaluation.
+
+    Price alerts are an intentionally narrow, high-alert workload, so they may
+    poll the latest-price capability.  The polling belongs to this preflight
+    phase rather than the per-alert evaluation loop: every alert for an
+    instrument evaluates against the same provider observation and a provider
+    failure cannot cause a second request for the next alert.
+    """
+
+    prices: dict[int, float | None] = {}
+    for instrument_id in sorted(alerts_by_instrument):
+        instrument = await db.get(Instrument, instrument_id)
+        if instrument is None:
+            prices[instrument_id] = None
+            continue
+        await db.refresh(instrument, ["listings", "provider_symbols"])
+        try:
+            prices[instrument_id] = await get_current_price_async(db, instrument)
+        except Exception as exc:  # noqa: BLE001 - retain per-instrument preflight failure.
+            logger.debug(
+                "Latest price unavailable for %s: %s",
+                instrument.symbol,
+                bounded_redact_provider_message(exc),
+            )
+            prices[instrument_id] = None
+    return prices
+
+
+async def _preflight_indicator_alerts(
+    db: AsyncSession,
+    alerts: list[IndicatorAlert],
+) -> dict[tuple[int, Timeframe], OHLCVSeries | None]:
+    """Refresh one OHLCV series per instrument/timeframe before evaluation.
+
+    Multiple indicator alerts commonly share the same underlying series.  A
+    grouped preflight prevents each alert from independently discovering stale
+    data and spending provider quota.  Missing/failed groups remain ``None``;
+    the evaluation phase then skips them rather than evaluating stale data.
+    """
+
+    grouped_alerts: dict[tuple[int, Timeframe], list[IndicatorAlert]] = {}
+    for alert in alerts:
+        grouped_alerts.setdefault((alert.instrument_id, alert.timeframe), []).append(alert)
+    prepared: dict[tuple[int, Timeframe], OHLCVSeries | None] = {}
+    for instrument_id, timeframe in sorted(
+        grouped_alerts, key=lambda item: (item[0], str(item[1]))
+    ):
+        instrument = await db.get(Instrument, instrument_id)
+        key = (instrument_id, timeframe)
+        if instrument is None:
+            prepared[key] = None
+            continue
+        await db.refresh(instrument, ["listings", "provider_symbols"])
+        try:
+            loaded = await _load_ohlcv_series(db, instrument, timeframe)
+            # Keep compatibility with narrow test doubles and third-party
+            # callers that still return only an OHLCVSeries. Production returns
+            # the persisted bars alongside the normalized series.
+            if isinstance(loaded, tuple) and len(loaded) == 2:
+                series, bars = loaded
+            else:
+                series, bars = loaded, []
+            if bars:
+                minimum_bars = max(
+                    max(
+                        required_bars_for_indicator(
+                            alert.indicator_a_type, alert.indicator_a_params
+                        )
+                        for alert in grouped_alerts[key]
+                    ),
+                    max(
+                        (
+                            required_bars_for_indicator(
+                                alert.indicator_b_type, alert.indicator_b_params
+                            )
+                            for alert in grouped_alerts[key]
+                            if alert.indicator_b_type
+                        ),
+                        default=2,
+                    ),
+                )
+                coverage = await preflight_ohlcv(
+                    db,
+                    evaluator=f"indicator_alert:{instrument_id}:{timeframe.value}",
+                    instrument_ids=[instrument_id],
+                    timeframe=timeframe,
+                    date_from=None,
+                    date_to=None,
+                    adjusted=True,
+                    cached_bars={instrument_id: bars},
+                    minimum_bars=minimum_bars,
+                )
+                if instrument_id not in coverage.ready_instrument_ids:
+                    logger.debug(
+                        "Indicator alert history deferred for instrument %s (%s): %s",
+                        instrument_id,
+                        timeframe,
+                        coverage.to_dict(),
+                    )
+                    prepared[key] = None
+                    continue
+            prepared[key] = series
+        except Exception as exc:  # noqa: BLE001 - retain per-group preflight failure.
+            logger.debug(
+                "Indicator OHLCV unavailable for instrument %s (%s): %s",
+                instrument_id,
+                timeframe,
+                bounded_redact_provider_message(exc),
+            )
+            prepared[key] = None
+    return prepared
 
 
 async def _fire_price_alert(db: AsyncSession, alert: PriceAlert, current_price: float):
@@ -250,28 +371,34 @@ async def _fire_indicator_alert(
 
 async def run_alert_check():
     async with AsyncSessionLocal() as db:
-        # ── Price alerts ──────────────────────────────────────────────────────
+        # Load both alert classes first. Provider access is deliberately kept in
+        # the grouped preflight below; the evaluation loops only consume these
+        # immutable-in-run observations and local indicator values.
         price_alerts = list(
             (await db.execute(select(PriceAlert).where(PriceAlert.status == AlertStatus.ACTIVE)))
             .scalars()
             .all()
         )
+        ind_alerts = list(
+            (
+                await db.execute(
+                    select(IndicatorAlert).where(IndicatorAlert.status == AlertStatus.ACTIVE)
+                )
+            )
+            .scalars()
+            .all()
+        )
 
-        # Group by instrument to minimise API calls
-        by_instrument: dict[int, list] = {}
+        # ── Coverage/latest-price preflight ───────────────────────────────────
+        by_instrument: dict[int, list[PriceAlert]] = {}
         for a in price_alerts:
             by_instrument.setdefault(a.instrument_id, []).append(a)
+        prices = await _preflight_price_alerts(db, by_instrument)
+        indicator_series = await _preflight_indicator_alerts(db, ind_alerts)
 
+        # ── Price alert evaluation (DB/preflight data only) ───────────────────
         for inst_id, alerts in by_instrument.items():
-            instrument = await db.get(Instrument, inst_id)
-            if not instrument:
-                continue
-            await db.refresh(instrument, ["listings", "provider_symbols"])
-            try:
-                current_price = await get_current_price_async(db, instrument)
-            except Exception as exc:
-                logger.debug("Latest price unavailable for %s: %s", instrument.symbol, exc)
-                continue
+            current_price = prices.get(inst_id)
             if current_price is None:
                 continue
             current_dec = Decimal(str(current_price))
@@ -289,22 +416,13 @@ async def run_alert_check():
                     alert.last_known_price = current_dec
             await db.commit()
 
-        # ── Indicator alerts ──────────────────────────────────────────────────
-        ind_alerts = list(
-            (
-                await db.execute(
-                    select(IndicatorAlert).where(IndicatorAlert.status == AlertStatus.ACTIVE)
-                )
-            )
-            .scalars()
-            .all()
-        )
-
+        # ── Indicator alert evaluation (DB/preflight data only) ──────────────
         for alert in ind_alerts:
             try:
                 await db.refresh(alert, ["instrument"])
-                await db.refresh(alert.instrument, ["listings"])
-                data = await _load_ohlcv_series(db, alert.instrument, alert.timeframe)
+                data = indicator_series.get((alert.instrument_id, alert.timeframe))
+                if data is None:
+                    continue
                 if len(data.closes) < 2:
                     continue
 
@@ -335,6 +453,10 @@ async def run_alert_check():
                     alert.last_value_b = Decimal(str(val_b))
 
             except Exception as e:
-                logger.error(f"Indicator alert {alert.id} evaluation failed: {e}")
+                logger.error(
+                    "Indicator alert %s evaluation failed: %s",
+                    alert.id,
+                    bounded_redact_provider_message(e),
+                )
 
         await db.commit()

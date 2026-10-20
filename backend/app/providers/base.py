@@ -16,6 +16,11 @@ class IdentifierRecord:
     is_primary: bool = False
     source: str | None = None
     extra_data: dict[str, Any] | None = None
+    # Complete provider row used to derive this identifier. This keeps
+    # provider-specific venue/status/identifier evidence available in the
+    # append-only identifier snapshot instead of discarding it during
+    # normalization.
+    raw_payload: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)
@@ -53,6 +58,11 @@ class ProviderSearchResult:
     name: str
     exchange: str = ""
     instrument_type: str = ""
+    # Preserve the complete provider row alongside the normalized search
+    # projection. Search results frequently carry identifiers, venue/status
+    # flags, and provider-specific metadata that must remain available for
+    # later identity reconciliation instead of being silently discarded.
+    raw_payload: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)
@@ -72,6 +82,64 @@ class InstrumentEventRecord:
     dividend_amount: Decimal | None = None
     split_ratio: Decimal | None = None
     raw_payload: str | None = None
+
+
+@dataclass(slots=True)
+class InstrumentEventPage:
+    """One durable page of provider event data.
+
+    A page is deliberately a first-class result.  Providers may expose a
+    cursor whose continuation must be persisted across jobs; returning the
+    cursor alongside the normalized rows prevents callers from having to
+    refetch page one when a quota or worker budget pauses a backfill.
+    """
+
+    events: list[InstrumentEventRecord]
+    next_page_token: str | None
+    raw_payload: dict[str, Any]
+    request_page_token: str | None = None
+
+    @property
+    def complete(self) -> bool:
+        return not self.next_page_token
+
+
+@dataclass(slots=True)
+class FundamentalFactRecord:
+    namespace: str
+    key: str
+    unit: str | None
+    value_numeric: Decimal | None
+    value_text: str | None
+    period_start: date | None
+    period_end: date | None
+    filed_at: date | None
+    accepted_at: datetime | None
+    source_identifier: str | None
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class ShortInterestRecord:
+    settlement_date: date
+    publication_date: date | None
+    short_position: Decimal | None
+    short_percent_float: Decimal | None
+    days_to_cover: Decimal | None
+    source_identifier: str | None
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class MarketEventRecord:
+    event_type: str
+    event_key: str
+    event_time: datetime | None
+    effective_date: date | None
+    title: str
+    source_version: str | None = None
+    is_provisional: bool = False
+    raw_payload: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -120,11 +188,103 @@ class OptionQuotePointRecord:
     raw_payload: dict[str, Any] | None = None
 
 
+@dataclass(slots=True)
+class ProviderAccountUsageDimension:
+    """One provider-native account usage pool.
+
+    Providers may expose multiple independently-reset pools (for example
+    minute and daily credits). Keep the dimension name and its raw counters
+    together so persistence and diagnostics never collapse them into one
+    generic request limit.
+    """
+
+    name: str
+    unit: str
+    limit: int | None = None
+    remaining: int | None = None
+    consumed: int | None = None
+    reset_at: datetime | None = None
+
+
+@dataclass(slots=True)
+class ProviderAccountUsage:
+    """Provider-native account quota and entitlement observation.
+
+    This is deliberately an observation rather than a routing policy.  The
+    provider may expose a calendar-day, rolling, or plan-specific window, so
+    callers must retain the reported values and never convert them into a
+    generic request limit.  ``unit`` identifies what the provider reports
+    (for example ``credits``), while the window semantics remain provider
+    supplied and may be unknown.
+    """
+
+    provider: str
+    observed_at: datetime
+    unit: str
+    limit: int | None = None
+    remaining: int | None = None
+    consumed: int | None = None
+    reset_at: datetime | None = None
+    options_data_permissions: str | None = None
+    account_plan: str | None = None
+    dimensions: tuple[ProviderAccountUsageDimension, ...] = ()
+    # The decoded provider body and safe, allow-listed capacity headers are
+    # immutable evidence. They are not routing policy and must never contain
+    # credentials or arbitrary request headers.
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+    response_headers: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class TokenizedAssetRecord:
+    """Provider observation for a tokenized security or tokenized ETF.
+
+    The token is deliberately represented independently from its economic
+    underlying.  ``asset_id`` is provider-native and ``contract_address`` is
+    chain-scoped; neither may be replaced by a ticker symbol.
+    """
+
+    provider: str
+    asset_id: str
+    symbol: str
+    name: str
+    underlying_symbol: str | None = None
+    underlying_figi: str | None = None
+    underlying_composite_figi: str | None = None
+    underlying_isin: str | None = None
+    underlying_cusip: str | None = None
+    underlying_cik: str | None = None
+    isin: str | None = None
+    network: str | None = None
+    chain_id: int | None = None
+    contract_address: str | None = None
+    currency: str | None = "USD"
+    price: Decimal | None = None
+    bid: Decimal | None = None
+    ask: Decimal | None = None
+    multiplier: Decimal | None = None
+    circulating_supply: Decimal | None = None
+    total_supply: Decimal | None = None
+    status: str | None = None
+    backing_type: str | None = None
+    collateral: dict[str, Any] = field(default_factory=dict)
+    corporate_actions: list[dict[str, Any]] = field(default_factory=list)
+    observed_at: datetime | None = None
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+
+
 @runtime_checkable
 class ProviderDescriptor(Protocol):
     name: str
     base_url: str | None
     description: str | None
+
+
+@runtime_checkable
+class ProviderAccountUsageProvider(ProviderDescriptor, Protocol):
+    """Provider-specific account usage/entitlement introspection."""
+
+    def fetch_account_usage(self) -> ProviderAccountUsage | None: ...
 
 
 @runtime_checkable
@@ -165,8 +325,41 @@ class EventProvider(ProviderDescriptor, Protocol):
 
 
 @runtime_checkable
+class PaginatedEventProvider(EventProvider, Protocol):
+    def fetch_instrument_events_page(
+        self, symbol: str, page_token: str | None = None
+    ) -> InstrumentEventPage: ...
+
+
+@runtime_checkable
 class IdentifierProvider(ProviderDescriptor, Protocol):
     def fetch_stable_identifiers(self, symbol: str) -> list[IdentifierRecord]: ...
+
+
+@runtime_checkable
+class FundamentalsProvider(ProviderDescriptor, Protocol):
+    def fetch_fundamental_facts(self, cik: str) -> list[FundamentalFactRecord]: ...
+
+
+@runtime_checkable
+class ShortInterestProvider(ProviderDescriptor, Protocol):
+    def fetch_short_interest(
+        self,
+        symbol: str,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+    ) -> list[ShortInterestRecord]: ...
+
+
+@runtime_checkable
+class MarketEventProvider(ProviderDescriptor, Protocol):
+    def fetch_market_events(
+        self,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+    ) -> list[MarketEventRecord]: ...
 
 
 @runtime_checkable
@@ -185,6 +378,7 @@ class OptionChainProvider(ProviderDescriptor, Protocol):
         symbol: str,
         *,
         expiration: date | None = None,
+        max_symbols: int | None = None,
     ) -> list[OptionContractRecord]: ...
 
 
@@ -197,6 +391,42 @@ class OptionQuoteHistoryProvider(ProviderDescriptor, Protocol):
         start: datetime,
         end: datetime,
     ) -> list[OptionQuotePointRecord]: ...
+
+
+@runtime_checkable
+class TokenizedAssetProvider(ProviderDescriptor, Protocol):
+    """Provider-specific metadata and indicative quote surface for tokenized assets."""
+
+    def discover_tokenized_assets(
+        self, *, page: int = 0, page_size: int = 100
+    ) -> list[TokenizedAssetRecord]: ...
+
+    def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None: ...
+
+    def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None: ...
+
+
+@runtime_checkable
+class TokenizedHistoricalPriceProvider(ProviderDescriptor, Protocol):
+    """Provider-specific aggregate history for tokenized instruments."""
+
+    def fetch_tokenized_historical_prices(
+        self, identifier: str, *, timespan: str = "DAY"
+    ) -> list[dict[str, Any]]: ...
+
+
+@runtime_checkable
+class TokenizedCorporateActionProvider(ProviderDescriptor, Protocol):
+    """Provider-specific corporate-action feed for tokenized instruments."""
+
+    def fetch_tokenized_corporate_actions(
+        self,
+        *,
+        symbol: str | None = None,
+        upcoming: bool = False,
+        page: int = 1,
+        page_size: int = 100,
+    ) -> list[dict[str, Any]]: ...
 
 
 class MarketDataProvider(

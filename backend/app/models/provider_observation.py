@@ -3,6 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    BIGINT,
     JSON,
     Date,
     DateTime,
@@ -88,12 +89,6 @@ class InstrumentProfileSnapshot(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="profile_snapshots")
 
     __table_args__ = (
-        UniqueConstraint(
-            "instrument_id",
-            "data_source_id",
-            "profile_hash",
-            name="uq_instrument_profile_snapshot_hash",
-        ),
         Index(
             "ix_instrument_profile_snapshot_inst_source_observed",
             "instrument_id",
@@ -125,12 +120,6 @@ class InstrumentIdentifierSnapshot(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="identifier_snapshots")
 
     __table_args__ = (
-        UniqueConstraint(
-            "instrument_id",
-            "data_source_id",
-            "snapshot_hash",
-            name="uq_instrument_identifier_snapshot_hash",
-        ),
         Index(
             "ix_instrument_identifier_snapshot_inst_source_observed",
             "instrument_id",
@@ -150,8 +139,19 @@ class MarketBarObservation(Base):
     data_source_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    market_series_id: Mapped[int | None] = mapped_column(
+        BIGINT, ForeignKey("market_series.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
     timeframe: Mapped[Timeframe] = mapped_column(SAEnum(Timeframe), nullable=False, index=True)
+    session: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="regular", server_default="regular"
+    )
+    # Stable conflict key for a scoped series while retaining nullable
+    # compatibility for legacy rows that have no MarketSeries relationship.
+    scope_key: Mapped[str] = mapped_column(
+        String(180), nullable=False, default="legacy:regular", server_default="legacy:regular"
+    )
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     open: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
@@ -161,9 +161,16 @@ class MarketBarObservation(Base):
     volume: Mapped[Decimal | None] = mapped_column(Numeric(30, 4), nullable=True)
     vwap: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     is_adjusted: Mapped[bool] = mapped_column(nullable=False, default=True)
+    adjustment_basis: Mapped[str] = mapped_column(String(32), nullable=False, default="raw")
+    adjustment_version: Mapped[str] = mapped_column(String(80), nullable=False, default="legacy")
+    provider_timestamp: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    source_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship()
     data_source: Mapped["DataSource"] = relationship(back_populates="bar_observations")
+    market_series: Mapped["MarketSeries | None"] = relationship()
 
     __table_args__ = (
         UniqueConstraint(
@@ -172,6 +179,8 @@ class MarketBarObservation(Base):
             "timeframe",
             "ts",
             "is_adjusted",
+            "scope_key",
+            "observed_at",
             name="uq_market_bar_observation",
         ),
     )
@@ -234,13 +243,6 @@ class OptionChainSnapshot(Base, TimestampMixin):
     )
 
     __table_args__ = (
-        UniqueConstraint(
-            "underlying_instrument_id",
-            "data_source_id",
-            "expiration_date",
-            "snapshot_hash",
-            name="uq_option_chain_snapshot_hash",
-        ),
         Index(
             "ix_option_chain_snapshot_underlying_exp_observed",
             "underlying_instrument_id",
@@ -305,6 +307,47 @@ class OptionQuotePoint(Base, TimestampMixin):
     )
 
 
+class OptionQuoteObservation(Base, TimestampMixin):
+    """Immutable provider response behind the normalized option quote point."""
+
+    __tablename__ = "option_quote_observation"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    option_instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    snapshot_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("option_chain_snapshot.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    option_instrument: Mapped["Instrument"] = relationship()
+    snapshot: Mapped["OptionChainSnapshot | None"] = relationship()
+    data_source: Mapped["DataSource"] = relationship()
+
+    __table_args__ = (
+        Index(
+            "ix_option_quote_observation_option_source_observed",
+            "option_instrument_id",
+            "data_source_id",
+            "observed_at",
+        ),
+    )
+
+
 class InstrumentSearchSnapshot(Base, TimestampMixin):
     __tablename__ = "instrument_search_snapshot"
 
@@ -323,12 +366,6 @@ class InstrumentSearchSnapshot(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="search_snapshots")
 
     __table_args__ = (
-        UniqueConstraint(
-            "data_source_id",
-            "query",
-            "result_hash",
-            name="uq_instrument_search_snapshot_hash",
-        ),
         Index(
             "ix_instrument_search_snapshot_source_query_observed",
             "data_source_id",
@@ -357,13 +394,6 @@ class UniverseDiscoverySnapshot(Base, TimestampMixin):
     data_source: Mapped["DataSource"] = relationship(back_populates="discovery_snapshots")
 
     __table_args__ = (
-        UniqueConstraint(
-            "data_source_id",
-            "quote_type",
-            "offset",
-            "snapshot_hash",
-            name="uq_universe_discovery_snapshot_hash",
-        ),
         Index(
             "ix_universe_discovery_snapshot_source_type_offset_observed",
             "data_source_id",

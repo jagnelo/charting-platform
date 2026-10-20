@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String
+from sqlalchemy import BIGINT, JSON, Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,6 +18,7 @@ class Timeframe(str, enum.Enum):
       D  = days
       W  = weeks
       MN = months
+      Y  = calendar years
     """
 
     M1 = "M1"  # 1 minute
@@ -31,6 +32,7 @@ class Timeframe(str, enum.Enum):
     D1 = "D1"  # 1 day
     W1 = "W1"  # 1 week
     MN = "MN"  # 1 month
+    Y1 = "Y1"  # 1 calendar year
 
 
 # Timeframe → approximate seconds (used for aggregation logic)
@@ -46,6 +48,9 @@ TIMEFRAME_SECONDS: dict[Timeframe, int] = {
     Timeframe.D1: 86400,
     Timeframe.W1: 604800,
     Timeframe.MN: 2592000,
+    # Approximate seconds are used only for generic lookback/fallback math;
+    # calendar-year bucketing is handled explicitly by bar_aggregation.
+    Timeframe.Y1: 365 * 86400,
 }
 
 
@@ -69,12 +74,20 @@ class OHLCVBar(Base):
     data_source_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("data_source.id"), nullable=True
     )
+    market_series_id: Mapped[int | None] = mapped_column(
+        BIGINT, ForeignKey("market_series.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     timeframe: Mapped[Timeframe] = mapped_column(SAEnum(Timeframe), nullable=False)
     ts: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )  # bar open timestamp (UTC)
     session: Mapped[str] = mapped_column(
         String(16), default="regular", server_default="regular", nullable=False
+    )
+    # Stable conflict key for a scoped series while retaining nullable
+    # compatibility for legacy rows that have no MarketSeries relationship.
+    scope_key: Mapped[str] = mapped_column(
+        String(180), default="legacy:regular", server_default="legacy:regular", nullable=False
     )
 
     open: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
@@ -85,9 +98,13 @@ class OHLCVBar(Base):
     vwap: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=True)  # if provided by source
 
     is_adjusted: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    adjustment_basis: Mapped[str] = mapped_column(String(32), nullable=False, default="raw")
+    adjustment_version: Mapped[str] = mapped_column(String(80), nullable=False, default="legacy")
+    provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship(back_populates="ohlcv_bars")
     data_source: Mapped["DataSource"] = relationship(back_populates="ohlcv_bars")
+    market_series: Mapped["MarketSeries | None"] = relationship(overlaps="market_series")
 
     __table_args__ = (
         # Primary query pattern: get all bars for an instrument at a timeframe in a date range
@@ -106,8 +123,10 @@ class OHLCVBar(Base):
             "timeframe",
             "ts",
             "is_adjusted",
+            "scope_key",
             unique=True,
         ),
+        Index("ix_ohlcv_series_tf_ts", "market_series_id", "timeframe", "ts"),
     )
 
     def __repr__(self) -> str:

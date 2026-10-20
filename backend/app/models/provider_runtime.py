@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    BIGINT,
     JSON,
     Boolean,
     DateTime,
@@ -22,6 +23,7 @@ from app.models.base import TimestampMixin
 
 
 class ProviderCapability(str, enum.Enum):
+    ACCOUNT_USAGE = "account_usage"
     INSTRUMENT_SEARCH = "instrument_search"
     INSTRUMENT_METADATA = "instrument_metadata"
     PRICE_HISTORY = "price_history"
@@ -31,6 +33,18 @@ class ProviderCapability(str, enum.Enum):
     UNIVERSE_DISCOVERY = "universe_discovery"
     OPTION_CHAIN = "option_chain"
     OPTION_QUOTE_HISTORY = "option_quote_history"
+    CORPORATE_ACTIONS = "corporate_actions"
+    EARNINGS = "earnings"
+    FUNDAMENTALS = "fundamentals"
+    SHORT_INTEREST = "short_interest"
+    MARKET_CALENDAR = "market_calendar"
+    FUTURES_HISTORY = "futures_history"
+    CRYPTO_HISTORY = "crypto_history"
+    OPTIONS_CURRENT = "options_current"
+    MARKET_EVENTS = "market_events"
+    TOKENIZED_ASSETS = "tokenized_assets"
+    TOKENIZED_HISTORICAL_PRICES = "tokenized_historical_prices"
+    TOKENIZED_CORPORATE_ACTIONS = "tokenized_corporate_actions"
 
 
 class ProviderPolicy(Base, TimestampMixin):
@@ -48,10 +62,19 @@ class ProviderPolicy(Base, TimestampMixin):
     is_pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     auto_weight_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     base_priority: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
-    max_concurrency: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
-    tokens_per_minute: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
-    burst_capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
-    cooldown_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    # External-provider limits are never inferred.  A NULL value means that
+    # the corresponding dimension was not verified and the provider is not
+    # routable until an operator records an entitlement/contract.
+    max_concurrency: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tokens_per_minute: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    burst_capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cooldown_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quota_contract: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    quota_scope: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    quota_source: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    quota_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     freshness_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600)
     score_floor: Mapped[Decimal] = mapped_column(
         Numeric(10, 4), nullable=False, default=Decimal("0")
@@ -101,9 +124,9 @@ class ProviderEntitlement(Base, TimestampMixin):
     usage_terms: Mapped[str | None] = mapped_column(Text, nullable=True)
     redistribution_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     quota_policy: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    history_depth: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    venue_coverage: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    freshness_semantics: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    history_depth: Mapped[str | None] = mapped_column(Text, nullable=True)
+    venue_coverage: Mapped[str | None] = mapped_column(Text, nullable=True)
+    freshness_semantics: Mapped[str | None] = mapped_column(Text, nullable=True)
     enabled_environments: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -143,9 +166,9 @@ class ProviderEntitlementRevision(Base, TimestampMixin):
     usage_terms: Mapped[str | None] = mapped_column(Text, nullable=True)
     redistribution_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False)
     quota_policy: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    history_depth: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    venue_coverage: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    freshness_semantics: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    history_depth: Mapped[str | None] = mapped_column(Text, nullable=True)
+    venue_coverage: Mapped[str | None] = mapped_column(Text, nullable=True)
+    freshness_semantics: Mapped[str | None] = mapped_column(Text, nullable=True)
     enabled_environments: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -248,6 +271,21 @@ class ProviderRequestLog(Base, TimestampMixin):
     usage_units: Mapped[Decimal] = mapped_column(
         Numeric(12, 4), nullable=False, default=Decimal("1")
     )
+    # ``usage_units`` is the reviewed pre-call reservation used for admission.
+    # Provider-native settlement can differ (for example a response-priced
+    # MarketData.app request can consume zero or several credits, while FINRA
+    # settles its byte dimension to measured transport). Keep that observed
+    # primary-unit amount separately so operator reports never confuse a
+    # reservation with actual settled usage. Historical rows remain NULL and
+    # are handled as legacy reservations by the reporting layer.
+    settled_usage_units: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    http_requests: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    response_bytes: Mapped[int | None] = mapped_column(BIGINT, nullable=True)
+    response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    # Immutable ordered response-body evidence. Normalized projections remain
+    # convenient query surfaces, but this prevents adapter normalization from
+    # silently discarding fields that may become relevant later.
+    response_payloads: Mapped[list | None] = mapped_column(JSON, nullable=True)
     response_items: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -258,6 +296,99 @@ class ProviderRequestLog(Base, TimestampMixin):
     __table_args__ = (
         Index("ix_provider_request_log_capability_requested", "capability", "requested_at"),
         Index("ix_provider_request_log_source_requested", "data_source_id", "requested_at"),
+    )
+
+
+class ProviderAccountUsageObservation(Base, TimestampMixin):
+    """Provider-native account counters retained across process sessions.
+
+    These values are not routing policy. An explicitly allow-listed provider
+    may reconcile an exact native counter into the durable coordinator baseline
+    when its reviewed dimension, limit, reset window, and usage semantics match;
+    providers with ambiguous or mismatched semantics remain observation-only.
+    """
+
+    __tablename__ = "provider_account_usage_observation"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Provider-native account endpoints can expose several independent pools
+    # (for example minute and daily credits). ``default`` preserves the
+    # schema meaning of observations written before named dimensions existed.
+    dimension: Mapped[str] = mapped_column(
+        String(80), nullable=False, server_default="default", index=True
+    )
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    unit: Mapped[str] = mapped_column(String(32), nullable=False)
+    limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    remaining: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    consumed: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    options_data_permissions: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    account_plan: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # Account-usage responses are quota evidence too. Keep the decoded
+    # provider body and the allow-listed capacity headers so later reviews can
+    # reconcile provider-specific fields without re-spending quota.
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    data_source: Mapped["DataSource"] = relationship(
+        back_populates="provider_account_usage_observations"
+    )
+
+    __table_args__ = (
+        Index("ix_provider_account_usage_source_observed", "data_source_id", "observed_at"),
+        Index(
+            "ix_provider_account_usage_source_dimension_observed",
+            "data_source_id",
+            "dimension",
+            "observed_at",
+        ),
+    )
+
+
+class ProviderCapacityEvent(Base, TimestampMixin):
+    """Durable, typed evidence of a provider capacity/quota rejection."""
+
+    __tablename__ = "provider_capacity_event"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    capability: Mapped[ProviderCapability] = mapped_column(
+        SAEnum(ProviderCapability), nullable=False, index=True
+    )
+    operation: Mapped[str] = mapped_column(String(80), nullable=False)
+    scope: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    status_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    error_type: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="ProviderRateLimitError"
+    )
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    retry_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    request_log_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("provider_request_log.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    data_source: Mapped["DataSource | None"] = relationship()
+    request_log: Mapped["ProviderRequestLog | None"] = relationship()
+
+    __table_args__ = (
+        Index("ix_provider_capacity_event_source_observed", "data_source_id", "observed_at"),
     )
 
 
@@ -299,6 +430,13 @@ class ProviderAvailabilityObservation(Base, TimestampMixin):
     success: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     classification: Mapped[str] = mapped_column(String(48), nullable=False)
     response_shape: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Availability probes are real provider calls.  Keep the normalized
+    # response as immutable evidence as well as its shape so a later adapter
+    # or provider schema change can be replayed without spending quota again.
+    # The probe service serializes/redacts this value before persistence.
+    response_payload: Mapped[dict | list | str | int | float | bool | None] = mapped_column(
+        JSON, nullable=True
+    )
     consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     recovered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

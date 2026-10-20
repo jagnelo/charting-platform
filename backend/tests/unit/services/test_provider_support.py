@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+import httpx
 import pytest
 from sqlalchemy import select
 
@@ -12,8 +13,15 @@ from app.models.instrument_identity import (
     InstrumentProviderCapabilityStatus,
     InstrumentProviderSymbol,
 )
-from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderPolicy
+from app.models.provider_runtime import (
+    ProviderCapability,
+    ProviderCapacityEvent,
+    ProviderHealthState,
+    ProviderPolicy,
+    ProviderRequestLog,
+)
 from app.services.provider_runtime import (
+    ProviderRateLimitError,
     ResolvedProvider,
     execute_provider_call,
     resolve_provider_chain,
@@ -23,6 +31,7 @@ from app.services.provider_support import (
     SUPPORT_STATUS_UNKNOWN,
     SUPPORT_STATUS_UNSUPPORTED,
     get_provider_support_map,
+    record_provider_support,
 )
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -38,7 +47,11 @@ class _Provider:
 def _resolved_provider(
     db, *, provider_name: str, capability: ProviderCapability, provider: object
 ) -> ResolvedProvider:
-    data_source = DataSource(name=provider_name, is_active=True)
+    data_source = DataSource(
+        name=provider_name,
+        is_active=True,
+        config={"usage_tracking": {"operation_costs": {"get_current_price": 1}}},
+    )
     db.add(data_source)
     db.flush()
     policy = ProviderPolicy(
@@ -52,6 +65,21 @@ def _resolved_provider(
         tokens_per_minute=60,
         burst_capacity=15,
         cooldown_seconds=30,
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "test_requests_per_minute",
+                    "limit": 60,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "test",
+                    "source": "unit-test",
+                }
+            ],
+            "reset": "fixed_minute",
+        },
+        quota_scope="test",
+        quota_source="unit-test",
         freshness_seconds=300,
         score_floor=Decimal("0"),
         score_ceiling=Decimal("100"),
@@ -101,6 +129,27 @@ async def test_support_status_expires_back_to_unknown(db, instrument):
     )
 
     assert support_map[source.id].status == SUPPORT_STATUS_UNKNOWN
+
+
+@pytest.mark.asyncio
+async def test_provider_support_error_is_redacted_before_persistence(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="support-redaction", is_active=True)
+    db.add(source)
+    db.flush()
+
+    row = await record_provider_support(
+        async_db,
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        status=SUPPORT_STATUS_UNSUPPORTED,
+        error_type="ProviderResponseError",
+        error_message="GET https://provider.test/data?api_key=support-secret",
+    )
+
+    assert "support-secret" not in row.last_error_message
+    assert "<redacted>" in row.last_error_message
 
 
 @pytest.mark.asyncio
@@ -154,14 +203,84 @@ async def test_execute_provider_call_downgrades_and_recovers_provider_support(
 
 
 @pytest.mark.asyncio
+async def test_execute_provider_call_persists_typed_capacity_event(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    primary = _resolved_provider(
+        db,
+        provider_name="alpaca",
+        capability=ProviderCapability.LATEST_PRICE,
+        provider=_Provider(None),
+    )
+
+    async def _fake_resolve(*_args, **_kwargs):
+        return [primary]
+
+    response = httpx.Response(
+        429,
+        headers={"Retry-After": "11", "Authorization": "must-not-be-stored"},
+        request=httpx.Request(
+            "GET", "https://provider.example/data?apiKey=transport-secret&symbol=AAPL"
+        ),
+    )
+    upstream = httpx.HTTPStatusError(
+        "429 Too Many Requests", request=response.request, response=response
+    )
+
+    def _raise():
+        raise upstream
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", _fake_resolve)
+    with pytest.raises(ProviderRateLimitError) as raised:
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            invoke=lambda _provider, _provider_symbol: _raise(),
+        )
+
+    assert raised.value.status_code == 429
+    event = db.execute(select(ProviderCapacityEvent)).scalar_one()
+    assert event.status_code == 429
+    assert event.scope == "test"
+    assert event.retry_at is not None
+    assert event.response_headers == {"retry-after": "11"}
+    assert "transport-secret" not in (event.message or "")
+    request_log = db.execute(select(ProviderRequestLog)).scalar_one()
+    assert "transport-secret" not in (request_log.error_message or "")
+    health = db.execute(select(ProviderHealthState)).scalar_one()
+    assert "transport-secret" not in (health.last_error_message or "")
+
+
+@pytest.mark.asyncio
 async def test_resolve_provider_chain_prefers_supported_then_bound_provider(
     db, instrument, monkeypatch
 ):
     # This test exercises the legacy-bound ordering contract explicitly. The
     # new workstation keeps yfinance disabled by default; opt in here so the
     # ordering assertion does not accidentally reintroduce it as an implicit
-    # provider dependency.
+    # provider dependency. This test-only evidence also clears the separate
+    # default-false archive-rights gate; the compatibility switch alone is not
+    # permission to collect and retain Yahoo data.
     monkeypatch.setattr(settings, "ENABLE_LEGACY_YFINANCE_FALLBACK", True)
+    monkeypatch.setattr(settings, "YFINANCE_PERSISTENT_STORAGE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "YFINANCE_PERSISTENT_STORAGE_AUTHORITY_REFERENCE",
+        "unit-test-written-authority-fixture",
+    )
+    monkeypatch.setattr(
+        settings,
+        "YFINANCE_PERSISTENT_STORAGE_AUTHORITY_SCOPE",
+        "written_yahoo_automated_collection_internal_display_perpetual_archive",
+    )
+    monkeypatch.setattr(settings, "YFINANCE_PERSISTENT_STORAGE_REVIEWED_AT", datetime.now(UTC))
+    monkeypatch.setattr(settings, "ALPACA_API_KEY", "unit-key")
+    monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "unit-secret")
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_LIVE_PROBE_STATUS_SEEDS",
+        {**settings.PROVIDER_LIVE_PROBE_STATUS_SEEDS, "alpaca": "passed"},
+    )
     async_db = AsyncSessionAdapter(db)
     alpha = _resolved_provider(
         db,

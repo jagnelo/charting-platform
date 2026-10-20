@@ -19,6 +19,7 @@ from app.providers.base import (
     OptionContractRecord,
     ProviderSearchResult,
 )
+from app.providers.errors import ProviderResponseError, redact_provider_message
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,14 @@ def _jsonable(value: Any) -> Any:
             return _jsonable(value.to_dict())
         except Exception:
             return str(value)
+    # pandas/numpy scalar values are common in DataFrame rows and are not
+    # JSON-serializable even though their Python equivalents are.  Preserve
+    # the provider value rather than dropping the raw row at persistence time.
+    if hasattr(value, "item"):
+        try:
+            return _jsonable(value.item())
+        except Exception:
+            pass
     try:
         if value != value:
             return None
@@ -265,12 +274,15 @@ class YFinanceProvider:
                     name=q.get("longname") or q.get("shortname", ""),
                     exchange=q.get("exchange", ""),
                     instrument_type=q.get("quoteType", ""),
+                    raw_payload=dict(q),
                 )
                 for q in quotes
                 if q.get("symbol")
             ]
         except Exception as exc:
-            logger.error("Ticker search failed for '%s': %s", query, exc)
+            logger.error(
+                "Ticker search failed for '%s': %s", query, redact_provider_message(exc)[:1000]
+            )
             return []
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
@@ -279,9 +291,13 @@ class YFinanceProvider:
         except Exception as exc:
             message = str(exc)
             if "Quote not found for symbol" in message or "HTTP Error 404" in message:
-                logger.debug("yfinance profile miss for %s: %s", symbol, exc)
+                logger.debug(
+                    "yfinance profile miss for %s: %s", symbol, redact_provider_message(exc)[:1000]
+                )
             else:
-                logger.error("Failed to get info for %s: %s", symbol, exc)
+                logger.error(
+                    "Failed to get info for %s: %s", symbol, redact_provider_message(exc)[:1000]
+                )
             return None
         if not info:
             return None
@@ -338,7 +354,14 @@ class YFinanceProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
-        yf_interval = TF_TO_YF.get(timeframe, "1d")
+        yf_interval = TF_TO_YF.get(timeframe)
+        if yf_interval is None:
+            # Y1 is a calendar-year rollup used by the tokenized history
+            # bridge. yfinance has no verified annual interval here; falling
+            # back to 1d would mislabel daily observations as annual bars.
+            raise ProviderResponseError(
+                self.name, f"yfinance does not support timeframe {timeframe.value}"
+            )
         try:
             ticker = yf.Ticker(symbol)
             yf_end = (end + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -350,7 +373,9 @@ class YFinanceProvider:
                 actions=False,
             )
         except Exception as exc:
-            logger.error("yfinance fetch failed for %s: %s", symbol, exc)
+            logger.error(
+                "yfinance fetch failed for %s: %s", symbol, redact_provider_message(exc)[:1000]
+            )
             return []
 
         if df is None or df.empty:
@@ -376,6 +401,19 @@ class YFinanceProvider:
                         else None
                     ),
                     is_adjusted=adjusted,
+                    adjustment_basis=("provider_adjusted" if adjusted else "raw"),
+                    adjustment_version=("yfinance-auto-adjust" if adjusted else "provider-native"),
+                    provenance={
+                        "provider": self.name,
+                        "provider_symbol": symbol,
+                        "interval": yf_interval,
+                        # Keep the complete provider row alongside the
+                        # normalized candle.  yfinance is compatibility-only
+                        # and never part of the default routing chain, but a
+                        # caller that explicitly opts into it must not lose
+                        # fields returned by the provider at normalization.
+                        "provider_payload": _jsonable(row.to_dict()),
+                    },
                 )
             )
         return bars
@@ -411,7 +449,9 @@ class YFinanceProvider:
             fast_info = ticker.fast_info
             return float(fast_info.last_price) if hasattr(fast_info, "last_price") else None
         except Exception as exc:
-            logger.error("Failed to get price for %s: %s", symbol, exc)
+            logger.error(
+                "Failed to get price for %s: %s", symbol, redact_provider_message(exc)[:1000]
+            )
             return None
 
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
@@ -487,7 +527,11 @@ class YFinanceProvider:
                         )
                     )
         except Exception as exc:
-            logger.debug("yfinance calendar fetch failed for %s: %s", symbol, exc)
+            logger.debug(
+                "yfinance calendar fetch failed for %s: %s",
+                symbol,
+                redact_provider_message(exc)[:1000],
+            )
 
         try:
             get_earnings_dates = getattr(ticker, "get_earnings_dates", None)
@@ -502,13 +546,21 @@ class YFinanceProvider:
                     if seen < limit or added == 0:
                         break
         except Exception as exc:
-            logger.debug("yfinance get_earnings_dates fetch failed for %s: %s", symbol, exc)
+            logger.debug(
+                "yfinance get_earnings_dates fetch failed for %s: %s",
+                symbol,
+                redact_provider_message(exc)[:1000],
+            )
 
         try:
             earnings = ticker.earnings_dates
             _append_earnings_events(symbol, earnings, fetched_at, events)
         except Exception as exc:
-            logger.debug("yfinance earnings_dates fetch failed for %s: %s", symbol, exc)
+            logger.debug(
+                "yfinance earnings_dates fetch failed for %s: %s",
+                symbol,
+                redact_provider_message(exc)[:1000],
+            )
 
         try:
             divs = ticker.dividends
@@ -533,7 +585,11 @@ class YFinanceProvider:
                             )
                         )
         except Exception as exc:
-            logger.debug("yfinance dividends fetch failed for %s: %s", symbol, exc)
+            logger.debug(
+                "yfinance dividends fetch failed for %s: %s",
+                symbol,
+                redact_provider_message(exc)[:1000],
+            )
 
         try:
             splits = ticker.splits
@@ -559,7 +615,11 @@ class YFinanceProvider:
                         )
                     )
         except Exception as exc:
-            logger.debug("yfinance splits fetch failed for %s: %s", symbol, exc)
+            logger.debug(
+                "yfinance splits fetch failed for %s: %s",
+                symbol,
+                redact_provider_message(exc)[:1000],
+            )
 
         deduped: dict[str, InstrumentEventRecord] = {}
         for event in events:
@@ -571,7 +631,9 @@ class YFinanceProvider:
         try:
             value = yf.Ticker(symbol).isin
         except Exception as exc:
-            logger.debug("yfinance ISIN fetch failed for %s: %s", symbol, exc)
+            logger.debug(
+                "yfinance ISIN fetch failed for %s: %s", symbol, redact_provider_message(exc)[:1000]
+            )
             value = None
         if value and value not in ("-", "None", ""):
             identifiers.append(
@@ -580,6 +642,7 @@ class YFinanceProvider:
                     identifier_value=str(value),
                     is_primary=True,
                     source=self.name,
+                    raw_payload={"symbol": symbol, "isin": str(value)},
                 )
             )
         return identifiers
@@ -588,7 +651,11 @@ class YFinanceProvider:
         try:
             expirations = yf.Ticker(symbol).options or []
         except Exception as exc:
-            logger.debug("yfinance option expirations fetch failed for %s: %s", symbol, exc)
+            logger.debug(
+                "yfinance option expirations fetch failed for %s: %s",
+                symbol,
+                redact_provider_message(exc)[:1000],
+            )
             return []
 
         parsed: list[date] = []
@@ -604,6 +671,7 @@ class YFinanceProvider:
         symbol: str,
         *,
         expiration: date | None = None,
+        max_symbols: int | None = None,
     ) -> list[OptionContractRecord]:
         expirations = self.list_option_expirations(symbol)
         if expiration is None:
@@ -618,7 +686,7 @@ class YFinanceProvider:
                 "yfinance option chain fetch failed for %s %s: %s",
                 symbol,
                 expiration.isoformat(),
-                exc,
+                redact_provider_message(exc)[:1000],
             )
             return []
 
@@ -709,7 +777,7 @@ class YFinanceProvider:
                 "yfinance screener page failed (type=%s offset=%d): %s",
                 quote_type,
                 offset,
-                exc,
+                redact_provider_message(exc)[:1000],
             )
             return {}
 
@@ -725,6 +793,10 @@ class YFinanceProvider:
         ]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        if timeframe not in TF_TO_YF:
+            raise ProviderResponseError(
+                self.name, f"yfinance does not support timeframe {timeframe.value}"
+            )
         tf_seconds = {
             Timeframe.M1: 60,
             Timeframe.M5: 300,
@@ -737,7 +809,11 @@ class YFinanceProvider:
             Timeframe.D1: 86400,
             Timeframe.W1: 604800,
             Timeframe.MN: 2628000,
-        }.get(timeframe, 86400)
+        }.get(timeframe)
+        if tf_seconds is None:
+            raise ProviderResponseError(
+                self.name, f"yfinance does not support timeframe {timeframe.value}"
+            )
         days_needed = max(7, int(tf_seconds * limit * 2 / 86400))
         max_lookback = TF_MAX_LOOKBACK_DAYS.get(timeframe)
         if max_lookback is not None:

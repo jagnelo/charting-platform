@@ -323,12 +323,14 @@ def test_research_run_is_queued_for_isolated_runner(client, auth_headers, tmp_pa
     )
     assert response.status_code == 202
     assert response.json()["status"] == "queued"
+    assert response.json()["evaluation_status"] == "queued"
     assert (tmp_path / "jobs" / f"{response.json()['id']}.json").exists()
     canceled = client.post(
         f"/api/v1/research/runs/{response.json()['id']}/cancel", headers=auth_headers
     )
     assert canceled.status_code == 200
     assert canceled.json()["status"] == "canceled"
+    assert canceled.json()["evaluation_status"] == "canceled"
 
 
 def test_research_run_job_preserves_json_parameters_for_isolated_runner(
@@ -526,6 +528,7 @@ def test_research_result_is_collected_as_structured_artifact(
     collected = client.get(f"/api/v1/research/runs/{run['id']}", headers=auth_headers)
     assert collected.status_code == 200
     assert collected.json()["status"] == "completed"
+    assert collected.json()["evaluation_status"] == "completed"
     assert collected.json()["reproducibility_hash"] == "abc"
 
 
@@ -862,6 +865,7 @@ def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells
     cells = client.get(f"/api/v1/research/runs/{payload['id']}/batch-results", headers=auth_headers)
     assert cells.status_code == 200
     assert cells.json()["output_contract"] == "scalar"
+    assert cells.json()["evaluation_status"] == "partial"
     assert cells.json()["cells"] == [
         {
             "instrument_id": instrument.id,
@@ -951,6 +955,45 @@ def test_research_materialization_expands_batch_history_for_code_lookback(
     )
     assert response.status_code == 202
     assert response.json()["dataset_manifest"]["batch_history_limit"] == 601
+
+
+def test_research_materialization_defers_short_single_history_before_runner(
+    client, auth_headers, tmp_path, monkeypatch, instrument, ohlcv_bars
+):
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "short-history-study",
+            "name": "Short history study",
+            "kind": "study",
+            "initial_version": {
+                "source": "series = ta.sma(market.close(), 600)\noutput.scalar('value', series[-1])",
+                "output_contract": "study",
+            },
+        },
+    ).json()
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {"symbol": instrument.symbol},
+        },
+    )
+    assert response.status_code == 202
+    manifest = response.json()["dataset_manifest"]
+    assert manifest["coverage_preflight"]["evaluator"] == "research_dataset"
+    assert manifest["coverage_preflight"]["status"] == "deferred"
+    assert manifest["coverage_preflight"]["items"][0]["status"] == "partial"
+    assert manifest["exclusions"][0]["code"] == "declared_history_incomplete"
+    assert len(manifest["closes"]) == len(ohlcv_bars)
 
 
 def test_research_materialization_rejects_unbounded_code_lookback(

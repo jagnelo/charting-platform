@@ -95,10 +95,13 @@ def upgrade() -> None:
         sa.Column("is_pinned", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("auto_weight_enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("base_priority", sa.Integer(), nullable=False, server_default="100"),
-        sa.Column("max_concurrency", sa.Integer(), nullable=False, server_default="2"),
-        sa.Column("tokens_per_minute", sa.Integer(), nullable=False, server_default="60"),
-        sa.Column("burst_capacity", sa.Integer(), nullable=False, server_default="15"),
-        sa.Column("cooldown_seconds", sa.Integer(), nullable=False, server_default="30"),
+        # Quota dimensions are intentionally nullable.  A provider policy is
+        # not routable until its reviewed entitlement records the applicable
+        # contract; never materialize a generic rate-limit assumption.
+        sa.Column("max_concurrency", sa.Integer(), nullable=True),
+        sa.Column("tokens_per_minute", sa.Integer(), nullable=True),
+        sa.Column("burst_capacity", sa.Integer(), nullable=True),
+        sa.Column("cooldown_seconds", sa.Integer(), nullable=True),
         sa.Column("freshness_seconds", sa.Integer(), nullable=False, server_default="3600"),
         sa.Column("score_floor", sa.Numeric(precision=10, scale=4), nullable=False, server_default="0"),
         sa.Column("score_ceiling", sa.Numeric(precision=10, scale=4), nullable=False, server_default="100"),

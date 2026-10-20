@@ -12,16 +12,17 @@ def _seed_radar_bars(
     start_at: datetime | None = None,
     timeframe=None,
 ):
-    from app.models.ohlcv import OHLCVBar, Timeframe
+    from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 
-    base = start_at or (datetime.now(UTC) - timedelta(days=len(prices)))
     tf = timeframe or Timeframe.D1
+    step_seconds = TIMEFRAME_SECONDS.get(tf, TIMEFRAME_SECONDS[Timeframe.D1])
+    base = start_at or (datetime.now(UTC) - timedelta(seconds=step_seconds * len(prices)))
     for index, price in enumerate(prices):
         db.add(
             OHLCVBar(
                 instrument_id=instrument.id,
                 timeframe=tf,
-                ts=base + timedelta(days=index),
+                ts=base + timedelta(seconds=step_seconds * index),
                 open=Decimal(str(round(price - 0.5, 4))),
                 high=Decimal(str(round(price + 1.3, 4))),
                 low=Decimal(str(round(price - 1.3, 4))),
@@ -47,6 +48,9 @@ class TestRadarAPI:
         run_data = run_res.json()
         assert run_data["status"] == "completed"
         assert run_data["detection_count"] >= 1
+        assert run_data["coverage_status"] == "full"
+        assert run_data["coverage_total_count"] == 2
+        assert run_data["coverage_missing_count"] == 0
 
         list_res = client.get("/api/v1/radar/detections", headers=auth_headers)
         assert list_res.status_code == 200
@@ -105,6 +109,79 @@ class TestRadarAPI:
         assert run_data["universe_type"] == "basket"
         assert run_data["universe_filter"]["basket_id"] == basket.json()["id"]
         assert run_data["evaluated_count"] == 1
+        assert run_data["coverage_status"] == "full"
+
+    def test_run_exposes_partial_coverage_without_claiming_full_evaluation(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        _seed_radar_bars(db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98])
+
+        run_res = client.post("/api/v1/radar/run", headers=auth_headers)
+        assert run_res.status_code == 200
+        run_data = run_res.json()
+        assert run_data["status"] == "completed"
+        assert run_data["coverage_status"] == "partial"
+        assert run_data["coverage_total_count"] == 2
+        assert run_data["coverage_missing_count"] == 1
+        assert run_data["evaluated_count"] == 1
+        assert run_data["coverage_summary"]["missing_instrument_ids"] == [instrument_b.id]
+
+    def test_run_defers_short_history_before_signal_evaluation(
+        self, client, auth_headers, db, instrument
+    ):
+        _seed_radar_bars(db, instrument, [100, 101])
+
+        run_res = client.post(
+            "/api/v1/radar/run",
+            headers=auth_headers,
+            json={
+                "universe_type": "custom",
+                "universe_filter": {"instrument_ids": [instrument.id]},
+            },
+        )
+
+        assert run_res.status_code == 200
+        run_data = run_res.json()
+        assert run_data["status"] == "completed"
+        assert run_data["coverage_status"] == "unavailable"
+        assert run_data["evaluated_count"] == 0
+        assert run_data["detection_count"] == 0
+        assert run_data["coverage_summary"]["coverage_blocked_instrument_ids"] == [instrument.id]
+        preflight = run_data["coverage_summary"]["coverage_preflight"]
+        assert preflight["status"] == "deferred"
+        assert preflight["items"][0]["bar_count"] == 2
+        assert "at least 80" in preflight["items"][0]["explanation"]
+
+    def test_run_can_enqueue_bounded_repairs_without_provider_io(
+        self, client, auth_headers, db, instrument, instrument_b
+    ):
+        from app.models.market_data_foundation import MarketRefreshJob
+
+        _seed_radar_bars(db, instrument, [95, 100, 95, 100, 95, 100] * 20 + [98, 97, 96, 97, 98])
+
+        run_res = client.post(
+            "/api/v1/radar/run",
+            headers=auth_headers,
+            json={"queue_repairs": True},
+        )
+
+        assert run_res.status_code == 200
+        run_data = run_res.json()
+        assert run_data["coverage_missing_count"] == 1
+        assert run_data["coverage_stale_count"] == 0
+        repair_summary = run_data["coverage_summary"]["repair_queue"]
+        assert repair_summary["requested"] is True
+        assert repair_summary["requested_count"] == 1
+        assert repair_summary["jobs"][0]["request_key"] == f"radar:D1:{instrument_b.id}"
+        assert repair_summary["jobs"][0]["status"] == "queued"
+        assert repair_summary["jobs"][0]["coverage_reason"] == "missing"
+        repair = (
+            db.query(MarketRefreshJob).filter_by(request_key=f"radar:D1:{instrument_b.id}").one()
+        )
+        assert repair.status == "queued"
+        assert repair.capability == "price_history"
+        assert repair.metadata_payload["schedule"] == "radar_coverage_repair"
+        assert repair.metadata_payload["coverage_reason"] == "missing"
 
     def test_run_and_filter_by_custom_timeframe(self, client, auth_headers, db, instrument):
         from app.models.ohlcv import Timeframe

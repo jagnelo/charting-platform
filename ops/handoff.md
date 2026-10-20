@@ -17158,7 +17158,7 @@ was closed by this bookkeeping correction.
 - Current branch is `feat/etf-holdings-constituents`, clean before this
   audit-only pass and ahead of `origin/feat/etf-holdings-constituents` by
   fifteen local commits through `290bf9a chore(ops): record ETF fallback route
-  retry`. Push remains blocked because SSH authenticates as `jagnelo-symbiotech`
+  retry`. Push remains blocked because SSH authenticates as `an account without repository access`
   for `git@github.com:jagnelo/charting-platform.git`.
 - Recomputed strict state directly from code: `345` registered / `326`
   native-live-backed / `19` fallback-only, with `audit_matches True` and
@@ -17212,7 +17212,7 @@ was closed by this bookkeeping correction.
 - Current branch is `feat/etf-holdings-constituents`, clean before this
   audit-only pass and ahead of `origin/feat/etf-holdings-constituents` by
   fourteen local commits through `52db7c7 chore(ops): checkpoint ETF pending
-  push`. Push remains blocked because SSH authenticates as `jagnelo-symbiotech`
+  push`. Push remains blocked because SSH authenticates as `an account without repository access`
   for `git@github.com:jagnelo/charting-platform.git`.
 - Recomputed strict state directly from code: `345` registered / `326`
   native-live-backed / `19` fallback-only, with `audit_matches True` and
@@ -17276,8 +17276,8 @@ was closed by this bookkeeping correction.
   on SSH authenticating as an account with permission to
   `jagnelo/charting-platform`.
 - Push attempt failed because GitHub authenticated SSH as
-  `jagnelo-symbiotech`: `ERROR: Permission to jagnelo/charting-platform.git
-  denied to jagnelo-symbiotech.` A refreshed pending-push package is saved at
+  `an account without repository access`: `ERROR: Permission to jagnelo/charting-platform.git
+  denied to an account without repository access.` A refreshed pending-push package is saved at
   `/private/tmp/charting-platform-pending-push-20260727T123221Z`.
 - No backend source changed. Latest strict state remains `345` registered /
   `326` native-live-backed / `19` fallback-only, with `audit_matches True` and
@@ -17490,7 +17490,7 @@ was closed by this bookkeeping correction.
 
 - Commit the Lazard live-matrix hardening and ops checkpoint separately from
   the earlier pending commits, then attempt to push. If SSH still authenticates
-  as `jagnelo-symbiotech`, save a new local patch/bundle package that includes
+  as `an account without repository access`, save a new local patch/bundle package that includes
   this tenth pending commit as well.
 
 ## Pending push package and PlanRock retry - 2026-07-27T11:22Z
@@ -17741,7 +17741,7 @@ was closed by this bookkeeping correction.
   from the previous push attempt: `3e31f36 feat(etf): expand native holdings
   provider coverage` and `3606a2b chore(ops): checkpoint ETF holdings live
   matrix`. Push previously failed because GitHub authenticated the SSH key as
-  `jagnelo-symbiotech`, which lacks permission to `jagnelo/charting-platform`.
+  `an account without repository access`, which lacks permission to `jagnelo/charting-platform`.
 - Recomputed the current fallback-only set from the adapter registry: `20`
   fallback-only providers remain. Buckets are `issuer_access_blocked`:
   `aegon`, `guinness_atkinson`, `manulife`, `q3`, `rex`, `ridgeline`, `sofi`,

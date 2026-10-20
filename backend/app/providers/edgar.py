@@ -21,20 +21,28 @@ Earnings date approximation:
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import time
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
+from typing import Any
 
 import httpx
 
 from app.config import settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.providers.base import (
+    FundamentalFactRecord,
     InstrumentEventRecord,
     InstrumentProfile,
     ListingRecord,
+    MarketEventRecord,
     ProviderSearchResult,
 )
+from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -42,13 +50,30 @@ _TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 _TICKERS_EXCHANGE_URL = "https://www.sec.gov/files/company_tickers_exchange.json"
 _SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 _TICKER_CACHE_TTL = 3600 * 24  # 24 hours
+_IPO_PIPELINE_FORMS = frozenset({"S-1", "S-1/A", "F-1", "F-1/A"})
+_IPO_PIPELINE_MAX_EVENTS = 500
 
 # Module-level cache: upper-case ticker → {"cik": int, "title": str}
 _ticker_map: dict[str, dict] = {}
 _ticker_map_ts: float = 0.0
 _exchange_directory: list[dict] = []
 _exchange_directory_ts: float = 0.0
+_exchange_directory_fingerprint: str = ""
 _profile_cache: dict[str, tuple[float, InstrumentProfile | None]] = {}
+
+
+def is_valid_edgar_user_agent(value: str | None) -> bool:
+    """Return whether a SEC contact value is descriptive rather than example text."""
+
+    normalized = str(value or "").strip().lower()
+    placeholder_markers = (
+        "example.com",
+        "myemail@",
+        "your.email",
+        "<",
+        ">",
+    )
+    return bool(normalized) and not any(marker in normalized for marker in placeholder_markers)
 
 
 class EdgarProvider:
@@ -60,15 +85,19 @@ class EdgarProvider:
     )
 
     def _headers(self) -> dict[str, str]:
-        return {"User-Agent": settings.EDGAR_USER_AGENT}
+        user_agent = str(settings.EDGAR_USER_AGENT or "").strip()
+        if not is_valid_edgar_user_agent(user_agent):
+            raise ProviderNotConfiguredError(
+                "edgar requires EDGAR_USER_AGENT with a descriptive contact value"
+            )
+        return {"User-Agent": user_agent}
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
-        """Search the SEC's cached issuer ticker directory without provider fan-out.
+        """Search the SEC's cached ticker-association directory without fan-out.
 
-        The directory is the authoritative SEC identity/search source for US
-        issuers.  It deliberately returns only identity fields; prices and
-        tradability are resolved separately through the configured market-data
-        chain.
+        SEC cautions that these associations do not guarantee accuracy or
+        scope. This is a search aid, not an authoritative or complete US issuer
+        or security master. Prices and tradability are resolved separately.
         """
         needle = query.strip().upper()
         if not needle or limit <= 0:
@@ -79,9 +108,11 @@ class EdgarProvider:
                 symbol=ticker,
                 name=str(entry.get("title") or ticker),
                 instrument_type="EQUITY",
+                raw_payload=dict(entry),
             )
             for ticker, entry in _ticker_map.items()
-            if needle in ticker or needle in str(entry.get("title") or "").upper()
+            if not entry.get("identity_ambiguity")
+            and (needle in ticker or needle in str(entry.get("title") or "").upper())
         ]
         matches.sort(key=lambda item: (0 if item.symbol == needle else 1, item.symbol))
         return matches[:limit]
@@ -112,11 +143,105 @@ class EdgarProvider:
                 "quoteType": "EQUITY",
                 "sec_cik": row.get("cik"),
                 "identity_ambiguity": row.get("identity_ambiguity"),
+                "source_record": row.get("source_record"),
             }
             for row in rows
             if row.get("ticker")
         ]
-        return {"total": len(_exchange_directory), "quotes": quotes}
+        next_offset = offset + len(quotes)
+        if next_offset >= len(_exchange_directory):
+            next_offset = None
+        return {
+            "total": len(_exchange_directory),
+            "offset": offset,
+            "limit": page_size,
+            "next_offset": next_offset,
+            "complete": next_offset is None,
+            "source_fingerprint": _exchange_directory_fingerprint,
+            "quotes": quotes,
+        }
+
+    def discover_issuer_ciks_page(self, offset: int, *, limit: int = 250) -> dict[str, Any]:
+        """Page SEC's ticker-association directory by unique CIK.
+
+        ``company_tickers.json`` is an issuer/ticker directory rather than a
+        listing feed.  A ticker can therefore occur more than once, while one
+        issuer can publish multiple tickers.  Build a deterministic unique-CIK
+        view before paging so a durable filing scan never requests the same
+        submissions document twice merely because an issuer has several
+        listings. Ambiguous ticker rows are retained as candidates. SEC notes
+        that this directory does not guarantee accuracy or scope, so it is not
+        an authoritative security master or a complete US-listed universe.
+        """
+
+        if (
+            not isinstance(offset, int)
+            or isinstance(offset, bool)
+            or offset < 0
+            or not isinstance(limit, int)
+            or isinstance(limit, bool)
+            or not 1 <= limit <= 500
+        ):
+            raise ValueError("offset must be non-negative and limit must be between 1 and 500")
+
+        self._ensure_ticker_map(self._headers())
+        by_cik: dict[int, dict[str, Any]] = {}
+        for ticker, entry in _ticker_map.items():
+            candidates = entry.get("candidates") if entry.get("identity_ambiguity") else [entry]
+            if not isinstance(candidates, list):
+                raise ProviderResponseError(
+                    self.name, "SEC EDGAR ticker directory returned invalid ambiguity candidates"
+                )
+            for candidate in candidates:
+                if not isinstance(candidate, dict):
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR ticker directory returned a malformed candidate"
+                    )
+                try:
+                    cik = int(candidate["cik"])
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR ticker directory returned an invalid candidate CIK"
+                    ) from exc
+                if cik <= 0:
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR ticker directory returned a non-positive CIK"
+                    )
+                row = by_cik.setdefault(
+                    cik,
+                    {
+                        "cik": f"{cik:010d}",
+                        "tickers": [],
+                        "name_candidates": [],
+                    },
+                )
+                if ticker not in row["tickers"]:
+                    row["tickers"].append(ticker)
+                candidate_name = str(candidate.get("title") or entry.get("title") or ticker).strip()
+                if candidate_name and candidate_name not in row["name_candidates"]:
+                    row["name_candidates"].append(candidate_name)
+
+        issuers = sorted(by_cik.values(), key=lambda row: int(row["cik"]))
+        for row in issuers:
+            row["tickers"] = sorted(row["tickers"])
+            row["name_candidates"] = sorted(
+                row["name_candidates"], key=lambda name: (name.casefold(), name)
+            )
+            row["name"] = row["name_candidates"][0] if len(row["name_candidates"]) == 1 else ""
+        canonical_source = json.dumps(
+            issuers,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        source_fingerprint = hashlib.sha256(canonical_source).hexdigest()
+        return {
+            "total": len(issuers),
+            "offset": offset,
+            "limit": limit,
+            "source_fingerprint": source_fingerprint,
+            "issuers": issuers[offset : offset + limit],
+        }
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY"]
@@ -140,33 +265,50 @@ class EdgarProvider:
                 headers=self._headers(),
                 timeout=20,
             )
+            observe_response(r)
             r.raise_for_status()
             sub = r.json()
-        except Exception as exc:
-            logger.warning("edgar get_instrument_profile %s (CIK %d): %s", symbol, cik, exc)
-            # Fall back to minimal profile from ticker map
-            profile = InstrumentProfile(
-                provider="edgar",
-                symbol=normalized_symbol,
-                canonical_symbol=normalized_symbol,
-                name=entry.get("title", normalized_symbol),
-                currency="USD",
-                quote_type="EQUITY",
-                exchange="",
-                listings=[
-                    ListingRecord(
-                        provider_symbol=symbol.upper(),
-                        currency="USD",
-                        is_primary=True,
-                    )
-                ],
-                extra={"cik": cik},
-            )
-            _profile_cache[normalized_symbol] = (time.time(), profile)
-            return profile
+            if not isinstance(sub, dict):
+                raise ProviderResponseError(self.name, "SEC EDGAR returned an invalid JSON object")
+        except httpx.HTTPStatusError:
+            # The runtime owns typed 429/418 conversion and circuit handling;
+            # do not turn an upstream rejection into a synthetic profile.
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
 
-        tickers = sub.get("tickers") or [symbol.upper()]
-        exchanges = sub.get("exchanges") or []
+        raw_tickers = sub.get("tickers")
+        if raw_tickers is None:
+            tickers = [normalized_symbol]
+        elif not isinstance(raw_tickers, list) or any(
+            not isinstance(value, str) or not value.strip() for value in raw_tickers
+        ):
+            raise ProviderResponseError(
+                self.name,
+                "SEC EDGAR submissions returned an invalid tickers array",
+            )
+        else:
+            tickers = [value.strip().upper() for value in raw_tickers]
+
+        raw_exchanges = sub.get("exchanges")
+        if raw_exchanges is None:
+            exchanges = []
+        elif not isinstance(raw_exchanges, list) or any(
+            not isinstance(value, str) or not value.strip() for value in raw_exchanges
+        ):
+            raise ProviderResponseError(
+                self.name,
+                "SEC EDGAR submissions returned an invalid exchanges array",
+            )
+        else:
+            exchanges = [value.strip() for value in raw_exchanges]
+        if exchanges and len(exchanges) != len(tickers):
+            raise ProviderResponseError(
+                self.name,
+                "SEC EDGAR submissions returned mismatched ticker/exchange arrays",
+            )
         name = sub.get("name") or entry.get("title") or symbol.upper()
         sic_desc = sub.get("sicDescription") or ""
 
@@ -224,6 +366,69 @@ class EdgarProvider:
 
     # ── Events (earnings history) ─────────────────────────────────────────────
 
+    def fetch_ipo_pipeline_events(
+        self,
+        cik: str,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+        max_events: int = 100,
+    ) -> list[MarketEventRecord]:
+        """Detect filings that indicate a possible future public listing.
+
+        This is deliberately a candidate detector, not an IPO-date oracle:
+        EDGAR filings expose submission dates and filing forms, while an
+        exchange listing may later be postponed, withdrawn, or never occur.
+        The method performs one submissions request for the supplied issuer
+        CIK and only inspects the SEC ``recent`` filing arrays. It does not
+        enumerate every issuer or fetch archived submission files implicitly;
+        callers must provide an explicit CIK set when building a watchlist.
+
+        ``max_events`` remains a validated compatibility argument for callers
+        that already provide it. It is not used as a result-set ceiling:
+        silently dropping matching filings would make a quota-limited refresh
+        permanently incomplete. The SEC response itself is the bounded unit
+        and every matching row in that response is normalized and persisted.
+        """
+
+        normalized_cik = _normalize_cik(cik)
+        if normalized_cik is None:
+            raise ProviderResponseError(self.name, "SEC EDGAR IPO pipeline requires a valid CIK")
+        if (
+            not isinstance(max_events, int)
+            or isinstance(max_events, bool)
+            or not 1 <= max_events <= _IPO_PIPELINE_MAX_EVENTS
+        ):
+            raise ValueError(f"max_events must be between 1 and {_IPO_PIPELINE_MAX_EVENTS}")
+        if start is not None and end is not None and end < start:
+            raise ValueError("end must be on or after start")
+
+        try:
+            response = httpx.get(
+                _SUBMISSIONS_URL.format(cik=int(normalized_cik)),
+                headers=self._headers(),
+                timeout=20,
+            )
+            observe_response(response)
+            response.raise_for_status()
+            submissions = response.json()
+            if not isinstance(submissions, dict):
+                raise ProviderResponseError(self.name, "SEC EDGAR returned an invalid JSON object")
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
+
+        return _parse_ipo_pipeline_events(
+            submissions,
+            cik=normalized_cik,
+            start=start,
+            end=end,
+            max_events=max_events,
+        )
+
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
         entry = _resolve_cik(symbol, self._headers())
         if entry is None:
@@ -236,21 +441,52 @@ class EdgarProvider:
                 headers=self._headers(),
                 timeout=20,
             )
+            observe_response(r)
             r.raise_for_status()
             sub = r.json()
-        except Exception as exc:
-            logger.warning("edgar fetch_instrument_events %s (CIK %d): %s", symbol, cik, exc)
-            return []
+            if not isinstance(sub, dict):
+                raise ProviderResponseError(self.name, "SEC EDGAR returned an invalid JSON object")
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
 
         events: list[InstrumentEventRecord] = []
         fetched = datetime.now(UTC)
-        recent = sub.get("filings", {}).get("recent", {})
+        filings = sub.get("filings", {})
+        if not isinstance(filings, dict):
+            raise ProviderResponseError(
+                self.name, "SEC EDGAR submissions returned an invalid filings object"
+            )
+        recent = filings.get("recent", {})
+        if not isinstance(recent, dict):
+            raise ProviderResponseError(
+                self.name, "SEC EDGAR submissions returned an invalid recent filings object"
+            )
 
-        forms = recent.get("form", [])
-        dates = recent.get("filingDate", [])
-        accessions = recent.get("accessionNumber", [])
+        columns: dict[str, list] = {}
+        for field in ("form", "filingDate", "accessionNumber"):
+            value = recent.get(field, [])
+            if not isinstance(value, list):
+                raise ProviderResponseError(
+                    self.name, f"SEC EDGAR submissions returned an invalid {field} array"
+                )
+            columns[field] = value
+        forms = columns["form"]
+        dates = columns["filingDate"]
+        accessions = columns["accessionNumber"]
+        if not (len(forms) == len(dates) == len(accessions)):
+            raise ProviderResponseError(
+                self.name, "SEC EDGAR submissions returned misaligned filing arrays"
+            )
 
-        for form, date_str, acc in zip(forms, dates, accessions):
+        for form, date_str, acc in zip(forms, dates, accessions, strict=True):
+            if not all(isinstance(value, str) for value in (form, date_str, acc)):
+                raise ProviderResponseError(
+                    self.name, "SEC EDGAR submissions returned a malformed filing row"
+                )
             if form not in ("10-Q", "10-K"):
                 continue
             try:
@@ -267,19 +503,261 @@ class EdgarProvider:
                         raw_payload=f'{{"form":"{form}","date":"{date_str}","accession":"{acc}"}}',
                     )
                 )
-            except (ValueError, KeyError):
-                continue
+            except ValueError as exc:
+                raise ProviderResponseError(
+                    self.name, "SEC EDGAR submissions returned an invalid filing date"
+                ) from exc
 
         return events
+
+    def fetch_fundamental_facts(self, cik: str) -> list[FundamentalFactRecord]:
+        """Return raw SEC Company Facts observations with filing dates intact."""
+
+        digits = "".join(character for character in str(cik) if character.isdigit())
+        if not digits:
+            return []
+        try:
+            response = httpx.get(
+                f"https://data.sec.gov/api/xbrl/companyfacts/CIK{int(digits):010d}.json",
+                headers=self._headers(),
+                timeout=30,
+            )
+            observe_response(response)
+            response.raise_for_status()
+            payload = response.json()
+            if not isinstance(payload, dict):
+                raise ProviderResponseError(self.name, "SEC EDGAR returned an invalid JSON object")
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
+        facts = payload.get("facts")
+        if not isinstance(facts, dict):
+            raise ProviderResponseError(
+                self.name, "SEC EDGAR company facts returned an invalid facts object"
+            )
+        records: list[FundamentalFactRecord] = []
+        for namespace, namespace_facts in facts.items():
+            if not isinstance(namespace_facts, dict):
+                raise ProviderResponseError(
+                    self.name, "SEC EDGAR company facts returned malformed namespace facts"
+                )
+            for key, definition in namespace_facts.items():
+                if not isinstance(definition, dict):
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR company facts returned a malformed fact definition"
+                    )
+                units = definition.get("units")
+                if not isinstance(units, dict):
+                    raise ProviderResponseError(
+                        self.name, "SEC EDGAR company facts returned an invalid units object"
+                    )
+                for unit, observations in units.items():
+                    if not isinstance(observations, list):
+                        raise ProviderResponseError(
+                            self.name,
+                            "SEC EDGAR company facts returned an invalid observations array",
+                        )
+                    for observation in observations:
+                        if not isinstance(observation, dict):
+                            raise ProviderResponseError(
+                                self.name,
+                                "SEC EDGAR company facts returned a malformed observation",
+                            )
+                        records.append(
+                            FundamentalFactRecord(
+                                namespace=str(namespace),
+                                key=str(key),
+                                unit=str(unit),
+                                value_numeric=_parse_numeric(observation.get("val")),
+                                value_text=_parse_text(observation.get("val")),
+                                period_start=_parse_date(observation.get("start")),
+                                period_end=_parse_date(observation.get("end")),
+                                filed_at=_parse_date(observation.get("filed")),
+                                accepted_at=_parse_datetime(observation.get("acceptanceDateTime")),
+                                source_identifier=str(observation.get("accn") or "") or None,
+                                raw_payload=observation,
+                            )
+                        )
+        return records
 
 
 # ── Module helpers ────────────────────────────────────────────────────────────
 
 
+def _normalize_cik(value: Any) -> str | None:
+    digits = "".join(character for character in str(value or "") if character.isdigit())
+    if not digits or len(digits) > 10:
+        return None
+    return digits.zfill(10)
+
+
+def _parse_ipo_pipeline_events(
+    submissions: dict[str, Any],
+    *,
+    cik: str,
+    start: date | None,
+    end: date | None,
+    max_events: int,
+) -> list[MarketEventRecord]:
+    """Normalize every matching recent SEC filing as a candidate."""
+
+    filings = submissions.get("filings")
+    if not isinstance(filings, dict):
+        raise ProviderResponseError(
+            "edgar", "SEC EDGAR submissions returned an invalid filings object"
+        )
+    recent = filings.get("recent")
+    if not isinstance(recent, dict):
+        raise ProviderResponseError(
+            "edgar", "SEC EDGAR submissions returned an invalid recent filings object"
+        )
+
+    required_fields = ("form", "filingDate", "accessionNumber")
+    columns: dict[str, list[Any]] = {}
+    for field in required_fields:
+        value = recent.get(field, [])
+        if not isinstance(value, list):
+            raise ProviderResponseError(
+                "edgar", f"SEC EDGAR submissions returned an invalid {field} array"
+            )
+        columns[field] = value
+    if len({len(values) for values in columns.values()}) != 1:
+        raise ProviderResponseError(
+            "edgar", "SEC EDGAR submissions returned misaligned filing arrays"
+        )
+
+    optional_columns: dict[str, list[Any]] = {}
+    for field in ("primaryDocument", "reportDate"):
+        value = recent.get(field, [])
+        if value in (None, []):
+            optional_columns[field] = [None] * len(columns["form"])
+            continue
+        if not isinstance(value, list) or len(value) != len(columns["form"]):
+            raise ProviderResponseError(
+                "edgar", f"SEC EDGAR submissions returned an invalid {field} array"
+            )
+        optional_columns[field] = value
+
+    issuer_name = str(submissions.get("name") or "").strip() or None
+    tickers = submissions.get("tickers")
+    if not isinstance(tickers, list):
+        tickers = []
+    normalized_tickers = [str(ticker).strip().upper() for ticker in tickers if str(ticker).strip()]
+    events: list[MarketEventRecord] = []
+    for index, (form, filing_date_raw, accession) in enumerate(
+        zip(
+            columns["form"],
+            columns["filingDate"],
+            columns["accessionNumber"],
+            strict=True,
+        )
+    ):
+        if not all(isinstance(value, str) for value in (form, filing_date_raw, accession)):
+            raise ProviderResponseError(
+                "edgar", "SEC EDGAR submissions returned a malformed filing row"
+            )
+        normalized_form = form.strip().upper()
+        if normalized_form not in _IPO_PIPELINE_FORMS and not normalized_form.startswith("424B"):
+            continue
+        try:
+            filing_date = date.fromisoformat(filing_date_raw)
+        except ValueError as exc:
+            raise ProviderResponseError(
+                "edgar", "SEC EDGAR submissions returned an invalid filing date"
+            ) from exc
+        if (start is not None and filing_date < start) or (end is not None and filing_date > end):
+            continue
+        accession_value = accession.strip()
+        if not accession_value:
+            raise ProviderResponseError(
+                "edgar", "SEC EDGAR submissions returned a filing without an accession number"
+            )
+        primary_document = optional_columns["primaryDocument"][index]
+        if primary_document is not None and not isinstance(primary_document, str):
+            raise ProviderResponseError(
+                "edgar", "SEC EDGAR submissions returned a malformed primary document"
+            )
+        accession_path = accession_value.replace("-", "")
+        filing_url = (
+            f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession_path}/"
+            f"{primary_document.strip()}"
+            if isinstance(primary_document, str) and primary_document.strip()
+            else None
+        )
+        payload = {
+            "cik": cik,
+            "form": normalized_form,
+            "filing_date": filing_date.isoformat(),
+            "accession_number": accession_value,
+            "primary_document": primary_document.strip()
+            if isinstance(primary_document, str)
+            else None,
+            "filing_url": filing_url,
+            "issuer_name": issuer_name,
+            "tickers": normalized_tickers,
+            "pipeline_status": "candidate",
+            "source": "sec_edgar_submissions_recent",
+        }
+        events.append(
+            MarketEventRecord(
+                event_type="ipo_pipeline",
+                event_key=f"edgar:ipo_pipeline:{cik}:{accession_path}",
+                event_time=datetime.combine(filing_date, datetime.min.time(), tzinfo=UTC),
+                effective_date=filing_date,
+                title=f"SEC {normalized_form} IPO pipeline filing"
+                + (f" — {issuer_name}" if issuer_name else ""),
+                source_version="submissions:recent",
+                is_provisional=True,
+                raw_payload=payload,
+            )
+        )
+    return events
+
+
 def _resolve_cik(symbol: str, headers: dict) -> dict | None:
     """Return {"cik": int, "title": str} for the given ticker, or None."""
     _ensure_ticker_map(headers)
-    return _ticker_map.get(symbol.upper())
+    entry = _ticker_map.get(symbol.upper())
+    # SEC's ticker directory is an issuer lookup aid, not a globally unique
+    # security key.  Preserve duplicate-ticker evidence in the cache and
+    # refuse to choose one CIK silently; callers can reconcile with venue and
+    # security-level identifiers instead.
+    if entry is None or entry.get("identity_ambiguity"):
+        return None
+    return entry
+
+
+def _parse_date(value: object) -> date | None:
+    try:
+        return date.fromisoformat(str(value)) if value else None
+    except ValueError:
+        return None
+
+
+def _parse_datetime(value: object) -> datetime | None:
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")) if value else None
+    except ValueError:
+        return None
+
+
+def _parse_numeric(value: object) -> Decimal | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return Decimal(str(value).replace(",", "").strip())
+    except Exception:
+        return None
+
+
+def _parse_text(value: object) -> str | None:
+    if value is None or _parse_numeric(value) is not None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _ensure_ticker_map(headers: dict) -> None:
@@ -289,46 +767,118 @@ def _ensure_ticker_map(headers: dict) -> None:
         return
     try:
         r = httpx.get(_TICKERS_URL, headers=headers, timeout=30)
+        observe_response(r)
         r.raise_for_status()
         raw = r.json()
+        if not isinstance(raw, dict):
+            raise ProviderResponseError("edgar", "SEC EDGAR returned an invalid JSON object")
         mapping: dict[str, dict] = {}
         for entry in raw.values():
+            if not isinstance(entry, dict):
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR ticker directory returned a malformed row"
+                )
             ticker = (entry.get("ticker") or "").upper()
-            if ticker:
-                mapping[ticker] = {
-                    "cik": int(entry["cik_str"]),
-                    "title": entry.get("title", ticker),
-                }
+            if not ticker or entry.get("cik_str") in (None, ""):
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR ticker directory returned an incomplete row"
+                )
+            try:
+                cik = int(entry["cik_str"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR ticker directory returned an invalid CIK"
+                ) from exc
+            candidate = {
+                "cik": cik,
+                "title": entry.get("title", ticker),
+            }
+            previous = mapping.get(ticker)
+            if previous is None:
+                mapping[ticker] = candidate
+                continue
+            previous_ciks = (
+                {int(previous["cik"])} if previous.get("cik") not in (None, "") else set()
+            )
+            previous_ciks.update(
+                int(item["cik"])
+                for item in previous.get("candidates", [])
+                if isinstance(item, dict) and item.get("cik") not in (None, "")
+            )
+            if cik in previous_ciks:
+                continue
+            candidates = list(previous.get("candidates", []))
+            if not candidates and previous.get("cik") not in (None, ""):
+                candidates.append(
+                    {"cik": int(previous["cik"]), "title": previous.get("title", ticker)}
+                )
+            candidates.append(candidate)
+            mapping[ticker] = {
+                "cik": None,
+                "title": ticker,
+                "identity_ambiguity": True,
+                "candidates": candidates,
+            }
         _ticker_map = mapping
         _ticker_map_ts = now
         logger.info("edgar: loaded %d ticker→CIK mappings", len(mapping))
-    except Exception as exc:
-        logger.warning("edgar _ensure_ticker_map: %s", exc)
+    except httpx.HTTPStatusError:
+        raise
+    except httpx.RequestError as exc:
+        raise ProviderResponseError("edgar", str(exc)) from exc
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError("edgar", "SEC EDGAR returned invalid JSON") from exc
 
 
 def _ensure_exchange_directory(headers: dict) -> None:
     """Load and normalise the SEC's public ticker/exchange directory once daily."""
-    global _exchange_directory, _exchange_directory_ts
+    global _exchange_directory, _exchange_directory_ts, _exchange_directory_fingerprint
     now = time.monotonic()
     if _exchange_directory and (now - _exchange_directory_ts) < _TICKER_CACHE_TTL:
         return
     try:
         response = httpx.get(_TICKERS_EXCHANGE_URL, headers=headers, timeout=30)
+        observe_response(response)
         response.raise_for_status()
         payload = response.json()
-        fields = payload.get("fields") if isinstance(payload, dict) else None
-        raw_rows = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            raise ProviderResponseError("edgar", "SEC EDGAR returned an invalid JSON object")
+        fields = payload.get("fields")
+        raw_rows = payload.get("data")
         rows: list[dict] = []
-        if isinstance(fields, list) and isinstance(raw_rows, list):
-            for raw in raw_rows:
-                if not isinstance(raw, list | tuple):
-                    continue
-                row = dict(zip((str(field) for field in fields), raw, strict=False))
-                rows.append(row)
-        elif isinstance(raw_rows, list):
-            rows = [row for row in raw_rows if isinstance(row, dict)]
-        elif isinstance(payload, dict):
-            rows = [row for row in payload.values() if isinstance(row, dict)]
+        if fields is not None or raw_rows is not None:
+            if raw_rows is None or not isinstance(raw_rows, list):
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR exchange directory returned an invalid data array"
+                )
+            if fields is not None:
+                if (
+                    not isinstance(fields, list)
+                    or not fields
+                    or any(not isinstance(field, str) for field in fields)
+                ):
+                    raise ProviderResponseError(
+                        "edgar", "SEC EDGAR exchange directory returned invalid fields"
+                    )
+                for raw in raw_rows:
+                    if not isinstance(raw, list | tuple) or len(raw) != len(fields):
+                        raise ProviderResponseError(
+                            "edgar", "SEC EDGAR exchange directory returned a malformed table row"
+                        )
+                    rows.append(dict(zip(fields, raw, strict=True)))
+            else:
+                for raw in raw_rows:
+                    if not isinstance(raw, dict):
+                        raise ProviderResponseError(
+                            "edgar", "SEC EDGAR exchange directory returned a malformed row"
+                        )
+                    rows.append(raw)
+        elif payload:
+            if any(not isinstance(row, dict) for row in payload.values()):
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR exchange directory returned malformed object rows"
+                )
+            rows = list(payload.values())
 
         directory: list[dict] = []
         for row in rows:
@@ -336,13 +886,23 @@ def _ensure_exchange_directory(headers: dict) -> None:
             name = str(row.get("name") or row.get("title") or "").strip()
             exchange = str(row.get("exchange") or row.get("exchange_name") or "").strip()
             if not ticker or not name:
-                continue
+                raise ProviderResponseError(
+                    "edgar", "SEC EDGAR exchange directory returned an incomplete row"
+                )
             cik_raw = row.get("cik") or row.get("cik_str")
             try:
                 cik = int(cik_raw) if cik_raw not in (None, "") else None
             except (TypeError, ValueError):
                 cik = None
-            directory.append({"ticker": ticker, "name": name, "exchange": exchange, "cik": cik})
+            directory.append(
+                {
+                    "ticker": ticker,
+                    "name": name,
+                    "exchange": exchange,
+                    "cik": cik,
+                    "source_record": dict(row),
+                }
+            )
         by_ticker: dict[str, list[dict]] = {}
         for row in directory:
             by_ticker.setdefault(row["ticker"], []).append(row)
@@ -361,8 +921,20 @@ def _ensure_exchange_directory(headers: dict) -> None:
             for row in ticker_rows:
                 row["identity_ambiguity"] = candidates
         directory.sort(key=lambda item: (item["ticker"], item["exchange"], item["name"]))
+        canonical_source = json.dumps(
+            directory,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        source_fingerprint = hashlib.sha256(canonical_source).hexdigest()
         _exchange_directory = directory
         _exchange_directory_ts = now
+        _exchange_directory_fingerprint = source_fingerprint
         logger.info("edgar: loaded %d ticker/exchange listings", len(directory))
-    except Exception as exc:
-        logger.warning("edgar _ensure_exchange_directory: %s", exc)
+    except httpx.HTTPStatusError:
+        raise
+    except httpx.RequestError as exc:
+        raise ProviderResponseError("edgar", str(exc)) from exc
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError("edgar", "SEC EDGAR returned invalid JSON") from exc

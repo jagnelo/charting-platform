@@ -25,6 +25,7 @@ from app.models.instrument_event import (
     EventTimeHint,
     InstrumentEvent,
     InstrumentEventFetchState,
+    InstrumentEventPageSnapshot,
     InstrumentEventType,
 )
 from app.models.instrument_identity import (
@@ -34,10 +35,47 @@ from app.models.instrument_identity import (
     InstrumentProviderSymbol,
 )
 from app.models.instrument_indicator_config import InstrumentIndicatorConfig
-from app.models.instrument_reconciliation import InstrumentReconciliationIssue
+from app.models.instrument_reconciliation import (
+    InstrumentReconciliationIssue,
+    InstrumentReconciliationIssueObservation,
+)
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
+from app.models.market_data_foundation import (
+    AdjustmentBasis,
+    CalendarExceptionKind,
+    ExchangeCalendarException,
+    ExchangeSessionRule,
+    FundamentalFact,
+    FundamentalFactObservation,
+    IdentityStatus,
+    InstrumentIdentityQuarantine,
+    InstrumentIdentityQuarantineObservation,
+    Issuer,
+    MarketCoverageSnapshot,
+    MarketDataAnomaly,
+    MarketEvent,
+    MarketEventConsensus,
+    MarketEventObservation,
+    MarketEventPrelistingCandidate,
+    MarketEventScanState,
+    MarketRefreshJob,
+    MarketSeries,
+    MarketSeriesDefault,
+    MarketUniverseLifecycleObservation,
+    MarketUniverseLifecycleObservationSnapshot,
+    MarketUniverseReconciliationRun,
+    ProviderPaginationState,
+    ProviderQuotaIdentity,
+    ProviderQuotaWindow,
+    ProviderRoutingDecision,
+    ProviderShadowObservation,
+    ProviderWorkloadLease,
+    SecIssuerDirectoryCandidate,
+    ShortInterestObservation,
+    ShortInterestProviderObservation,
+)
 from app.models.market_map import MarketMapCache, MarketMapSnapshot
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
@@ -50,13 +88,22 @@ from app.models.provider_observation import (
     LatestPriceSnapshot,
     MarketBarObservation,
     OptionChainSnapshot,
+    OptionQuoteObservation,
     OptionQuotePoint,
     UniverseDiscoverySnapshot,
 )
+from app.models.provider_recurring_cost import (
+    ProviderRecurringCostBudget,
+    ProviderRecurringCostBudgetRevision,
+    ProviderRecurringCostCommitment,
+    ProviderRecurringCostCommitmentRevision,
+)
 from app.models.provider_runtime import (
+    ProviderAccountUsageObservation,
     ProviderAvailabilityObservation,
     ProviderAvailabilityRun,
     ProviderCapability,
+    ProviderCapacityEvent,
     ProviderEntitlement,
     ProviderEntitlementRevision,
     ProviderHealthState,
@@ -92,6 +139,7 @@ from app.models.strategy import (
     StrategyVersion,
 )
 from app.models.synthetic_constituent import SyntheticConstituent
+from app.models.tokenized_asset import TokenizedAssetDetail, TokenizedAssetObservation
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.models.watchlist_history import WatchlistHistoryRefreshRun
@@ -110,6 +158,38 @@ __all__ = [
     "TimestampMixin",
     "User",
     "Exchange",
+    "Issuer",
+    "IdentityStatus",
+    "InstrumentIdentityQuarantine",
+    "InstrumentIdentityQuarantineObservation",
+    "MarketSeries",
+    "MarketSeriesDefault",
+    "MarketCoverageSnapshot",
+    "ProviderShadowObservation",
+    "MarketDataAnomaly",
+    "AdjustmentBasis",
+    "ExchangeSessionRule",
+    "ExchangeCalendarException",
+    "CalendarExceptionKind",
+    "ProviderQuotaWindow",
+    "ProviderPaginationState",
+    "ProviderQuotaIdentity",
+    "ProviderWorkloadLease",
+    "ProviderRoutingDecision",
+    "MarketEvent",
+    "MarketEventConsensus",
+    "MarketEventObservation",
+    "MarketEventPrelistingCandidate",
+    "MarketEventScanState",
+    "SecIssuerDirectoryCandidate",
+    "MarketRefreshJob",
+    "MarketUniverseReconciliationRun",
+    "MarketUniverseLifecycleObservation",
+    "MarketUniverseLifecycleObservationSnapshot",
+    "FundamentalFact",
+    "FundamentalFactObservation",
+    "ShortInterestObservation",
+    "ShortInterestProviderObservation",
     "AssetClass",
     "InstrumentType",
     "Basket",
@@ -124,6 +204,7 @@ __all__ = [
     "InstrumentProviderSymbol",
     "InstrumentProviderCapabilityStatus",
     "InstrumentReconciliationIssue",
+    "InstrumentReconciliationIssueObservation",
     "ProviderCapability",
     "ProviderEntitlement",
     "ProviderEntitlementRevision",
@@ -131,7 +212,13 @@ __all__ = [
     "ProviderHealthState",
     "ProviderAvailabilityRun",
     "ProviderAvailabilityObservation",
+    "ProviderAccountUsageObservation",
+    "ProviderRecurringCostBudget",
+    "ProviderRecurringCostBudgetRevision",
+    "ProviderRecurringCostCommitment",
+    "ProviderRecurringCostCommitmentRevision",
     "ProviderRequestLog",
+    "ProviderCapacityEvent",
     "DatasetStatus",
     "InstrumentDatasetState",
     "InstrumentIdentifierSnapshot",
@@ -140,9 +227,11 @@ __all__ = [
     "LatestPriceSnapshot",
     "MarketBarObservation",
     "OptionChainSnapshot",
+    "OptionQuoteObservation",
     "OptionQuotePoint",
     "UniverseDiscoverySnapshot",
     "InstrumentEvent",
+    "InstrumentEventPageSnapshot",
     "InstrumentEventFetchState",
     "InstrumentEventType",
     "EventTimeHint",
@@ -152,6 +241,8 @@ __all__ = [
     "FutureDetail",
     "OptionDetail",
     "ForexDetail",
+    "TokenizedAssetDetail",
+    "TokenizedAssetObservation",
     "InstrumentListing",
     "MarketMapCache",
     "MarketMapSnapshot",

@@ -13,9 +13,11 @@ import contextlib
 import fcntl
 import hashlib
 import json
+import os
 import shlex
 import shutil
 import socket
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -41,6 +43,15 @@ PORT_BASES = {
     "BACKEND_HOST_PORT": 28000,
     "FRONTEND_HOST_PORT": 28080,
 }
+
+SHARED_ENV_OVERRIDE = "CHARTING_PLATFORM_SHARED_ENV_FILE"
+RUNTIME_DIR_OVERRIDE = "CHARTING_PLATFORM_RUNTIME_DIR"
+DEFAULT_SHARED_ENV = Path.home() / ".config" / "charting-platform" / "app.env"
+DEFAULT_QUOTA_LEDGER_DIR = (
+    Path.home() / ".config" / "charting-platform" / "provider-quota"
+)
+QUOTA_LEDGER_DIR_OVERRIDE = "PROVIDER_QUOTA_LEDGER_HOST_DIR"
+SHARED_ENV_TARGETS = (Path(".env"), Path("backend/.env.dev"))
 
 
 def run_git(*args: str) -> str:
@@ -69,7 +80,12 @@ def worktree_id(path: Path) -> str:
 
 
 def registry_paths() -> tuple[Path, Path]:
-    directory = common_root() / ".ai" / "runtime"
+    configured = os.getenv(RUNTIME_DIR_OVERRIDE, "").strip()
+    directory = (
+        Path(configured).expanduser()
+        if configured
+        else common_root() / ".ai" / "runtime"
+    )
     directory.mkdir(parents=True, exist_ok=True)
     return directory / "allocations.json", directory / "allocations.lock"
 
@@ -296,11 +312,81 @@ def env_file_path() -> Path:
     return common_root() / ".ai" / "runtime" / f"{worktree_id(root())}.env"
 
 
+def shared_env_path() -> Path:
+    """Return the operator-owned secret source shared by local worktrees."""
+
+    configured = os.getenv(SHARED_ENV_OVERRIDE)
+    return Path(configured).expanduser() if configured else DEFAULT_SHARED_ENV
+
+
+def install_shared_env_links() -> Path | None:
+    """Link ignored worktree env paths to one permission-restricted source.
+
+    The source deliberately lives outside Git's common directory. Existing
+    files and links to any other source are never replaced automatically.
+    """
+
+    source = shared_env_path()
+    if not source.exists():
+        return None
+    source_lstat = source.lstat()
+    if not stat.S_ISREG(source_lstat.st_mode):
+        raise SystemExit(f"shared env source must be a regular file: {source}")
+    if stat.S_IMODE(source_lstat.st_mode) & 0o077:
+        raise SystemExit(f"shared env source must be owner-only (chmod 600): {source}")
+    source = source.resolve(strict=True)
+    checkout = root()
+    for relative_target in SHARED_ENV_TARGETS:
+        target = checkout / relative_target
+        if target.is_symlink():
+            if target.resolve(strict=False) != source:
+                raise SystemExit(
+                    f"refusing to replace env link pointing elsewhere: {target}"
+                )
+            continue
+        if target.exists():
+            # Preserve operator-owned checkout configuration. The backend
+            # target is still linked when available, so an existing root
+            # .env must not prevent ordinary test/runtime allocation.
+            print(
+                f"preserving existing env file without replacing it: {target}",
+                file=sys.stderr,
+            )
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.symlink_to(source)
+    return source
+
+
+def ensure_shared_quota_ledger_dir() -> Path:
+    """Create the private, non-secret host directory shared across worktrees."""
+
+    configured = os.getenv(QUOTA_LEDGER_DIR_OVERRIDE, "").strip()
+    directory = (
+        Path(configured).expanduser() if configured else DEFAULT_QUOTA_LEDGER_DIR
+    )
+    if directory.is_symlink():
+        raise SystemExit(f"refusing a symlink quota-ledger directory: {directory}")
+    try:
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if not stat.S_ISDIR(directory.stat().st_mode):
+            raise SystemExit(f"quota-ledger path must be a directory: {directory}")
+        os.chmod(directory, 0o700)
+    except OSError as exc:
+        raise SystemExit(
+            f"could not prepare private quota-ledger directory: {directory}"
+        ) from exc
+    return directory
+
+
 def ensure() -> tuple[dict[str, Any], dict[str, str], Path]:
+    install_shared_env_links()
+    quota_ledger_dir = ensure_shared_quota_ledger_dir()
     with locked_registry() as data:
         allocation = allocate(data)
         remove_unregistered_env_files(data)
         env = environment(allocation)
+        env["PROVIDER_QUOTA_LEDGER_HOST_DIR"] = str(quota_ledger_dir)
         path = env_file_path()
         Path(env["WORKTREE_RUNTIME_STATE"]).mkdir(parents=True, exist_ok=True)
         path.write_text(

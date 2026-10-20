@@ -11,7 +11,11 @@ Mapped symbols (platform canonical → FRED series ID):
   Macro           : FEDFUNDS, CPIAUCSL, UNRATE, GDP, T10YIE, VIXCLS
 
 Auth: FRED_API_KEY (free — register at fred.stlouisfed.org/docs/api/api_key.html).
-Rate limits: generous; FRED does not publish hard limits for reasonable use.
+Rate limits: FRED v1 documents up to 120 requests per minute before HTTP 429,
+but does not publish the enforcement scope and permits provider-adjustable
+limits. FRED v2 documents a separate two-requests-per-second threshold, but
+that does not automatically apply to this v1 adapter; the provider therefore
+remains non-routable until the v1 scope and terms are verified and recorded.
 
 FRED returns single scalar observations, not OHLCV.  open=high=low=close=value
 so bars integrate cleanly with the existing OHLCVBar model.
@@ -22,26 +26,87 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
+from email.utils import parsedate_to_datetime
+from math import isfinite
 
 import httpx
 
-from app.config import settings
+from app.config import (
+    fred_data_use_controls_missing,
+    fred_series_rights_authorized,
+    settings,
+)
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+    provider_response_headers,
+    raise_for_provider_error_envelope,
+)
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
 _BASE = "https://api.stlouisfed.org/fred"
 
 
-def _assert_key() -> bool:
-    """Return True if FRED_API_KEY is configured, False (with a warning) if not."""
+def _assert_key() -> None:
+    """Require FRED credentials so missing configuration cannot look like no data."""
     if settings.FRED_API_KEY:
-        return True
+        return
     logger.warning(
-        "fred: FRED_API_KEY is not set — skipping this call and falling back to next provider. "
+        "fred: FRED_API_KEY is not set — refusing this call so the runtime can fall back. "
         "Get a free key at fred.stlouisfed.org/docs/api/api_key.html and set it in .env.dev."
     )
-    return False
+    raise ProviderNotConfiguredError("fred requires FRED_API_KEY")
+
+
+def _assert_data_use_authority(series_id: str) -> None:
+    """Fail before transport unless global and exact-series rights are recorded."""
+
+    missing = fred_data_use_controls_missing(settings)
+    if not fred_series_rights_authorized(series_id, settings):
+        missing.append(f"FRED_SERIES_RIGHTS_EVIDENCE[{series_id}]")
+    if missing:
+        raise ProviderNotConfiguredError(
+            "fred data use is not authorized by the configured evidence controls: "
+            + ", ".join(missing)
+        )
+
+
+def _raise_typed_rate_limit(exc: httpx.HTTPStatusError) -> None:
+    """Preserve FRED capacity rejections for runtime quota accounting.
+
+    FRED v1 documents a 120-requests/minute threshold, but its enforcement
+    scope and provider-adjustable limits remain unresolved. A 429/418 response
+    is still provider-native evidence that the current request must not be
+    treated as an empty data set. Headers remain observational and are carried
+    to the runtime without inventing a reset window.
+    """
+
+    response = exc.response
+    if response.status_code not in {418, 429}:
+        return
+    headers = provider_response_headers(response)
+    retry_at: datetime | None = None
+    retry_after = headers.get("retry-after") or headers.get("Retry-After")
+    if retry_after:
+        try:
+            retry_at = datetime.now(UTC) + timedelta(seconds=max(0, float(retry_after)))
+        except ValueError:
+            try:
+                parsed = parsedate_to_datetime(retry_after)
+                retry_at = parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+            except (TypeError, ValueError, OverflowError):
+                retry_at = None
+    raise ProviderRateLimitError(
+        "fred",
+        f"FRED request rejected for capacity (HTTP {response.status_code})",
+        retry_at=retry_at,
+        status_code=response.status_code,
+        headers=headers,
+    ) from exc
 
 
 # Canonical platform symbol → FRED series ID
@@ -97,10 +162,12 @@ class FREDProvider:
         series_id = _SERIES_MAP.get(symbol)
         if series_id is None:
             return []
-        if not _assert_key():
-            return []
-        if timeframe not in (Timeframe.D1, Timeframe.W1, Timeframe.MN):
-            return []
+        _assert_key()
+        if timeframe is not Timeframe.D1:
+            raise ProviderResponseError(
+                self.name, f"FRED does not support timeframe {timeframe.value}"
+            )
+        _assert_data_use_authority(series_id)
 
         try:
             r = httpx.get(
@@ -115,20 +182,37 @@ class FREDProvider:
                 },
                 timeout=30,
             )
+            observe_response(r)
             r.raise_for_status()
-            observations = r.json().get("observations", [])
-        except Exception as exc:
-            logger.warning("fred fetch_ohlcv %s (%s): %s", symbol, series_id, exc)
-            return []
+            payload = r.json()
+            raise_for_provider_error_envelope(
+                "fred", payload, r.status_code, headers=provider_response_headers(r)
+            )
+            observations = _observations(payload, "history")
+        except httpx.HTTPStatusError as exc:
+            _raise_typed_rate_limit(exc)
+            raise ProviderResponseError(
+                "fred", f"FRED request failed with HTTP {exc.response.status_code}"
+            ) from exc
+        except (ProviderRateLimitError, ProviderResponseError):
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError("fred", str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError("fred", "FRED returned invalid JSON") from exc
 
         bars: list[OHLCVBar] = []
         for obs in observations:
-            raw_val = obs.get("value", ".")
-            if raw_val == "." or not raw_val:
+            if "value" not in obs or "date" not in obs:
+                raise ProviderResponseError("fred", "FRED returned a malformed observation row")
+            raw_val = obs["value"]
+            if raw_val == ".":
                 continue  # FRED uses "." for missing/unreleased data
             try:
                 ts = datetime.strptime(obs["date"], "%Y-%m-%d").replace(tzinfo=UTC)
                 val = float(raw_val)
+                if not isfinite(val):
+                    raise ValueError("non-finite FRED observation")
                 bars.append(
                     OHLCVBar(
                         instrument_id=instrument_id,
@@ -142,10 +226,20 @@ class FREDProvider:
                         volume=None,
                         vwap=None,
                         is_adjusted=True,
+                        adjustment_basis="provider_adjusted",
+                        adjustment_version="fred-v1",
+                        provenance={
+                            "provider": self.name,
+                            "endpoint": "/series/observations",
+                            "series_id": series_id,
+                            "provider_payload": obs,
+                        },
                     )
                 )
-            except (KeyError, ValueError):
-                continue
+            except (TypeError, ValueError) as exc:
+                raise ProviderResponseError(
+                    "fred", "FRED returned an invalid observation row"
+                ) from exc
 
         return bars
 
@@ -172,6 +266,10 @@ class FREDProvider:
         return bars[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        if timeframe is not Timeframe.D1:
+            raise ProviderResponseError(
+                self.name, f"FRED does not support timeframe {timeframe.value}"
+            )
         # FRED is daily at finest; look back generously to handle weekends/holidays
         return datetime.now(UTC) - timedelta(days=limit * 2 + 30)
 
@@ -179,8 +277,10 @@ class FREDProvider:
 
     def get_current_price(self, symbol: str) -> float | None:
         series_id = _SERIES_MAP.get(symbol)
-        if series_id is None or not _assert_key():
+        if series_id is None:
             return None
+        _assert_key()
+        _assert_data_use_authority(series_id)
         try:
             r = httpx.get(
                 f"{_BASE}/series/observations",
@@ -193,13 +293,40 @@ class FREDProvider:
                 },
                 timeout=10,
             )
+            observe_response(r)
             r.raise_for_status()
-            for obs in r.json().get("observations", []):
-                v = obs.get("value", ".")
-                if v != "." and v:
-                    return float(v)
-        except Exception as exc:
-            logger.debug("fred get_current_price %s: %s", symbol, exc)
+            payload = r.json()
+            raise_for_provider_error_envelope(
+                "fred", payload, r.status_code, headers=provider_response_headers(r)
+            )
+            for obs in _observations(payload, "latest price"):
+                if "value" not in obs:
+                    raise ProviderResponseError("fred", "FRED returned a malformed observation row")
+                v = obs["value"]
+                if v == ".":
+                    continue
+                try:
+                    value = float(v)
+                except (TypeError, ValueError) as exc:
+                    raise ProviderResponseError(
+                        "fred", "FRED returned an invalid latest observation"
+                    ) from exc
+                if not isfinite(value):
+                    raise ProviderResponseError(
+                        "fred", "FRED returned a non-finite latest observation"
+                    )
+                return value
+        except httpx.HTTPStatusError as exc:
+            _raise_typed_rate_limit(exc)
+            raise ProviderResponseError(
+                "fred", f"FRED request failed with HTTP {exc.response.status_code}"
+            ) from exc
+        except (ProviderRateLimitError, ProviderResponseError):
+            raise
+        except httpx.RequestError as exc:
+            raise ProviderResponseError("fred", str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError("fred", "FRED returned invalid JSON") from exc
         return None
 
 
@@ -214,3 +341,18 @@ def is_fred_symbol(symbol: str) -> bool:
 def fred_series_for(symbol: str) -> str | None:
     """Return the FRED series ID for a platform canonical symbol, or None."""
     return _SERIES_MAP.get(symbol)
+
+
+def _observations(payload: object, operation: str) -> list[dict]:
+    if not isinstance(payload, dict):
+        raise ProviderResponseError("fred", f"FRED {operation} returned an invalid response object")
+    observations = payload.get("observations")
+    if not isinstance(observations, list):
+        raise ProviderResponseError(
+            "fred", f"FRED {operation} returned an invalid observations array"
+        )
+    if any(not isinstance(observation, dict) for observation in observations):
+        raise ProviderResponseError(
+            "fred", f"FRED {operation} returned a malformed observation row"
+        )
+    return observations
