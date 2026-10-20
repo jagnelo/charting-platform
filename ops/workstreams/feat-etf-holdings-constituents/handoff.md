@@ -12048,3 +12048,30 @@ The feature remains in progress and unaccepted. The actual shared-runtime
 bridge still waits for the coordinator's accepted green Provider staging
 release; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined, and the full
 roadmap and later observation gate remain open.
+
+## Exact CI39408145628 lifecycle compatibility repair — 2026-10-20
+
+Exact run `39408145628` for source
+`8169555e01267566a7329c2181270a40a167faed` is terminal RED. Frontend Unit and
+Branch-declared Tests passed; Backend unit tests passed, then the integration
+step reported 8 failures in `test_etf_holdings.py`, `test_watchlists.py`, and
+`test_workspaces.py`. Five failures proved that evaluating a capability without
+an adapter-state check had changed watchlist lifecycle semantics (`unknown`,
+`profile_not_loaded`, and `holdings_snapshot_unresolved` became `stale` or
+`degraded`). This behavior change was unintended. The route provenance now
+still derives cached identity/provider/transport/freshness metadata from the
+stored profile/snapshot but preserves the existing `_holdings_snapshot_availability`
+and leaves current usability unknown when no route check exists. Historical
+and pending semantics remain intact.
+
+The other three failures were strict exact-payload assertions that correctly
+detected the additive direct-409 lineage fields. Their existing error-code,
+availability, source-tier, usability and reason assertions remain exact; the
+tests now also compare every new lineage field against the capability response.
+A pure unit test covers snapshot/provider/freshness propagation while ensuring
+an unchecked route stays `unknown`. Three direct, no-fixture executions of the
+relevant pure test functions passed. Ruff check/format, the 38-record
+workstream validator, and `git diff --check` passed. No local DB/TestClient or
+browser fixture was launched. A fresh exact-source CI is required after this
+compatibility repair is published; run `39408145628` is preserved as red, not
+reclassified or rerun.

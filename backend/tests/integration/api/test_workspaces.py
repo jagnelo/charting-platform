@@ -1,3 +1,29 @@
+_CURRENT_ERROR_LINEAGE_FIELDS = (
+    "displayable_last_known",
+    "identity_verified",
+    "adapter_key",
+    "source_provider",
+    "transport_kind",
+    "composition_date",
+    "published_at",
+    "freshness_deadline",
+    "last_checked_at",
+    "last_success_at",
+    "last_failure_at",
+    "completeness_status",
+    "row_count",
+    "resolved_count",
+    "unresolved_count",
+)
+
+
+def _expected_current_error(base: dict, capability: dict) -> dict:
+    return {
+        **base,
+        **{field: capability[field] for field in _CURRENT_ERROR_LINEAGE_FIELDS},
+    }
+
+
 class TestWorkspaces:
     def test_default_workspace_is_top_down_and_revisioned(self, client, auth_headers):
         response = client.get("/api/v1/workspaces/default", headers=auth_headers)
@@ -1859,14 +1885,19 @@ class TestWorkspaces:
 
         current = client.get("/api/v1/market-groups/etf/INDX/industries", headers=auth_headers)
         assert current.status_code == 409
-        assert current.json()["detail"] == {
-            "code": "etf_holdings_not_current",
-            "availability": "stale",
-            "source_tier": "issuer_native",
-            "usable_for_current_analysis": False,
-            "failure_class": None,
-            "reason": "No concrete ETF holdings adapter is assigned to this profile.",
-        }
+        capability = client.get("/api/v1/etf-holdings/INDX/capability", headers=auth_headers)
+        assert capability.status_code == 200
+        assert current.json()["detail"] == _expected_current_error(
+            {
+                "code": "etf_holdings_not_current",
+                "availability": "stale",
+                "source_tier": "issuer_native",
+                "usable_for_current_analysis": False,
+                "failure_class": None,
+                "reason": "No concrete ETF holdings adapter is assigned to this profile.",
+            },
+            capability.json(),
+        )
 
         response = client.get(
             "/api/v1/market-groups/etf/INDX/industries",
@@ -3907,14 +3938,19 @@ class TestWorkspaces:
             params={"benchmark": instrument.symbol},
         )
         assert current.status_code == 409
-        assert current.json()["detail"] == {
-            "code": "etf_holdings_not_current",
-            "availability": "stale",
-            "source_tier": "issuer_native",
-            "usable_for_current_analysis": False,
-            "failure_class": None,
-            "reason": "No concrete ETF holdings adapter is assigned to this profile.",
-        }
+        capability = client.get("/api/v1/etf-holdings/MIXD/capability", headers=auth_headers)
+        assert capability.status_code == 200
+        assert current.json()["detail"] == _expected_current_error(
+            {
+                "code": "etf_holdings_not_current",
+                "availability": "stale",
+                "source_tier": "issuer_native",
+                "usable_for_current_analysis": False,
+                "failure_class": None,
+                "reason": "No concrete ETF holdings adapter is assigned to this profile.",
+            },
+            capability.json(),
+        )
 
         response = client.get(
             "/api/v1/analysis/etf/MIXD/constituents/snapshot",

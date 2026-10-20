@@ -8,6 +8,31 @@ from xml.sax.saxutils import escape
 import httpx
 import pytest
 
+_CURRENT_ERROR_LINEAGE_FIELDS = (
+    "displayable_last_known",
+    "identity_verified",
+    "adapter_key",
+    "source_provider",
+    "transport_kind",
+    "composition_date",
+    "published_at",
+    "freshness_deadline",
+    "last_checked_at",
+    "last_success_at",
+    "last_failure_at",
+    "completeness_status",
+    "row_count",
+    "resolved_count",
+    "unresolved_count",
+)
+
+
+def _expected_current_error(base: dict, capability: dict) -> dict:
+    return {
+        **base,
+        **{field: capability[field] for field in _CURRENT_ERROR_LINEAGE_FIELDS},
+    }
+
 
 def _xlsx_workbook(rows: list[list[str]]) -> bytes:
     def cell_ref(column_index: int, row_index: int) -> str:
@@ -3487,14 +3512,19 @@ def test_etf_holdings_basket_rejects_non_current_without_historical_selection(
 
     current = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
     assert current.status_code == 409
-    assert current.json()["detail"] == {
-        "code": "etf_holdings_not_current",
-        "availability": "degraded",
-        "source_tier": "sec_filing",
-        "usable_for_current_analysis": False,
-        "failure_class": None,
-        "reason": "Holdings are reconstructed from SEC filings and are not issuer-current support.",
-    }
+    capability = client.get("/api/v1/etf-holdings/DIA/capability", headers=auth_headers)
+    assert capability.status_code == 200
+    assert current.json()["detail"] == _expected_current_error(
+        {
+            "code": "etf_holdings_not_current",
+            "availability": "degraded",
+            "source_tier": "sec_filing",
+            "usable_for_current_analysis": False,
+            "failure_class": None,
+            "reason": "Holdings are reconstructed from SEC filings and are not issuer-current support.",
+        },
+        capability.json(),
+    )
 
     historical = client.get(
         "/api/v1/etf-holdings/DIA/basket?date=2026-05-31",

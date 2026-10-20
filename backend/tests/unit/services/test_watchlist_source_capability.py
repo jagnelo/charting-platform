@@ -1,6 +1,10 @@
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
-from app.services.watchlist_sources import current_analysis_source_error_detail
+from app.services.watchlist_sources import (
+    _holdings_route_provenance,
+    current_analysis_source_error_detail,
+)
 
 
 def _source(source_kind: str, provenance: dict):
@@ -112,6 +116,55 @@ def test_pending_etf_source_remains_available_for_hydration():
         )
         is None
     )
+
+
+def test_cached_route_lineage_does_not_change_pending_state_without_adapter_check():
+    known_at = datetime(2026, 10, 19, 8, 5, tzinfo=UTC)
+    published_at = datetime(2026, 10, 19, 8, 0, tzinfo=UTC)
+    profile = SimpleNamespace(
+        id=7,
+        adapter_key="ark",
+        adapter_status="success",
+        adapter_confidence=None,
+        instrument=SimpleNamespace(symbol="ARKK"),
+    )
+    snapshot = SimpleNamespace(
+        id=42,
+        snapshot_hash="snapshot-sha256",
+        known_at=known_at,
+        published_at=published_at,
+        source_quality="issuer_current",
+        completeness_status="complete",
+        row_count=10,
+        resolved_count=9,
+        unresolved_count=1,
+        total_weight=None,
+        composition_date=date(2026, 10, 19),
+        source_provider="ark",
+        provenance="issuer_current_holdings",
+        source_url="https://issuer.example/current.csv",
+        extra_data={"artifact_identity_validation": {"status": "matched"}},
+    )
+
+    provenance = _holdings_route_provenance(profile, snapshot)
+
+    assert provenance["availability"] == "unknown"
+    assert provenance["usable_for_current_analysis"] is None
+    assert provenance["identity_verified"] is True
+    assert provenance["displayable_last_known"] is True
+    assert provenance["adapter_key"] == "ark"
+    assert provenance["source_provider"] == "ark"
+    assert provenance["transport_kind"] == "file_export"
+    assert provenance["snapshot_id"] == 42
+    assert provenance["snapshot_hash"] == "snapshot-sha256"
+    assert provenance["known_at"] == known_at.isoformat()
+    assert provenance["composition_date"] == "2026-10-19"
+    assert provenance["snapshot_published_at"] == published_at.isoformat()
+    assert provenance["freshness_deadline"] == "2026-10-26"
+    assert provenance["completeness_status"] == "complete"
+    assert provenance["row_count"] == 10
+    assert provenance["resolved_count"] == 9
+    assert provenance["unresolved_count"] == 1
 
 
 def test_personal_sources_and_explicit_historical_etf_sources_are_not_rejected():

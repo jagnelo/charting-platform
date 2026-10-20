@@ -323,7 +323,11 @@ def _holdings_route_provenance(
         "known_at": snapshot.known_at.isoformat()
         if snapshot is not None and snapshot.known_at is not None
         else None,
-        "availability": capability.availability if capability is not None else None,
+        "availability": (
+            capability.availability
+            if capability is not None and state is not None
+            else _holdings_snapshot_availability(profile, snapshot, state, as_of=as_of)
+        ),
         "source_tier": capability.source_tier if capability is not None else None,
         "identity_verified": capability.identity_verified if capability is not None else None,
         "displayable_last_known": (
@@ -363,7 +367,9 @@ def _holdings_route_provenance(
         "failure_class": capability.failure_class if capability is not None else None,
         "capability_reason": capability.reason if capability is not None else None,
         "usable_for_current_analysis": (
-            capability.usable_for_current_analysis if capability is not None else None
+            capability.usable_for_current_analysis
+            if capability is not None and state is not None
+            else None
         ),
     }
 
