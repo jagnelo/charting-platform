@@ -68,6 +68,44 @@ def test_finra_short_interest_and_daily_list_have_case_scoped_operations():
     }
 
 
+def test_binance_history_case_inventory_includes_every_usage_refresh_transport():
+    runner = _runner_module()
+    cases_and_refresh_counts = {
+        "test_binance_keyless_crypto_history": 3,
+        "test_binance_keyless_bounded_daily_history": 1,
+    }
+
+    for case_name, refresh_count in cases_and_refresh_counts.items():
+        assert runner.LIVE_CASE_OPERATIONS["binance"][case_name] == {
+            "fetch_account_usage",
+            *(
+                {"fetch_latest_ohlcv", "get_current_price", "discover_universe_page"}
+                if case_name == "test_binance_keyless_crypto_history"
+                else {"fetch_ohlcv"}
+            ),
+        }
+        assert runner.LIVE_CASE_OPERATION_MULTIPLIERS["binance"][case_name][
+            "fetch_account_usage"
+        ] == refresh_count
+
+        selected, transport_operations = runner.parse_live_case_selectors(
+            [f"binance:{case_name}"], {"binance"}
+        )
+        assert transport_operations["binance"] == runner.LIVE_CASE_OPERATIONS[
+            "binance"
+        ][case_name]
+        assert runner.selected_case_operation_multipliers(selected)["binance"][
+            "fetch_account_usage"
+        ] == refresh_count
+
+    # Provider/full-matrix mode also sees the implicit requests in addition to
+    # the dedicated one-request account-usage snapshot case.
+    assert runner.LIVE_MATRIX_OPERATION_MULTIPLIERS["binance"][
+        "fetch_account_usage"
+    ] == 5
+    assert runner.live_matrix_inventory_errors() == []
+
+
 def test_eodhd_compound_small_read_accounts_for_every_operation_and_repeat():
     runner = _runner_module()
 

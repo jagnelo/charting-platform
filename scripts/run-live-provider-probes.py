@@ -483,11 +483,15 @@ LIVE_CASE_OPERATIONS = {
     },
     "binance": {
         "test_binance_keyless_crypto_history": {
+            "fetch_account_usage",
             "fetch_latest_ohlcv",
             "get_current_price",
             "discover_universe_page",
         },
-        "test_binance_keyless_bounded_daily_history": {"fetch_ohlcv"},
+        "test_binance_keyless_bounded_daily_history": {
+            "fetch_account_usage",
+            "fetch_ohlcv",
+        },
         "test_binance_keyless_account_usage_snapshot": {"fetch_account_usage"},
     },
     "alpha_vantage": {
@@ -1038,6 +1042,14 @@ LIVE_OPERATION_COST_OVERRIDES = {
 # operation-cost override is the conservative cost for each invocation; this
 # map records how many times that case invokes the same operation.
 LIVE_CASE_OPERATION_MULTIPLIERS = {
+    "binance": {
+        # Each call to _ensure_binance_live_usage_baseline may issue a
+        # metered /time bootstrap when the native minute has rolled over.
+        # The history cases deliberately recheck before every data request, so
+        # preflight the maximum helper transports, not merely the data reads.
+        "test_binance_keyless_crypto_history": {"fetch_account_usage": 3},
+        "test_binance_keyless_bounded_daily_history": {"fetch_account_usage": 1},
+    },
     "eodhd": {
         "test_optional_credentialed_provider_small_read": {"fetch_ohlcv": 3},
     },

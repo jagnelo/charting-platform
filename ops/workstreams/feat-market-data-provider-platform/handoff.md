@@ -1,5 +1,68 @@
 # feat/market-data-provider-platform
 
+## 2026-10-20 10:27 UTC — bounded proof stopped at OpenFIGI usage baseline
+
+- Current source `0d8945133ddc2e0549a6484da644518aa87ae843` is synchronized
+  with origin. Exact Actions run `39402748911` is terminal green: Backend,
+  Frontend Unit, Branch-declared, and Playwright passed; Exhaustive was skipped
+  by feature-branch policy. The current-source no-transport admission and
+  retained-plan regression selection passed `23/23`.
+- Restored and verified only the coordinator-reviewed conditional index
+  candidate (`a716343dbc292f7a229006ae39178be069d87d21`, parent `0d894...`);
+  the existing strict staged-source matcher accepted it. The private bounded
+  plan was unchanged at SHA-256
+  `5e823e65f7eeaa43b1260b2231db2676e820b2c5e068202ca5d92fa2fdf48a81`.
+- Under the coordinator's conditional authorization, the first selected
+  OpenFIGI account-usage bootstrap passed once: 1 HTTP request, 8,812 response
+  bytes, receipt run `de4a4ff9-a418-471f-955c-9bfa5951c4aa`, staged tree
+  `a716...`. Its original response is retained in the owner-private
+  `provider-live-responses.jsonl` archive. No data-capability call followed.
+- The required fresh `openfigi:test_openfigi_keyless_mapping` preflight first
+  found the default sandbox ledger view read-only. Repeating that same
+  no-transport preflight with access to the configured durable ledger reached
+  admission but denied the operation because the active
+  `mapping_requests_per_minute` usage baseline was unknown. That result was
+  recorded at 10:26:56 UTC, 84 seconds after the bootstrap; the 60-second
+  provider window had elapsed. No other provider/case ran, and there was no
+  retry, issuer call, second provider call, hold change, or quota reset.
+- The 45-case/99-transport draft cannot continue as-is: it requires a fresh,
+  verified baseline after bootstrap, but the selected bootstrap was already
+  consumed and per-case admission failed. The proposed readiness index was
+  therefore unstaged without altering its working files. Plan/working status
+  remains `in_progress`; no conditional closure was committed or published.
+- Existing `63e` local backend, migration, frontend coverage/type/build,
+  Compose/security probes, functional, and visual receipts remain source-bound
+  and reusable only under their recorded AST/source equivalence; no heavy gate
+  was repeated. All held/unknown/paid/trial/unreviewed operations remain
+  non-routable.
+- Next: central coordinator reviews the exact partial receipt and decides the
+  smallest safe correction to the bootstrap/per-case sequence and bounded
+  ceiling. Do not repeat OpenFIGI or run another provider case until that
+  direction; the current preflight blocker is not a live acceptance pass.
+
+## 2026-10-20 11:05 UTC — Binance helper transports included in case admission
+
+- Test-first no-network regression initially failed because the two selected
+  Binance history cases omitted the helper's possible `fetch_account_usage`
+  transport. The runner case inventory now includes it with conservative
+  multipliers of three for crypto history and one for bounded daily history;
+  full-matrix inventory is five including the dedicated usage snapshot.
+- Focused regressions passed 5/5, and Ruff plus `git diff --check` passed.
+  The checks covered case selector/multiplier accounting, full-matrix counts,
+  the existing Binance rollover behavior, usage-only selection, and Finnhub's
+  expected-denial accounting. No provider/issuer HTTP or quota reservation or
+  spend occurred during this source correction.
+- Static no-network review of all 45 selected case functions found no other
+  unlisted helper-triggered transport. Existing partial live receipts remain
+  bound to candidate tree `12923203...`; this runner source change invalidates
+  that candidate and does not rebind any receipt.
+- The completed bounded attempt used 8 new requests plus one historical
+  request under the combined 100-call cap. The corrected complete fresh-run
+  maximum is 103 future calls; after the five already completed cases, 93
+  remain versus 91 available. Do not resume transport using the old selection
+  or add budget slack. Keep the checkpoint `in_progress` and await review of a
+  safe remaining selection after exact-source CI.
+
 ## 2026-10-20 02:00+01:00 — corrected 99-transport plan generated from pushed source
 
 - The coherent implementation/evidence commit is pushed at exact source
@@ -29057,3 +29120,93 @@ reset, dataset cleanup, or sibling worktree modification is authorized.
   import it directly or start browser/Compose validation. After this narrow
   fix is published, run exact CI and the full backend gate; later reconcile
   only the released green staging SHA and re-evaluate source identities.
+
+## 2026-10-20 — bounded candidate proof stopped on transport-budget mismatch
+
+- Executed the root-bound staged candidate tree
+  `12923203f4d8f990a8938d70e762721e0cd2f778` (parent/source
+  `0d8945133ddc2e0549a6484da644518aa87ae843`; plan SHA-256
+  `5e823e65f7eeaa43b1260b2231db2676e820b2c5e068202ca5d92fa2fdf48a81`).
+  The immutable source/index remained unchanged during the run.
+- The previous a716 OpenFIGI usage request remains historical and counts only
+  toward the combined cap; it was not rebound. The new proof made exactly eight
+  requests across five cases before stopping: OpenFIGI usage (1 request,
+  8,812 bytes, run `671335ee-7927-4f36-b9c7-805fdb454d6e`), mapping (1,
+  8,812 bytes, `c6b732fd-fb08-4468-8f62-8d1251c7844a`), profile resolution
+  (1, 76,959 bytes, `5c12cf77-aa92-4d59-8d8f-cf5bda77ff7e`), Binance usage
+  (1, 28 bytes, `480e0a92-2103-49e8-b290-9515495ae847`), and Binance crypto
+  history (4 requests, 17,768,130 bytes,
+  `0d26df81-6711-4133-b818-bccefbbe9a19`). All five pytest cases passed and
+  the runner used no retries. Combined actual transport count is 9 including
+  the one historical a716 request; no later selected case was launched.
+- The reviewed plan forecast 3 transports for Binance crypto history (weights
+  20 + 2 + 2 = 24). The actual case made those three separately observed
+  transports plus one internal `fetch_account_usage` refresh. Read-only
+  durable-ledger inspection by run ID found all four transport reservations
+  settled: account-usage refresh reserved/settled request weight 1 and
+  account-usage concurrency 1; latest OHLCV weight 2; current-price weight 2;
+  universe-page discovery weight 20. Thus this was not an unreserved HTTP
+  call; the private plan and canonical per-case transport/preflight inventory
+  omitted a helper-triggered bootstrap. The provider receipt totals 4 HTTP
+  requests, but its mapped operation breakdown currently lists only the three
+  planned operations, confirming an attribution/inventory gap as well.
+- Static no-network AST/call-graph review of all 45 selected cases found no
+  other `_ensure_*` helper that performs an unlisted observed provider read.
+  The second Binance history case also calls the same refresh helper once
+  before its planned `fetch_ohlcv` read. Because the helper may refresh at
+  every call site after a native-window rollover, the conservative missing
+  transport bound is up to 3 `fetch_account_usage` calls for crypto history
+  and 1 for bounded daily history, each with request weight 1 plus its
+  concurrency reservation. Existing explicit multi-request cases remain
+  represented in their operation multipliers.
+- The orchestration stopped immediately after detecting `actual=4` versus
+  `planned=3`; it did not execute any later cases. The 100-total cap remains
+  binding, but the remaining candidate budget is not safe to use against the
+  old 99-future plan. No additional provider request, reservation, quota reset,
+  or hold change occurred after the stop. All holds remain unchanged.
+- Reservation detail: the implicit `/api/v3/time` call had one reservation ID
+  containing the `account_usage_probe_concurrency` slot (1, release-only) and
+  one `request_weight_per_minute` unit. The concurrency slot was reserved
+  before transport; the one native weight unit was reconciled/settled after
+  the usage response, as specified by the account-usage bootstrap contract.
+  The three data calls each had their own reservation and settled weights 2,
+  2, and 20. All four reservations reached `settled`; this is not an
+  unreserved-send or settlement failure.
+- A no-network AST/call-graph audit covered all 45 selected case functions.
+  Only the two Binance history tests transitively call an `_ensure_*` helper
+  that performs an additional observed transport. Other selected compound or
+  multi-request cases are explicitly mapped and costed: their repeated
+  operations use `LIVE_CASE_OPERATION_MULTIPLIERS` and adapter-internal
+  multi-request operations have reviewed per-call costs (for example SEC
+  profile 2, Massive corporate actions 2, CoinGecko profile 2 per call,
+  xStocks/Robinhood token prices, and Gate's per-operation request weights).
+  The existing Binance rollover unit test proves the refresh is retained and
+  only skipped while the observed reset is still in the future.
+- Test-first correction: the new no-network inventory regression failed before
+  the source change because both Binance history cases omitted
+  `fetch_account_usage`. The runner now includes that actual helper operation
+  in both case mappings and conservatively records up to 3 refresh calls for
+  `test_binance_keyless_crypto_history` (one before each data read) and 1 for
+  `test_binance_keyless_bounded_daily_history`. The per-case selector/multiplier
+  test, full-matrix inventory validation, existing rollover test, dedicated
+  account-usage-only selection test, and Finnhub denial regression pass 5/5.
+  Full/provider inventory now counts five Binance usage requests (three + one
+  helper maxima and the dedicated snapshot); account-usage-only still selects
+  only the dedicated snapshot. No production transport or settlement code
+  changed.
+- This runner/test change invalidates tree `12923203` as a current proof
+  candidate. Do not relabel the five actual results or mutate their receipts;
+  retain them as partial evidence bound to their recorded tree. No further
+  provider HTTP, reservation, or quota spend occurred during the diagnosis.
+  The old 99-future plan is under-counted: with a full fresh execution from its
+  start, the helper maximum adds 4 transports (total 103 future, 104 including
+  the historical request). After the 5 completed cases, the remaining 40
+  selected cases have a conservative old-plan cost of 92; the unrun Binance
+  bounded-history helper adds one, so 93 transports remain to prove versus
+  only 91 left under the approved combined cap. A newly reviewed selection or
+  bound is required before any further live request; do not invent slack or
+  remove required operation coverage. All five existing holds remain.
+- The source/test and truthful progress records must be reviewed/published as
+  one coherent in-progress changeset with a new exact-source CI. Do not rerun
+  any of the five completed cases for freshness. Checkpoint remains
+  `in_progress`, not accepted or ready.
