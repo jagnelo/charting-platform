@@ -165,15 +165,26 @@ def test_current_analysis_error_detail_preserves_failure_classification():
     assert detail["adapter_key"] == "issuer"
     assert detail["source_provider"] == "issuer"
     assert detail["composition_date"] == "2026-09-03"
-    assert detail["published_at"] == NOW.isoformat()
+    assert detail["published_at"] == "2026-09-04T12:00:00Z"
     assert detail["freshness_deadline"] == "2026-09-10"
-    assert detail["last_checked_at"] == NOW.isoformat()
-    assert detail["last_success_at"] == NOW.isoformat()
-    assert detail["last_failure_at"] == NOW.isoformat()
+    assert detail["last_checked_at"] == "2026-09-04T12:00:00Z"
+    assert detail["last_success_at"] == "2026-09-04T12:00:00Z"
+    assert detail["last_failure_at"] == "2026-09-04T12:00:00Z"
     assert detail["completeness_status"] == "complete"
     assert detail["row_count"] == 25
     assert detail["resolved_count"] == 24
     assert detail["unresolved_count"] == 1
+
+
+def test_wire_datetime_normalizes_offsets_to_utc_z():
+    from app.services.etf_holdings_capability import wire_datetime
+
+    assert wire_datetime(datetime(2026, 9, 4, 14, tzinfo=UTC).replace(tzinfo=None)) == (
+        "2026-09-04T14:00:00Z"
+    )
+    assert wire_datetime(datetime.fromisoformat("2026-09-04T14:00:00+02:00")) == (
+        "2026-09-04T12:00:00Z"
+    )
 
 
 def test_unspecified_cadence_expires_after_conservative_window():

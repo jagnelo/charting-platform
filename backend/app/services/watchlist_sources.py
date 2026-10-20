@@ -25,7 +25,11 @@ from app.models.user import User
 from app.models.watchlist import Watchlist
 from app.models.workstation import MarketGroup, WorkspaceLibraryItem
 from app.schemas.watchlist import WatchlistSourceRead
-from app.services.etf_holdings_capability import evaluate_capability, load_latest_adapter_state
+from app.services.etf_holdings_capability import (
+    evaluate_capability,
+    load_latest_adapter_state,
+    wire_datetime,
+)
 
 PENDING_SOURCE_AVAILABILITIES = frozenset(
     {
@@ -91,12 +95,12 @@ def current_analysis_source_error_detail(
         "snapshot_id": provenance.get("snapshot_id"),
         "snapshot_hash": provenance.get("snapshot_hash"),
         "composition_date": provenance.get("composition_date"),
-        "published_at": provenance.get("snapshot_published_at"),
-        "known_at": provenance.get("known_at"),
+        "published_at": wire_datetime(provenance.get("snapshot_published_at")),
+        "known_at": wire_datetime(provenance.get("known_at")),
         "freshness_deadline": provenance.get("freshness_deadline"),
-        "last_checked_at": provenance.get("last_checked_at"),
-        "last_success_at": provenance.get("last_success_at"),
-        "last_failure_at": provenance.get("last_failure_at"),
+        "last_checked_at": wire_datetime(provenance.get("last_checked_at")),
+        "last_success_at": wire_datetime(provenance.get("last_success_at")),
+        "last_failure_at": wire_datetime(provenance.get("last_failure_at")),
         "completeness_status": provenance.get("completeness_status"),
         "row_count": provenance.get("snapshot_row_count"),
         "resolved_count": provenance.get("snapshot_resolved_count"),
@@ -314,15 +318,11 @@ def _holdings_route_provenance(
             else None
         ),
         "snapshot_published_at": (
-            snapshot.published_at.isoformat()
-            if snapshot is not None and snapshot.published_at is not None
-            else None
+            wire_datetime(snapshot.published_at) if snapshot is not None else None
         ),
         "snapshot_id": snapshot.id if snapshot is not None else None,
         "snapshot_hash": snapshot.snapshot_hash if snapshot is not None else None,
-        "known_at": snapshot.known_at.isoformat()
-        if snapshot is not None and snapshot.known_at is not None
-        else None,
+        "known_at": wire_datetime(snapshot.known_at) if snapshot is not None else None,
         "availability": (
             capability.availability
             if capability is not None and state is not None
@@ -346,19 +346,13 @@ def _holdings_route_provenance(
             else None
         ),
         "last_checked_at": (
-            capability.last_checked_at.isoformat()
-            if capability is not None and capability.last_checked_at is not None
-            else None
+            wire_datetime(capability.last_checked_at) if capability is not None else None
         ),
         "last_success_at": (
-            capability.last_success_at.isoformat()
-            if capability is not None and capability.last_success_at is not None
-            else None
+            wire_datetime(capability.last_success_at) if capability is not None else None
         ),
         "last_failure_at": (
-            capability.last_failure_at.isoformat()
-            if capability is not None and capability.last_failure_at is not None
-            else None
+            wire_datetime(capability.last_failure_at) if capability is not None else None
         ),
         "completeness_status": capability.completeness_status if capability is not None else None,
         "row_count": capability.row_count if capability is not None else None,
@@ -536,9 +530,7 @@ def _etf_descriptor(
             "profile_id": profile.id if profile is not None else None,
             "snapshot_id": snapshot.id if snapshot else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot else None,
-            "known_at": snapshot.known_at.isoformat()
-            if snapshot is not None and snapshot.known_at is not None
-            else None,
+            "known_at": wire_datetime(snapshot.known_at) if snapshot is not None else None,
             "completeness_status": snapshot.completeness_status if snapshot else "not_loaded",
             **_holdings_route_provenance(profile, snapshot, state, as_of=as_of),
         },

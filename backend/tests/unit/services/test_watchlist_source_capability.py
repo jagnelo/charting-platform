@@ -95,12 +95,12 @@ def test_non_current_etf_source_preserves_cached_snapshot_lineage():
     assert detail["snapshot_id"] == 42
     assert detail["snapshot_hash"] == "snapshot-sha256"
     assert detail["composition_date"] == "2026-10-19"
-    assert detail["published_at"] == "2026-10-19T08:00:00+00:00"
-    assert detail["known_at"] == "2026-10-19T08:05:00+00:00"
+    assert detail["published_at"] == "2026-10-19T08:00:00Z"
+    assert detail["known_at"] == "2026-10-19T08:05:00Z"
     assert detail["freshness_deadline"] == "2026-10-20"
-    assert detail["last_checked_at"] == "2026-10-20T08:00:00+00:00"
-    assert detail["last_success_at"] == "2026-10-19T08:00:00+00:00"
-    assert detail["last_failure_at"] == "2026-10-20T08:00:00+00:00"
+    assert detail["last_checked_at"] == "2026-10-20T08:00:00Z"
+    assert detail["last_success_at"] == "2026-10-19T08:00:00Z"
+    assert detail["last_failure_at"] == "2026-10-20T08:00:00Z"
     assert detail["completeness_status"] == "complete"
     assert detail["row_count"] == 10
     assert detail["resolved_count"] == 9
@@ -157,9 +157,9 @@ def test_cached_route_lineage_does_not_change_pending_state_without_adapter_chec
     assert provenance["transport_kind"] == "file_export"
     assert provenance["snapshot_id"] == 42
     assert provenance["snapshot_hash"] == "snapshot-sha256"
-    assert provenance["known_at"] == known_at.isoformat()
+    assert provenance["known_at"] == "2026-10-19T08:05:00Z"
     assert provenance["composition_date"] == "2026-10-19"
-    assert provenance["snapshot_published_at"] == published_at.isoformat()
+    assert provenance["snapshot_published_at"] == "2026-10-19T08:00:00Z"
     assert provenance["freshness_deadline"] == "2026-10-26"
     assert provenance["completeness_status"] == "complete"
     assert provenance["row_count"] == 10

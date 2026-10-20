@@ -190,29 +190,15 @@ def current_analysis_error_detail(capability: ETFHoldingsCapability) -> dict[str
             if capability.composition_date is not None
             else None
         ),
-        "published_at": (
-            capability.published_at.isoformat() if capability.published_at is not None else None
-        ),
+        "published_at": wire_datetime(capability.published_at),
         "freshness_deadline": (
             capability.freshness_deadline.isoformat()
             if capability.freshness_deadline is not None
             else None
         ),
-        "last_checked_at": (
-            capability.last_checked_at.isoformat()
-            if capability.last_checked_at is not None
-            else None
-        ),
-        "last_success_at": (
-            capability.last_success_at.isoformat()
-            if capability.last_success_at is not None
-            else None
-        ),
-        "last_failure_at": (
-            capability.last_failure_at.isoformat()
-            if capability.last_failure_at is not None
-            else None
-        ),
+        "last_checked_at": wire_datetime(capability.last_checked_at),
+        "last_success_at": wire_datetime(capability.last_success_at),
+        "last_failure_at": wire_datetime(capability.last_failure_at),
         "completeness_status": capability.completeness_status,
         "row_count": capability.row_count,
         "resolved_count": capability.resolved_count,
@@ -342,6 +328,26 @@ def _as_utc(value: datetime | None) -> datetime | None:
     if value is None:
         return None
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def wire_datetime(value: datetime | str | None) -> str | None:
+    """Serialize valid timestamps with the canonical UTC ``Z`` form used by API JSON."""
+
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return value
+    if value is not None and not isinstance(value, datetime):
+        return None
+    normalized = (
+        value.replace(tzinfo=UTC)
+        if isinstance(value, datetime) and value.tzinfo is None
+        else value.astimezone(UTC)
+        if isinstance(value, datetime)
+        else None
+    )
+    return normalized.isoformat().replace("+00:00", "Z") if normalized is not None else None
 
 
 def _metadata(value: Any) -> dict[str, Any]:

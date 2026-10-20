@@ -1,5 +1,39 @@
 # feat/etf-holdings-constituents
 
+## CI39409144862 rejection-contract repair — 2026-10-20
+
+Exact-source Actions run `39409144862` for `3b820888ebedc7417ddcb04b41679f332e0b5da9`
+is terminal RED: backend integration had 3 failures / 376 passes, backend unit
+passed, frontend and branch-declared jobs passed, and E2E was skipped. The
+coordinator's retained review identifies two equivalent-instant JSON spelling
+failures (`+00:00` versus API-canonical `Z`) and one watchlist rejection test
+still asserting the pre-enrichment minimal detail. No failure justified
+changing availability or enabling a non-current source.
+
+The bounded repair introduces one shared UTC wire-timestamp serializer for
+current-analysis details and ETF watchlist provenance. It normalizes datetime
+objects and valid ISO timestamp strings to UTC `Z` without changing date-only
+fields, timestamp values, PIT boundaries, or stored history. The unknown
+watchlist API test now checks the complete enriched rejection payload: unknown
+route status, issuer-native source tier, unverified identity, cached snapshot
+ID/hash/date/counts, explicit freshness and identity reason, and null route
+health/failure timestamps. Existing locked-source, current-analysis rejection,
+identity, quarantine, historical/PIT and pending lifecycle assertions remain.
+
+Local focused stack-free checks passed 4/4 unit tests; Ruff check/format, all 38
+workstream records, and `git diff --check` passed. The DB-backed watchlist
+integration test was not run locally because TC owns the heavy fixture slot;
+the exact-source hosted CI is required to prove it. Provider remains an
+unreleased dependency for the ETF_HOLDINGS bridge. MSMR/QQQ and Militia/GOOG
+remain unresolved/quarantined. No external HTTP, quota, fixture, staging/sibling
+write, or activation occurred.
+
+Next: publish the coherent source/test/handoff receipt on this ETF branch and
+inspect only the exact resulting CI run. Keep the checkpoint `in_progress`;
+acceptance still requires accepted synchronized green Provider staging,
+combined-runtime reconciliation, the required current-source full-stack browser
+profile, and coordinator review.
+
 ## Push-triggered issuer sweep made explicitly opt-in — 2026-10-16
 
 The previous exact CI `38911867173` is terminal RED on source
