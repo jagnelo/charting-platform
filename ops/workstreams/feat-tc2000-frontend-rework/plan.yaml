@@ -30,25 +30,31 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Published renderer-refresh source30529fae090624220cec06fc0796082a0386b3a2
-  has exact hosted F8n runtime proof, while strict Actions39394689368 remains
-  red on the independent chart-template save/list retry flake. The exact first-
-  attempt screenshot/error context shows `F5 line template v1` absent after
-  ordinary Save; the archive's detailed network trace is the successful retry
-  and is not used as first-attempt causality evidence. A deterministic unit
-  regression proved that a pre-save mount/open hydration was reused after the
-  PUT, leaving the stale list rendered with only one GET. The narrow candidate
-  now lets that pre-mutation hydration settle, then invalidates and issues a
-  distinct post-mutation read for save and delete. The baseline regression,
-  full component suite, adjacent popout bindings and locked type-check pass
-  (66 unit tests plus vue-tsc).
+  Published source `a8e5dbce34012b6edbb85315fe60d37987465acc` has terminal strict-
+  red Actions39402602512: Backend, Frontend Unit and Branch-declared passed;
+  E2E reports190 passed,110 declared skips and one retry-passing flake. The sole
+  first-attempt failure is the unchanged date-pointer test's `.ohlcv-info`
+  visibility assertion after mode and focus passed. Its first-failure screenshot
+  and context show `Loading SPY…`, no OHLCV bars and market-data freshness
+  `Unavailable`. The package's detailed browser trace is a successful completed
+  attempt and is not used to infer first-attempt request ordering.
 
-  Runtime proof for this candidate remains pending; preserve the strict zero-
-  flake policy, existing5-second assertion, ordinary interactions and all
-  visual oracles. Provider owns the active heavy slot, so no TC browser/Compose/
-  full matrix now. TCP2 full104, TCP3 released Provider/ETF consumers, TCP4,
-  TCP5 and official REF-HELP-V25 parity remain open; neither exact305 nor this
-  bounded candidate is whole-checkpoint or staging acceptance.
+  Source analysis found that initial chart loading waits for instrument-indicator
+  hydration before publishing already-resolved OHLCV bars. A deterministic
+  deferred-indicator regression failed on a8e5dbce with bars still empty and
+  loading true, then passed after the candidate published bars and cleared the
+  initial loading state before applying indicators. Settled same-scope refreshes
+  retain their existing atomic rendered-state behavior; the full chart-store
+  suite passes51/51 and locked `vue-tsc` passes. This source mechanism is
+  consistent with the screenshot, but the first-attempt network timing is not
+  present in the retained detailed trace, so that exact request delay is not
+  claimed as observed.
+
+  The candidate's ordinary browser proof and exact-source CI remain pending.
+  Preserve the original5-second assertion, strict flake policy and all visual
+  oracles. No browser/Compose/full matrix while Provider owns the heavy slot.
+  TCP2 full104, TCP3 released Provider/ETF consumers, TCP4, TCP5 and official
+  REF-HELP-V25 parity remain open; no checkpoint acceptance is inferred.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-

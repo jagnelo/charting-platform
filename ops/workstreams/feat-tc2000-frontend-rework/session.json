@@ -38,22 +38,23 @@
   "current_exact_ci": {
     "attempt": 1,
     "conclusion": "failure",
-    "e2e_summary": "190 passed, 110 declared skips, F8n passed once, one retry-passing chart-template save/list flake before F5 assignment",
-    "head_sha": "30529fae090624220cec06fc0796082a0386b3a2",
+    "e2e_job_id": 118564119663,
+    "e2e_summary": "190 passed, 110 declared skips, one retry-passing TC2000 date-pointer OHLCV-readout flake",
+    "head_sha": "a8e5dbce34012b6edbb85315fe60d37987465acc",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "failure_190_passed_110_declared_skips_1_chart_template_save_list_retry_flake_f8n_once_pass",
+      "e2e": "failure_190_passed_110_declared_skips_1_retry_passing_date_pointer_ohlcv_readout_flake",
       "exhaustive_feature_branch": "skipped_by_branch_policy",
       "frontend_unit": "success"
     },
-    "run_id": 39394689368,
-    "status": "terminal red by strict flaky policy on exact clean published renderer-refresh source; F8n passed unchanged, separate template save/list readiness diagnosis remains",
+    "run_id": 39402602512,
+    "status": "terminal strict-red exact source a8e5dbce; date-pointer mode and focus assertions passed, .ohlcv-info absent within unchanged5s on first attempt and retry passed; preserve red",
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/ChartTemplateControl.vue",
-    "frontend/tests/unit/components/test_chart_template_control.test.ts",
+    "frontend/src/stores/chart.ts",
+    "frontend/tests/unit/stores/test_stores.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -107,8 +108,8 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
-  "implementation_sha": "30529fae090624220cec06fc0796082a0386b3a2",
+  "head": "a8e5dbce34012b6edbb85315fe60d37987465acc",
+  "implementation_sha": "a8e5dbce34012b6edbb85315fe60d37987465acc",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -190,7 +191,7 @@
     "visual_followup": "Full104 remains deferred until F8n and F8m close and the coordinator separately releases capacity."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the one post-publication exact-CI operational receipt, then diagnose the distinct chart-template save/list hydration flake from static artifact/source evidence and add a deterministic baseline-red unit regression without browser work while Provider owns the heavy slot.",
+  "next_action": "Publish the deterministic initial-bars-before-indicator-hydration fix with its baseline-red unit regression and exact first-failure evidence; obtain exact-source CI and ordinary date-pointer runtime proof when coordinator capacity is released.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -219,28 +220,28 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "The deterministic chart-template save/list stale-hydration regression and narrow post-mutation reload correction pass66 bounded unit tests and locked type-check. Runtime proof remains pending because Provider owns the heavy slot; preserve the5s assertion and strict zero-flake policy. TCP2 full104, TCP3 accepted Provider/ETF releases, TCP4-TCP5 and REF-HELP-V25 remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_RENDERER_EXACT_F8N_PASS_TEMPLATE_SAVE_LIST_UNIT_FIX_PENDING_PUBLICATION_AND_RUNTIME_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Publish the coherent chart-template save/list hydration repair after staged-diff review, then require exact-source CI and unchanged runtime proof when capacity is released; no browser/full104 while Provider owns the slot.",
+    "current_blocker": "Exact source a8e5dbce CI39402602512 is terminal strict-red on the date-pointer .ohlcv-info first-attempt failure; first-failure screenshot shows Loading SPY, no OHLCV bars and Unavailable freshness. A deterministic baseline-red deferred-indicator test proves initial bars were blocked by indicator hydration; candidate now publishes initial bars before indicator completion while settled-refresh atomic behavior stays intact. Chart-store 51/51 and locked type-check pass; browser and fresh exact-source CI remain pending.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_DATE_POINTER_INITIAL_BARS_READINESS_UNIT_FIX_PENDING_PUBLICATION_RUNTIME_AND_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Publish this six-path date-pointer readiness repair after staged review; observe its exact CI and run unchanged ordinary date-pointer browser flow only after coordinator releases capacity.",
     "total": 5,
-    "updated_at": "2026-10-20T09:32:43+00:00"
+    "updated_at": "2026-10-20T10:52:48+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
-    "current_pending_range": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137 plus the uncommitted chart-template save/list hydration source, regression and owner evidence",
+    "current_local_head": "a8e5dbce34012b6edbb85315fe60d37987465acc",
+    "current_pending_range": "a8e5dbce34012b6edbb85315fe60d37987465acc plus the uncommitted initial-bars readiness source, regression and owner evidence",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
-    "status": "local/origin receipt source6cc70f20 are equal; bounded chart-template hydration repair and regression are dirty pending staged review/publication; runtime proof remains open"
+    "remote_tracking_sha": "a8e5dbce34012b6edbb85315fe60d37987465acc",
+    "status": "local/origin a8e5dbce are equal; date-pointer initial-bars readiness repair and regression are dirty pending staged review/publication; ordinary runtime proof remains open"
   },
-  "remote": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
-  "remote_sha": "6cc70f2088d8ee33e1fa2d9f4d2093fdc2413137",
+  "remote": "a8e5dbce34012b6edbb85315fe60d37987465acc",
+  "remote_sha": "a8e5dbce34012b6edbb85315fe60d37987465acc",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

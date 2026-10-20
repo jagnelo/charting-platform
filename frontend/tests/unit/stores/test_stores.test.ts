@@ -236,6 +236,39 @@ describe('useChartStore', () => {
     expect(api.get).toHaveBeenCalledWith('/instrument-indicators/42')
   })
 
+  it('publishes workstation bars before slow indicator hydration completes', async () => {
+    let releaseIndicators!: (value: { indicators: unknown[] }) => void
+    const indicator = { type: 'rsi', params: { period: 14 }, style: { color: '#f5a623' }, pane: 'separate' }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/POINTER') {
+        return Promise.resolve({ id: 42, symbol: 'POINTER', stats: { week52_high: 1 } }) as any
+      }
+      if (path === '/ohlcv/local/POINTER/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') {
+        return new Promise(resolve => { releaseIndicators = resolve }) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const loading = store.loadBars('POINTER', 'D1', 'candles', true)
+
+    await vi.waitFor(() => expect(store.bars).toHaveLength(1))
+    const loadingWhileIndicatorsPending = store.loading
+    const barsWhileIndicatorsPending = store.uplotData[0].length
+    releaseIndicators({ indicators: [indicator] })
+    await loading
+
+    expect(loadingWhileIndicatorsPending).toBe(false)
+    expect(barsWhileIndicatorsPending).toBe(1)
+    expect(store.loading).toBe(false)
+    expect(store.indicators).toEqual([indicator])
+  })
+
   it('coalesces concurrent identical chart hydration from shared mounted roots', async () => {
     let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {

@@ -311,18 +311,9 @@ function createChartStore(storeId: string) {
         return
       }
 
-      const [loadedIndicators, prefetchedBars] = await Promise.all([
-        fetchIndicatorsForInstrument(loadedInstrument.id),
-        localBarsPromise ?? Promise.resolve(null),
-      ])
-      if (!isCurrent()) return
-      if (
-        !preserveIndicatorsDuringDrag
-        && !indicatorsDirty
-        && !indicatorStacksEqual(indicators.value, loadedIndicators)
-      ) indicators.value = loadedIndicators
-
+      const indicatorsPromise = fetchIndicatorsForInstrument(loadedInstrument.id)
       try {
+        const prefetchedBars = localBarsPromise ? await localBarsPromise : null
         if (prefetchedBars?.error) throw prefetchedBars.error
         const mapped = prefetchedBars?.mapped ?? await fetchBarsPage(sym, tf, {
           type: nextBarType,
@@ -330,7 +321,14 @@ function createChartStore(storeId: string) {
           transformParams: normalizedTransformParams,
           fresh: refreshesRenderedSelection,
         })
+        const loadedIndicatorsBeforeRefresh = refreshesRenderedSelection
+          ? await indicatorsPromise
+          : null
         if (!isCurrent()) return
+        if (loadedIndicatorsBeforeRefresh && !preserveIndicatorsDuringDrag && !indicatorsDirty
+          && !indicatorStacksEqual(indicators.value, loadedIndicatorsBeforeRefresh)) {
+          indicators.value = loadedIndicatorsBeforeRefresh
+        }
         bars.value = mapped
         renderedLoadScopeKey = requestScopeKey
         if (mapped.length) hasReachedStart.value = false
@@ -338,17 +336,36 @@ function createChartStore(storeId: string) {
         // currently incomplete". Let the older-page path make that decision so
         // partial caches can self-repair when the user scrolls left.
         if (!mapped.length) hasReachedStart.value = true
-        // For brand-new instruments the backend computes 52w stats only after D1
-        // bars are persisted. Reload instrument here so those stats are available.
-        const currentInstrument = instrument.value as Instrument | null
-        if (currentInstrument && !currentInstrument.stats?.week52_high) {
-          const refreshedInstrument = await fetchInstrument(sym)
-          if (isCurrent()) instrument.value = refreshedInstrument
+        if (!refreshesRenderedSelection) {
+          // Chart data and its OHLCV pointer are usable independently of saved
+          // plot hydration. Do not keep a ready local chart blank while the
+          // instrument-indicator request is still resolving.
+          isLoading.value = false
+          const loadedIndicators = await indicatorsPromise
+          if (!isCurrent()) return
+          if (!preserveIndicatorsDuringDrag && !indicatorsDirty
+            && !indicatorStacksEqual(indicators.value, loadedIndicators)) {
+            indicators.value = loadedIndicators
+          }
         }
       } catch (e: any) {
         if (isCurrent()) error.value = e.message ?? 'Failed to load chart data'
       } finally {
         if (isCurrent()) isLoading.value = false
+      }
+      if (!isCurrent()) return
+
+      const currentInstrument = instrument.value as Instrument | null
+      const statsRefresh = currentInstrument && !currentInstrument.stats?.week52_high
+        ? fetchInstrument(sym).then(refreshedInstrument => {
+          if (isCurrent()) instrument.value = refreshedInstrument
+        })
+        : Promise.resolve()
+
+      try {
+        await statsRefresh
+      } catch (e: any) {
+        if (isCurrent()) error.value = e.message ?? 'Failed to load chart data'
       }
       if (isCurrent() && !loadedInstrument.is_synthetic) _pollCoverage(sym, generation)
     }

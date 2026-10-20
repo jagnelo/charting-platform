@@ -22117,3 +22117,39 @@ reference or `0.005` tolerance changed. The workstream validator, all `29`
 scope-guard self-tests, the actual `57`-path scope guard, structured JSON and
 `git diff --check` also pass. Runtime proof and exact-source CI remain
 required. Full104, TCP3-TCP5 and official `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 10:50Z — Date-pointer initial OHLCV readiness diagnosis and candidate
+
+Exact source `a8e5dbce34012b6edbb85315fe60d37987465acc`, Actions run
+`39402602512`, is terminal strict-red. Backend, Frontend Unit and
+Branch-declared jobs passed; E2E job `118564119663` reports `190` passed,
+`110` declared skips and one retry-passing date-pointer failure. The first
+attempt passed the mode and focus checks, then the unchanged `.ohlcv-info`
+visibility assertion at `tc2000_date_pointer.spec.ts:23` timed out at five
+seconds. The exact artifact is preserved at
+`/tmp/coordinator-tc-a8-ci-39402602512-playwright.zip` (2,574,095 bytes,
+SHA-256 `5cf97f729679482c5de97bdc38c8dae4f14f42dbacadb116490b132cc752b858`; integrity passed).
+Its first-failure screenshot/context show `Loading SPY…`, no OHLCV readout and
+market-data freshness `Unavailable`. The retained detailed trace is the
+successful attempt, so it does not establish first-attempt request timing.
+
+Source inspection shows `.ohlcv-info` is conditional on `tooltip.hasData` and
+`on_with_values`; the chart's initial renderer seeds the tooltip from the latest
+bar. A deterministic deferred-indicator unit regression failed on the exact
+published baseline: resolved local bars remained unpublished and chart loading
+remained true while instrument-indicator hydration was pending. The candidate
+publishes initial OHLCV bars and releases the initial loading state before
+applying those indicators. A full same-scope settled refresh still waits for
+indicator hydration before replacing rendered state. The regression now proves
+bars/readiness are available before indicator completion and the indicator is
+eventually applied; the full chart-store suite passes `51/51`, and locked
+`npm run type-check` exits zero. A final focused rerun after restoring the
+existing instrument-stats error reporting also passed both checks.
+
+This is a source-supported causal mechanism consistent with the screenshot;
+the first-attempt network delay itself was not captured and is not claimed as
+observed. The five-second E2E assertion, retry policy and all screenshot
+references/tolerances are unchanged. Candidate browser proof and exact-source
+CI remain pending; no browser or Compose run was launched while Provider owns
+the heavy slot. TCP2 full104, TCP3 Provider/ETF consumer reconciliation, TCP4,
+TCP5 and official `REF-HELP-V25` parity remain open.
