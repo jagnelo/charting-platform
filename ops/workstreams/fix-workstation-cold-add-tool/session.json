@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "db7b071c-755d-497b-ab37-928deddfbf80",
   "branch": "fix/workstation-cold-add-tool",
-  "parent_branch": "staging",
-  "implementation_sha": "281a57bd9fb782c0f85bfb5127c713ea15037f68",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-workstation-cold-add-tool-8778b7e6",
+      "charting-stack-fix-workstation-cold-add-tool-8778b7e6"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-workstation-cold-add-tool-8778b7e649"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/workstation-cold-add-tool: Human-authorized central four-feature integration with delegated technical repair acceptance recorded in docs/feature-integration-coordination.md. Diagnose and repair the shared cold Add tool to Study Results failure blocking exact Provider CI39342948219, preserving ordinary clicks, queued intent, ready-tab fast behavior, teardown, all existing assertions and tolerances. Use a narrow staging-based coordinator repair; do not edit feature worktrees, provider controls or data, staging product files directly, deployments or paid/trial operations.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/workstation-cold-add-tool: Human-authorized central four-feature integration with delegated technical repair acceptance recorded in docs/feature-integration-coordination.md. Diagnose and repair the shared cold Add tool to Study Results failure blocking exact Provider CI39342948219, preserving ordinary clicks, queued intent, ready-tab fast behavior, teardown, all existing assertions and tolerances. Use a narrow staging-based coordinator repair; do not edit feature worktrees, provider controls or data, staging product files directly, deployments or paid/trial operations.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "e8552b23f5ccdf692c308b13e1f07c2667508eae",
+  "implementation_sha": "281a57bd9fb782c0f85bfb5127c713ea15037f68",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "ce6f5100b7124bfc424269ada3c812ef1c578f4928692c67c6627354b1e6c37a",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "e8552b23f5ccdf692c308b13e1f07c2667508eae",
+  "remote_sha": null,
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "db7b071c-755d-497b-ab37-928deddfbf80",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-workstation-cold-add-tool/ops/workstreams/fix-workstation-cold-add-tool",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-workstation-cold-add-tool/ops/workstreams/fix-workstation-cold-add-tool/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-workstation-cold-add-tool/ops/workstreams/fix-workstation-cold-add-tool/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-workstation-cold-add-tool/ops/workstreams/fix-workstation-cold-add-tool/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-workstation-cold-add-tool/ops/workstreams/fix-workstation-cold-add-tool/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-workstation-cold-add-tool",
+  "worktree_id": "fix-workstation-cold-add-tool-8778b7e649"
 }
