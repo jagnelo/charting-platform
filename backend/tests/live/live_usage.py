@@ -596,8 +596,7 @@ def record_observation(
     if (
         response_status_code in {401, 403, 429}
         and not (
-            response_status_code == 403
-            and normalized_disposition == "expected_entitlement_denial"
+            response_status_code == 403 and normalized_disposition == "expected_entitlement_denial"
         )
         and os.getenv("RUN_LIVE_PROVIDER_TESTS", "").strip() == "1"
         and os.getenv("PROVIDER_LIVE_MATRIX_RUN", "").strip() == "1"

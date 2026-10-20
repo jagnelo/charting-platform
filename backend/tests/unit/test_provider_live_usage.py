@@ -464,9 +464,7 @@ def test_live_usage_records_expected_entitlement_denial_separately(tmp_path, mon
     assert operation["response_statuses"] == {"403": 1}
 
 
-def test_live_matrix_continues_after_an_explicit_expected_entitlement_denial(
-    tmp_path, monkeypatch
-):
+def test_live_matrix_continues_after_an_explicit_expected_entitlement_denial(tmp_path, monkeypatch):
     ledger = tmp_path / "provider-live-usage.jsonl"
     monkeypatch.setenv("PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
     monkeypatch.setenv("PROVIDER_LIVE_RUN_ID", "challenge-run")
