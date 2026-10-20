@@ -1,42 +1,53 @@
 # Provider integration checkpoint review packet
 
-## Delegated technical acceptance — final publication pending
+## Current continuation — offline only
 
-The central coordinator has accepted `provider-platform-integration-1` under
-the human's delegated initial verified-free-only scope, conditional on this
-coherent publication's exact-source CI and coordinator-owned guarded staging
-integration. The full Provider roadmap remains open. The feature owner does
-not merge to staging, deploy, activate paid/trial operations, run the
-operational trial, or clean retained data.
+Published source is `2e1e63593b1083cfc38be3eba4b2071fe799170c`; root owns exact
+Actions `39462597846`. The only uncompleted selected cases are Binance bounded
+daily history (2 maximum transports including selected usage helper), Kraken
+xStocks (3), and Gate TradFi (16): 21 proposed future ceiling plus 110
+preserved actual transports = 131 arithmetic combined. The three successful
+receipt files contain 108 transports; separate preserved evidence binds the
+a716 OpenFIGI bootstrap (1) and failed Alpaca universe read (1). These are fail-closed
+attempt ceilings, not provider allowance or a claim the full cases complete.
+No provider request, reservation, or quota change is authorized.
 
-Exact implementation source: `2e1e63593b1083cfc38be3eba4b2071fe799170c`;
-reviewed conditional candidate tree: `a68aa6c28baa692f50de2f1742d620e471e9ead5`.
-Source CI `39462597846` is green; final-publication CI is still pending. Its
-E2E `118773659076` completed 152 passed/109 declared skips with no retry or
-flake. The authorized remaining-only run completed all three required cases:
-Binance 2, Kraken xStocks 3, Gate TradFi 4 transports. All required operation
-evidence is complete: 9 new transports and 119 cumulative actual transports
-including preserved historical and failed attempts, below the 131 attempt
-ceiling. Raw canonical receipts and terminal result are preserved at
-`/tmp/provider-2e1-three-case-execution-20261020/`; exact file hashes and
-operation dispositions are recorded in handoff and the append-only journal.
+The private receipt verifier requires complete expected-operation evidence. A
+Kraken pytest pass that records discovery only—such as its existing
+empty-catalogue return—does not prove asset lookup or price retrieval and must
+not count as full checkpoint operation evidence. No test assertion or product
+behavior is changed by this preparation. Prior functional/visual evidence is
+qualified to source `63e52b12aa08aec1be1abaaabbb3078f4fcdfe41`; the research
+runner probes are qualified to `0d8945133ddc2e0549a6484da644518aa87ae843`.
+Root's input-identity review establishes byte identity for the relevant
+components through `2e1e635…`, not an execution/live receipt on that SHA.
 
-The cumulative successful enabled-operation union is 80. The expected,
-separately metered Finnhub `fetch_ohlcv` 403 remains a denial, not capability
-evidence. Old receipts retain their actual source/tree/schema and are never
-rebound. Functional/visual proof (155 passed/2 declared skips; 104 strict
-visuals) remains qualified to source
-`63e52b12aa08aec1be1abaaabbb3078f4fcdfe41`, with the exact input-byte identity
-review documented; it is not represented as a new full profile on `2e1e635…`.
-The local lock/export, migration-head, lint and render-only Compose contract
-results on `2e1e635…` are recorded in the private receipt named in handoff.
+The offline historical-prefix verifier read the actual preserved files and
+confirmed their immutable hashes and schemas: the 129232 five-row and 30a
+fifteen-row legacy sets have no `transport_budget`; all 23 b787 rows do and
+reconcile that count against provider counters. The successful files account
+for108 transports; separate historical OpenFIGI and failed Alpaca evidence
+accounts for the other two, totaling110 actual. The verifier reconciled42
+completed cases. The complete private canonical-subprocess mock suite passed
+13/13. This establishes only history/driver integrity, not case execution or
+checkpoint acceptance. Driver SHA-256
+`029bd038f0b952f3c62d3615a6669cabf71d73292cbd25cfc526e97eb1b3e3a8`;
+test SHA-256
+`ea85326a50987a91d71d33dd8ac1f222936f6499e7ed4eb003d62ab20904b881`.
 
-Every existing quota/operation hold, free-only restriction, full roadmap item,
-downstream owner/remainder, and historical red/failed result is preserved.
-ICP7's exact CI for this publication and the staging Exhaustive gate remain
-pending. No full 27-provider live-matrix success or full-roadmap completion is
-claimed. The plan records `integration_capture: exact branch HEAD` so the
-coordinator captures the actual commit without a self-hash loop.
+## Proposed index-only final contract — not current status, 2026-10-20
+
+This is a static candidate contract only. It becomes authoritative only after
+the remaining proof passes and the coordinator records delegated technical
+acceptance. The actual working plan remains `in_progress` with closure pending;
+ICP7, final evidence, and exact-source CI are not claimed complete here. The
+candidate preserves all approved operation selections, free-only rules,
+deferrals, holds, original roadmap criteria, and downstream remainder. It
+does not authorize provider requests, quota reservations/spend, paid/trial
+activation, deployment, or feature-owner integration. Candidate source parent
+is `2e1e63593b1083cfc38be3eba4b2071fe799170c`; the staged tree must be reported
+separately after index construction and independently reviewed. This remains a
+proposal only; working status stays `in_progress` / `pending`.
 
 ## Corrected bounded plan — 2026-10-20 02:00+01:00
 
