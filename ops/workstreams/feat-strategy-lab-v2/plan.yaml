@@ -27,12 +27,14 @@ integration_checkpoint:
       - ops/workstreams/feat-strategy-lab-v2/
   post_release_reconciliation_map: ops/workstreams/feat-strategy-lab-v2/post-release-reconciliation.md
   current_coordination_boundary:
-    staging_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-    exhaustive_ci_run: 39335198284
-    scope: Shared repair/workflow baseline only; product checkpoints merged 0/4.
-    provider_candidate_sha: a8440efb82232a8b217df9c7330fab1795b257c9
-    provider_exact_ci_run: 39305740911
-    status: Provider acceptance and current-source local backend/migration/held-operation gates remain open; ETF and TC2000 releases follow in order.
+    staging_sha: ebf8648b90f4630090e32a6947f38a0cbb08544e
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261020T025429Z-ebf8648b90f4.json
+    exact_ci_run: 39357623554
+    scope: Shared cold-add-tool repair baseline only; product checkpoints merged 0/4.
+    status: >-
+      This auxiliary green release is not a Provider, ETF or TC2000 product
+      baseline. The coordinator will deliver each actual accepted green staged
+      product baseline in dependency order before Strategy consumes it.
   released_auxiliary_reconciliation:
     staging_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
     canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261019T230653Z-281a57bd9fb7.json
@@ -315,11 +317,28 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: auxiliary-common-baseline-reconciled-awaiting-provider-etf-tc-release
+  current_phase: integration-readiness-awaiting-provider-product-release
   current_blocker: >-
-    Historical Strategy source 54fa13e1ba17a40de6f242e16d5a96d8217615cb failed backend CI run 38820638540 (exit 152 at 36% in research_runner unit tests; no assertion/coverage summary); its cause remains unproven. Exact Strategy source b6f1e48670a74aee669e9b80330fec836770fad1 passed ordinary hosted CI run 39164386651, with Exhaustive skipped by feature policy. Coordinator-released auxiliary staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 passed exact CI 39335198284 including Exhaustive and is merged at 01735f607d3051e3ebe569762ee65d5aa5b99c82; its scope is workflow/F8u/F9c repairs only and product checkpoints merged remain 0/4. Provider, ETF and TC2000 product acceptance/release remains ordered and open. Combined consumer/PostgreSQL/application, current-source exact CI, coordinated exhaustive and local full_stack_browser gates therefore remain open; Provider retains the sole heavy local slot.
+    Staging ebf8648b90f4630090e32a6947f38a0cbb08544e passed exact CI 39357623554,
+    including Exhaustive, and is released only as a shared cold-add-tool repair.
+    Product checkpoints remain 0/4. The real dependency is the coordinator's
+    accepted green Provider release, followed by ETF and TC2000 in order, before
+    Strategy can implement the mapped consumer adapters. Historical Strategy
+    source 54fa13e1ba17a40de6f242e16d5a96d8217615cb / CI 38820638540 exit 152
+    remains unproven and preserved. Combined consumer/PostgreSQL/application,
+    coordinated exhaustive, exact-current-source CI after future changes, and
+    local full_stack_browser gates remain open.
   next_action: >-
-    Publish this coherent auxiliary backmerge once and inspect its single exact-source branch CI without rerunning or a receipt-only follow-up. After accepted Provider staging, ETF, then TC2000 and a coordinator-released combined product baseline, verify the exact producer SHAs and implement the published canonical identity/series/coverage, point-in-time ETF membership, immutable TC CodeVersion/Study, additive migration and worker reconciliation map; then run the required combined PostgreSQL/application, exhaustive, local full_stack_browser and exact-source CI gates for coordinator review.
+    Hold integration readiness on the published post-release map. When the
+    coordinator delivers an accepted green Provider release, verify its exact
+    staged source and wire canonical identity, local series, coverage and
+    freshness through the existing Strategy host seams. Then consume the
+    coordinator-delivered ETF point-in-time membership release and TC2000
+    immutable CodeVersion/Study release in order, preserving owner, known-at,
+    source/output and worker terminal causality assertions. Reconcile additive
+    migrations only from those actual staged heads, then run the combined
+    PostgreSQL/application, exhaustive, local full_stack_browser and exact-source
+    CI gates. Keep the full roadmap and checkpoint status in_progress.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

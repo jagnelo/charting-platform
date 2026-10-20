@@ -34,12 +34,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -57,12 +52,12 @@
   },
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
-  "head": "01735f607d3051e3ebe569762ee65d5aa5b99c82",
+  "head": "9e36562dcd590e4895be188a6118fbefc4430db0",
   "implementation_sha": "01735f607d3051e3ebe569762ee65d5aa5b99c82",
   "last_checkpoint": "2026-10-19T23:17:19Z",
   "last_human_progress_update": "2026-10-16T10:17:02.035346+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the coherent auxiliary backmerge once and inspect its single exact-source branch CI. Then wait for the coordinator's accepted green Provider -> ETF -> TC2000 staging release, verify exact producer SHAs, and implement the published post-release reconciliation map without enabling provider or broker traffic.",
+  "next_action": "Keep the branch-owned post-release consumer map ready. Wait for the coordinator to deliver accepted green Provider -> ETF -> TC2000 staging releases in order; verify each exact staged SHA before wiring canonical series/coverage, PIT membership and immutable CodeVersion/Study inputs. Preserve migration, worker reservation/recovery, owner-isolation and fail-closed routing guarantees; keep combined application, PostgreSQL, Exhaustive, full_stack_browser and exact-source CI gates open.",
   "parent_branch": "staging",
   "plan_hash": "6afb9dee8705f0e4c266deeecf35397e4bc2edacb5d303ff053603af7ef48b95",
   "planning_required": false,
@@ -91,15 +86,15 @@
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "Historical exact source 54fa13e1ba17a40de6f242e16d5a96d8217615cb backend CI run 38820638540 exit 152 remains unproven. Exact Strategy source b6f1e48670a74aee669e9b80330fec836770fad1 passed ordinary hosted CI run 39164386651, with Exhaustive skipped by feature policy. Coordinator-released auxiliary staging 281a57bd9fb782c0f85bfb5127c713ea15037f68 passed exact CI 39335198284 including Exhaustive and is merged at 01735f607d3051e3ebe569762ee65d5aa5b99c82; its scope is workflow/F8u/F9c repairs only, with product checkpoints merged 0/4. Provider, ETF and TC2000 product acceptance/release remains ordered and open. Combined consumer wiring, PostgreSQL/application, coordinated exhaustive and local full_stack_browser gates therefore remain open, and Provider owns the sole heavy local slot.",
-    "current_phase": "auxiliary-common-baseline-reconciled-awaiting-provider-etf-tc-release",
-    "next_action": "Publish the coherent auxiliary backmerge once and inspect its single exact-source branch CI. On explicit accepted product release, verify exact staged Provider, ETF and TC2000 SHAs and implement the recorded identity/series/coverage, PIT membership, immutable Code/Study, additive migration and worker reconciliation map.",
+    "current_blocker": "The only released staging baseline is auxiliary ebf8648b90f4630090e32a6947f38a0cbb08544e (exact Exhaustive CI 39357623554), with product checkpoints 0/4. Strategy awaits actual accepted Provider, then ETF, then TC2000 staging releases from the coordinator before combined consumer implementation. Historical 54fa13e1/38820638540 exit 152 remains unproven and preserved.",
+    "current_phase": "integration-readiness-awaiting-provider-product-release",
+    "next_action": "Use post-release-reconciliation.md against each coordinator-delivered exact staging SHA in Provider -> ETF -> TC2000 order; then validate additive migration equivalence, worker/API consumer paths, combined full gates and exact-source CI.",
     "total": 5,
-    "updated_at": "2026-10-19T23:17:19Z"
+    "updated_at": "2026-10-20T10:20:18Z"
   },
-  "remote": "dc5ac50b3092aed8abfdcab605749c678ce27da3",
-  "remote_sha": "b6f1e48670a74aee669e9b80330fec836770fad1",
-  "remote_synchronized": false,
+  "remote": "9e36562dcd590e4895be188a6118fbefc4430db0",
+  "remote_sha": "9e36562dcd590e4895be188a6118fbefc4430db0",
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",

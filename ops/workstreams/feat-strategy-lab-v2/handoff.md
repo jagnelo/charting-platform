@@ -15094,3 +15094,34 @@ SHAs, then implement the existing canonical identity/series/coverage, PIT ETF,
 immutable Study/Code, additive migration and worker reconciliation map. Full
 combined PostgreSQL/application, coordinated exhaustive, current-source CI and
 local `full_stack_browser` gates remain mandatory and open.
+
+## 2026-10-20 10:20Z — integration readiness after auxiliary release
+
+Resumed the existing Strategy workstream and preserved claim
+`02d5ffaa-53b5-4dec-b39c-0f36612b5436` in the assigned worktree. The interrupted
+diff was one Strategy-owned operational file, `session.json`: it synchronized
+the published branch head and cleared an obsolete dirty-path list, while its
+`remote_sha` still named the earlier source. This update reconciles that field
+to the verified clean local/origin source `9e36562dcd590e4895be188a6118fbefc4430db0`.
+
+The current released staging boundary is `ebf8648b90f4630090e32a6947f38a0cbb08544e`,
+canonical receipt `20261020T025429Z-ebf8648b90f4.json`, exact green CI
+`39357623554` including Exhaustive. It is a shared cold-add-tool repair only;
+the product-checkpoint count remains 0/4. The post-release map remains the
+implementation checklist: Provider canonical identity and locally persisted
+series/coverage/freshness first; ETF membership by composition date and known-at
+time second; immutable TC CodeVersion and completed Study output third. After
+each coordinator-delivered release, verify exact staged SHAs and add owner-
+scoped success, unavailable/rejection, restart and cross-owner assertions at
+the existing host/API/persistence seams. Preserve the Strategy migration
+namespace with additive equivalence only, and retain completion-before-settlement,
+reservation/lease identity and no-second-launch recovery requirements.
+
+No Provider, ETF or TC implementation was imported. No product source or tests
+changed, and no database, Docker/browser fixture, live/provider call, quota,
+broker/capital, paid/trial, cleanup, staging/sibling or deployment operation
+ran. The checkpoint stays `in_progress`; the next real dependency is the
+coordinator-delivered accepted Provider staging release, followed by ETF and
+TC2000. Combined PostgreSQL/application, Exhaustive, full `full_stack_browser`
+and exact-source CI gates remain open. Historical exit-152 evidence and the full
+roadmap remain preserved.
