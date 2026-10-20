@@ -21,10 +21,55 @@ from string import Formatter
 from typing import Any, Protocol
 from urllib.parse import parse_qs, unquote_to_bytes, urlencode, urljoin, urlparse, urlunparse
 
-import httpx
-import requests
+import httpx as _httpx
+import requests as _requests
 
 from app.config import settings
+from app.services.etf_holdings_provider_bridge import (
+    ETFHoldingsRouteHeldError,
+    ProviderBackedHTTPXClient,
+)
+
+
+class _HTTPXNamespace:
+    """Keep HTTPX types while routing bound ETF adapter clients through Provider."""
+
+    def AsyncClient(self, *args: Any, **kwargs: Any):
+        if args:
+            raise ETFHoldingsRouteHeldError(
+                "ETF shared-admission clients require keyword-only configuration"
+            )
+        # Direct adapter/API/worker calls are held too: an absent binding must
+        # never silently fall back to a raw HTTPX socket.
+        return ProviderBackedHTTPXClient(**kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(_httpx, name)
+
+
+class _RequestsNamespace:
+    """Fail closed on legacy requests fallbacks inside a governed ETF fetch."""
+
+    def _call(self, name: str, *args: Any, **kwargs: Any):
+        raise ETFHoldingsRouteHeldError(
+            "legacy requests transport is not admitted; route this attempt through HTTPX"
+        )
+
+    def get(self, *args: Any, **kwargs: Any):
+        return self._call("get", *args, **kwargs)
+
+    def post(self, *args: Any, **kwargs: Any):
+        return self._call("post", *args, **kwargs)
+
+    def request(self, *args: Any, **kwargs: Any):
+        return self._call("request", *args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(_requests, name)
+
+
+httpx = _HTTPXNamespace()
+requests = _RequestsNamespace()
 
 
 @dataclass(slots=True)
@@ -14977,6 +15022,10 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
         issuer host/path, fund identity, complete row array, and one holdings
         date before accepting the response.
         """
+
+        raise ETFHoldingsRouteHeldError(
+            "legacy curl transport is not admitted; route this attempt through HTTPX"
+        )
 
         curl_binary = shutil.which("curl")
         if not curl_binary:

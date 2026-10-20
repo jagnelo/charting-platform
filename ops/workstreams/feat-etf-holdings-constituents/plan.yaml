@@ -266,17 +266,25 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Cover the historical point-in-time basket route without external work
-    state: focused_6_pass;ruff_and_diff_check_pass;fresh_exact_ci_required
-    baseline: 7272e26cb75d5b8abd8641e734871510e84fcac9
+    name: Preserve HTTPX redirect compatibility at the per-attempt Provider boundary
+    state: focused_23_no_network_pass;ruff_format_workstream_and_diff_checks_pass;fresh_exact_ci_required
+    baseline: e1860bdb9bd8e6b2584c2d8f51ffcb0d5cb7afb1
     intent: >-
-      Exercise the actual ETF basket route handler for an explicit historical
-      date and prove that a correction learned later is excluded, while the
-      module-wide external-operation guard and zero ProviderRequestLog invariant
-      keep the read network-free. Do not invent or import the unreleased shared
-      Provider interface.
+      Match actual ETF adapter HTTPX client defaults and redirect behavior while
+      preserving independent admission of every physical hop. Use loop-local
+      MockTransport through a real adapter and refresh caller; fail closed on
+      unsupported direct adapter/discovery/SEC transports. Do not claim the
+      stubbed Provider execution boundary proves durable reservation, settlement
+      or failure lineage.
     owned_paths:
-      - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+      - backend/app/services/etf_holdings_provider_bridge.py
+      - backend/app/services/etf_holdings_adapters.py
+      - backend/app/services/etf_holdings_refresh.py
+      - backend/app/services/etf_holdings_edgar.py
+      - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+      - backend/tests/unit/services/test_etf_holdings_adapters.py
+      - backend/tests/unit/services/test_etf_holdings_refresh.py
+      - backend/tests/live/test_etf_holdings_live_providers.py
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/session.json
@@ -472,21 +480,25 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: provider_release_reconciled_etf_bridge_implementation
+current_phase: httpx_redirect_compatibility_and_direct_transport_fail_closed_2026_10_20
 current_blocker: >-
-  Provider is accepted/released at exact green staging
-  9b230ba4c97126a2937667138c6eb2a0aa297baf (CI39484176087;
-  Exhaustive118849529356); this supersedes older Provider-unreleased status
-  only for this release. ETF has begun merging that exact source into its own
-  branch and reconciling conflicts while preserving ETF source/workstream
-  behavior. The ETF_HOLDINGS enum, additive migration, safe disabled default,
-  per-attempt shared admission/settlement transport bridge, artifact lineage,
-  and combined consumer tests remain implementation work.
-  The 15 Tier-0 and 156 Tier-1 investigations and 496/422/74 registry split are
-  preserved. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no
-  retained response body or parsed-row evidence. Unknown/quota-held/paid/trial/
-  unsafe operations remain disabled. The required combined full_stack_browser
-  gate is open and awaits a coordinator-assigned safe fixture slot.
+  Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. Provider
+  release 9b230ba4c97126a2937667138c6eb2a0aa297baf (CI39484176087;
+  Exhaustive118849529356) is merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6.
+  Scaffold e1860bdb9bd8e6b2584c2d8f51ffcb0d5cb7afb1 is pushed but exact CI
+  39501055514 is terminal red: four backend unit failures, frontend passed,
+  and later jobs were skipped. Two retry-test recorder bugs and the live-file
+  direct requests import now have local fixes. Latest/date adapter refreshes
+  are bound to the per-attempt shared HTTPX bridge; redirects are separately
+  dispatched, successful request-log ids are carried into artifact legal
+  metadata, and requests/curl fallbacks fail closed while the context is
+  active. Twenty-three selected offline contracts pass. SEC and discovery calls,
+  failed-attempt lineage, DB-backed denial/reservation/settlement proofs,
+  current-vs-historical/PIT consumer regression, exact current-source CI and
+  full_stack_browser remain open. Preserve the complete roadmap and later
+  observation gate. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined;
+  unknown/quota-held/paid/trial/unsafe operations remain disabled. Checkpoint
+  stays in_progress/not accepted.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1475,22 +1487,17 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Complete the in-progress merge of only released staging
-  9b230ba4c97126a2937667138c6eb2a0aa297baf into this ETF branch, retaining the
-  ETF-owned workstream and feature behavior while reconciling semantic
-  conflicts. Record source and migration heads. Then execute the documented
-  bridge checklist: additive
-  ETF_HOLDINGS enum/schema/seed/availability reconciliation; evidence-backed
-  issuer/account/host/operation bindings; shared recurring-cost onboarding;
-  released operation-hold mapping with zero-adapter/zero-reservation/
-  zero-transport tests for wildcard, aliased, malformed and unknown operations;
-  synchronous non-awaitable one-attempt callbacks inside async shared admission;
-  separate admission for every redirect/retry/page/client fallback/SEC request;
-  exact settlement and raw-artifact lineage; fail-closed zero-transport negative
-  tests; truthful current/degraded/stale/partial/unavailable and historical/PIT
-  consumers. Then run focused/database validation, current-source
-  full_stack_browser and exact-source CI and stop at ready_for_human_review.
-  Do not issue live requests, guess costs/quotas/FX, create a second ledger,
-  weaken MSMR or Militia quarantines,
-  write staging, deploy or activate paid/trial operations. Preserve the complete
-  fourteen-criterion roadmap and later observation gate.
+  Review and publish the current coherent ETF-owned bridge/transport changeset
+  after focused no-network checks, preserving the exact historical red CI
+  39501055514 and requiring fresh exact-source CI. Then implement separate,
+  evidence-reviewed Provider bindings for SEC EDGAR and issuer discovery /
+  enrichment; ensure every retry/page/redirect/fallback physical request has
+  independent admission, exactly-once settlement, and durable success/failure
+  request lineage. Complete denied/unknown/exhausted zero-reservation and
+  zero-transport checks, API/worker current-versus-degraded/stale/unavailable
+  and historical/PIT consumers. Obtain coordinator fixture assignment before
+  database-backed settlement/full-stack/full_stack_browser validation. Do not
+  issue live requests, guess costs/quotas/FX, create a second ledger, weaken
+  MSMR or Militia quarantines, write staging, deploy, or activate paid/trial
+  operations. Preserve the full fourteen-criterion roadmap and later
+  observation gate; stop at ready_for_human_review, never self-accept.

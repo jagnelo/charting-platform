@@ -12,7 +12,6 @@ from xml.sax.saxutils import escape
 
 import httpx
 import pytest
-import requests
 import yaml
 
 from app.config import settings
@@ -61,6 +60,7 @@ from app.services.etf_holdings_adapters import (
     parse_html_holdings_table_by_id,
     parse_xlsx_table,
     registered_adapter_keys,
+    requests,
 )
 from app.services.etf_holdings_capability import (
     _NON_TIER_0_SYMBOL_AUDITS,
@@ -11233,17 +11233,12 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
     async def skip_delay(_seconds):
         return None
 
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
     monkeypatch.setattr(
         "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
     )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
-
     result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
 
     assert requests_called == [
@@ -14981,17 +14976,12 @@ async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
     async def skip_delay(_seconds):
         return None
 
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
     monkeypatch.setattr(
         "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
     )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
-
     result = await adapter.fetch_latest(symbol="EBI")
 
     assert len(FakeAsyncClient.requested) == 2

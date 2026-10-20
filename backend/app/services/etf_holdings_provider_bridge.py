@@ -8,14 +8,16 @@ single-attempt transport callable rather than wrapping a logical refresh.
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import hashlib
 import inspect
 from collections.abc import Callable
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, TypeVar
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 from sqlalchemy import select
@@ -44,6 +46,201 @@ _ETF_OPERATIONS = frozenset({"fetch_etf_holdings_latest", "fetch_etf_holdings_fo
 
 class ETFHoldingsRouteHeldError(PermissionError):
     """The publisher route is unknown or lacks reviewed admission evidence."""
+
+
+@dataclass(frozen=True)
+class ETFHoldingsRequestBinding:
+    db: AsyncSession
+    adapter: Any
+    instrument_id: int
+    provider_symbol: str
+    operation: str
+    request_log_ids: list[int]
+
+
+_REQUEST_BINDING: contextvars.ContextVar[ETFHoldingsRequestBinding | None] = contextvars.ContextVar(
+    "etf_holdings_request_binding", default=None
+)
+
+
+@contextmanager
+def bind_etf_holdings_request_context(
+    *,
+    db: AsyncSession,
+    adapter: Any,
+    instrument_id: int,
+    provider_symbol: str,
+    operation: str,
+):
+    """Bind the caller-loop DB session and exact ETF operation during one fetch."""
+
+    if operation not in _ETF_OPERATIONS:
+        raise ETFHoldingsRouteHeldError("ETF holdings operation is not in the reviewed contract")
+    binding = ETFHoldingsRequestBinding(
+        db=db,
+        adapter=adapter,
+        instrument_id=instrument_id,
+        provider_symbol=provider_symbol,
+        operation=operation,
+        request_log_ids=[],
+    )
+    token = _REQUEST_BINDING.set(binding)
+    try:
+        yield binding
+    finally:
+        _REQUEST_BINDING.reset(token)
+
+
+def etf_holdings_request_is_bound() -> bool:
+    return _REQUEST_BINDING.get() is not None
+
+
+class ProviderBackedHTTPXClient:
+    """HTTPX-compatible GET/POST facade admitting every physical request."""
+
+    _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
+
+    def __init__(self, **client_kwargs: Any) -> None:
+        if "transport" in client_kwargs:
+            raise ETFHoldingsRouteHeldError(
+                "production ETF request clients cannot supply an unreviewed transport"
+            )
+        self._follow_redirects = bool(client_kwargs.pop("follow_redirects", False))
+        self._max_redirects = int(client_kwargs.pop("max_redirects", 20))
+        if self._max_redirects < 0:
+            raise ETFHoldingsRouteHeldError("ETF redirect limit is invalid")
+        self._cookies = httpx.Cookies(client_kwargs.pop("cookies", None))
+        self._client_kwargs = dict(client_kwargs)
+
+    async def __aenter__(self) -> ProviderBackedHTTPXClient:
+        return self
+
+    async def __aexit__(self, *_exc: Any) -> None:
+        return None
+
+    async def get(self, url: str, **kwargs: Any) -> httpx.Response:
+        return await self.request("GET", url, **kwargs)
+
+    async def post(self, url: str, **kwargs: Any) -> httpx.Response:
+        return await self.request("POST", url, **kwargs)
+
+    async def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+        binding = _REQUEST_BINDING.get()
+        if binding is None:
+            raise ETFHoldingsRouteHeldError(
+                "ETF HTTPX client was used without a bound shared-admission context"
+            )
+        follow_redirects = bool(kwargs.pop("follow_redirects", self._follow_redirects))
+        max_redirects = int(kwargs.pop("max_redirects", self._max_redirects))
+        if max_redirects < 0:
+            raise ETFHoldingsRouteHeldError("ETF redirect limit is invalid")
+        if any(
+            inspect.isawaitable(value) or hasattr(value, "__aiter__") for value in kwargs.values()
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "ETF request bodies must not carry caller-loop async state into the Provider worker"
+            )
+        current_url = str(url)
+        current_method = method.upper()
+        current_kwargs = dict(kwargs)
+        current_client_kwargs = dict(self._client_kwargs)
+        history: list[httpx.Response] = []
+        previous_origin = _http_origin(current_url)
+        for redirect_count in range(max_redirects + 1):
+            attempt = _make_loop_local_httpx_attempt(
+                method=current_method,
+                url=current_url,
+                request_kwargs=current_kwargs,
+                client_kwargs={**current_client_kwargs, "cookies": self._cookies},
+            )
+            result = await execute_etf_holdings_request_attempt(
+                binding.db,
+                adapter=binding.adapter,
+                instrument_id=binding.instrument_id,
+                provider_symbol=binding.provider_symbol,
+                operation=binding.operation,
+                request_url=current_url,
+                single_attempt=attempt,
+            )
+            if result.request_log_id is not None:
+                binding.request_log_ids.append(result.request_log_id)
+            response = result.result
+            response_cookies = httpx.Cookies()
+            response_cookies.extract_cookies(response)
+            self._cookies.update(response_cookies)
+            if not follow_redirects or response.status_code not in self._REDIRECT_STATUSES:
+                response.history = history
+                return response
+            location = response.headers.get("location")
+            if not location:
+                return response
+            if redirect_count >= max_redirects:
+                raise httpx.TooManyRedirects(
+                    "ETF publisher exceeded the configured redirect limit",
+                    request=response.request,
+                )
+            next_url = urljoin(str(response.url), location)
+            if (response.status_code == 303 and current_method != "HEAD") or (
+                response.status_code in {301, 302} and current_method == "POST"
+            ):
+                current_method = "GET"
+                current_kwargs.pop("content", None)
+                current_kwargs.pop("data", None)
+                current_kwargs.pop("json", None)
+                current_kwargs.pop("files", None)
+                current_kwargs = _without_headers(
+                    current_kwargs, {"content-length", "content-type", "transfer-encoding"}
+                )
+            next_origin = _http_origin(next_url)
+            if next_origin != previous_origin:
+                current_kwargs = _without_credentials(current_kwargs)
+                current_client_kwargs = _without_credentials(current_client_kwargs)
+            history.append(response)
+            current_url = next_url
+            previous_origin = next_origin
+        raise AssertionError("unreachable ETF redirect state")
+
+
+def _http_origin(url: str) -> tuple[str, str, int | None]:
+    parsed = urlsplit(url)
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ETFHoldingsRouteHeldError("ETF redirect URL has an invalid port") from exc
+    scheme = parsed.scheme.lower()
+    if port is None:
+        port = 443 if scheme == "https" else 80 if scheme == "http" else None
+    return scheme, (parsed.hostname or "").encode("idna").decode("ascii").lower(), port
+
+
+def _make_loop_local_httpx_attempt(**kwargs: Any) -> LoopLocalHTTPXAttempt:
+    """Isolated construction seam for offline MockTransport contract tests."""
+
+    return LoopLocalHTTPXAttempt(**kwargs)
+
+
+def _without_headers(kwargs: dict[str, Any], names: set[str]) -> dict[str, Any]:
+    result = dict(kwargs)
+    raw_headers = result.get("headers")
+    if raw_headers is None:
+        return result
+    headers = httpx.Headers(raw_headers)
+    for name in names:
+        if name in headers:
+            del headers[name]
+    result["headers"] = headers
+    return result
+
+
+def _without_credentials(kwargs: dict[str, Any]) -> dict[str, Any]:
+    result = _without_headers(kwargs, {"authorization", "cookie", "proxy-authorization"})
+    result.pop("auth", None)
+    # A client-level Cookie header is merged into each request separately.
+    result["headers"] = httpx.Headers(result.get("headers", {}))
+    for name in ("authorization", "cookie", "proxy-authorization"):
+        if name in result["headers"]:
+            del result["headers"][name]
+    return result
 
 
 @dataclass(frozen=True)

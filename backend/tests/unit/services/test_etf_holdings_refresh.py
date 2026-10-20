@@ -41,7 +41,7 @@ def _profile(symbol="DXJ"):
     return SimpleNamespace(
         id=7,
         adapter_key="wisdomtree",
-        instrument=SimpleNamespace(symbol=symbol, name=f"{symbol} fixture"),
+        instrument=SimpleNamespace(id=42, symbol=symbol, name=f"{symbol} fixture"),
         provider_aliases={},
         issuer=None,
         sponsor=None,

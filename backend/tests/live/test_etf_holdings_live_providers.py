@@ -6,11 +6,11 @@ from decimal import Decimal
 
 import httpx
 import pytest
-import requests
 
 from app.services.etf_holdings_adapters import (
     ISSUER_ADAPTER_CONFIGS,
     get_holdings_adapter,
+    requests,
 )
 
 LIVE_BACKED_ISSUER_ADAPTERS = {

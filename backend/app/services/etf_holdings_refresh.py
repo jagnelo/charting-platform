@@ -11,7 +11,7 @@ from decimal import Decimal
 from io import BytesIO, StringIO
 from typing import Any
 
-import httpx
+import httpx as _httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -46,8 +46,32 @@ from app.services.etf_holdings_adapters import (
     parse_xlsx_table,
 )
 from app.services.etf_holdings_capability import evaluate_capability, infer_expected_cadence
+from app.services.etf_holdings_provider_bridge import (
+    ETFHoldingsRouteHeldError,
+    ProviderBackedHTTPXClient,
+    bind_etf_holdings_request_context,
+)
 from app.services.instrument_mastering import register_identifier
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
+
+
+class _ETFRefreshHTTPXNamespace:
+    """Keep discovery transports fail-closed until they have reviewed bindings."""
+
+    def AsyncClient(self, *args, **kwargs):
+        if args:
+            raise ETFHoldingsRouteHeldError(
+                "ETF refresh clients require keyword-only shared-admission configuration"
+            )
+        return ProviderBackedHTTPXClient(**kwargs)
+
+    def __getattr__(self, name):
+        return getattr(_httpx, name)
+
+
+# Discovery/enrichment calls are not yet bound to an evidence-reviewed ETF
+# operation. They must fail closed instead of bypassing Provider with raw HTTPX.
+httpx = _ETFRefreshHTTPXNamespace()
 
 
 class ETFHoldingsRouteNotReadyError(ValueError):
@@ -1318,18 +1342,28 @@ async def refresh_etf_holdings_for_date(
     symbol = profile.instrument.symbol
     issuer_product_id = _issuer_product_identifier(identifiers)
     try:
-        fetch_result = await adapter.fetch_for_date(
-            symbol=symbol,
-            requested_date=requested_date,
-            issuer_product_id=issuer_product_id,
-            identifiers=identifiers,
-        )
+        with bind_etf_holdings_request_context(
+            db=db,
+            adapter=adapter,
+            instrument_id=profile.instrument.id,
+            provider_symbol=symbol,
+            operation="fetch_etf_holdings_for_date",
+        ) as request_binding:
+            fetch_result = await adapter.fetch_for_date(
+                symbol=symbol,
+                requested_date=requested_date,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
         if not fetch_result.rows:
             raise ValueError("Issuer dated holdings route returned no parseable rows.")
         artifact_identity_validation = _validate_artifact_identity(profile, fetch_result.raw_text)
         _ensure_artifact_identity_is_safe(artifact_identity_validation)
 
-        result_metadata = fetch_result.legal_metadata or {}
+        result_metadata = {
+            **(fetch_result.legal_metadata or {}),
+            "provider_request_log_ids": request_binding.request_log_ids,
+        }
         result_metadata = {
             **result_metadata,
             "expected_cadence": result_metadata.get("expected_cadence")
@@ -2109,17 +2143,27 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             f"{probe.reason or probe.status} Required route metadata: {required}."
         )
 
-    fetch_result = await adapter.fetch_latest(
-        symbol=symbol,
-        issuer_product_id=issuer_product_id,
-        identifiers=identifiers,
-    )
+    with bind_etf_holdings_request_context(
+        db=db,
+        adapter=adapter,
+        instrument_id=profile.instrument.id,
+        provider_symbol=symbol,
+        operation="fetch_etf_holdings_latest",
+    ) as request_binding:
+        fetch_result = await adapter.fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+        )
     if not fetch_result.rows:
         raise ValueError("Issuer holdings route returned no parseable rows.")
     artifact_identity_validation = _validate_artifact_identity(profile, fetch_result.raw_text)
     _ensure_artifact_identity_is_safe(artifact_identity_validation)
 
-    result_metadata = fetch_result.legal_metadata or {}
+    result_metadata = {
+        **(fetch_result.legal_metadata or {}),
+        "provider_request_log_ids": request_binding.request_log_ids,
+    }
     result_metadata = {
         **result_metadata,
         "expected_cadence": result_metadata.get("expected_cadence")
@@ -2178,6 +2222,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         raw_payload_json=fetch_result.raw_json,
         legal_metadata={
             **(fetch_result.legal_metadata or {}),
+            "provider_request_log_ids": request_binding.request_log_ids,
             "terms_note": aliases.get("terms_note"),
             "probe_status": probe.status,
             "probe_confidence": str(probe.confidence),

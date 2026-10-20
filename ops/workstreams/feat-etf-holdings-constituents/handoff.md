@@ -12244,3 +12244,125 @@ and quarantined. Coordinator fixture assignment is still required before
 DB-backed/full-stack/full_stack_browser validation. Preserve the full 14
 criteria and 30-day observation gate; do not self-accept, stage elsewhere or
 deploy.
+
+## Per-attempt adapter transport integration — 2026-10-20 21:40Z
+
+The scaffold above was committed and pushed as
+`e1860bdb9bd8e6b2584c2d8f51ffcb0d5cb7afb1`. Its exact Actions run
+`39501055514` is terminal red: Frontend Unit passed; Backend failed with four
+unit failures; E2E, Branch-declared and Exhaustive were skipped by branch
+policy. The backend log was read from that exact run. Two failures came from
+retry tests that overwrote their own `to_thread` recording stub, so the
+existing two-attempt assertions were not observing transport calls. The
+harness now retains the recorder and asserts both attempts invoke the same
+fake transport. The live harness imports the adapter transport facade for
+exception types instead of importing `requests` directly, satisfying the
+static no-unguarded-import guard; this is not live route evidence and no live
+suite was run. A third failure was a stale narrative assertion requiring
+`15 Tier-0 and 156 Tier-1`; the fourth was the live-file direct `requests`
+import, which the focused static contract now passes using the adapter facade.
+Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations; these counts
+are retained as historical and current workstream facts, not recomputed here.
+
+The latest and dated issuer refresh entry points now bind the owning
+`AsyncSession`, canonical instrument id/symbol, adapter identity and exact
+operation for the duration of the concrete adapter fetch. Adapter-module
+HTTPX GET/POST clients detect this binding and dispatch every physical request
+through the ETF consumer bridge. Redirect following is manual: each hop is a
+separate shared-runtime call and therefore independently reviewed, reserved,
+logged, observed and settled. Each resulting Provider request-log id is
+retained in the fetched artifact's legal metadata. The callback creates its
+fresh HTTPX client only inside the Provider worker loop; no caller-loop client
+crosses into `asyncio.run`. Under a bound refresh, legacy `requests` and curl
+fallbacks fail closed before transport rather than bypass shared admission.
+Mocked no-network tests verify two separately dispatched redirect hops,
+request-log id aggregation, no-transport fallback denial, and the two
+existing retry semantics. Ruff/format, 13 selected backend contracts (bridge,
+two retry regressions, refresh safety and source-transport static guard), and
+`git diff --check` pass.
+
+This is bounded current/date refresh wiring, not complete ETF transport
+acceptance. SEC EDGAR submission/archive/file calls, discovery/enrichment
+requests, any client operation beyond GET/POST, request bodies that might be
+bound to the caller loop, durable lineage on failed Provider attempts,
+DB-backed held/unknown/quota-exhaustion zero-call proof, real
+`execute_provider_call` reservation/settlement integration, and full
+API/worker current-vs-historical/PIT regression remain open. The opt-in live
+suite remains unexecuted and its direct adapter invocations do not prove
+DB-backed shared admission. The 30-day observation gate stays open. MSMR/QQQ
+and Militia/GOOG remain unresolved and quarantined; no issuer/SEC/provider HTTP
+or quota operation was made. ETF remains in_progress/not accepted.
+
+## HTTPX redirect/client compatibility and fail-closed direct transports — 2026-10-20
+
+The accepted Provider release remains `9b230ba4c97126a2937667138c6eb2a0aa297baf`,
+merged into ETF at `45859aa024a00bf638dc5a2bed619c1778dd7fc6`. The published
+scaffold remains `e1860bdb9bd8e6b2584c2d8f51ffcb0d5cb7afb1`; exact CI
+`39501055514` remains terminal RED and was not rerun. The root coordinator's
+host-side containment verified the earlier 644-test command's exact process
+tree absent after SIGINT. Its seven reported tests before interruption are
+partial historical output, neither a passing nor failing suite result.
+
+Source inventory found 340 adapter `AsyncClient` constructors: configuration
+uses `timeout` (339), `verify` (1), and client-level `follow_redirects` (2);
+adapter request calls also commonly set per-request `follow_redirects=True`.
+The existing publisher flows include an explicit U.S. disclosure Cookie header,
+but no adapter Cookie-jar API or cross-request cookie management. The bridge now
+accepts `follow_redirects` and `max_redirects` as client defaults while keeping
+automatic transport redirects disabled. Every hop remains a separate shared
+attempt. It preserves HTTPX's POST method/body rules for 301/302/303 versus
+307/308, removes body headers when the body is discarded, strips
+Authorization/Cookie/Proxy-Authorization and configured auth across origins,
+retains the response history, and carries HTTPX cookie-jar state with its
+normal URL scoping. The test covers same-origin explicit cookie behavior,
+response-cookie persistence, and no cookie to an unrelated host.
+
+The adapter, refresh/discovery, and SEC module transport namespaces are now
+fail-closed when no supported Provider binding exists: direct unbound adapter
+or discovery use cannot fall through to a raw HTTPX socket, requests and curl
+fallbacks cannot bypass the bridge, and direct SEC clients are explicitly held
+until SEC has its own reviewed source/account/operation binding. This is a
+safety boundary, not completion of discovery, SEC fallback, or legacy fallback
+functionality; those still need properly reviewed shared-runtime contexts.
+Unknown or held operations remain non-routable. No host review was broadened.
+
+An offline integration test invokes a real `IssuerCsvHoldingsAdapter` through
+`_refresh_adapter_route`, the actual HTTPX facade, the actual sync callback, and
+the actual `execute_etf_holdings_request_attempt` path. Loop-local MockTransport
+proves each redirect hop creates and uses an HTTPX client in a worker thread,
+and the two request-log IDs reach persisted artifact legal metadata. Shared
+Provider policy lookup/execution itself is stubbed in this test; therefore it
+does not prove DB-backed reservation, settlement, or failed-attempt log
+lineage. Focused verification passed 23/23: bridge contract module 15, SEC
+helper tests 4, existing requests-fallback retry regressions 3, and refresh
+future-metadata guard 1. Ruff check/format and `git diff --check` pass. No live
+HTTP, quota, paid/trial operation, or fixture was used.
+
+Still required before review: evidence-backed SEC and discovery/enrichment
+bindings through the staged shared runtime; proof every physical retry/page,
+redirect, transport fallback and SEC request is admitted/settled once with
+durable success and failure lineage; DB-backed denied/unknown/exhausted
+zero-reservation/zero-transport contracts; full API/worker and current/degraded/
+stale/unavailable/historical/PIT consumer checks; the assigned full_stack_browser
+profile; exact-source green branch CI. Preserve the opt-in live boundary and do
+not replay the inconclusive MSMR/QQQ or Militia/GOOG routes. The 14-criterion
+roadmap, 30-day observation gate, and `in_progress/not accepted` checkpoint
+remain unchanged.
+
+### Bounded post-containment verification — 2026-10-20 21:56Z
+
+After the coordinator confirmed the old 7/644 process tree was absent, the
+focused 23-test no-network command was rerun under a 30-second timeout and
+passed 23/23 in 2.11 seconds. Ruff and format checks passed; the branch
+workstream validator also passed using the already-installed backend venv.
+The canonical UV-wrapped session/validator commands could not start because
+the shared UV cache is read-only and an isolated `/tmp` cache could not resolve
+the QuantLib wheel from PyPI in this network-restricted session. No dependency
+or cache files in the repository were changed. The interrupted 644-test run
+remains partial only; no replacement long suite was launched. The active claim
+is still `f206bbc5-abbf-473a-a44f-fb5706c81282`, branch HEAD/origin remain
+`e1860bdb9bd8e6b2584c2d8f51ffcb0d5cb7afb1`, and the worktree changes remain
+unpublished. Next, finish exact path/diff review, publish this coherent
+changeset through the owner workflow, and inspect only its exact-source CI;
+the Provider DB settlement, failed-attempt lineage, SEC/discovery bindings,
+full consumer profile and full_stack_browser gaps remain open.
