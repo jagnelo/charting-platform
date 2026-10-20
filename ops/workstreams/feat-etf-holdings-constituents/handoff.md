@@ -12121,6 +12121,56 @@ bridge still waits for the coordinator's accepted green Provider staging
 release; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined, and the full
 roadmap and later observation gate remain open.
 
+## Provider release reconciliation and async callback hang — 2026-10-20
+
+The coordinator's exact Provider release is accepted/released at synchronized
+green staging 9b230ba4c97126a2937667138c6eb2a0aa297baf (CI39484176087,
+Exhaustive118849529356). It was merged only into this ETF branch; current
+branch/origin are 45859aa024a00bf638dc5a2bed619c1778dd7fc6. This is a
+Provider dependency release, not ETF checkpoint acceptance.
+
+The prior focused command exec-b22f7e77 exited 130 after partial 16/18
+output. Coordinator containment receipt
+/home/m920q/charting-platform/.ai/staging-attempts/etf-focused-test-containment-20261020.md
+records exact validation and graceful SIGINT containment of orphan pytest
+1304643 and absence of its exact process tree; no cleanup is to be repeated.
+Its partial output remains historical/inconclusive, never a passing result.
+
+The isolated async callback case reproduced a non-terminating cross-loop
+handoff. A separate no-network Python control showed this runtime's
+asyncio.to_thread can return its value yet stall while asyncio.run shuts down
+the default executor. The bridge was changed so its Provider-required
+synchronous callback completes the returned coroutine with a local
+asyncio.run before returning a concrete response; AsyncSession access and
+settlement remain on the caller's loop. The focused bridge tests use a bounded
+plain worker thread (not asyncio.to_thread) to verify one completion and
+exactly-once invocation. Ruff check, format, the original focused profile
+(18/18 unit tests), Alembic head, and two existing Provider callback-contract
+tests pass. All executions were stack-free and made no HTTP request.
+
+Important remaining integration constraint: loop-bound HTTPX clients must be
+created and used inside the callback coroutine executed by the worker loop;
+capturing an AsyncClient created on the AsyncSession/caller loop is not
+proven safe. Audit and adapt concrete ETF callsites before connecting this
+bridge to actual async transports. The current tests do not prove
+DB-backed shared admission/reservation/settlement, every redirect/retry/page/
+fallback attempt, or end-to-end artifact lineage. Exact merge-source CI and
+the required full_stack_browser profile remain pending; checkpoint stays in
+progress/not accepted. MSMR/QQQ and Militia/GOOG remain unresolved and
+quarantined, and all unknown/quota-held/paid/trial/unsafe routes remain held.
+
+Follow-up bounded proof: a no-network HTTPX MockTransport 302 response completed
+as exactly one callback attempt with automatic redirects disabled. The expanded
+focused profile passes 19/19, Ruff/format pass, and Alembic head remains
+d1e7f2a9c4b6. This proves only the callback wrapper's ability to complete an
+attempt-local client/coroutine; it does not establish existing adapter
+client-loop compatibility or per-attempt instrumentation across production
+routes. Next audit concrete adapter request callsites for loop-bound resources
+and per-physical-attempt wrapping, then add deterministic shared-runtime
+deny/settlement/lineage tests. Wait for coordinator fixture allocation before
+DB-backed/full-stack validation. Preserve all historical and PIT network-free
+semantics and the complete roadmap.
+
 ## Exact CI39408145628 lifecycle compatibility repair — 2026-10-20
 
 Exact run `39408145628` for source
@@ -12147,3 +12197,50 @@ workstream validator, and `git diff --check` passed. No local DB/TestClient or
 browser fixture was launched. A fresh exact-source CI is required after this
 compatibility repair is published; run `39408145628` is preserved as red, not
 reclassified or rerun.
+
+## Current capability/bridge scaffold closure — 2026-10-20 21:29Z
+
+The Provider dependency release remains the accepted synchronized staging SHA
+`9b230ba4c97126a2937667138c6eb2a0aa297baf`; the ETF branch merged only that
+release at `45859aa024a00bf638dc5a2bed619c1778dd7fc6`. The ETF checkpoint is
+not accepted.
+
+The initial focused exec `exec-b22f7e77` exited 130 after partial 16/18
+output. Root's containment receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-focused-test-containment-20261020.md`
+confirms exact-process SIGINT and absence of its wrapper/process tree. This
+partial output remains inconclusive and is not rewritten as a pass.
+
+The dirty scaffold adds the additive `ETF_HOLDINGS` capability migration,
+empty default route, diagnostics, explicit ETF adapter resolution override and
+request-log linkage. Its per-attempt HTTPX boundary is now
+`LoopLocalHTTPXAttempt`: it accepts method/URL/request/client configuration,
+not an AsyncClient object or client factory, constructs a fresh client inside
+the admitted Provider worker loop, and disables automatic redirects. Raw async
+callbacks are rejected before route review/admission; synchronous requests
+callbacks remain synchronous. A local HTTPX MockTransport test asserts that
+transport creation occurs in the worker loop and that a synthetic 302 results
+in exactly one request. No caller-loop client is handed into `asyncio.run`.
+This scaffolding does not yet wire any concrete ETF adapter and is not
+shared-runtime end-to-end proof.
+
+Final focused validation on this dirty source: Ruff check and format pass;
+availability plus bridge tests pass 19/19; the two existing Provider runtime
+callback-contract tests pass 2/2; Alembic head is `d1e7f2a9c4b6`;
+workstream validation, session/validation JSON parsing and `git diff --check`
+pass. The full local profile and browser/Compose fixtures were not run.
+
+Before wiring actual consumers, stage only the reviewed bridge-scaffold and
+owned workstream files, inspect the staged diff, commit and push to this ETF
+branch, and verify exact refs/CI. Then proceed without a human wait to audit
+and wire real adapter HTTPX/requests callsites, redirects/retries/pages/
+fallback/SEC attempts, plus API/worker and current-versus-historical/PIT
+consumers. Each physical request must have its own shared admission,
+reservation, exactly-once settlement and raw request/artifact lineage. Add
+caller-level success and zero-transport failure tests. Cached/historical/PIT
+reads stay network/quota free; unknown, malformed, aliased/wildcard-held and
+quota-held routes stay fail-closed. MSMR/QQQ and Militia/GOOG remain unresolved
+and quarantined. Coordinator fixture assignment is still required before
+DB-backed/full-stack/full_stack_browser validation. Preserve the full 14
+criteria and 30-day observation gate; do not self-accept, stage elsewhere or
+deploy.

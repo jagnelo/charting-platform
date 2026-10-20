@@ -291,6 +291,10 @@ class Settings(BaseSettings):
         "ondo_global_markets",
     ]
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
+        # No issuer is routable by default. ETF publishers are added only
+        # after source/account/terms/quota evidence has been reviewed and a
+        # concrete per-operation policy has been configured.
+        "etf_holdings": [],
         # Provider-native usage surfaces are selected by the same exact
         # capability/quota gates as data reads. These adapters remain opt-in
         # at the worker level; this list only makes them resolvable when an

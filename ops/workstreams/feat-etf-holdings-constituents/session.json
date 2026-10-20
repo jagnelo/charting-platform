@@ -78,18 +78,20 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "provider_release": {
-    "recorded_at": "2026-10-20T20:58:03Z",
-    "status": "accepted_and_released_in_synchronized_green_staging",
-    "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
-    "release_record": "/home/m920q/charting-platform/.ai/staging-attempts/provider-green-release-20261020.md",
-    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261020T205101Z-9b230ba4c971.json",
-    "exact_ci_run": 39484176087,
-    "exhaustive_gate_job": 118849529356,
-    "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance."
-  },
-  "current_blocker_latest": "2026-10-20 20:58Z: Provider product checkpoint is accepted/released at synchronized green staging 9b230ba4c97126a2937667138c6eb2a0aa297baf (CI39484176087, Exhaustive118849529356). The ETF owner is merging only that exact SHA and preserving its own capability, tests, roadmap, and durable workstream. Remaining ETF work is the actual shared-runtime ETF_HOLDINGS enum/schema/seed and transport-level consumer bridge, deterministic negative/lineage tests, current-source full_stack_browser when the coordinator assigns a safe fixture slot, and exact-source CI. Preserve the 15 Tier-0 and 156 Tier-1 investigations and 496/422/74 registry split. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined with no retained response/row evidence; unknown/quota-held/paid/trial/unsafe operations stay disabled.",
-  "dirty_paths": [],
+  "current_blocker_latest": "2026-10-20 21:30Z: Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf (CI39484176087, Exhaustive118849529356) is recorded and merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6. The original exec-b22f7e77 exit130 after partial16/18 was independently contained; it remains non-passing historical evidence. The bridge now exposes LoopLocalHTTPXAttempt (configuration only, no client instance/factory), constructs a fresh AsyncClient inside the admitted worker loop, disables redirects and rejects raw async closures before admission. Final focused checks pass Ruff/format, 19/19 availability+bridge tests, two existing Provider callback-contract tests, Alembic head d1e7f2a9c4b6, and workstream/diff validation. The actual ETF adapter/API/worker callsites are not yet wired; no shared DB admission/settlement or end-to-end lineage proof is claimed. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined; unknown/quota-held/paid/trial/unsafe operations remain disabled. Exact-source CI and required full_stack_browser remain open; ETF is in_progress/not accepted.",
+  "dirty_paths": [
+    "backend/app/config.py",
+    "backend/app/models/provider_runtime.py",
+    "backend/app/services/provider_availability.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/tests/unit/services/test_provider_availability.py",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
+    "backend/alembic/versions/d1e7f2a9c4b6_add_etf_holdings_provider_capability.py",
+    "backend/app/services/etf_holdings_provider_bridge.py",
+    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -114,7 +116,7 @@
   "goal_request_state": "ready",
   "goal_state": "blocked_in_codex_goal_api; coordinator-directed continuation is active in this original owner session; no goal state or accounting reset requested or performed",
   "goal_unavailable_reason": null,
-  "head": "476f002e4d405b4f94597cadba58e79800029030",
+  "head": "45859aa024a00bf638dc5a2bed619c1778dd7fc6",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -247,8 +249,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Wait for the coordinator's explicit accepted Provider release in green staging. Verify the exact release/CI/acceptance record, merge only that staging SHA, then implement the documented ETF_HOLDINGS capability/migration, reviewed route binding, shared recurring-cost onboarding, released operation-hold mapping, per-attempt synchronous concrete transport, settlement/lineage and fail-closed tests. Keep MSMR/QQQ and Militia/GOOG quarantined; the current-source full_stack_browser gate remains required later.",
-  "plan_hash": "994b4e7c18235302fdbe48d38f0cb6068bef82f07e8a9fd1da89accec217ccdd",
+  "next_action": "Continue the shared-runtime ETF_HOLDINGS bridge against the recorded Provider release: prove one real loop-safe HTTPX AsyncClient attempt created/used in the admitted worker context, instrument and test each request attempt/redirect/retry/page/fallback without bypass, then add DB-backed admission/settlement/denial/lineage coverage when the coordinator assigns a safe fixture slot. Reconcile any adapter callsite needing loop-bound-client refactoring. Preserve historical/PIT no-network behavior, unresolved MSMR/QQQ and Militia/GOOG quarantines, and the full roadmap. Required full_stack_browser and exact-source CI remain open; do not mark checkpoint accepted.",
+  "plan_hash": "313490bce0c2ba967b379f32e10f1ed98ccafd990817db8802c34fcb21d6494a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -301,14 +303,24 @@
     "completed": [
       "EICP1"
     ],
-    "current_blocker": "Provider product checkpoint is accepted/released at synchronized green staging 9b230ba4c97126a2937667138c6eb2a0aa297baf (exact CI39484176087; Exhaustive118849529356). The merge of only that SHA into this ETF branch is in progress, with semantic conflict reconciliation preserving ETF-owned source/workstream behavior and the ETF test invariants. The ETF_HOLDINGS enum/schema/seed, shared per-attempt transport admission/settlement, artifact and request lineage, exact denial/zero-transport tests, and current/degraded/stale/partial/unavailable plus historical/PIT consumer tests remain active implementation. The 15 Tier-0 and 156 Tier-1 investigations are preserved; 496/422/74 registry split remains source-derived. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined without retained response/row evidence. Unknown/quota-held/paid/trial/unsafe operations remain disabled. Current-source full_stack_browser remains required and awaits a coordinator-assigned safe fixture slot.",
+    "current_blocker": "Provider 9b230ba4c97126a2937667138c6eb2a0aa297baf (exact CI39484176087; Exhaustive118849529356) has been merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6. The owned bridge-scaffolding changeset is validated and ready for publication: the original exec-b22f7e77 partial16/18 plus coordinator containment are retained, and the bounded replacement checks pass Ruff/format, 19 availability+bridge tests, two Provider callback contract tests, Alembic head d1e7f2a9c4b6, workstream validation and diff-check. LoopLocalHTTPXAttempt accepts only configuration and constructs a fresh AsyncClient inside the worker loop; the no-network MockTransport test observes construction in that loop and a single 302 request. Actual ETF adapter/API/worker callsites, per-attempt admission/settlement, zero-transport integration denials and current/historical/PIT consumer lineage remain unimplemented or unproven. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined; unknown/quota-held/paid/trial/unsafe operations remain disabled. ETF remains in_progress/not accepted.",
     "current_phase": "provider_release_reconciled_etf_bridge_implementation",
-    "next_action": "Complete and validate the exact staging 9b230ba4c97126a2937667138c6eb2a0aa297baf merge in ETF only, recording migration heads and preserving the ETF workstream files, then implement ETF_HOLDINGS against staged runtime interfaces. Add deterministic per-request admission/settlement and no-bypass tests before attempting any full fixture. Keep all routes without reviewed evidence held; do not issue live calls. Full_stack_browser awaits a coordinator-assigned safe fixture slot; continue to ready_for_human_review, not acceptance.",
+    "next_action": "Publish the exact reviewed dirty capability/migration/bridge scaffold under ETF ownership with focused evidence and no acceptance claim. Immediately after confirming remote parity and exact-source CI, continue actual adapter/request and API/worker/current-versus-historical/PIT integration: place every HTTPX physical attempt behind LoopLocalHTTPXAttempt, and separately admit/settle each request, redirect, retry, page, fallback and SEC call. Add caller-level success/denial/lineage tests; await coordinator assignment before DB/full_stack_browser validation.",
     "total": 7,
-    "updated_at": "2026-10-20T20:58:03.000000+00:00"
+    "updated_at": "2026-10-20T21:30:35.000000+00:00"
   },
-  "remote": "4fd48056c3fb7d54678f9ba7741fa5fd06b0c473",
-  "remote_sha": "476f002e4d405b4f94597cadba58e79800029030",
+  "provider_release": {
+    "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261020T205101Z-9b230ba4c971.json",
+    "exact_ci_run": 39484176087,
+    "exhaustive_gate_job": 118849529356,
+    "recorded_at": "2026-10-20T20:58:03Z",
+    "release_record": "/home/m920q/charting-platform/.ai/staging-attempts/provider-green-release-20261020.md",
+    "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
+    "status": "accepted_and_released_in_synchronized_green_staging"
+  },
+  "remote": "45859aa024a00bf638dc5a2bed619c1778dd7fc6",
+  "remote_sha": "45859aa024a00bf638dc5a2bed619c1778dd7fc6",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
