@@ -480,32 +480,40 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: shared_runtime_attempt_failure_and_effective_url_integrity_2026_10_20
+current_phase: shared_runtime_denial_discovery_and_consumer_truth_2026_10_21
 current_blocker: >-
-  Both summaries preserve 15 Tier-0 and 156 Tier-1 symbol investigations.
-  Accepted Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf remains
-  merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6. Published
-  source dc2608bd0135bb7ef457d8b933d3e20b7e876948 has exact-source CI
-  39511734942 in progress; this is not checkpoint acceptance. Its bounded
-  shared-runtime loopback DB/Redis
-  MockTransport module, including committed instrument-symbol rejection,
-  cancellation rollback/raw lineage, failure/uncertain settlement, and exact
-  effective URL/request-log binding for real adapter params, client defaults,
-  and cross-origin redirects. Full URLs compare without redaction in memory;
-  persisted URL metadata is redacted; no concrete per-operation URL catalogue
-  is required. The default live-module contract is explicitly invoked in
-  branch_tests with RUN_LIVE_ETF_HOLDINGS_TESTS=0, retaining nine offline
-  registry/route checks; only the network-bearing RUN_LIVE_ETF_HOLDINGS_TESTS=1
-  sweep remains deferred. It passes locally with nine tests and 537 network
-  probes skipped. The paired branch-tests.json mirrors all nine plan commands
-  and maps only backend unit commands to the Backend Tests job. Earlier exact
-  hosted CI red receipts remain historical. Dated-refresh rejection retention
-  across caller rollback/reopen is the next owned contract. SEC/discovery,
-  broader worker/API/current-vs-historical/PIT, full_stack_browser, final
-  exact-source CI, the complete issuer roadmap and 30-day observation gate
-  remain open. MSMR/QQQ and Militia/GOOG remain
-  unresolved/quarantined; unknown/quota-held/paid/trial/unsafe operations
-  remain disabled. Checkpoint stays in_progress/not accepted.
+  Both workstream summaries preserve 15 Tier-0 and 156 Tier-1 symbol
+  investigations. Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf
+  remains merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6.
+  Current branch tip 024ad8f065db246a34bc05219fd5cd32188b75ee has historical
+  exact CI 39514774818 terminal red: 17 integration failures and 405 passes;
+  do not rerun or misclassify it. This worktree now contains a distinct,
+  unpublished admission/consumer context. Its bounded shared-runtime module
+  passed all 31 cases against the assigned loopback fixture with MockTransport.
+  A later restricted-sandbox repeat failed before tests because that sandbox
+  could not connect to loopback; root independently verified the original
+  native run exited 0 and the same exact DB/Redis fixture is healthy, so the
+  qualified 31/31 result stands and no repeat is needed. Three canary unit
+  doubles were reconciled to the real instrument identity/read-service shape;
+  the complete bridge/refresh/adapter unit modules now pass 645 tests. Denial
+  coverage includes missing/expired/proposed/trial commitments, disabled
+  policy, exact/wildcard/malformed holds, shared Provider circuit, account-usage
+  bootstrap not admitting ETF holdings, and a separate synthetic shared-budget
+  ceiling case with the ETF's verified-free commitment unchanged. Actual
+  canary/read-service outcomes distinguish persisted prior holdings (degraded,
+  last-known, not current) from no prior holdings (unavailable); canary failure
+  no longer reports unavailable when a visible prior snapshot exists. Issuer
+  discovery, SEC discovery/enrichment, Voya legacy fallback, EDGAR direct access,
+  and SEC bootstrap are held without inheriting an ambient refresh binding;
+  optional held SEC enrichment does not block a separately reviewed issuer
+  route. No external HTTP or quota was used. The separate CI harness/isolation
+  failures from 39514774818 remain the next bounded context after publication;
+  root's harness review must guide the narrow fixture/API corrections, not a
+  blanket async rewrite or destructive shared-data cleanup. Full profile,
+  startup/migration review, broader API/worker/PIT proof, final exact-source CI,
+  full issuer roadmap and 30-day observation remain open. MSMR/QQQ and
+  Militia/GOOG remain unresolved/quarantined; unknown/quota-held/paid/trial/
+  unsafe operations remain disabled. Checkpoint stays in_progress/not accepted.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1494,17 +1502,21 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Review and publish the current coherent ETF-owned bridge/transport changeset
-  after focused no-network checks, preserving the exact historical red CI
-  39501055514 and requiring fresh exact-source CI. Then implement separate,
-  evidence-reviewed Provider bindings for SEC EDGAR and issuer discovery /
-  enrichment; ensure every retry/page/redirect/fallback physical request has
-  independent admission, exactly-once settlement, and durable success/failure
-  request lineage. Complete denied/unknown/exhausted zero-reservation and
-  zero-transport checks, API/worker current-versus-degraded/stale/unavailable
-  and historical/PIT consumers. Obtain coordinator fixture assignment before
-  database-backed settlement/full-stack/full_stack_browser validation. Do not
-  issue live requests, guess costs/quotas/FX, create a second ledger, weaken
-  MSMR or Militia quarantines, write staging, deploy, or activate paid/trial
-  operations. Preserve the full fourteen-criterion roadmap and later
-  observation gate; stop at ready_for_human_review, never self-accept.
+  Publish the coherent shared-admission/discovery/consumer context after exact
+  focused, narrative, workstream, Ruff/format, syntax and diff checks; preserve
+  historical CI 39514774818 as red and require fresh exact-source CI. Then
+  reconcile the separate confirmed CI harness/isolation failures using the
+  root review at /home/m920q/charting-platform/.ai/staging-attempts/
+  provider-review-etf-ci-harness-20261020.md: reproduce actual positive and
+  429/parser negative API outcomes before changing fixtures, preserve
+  intentional PIT/stale/incomplete assertions, and isolate only this worktree's
+  committing synthetic DB effects in a uniquely generated schema/database with
+  exact owned teardown on the existing PostgreSQL service. Do not blanket
+  rewrite API tests, add production fake/sync-session bypasses, delete shared
+  DataSources, or relax uniqueness/revision assertions. Continue remaining
+  shared admission and consumer API/worker/PIT proof, then migration/startup
+  readiness and the coordinator-assigned full_stack_browser profile. No live
+  issuer/SEC/Provider HTTP, quota use, cost/FX guesses, second ledger, staging
+  writes, deployment, paid/trial activation, or MSMR/Militia quarantine changes.
+  Preserve the full fourteen-criterion roadmap and later observation gate;
+  stop at ready_for_human_review, never self-accept.

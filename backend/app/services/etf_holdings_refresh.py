@@ -59,6 +59,7 @@ from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     ProviderBackedHTTPXClient,
     bind_etf_holdings_request_context,
+    require_unbound_etf_holdings_context,
 )
 from app.services.instrument_mastering import register_identifier
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
@@ -338,6 +339,7 @@ async def discover_etf_profiles_from_issuer_feed(
 ) -> dict:
     """Fetch a confirmed issuer ETF list and upsert ETF profiles from it."""
 
+    require_unbound_etf_holdings_context("ETF issuer discovery")
     adapter = get_holdings_adapter(adapter_key)
     if adapter is None:
         raise ValueError(f"No ETF holdings adapter is registered for {adapter_key}.")
@@ -444,6 +446,7 @@ async def discover_etf_profiles_from_sec_fund_tickers(
 ) -> dict:
     """Upsert lightweight ETF profiles from SEC's public fund ticker mapping."""
 
+    require_unbound_etf_holdings_context("SEC ETF fund-ticker discovery")
     async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
         response = await client.get(
             source_url,
@@ -535,6 +538,7 @@ async def enrich_etf_profile_from_sec_fund_tickers(
     if profile.instrument is None:
         raise ValueError("ETF profile is missing its linked instrument.")
 
+    require_unbound_etf_holdings_context("SEC ETF fund-ticker enrichment")
     symbol = profile.instrument.symbol.strip().upper()
     async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
         response = await client.get(
@@ -981,7 +985,24 @@ async def run_etf_holdings_capability_canaries(
         else:
             current_metadata.pop("symbol_audit_revalidated_at", None)
         state.extra_data = current_metadata
-        capability = evaluate_capability(profile, snapshot, state, now=observation_now)
+        capability_snapshot = snapshot
+        if capability_snapshot is None:
+            # A failed refresh does not erase the stored prior composition.
+            # Resolve the same visible latest snapshot used by API consumers
+            # so the operational observation says degraded/last-known rather
+            # than unavailable when durable holdings still exist.
+            capability_snapshot = await get_latest_snapshot(
+                db,
+                profile.instrument_id,
+                include_holdings=False,
+                include_controlled_fixture=False,
+            )
+        capability = evaluate_capability(
+            profile,
+            capability_snapshot,
+            state,
+            now=observation_now,
+        )
         observation = {
             "observed_at": observation_now.isoformat(),
             "status": status,

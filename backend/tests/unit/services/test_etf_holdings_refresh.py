@@ -40,6 +40,7 @@ class _Session:
 def _profile(symbol="DXJ"):
     return SimpleNamespace(
         id=7,
+        instrument_id=42,
         adapter_key="wisdomtree",
         instrument=SimpleNamespace(id=42, symbol=symbol, name=f"{symbol} fixture"),
         provider_aliases={},
@@ -90,6 +91,10 @@ def _snapshot():
         },
         parser_version="wisdomtree-csv-v1",
     )
+
+
+async def _no_prior_snapshot(*_args, **_kwargs):
+    return None
 
 
 @pytest.mark.asyncio
@@ -344,6 +349,7 @@ async def test_canary_failure_persists_class_and_opens_circuit_at_threshold(monk
 
     monkeypatch.setattr(refresh, "_refresh_adapter_route", failing_refresh)
     monkeypatch.setattr(refresh, "_record_failure", fake_failure)
+    monkeypatch.setattr(refresh, "get_latest_snapshot", _no_prior_snapshot)
 
     result = await refresh.run_etf_holdings_capability_canaries(
         db,
@@ -386,6 +392,7 @@ async def test_canary_enforces_per_symbol_timeout_and_records_transport_failure(
 
     monkeypatch.setattr(refresh, "_refresh_adapter_route", slow_refresh)
     monkeypatch.setattr(refresh, "_record_failure", fake_failure)
+    monkeypatch.setattr(refresh, "get_latest_snapshot", _no_prior_snapshot)
 
     result = await refresh.run_etf_holdings_capability_canaries(
         db,
@@ -417,6 +424,7 @@ async def test_canary_normalizes_malformed_persisted_failure_streak(monkeypatch)
         raise TimeoutError("issuer route timed out")
 
     monkeypatch.setattr(refresh, "_refresh_adapter_route", failing_refresh)
+    monkeypatch.setattr(refresh, "get_latest_snapshot", _no_prior_snapshot)
 
     result = await refresh.run_etf_holdings_capability_canaries(
         db,

@@ -12652,3 +12652,99 @@ remain open. The shared Provider release remains the only accepted dependency;
 ETF is still `in_progress/not accepted`, and the full roadmap and 30-day
 observation gate remain open. No staging/sibling write, external request,
 quota use, service stop, fixture cleanup or acceptance occurred.
+
+## Shared admission denials, discovery boundaries, and consumer truth — 2026-10-21
+
+This is a separate ETF-owned source context after the latest/dated rejected
+artifact-retention work. It starts from branch/origin
+`024ad8f065db246a34bc05219fd5cd32188b75ee`; exact-source CI `39514774818` on
+that starting source is terminal RED (backend unit passed, integration 17
+failed / 405 passed, frontend passed, downstream jobs skipped). The complete
+coordinator failure map remains at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-024-integration-ci-red-20261020.md`;
+the existing red was not rerun or relabelled.
+
+The bridge now exposes a narrow guard preventing issuer discovery, SEC ticker
+discovery/enrichment, or other unrelated workflows from inheriting an ambient
+latest/dated ETF request binding. Tests exercise actual discovery, SEC, EDGAR,
+Voya legacy fallback, and SEC-bootstrap entry points under an ambient latest
+binding and verify they remain held with zero MockTransport requests and zero
+shared request logs, rolling-window rows, or reservations. A separate test
+proves a held optional SEC enrichment does not prevent an independently bound
+and reviewed issuer holdings route from succeeding. This does not activate any
+unreviewed discovery/SEC route or invent source cost/terms.
+
+The real refresh-denial matrix covers missing and expired commitments, a
+synthetic proposed nonzero commitment, a trial commitment, disabled ETF
+capability policy, exact/wildcard/malformed operation holds, the shared
+Provider health circuit, and the fact that account-usage bootstrap permission
+does not admit ETF holdings. A separate aggregate-budget regression leaves the
+ETF's own active reviewed zero-cost commitment unchanged and introduces one
+uniquely-owned synthetic other-account commitment solely to cross the shared
+test ceiling; only its exact synthetic rows are cleaned in the test's `finally`
+path. These tests use the actual shared runtime and refresh route and assert
+denial before transport/reservation. The shared Provider ledger remains the
+only governance ledger.
+
+Consumer truth is checked through the actual canary and reopened read service,
+not manual failure bookkeeping. When the shared Provider circuit denies
+refresh, a prior persisted snapshot remains visible as degraded last-known
+data but is not current; no prior snapshot yields unavailable. This exposed and
+fixed a canary observation bug: failed refresh previously called
+`evaluate_capability` with no snapshot even if a visible prior composition
+existed. The canary now resolves the same eligible latest snapshot used by
+consumers, without changing stored composition or treating it as fresh.
+
+Validation evidence for this context:
+
+- The complete shared-runtime DB module previously passed `31 passed in
+  47.96s` on the assigned loopback-only ETF PostgreSQL/Redis fixture with
+  `HTTPX MockTransport`; it includes the denial, shared-budget, discovery,
+  optional-SEC, and prior-data/no-data consumer cases. Each DB invocation set
+  the exact assigned `TEST_DATABASE_URL`, `TEST_REDIS_URL`, and `WORKTREE_ID`
+  inline.
+- A later explicit-variable rerun in the restricted sandbox errored during
+  setup before test bodies because loopback access was refused there. Root
+  independently verified the original native run `exec-b0832990` completed
+  exit 0 with `31 passed in 47.96s`, using the correct assigned PostgreSQL URL
+  and Redis URL without credentials. The DB-relevant source/test inputs were
+  unchanged after that qualified pass (the only subsequent change to the
+  integration module was import ordering; subsequent unit-only fake and
+  workstream edits do not affect it), so this remains the valid result and no
+  repeat is needed. At 23:42Z root independently verified TCP connectivity to
+  both assigned loopback ports and healthy exact fixture identities
+  `PG43fb83fd` / `Redis7d3b9bd`. The sandbox failure is not a service outage or
+  product failure. No service was started, stopped, recreated, or cleaned.
+- The complete bridge/refresh/adapter unit modules pass `645 passed in 16.84s`.
+  A first run exposed three old canary doubles without `instrument_id`; these
+  now match the real profile shape and explicitly stub the prior-snapshot read
+  as no-prior-data. No production bypass or weakened assertion was added. Ruff
+  check/format pass for the four source/test files; final workstream, narrative,
+  and diff checks remain part of publication.
+- Earlier bounded checks within this same context passed the focused 15-case
+  denial/discovery/consumer selection (`15 passed, 16 deselected`) and the
+  shared-circuit/aggregate tests (`3 passed, 26 deselected`).
+
+The next distinct task is the integration-test harness/isolation repair for
+failures already reported on `39514774818`, guided by the read-only Provider
+review at
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-review-etf-ci-harness-20261020.md`.
+Do not blanket-rewrite the eleven API tests to use async sessions based only on
+signature inference: their namespace-patched `FakeClient` deliberately controls
+adapter HTTP for format/API behavior. First reproduce one positive-current and
+both 429/parser negative cases with their exact failure reason. Make a positive
+fixture time-coherent (or freeze its intended clock) while preserving deliberate
+PIT/stale/incomplete assertions. Separately isolate committing test data from
+the shared rollback database by using a unique ETF-owned generated schema or
+database on the existing assigned PostgreSQL service and exact owned teardown,
+including the canonical quota engine. Do not delete shared canonical
+DataSources, change uniqueness/revision assertions, add production fake/sync
+session bypasses, or rerun the historical CI. Keep its red receipt intact.
+
+The 15 Tier-0 and 156 Tier-1 investigations remain preserved. MSMR/QQQ and
+Militia/GOOG stay unresolved/quarantined; unknown, quota-held, paid/trial, and
+unsafe operations stay disabled. Migration/startup, broader API/worker/PIT
+reconciliation, required `full_stack_browser`, fresh exact-source CI, the
+complete fourteen-criterion roadmap and later observation gate remain open.
+ETF stays `in_progress/not accepted`; no external HTTP, quota use, acceptance,
+staging/sibling write, deployment, or fixture cleanup occurred.

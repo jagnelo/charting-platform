@@ -18,7 +18,7 @@ from uuid import uuid4
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import selectinload
@@ -48,21 +48,27 @@ from app.models.provider_runtime import (
 from app.services import etf_holdings_provider_bridge as bridge
 from app.services import etf_holdings_refresh as refresh
 from app.services import provider_quota_coordinator as quota_coordinator
-from app.services.etf_holdings import _hash_payload
+from app.services.etf_holdings import _hash_payload, holdings_capability_for_symbol
 from app.services.etf_holdings_adapters import (
     CiFinancialHoldingsAdapter,
     IssuerCsvAdapterConfig,
     IssuerCsvHoldingsAdapter,
+    get_holdings_adapter,
 )
 from app.services.etf_holdings_adapters import httpx as adapter_httpx
-from app.services.etf_holdings_capability import evaluate_capability
+from app.services.etf_holdings_capability import evaluate_capability, load_canary_history
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     LoopLocalHTTPXAttempt,
     bind_etf_holdings_request_context,
 )
 from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
-from app.services.provider_runtime import ProviderNoDataError
+from app.services.provider_recurring_costs import provider_recurring_cost_status
+from app.services.provider_runtime import (
+    ProviderNoDataError,
+    policy_allows_account_usage_bootstrap,
+    provider_checkpoint_operation_hold_reason,
+)
 
 
 @pytest_asyncio.fixture
@@ -1747,3 +1753,535 @@ async def test_concurrent_same_account_calls_cannot_double_spend_after_runtime_r
     assert reservations[0]["state"] == "settled"
     assert reservations[0]["reserved_units"] == 1
     assert reservations[0]["settled_at"] is not None
+
+
+async def _attempt_counts(session: AsyncSession, case) -> tuple[int, int, int]:
+    request_logs = await session.scalar(
+        select(func.count())
+        .select_from(ProviderRequestLog)
+        .where(
+            ProviderRequestLog.data_source_id == case.source_id,
+            ProviderRequestLog.operation == case.operation,
+        )
+    )
+    quota_windows = await session.scalar(
+        select(func.count())
+        .select_from(ProviderQuotaWindow)
+        .where(
+            ProviderQuotaWindow.data_source_id == case.source_id,
+            ProviderQuotaWindow.dimension == "requests_per_minute",
+        )
+    )
+    reservation_count = await session.run_sync(
+        lambda sync_session: sync_session.execute(
+            select(func.count())
+            .select_from(quota_coordinator._reservations)
+            .where(
+                quota_coordinator._reservations.c.provider_name == case.provider_name,
+                quota_coordinator._reservations.c.operation == case.operation,
+            )
+        ).scalar_one()
+    )
+    return int(request_logs or 0), int(quota_windows or 0), int(reservation_count or 0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "denial",
+    (
+        "missing_commitment",
+        "expired_commitment",
+        "proposed_nonzero_commitment",
+        "trial_commitment",
+        "disabled_capability_policy",
+        "exact_operation_hold",
+        "wildcard_operation_hold",
+        "malformed_operation_hold",
+        "shared_provider_circuit",
+        "account_usage_bootstrap_is_not_holdings_admission",
+    ),
+)
+async def test_real_refresh_denials_have_zero_dispatch_and_unavailable_without_prior_data(
+    denial, db_engine, provider_db, monkeypatch
+):
+    """Refresh entry persists truthful unavailability without partial admission."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=5, with_profile=True
+    )
+    runner = _TransportRunner()
+    _use_mocktransport(monkeypatch, runner)
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+
+    async with provider_db() as setup:
+        commitment = await setup.scalar(
+            select(ProviderRecurringCostCommitment).where(
+                ProviderRecurringCostCommitment.data_source_id == case.source_id
+            )
+        )
+        policy = await setup.scalar(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == case.source_id,
+                ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        entitlement = await setup.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == case.source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        health = await setup.scalar(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == case.source_id,
+                ProviderHealthState.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert commitment is not None and policy is not None
+
+        if denial == "missing_commitment":
+            await setup.delete(commitment)
+        elif denial == "expired_commitment":
+            commitment.ends_at = datetime.now(UTC) - timedelta(seconds=1)
+        elif denial == "proposed_nonzero_commitment":
+            # Synthetic-only fixture values exercise the shared aggregate
+            # ceiling; they do not describe or price any real publisher.
+            commitment.state = "proposed"
+            commitment.amount = Decimal("0.0100")
+            commitment.monthly_equivalent = Decimal("0.0100")
+        elif denial == "trial_commitment":
+            commitment.state = "trial"
+        elif denial == "disabled_capability_policy":
+            policy.is_enabled = False
+        elif denial == "shared_provider_circuit":
+            assert health is not None
+            health.circuit_open_until = datetime.now(UTC) + timedelta(minutes=5)
+        elif denial == "account_usage_bootstrap_is_not_holdings_admission":
+            assert entitlement is not None
+            entitlement.configured_plan = "unreviewed"
+            policy.quota_contract = {
+                **(policy.quota_contract or {}),
+                "account_usage_bootstrap": {
+                    "enabled": True,
+                    "source": "test fixture only",
+                    "reconciled_dimensions": ["requests_per_minute"],
+                },
+            }
+            assert not policy_allows_account_usage_bootstrap(policy, "fetch_etf_holdings_latest")
+        elif denial in {
+            "exact_operation_hold",
+            "wildcard_operation_hold",
+            "malformed_operation_hold",
+        }:
+            if denial == "exact_operation_hold":
+                configured_holds = {case.operation: "synthetic exact hold"}
+                expected_hold_reason = "synthetic exact hold"
+            elif denial == "wildcard_operation_hold":
+                configured_holds = {"*": "synthetic wildcard hold"}
+                expected_hold_reason = "synthetic wildcard hold"
+            else:
+                configured_holds = {case.operation: ""}
+                expected_hold_reason = "checkpoint operation hold configuration is invalid"
+            monkeypatch.setattr(
+                settings,
+                "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
+                {case.provider_name: configured_holds},
+            )
+            assert (
+                provider_checkpoint_operation_hold_reason(case.provider_name, case.operation)
+                == expected_hold_reason
+            )
+        await setup.commit()
+
+    before = (0, 0, 0)
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            if denial in {
+                "exact_operation_hold",
+                "wildcard_operation_hold",
+                "malformed_operation_hold",
+                "shared_provider_circuit",
+                "account_usage_bootstrap_is_not_holdings_admission",
+            }:
+                with pytest.raises(ProviderNoDataError) as raised:
+                    await refresh._refresh_adapter_route(session, profile)
+                assert str(raised.value).startswith("No currently-supported providers")
+            else:
+                with pytest.raises(ETFHoldingsRouteHeldError) as raised:
+                    await refresh._refresh_adapter_route(session, profile)
+                if denial == "disabled_capability_policy":
+                    assert str(raised.value) == "ETF publisher capability is not explicitly enabled"
+                else:
+                    assert str(raised.value) == (
+                        "ETF publisher lacks an active verified-free shared recurring-cost commitment"
+                    )
+            await refresh._record_failure(session, profile, raised.value)
+            state = await session.scalar(
+                select(ETFHoldingsAdapterState).where(
+                    ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                    ETFHoldingsAdapterState.adapter_key == profile.adapter_key,
+                )
+            )
+            assert state is not None and state.failure_reason == str(raised.value)
+            capability = evaluate_capability(profile, None, state)
+            assert capability.availability == "unavailable"
+            assert not capability.displayable_last_known
+            before = await _attempt_counts(session, case)
+
+    assert runner.calls == []
+    assert before == (0, 0, 0)
+
+    # The over-ceiling setup exists only in this synthetic test row. Restore
+    # that owned row so it cannot influence a later fixture in the shared DB.
+    if denial == "proposed_nonzero_commitment":
+        async with provider_db() as cleanup:
+            async with cleanup.begin():
+                commitment = await cleanup.scalar(
+                    select(ProviderRecurringCostCommitment).where(
+                        ProviderRecurringCostCommitment.data_source_id == case.source_id
+                    )
+                )
+                assert commitment is not None
+                commitment.state = "cancelled"
+                commitment.amount = Decimal("0")
+                commitment.monthly_equivalent = Decimal("0")
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize("has_prior_snapshot", (False, True))
+async def test_shared_provider_circuit_denial_preserves_truthful_consumer_outcome(
+    has_prior_snapshot, db_engine, provider_db, monkeypatch
+):
+    """An open shared circuit yields degraded last-known or unavailable, never current."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=5, with_profile=True
+    )
+    runner = _TransportRunner()
+    _use_mocktransport(monkeypatch, runner)
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+
+    if has_prior_snapshot:
+        async with provider_db() as session:
+            async with session.begin():
+                profile = await _load_profile(session, profile_id)
+                runner.body = f"Fund Ticker,{case.instrument_symbol}\n" "Symbol,Weight\nAAA,1.0\n"
+                snapshot = await refresh._refresh_adapter_route(session, profile)
+                await refresh._record_success(session, profile, snapshot=snapshot)
+        runner.calls.clear()
+
+    async with provider_db() as setup:
+        health = await setup.scalar(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == case.source_id,
+                ProviderHealthState.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert health is not None
+        health.circuit_open_until = datetime.now(UTC) + timedelta(minutes=5)
+        await setup.commit()
+
+    async with provider_db() as session:
+        before = await _attempt_counts(session, case)
+
+    # Exercise the production worker/canary entry point: it owns failure-state
+    # persistence and the diagnostic observation. The caller commits its
+    # returned operational outcome, just as the scheduled task does.
+    async with provider_db() as session:
+        summary = await refresh.run_etf_holdings_capability_canaries(
+            session,
+            symbols=[case.instrument_symbol],
+            max_symbols=1,
+            timeout_seconds=5,
+        )
+        assert summary["failed"] == 1
+        assert summary["reports"][0]["status"] == "failure"
+        await session.commit()
+
+    # Reopen and use the actual consumer read services; do not synthesize the
+    # degraded/unavailable status from an in-memory failure helper.
+    async with provider_db() as reopened:
+        capability = await holdings_capability_for_symbol(reopened, case.instrument_symbol)
+        history = await load_canary_history(reopened, profile_id)
+        assert history
+        latest_observation = history[-1]
+        expected_availability = "degraded" if has_prior_snapshot else "unavailable"
+        assert capability["availability"] == expected_availability
+        assert latest_observation["availability"] == expected_availability
+        assert capability["displayable_last_known"] is has_prior_snapshot
+        assert not capability["usable_for_current_analysis"]
+        persisted_snapshot = await reopened.scalar(
+            select(ETFHoldingsSnapshot).where(ETFHoldingsSnapshot.etf_profile_id == profile_id)
+        )
+        if has_prior_snapshot:
+            assert persisted_snapshot is not None
+        else:
+            assert persisted_snapshot is None
+        after = await _attempt_counts(reopened, case)
+
+    assert runner.calls == []
+    assert after == before
+    assert after[0] == (1 if has_prior_snapshot else 0)
+    assert after[2] == (1 if has_prior_snapshot else 0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_other_account_nonzero_commitment_denies_zero_cost_etf_route_under_shared_budget(
+    db_engine, provider_db, monkeypatch
+):
+    """A second account's synthetic cost cannot bypass the shared monthly ceiling."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=5, with_profile=True
+    )
+    runner = _TransportRunner()
+    _use_mocktransport(monkeypatch, runner)
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+    other_source_name = f"etf-budget-fixture-{uuid4().hex[:12]}"
+    other_scope = f"synthetic-other-account-{uuid4().hex}"
+    other_source_id = None
+
+    async with provider_db() as setup:
+        budget = await setup.get(ProviderRecurringCostBudget, 1)
+        assert budget is not None
+        assert Decimal(budget.monthly_ceiling) == Decimal("0")
+        other_source = DataSource(
+            name=other_source_name,
+            description="Synthetic test-only budget fixture; not a real publisher.",
+            config={"test_fixture_only": True},
+        )
+        setup.add(other_source)
+        await setup.flush()
+        other_source_id = other_source.id
+        setup.add(
+            ProviderRecurringCostCommitment(
+                data_source_id=other_source.id,
+                environment=settings.APP_ENV.strip().lower(),
+                billing_account_scope_digest=hashlib.sha256(
+                    other_scope.encode("utf-8")
+                ).hexdigest(),
+                configured_plan="synthetic-test-only",
+                state="active",
+                amount=Decimal("0.0100"),
+                currency=budget.currency,
+                interval_unit="month",
+                interval_count=1,
+                monthly_equivalent=Decimal("0.0100"),
+                post_trial_amount=None,
+                effective_at=datetime.now(UTC),
+                ends_at=None,
+                evidence_source="synthetic test fixture only",
+                evidence_version="not-publisher-evidence-v1",
+                evidence_observed_at=datetime.now(UTC),
+                revision=1,
+            )
+        )
+        await setup.commit()
+
+    try:
+        async with provider_db() as session:
+            decision = await session.run_sync(provider_recurring_cost_status)
+            assert not decision.allowed
+            assert decision.reason_code == "monthly_ceiling_exceeded"
+            assert decision.monthly_ceiling == Decimal("0")
+            assert decision.committed_monthly == Decimal("0.0100")
+        async with provider_db() as session:
+            async with session.begin():
+                profile = await _load_profile(session, profile_id)
+                with pytest.raises(ETFHoldingsRouteHeldError) as raised:
+                    await refresh._refresh_adapter_route(session, profile)
+                assert str(raised.value) == (
+                    "ETF publisher lacks an active verified-free shared recurring-cost commitment"
+                )
+                own_commitment = await session.scalar(
+                    select(ProviderRecurringCostCommitment).where(
+                        ProviderRecurringCostCommitment.data_source_id == case.source_id
+                    )
+                )
+                assert own_commitment is not None
+                assert own_commitment.state == "active"
+                assert own_commitment.amount == Decimal("0.0000")
+                assert own_commitment.monthly_equivalent == Decimal("0.0000")
+                assert await _attempt_counts(session, case) == (0, 0, 0)
+        assert runner.calls == []
+    finally:
+        if other_source_id is not None:
+            async with provider_db() as cleanup:
+                async with cleanup.begin():
+                    synthetic_commitment = await cleanup.scalar(
+                        select(ProviderRecurringCostCommitment).where(
+                            ProviderRecurringCostCommitment.data_source_id == other_source_id
+                        )
+                    )
+                    if synthetic_commitment is not None:
+                        await cleanup.delete(synthetic_commitment)
+                    synthetic_source = await cleanup.get(DataSource, other_source_id)
+                    if synthetic_source is not None:
+                        await cleanup.delete(synthetic_source)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_binding(
+    db_engine, provider_db, monkeypatch
+):
+    """Unreviewed discovery/SEC paths cannot borrow an admitted latest operation."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=5,
+        with_profile=True,
+        reviewed_hosts=["publisher.example", "data.sec.gov", "www.sec.gov"],
+    )
+    runner = _TransportRunner()
+    _use_mocktransport(monkeypatch, runner)
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+    source_url = "https://publisher.example/discovery.csv"
+
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            with bind_etf_holdings_request_context(
+                db=session,
+                adapter=case.adapter,
+                profile_id=profile_id,
+                instrument_id=case.instrument_id,
+                provider_symbol=case.instrument_symbol,
+                operation="fetch_etf_holdings_latest",
+            ):
+                with pytest.raises(
+                    ETFHoldingsRouteHeldError,
+                    match="issuer discovery cannot reuse an ambient",
+                ):
+                    await refresh.discover_etf_profiles_from_issuer_feed(
+                        session,
+                        adapter_key="synthetic_csv_fixture",
+                        source_url=source_url,
+                    )
+                with pytest.raises(
+                    ETFHoldingsRouteHeldError,
+                    match="fund-ticker discovery cannot reuse an ambient",
+                ):
+                    await refresh.discover_etf_profiles_from_sec_fund_tickers(
+                        session,
+                        source_url=source_url,
+                    )
+                with pytest.raises(
+                    ETFHoldingsRouteHeldError,
+                    match="fund-ticker enrichment cannot reuse an ambient",
+                ):
+                    await refresh.enrich_etf_profile_from_sec_fund_tickers(
+                        session,
+                        profile=profile,
+                        source_url=source_url,
+                    )
+
+                # SEC N-PORT/legacy fallback and a real requests-based issuer
+                # adapter remain held at their own transports; the ambient
+                # latest binding cannot turn either into an admitted attempt.
+                from app.services import etf_holdings_edgar as edgar
+
+                with pytest.raises(
+                    ETFHoldingsRouteHeldError,
+                    match="dedicated reviewed ETF_HOLDINGS binding",
+                ):
+                    await edgar.discover_holdings_filings(
+                        cik="0000000001",
+                        forms={"NPORT-P"},
+                        max_filings=1,
+                    )
+                legacy_adapter = get_holdings_adapter("voya")
+                assert legacy_adapter is not None
+                with pytest.raises(
+                    ETFHoldingsRouteHeldError,
+                    match="legacy requests transport is not admitted",
+                ):
+                    await legacy_adapter.fetch_latest(symbol=case.instrument_symbol)
+
+                profile.sec_cik = "0000000001"
+                await session.flush()
+                sec_fallback = await refresh._bootstrap_from_sec_filings(
+                    session,
+                    profile=profile,
+                )
+                assert sec_fallback is not None
+                assert not sec_fallback.refresh_succeeded
+            assert runner.calls == []
+            assert await _attempt_counts(session, case) == (0, 0, 0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_bootstrap_treats_held_optional_sec_enrichment_separately_from_issuer_route(
+    db_engine, provider_db, monkeypatch
+):
+    """A held optional SEC enrichment neither inherits nor blocks issuer fetch."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=5,
+        with_profile=True,
+        reviewed_hosts=["publisher.example", "data.sec.gov", "www.sec.gov"],
+    )
+    runner = _TransportRunner()
+    runner.body = f"Fund Ticker,{case.instrument_symbol}\n" "Symbol,Weight\nAAA,1.0\n"
+    _use_mocktransport(monkeypatch, runner)
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            with bind_etf_holdings_request_context(
+                db=session,
+                adapter=case.adapter,
+                profile_id=profile_id,
+                instrument_id=case.instrument_id,
+                provider_symbol=case.instrument_symbol,
+                operation="fetch_etf_holdings_latest",
+            ):
+                result = await refresh.bootstrap_etf_holdings_profile(
+                    session,
+                    symbol=case.instrument_symbol,
+                    name=profile.instrument.name,
+                )
+            assert result.refresh_attempted
+            assert result.refresh_succeeded
+            assert runner.calls == [("GET", "https://publisher.example/holdings.csv")]
+
+    async with provider_db() as reopened:
+        capability = await holdings_capability_for_symbol(reopened, case.instrument_symbol)
+        assert capability["availability"] == "current"
+        assert capability["usable_for_current_analysis"]
+        assert await _attempt_counts(reopened, case) == (1, 1, 1)

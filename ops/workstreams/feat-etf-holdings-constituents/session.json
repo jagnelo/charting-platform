@@ -86,13 +86,14 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "current_blocker_latest": "2026-10-21: Accepted Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf remains merged at 45859aa. Latest and dated ETF ingest rejection now retain raw bytes and attempt linkage through the independent committed-profile session while leaving caller transaction ownership intact; dated database constraint rejection rethrows its original error after caller rollback rather than masking it. Exact assigned loopback PostgreSQL/Redis fixture was run with explicit TEST_DATABASE_URL, TEST_REDIS_URL, and WORKTREE_ID on every qualifying DB command: six dated regressions pass, full runtime module 16/16 passes, and full bridge/refresh unit modules pass 34/34. The exact d6 CI39512664693 is preserved terminal RED (Backend 4 failed/3223 passed; Frontend passed; downstream skipped); all four unit double failures were reconciled and both complete modules now pass locally. Earlier missing-environment Testcontainers results and one wrong-Redis-URL passing result are explicitly non-qualifying; the two observed accidental Testcontainers IDs were verified absent, and the separately created diagnostic DB remains preserved. No new hosted CI for the dirty source yet. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/paid/trial/unsafe routes remain disabled. SEC/discovery, broader worker/API/current-vs-PIT, migration/startup, full_stack_browser, fresh exact-source CI, complete issuer roadmap, and 30-day observation gate remain open. Exact phrase 15 Tier-0 and 156 Tier-1 is preserved. ETF is in_progress/not accepted.",
+  "current_blocker_latest": "2026-10-21: Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf remains merged at 45859aa; exact CI39514774818 on starting source 024ad8f is terminal red (unit passed, integration 17 failed/405 passed, frontend passed). Current admission/discovery context adds actual shared-budget and policy/hold/circuit denial coverage, no-context-borrowing for discovery/SEC/legacy/bootstrap entry points, and canary/read-service proof for prior-data degraded versus no-data unavailable. The exact assigned loopback DB module passed 31/31 in the original native run; a later sandbox-only loopback setup failure does not invalidate it. Root independently confirmed the native receipt, both loopback ports, and healthy exact fixture identities. Complete bridge/refresh/adapter unit modules now pass 645/645; Ruff and format pass. The 15 Tier-0 and 156 Tier-1 investigations remain preserved. Root's separate harness review directs actual failure reproduction and unique owned test-data isolation, not a blanket async API rewrite. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/paid/trial/unsafe routes remain disabled. Migration/startup, broader API/worker/PIT, full_stack_browser, fresh exact-source CI, full issuer roadmap, and observation gate remain open. ETF is in_progress/not accepted.",
   "dirty_paths": [
+    "backend/app/services/etf_holdings_provider_bridge.py",
     "backend/app/services/etf_holdings_refresh.py",
     "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
     "backend/tests/unit/services/test_etf_holdings_refresh.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
@@ -120,7 +121,7 @@
   "goal_request_state": "ready",
   "goal_state": "blocked_in_codex_goal_api; coordinator-directed continuation is active in this original owner session; no goal state or accounting reset requested or performed",
   "goal_unavailable_reason": null,
-  "head": "d6bf78ddee465fc7b3fde846e1e28998e47d84b3",
+  "head": "024ad8f065db246a34bc05219fd5cd32188b75ee",
   "implementation_sha": "dd9b7a08ce79303638c3951dd937270e97bbff33",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
@@ -253,8 +254,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run the exact 15 Tier-0/156 Tier-1 narrative sentinel, workstream validator, JSON/JSONL/YAML and plan-hash checks, Ruff/format and git diff check after the current record edits; review exact owner paths and publish this substantive retention changeset once, then inspect only its exact-source CI. Continue held SEC/discovery bindings, remaining admission/consumer cases, migration/startup and assigned full_stack_browser after coordinator resource release. Preserve Provider holds and MSMR/QQQ plus Militia/GOOG quarantines; no external HTTP/quota, paid/trial activation, cleanup, staging integration or self-acceptance.",
-  "plan_hash": "c14b0e0846eb02efddc9373c1b55baaa0b219531b12640a9a9d09fd8d54d09b4",
+  "next_action": "Finish the exact count sentinel, workstream/schema/hash validation, Ruff/format, syntax and diff checks; publish this coherent admission/discovery/consumer context once and inspect only its exact-source CI. Then reconcile the separate 39514774818 harness/isolation failures using provider-review-etf-ci-harness-20261020.md: reproduce positive-current and both 429/parser outcomes, preserve intended PIT/stale/incomplete contracts, and isolate only owned committing test data on the existing PostgreSQL service with exact teardown. Do not blanket-rewrite API tests, delete shared DataSources, weaken revision/uniqueness assertions, or add production sync-session bypasses. Continue migration/startup and full_stack_browser only at safe assigned capacity. Preserve the full roadmap, MSMR/QQQ and Militia/GOOG quarantines; no external HTTP/quota, paid/trial activation, staging integration or self-acceptance.",
+  "plan_hash": "abcceecc78d7b2005f89ba0bedc5e0ef2bee4639beda95aea13f44df158a0b13",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -307,11 +308,11 @@
     "completed": [
       "EICP1"
     ],
-    "current_blocker": "Both current workstream summaries retain 15 Tier-0 and 156 Tier-1 symbol investigations. Exact d6 CI39512664693 is terminal RED (4 backend unit failures, 3223 passed; frontend passed, later jobs skipped); the four failures were reconciled across the complete bridge and refresh unit modules, now 34/34 pass. Latest and dated ingest-rejection raw retention now pass against the explicitly named loopback fixture: dated selection 6/6 and complete shared-runtime integration module 16/16. Earlier implicit Testcontainers and wrong Redis URL attempts remain recorded but do not count as qualified evidence; observed accidental IDs were verified absent and the diagnostic database is preserved. Fresh exact-source CI and all remaining EICP/full-roadmap gates remain open; no checkpoint acceptance.",
-    "current_phase": "latest_and_dated_ingest_rejection_raw_retention_2026_10_21",
-    "next_action": "Complete final narrative sentinel, workstream/schema/hash validation, Ruff/format and diff checks; then publish the coherent implementation plus evidence and inspect its exact-source CI. Continue the remaining shared admission/consumer and held discovery cases, migration/startup and full_stack_browser only at the assigned safe resource boundary. Keep all publisher requests and quota operations offline, preserve quarantine and the full roadmap, and do not accept or integrate ETF.",
+    "current_blocker": "The 15 Tier-0 and 156 Tier-1 symbol investigations remain preserved. Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf is merged at 45859aa. Exact CI39514774818 on starting tip 024ad8f is terminal red (integration 17 failed/405 passed). This current context has actual refresh denials, shared aggregate-budget denial, no inherited discovery/SEC binding, and truthful canary/read-service degraded-versus-unavailable behavior. The qualified native shared-runtime DB module passed 31/31 on the exact assigned loopback fixture; a restricted-sandbox repeat failed before tests, but root verified the original run and healthy fixture. Unit modules pass 645/645. The separate harness/isolation correction remains next; full profile and all other EICP/full-roadmap gates remain open. ETF not accepted.",
+    "current_phase": "shared_runtime_denial_discovery_and_consumer_truth_2026_10_21",
+    "next_action": "Complete final narrative sentinel, workstream/schema/hash validation, Ruff/format and diff checks; publish this coherent implementation and inspect its exact-source CI. Then use the root harness review to reproduce current positive and 429/parser negative test outcomes before modifying fixtures, preserve deliberate PIT/stale/incomplete expectations, and isolate only owned committing test data on the assigned PostgreSQL service. No blanket async rewrite, shared DataSource deletion, production bypass, external HTTP, or assertion weakening. Continue migration/startup and assigned full_stack_browser only at safe capacity, preserving the full roadmap and all quarantines.",
     "total": 7,
-    "updated_at": "2026-10-20T23:20:54+00:00"
+    "updated_at": "2026-10-20T23:42:00+00:00"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -323,8 +324,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "d6bf78ddee465fc7b3fde846e1e28998e47d84b3",
-  "remote_sha": "d6bf78ddee465fc7b3fde846e1e28998e47d84b3",
+  "remote": "024ad8f065db246a34bc05219fd5cd32188b75ee",
+  "remote_sha": "024ad8f065db246a34bc05219fd5cd32188b75ee",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

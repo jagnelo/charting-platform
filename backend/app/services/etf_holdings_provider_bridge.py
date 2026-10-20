@@ -102,6 +102,20 @@ def etf_holdings_request_is_bound() -> bool:
     return _REQUEST_BINDING.get() is not None
 
 
+def require_unbound_etf_holdings_context(operation: str) -> None:
+    """Prevent a different ETF workflow from borrowing an ambient route binding.
+
+    Discovery and SEC enrichment are not yet reviewed ``ETF_HOLDINGS``
+    operations. A surrounding latest/dated refresh context must not silently
+    authorize their independent URL, identity, or request purpose.
+    """
+
+    if _REQUEST_BINDING.get() is not None:
+        raise ETFHoldingsRouteHeldError(
+            f"{operation} cannot reuse an ambient ETF holdings request binding"
+        )
+
+
 class ProviderBackedHTTPXClient:
     """HTTPX-compatible GET/POST facade admitting every physical request."""
 
