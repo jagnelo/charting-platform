@@ -30,35 +30,30 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact local source4525a2e45169b595a1b00cbe8e9adcb9564c173a is two
-  unpublished commits ahead of origin13ee184268ab8ef2b144241a05ecc30e16c1a1a7
-  and is explicitly unaccepted. Its one internal-only six-case run stopped with
-  hard F8m failure and5 not run. The separately authorized five-unexecuted slice
-  produced1 F8n-crosshair pass,1 hard F8n-gesture failure and3 not run. F8m
-  deterministically clicked Two columns while ChartView awaited presets; active
-  panel/link changes then caused deferred URL-symbol bootstrap to hydrate only
-  p1 and leave p0 blank. F8n emitted eight ordinary Shift wheels against the
-  live primary overlay, but Go to latest stayed absent while the20-bar prepend
-  and three additional identical shared-store hydrations landed. This disproves
-  closure by the requested-range helper alone.
+  Exact published source4626277265507fa2ffc0179a0be1c49f4ff215ca has terminal
+  red Actions39362805814: Backend, Frontend Unit and Branch-declared passed;
+  E2E reported190 passed,110 declared skips and one hard F8n-gesture failure on
+  both attempts. All ordinary zoom/pan/latest recovery assertions passed, but
+  the final single uPlot element was not the renderer instance captured before
+  the gestures. F8m passed once. The retained exact artifact shows repeated
+  settled same-selection chart hydrations after readiness; the store cleared
+  rendered state and toggled loading, which destroyed and recreated uPlot.
 
-  The exact fixture is removed: zero attributable containers, volumes, networks
-  or image tags remain; all55 retained container IDs are preserved and available
-  memory was2452MiB. Browser allow logged no requests; four application attempts
-  were denied and no external connection succeeded. A named duplicate-hydration
-  source context now owns a deterministic baseline-red store regression and a
-  narrow candidate that coalesces only identical in-flight selection/timeframe/
-  bar-type/local-mode/transform loads. Different requests and post-settlement
-  refreshes remain distinct. Changed-symbol A→B→A and older-failed-settlement
-  regressions also pass; focused store tests pass45/45. The hydration source is
-  published at85ceed62 but not runtime-accepted. A separate baseline-red F8m
-  regression proves URL-symbol hydration was serialized behind delayed presets;
-  its selection/edit-generation-owned concurrent-bootstrap candidate passes57
-  focused tests and type-check
-  but is not runtime-accepted. Unchanged browser F8n/F8m proof awaits the next
-  coordinator slot. Do not launch another fixture
-  or full104 now. TCP2 full104, TCP3 released Provider/ETF consumers, TCP4,
-  TCP5 and REF-HELP-V25 remain open.
+  The current four-file candidate preserves genuine same-scope refresh I/O but
+  retains rendered bars/loading and equal indicator-array identity for only the
+  exact successfully rendered symbol/timeframe/bar-type/local-mode/all-four-
+  transform scope. Mode changes and prechanged type/transform refs clear state;
+  changed indicator stacks apply; failed refreshes retain rendered bars and
+  report the error. The shared OHLCV coordinator ignores only a settled cached
+  value for explicit refresh: fresh and ordinary linked consumers still join
+  one pending transport, whose updated response replaces the shared cache.
+  Baseline-red regressions proved both scope leaks and the settled-cache hole;
+  corrected focused store/coordinator tests pass54/54, adjacent chart lifecycle
+  tests pass38/38, locked vue-tsc passes and diff checking is clean. This is
+  unit/type evidence only: unchanged zero-retry F8n runtime proof remains
+  required, and Provider owns the active heavy visual slot. Do not launch a TC
+  browser/Compose/full matrix now. TCP2 full104, TCP3 released Provider/ETF
+  consumers, TCP4, TCP5 and official REF-HELP-V25 parity remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-

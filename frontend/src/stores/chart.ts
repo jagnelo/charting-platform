@@ -28,6 +28,41 @@ function basketIdFromSymbol(sym: string): number | null {
   return match ? Number(match[1]) : null
 }
 
+function stableJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableJsonValue)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nested]) => [key, stableJsonValue(nested)]),
+    )
+  }
+  return value
+}
+
+function indicatorStacksEqual(left: IndicatorConfig[], right: IndicatorConfig[]): boolean {
+  return JSON.stringify(stableJsonValue(left)) === JSON.stringify(stableJsonValue(right))
+}
+
+function chartLoadScopeKey(
+  sym: string,
+  tf: Timeframe,
+  type: ChartBarType,
+  localOnly: boolean,
+  transformParams: ChartTransformParams,
+): string {
+  return JSON.stringify([
+    sym,
+    tf,
+    type,
+    Boolean(localOnly),
+    transformParams.brick_size ?? null,
+    transformParams.reversal_pct ?? null,
+    transformParams.box_size ?? null,
+    transformParams.reversal ?? null,
+  ])
+}
+
 function createChartStore(storeId: string) {
   return defineStore(storeId, () => {
     const symbol     = ref<string>('')
@@ -53,6 +88,7 @@ function createChartStore(storeId: string) {
     let _coveragePoller: ReturnType<typeof setInterval> | null = null
     let _loadGeneration = 0
     let inFlightLoad: { key: string; promise: Promise<void> } | null = null
+    let renderedLoadScopeKey: string | null = null
     // A chart can finish its initial indicator request after the user has
     // already added/edited a plot. Never let that late hydration replace the
     // user's newer stack (this is especially important while a plot is being
@@ -135,7 +171,7 @@ function createChartStore(storeId: string) {
     async function fetchBarsPage(
       sym: string,
       tf: Timeframe,
-      opts: { before?: string; limit?: number; type?: ChartBarType; localOnly?: boolean; transformParams?: ChartTransformParams } = {},
+      opts: { before?: string; limit?: number; type?: ChartBarType; localOnly?: boolean; transformParams?: ChartTransformParams; fresh?: boolean } = {},
     ): Promise<OHLCVBar[]> {
       const type = opts.type ?? barType.value
       const params: Record<string, any> = { adjusted: true, ...(opts.transformParams ?? {}) }
@@ -145,32 +181,35 @@ function createChartStore(storeId: string) {
       const encoded = encodeURIComponent(sym)
       const basketId = basketIdFromSymbol(sym)
       const requestKey = JSON.stringify({ sym: sym.toUpperCase(), tf, type, transformParams: opts.transformParams ?? {}, adjusted: true, before: opts.before ?? null, limit: opts.limit ?? PAGE_SIZE, localOnly: Boolean(opts.localOnly), basketId })
-      return dedupeOhlcvRequest(requestKey, async () => {
-      if (opts.localOnly && !SERVER_TRANSFORMED_TYPES.has(type)) {
-        const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, {
-          ...(opts.before ? { before: opts.before } : {}),
-          limit: opts.limit ?? PAGE_SIZE,
-        })
+      const request = async () => {
+        if (opts.localOnly && !SERVER_TRANSFORMED_TYPES.has(type)) {
+          const raw = await api.get<any[]>(`/ohlcv/local/${encoded}/${tf}`, {
+            ...(opts.before ? { before: opts.before } : {}),
+            limit: opts.limit ?? PAGE_SIZE,
+          })
+          return _mapBars(raw)
+        }
+        if (basketId != null) {
+          const raw = await api.get<any[]>(`/baskets/${basketId}/ohlcv/${tf}`, {
+            ...params,
+            limit: opts.limit ?? PAGE_SIZE,
+          })
+          return _mapBars(raw)
+        }
+        const raw = SERVER_TRANSFORMED_TYPES.has(type)
+          ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, {
+            ...params,
+            ...(opts.localOnly ? { local_only: true } : {}),
+            bar_type: type,
+          })
+          : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, {
+            ...params,
+            ...(opts.localOnly ? { local_only: true } : {}),
+          })
         return _mapBars(raw)
       }
-      if (basketId != null) {
-        const raw = await api.get<any[]>(`/baskets/${basketId}/ohlcv/${tf}`, {
-          ...params,
-          limit: opts.limit ?? PAGE_SIZE,
-        })
-        return _mapBars(raw)
-      }
-      const raw = SERVER_TRANSFORMED_TYPES.has(type)
-        ? await api.get<any[]>(`/ohlcv/${encoded}/${tf}/transformed`, {
-          ...params,
-          ...(opts.localOnly ? { local_only: true } : {}),
-          bar_type: type,
-        })
-        : await api.get<any[]>(`/ohlcv/${encoded}/${tf}`, {
-          ...params,
-          ...(opts.localOnly ? { local_only: true } : {}),
-        })
-      return _mapBars(raw)
+      return dedupeOhlcvRequest(requestKey, request, undefined, {
+        ignoreCompleted: opts.fresh,
       })
     }
 
@@ -179,8 +218,13 @@ function createChartStore(storeId: string) {
       cancelPendingIndicatorSave()
       const generation = ++_loadGeneration
       const transformKey = JSON.stringify(normalizedTransformParams)
-      const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && JSON.stringify(transformParams.value) === transformKey
+      const requestScopeKey = chartLoadScopeKey(sym, tf, nextBarType, localOnly, normalizedTransformParams)
+      const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && localOnlyMode.value === Boolean(localOnly) && JSON.stringify(transformParams.value) === transformKey
       const sameSelection = symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && JSON.stringify(transformParams.value) === transformKey
+      // UI refs can move ahead of loadBars (for example setBarType), so only a
+      // previously successful request with the complete route/transform scope
+      // may keep the currently rendered chart alive during a settled refresh.
+      const refreshesRenderedSelection = renderedLoadScopeKey === requestScopeKey && bars.value.length > 0
       if (!sameSelection) {
         indicatorsDirty = false
         if (pendingIndicatorSaveSymbol !== sym) {
@@ -188,17 +232,24 @@ function createChartStore(storeId: string) {
           pendingIndicatorSaveSymbol = null
         }
       }
-      isLoading.value = true
+      // Multiple mounted workstation roots can request the same selection
+      // after the initial shared hydration has already settled. That remains a
+      // genuine refresh, but it must not blank the current chart or toggle the
+      // loading lifecycle that destroys and recreates its uPlot instance.
+      isLoading.value = !refreshesRenderedSelection
       error.value = null
       symbol.value = sym
       timeframe.value = tf
       barType.value = nextBarType
       transformParams.value = normalizedTransformParams
-      instrument.value = null
+      if (!refreshesRenderedSelection) instrument.value = null
       const preserveIndicatorsDuringDrag = hasActiveAnalysisDrag()
-      if (!preserveIndicatorsDuringDrag && !indicatorsDirty) indicators.value = []
-      bars.value = []
-      hasReachedStart.value = false
+      if (!refreshesRenderedSelection) {
+        renderedLoadScopeKey = null
+        if (!preserveIndicatorsDuringDrag && !indicatorsDirty) indicators.value = []
+        bars.value = []
+        hasReachedStart.value = false
+      }
       isLoadingMore.value = false
       _stopCoveragePoller()
       isFetchingHistory.value = false
@@ -207,9 +258,15 @@ function createChartStore(storeId: string) {
       localOnlyMode.value = Boolean(localOnly)
       if (basketId != null) {
         try {
-          const mapped = await fetchBarsPage(sym, tf, { type: nextBarType, localOnly, transformParams: normalizedTransformParams })
+          const mapped = await fetchBarsPage(sym, tf, {
+            type: nextBarType,
+            localOnly,
+            transformParams: normalizedTransformParams,
+            fresh: refreshesRenderedSelection,
+          })
           if (!isCurrent()) return
           bars.value = mapped
+          renderedLoadScopeKey = requestScopeKey
           hasReachedStart.value = true
         } catch (e: any) {
           if (isCurrent()) error.value = e.message ?? 'Failed to load basket chart data'
@@ -229,6 +286,7 @@ function createChartStore(storeId: string) {
             type: nextBarType,
             localOnly: true,
             transformParams: normalizedTransformParams,
+            fresh: refreshesRenderedSelection,
           }).then(
             mapped => ({ mapped, error: null }),
             error => ({ mapped: null, error }),
@@ -237,7 +295,7 @@ function createChartStore(storeId: string) {
 
       const loadedInstrument = await fetchInstrument(sym)
       if (!isCurrent()) return
-      instrument.value = loadedInstrument
+      if (loadedInstrument || !refreshesRenderedSelection) instrument.value = loadedInstrument
 
       // A user can insert a plot while this symbol's metadata is still
       // hydrating. Flush that dirty stack now that the canonical instrument ID
@@ -258,7 +316,11 @@ function createChartStore(storeId: string) {
         localBarsPromise ?? Promise.resolve(null),
       ])
       if (!isCurrent()) return
-      if (!preserveIndicatorsDuringDrag && !indicatorsDirty) indicators.value = loadedIndicators
+      if (
+        !preserveIndicatorsDuringDrag
+        && !indicatorsDirty
+        && !indicatorStacksEqual(indicators.value, loadedIndicators)
+      ) indicators.value = loadedIndicators
 
       try {
         if (prefetchedBars?.error) throw prefetchedBars.error
@@ -266,9 +328,12 @@ function createChartStore(storeId: string) {
           type: nextBarType,
           localOnly,
           transformParams: normalizedTransformParams,
+          fresh: refreshesRenderedSelection,
         })
         if (!isCurrent()) return
         bars.value = mapped
+        renderedLoadScopeKey = requestScopeKey
+        if (mapped.length) hasReachedStart.value = false
         // A short initial page can mean either "brand-new listing" or "cache is
         // currently incomplete". Let the older-page path make that decision so
         // partial caches can self-repair when the user scrolls left.
@@ -291,16 +356,7 @@ function createChartStore(storeId: string) {
     function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false, nextTransformParams: ChartTransformParams = transformParams.value): Promise<void> {
       if (!sym || !tf) return Promise.resolve()
       const normalizedTransformParams = Object.fromEntries(Object.entries(nextTransformParams).filter(([, value]) => typeof value === 'number' && Number.isFinite(value))) as ChartTransformParams
-      const requestKey = JSON.stringify([
-        sym,
-        tf,
-        nextBarType,
-        Boolean(localOnly),
-        normalizedTransformParams.brick_size ?? null,
-        normalizedTransformParams.reversal_pct ?? null,
-        normalizedTransformParams.box_size ?? null,
-        normalizedTransformParams.reversal ?? null,
-      ])
+      const requestKey = chartLoadScopeKey(sym, tf, nextBarType, localOnly, normalizedTransformParams)
       // Golden Layout can mount more than one virtual root for the same chart
       // store while a workspace is settling. Those roots must share one exact
       // hydration: restarting it clears bars, advances the generation and can

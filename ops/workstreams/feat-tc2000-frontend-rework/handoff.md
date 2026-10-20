@@ -22009,3 +22009,54 @@ F8m ordinary flow remains runtime-pending and exact source `4525` remains
 rejected. No observer wait, assertion, timeout, retry, provider path, visual
 reference or `0.005` tolerance changed. Full104, TCP3-TCP5 and official
 `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 03:53Z — Exact renderer-identity failure and settled-refresh correction
+
+Published source `4626277265507fa2ffc0179a0be1c49f4ff215ca` has terminal-red
+Actions run `39362805814`. Backend, Frontend Unit and Branch-declared passed;
+E2E job `118435102069` reported `190` passed, `110` declared skips and one hard
+F8n-gesture failure in both attempts. The earlier zoom, Shift and horizontal
+history-pan affordances, both ordinary Go-to-latest clicks, final zero
+Go-to-latest count and final single-uPlot count all passed. Only the final
+identity assertion failed: the remaining `.uplot` was not the exact instance
+captured before gestures. F8m-chart-panels passed once. The failed first attempt
+and retry remain failures; no retry-only success is relabelled green.
+
+Artifact `12239162143` is preserved at
+`/tmp/tc-462627-ci-39362805814-playwright.zip` with SHA-256
+`e2ddcd636376f104bf96ee6ed788e95b372d20287f9cd3e7490ccdd08a0606c6` and a
+passing archive integrity check. Bounded trace inspection shows repeated
+settled same-selection `/instrument-indicators/2` hydrations after the chart was
+ready. Before this correction, every settled `loadBars` set loading, cleared
+instrument/bars/indicators and caused UPlotChart's loading watcher to destroy
+and recreate the renderer even though the request scope had not changed.
+
+The current four-file repair records the exact successfully rendered request
+scope independently of UI refs: symbol, timeframe, bar type, local/provider
+mode and all four typed transform parameters. Only a settled refresh matching
+that scope keeps rendered bars and loading stable. It still performs actual
+instrument, indicator and OHLCV work; equal indicator stacks retain array
+identity, changed stacks apply, and failures retain the rendered bars while
+exposing the error. Route-mode changes and prechanged type/transform refs take
+the normal clear/loading path. Baseline-red unit runs proved both scope holes
+(`2` failed) before the correction.
+
+Explicit fresh OHLCV reads now ignore only a completed cached value inside the
+shared coordinator. In-flight admission precedes cache lookup, so fresh calls
+from distinct chart stores and ordinary linked consumers join one transport;
+the successful new response replaces the shared cache. Its deterministic
+baseline regression first failed because the transport remained at one call;
+after correction, the fresh caller, second fresh caller and ordinary caller all
+receive the new response from exactly one new request, and a later ordinary
+read sees that same updated cached value.
+
+Bounded stack-free evidence on the final candidate is green: chart-store plus
+request-coordinator suites pass `54/54`; conditional-uPlot, ChartPanel and
+dashboard advanced-chart lifecycle suites pass `38/38`; locked
+`npm run type-check` exits zero; `git diff --check` passes. No browser, Compose,
+full build, provider/issuer request, retained service/data action, assertion,
+timeout, retry, renderer-identity oracle, visual reference, mask or `0.005`
+tolerance changed. These `92` unit tests are not runtime acceptance. Provider
+owns the active heavy visual slot, so unchanged zero-retry F8n runtime proof and
+the full104 matrix remain pending. TCP2-TCP5 and official `REF-HELP-V25` parity
+remain open.

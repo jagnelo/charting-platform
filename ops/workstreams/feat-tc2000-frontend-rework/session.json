@@ -38,23 +38,24 @@
   "current_exact_ci": {
     "attempt": 1,
     "conclusion": "failure",
-    "e2e_summary": "189 passed, 110 expected skips, one hard F8u removed-span failure and one retry-passing F8m readiness failure",
-    "head_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
+    "e2e_summary": "190 passed, 110 declared skips, one hard F8n final renderer-identity failure in both attempts",
+    "head_sha": "4626277265507fa2ffc0179a0be1c49f4ff215ca",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "failure_189_passed_110_expected_skips_f8u_hard_f8m_flaky",
+      "e2e": "failure_190_passed_110_declared_skips_f8n_renderer_identity_both_attempts",
       "exhaustive_feature_branch": "skipped_by_branch_policy",
       "frontend_unit": "success"
     },
-    "run_id": 39345866954,
-    "status": "terminal red on exact clean published frozen-import guard source; later local f21 candidate is not covered",
+    "run_id": 39362805814,
+    "status": "terminal red on exact clean published source; current four-file settled-refresh correction is unit/type green but not covered by this run",
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [
+    "frontend/src/lib/workstation/ohlcvRequests.ts",
     "frontend/src/stores/chart.ts",
-    "frontend/src/views/ChartView.vue",
-    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+    "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts",
+    "frontend/tests/unit/stores/test_stores.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -108,8 +109,8 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "85ceed62e9e0ef7f4a70f217f1c747b5939493fc",
-  "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
+  "head": "4626277265507fa2ffc0179a0be1c49f4ff215ca",
+  "implementation_sha": "4626277265507fa2ffc0179a0be1c49f4ff215ca",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -191,7 +192,7 @@
     "visual_followup": "Full104 remains deferred until F8n and F8m close and the coordinator separately releases capacity."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the separate deferred-presets/layout source/test/evidence context after coherent owner checks without cancelling useful exact-source evidence, then keep TC offline and await a coordinator-released slot for unchanged zero-retry F8n/F8m proof before full104.",
+  "next_action": "Publish the coherent four-file settled-refresh renderer-lifecycle repair with its exact red-CI and bounded unit/type evidence, observe fresh exact-source CI once, then await a coordinator-released slot for unchanged zero-retry F8n proof before full104.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -220,28 +221,28 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Exact4525 remains runtime-red and unaccepted. Hydration correction85ceed62 is published with45/45 store and127/127 adjacent tests but awaits unchanged F8n proof. The separate delayed-presets F8m regression is baseline-red; its selection/edit-generation-owned concurrent-bootstrap candidate passes57/57 focused tests and type-check, including pending-load user-edit, newer A-to-B-to-A/same-symbol and single-application default cases, but awaits unchanged F8m proof. Stagingebf8648b is canonical green common repair only; Provider owns the product/heavy priority. The exact TC fixture is removed with55/55 retained IDs. TCP3 awaits accepted Provider then ETF releases; TCP4-TCP5 and REF-HELP-V25 remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_HYDRATION_PUBLISHED_AND_DEFERRED_PRESETS_FIX_STACK_FREE_GREEN_BOTH_RUNTIME_PENDING_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Publish the distinct deferred-presets/layout candidate at an exact-CI-safe boundary, then await an explicit focused browser slot for unchanged F8n/F8m proof; do not start full104.",
+    "current_blocker": "Exact462627 Actions39362805814 is red only on F8n final renderer identity in both attempts after every earlier gesture/latest assertion passes. The four-file settled-refresh correction is baseline-red proven and now passes54 store/coordinator plus38 lifecycle tests and locked type-check, but unchanged browser proof is pending while Provider owns the heavy visual slot. TCP2 full104, TCP3 accepted Provider/ETF releases, TCP4-TCP5 and REF-HELP-V25 remain open.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_SETTLED_REFRESH_RENDERER_FIX_STACK_FREE_GREEN_RUNTIME_PENDING_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Publish the coherent settled-refresh correction once, observe exact-source CI, then await an explicit focused browser slot for unchanged zero-retry F8n proof; do not start full104.",
     "total": 5,
-    "updated_at": "2026-10-20T03:02:05+00:00"
+    "updated_at": "2026-10-20T03:53:01+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "85ceed62e9e0ef7f4a70f217f1c747b5939493fc",
-    "current_pending_range": "85ceed62e9e0ef7f4a70f217f1c747b5939493fc plus uncommitted deferred-presets/layout source/test/evidence correction",
+    "current_local_head": "4626277265507fa2ffc0179a0be1c49f4ff215ca",
+    "current_pending_range": "4626277265507fa2ffc0179a0be1c49f4ff215ca plus uncommitted settled-refresh renderer-lifecycle source/test/evidence correction",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "85ceed62e9e0ef7f4a70f217f1c747b5939493fc",
-    "status": "local/origin hydration checkpoint85ceed62 are clean and equal; exact4525 runtime remains rejected; the separate stack-free-green deferred-presets/layout candidate is dirty pending publication at an exact-CI-safe boundary and future focused browser proof"
+    "remote_tracking_sha": "4626277265507fa2ffc0179a0be1c49f4ff215ca",
+    "status": "local/origin published source462627 are equal and exact CI is renderer-identity red; the four-file stack-free-green settled-refresh correction is dirty pending one coherent publication and future focused browser proof"
   },
-  "remote": "85ceed62e9e0ef7f4a70f217f1c747b5939493fc",
-  "remote_sha": "85ceed62e9e0ef7f4a70f217f1c747b5939493fc",
+  "remote": "4626277265507fa2ffc0179a0be1c49f4ff215ca",
+  "remote_sha": "4626277265507fa2ffc0179a0be1c49f4ff215ca",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

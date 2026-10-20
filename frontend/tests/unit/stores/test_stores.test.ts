@@ -287,6 +287,184 @@ describe('useChartStore', () => {
     expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(2)
   })
 
+  it('refreshes a settled identical selection without replacing its rendered state', async () => {
+    let barsRequest = 0
+    let indicatorRequest = 0
+    let releaseRefreshedIndicators!: (value: { indicators: any[] }) => void
+    const indicator = {
+      type: 'rsi',
+      params: { period: 14 },
+      style: { color: '#f5a623', lineWidth: 1 },
+      pane: 'separate',
+    }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH-STABLE') return Promise.resolve({ id: 42, symbol: 'REFRESH-STABLE', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/REFRESH-STABLE/D1') {
+        barsRequest += 1
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: barsRequest === 1 ? 2 : 2.5, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') {
+        indicatorRequest += 1
+        if (indicatorRequest === 1) return Promise.resolve({ indicators: [{ ...indicator, params: { ...indicator.params }, style: { ...indicator.style } }] }) as any
+        return new Promise(resolve => { releaseRefreshedIndicators = resolve }) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH-STABLE', 'D1', 'candles', true)
+    const renderedBars = store.bars
+    const renderedIndicators = store.indicators
+
+    const refresh = store.loadBars('REFRESH-STABLE', 'D1', 'candles', true)
+    await vi.waitFor(() => expect(releaseRefreshedIndicators).toBeTypeOf('function'))
+
+    expect(store.loading).toBe(false)
+    expect(store.bars).toBe(renderedBars)
+    expect(store.indicators).toBe(renderedIndicators)
+
+    releaseRefreshedIndicators({ indicators: [{ ...indicator, params: { ...indicator.params }, style: { ...indicator.style } }] })
+    await refresh
+
+    expect(store.bars[0].close).toBe(2.5)
+    expect(store.indicators).toBe(renderedIndicators)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/REFRESH-STABLE')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/REFRESH-STABLE/D1')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(2)
+  })
+
+  it('applies a changed indicator stack during a settled same-scope refresh', async () => {
+    let indicatorRequest = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH-CHANGED') return Promise.resolve({ id: 42, symbol: 'REFRESH-CHANGED', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/REFRESH-CHANGED/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') {
+        indicatorRequest += 1
+        return Promise.resolve({
+          indicators: [{
+            type: 'rsi',
+            params: { period: indicatorRequest === 1 ? 14 : 21 },
+            style: { color: '#f5a623', lineWidth: 1 },
+            pane: 'separate',
+          }],
+        }) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH-CHANGED', 'D1', 'candles', true)
+    const renderedIndicators = store.indicators
+
+    await store.loadBars('REFRESH-CHANGED', 'D1', 'candles', true)
+
+    expect(store.indicators).not.toBe(renderedIndicators)
+    expect(store.indicators[0].params).toEqual({ period: 21 })
+  })
+
+  it('keeps rendered bars and reports an error when a settled same-scope refresh fails', async () => {
+    let barsRequest = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH-FAIL') return Promise.resolve({ id: 42, symbol: 'REFRESH-FAIL', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/REFRESH-FAIL/D1') {
+        barsRequest += 1
+        if (barsRequest === 2) return Promise.reject(new Error('refresh unavailable')) as any
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH-FAIL', 'D1', 'candles', true)
+    const renderedBars = store.bars.map(bar => ({ ...bar }))
+
+    await store.loadBars('REFRESH-FAIL', 'D1', 'candles', true)
+
+    expect(store.loading).toBe(false)
+    expect(store.bars).toEqual(renderedBars)
+    expect(store.error).toBe('refresh unavailable')
+  })
+
+  it('clears rendered local bars while the same symbol switches to the provider route', async () => {
+    let instrumentRequest = 0
+    let releaseProviderInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/ROUTE') {
+        instrumentRequest += 1
+        if (instrumentRequest === 1) return Promise.resolve({ id: 42, symbol: 'ROUTE', stats: { week52_high: 1 } }) as any
+        return new Promise(resolve => { releaseProviderInstrument = resolve }) as any
+      }
+      if (path === '/ohlcv/local/ROUTE/D1' || path === '/ohlcv/ROUTE/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('ROUTE', 'D1', 'candles', true)
+    expect(store.bars).toHaveLength(1)
+
+    const providerLoad = store.loadBars('ROUTE', 'D1', 'candles', false)
+    await vi.waitFor(() => expect(releaseProviderInstrument).toBeTypeOf('function'))
+
+    expect(store.loading).toBe(true)
+    expect(store.bars).toEqual([])
+
+    releaseProviderInstrument({ id: 42, symbol: 'ROUTE', stats: { week52_high: 1 } })
+    await providerLoad
+    expect(store.localOnlyMode).toBe(false)
+    expect(store.bars).toHaveLength(1)
+  })
+
+  it('clears rendered bars when prechanged chart refs request a new transform scope', async () => {
+    let instrumentRequest = 0
+    let releaseTransformedInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/SCOPE') {
+        instrumentRequest += 1
+        if (instrumentRequest === 1) return Promise.resolve({ id: 42, symbol: 'SCOPE', stats: { week52_high: 1 } }) as any
+        return new Promise(resolve => { releaseTransformedInstrument = resolve }) as any
+      }
+      if (path === '/ohlcv/local/SCOPE/D1' || path === '/ohlcv/SCOPE/D1/transformed') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('SCOPE', 'D1', 'candles', true)
+    expect(store.bars).toHaveLength(1)
+
+    store.setBarType('renko')
+    store.transformParams = { brick_size: 4 }
+    const transformedLoad = store.loadBars('SCOPE', 'D1', 'renko', true, { brick_size: 4 })
+    await vi.waitFor(() => expect(releaseTransformedInstrument).toBeTypeOf('function'))
+
+    expect(store.loading).toBe(true)
+    expect(store.bars).toEqual([])
+
+    releaseTransformedInstrument({ id: 42, symbol: 'SCOPE', stats: { week52_high: 1 } })
+    await transformedLoad
+    expect(store.barType).toBe('renko')
+    expect(store.transformParams).toEqual({ brick_size: 4 })
+    expect(store.bars).toHaveLength(1)
+  })
+
   it('does not coalesce in-flight timeframe, transform, or route-mode changes', async () => {
     let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
     const instrument = new Promise(resolve => { releaseInstrument = resolve })
