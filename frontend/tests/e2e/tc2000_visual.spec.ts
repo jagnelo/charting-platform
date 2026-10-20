@@ -595,6 +595,31 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(page.locator('.workstation')).toBeVisible()
     await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i, { timeout: 10_000 })
     await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
+    if (process.env.E2E_SEED_MARKET_DATA === 'true') {
+      // This gap intentionally keeps the primary chart in its terminal 404
+      // state, but the rest of the default board is still expected to show its
+      // seeded analysis. A visible error can arrive before those independent
+      // workspace requests finish, so establish their actual rendered state
+      // without waiting for the chart to become ready.
+      const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
+      const sectors = page.getByRole('region', { name: 'Relative to SPY' })
+      const constituents = page.getByRole('region', { name: 'Constituents' })
+      await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+      await expect(benchmarks).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+      await expect(benchmarks.locator('.watchlist__row')).toHaveCount(5, { timeout: 15_000 })
+      await expect(sectors).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+      await expect(sectors.locator('.watchlist__row')).toHaveCount(11, { timeout: 15_000 })
+      await expect(constituents).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+      await expect(constituents.locator('.watchlist__row')).toHaveCount(6, { timeout: 15_000 })
+      await expect(page.locator('.industry-list__row')).toHaveCount(2, { timeout: 15_000 })
+      await expect(page.locator('.ratio-chart')).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+      await expect(page.locator('.ratio-chart__legend strong').first()).toHaveText('SPY/RSP', { timeout: 15_000 })
+      await expect(page.locator('.tool-window').filter({ hasText: 'Technicals' }).locator('.metrics')).toContainText('100.00', { timeout: 15_000 })
+      // Keep the target failure—not a later state transition—as the screenshot
+      // oracle's chart composition.
+      await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i)
+      await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
+    }
     await expect(page).toHaveScreenshot('chart-provider-error-gap.png', {
       animations: 'disabled',
       caret: 'hide',

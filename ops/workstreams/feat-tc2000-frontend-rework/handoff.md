@@ -22192,3 +22192,44 @@ tolerance changed. The original hosted red remains historical and unclosed;
 exact-source CI and the required full functional/104-visual profile remain
 pending. This candidate is not checkpoint acceptance. TCP3-TCP5 and official
 `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 13:34Z — Chart-error visual capture readiness correction
+
+The original full strict visual run on `89dca75277d221156b7342385c6307593eeef403`
+ended at 53/104 after 457,869 ms with process exit 143. The runner had already
+exited when inspected; Docker event history was unavailable, so the cause is
+unproven. Preserve its partial red artifacts and do not call it a timeout or
+OOM. Confirmed first-attempt screenshot mismatches include chart-provider-error
+at 1080p100/125 and Study Lab structured-result and sandbox-error at 1080p100
+(sandbox-error also at 1080p125); no conclusion is inferred for the 51 unrun
+cases.
+
+The chart-provider-error first capture showed the intended chart 404 and no
+canvas, but its non-target benchmark/sector/constituent panels were still empty,
+relative-strength had not settled, and technicals were unavailable. The trace
+shows their seeded API responses completing after screenshot capture; the later
+error-context DOM contains populated rows. The screenshot test now waits on
+those explicit rendered-state signals when seeded market data is enabled and
+reasserts the chart error/no-canvas state before capture. Its original screenshot
+reference and `0.005` tolerance are unchanged.
+
+Focused proof used the same existing isolated fixture and archived test source,
+Playwright `1.62.1`, project `visual-1080p-100`, one worker, zero retries. The
+exact detached runner
+`tc-val-9525719-20261020t1125z-focus-chart-readiness-nodepath-20261020t1328z`
+(`43cdbbf7bd8ad3c732ac736510d8b0045cf49094902f21c0150250dd6b793071`) exited
+0 with `OOMKilled=false`; the unchanged chart-error screenshot case passed
+1/1 in 10.7s. Output is preserved under
+`.ai/runtime/tc-val-9525719-20261020t1125z/artifacts/focused-chart-error-readiness-nodepath-20261020t1328z`.
+
+The sandbox-error trace shows its chart and persisted-run loading states are
+deliberately held and visible; it does not establish the same background-table
+race. Structured-result has a separate content/layout discrepancy (including
+benchmark `none` versus `SPY`); its trace does not show pending initial analysis
+responses at capture. Both remain red and require separate causal diagnosis;
+there is no approved reference update, mask, or threshold change. The full
+104-case matrix has not been rerun. Before that next run, publish this narrow
+test-only correction and use a uniquely named detached browser container with
+an in-container timeout/kill grace; retain terminal state, logs and artifacts
+before exact-container cleanup. TCP2 remains open pending the complete strict
+matrix; TCP3-TCP5 and official `REF-HELP-V25` parity remain open.
