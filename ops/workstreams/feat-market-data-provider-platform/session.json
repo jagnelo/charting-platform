@@ -46,21 +46,25 @@
   },
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": "failure",
-    "head_sha": "bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9",
+    "conclusion": "success",
+    "head_sha": "389b8ce912ee04c59024467632b339442673fd82",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "failure: F8u first attempt; retry passed, strict flaky policy keeps job red",
+      "e2e": "success",
       "exhaustive_feature_branch": "skipped by branch policy",
       "frontend_unit": "success"
     },
-    "run_id": 39254427018,
-    "scope_note": "Exact-source Actions run 39254427018 is preserved strict-red on source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9. The frontend source is unchanged from previously browser-validated source 36f3f801; the failure screenshot/trace is in artifact 12188857004. A narrow label-origin test correction is pushed separately on fix/watchlist-plot-live-configuration at 8b9dc144195fc5195ca6bc5d0d62842d020af784; its exact CI is 39260462285.",
-    "status": "terminal strict-red: Backend, Frontend Unit, and Branch-declared passed; Playwright had 150 passed, 109 expected skips, F8u first-attempt failure and retry pass; Exhaustive skipped by branch policy"
+    "run_id": 39350853804,
+    "scope_note": "Exact-source Actions run 39350853804 is terminal green on source 389b8ce912ee04c59024467632b339442673fd82. This validates the Finnhub denial-transport accounting correction and ordinary branch gates; it does not authorize provider transport or complete the final staged-candidate proof.",
+    "status": "terminal green: Backend, Frontend Unit, Branch-declared, and Playwright passed; Exhaustive skipped by feature-branch policy"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-market-data-provider-platform/session.json"
+    "ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md",
+    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/session.json",
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -77,7 +81,7 @@
       "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
       "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
     ],
-    "known_bytes": 3801004208,
+    "known_bytes": 3801011208,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-market-data-provider-platform-c6e40c66",
@@ -92,7 +96,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 182482800,
+    "volume_bytes": 182489800,
     "volume_count": 4,
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
@@ -109,23 +113,23 @@
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/market-data-provider-platform: Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized.. Acceptance criteria: ICP1: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.; ICP2: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.; ICP3: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.; ICP4: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.; ICP5: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.; ICP6: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.; ICP7: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-20T00:25:24.587918+00:00",
+  "goal_recorded_at": "2026-10-20T00:59:41.364325+00:00",
   "goal_request": {
     "objective": "Advance feat/market-data-provider-platform: Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized.. Acceptance criteria: ICP1: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.; ICP2: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.; ICP3: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.; ICP4: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.; ICP5: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.; ICP6: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.; ICP7: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "dae0f79195247b82e29f43099084d36b175cafa2",
-  "implementation_sha": "dae0f79195247b82e29f43099084d36b175cafa2",
+  "head": "389b8ce912ee04c59024467632b339442673fd82",
+  "implementation_sha": "389b8ce912ee04c59024467632b339442673fd82",
   "interrupted": false,
-  "last_checkpoint": "2026-10-20T00:25:37.628066+00:00",
-  "last_human_progress_update": "2026-10-20T00:58:20.459993+00:00",
+  "last_checkpoint": "2026-10-20T00:59:49.046458+00:00",
+  "last_human_progress_update": "2026-10-20T01:39:28+00:00",
   "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Publish the coherent operational evidence context, then await coordinator review of the private 99-transport execution plan and proof-to-closure ordering before any staged candidate or provider transport.",
   "parent_branch": "staging",
-  "plan_hash": "13d692b9e08aa3cf77d05a2969a3f438b293cd7424418bc0670193daff1c1049",
+  "plan_hash": "6530f39638f094552f21269252dac4f862d7466fd575a81dea49922c69b77b83",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -161,13 +165,13 @@
       "ICP6"
     ],
     "current_blocker": "none",
-    "current_phase": "Finnhub denial transport accounting corrected; bounded no-transport validation green; coherent publication pending",
-    "next_action": "Commit and push the source/test/evidence correction, require exact-source CI, then regenerate the private bounded final-operation plan with 99 total transports and explicit EODHD minute/concurrency reconciliation; do not call providers or import unaccepted UI source.",
+    "current_phase": "Finnhub denial transport accounting and exact-source CI green; bounded final-operation plan and private proof-to-closure ordering prepared",
+    "next_action": "Close and publish this operational evidence context, then await coordinator review of the private 99-transport plan and proof-to-closure ordering before any staged candidate or provider transport. Preserve all holds and do not import unaccepted UI source.",
     "total": 7,
-    "updated_at": "2026-10-20T00:58:20.459971+00:00"
+    "updated_at": "2026-10-20T01:39:28+00:00"
   },
-  "remote": "dae0f79195247b82e29f43099084d36b175cafa2",
-  "remote_sha": "dae0f79195247b82e29f43099084d36b175cafa2",
+  "remote": "389b8ce912ee04c59024467632b339442673fd82",
+  "remote_sha": "389b8ce912ee04c59024467632b339442673fd82",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."

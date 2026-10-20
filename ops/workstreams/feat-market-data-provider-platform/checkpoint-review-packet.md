@@ -1,5 +1,33 @@
 # Provider integration checkpoint review packet
 
+## Corrected bounded plan — 2026-10-20 02:00+01:00
+
+Exact implementation source `389b8ce912ee04c59024467632b339442673fd82`
+is pushed; exact Actions `39350853804` is terminal green for Backend, Frontend
+Unit, Branch-declared, and Playwright, with Exhaustive skipped by normal
+feature-branch policy. The corrected read-only plan is
+`/tmp/provider-389b-final-operation-execution-plan.json`, SHA-256
+`bfc39857c9a31f490712f8b4e0295e46fcf30941fcb53b3cd8847afe8c48c5bc`.
+It retains 45 bounded cases and 80 enabled canonical operations but now budgets
+all 99 actual transports. Finnhub's expected HTTP-403 candle denial is one
+separately labeled, quota-accounted transport, not capability success.
+
+The EODHD usage-only row reserves release-only concurrency before its one
+request, accounts one request/minute unit and zero daily credits, reconciles
+`requests_per_minute` and `calls_per_day` from the response, and settles the
+measured request. No EODHD data operation is included. Plan self-validation has
+zero held/nonfree/missing-cost/missing-exclusion/headroom errors. This artifact
+authorizes no transport; final execution still requires coordinator
+review/authorization.
+
+The private proof-to-closure ordering proposal is
+`/tmp/provider-proof-to-closure-ordering-proposal-20261020.md` (SHA-256
+`109e81f81709c41907bb44a22e81b0e4c127c2ec83b15e9fad36248606ea66ef`).
+It makes no Git-index change or readiness claim. Its supported route freezes a
+static proposed contract, requires identical provider deferrals and runtime
+semantics across index/working states, and records dynamic proof/CI facts only
+through matcher-compatible append-only evidence.
+
 ## Finnhub transport-cost correction — 2026-10-20 01:57+01:00
 
 The bounded plan's 80 enabled canonical operations remain capability coverage,

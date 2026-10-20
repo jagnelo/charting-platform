@@ -1,5 +1,38 @@
 # feat/market-data-provider-platform
 
+## 2026-10-20 02:00+01:00 — corrected 99-transport plan generated from pushed source
+
+- The coherent implementation/evidence commit is pushed at exact source
+  `389b8ce912ee04c59024467632b339442673fd82`; exact Actions run
+  `39350853804` is terminal green. Backend, Frontend Unit, Branch-declared,
+  and Playwright succeeded; Exhaustive was skipped by feature-branch policy.
+- Regenerated `/tmp/provider-389b-final-operation-execution-plan.json` from
+  that committed source. SHA-256:
+  `bfc39857c9a31f490712f8b4e0295e46fcf30941fcb53b3cd8847afe8c48c5bc`.
+  It covers all 78 manifest cases, selects 45 bounded cases for 80 enabled
+  canonical operations, leaves seven redundant cases un-replayed, and records
+  26 excluded/no-transport cases with tested evidence.
+- The conservative total is now 99 actual transports rather than 98. Finnhub's
+  selected profile case accounts seven calls: six enabled-capability operations
+  and one `expected_entitlement_denial_transport` for `fetch_ohlcv`/HTTP 403.
+  Both Finnhub calls-per-minute and hard calls-per-second budgets include it.
+- EODHD remains separate and usage-only: one `fetch_account_usage` transport;
+  release-only concurrency is reserved before transport; reviewed costs are one
+  `requests_per_minute` unit and zero `calls_per_day` credits; the response
+  reconciles both native dimensions and settles the measured request. No EODHD
+  data operation is selected.
+- Plan self-validation passed: canonical coverage complete; zero held or
+  non-reviewed/non-free entries in the bounded set; zero missing request-cost,
+  byte-disposition, exclusion-evidence, or known long-window-headroom errors.
+  This was read-only plan generation: zero provider HTTP, reservations, spend,
+  hold changes, or ledger resets.
+- The private proof-to-closure ordering proposal is
+  `/tmp/provider-proof-to-closure-ordering-proposal-20261020.md`, SHA-256
+  `109e81f81709c41907bb44a22e81b0e4c127c2ec83b15e9fad36248606ea66ef`.
+  It changes no index or source. It requires source/config equality, identical
+  working/index provider deferrals, a static proposed contract, append-only
+  actual evidence, and preserves the genuine dynamic-metadata matcher cycle.
+
 ## 2026-10-20 01:57+01:00 — Finnhub denial transport is quota-accounted separately from capability success
 
 - Central review of the private bounded-operation plan found one definite cost

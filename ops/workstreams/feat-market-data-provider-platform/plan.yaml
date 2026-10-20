@@ -1,4 +1,18 @@
 schema: 4
+# Corrected exact-source plan — 2026-10-20 02:00+01:00. Implementation
+# `389b8ce912ee04c59024467632b339442673fd82` is clean/pushed; exact Actions
+# `39350853804` is terminal green for Backend, Frontend Unit, Branch-declared,
+# and Playwright; Exhaustive is skipped by feature-branch policy. The
+# regenerated private plan is
+# `/tmp/provider-389b-final-operation-execution-plan.json`, SHA-256
+# `bfc39857c9a31f490712f8b4e0295e46fcf30941fcb53b3cd8847afe8c48c5bc`.
+# It retains45 bounded cases/80 enabled canonical operations/26 excluded cases,
+# but now budgets99 actual transports: Finnhub's expected403 is separately
+# tagged expected_entitlement_denial_transport and charged one minute/second
+# request. EODHD usage-only proof explicitly reserves concurrency, accounts one
+# minute unit and zero daily credits, then reconciles both native dimensions.
+# Plan self-validation is green with zero held/nonfree/missing-cost/missing-
+# exclusion/headroom errors. No transport/reservation/spend occurred.
 # Final-plan transport-accounting correction — 2026-10-20 01:57+01:00.
 # Coordinator review found that Finnhub's company-profile live case performs
 # seven metered reads: six enabled-capability reads plus one deliberate
