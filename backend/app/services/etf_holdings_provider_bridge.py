@@ -25,6 +25,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.data_source import DataSource
+from app.models.etf_holdings import ETFProfile
+from app.models.instrument import Instrument
 from app.models.provider_recurring_cost import (
     ProviderRecurringCostBudget,
     ProviderRecurringCostCommitment,
@@ -52,10 +54,12 @@ class ETFHoldingsRouteHeldError(PermissionError):
 class ETFHoldingsRequestBinding:
     db: AsyncSession
     adapter: Any
+    profile_id: int | None
     instrument_id: int
     provider_symbol: str
     operation: str
     request_log_ids: list[int]
+    request_urls_by_log_id: dict[int, str]
 
 
 _REQUEST_BINDING: contextvars.ContextVar[ETFHoldingsRequestBinding | None] = contextvars.ContextVar(
@@ -68,6 +72,7 @@ def bind_etf_holdings_request_context(
     *,
     db: AsyncSession,
     adapter: Any,
+    profile_id: int | None = None,
     instrument_id: int,
     provider_symbol: str,
     operation: str,
@@ -79,10 +84,12 @@ def bind_etf_holdings_request_context(
     binding = ETFHoldingsRequestBinding(
         db=db,
         adapter=adapter,
+        profile_id=profile_id,
         instrument_id=instrument_id,
         provider_symbol=provider_symbol,
         operation=operation,
         request_log_ids=[],
+        request_urls_by_log_id={},
     )
     token = _REQUEST_BINDING.set(binding)
     try:
@@ -144,6 +151,15 @@ class ProviderBackedHTTPXClient:
         current_method = method.upper()
         current_kwargs = dict(kwargs)
         current_client_kwargs = dict(self._client_kwargs)
+        request_params = current_kwargs.pop("params", None)
+        client_params = current_client_kwargs.pop("params", None)
+        current_url = await _effective_initial_request_url(
+            current_method,
+            current_url,
+            base_url=current_client_kwargs.get("base_url"),
+            client_params=client_params,
+            request_params=request_params,
+        )
         history: list[httpx.Response] = []
         previous_origin = _http_origin(current_url)
         for redirect_count in range(max_redirects + 1):
@@ -162,8 +178,6 @@ class ProviderBackedHTTPXClient:
                 request_url=current_url,
                 single_attempt=attempt,
             )
-            if result.request_log_id is not None:
-                binding.request_log_ids.append(result.request_log_id)
             response = result.result
             response_cookies = httpx.Cookies()
             response_cookies.extract_cookies(response)
@@ -201,6 +215,29 @@ class ProviderBackedHTTPXClient:
         raise AssertionError("unreachable ETF redirect state")
 
 
+async def _effective_initial_request_url(
+    method: str,
+    url: str,
+    *,
+    base_url: str | None,
+    client_params: Any,
+    request_params: Any,
+) -> str:
+    """Resolve HTTPX base URL and merged params before Provider admission."""
+
+    builder_kwargs: dict[str, Any] = {}
+    if base_url:
+        builder_kwargs["base_url"] = base_url
+    if client_params is not None:
+        builder_kwargs["params"] = client_params
+    builder = httpx.AsyncClient(**builder_kwargs)
+    try:
+        request = builder.build_request(method, url, params=request_params)
+        return str(request.url)
+    finally:
+        await builder.aclose()
+
+
 def _http_origin(url: str) -> tuple[str, str, int | None]:
     parsed = urlsplit(url)
     try:
@@ -211,6 +248,19 @@ def _http_origin(url: str) -> tuple[str, str, int | None]:
     if port is None:
         port = 443 if scheme == "https" else 80 if scheme == "http" else None
     return scheme, (parsed.hostname or "").encode("idna").decode("ascii").lower(), port
+
+
+def _canonical_request_url(url: str) -> str:
+    """Canonicalize a complete URL for in-memory attempt equality checks."""
+
+    try:
+        canonical_url = str(httpx.URL(url))
+        parsed = urlsplit(canonical_url)
+    except (TypeError, ValueError) as exc:
+        raise ETFHoldingsRouteHeldError("ETF request URL is malformed") from exc
+    if parsed.username is not None or parsed.password is not None or parsed.fragment:
+        raise ETFHoldingsRouteHeldError("ETF request URL contains forbidden URL components")
+    return canonical_url
 
 
 def _make_loop_local_httpx_attempt(**kwargs: Any) -> LoopLocalHTTPXAttempt:
@@ -302,12 +352,42 @@ async def _review_attempt_context(
     db: AsyncSession,
     *,
     provider_name: str,
+    profile_id: int,
+    instrument_id: int,
+    provider_symbol: str,
+    adapter_key: str,
     operation: str,
     request_url: str,
 ) -> tuple[DataSource, ProviderPolicy, str]:
     if operation not in _ETF_OPERATIONS:
         raise ETFHoldingsRouteHeldError("ETF holdings operation is not in the reviewed contract")
     request_host = _normalized_host(request_url)
+    profile = await db.get(ETFProfile, profile_id)
+    instrument = await db.get(Instrument, instrument_id)
+    if profile is None or instrument is None or profile.instrument_id != instrument.id:
+        raise ETFHoldingsRouteHeldError(
+            "ETF request identity must resolve to committed profile and instrument rows"
+        )
+    if instrument.symbol.strip().upper() != provider_symbol.strip().upper():
+        raise ETFHoldingsRouteHeldError(
+            "ETF request symbol does not match its committed instrument"
+        )
+    if str(profile.adapter_key or "").strip().lower() != adapter_key:
+        raise ETFHoldingsRouteHeldError("ETF request adapter does not match its committed profile")
+    profile_aliases = profile.provider_aliases if isinstance(profile.provider_aliases, dict) else {}
+    profile_provider = (
+        str(
+            profile_aliases.get("holdings_source_provider")
+            or profile_aliases.get("source_provider")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+    if profile_provider != provider_name:
+        raise ETFHoldingsRouteHeldError(
+            "ETF request publisher does not match its committed profile route"
+        )
     data_source = await db.scalar(select(DataSource).where(DataSource.name == provider_name))
     if data_source is None:
         raise ETFHoldingsRouteHeldError("ETF publisher has no shared Provider source record")
@@ -338,7 +418,6 @@ async def _review_attempt_context(
         for field in ("evidence_source", "evidence_version", "reviewed_at")
     ):
         raise ETFHoldingsRouteHeldError("ETF publisher operation review evidence is incomplete")
-
     entitlement = await db.scalar(
         select(ProviderEntitlement).where(
             ProviderEntitlement.data_source_id == data_source.id,
@@ -422,42 +501,106 @@ async def execute_etf_holdings_request_attempt(
     provider_name = str(getattr(adapter, "source_provider", "")).strip().lower()
     if not provider_name:
         raise ETFHoldingsRouteHeldError("ETF adapter has no bound publisher identity")
+    binding = _REQUEST_BINDING.get()
+    profile_id = binding.profile_id if binding is not None else None
+    adapter_key = str(getattr(adapter, "adapter_key", "")).strip().lower()
+    if profile_id is None:
+        raise ETFHoldingsRouteHeldError(
+            "ETF request requires a committed profile identity before admission"
+        )
     if isinstance(single_attempt, LoopLocalHTTPXAttempt):
         if "follow_redirects" in single_attempt.request_kwargs:
             raise ETFHoldingsRouteHeldError(
                 "HTTPX attempts must not follow redirects; admit each hop separately"
             )
-        if _normalized_host(single_attempt.url) != _normalized_host(request_url):
+        if _canonical_request_url(single_attempt.url) != _canonical_request_url(request_url):
             raise ETFHoldingsRouteHeldError(
-                "HTTPX attempt URL does not match its reviewed request host"
+                "HTTPX attempt full URL does not match its reviewed request URL"
             )
     elif inspect.iscoroutinefunction(single_attempt) or inspect.iscoroutinefunction(
         getattr(single_attempt, "__call__", None)
     ):
         raise ETFHoldingsRouteHeldError("async HTTPX attempts must use LoopLocalHTTPXAttempt")
-    await _review_attempt_context(
-        db,
-        provider_name=provider_name,
-        operation=operation,
-        request_url=request_url,
-    )
     if instrument_id <= 0 or not str(provider_symbol).strip():
         raise ETFHoldingsRouteHeldError("ETF instrument and publisher symbol binding are required")
 
     invoke = _sync_provider_invoke(single_attempt)
-
-    return await execute_provider_call(
-        db,
-        ProviderCapability.ETF_HOLDINGS,
-        operation,
-        instrument_id=instrument_id,
-        provider_symbol=provider_symbol,
-        usage_identity=provider_symbol,
-        provider_name=provider_name,
-        invoke=invoke,
-        etf_holdings_adapters={provider_name: adapter},
-        capture_response_payloads=True,
+    physical_request_url = (
+        single_attempt.url if isinstance(single_attempt, LoopLocalHTTPXAttempt) else request_url
     )
+    attempt_log_ids: list[int] = []
+
+    def retain_request_log_id(request_log_id: int) -> None:
+        attempt_log_ids.append(request_log_id)
+        if binding is not None:
+            binding.request_log_ids.append(request_log_id)
+            binding.request_urls_by_log_id[request_log_id] = physical_request_url
+
+    async def run_shared_attempt() -> ProviderExecutionResult:
+        # The shared attempt gets a narrow transaction of its own. This keeps
+        # its request log/settlement durable if a public refresh caller later
+        # cancels and rolls back unrelated ETF work in its unit of work.
+        runtime_db = AsyncSession(bind=db.bind, expire_on_commit=False)
+        try:
+            await _review_attempt_context(
+                runtime_db,
+                provider_name=provider_name,
+                profile_id=profile_id,
+                instrument_id=instrument_id,
+                provider_symbol=provider_symbol,
+                adapter_key=adapter_key,
+                operation=operation,
+                request_url=physical_request_url,
+            )
+            result = await execute_provider_call(
+                runtime_db,
+                ProviderCapability.ETF_HOLDINGS,
+                operation,
+                instrument_id=instrument_id,
+                provider_symbol=provider_symbol,
+                usage_identity=provider_symbol,
+                provider_name=provider_name,
+                invoke=invoke,
+                etf_holdings_adapters={provider_name: adapter},
+                capture_response_payloads=True,
+                request_log_id_callback=retain_request_log_id,
+            )
+        except BaseException:
+            if attempt_log_ids:
+                await runtime_db.commit()
+            else:
+                await runtime_db.rollback()
+            raise
+        else:
+            await runtime_db.commit()
+            return result
+        finally:
+            await runtime_db.close()
+
+    execution = asyncio.create_task(run_shared_attempt())
+    try:
+        return await asyncio.shield(execution)
+    except asyncio.CancelledError:
+        # Provider's executor attempt cannot be safely abandoned once admitted:
+        # shield it until its canonical runtime has recorded and settled the
+        # one physical request, then preserve caller cancellation.
+        while not execution.done():
+            try:
+                await asyncio.shield(execution)
+            except asyncio.CancelledError:
+                # Repeated caller cancellation must not orphan the admitted
+                # Provider task or close its session before settlement.
+                continue
+            except Exception:
+                break
+        if execution.done() and not execution.cancelled():
+            # Retrieving the result prevents an unobserved task exception; the
+            # original cancellation remains the caller-visible outcome.
+            try:
+                execution.result()
+            except Exception:
+                pass
+        raise
 
 
 def _sync_provider_invoke(
@@ -471,6 +614,8 @@ def _sync_provider_invoke(
             async def run_httpx_attempt() -> Any:
                 response = await single_attempt.execute()
                 observe_response(response)
+                if response.status_code >= 400:
+                    response.raise_for_status()
                 return response
 
             return asyncio.run(run_httpx_attempt())

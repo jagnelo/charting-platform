@@ -12505,3 +12505,59 @@ service lifecycle change, or data cleanup occurred. The ETF checkpoint remains
 the full_stack_browser profile, exact-source CI, remaining roadmap, and the
 30-day observation gate remain open. MSMR/QQQ and Militia/GOOG remain
 unresolved and quarantined.
+
+### Shared-runtime failure lineage and effective URL binding — 2026-10-20 22:53Z
+
+Continued the same unpublished attempt-integrity context after the exact
+Provider producer release. The assigned, previously loopback-restricted
+Postgres/Redis fixture was reused without lifecycle changes; all HTTP remained
+HTTPX MockTransport. The final bounded module
+`backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`
+passed 9/9 in 25.04 seconds. It exercises real shared admission/settlement for
+redirect hops, held/unknown/exhausted zero-transport paths, committed
+profile/instrument/adapter/publisher identity, arbitrary-symbol rejection
+before transport, HTTP 403 raw-body/hash and redacted failure lineage, timeout
+UNCERTAIN reservation, parser rejection without a current snapshot, caller
+cancellation crossing the real unit-of-work rollback (including a second
+cancellation while shielded), concurrency after reopening runtime state, and
+stale-current retention.
+
+The actual CI Financial adapter request path was also tested with request
+`params`, client-default `params`, and a cross-origin `Location`. Its effective
+initial HTTPX URL (including the merged base query, request parameters and
+client defaults) was exactly equal in memory to the URL associated with its
+Provider request-log ID. The second attempt used the exact redirect path/query;
+the initial sensitive query/default parameters were not replayed to the other
+origin. Full URLs are compared canonically without redaction or truncation in
+memory; durable URL/error metadata remains redacted. No mandatory list of
+concrete operation URLs was introduced: the reviewed host/operation/evidence,
+entitlement, account/cost and committed profile checks remain the policy
+boundary, while exact physical-attempt identity is bound to the attempt log.
+The fixture now passes the committed `Instrument.symbol`, matching both real
+refresh entry points; no provider-symbol alias schema was inferred. An
+arbitrary unmatched symbol has a negative pre-admission/no-transport test.
+
+Ruff check/format, Python compilation, `git diff --check`, the workstream
+validator (one record), and the required current narrative sentinel passed;
+the sentinel still confirms the exact `15 Tier-0 and 156 Tier-1` statement.
+The plan's automatic branch-test list now contains only eight
+deterministic/no-network commands; the existing live issuer command remains
+under `deferred_live_checks`. The repository runner's `--list` output
+confirmed no default command sets the live opt-in.
+Two earlier bounded integration attempts exposed test-fixture issues (a
+noncanonical hardcoded symbol, a duplicate one-profile fixture, and manual
+transaction boundaries), all corrected before the final 9/9 result. Their
+failures are not erased or relabelled; the final focused run is the validated
+result. Historical hosted CI `39508166490` and `39504688326` remain red at
+their respective older sources; there is no hosted CI for this dirty source.
+
+This does not close SEC/discovery and alternate-client integrations, broader
+worker/API/current-versus-historical/PIT coverage, full_stack_browser, exact
+current-source CI, the complete issuer roadmap, or the observation gate.
+MSMR/QQQ and Militia/GOOG remain unresolved and quarantined. All unknown,
+quota-held, paid/trial and unsafe operations remain disabled. ETF remains
+`in_progress/not accepted`; no external request, quota use, fixture cleanup,
+staging/sibling change, or acceptance was performed. Current branch/source and
+receipt are still unpublished; next action is exact owner-path review, final
+workstream validation and substantive changeset publication followed by its
+exact-source CI.

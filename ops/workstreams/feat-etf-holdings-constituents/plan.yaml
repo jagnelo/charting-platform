@@ -461,7 +461,6 @@ branch_tests:
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov"
-  - "uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
   - "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
   - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents"
   - "npm --prefix frontend run type-check"
@@ -480,25 +479,25 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: httpx_redirect_compatibility_and_direct_transport_fail_closed_2026_10_20
+current_phase: shared_runtime_attempt_failure_and_effective_url_integrity_2026_10_20
 current_blocker: >-
-  Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. Provider
-  release 9b230ba4c97126a2937667138c6eb2a0aa297baf (CI39484176087;
-  Exhaustive118849529356) is merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6.
-  Scaffold e1860bdb9bd8e6b2584c2d8f51ffcb0d5cb7afb1 is pushed but exact CI
-  39501055514 is terminal red: four backend unit failures, frontend passed,
-  and later jobs were skipped. Two retry-test recorder bugs and the live-file
-  direct requests import now have local fixes. Latest/date adapter refreshes
-  are bound to the per-attempt shared HTTPX bridge; redirects are separately
-  dispatched, successful request-log ids are carried into artifact legal
-  metadata, and requests/curl fallbacks fail closed while the context is
-  active. Twenty-three selected offline contracts pass. SEC and discovery calls,
-  failed-attempt lineage, DB-backed denial/reservation/settlement proofs,
-  current-vs-historical/PIT consumer regression, exact current-source CI and
-  full_stack_browser remain open. Preserve the complete roadmap and later
-  observation gate. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined;
-  unknown/quota-held/paid/trial/unsafe operations remain disabled. Checkpoint
-  stays in_progress/not accepted.
+  Both summaries preserve 15 Tier-0 and 156 Tier-1 symbol investigations.
+  Accepted Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf remains
+  merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6. Current dirty
+  source passes the nine-test real shared-runtime loopback DB/Redis
+  MockTransport module, including committed instrument-symbol rejection,
+  cancellation rollback/raw lineage, failure/uncertain settlement, and exact
+  effective URL/request-log binding for real adapter params, client defaults,
+  and cross-origin redirects. Full URLs compare without redaction in memory;
+  persisted URL metadata is redacted; no concrete per-operation URL catalogue
+  is required. The live issuer sweep has been removed from automatic
+  branch_tests and remains only as the explicit deferred opt-in below. Earlier
+  exact hosted CI red receipts remain historical; current dirty source has no
+  CI yet. SEC/discovery, broader worker/API/current-vs-historical/PIT,
+  full_stack_browser, exact current-source CI, the complete issuer roadmap and
+  30-day observation gate remain open. MSMR/QQQ and Militia/GOOG remain
+  unresolved/quarantined; unknown/quota-held/paid/trial/unsafe operations
+  remain disabled. Checkpoint stays in_progress/not accepted.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."

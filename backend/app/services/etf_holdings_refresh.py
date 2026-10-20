@@ -17,17 +17,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.models.data_source import DataSource
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
+    ETFHoldingsRawArtifact,
     ETFHoldingsSnapshot,
     ETFProfile,
 )
 from app.models.instrument import Instrument
+from app.models.provider_runtime import ProviderRequestLog
 from app.providers.base import IdentifierRecord
+from app.providers.errors import bounded_redact_provider_message
 from app.services.etf_holdings import (
     ETF_HOLDINGS_INTERNAL_PROVIDER,
     _ensure_holdings_dates_are_not_future,
+    _hash_payload,
     _schema_fingerprint,
     ensure_etf_profile,
     ensure_lightweight_etf_instrument,
@@ -45,7 +50,11 @@ from app.services.etf_holdings_adapters import (
     parse_etf_discovery_table,
     parse_xlsx_table,
 )
-from app.services.etf_holdings_capability import evaluate_capability, infer_expected_cadence
+from app.services.etf_holdings_capability import (
+    evaluate_capability,
+    freshness_deadline,
+    infer_expected_cadence,
+)
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     ProviderBackedHTTPXClient,
@@ -1345,6 +1354,7 @@ async def refresh_etf_holdings_for_date(
         with bind_etf_holdings_request_context(
             db=db,
             adapter=adapter,
+            profile_id=profile.id,
             instrument_id=profile.instrument.id,
             provider_symbol=symbol,
             operation="fetch_etf_holdings_for_date",
@@ -1363,6 +1373,7 @@ async def refresh_etf_holdings_for_date(
         result_metadata = {
             **(fetch_result.legal_metadata or {}),
             "provider_request_log_ids": request_binding.request_log_ids,
+            "provider_request_attempts": _provider_request_attempts(request_binding),
         }
         result_metadata = {
             **result_metadata,
@@ -1799,6 +1810,20 @@ def _first_alias(aliases: dict[str, Any], *keys: str) -> str | None:
     return None
 
 
+def _provider_request_attempts(request_binding: Any) -> list[dict[str, Any]]:
+    """Persist each request-log ID with the exact redacted effective URL."""
+
+    return [
+        {
+            "request_log_id": request_id,
+            "request_url": bounded_redact_provider_message(
+                request_binding.request_urls_by_log_id.get(request_id, ""), max_length=2000
+            ),
+        }
+        for request_id in request_binding.request_log_ids
+    ]
+
+
 def _issuer_product_identifier(identifiers: dict[str, Any]) -> str | None:
     """Choose issuer route identity before weaker SEC series metadata.
 
@@ -2146,23 +2171,56 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
     with bind_etf_holdings_request_context(
         db=db,
         adapter=adapter,
+        profile_id=profile.id,
         instrument_id=profile.instrument.id,
         provider_symbol=symbol,
         operation="fetch_etf_holdings_latest",
     ) as request_binding:
-        fetch_result = await adapter.fetch_latest(
-            symbol=symbol,
-            issuer_product_id=issuer_product_id,
-            identifiers=identifiers,
-        )
+        try:
+            fetch_result = await adapter.fetch_latest(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
+        except BaseException as exc:
+            await _retain_rejected_fetch_artifact(
+                db,
+                profile,
+                adapter,
+                request_binding,
+                failure=exc,
+            )
+            raise
     if not fetch_result.rows:
-        raise ValueError("Issuer holdings route returned no parseable rows.")
+        failure = ValueError("Issuer holdings route returned no parseable rows.")
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=failure,
+        )
+        raise failure
     artifact_identity_validation = _validate_artifact_identity(profile, fetch_result.raw_text)
-    _ensure_artifact_identity_is_safe(artifact_identity_validation)
+    try:
+        _ensure_artifact_identity_is_safe(artifact_identity_validation)
+    except ValueError as exc:
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=exc,
+            validation=artifact_identity_validation,
+        )
+        raise
 
     result_metadata = {
         **(fetch_result.legal_metadata or {}),
         "provider_request_log_ids": request_binding.request_log_ids,
+        "provider_request_attempts": _provider_request_attempts(request_binding),
     }
     result_metadata = {
         **result_metadata,
@@ -2186,17 +2244,58 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
     as_of_date = _alias_date(aliases, "holdings_as_of_date") or _date_from_value(
         result_metadata.get("as_of_date")
     )
-    _ensure_holdings_dates_are_not_future(composition_date, as_of_date)
+    try:
+        _ensure_holdings_dates_are_not_future(composition_date, as_of_date)
+    except ValueError as exc:
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=exc,
+            validation={"status": "future_dated"},
+        )
+        raise
+    cadence = result_metadata.get("expected_cadence")
+    deadline = freshness_deadline(composition_date, str(cadence or "unspecified"))
+    if deadline is not None and datetime.now(UTC).date() > deadline:
+        failure = ValueError(
+            f"Issuer holdings composition {composition_date.isoformat()} is stale "
+            f"for the reviewed {cadence or 'unspecified'} cadence."
+        )
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=failure,
+            validation={"status": "stale", "freshness_deadline": deadline.isoformat()},
+        )
+        raise failure
     parser_version = str(
         result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
     )
-    await _ensure_schema_fingerprint_is_stable(
-        db,
-        profile,
-        parser_version=parser_version,
-        raw_payload_text=fetch_result.raw_text,
-        raw_payload_json=fetch_result.raw_json,
-    )
+    try:
+        await _ensure_schema_fingerprint_is_stable(
+            db,
+            profile,
+            parser_version=parser_version,
+            raw_payload_text=fetch_result.raw_text,
+            raw_payload_json=fetch_result.raw_json,
+        )
+    except ETFHoldingsSchemaDriftError as exc:
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=exc,
+            validation={"status": "schema_drift"},
+        )
+        raise
 
     snapshot = await ingest_holdings_snapshot(
         db,
@@ -2223,6 +2322,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         legal_metadata={
             **(fetch_result.legal_metadata or {}),
             "provider_request_log_ids": request_binding.request_log_ids,
+            "provider_request_attempts": _provider_request_attempts(request_binding),
             "terms_note": aliases.get("terms_note"),
             "probe_status": probe.status,
             "probe_confidence": str(probe.confidence),
@@ -2242,6 +2342,165 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
     profile.adapter_status = "success"
     profile.adapter_confidence = probe.confidence
     return snapshot
+
+
+async def _retain_rejected_fetch_artifact(
+    db: AsyncSession,
+    profile: ETFProfile,
+    adapter: Any,
+    request_binding: Any,
+    *,
+    failure: BaseException,
+    fetch_result: Any | None = None,
+    validation: dict[str, Any] | None = None,
+) -> ETFHoldingsRawArtifact | None:
+    """Persist rejected response evidence using only committed parent rows."""
+
+    artifact_db = AsyncSession(bind=db.bind, expire_on_commit=False)
+    try:
+        if await artifact_db.get(ETFProfile, profile.id) is None:
+            # The request bridge rejects uncommitted profiles before transport;
+            # never create an artifact against caller-owned uncommitted state.
+            await artifact_db.rollback()
+            return None
+        artifact = await _retain_rejected_fetch_artifact_in_session(
+            artifact_db,
+            profile,
+            adapter,
+            request_binding,
+            failure=failure,
+            fetch_result=fetch_result,
+            validation=validation,
+        )
+        await artifact_db.commit()
+        return artifact
+    except BaseException:
+        await artifact_db.rollback()
+        raise
+    finally:
+        await artifact_db.close()
+
+
+async def _retain_rejected_fetch_artifact_in_session(
+    db: AsyncSession,
+    profile: ETFProfile,
+    adapter: Any,
+    request_binding: Any,
+    *,
+    failure: BaseException,
+    fetch_result: Any | None = None,
+    validation: dict[str, Any] | None = None,
+) -> ETFHoldingsRawArtifact | None:
+    """Build canonical rejected evidence in its dedicated owner session."""
+
+    request_log_ids = list(dict.fromkeys(request_binding.request_log_ids))
+    logs_by_id = {}
+    if request_log_ids:
+        logs = list(
+            (
+                await db.scalars(
+                    select(ProviderRequestLog).where(ProviderRequestLog.id.in_(request_log_ids))
+                )
+            ).all()
+        )
+        logs_by_id = {row.id: row for row in logs}
+    logs = [logs_by_id[log_id] for log_id in request_log_ids if log_id in logs_by_id]
+    raw_text = getattr(fetch_result, "raw_text", None)
+    raw_json = getattr(fetch_result, "raw_json", None)
+    response_evidence = [
+        {
+            "request_log_id": row.id,
+            "request_url": bounded_redact_provider_message(
+                request_binding.request_urls_by_log_id.get(row.id, ""), max_length=2000
+            )
+            or None,
+            "success": row.success,
+            "error_type": row.error_type,
+            "error_message": bounded_redact_provider_message(row.error_message, max_length=1000)
+            if row.error_message
+            else None,
+            "response_headers": row.response_headers,
+            "response_payloads": row.response_payloads,
+        }
+        for row in logs
+    ]
+    if raw_text is None and raw_json is None:
+        last_response_payloads = next(
+            (row.response_payloads for row in reversed(logs) if row.response_payloads), None
+        )
+        last_response = last_response_payloads[-1] if last_response_payloads else None
+        if isinstance(last_response, str):
+            raw_text = last_response
+        elif isinstance(last_response, dict | list):
+            raw_json = last_response
+    content_payload = raw_json if raw_json is not None else raw_text
+    if content_payload is None:
+        # When no response body exists (for example a connect timeout), retain
+        # a compact diagnostic as an explicit JSON evidence payload. Attempt
+        # lineage remains separate and does not affect response-body hashes.
+        content_payload = {
+            "failure_type": type(failure).__name__,
+            "failure_message": bounded_redact_provider_message(failure, max_length=1000),
+            "validation": validation,
+        }
+        raw_json = content_payload
+    content_hash = _hash_payload(content_payload)
+    source_kind = "issuer_adapter_rejected_fetch"
+    existing = await db.scalar(
+        select(ETFHoldingsRawArtifact).where(
+            ETFHoldingsRawArtifact.etf_profile_id == profile.id,
+            ETFHoldingsRawArtifact.source_kind == source_kind,
+            ETFHoldingsRawArtifact.content_hash == content_hash,
+        )
+    )
+    if existing is not None:
+        return existing
+    provider_name = str(getattr(adapter, "source_provider", "")).strip().lower()
+    source = await db.scalar(select(DataSource).where(DataSource.name == provider_name))
+    first_log = logs[0] if logs else None
+    artifact = ETFHoldingsRawArtifact(
+        etf_profile_id=profile.id,
+        data_source_id=source.id if source is not None else None,
+        source_kind=source_kind,
+        source_url=bounded_redact_provider_message(
+            getattr(fetch_result, "source_url", None)
+            or (
+                request_binding.request_urls_by_log_id.get(request_log_ids[-1])
+                if request_log_ids
+                else ""
+            ),
+            max_length=2000,
+        ),
+        source_identifier=getattr(fetch_result, "source_identifier", None),
+        content_type=("text/plain" if raw_text is not None else "application/json"),
+        content_hash=content_hash,
+        composition_date=None,
+        as_of_date=None,
+        published_at=None,
+        fetched_at=(
+            first_log.completed_at if first_log and first_log.completed_at else datetime.now(UTC)
+        ),
+        parser_version=str(getattr(adapter, "adapter_key", "unknown"))[:40],
+        payload_text=raw_text,
+        payload_json=raw_json,
+        legal_metadata={
+            "provider_request_log_ids": request_log_ids,
+            "request_urls": [
+                bounded_redact_provider_message(
+                    request_binding.request_urls_by_log_id.get(log_id, ""), max_length=2000
+                )
+                for log_id in request_log_ids
+            ],
+            "failure_type": type(failure).__name__,
+            "failure_message": bounded_redact_provider_message(failure, max_length=1000),
+            "validation": validation,
+            "request_attempts": response_evidence,
+            "evidence_source": "shared_provider_request_log_and_refresh_rejection",
+        },
+    )
+    db.add(artifact)
+    await db.flush()
+    return artifact
 
 
 async def _record_skip(

@@ -2784,6 +2784,7 @@ async def execute_provider_call(
     treat_empty_as_failure: bool = False,
     capture_response_payloads: bool = True,
     etf_holdings_adapters: dict[str, Any] | None = None,
+    request_log_id_callback: Callable[[int], None] | None = None,
 ) -> ProviderExecutionResult:
     if inspect.iscoroutinefunction(invoke):
         raise TypeError(
@@ -2964,6 +2965,8 @@ async def execute_provider_call(
             )
             db.add(log_row)
             await db.flush()
+            if request_log_id_callback is not None:
+                request_log_id_callback(log_row.id)
         except BaseException:
             settle_provider_contract(
                 reservations,

@@ -7,7 +7,9 @@ contacts an issuer or provider.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import threading
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -18,10 +20,17 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
+from app.models.etf_holdings import (
+    ETFHoldingsAdapterState,
+    ETFHoldingsRawArtifact,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.instrument import Instrument
 from app.models.market_data_foundation import ProviderQuotaWindow
 from app.models.provider_recurring_cost import (
@@ -36,10 +45,19 @@ from app.models.provider_runtime import (
     ProviderRequestLog,
 )
 from app.services import etf_holdings_provider_bridge as bridge
+from app.services import etf_holdings_refresh as refresh
 from app.services import provider_quota_coordinator as quota_coordinator
+from app.services.etf_holdings import _hash_payload
+from app.services.etf_holdings_adapters import (
+    CiFinancialHoldingsAdapter,
+    IssuerCsvAdapterConfig,
+    IssuerCsvHoldingsAdapter,
+)
 from app.services.etf_holdings_adapters import httpx as adapter_httpx
+from app.services.etf_holdings_capability import evaluate_capability
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
+    LoopLocalHTTPXAttempt,
     bind_etf_holdings_request_context,
 )
 from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
@@ -64,27 +82,45 @@ class _TransportRunner:
     def __init__(self):
         self.transport = None
         self.calls = []
+        self.status_code = 200
+        self.body = "Symbol,Weight\nAAA,1.0\n"
+        self.started = None
+        self.release = None
+        self.raise_timeout = False
+        self.redirect_location = "https://publisher.example/holdings.csv"
 
     def factory(self):
         return httpx.MockTransport(self.handle)
 
     def handle(self, request):
         self.calls.append((request.method, str(request.url)))
-        if request.url.path == "/start":
-            return httpx.Response(
-                302,
-                headers={"location": "/holdings.csv"},
-                request=request,
-            )
+        if self.raise_timeout:
+            raise httpx.ReadTimeout("synthetic MockTransport timeout", request=request)
+        if self.started is not None:
+            self.started.set()
+            if not self.release.wait(3):
+                raise httpx.ReadTimeout(
+                    "bounded fixture transport release timed out", request=request
+                )
         return httpx.Response(
-            200,
-            text="Symbol,Weight\nAAA,1.0\n",
-            headers={"content-type": "text/csv"},
+            302 if request.url.path == "/start" else self.status_code,
+            text=self.body,
+            headers=(
+                {"location": self.redirect_location}
+                if request.url.path == "/start"
+                else {"content-type": "text/csv"}
+            ),
             request=request,
         )
 
 
-async def _seed_reviewed_fixture(session: AsyncSession, *, limit: int, monkeypatch):
+async def _seed_reviewed_fixture(
+    session: AsyncSession,
+    *,
+    limit: int,
+    monkeypatch,
+    reviewed_hosts: list[str] | None = None,
+):
     suffix = uuid4().hex[:10]
     provider_name = f"etf-fixture-{suffix}"
     account_scope = f"etf-offline-test-account-{suffix}"
@@ -123,7 +159,8 @@ async def _seed_reviewed_fixture(session: AsyncSession, *, limit: int, monkeypat
         config={
             "usage_tracking": {"operation_costs": {operation: 1}},
             "etf_holdings_review": {
-                "https_hosts": ["publisher.example"],
+                "https_hosts": reviewed_hosts
+                or ["publisher.example", "cdn.publisher.example", "cisbh.com"],
                 "account_scope": account_scope,
                 "operations": {
                     operation: {
@@ -228,11 +265,13 @@ async def _seed_reviewed_fixture(session: AsyncSession, *, limit: int, monkeypat
         provider_name=provider_name,
         account_scope=account_scope,
         instrument_id=instrument.id,
+        instrument_symbol=instrument.symbol,
         source_id=source.id,
         policy=policy,
         operation=operation,
         adapter=SimpleNamespace(
             source_provider=provider_name,
+            adapter_key="synthetic_csv_fixture",
             fetch_latest=lambda *_args, **_kwargs: None,
             fetch_for_date=lambda *_args, **_kwargs: None,
         ),
@@ -275,16 +314,135 @@ def _assert_second_bucket_contract(windows, *, consumed_units: int, reserved_uni
     assert actual_consumed == consumed_units
 
 
-async def _fetch_two_hop_fixture(session, case, runner):
+async def _fetch_two_hop_fixture(session, case, runner, profile_id):
     with bind_etf_holdings_request_context(
         db=session,
         adapter=case.adapter,
+        profile_id=profile_id,
         instrument_id=case.instrument_id,
-        provider_symbol="AAA",
+        provider_symbol=case.instrument_symbol,
         operation=case.operation,
     ):
         async with adapter_httpx.AsyncClient(follow_redirects=True, timeout=2) as client:
             return await client.get("https://publisher.example/start")
+
+
+async def _seed_real_adapter_profile(
+    session, case, monkeypatch, *, composition_date=None, route_url=None
+):
+    instrument = await session.get(Instrument, case.instrument_id)
+    assert instrument is not None
+    today = datetime.now(UTC).date()
+    profile = ETFProfile(
+        instrument_id=instrument.id,
+        instrument=instrument,
+        issuer="Synthetic test fixture publisher",
+        adapter_key="synthetic_csv_fixture",
+        adapter_status="pending",
+        provider_aliases={
+            "holdings_url": route_url or "https://publisher.example/holdings.csv",
+            "expected_etf_symbol": instrument.symbol,
+            "holdings_source_provider": case.provider_name,
+            "holdings_completeness_status": "complete",
+            "holdings_composition_date": (composition_date or today).isoformat(),
+            "expected_cadence": "daily",
+        },
+    )
+    adapter = IssuerCsvHoldingsAdapter(
+        IssuerCsvAdapterConfig(
+            adapter_key="synthetic_csv_fixture",
+            source_provider=case.provider_name,
+            source_access="synthetic_test_fixture_only",
+            expected_cadence="daily",
+            supports_sec_filing_fallback=False,
+            terms_note="Synthetic fixture only; not a publisher entitlement.",
+        )
+    )
+    session.add(profile)
+    await session.flush()
+    monkeypatch.setattr(refresh, "get_holdings_adapter", lambda _key: adapter)
+    return profile, adapter
+
+
+async def _create_committed_fixture(
+    provider_db,
+    monkeypatch,
+    *,
+    limit,
+    with_profile=False,
+    route_url=None,
+    reviewed_hosts=None,
+):
+    """Commit only synthetic setup rows before isolated Provider attempts."""
+    async with provider_db() as session:
+        async with session.begin():
+            case = await _seed_reviewed_fixture(
+                session,
+                limit=limit,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=reviewed_hosts,
+            )
+            profile = None
+            if with_profile:
+                profile, _adapter = await _seed_real_adapter_profile(
+                    session, case, monkeypatch, route_url=route_url
+                )
+            profile_id = profile.id if profile is not None else None
+    return case, profile_id
+
+
+async def _load_profile(session: AsyncSession, profile_id: int) -> ETFProfile:
+    profile = await session.scalar(
+        select(ETFProfile)
+        .options(selectinload(ETFProfile.instrument))
+        .where(ETFProfile.id == profile_id)
+    )
+    assert profile is not None
+    return profile
+
+
+async def _assert_one_settled_attempt(
+    session,
+    case,
+    *,
+    expected_success: bool,
+    expected_http_requests: int = 1,
+    expected_settled_usage: Decimal = Decimal("1.0000"),
+    expected_reservation_state: str = "settled",
+):
+    logs = list(
+        (
+            await session.scalars(
+                select(ProviderRequestLog).where(
+                    ProviderRequestLog.data_source_id == case.source_id,
+                    ProviderRequestLog.operation == case.operation,
+                )
+            )
+        ).all()
+    )
+    assert len(logs) == 1
+    row = logs[0]
+    assert row.success is expected_success
+    assert row.http_requests == expected_http_requests
+    assert row.completed_at is not None
+    assert row.settled_usage_units == expected_settled_usage
+    quota_engine = quota_coordinator._engine_for(quota_coordinator._engine_url())
+    with quota_engine.connect() as connection:
+        reservations = (
+            connection.execute(
+                select(quota_coordinator._reservations).where(
+                    quota_coordinator._reservations.c.provider_name == case.provider_name
+                )
+            )
+            .mappings()
+            .all()
+        )
+    assert len(reservations) == 1
+    assert reservations[0]["state"] == expected_reservation_state
+    if expected_reservation_state == "settled":
+        assert reservations[0]["settled_at"] is not None
+    assert reservations[0]["reserved_units"] == 1
+    return row
 
 
 @pytest.mark.integration
@@ -307,12 +465,18 @@ async def test_each_redirect_hop_uses_real_shared_admission_and_durable_settleme
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
         db_engine.url.render_as_string(hide_password=False),
     )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=3,
+        with_profile=True,
+        route_url="https://publisher.example/start",
+    )
     async with provider_db() as session:
         async with session.begin():
-            case = await _seed_reviewed_fixture(session, limit=3, monkeypatch=monkeypatch)
             runner = _TransportRunner()
             _use_mocktransport(monkeypatch, runner)
-            result = await _fetch_two_hop_fixture(session, case, runner)
+            result = await _fetch_two_hop_fixture(session, case, runner, profile_id)
 
             assert result.status_code == 200
             assert len(result.history) == 1
@@ -380,6 +544,90 @@ async def test_each_redirect_hop_uses_real_shared_admission_and_durable_settleme
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+async def test_real_adapter_params_are_admitted_as_effective_url_and_not_replayed_on_redirect(
+    db_engine, provider_db, monkeypatch
+):
+    """Real adapter query params and redirects retain exact per-log URL binding."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    initial_url = "https://publisher.example/start?seed=base"
+    redirect_url = "https://cdn.publisher.example/holdings.csv?download=latest"
+    client_params = {"account": "client-default", "api_key": "synthetic-query-secret"}
+    url_builder = httpx.AsyncClient(params=client_params)
+    try:
+        actual_initial_url = str(
+            url_builder.build_request(
+                "GET", initial_url, params={"fund": CiFinancialHoldingsAdapter.FUND_ID}
+            ).url
+        )
+    finally:
+        await url_builder.aclose()
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=3,
+        with_profile=True,
+        route_url=initial_url,
+        reviewed_hosts=["publisher.example", "cdn.publisher.example"],
+    )
+    monkeypatch.setattr(CiFinancialHoldingsAdapter, "HOLDINGS_ENDPOINT", initial_url)
+    runner = _TransportRunner()
+    runner.redirect_location = redirect_url
+    _use_mocktransport(monkeypatch, runner)
+    original_client = adapter_httpx.AsyncClient
+
+    def client_with_reviewed_defaults(**kwargs):
+        kwargs.setdefault("params", client_params)
+        return original_client(**kwargs)
+
+    monkeypatch.setattr(adapter_httpx, "AsyncClient", client_with_reviewed_defaults)
+    async with provider_db() as session:
+        async with session.begin():
+            with bind_etf_holdings_request_context(
+                db=session,
+                adapter=case.adapter,
+                profile_id=profile_id,
+                instrument_id=case.instrument_id,
+                provider_symbol=case.instrument_symbol,
+                operation=case.operation,
+            ) as binding:
+                async with adapter_httpx.AsyncClient(timeout=2) as client:
+                    response = await CiFinancialHoldingsAdapter._get_holdings_endpoint_with_retry(
+                        client, product_page_url="https://publisher.example/product"
+                    )
+            assert response.status_code == 200
+            assert [url for _method, url in runner.calls] == [actual_initial_url, redirect_url]
+            bound_urls = [
+                bridge._canonical_request_url(binding.request_urls_by_log_id[request_id])
+                for request_id in binding.request_log_ids
+            ]
+            assert bound_urls == [
+                bridge._canonical_request_url(actual_initial_url),
+                bridge._canonical_request_url(redirect_url),
+            ]
+            request_logs = list(
+                (
+                    await session.scalars(
+                        select(ProviderRequestLog)
+                        .where(ProviderRequestLog.id.in_(binding.request_log_ids))
+                        .order_by(ProviderRequestLog.id)
+                    )
+                ).all()
+            )
+            assert [row.id for row in request_logs] == binding.request_log_ids
+            assert all(row.success and row.http_requests == 1 for row in request_logs)
+            assert "synthetic-query-secret" in bound_urls[0]
+            assert "api_key" not in bound_urls[1]
+            assert "account" not in bound_urls[1]
+            assert "fund" not in bound_urls[1]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_unknown_held_and_exhausted_routes_never_start_transport(
     db_engine, provider_db, monkeypatch
 ):
@@ -390,21 +638,98 @@ async def test_unknown_held_and_exhausted_routes_never_start_transport(
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
         db_engine.url.render_as_string(hide_password=False),
     )
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=2, with_profile=True
+    )
     async with provider_db() as session:
         async with session.begin():
-            case = await _seed_reviewed_fixture(session, limit=2, monkeypatch=monkeypatch)
             runner = _TransportRunner()
             _use_mocktransport(monkeypatch, runner)
+
+            # A flushed caller-owned profile row is not committed admission
+            # evidence. The attempt-owned view rejects it before quota or IO.
+            committed_profile = await session.get(ETFProfile, profile_id)
+            assert committed_profile is not None
+            await session.delete(committed_profile)
+            await session.flush()
+            pending_profile = ETFProfile(
+                instrument_id=case.instrument_id,
+                issuer="Uncommitted synthetic profile",
+                adapter_key="synthetic_csv_fixture",
+                provider_aliases={"holdings_source_provider": case.provider_name},
+            )
+            session.add(pending_profile)
+            await session.flush()
+            with bind_etf_holdings_request_context(
+                db=session,
+                adapter=case.adapter,
+                profile_id=pending_profile.id,
+                instrument_id=case.instrument_id,
+                provider_symbol=case.instrument_symbol,
+                operation=case.operation,
+            ):
+                async with adapter_httpx.AsyncClient(timeout=2) as client:
+                    with pytest.raises(
+                        ETFHoldingsRouteHeldError, match="committed profile and instrument"
+                    ):
+                        await client.get("https://publisher.example/holdings.csv")
+            assert runner.calls == []
 
             with pytest.raises(ETFHoldingsRouteHeldError, match="not in the reviewed contract"):
                 with bind_etf_holdings_request_context(
                     db=session,
                     adapter=case.adapter,
+                    profile_id=profile_id,
                     instrument_id=case.instrument_id,
-                    provider_symbol="AAA",
+                    provider_symbol=case.instrument_symbol,
                     operation="unknown_operation",
                 ):
                     await adapter_httpx.AsyncClient().get("https://publisher.example/start")
+            assert runner.calls == []
+
+            with bind_etf_holdings_request_context(
+                db=session,
+                adapter=case.adapter,
+                profile_id=profile_id,
+                instrument_id=case.instrument_id,
+                provider_symbol="ARBITRARY-UNMAPPED",
+                operation=case.operation,
+            ):
+                with pytest.raises(
+                    ETFHoldingsRouteHeldError, match="does not match its committed instrument"
+                ):
+                    await adapter_httpx.AsyncClient(timeout=2).get(
+                        "https://publisher.example/holdings.csv"
+                    )
+            assert runner.calls == []
+
+            # Different sensitive values must never compare equal, even though
+            # any eventual durable/display value would redact both.
+            attempt = LoopLocalHTTPXAttempt(
+                method="GET",
+                url="https://publisher.example/holdings.csv?api_key=secret-a",
+                request_kwargs={},
+                client_kwargs={"timeout": 2},
+                transport_factory=runner.factory,
+            )
+            with bind_etf_holdings_request_context(
+                db=session,
+                adapter=case.adapter,
+                profile_id=profile_id,
+                instrument_id=case.instrument_id,
+                provider_symbol=case.instrument_symbol,
+                operation=case.operation,
+            ):
+                with pytest.raises(ETFHoldingsRouteHeldError, match="full URL"):
+                    await bridge.execute_etf_holdings_request_attempt(
+                        session,
+                        adapter=case.adapter,
+                        instrument_id=case.instrument_id,
+                        provider_symbol=case.instrument_symbol,
+                        operation=case.operation,
+                        request_url="https://publisher.example/holdings.csv?api_key=secret-b",
+                        single_attempt=attempt,
+                    )
             assert runner.calls == []
 
             # Provider's operation hold is exercised through the production
@@ -416,8 +741,9 @@ async def test_unknown_held_and_exhausted_routes_never_start_transport(
             with bind_etf_holdings_request_context(
                 db=session,
                 adapter=case.adapter,
+                profile_id=profile_id,
                 instrument_id=case.instrument_id,
-                provider_symbol="AAA",
+                provider_symbol=case.instrument_symbol,
                 operation=case.operation,
             ):
                 async with adapter_httpx.AsyncClient(timeout=2) as client:
@@ -449,8 +775,9 @@ async def test_unknown_held_and_exhausted_routes_never_start_transport(
             with bind_etf_holdings_request_context(
                 db=session,
                 adapter=case.adapter,
+                profile_id=profile_id,
                 instrument_id=case.instrument_id,
-                provider_symbol="AAA",
+                provider_symbol=case.instrument_symbol,
                 operation=case.operation,
             ):
                 async with adapter_httpx.AsyncClient(timeout=2) as client:
@@ -481,3 +808,423 @@ async def test_unknown_held_and_exhausted_routes_never_start_transport(
             assert app_window is not None
             assert app_window.reserved_units == 0
             assert app_window.consumed_units == 1
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_real_adapter_refresh_retains_rejected_stale_payload_and_keeps_last_known(
+    db_engine, provider_db, monkeypatch
+):
+    """A valid transport with stale content is evidence, not a current snapshot."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=5, with_profile=True
+    )
+    runner = _TransportRunner()
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            runner.body = (
+                f"Fund Ticker,{(await session.get(Instrument, case.instrument_id)).symbol}\n"
+                "Symbol,Weight\nAAA,1.0\n"
+            )
+            _use_mocktransport(monkeypatch, runner)
+            first_snapshot = await refresh._refresh_adapter_route(session, profile)
+            await refresh._record_success(session, profile, snapshot=first_snapshot)
+            current = evaluate_capability(
+                profile,
+                first_snapshot,
+                await session.scalar(
+                    select(ETFHoldingsAdapterState).where(
+                        ETFHoldingsAdapterState.etf_profile_id == profile.id
+                    )
+                ),
+            )
+            assert current.availability == "current"
+            assert current.identity_verified
+            assert current.usable_for_current_analysis
+            assert first_snapshot.source_artifact_id is not None
+            old_composition_date = datetime.now(UTC).date() - timedelta(days=45)
+            profile.provider_aliases = {
+                **profile.provider_aliases,
+                "holdings_composition_date": old_composition_date.isoformat(),
+            }
+
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            with pytest.raises(ValueError, match="composition .* is stale"):
+                await refresh._refresh_adapter_route(session, profile)
+            await refresh._record_failure(
+                session,
+                profile,
+                ValueError("stale fixture rejected by refresh freshness gate"),
+            )
+
+            snapshots = list(
+                (
+                    await session.scalars(
+                        select(ETFHoldingsSnapshot).where(
+                            ETFHoldingsSnapshot.etf_profile_id == profile.id
+                        )
+                    )
+                ).all()
+            )
+            assert [snapshot.id for snapshot in snapshots] == [first_snapshot.id]
+            rejected = await session.scalar(
+                select(ETFHoldingsRawArtifact).where(
+                    ETFHoldingsRawArtifact.etf_profile_id == profile.id,
+                    ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+                )
+            )
+            assert rejected is not None
+            assert rejected.payload_text == runner.body
+            assert rejected.legal_metadata["provider_request_log_ids"]
+            assert rejected.legal_metadata["validation"]["status"] == "stale"
+            state = await session.scalar(
+                select(ETFHoldingsAdapterState).where(
+                    ETFHoldingsAdapterState.etf_profile_id == profile.id
+                )
+            )
+            degraded = evaluate_capability(profile, first_snapshot, state)
+            assert degraded.availability == "degraded"
+            assert degraded.displayable_last_known
+            assert not degraded.usable_for_current_analysis
+            assert runner.calls == [
+                ("GET", "https://publisher.example/holdings.csv"),
+                ("GET", "https://publisher.example/holdings.csv"),
+            ]
+            assert len(set(rejected.legal_metadata["provider_request_log_ids"])) == 1
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_http_error_is_failed_shared_attempt_and_raw_body_is_retained(
+    db_engine, provider_db, monkeypatch
+):
+    """HTTPX 4xx must fail Provider transport health and retain its response."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=3,
+        with_profile=True,
+        route_url="https://publisher.example/start?api_key=synthetic-secret-value",
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        async with provider_db() as session:
+            async with session.begin():
+                profile = await _load_profile(session, profile_id)
+                runner = _TransportRunner()
+                runner.status_code = 403
+                runner.body = "synthetic access denied body"
+                _use_mocktransport(monkeypatch, runner)
+                await refresh._refresh_adapter_route(session, profile)
+    async with provider_db() as reopened:
+        rows = list(
+            (
+                await reopened.scalars(
+                    select(ProviderRequestLog)
+                    .where(
+                        ProviderRequestLog.data_source_id == case.source_id,
+                        ProviderRequestLog.operation == case.operation,
+                    )
+                    .order_by(ProviderRequestLog.id)
+                )
+            ).all()
+        )
+        assert len(rows) == 2
+        assert rows[0].success and rows[0].http_requests == 1
+        assert not rows[1].success and rows[1].error_type == "HTTPStatusError"
+        assert rows[1].response_payloads == [runner.body]
+        artifact = await reopened.scalar(
+            select(ETFHoldingsRawArtifact).where(
+                ETFHoldingsRawArtifact.etf_profile_id == profile_id,
+                ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+            )
+        )
+        assert artifact is not None
+        assert artifact.payload_text == runner.body
+        assert artifact.content_hash == _hash_payload(runner.body)
+        assert artifact.legal_metadata["provider_request_log_ids"] == [row.id for row in rows]
+        assert artifact.legal_metadata["request_urls"] == [
+            "https://publisher.example/start?api_key=<redacted>",
+            "https://publisher.example/holdings.csv",
+        ]
+        assert "synthetic-secret-value" not in artifact.source_url
+        assert "synthetic-secret-value" not in artifact.legal_metadata["failure_message"]
+        assert runner.calls == [
+            ("GET", "https://publisher.example/start?api_key=synthetic-secret-value"),
+            ("GET", "https://publisher.example/holdings.csv"),
+        ]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_timeout_preserves_uncertain_reservation_and_failed_attempt_lineage(
+    db_engine, provider_db, monkeypatch
+):
+    """A transport timeout leaves a durable failed request record, not a leak."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=3, with_profile=True
+    )
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            runner = _TransportRunner()
+            runner.raise_timeout = True
+            _use_mocktransport(monkeypatch, runner)
+            with pytest.raises(httpx.ReadTimeout, match="synthetic MockTransport timeout"):
+                await refresh._refresh_adapter_route(session, profile)
+            row = await _assert_one_settled_attempt(
+                session,
+                case,
+                expected_success=False,
+                expected_http_requests=0,
+                expected_settled_usage=Decimal("0"),
+                expected_reservation_state="uncertain",
+            )
+            assert row.error_type == "ReadTimeout"
+            artifact = await session.scalar(
+                select(ETFHoldingsRawArtifact).where(
+                    ETFHoldingsRawArtifact.etf_profile_id == profile.id,
+                    ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+                )
+            )
+            assert artifact is not None
+            assert artifact.legal_metadata["provider_request_log_ids"] == [row.id]
+            assert artifact.payload_json["failure_type"] == "ReadTimeout"
+            assert artifact.legal_metadata["request_urls"] == [
+                "https://publisher.example/holdings.csv"
+            ]
+            assert runner.calls == [("GET", "https://publisher.example/holdings.csv")]
+            assert (
+                artifact.legal_metadata["failure_type"] == "ReadTimeout"
+                and row.error_type == "ReadTimeout"
+            )
+            quota_window = await session.scalar(
+                select(ProviderQuotaWindow).where(
+                    ProviderQuotaWindow.data_source_id == case.source_id,
+                    ProviderQuotaWindow.dimension == "requests_per_minute",
+                )
+            )
+            assert quota_window is not None
+            assert quota_window.reserved_units == 0
+            assert quota_window.consumed_units == 0
+            coordinator_summary = quota_coordinator.provider_quota_coordinator_summary(
+                provider_name=case.provider_name
+            )
+            account_windows = [
+                item
+                for item in coordinator_summary["windows"]
+                if item["account_scope"] == case.account_scope
+                and item["dimension"] == "requests_per_minute"
+            ]
+            assert len(account_windows) == 1
+            assert account_windows[0]["reserved_units"] == 1
+            assert account_windows[0]["consumed_units"] == 0
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_parser_rejection_keeps_transport_success_but_no_snapshot_and_raw_body(
+    db_engine, provider_db, monkeypatch
+):
+    """Transport success is not content success when no holdings rows parse."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=3, with_profile=True
+    )
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            runner = _TransportRunner()
+            runner.body = "challenge page; no holdings table"
+            _use_mocktransport(monkeypatch, runner)
+            with pytest.raises(ValueError, match="no parseable rows"):
+                await refresh._refresh_adapter_route(session, profile)
+            row = await _assert_one_settled_attempt(session, case, expected_success=True)
+            assert row.response_payloads == [runner.body]
+            assert (
+                await session.scalar(
+                    select(ETFHoldingsSnapshot.id).where(
+                        ETFHoldingsSnapshot.etf_profile_id == profile.id
+                    )
+                )
+                is None
+            )
+            artifact = await session.scalar(
+                select(ETFHoldingsRawArtifact).where(
+                    ETFHoldingsRawArtifact.etf_profile_id == profile.id,
+                    ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+                )
+            )
+            assert artifact is not None
+            assert artifact.payload_text == runner.body
+            assert artifact.legal_metadata["provider_request_log_ids"] == [row.id]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_caller_cancellation_waits_for_shared_attempt_settlement_and_retains_lineage(
+    db_engine, provider_db, monkeypatch
+):
+    """Caller cancellation cannot abandon an admitted executor reservation."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=3, with_profile=True
+    )
+    with pytest.raises(asyncio.CancelledError):
+        async with provider_db() as session:
+            async with session.begin():
+                profile = await _load_profile(session, profile_id)
+                runner = _TransportRunner()
+                runner.started = threading.Event()
+                runner.release = threading.Event()
+                _use_mocktransport(monkeypatch, runner)
+                # The public refresh call runs inside a real caller unit of
+                # work. Its Provider request log is independently durable;
+                # cancellation rolls back caller-owned ETF state/artifacts.
+                refresh_task = asyncio.create_task(refresh._refresh_adapter_route(session, profile))
+                assert await asyncio.to_thread(runner.started.wait, 3)
+                refresh_task.cancel()
+                await asyncio.sleep(0.02)
+                assert not refresh_task.done()
+                refresh_task.cancel()
+                await asyncio.sleep(0.02)
+                assert not refresh_task.done()
+                runner.release.set()
+                # Let CancelledError cross session.begin so its real rollback
+                # path runs; catching it inside would commit this UOW.
+                await refresh_task
+    # Closing the cancelled UOW rolls back ETF artifacts/state, while the
+    # independent Provider attempt remains inspectable after reopening.
+    async with provider_db() as reopened:
+        row = await _assert_one_settled_attempt(reopened, case, expected_success=True)
+        assert row.response_payloads == [runner.body]
+        assert (
+            await reopened.scalar(
+                select(ETFHoldingsSnapshot.id).where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile_id
+                )
+            )
+            is None
+        )
+        artifact = await reopened.scalar(
+            select(ETFHoldingsRawArtifact).where(
+                ETFHoldingsRawArtifact.etf_profile_id == profile_id,
+                ETFHoldingsRawArtifact.source_kind == "issuer_adapter_rejected_fetch",
+            )
+        )
+        assert artifact is not None
+        assert artifact.payload_text == runner.body
+        assert artifact.content_hash == _hash_payload(runner.body)
+        assert artifact.legal_metadata["provider_request_log_ids"] == [row.id]
+        assert artifact.legal_metadata["request_urls"] == ["https://publisher.example/holdings.csv"]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_concurrent_same_account_calls_cannot_double_spend_after_runtime_restart(
+    db_engine, provider_db, monkeypatch
+):
+    """One durable request unit admits one concurrent caller and survives reopen."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        db_engine.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db, monkeypatch, limit=1, with_profile=True
+    )
+    runner = _TransportRunner()
+    _use_mocktransport(monkeypatch, runner)
+
+    async def admitted_call():
+        async with provider_db() as session:
+            async with session.begin():
+                with bind_etf_holdings_request_context(
+                    db=session,
+                    adapter=case.adapter,
+                    profile_id=profile_id,
+                    instrument_id=case.instrument_id,
+                    provider_symbol=case.instrument_symbol,
+                    operation=case.operation,
+                ):
+                    async with adapter_httpx.AsyncClient(timeout=2) as client:
+                        return await client.get("https://publisher.example/holdings.csv")
+
+    outcomes = await asyncio.gather(admitted_call(), admitted_call(), return_exceptions=True)
+    responses = [item for item in outcomes if isinstance(item, httpx.Response)]
+    denied = [item for item in outcomes if isinstance(item, ProviderQuotaAdmissionError)]
+    assert len(responses) == 1 and responses[0].status_code == 200
+    assert len(denied) == 1
+    assert runner.calls == [("GET", "https://publisher.example/holdings.csv")]
+
+    async with provider_db() as session:
+        logs = list(
+            (
+                await session.scalars(
+                    select(ProviderRequestLog).where(
+                        ProviderRequestLog.data_source_id == case.source_id,
+                        ProviderRequestLog.operation == case.operation,
+                    )
+                )
+            ).all()
+        )
+        assert len(logs) == 1
+        assert logs[0].success
+        assert logs[0].settled_usage_units == Decimal("1.0000")
+        window = await session.scalar(
+            select(ProviderQuotaWindow).where(
+                ProviderQuotaWindow.data_source_id == case.source_id,
+                ProviderQuotaWindow.dimension == "requests_per_minute",
+            )
+        )
+        assert window is not None
+        assert window.reserved_units == 0
+        assert window.consumed_units == 1
+
+    quota_engine = quota_coordinator._engine_for(quota_coordinator._engine_url())
+    quota_engine.dispose()
+    with quota_engine.connect() as connection:
+        reservations = (
+            connection.execute(
+                select(quota_coordinator._reservations).where(
+                    quota_coordinator._reservations.c.provider_name == case.provider_name
+                )
+            )
+            .mappings()
+            .all()
+        )
+    assert len(reservations) == 1
+    assert reservations[0]["state"] == "settled"
+    assert reservations[0]["reserved_units"] == 1
+    assert reservations[0]["settled_at"] is not None
