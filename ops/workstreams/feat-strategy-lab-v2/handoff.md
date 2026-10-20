@@ -15267,3 +15267,63 @@ with `uv run --no-sync` against the installed environment. No runtime, database,
 container, browser, live-provider or cleanup action was attempted. The
 workstream-only operational closure is published before Provider consumer code
 changes; all full and downstream gates remain open.
+
+## 2026-10-20 — Provider preflight caller and migration-head repair
+
+The operational checkpoint above is published at
+`1f46f65b6aea9a791b5846b48e868b8fc448944e`; this source context starts from
+that clean synchronized tip. The existing session-local Codex goal remains
+blocked/unavailable and was not recreated. The existing owner claim and full
+18-criterion roadmap remain unchanged.
+
+Coordinator inspection of exact-source CI `39498341861` on
+`812cac68ea8431fa35eef40de7a9fa89c423314a` found Frontend green and Backend
+red: 4,579 passing, one declared skip, and one failing migration graph assertion
+(`test_strategy_chain_has_unique_ids_and_preserves_shared_base`). The released
+combined graph had real heads `b6e9a42d1c73` (Provider) and `slv2_0008`
+(Strategy). This failure is preserved, not replayed. Added the additive,
+Strategy-owned no-DDL merge revision `slv2_0009` with exactly those two parents;
+updated the graph test to require one head and ancestry through both histories.
+No existing migration was reparented, renamed, skipped, or modified, and no
+database was stamped, reset, upgraded, or otherwise touched. Fresh/upgrade and
+combined PostgreSQL equivalence gates remain open.
+
+Provider local evidence now reaches the real Strategy capability-preflight
+service and API route. `ProviderLocalCapabilityEvidenceReader` performs only
+exact local reads for resolved non-synthetic canonical identity, a unique
+active series/source, fresh dataset state, and matching locally stored OHLCV
+rows. It is deliberately bounded to regular-session daily XNYS coverage, whose
+existing local calendar is the only supported calendar; unsupported venues or
+frequencies fail closed. It does not make provider/issuer calls or infer a
+symbol/series fallback. The service requires typed Provider evidence for OHLCV
+bars and rechecks identity/scope and adjustment-version lineage, current
+freshness, complete gap-free coverage, request dimensions, and host-authorized
+execution/account scopes before constructing a capability cell. A stale,
+pending/failed, unknown, partial, mismatched, ambiguous, or missing input
+cannot produce an executable data preflight. Explicit degradation remains
+visible and non-ranking-eligible; it is not a hidden fallback.
+
+Caller-level route tests use deterministic fake local database rows (not a live
+or PostgreSQL fixture) to prove the positive reader-to-API path, reject
+quarantined identity, partial/stale coverage and stale/unavailable state, and
+show changed immutable bar content changes the consumer report fingerprint.
+The local reader also rejects an exchange MIC whose calendar is not proven.
+These tests qualify capability admission only: their execution binding is a
+typed test fixture, not native Nautilus execution or persisted acquisition
+proof. The exact pinned Nautilus authority and downstream acquisition/execution
+guards remain unchanged.
+
+Bounded evidence: 33 tests passed across the Provider series, preflight service,
+actual API consumer and local reader tests; the focused merged-head ancestry
+test passed; static `alembic heads` reports only `slv2_0009`. Ruff, format,
+workstream validation, JSON parsing and `git diff --check` passed for this same
+coherent source context. No PostgreSQL/container/browser/full-suite run, provider HTTP, quota,
+runtime, staging/sibling write, or retained-service/data cleanup was performed.
+
+SLICP3 remains partially advanced, not complete. The next source checkpoint
+must include exact-source hosted CI for this actual repair and later assigned
+fresh/upgrade/combined PostgreSQL validation. ETF point-in-time membership and
+TC immutable CodeVersion/completed Study remain gated on their accepted green
+releases; combined application/Exhaustive and local `full_stack_browser` remain
+open. The checkpoint remains `in_progress`, not accepted or ready for
+integration; no scope, tolerance, retry, skip, or validation gate was weakened.

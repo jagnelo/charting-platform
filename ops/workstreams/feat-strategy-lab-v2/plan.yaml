@@ -7,8 +7,15 @@ integration_checkpoint:
   active_changeset:
     name: strategy-provider-only-consumer-reconciliation
     status: in_progress
-    source_commit: 812cac68ea8431fa35eef40de7a9fa89c423314a
-    intent: Wire the exact accepted Provider identity, local-series, coverage, freshness, and provenance contracts through Strategy's real Provider-only local-read/preflight/acquisition/execution consumer seam. Keep ETF point-in-time and TC2000 immutable Study/Code consumers gated until their own green releases; then complete combined acceptance only after all required gates.
+    source_commit: 1f46f65b6aea9a791b5846b48e868b8fc448944e
+    intent: >-
+      Wire exact accepted Provider identity, canonical local-series, coverage,
+      freshness, and immutable provenance through Strategy's local-read and
+      capability-preflight API consumer. Join the actual released Provider and
+      Strategy Alembic heads with an additive no-DDL Strategy merge revision;
+      preserve both histories and existing data. Keep ETF point-in-time and
+      TC2000 immutable Study/Code consumers gated until their green releases,
+      then complete combined acceptance only after all required gates.
     owned_paths:
       - backend/alembic/env.py
       - backend/alembic/versions/*strategy_lab*.py
@@ -17,6 +24,12 @@ integration_checkpoint:
       - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
       - backend/app/strategy_lab_v2/provider_series_contract.py
       - backend/app/strategy_lab_v2/tests/test_provider_series_contract.py
+      - backend/app/strategy_lab_v2/provider_preflight.py
+      - backend/app/strategy_lab_v2/capability_preparation.py
+      - backend/app/strategy_lab_v2/tests/test_provider_preflight.py
+      - backend/app/strategy_lab_v2/tests/test_capability_preparation.py
+      - backend/app/strategy_lab_v2/tests/test_capability_consumer_api.py
+      - backend/alembic/versions/slv2_0009_merge_provider_strategy_heads.py
       - backend/tests/unit/strategy_lab_v2/test_schema_migration.py
       - backend/tests/integration/strategy_lab_v2/test_forward_dispatch_admission_migration_postgres.py
       - backend/tests/unit/test_research_runner_deployment.py
@@ -120,6 +133,23 @@ integration_checkpoint:
     conclusion: success_historical
     evidence: Branch-declared, frontend unit, backend unit/integration and Playwright jobs passed; Exhaustive Integration Gate skipped. Superseded for current-source acceptance by the later exact-source failure below.
     scope_limit: Hosted exact-source CI only; does not satisfy required local full_stack_browser profile or post-Provider/ETF/TC combined consumer validation.
+    provider_merge_failure:
+      sha: 812cac68ea8431fa35eef40de7a9fa89c423314a
+      run_id: 39498341861
+      backend_job_id: 118889129864
+      conclusion: failure
+      summary: >-
+        Frontend passed; backend had 4579 passing tests, one declared skip, and
+        one failure in test_strategy_chain_has_unique_ids_and_preserves_shared_base.
+        The actual merged graph had Provider head b6e9a42d1c73 and Strategy head
+        slv2_0008. This was a real migration-graph gap, not a CI replay condition.
+      repair: >-
+        Preserve this red receipt and add an additive Strategy-owned no-DDL
+        revision slv2_0009 merging only those two actual heads. Never rewrite
+        either history, accept multiple heads, or weaken the graph tests.
+      scope_limit: >-
+        Exact-source hosted result for 812cac68 only. Fresh/upgrade and combined
+        PostgreSQL validation remain required; no manual rerun is authorized.
     later_exact_source_failure:
       sha: 54fa13e1ba17a40de6f242e16d5a96d8217615cb
       run_id: 38820638540

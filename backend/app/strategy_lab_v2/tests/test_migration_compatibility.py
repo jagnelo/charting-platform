@@ -162,12 +162,19 @@ def test_strategy_chain_has_unique_ids_and_preserves_shared_base() -> None:
     assert len(declared) == len(set(declared))
     revisions = list(scripts.walk_revisions())
     assert len(revisions) == len({revision.revision for revision in revisions})
-    assert scripts.get_heads() == ["slv2_0008"]
+    assert scripts.get_heads() == ["slv2_0009"]
+    merge = scripts.get_revision("slv2_0009")
+    assert merge.down_revision == ("b6e9a42d1c73", "slv2_0008")
+    ancestry = {revision.revision for revision in scripts.iterate_revisions("slv2_0009", None)}
+    assert {"b6e9a42d1c73", "slv2_0008", "slv2_0001"}.issubset(ancestry)
+    assert "slv2_0009" not in STRATEGY_REVISION_MAPPING.values()
     expected_parent = "fe4f5a6b7c8d"
     for revision in STRATEGY_REVISION_MAPPING.values():
         assert scripts.get_revision(revision).down_revision == expected_parent
         expected_parent = revision
-    assert not set(LEGACY_STRATEGY_REVISIONS).intersection(r.revision for r in revisions)
+    # The released Provider branch now legitimately owns some historical IDs
+    # in the combined graph; only Strategy's new namespace must remain distinct.
+    assert not set(STRATEGY_REVISION_MAPPING.values()).intersection(LEGACY_STRATEGY_REVISIONS)
 
 
 @pytest.mark.parametrize("legacy", [False, True])

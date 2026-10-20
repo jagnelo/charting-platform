@@ -90,6 +90,17 @@ def test_provider_resolved_identity_and_exact_local_series_scope_bind_manifest()
     assert first.mismatches == ()
 
 
+def test_adjustment_version_is_part_of_provider_series_lineage():
+    instrument, series = _provider_inputs()
+    series.adjustment_version = "v1"
+    first = verify_provider_series_binding(instrument, series, _manifest())
+    series.adjustment_version = "v2"
+    second = verify_provider_series_binding(instrument, series, _manifest())
+
+    assert first.verified and second.verified
+    assert first.series_scope_fingerprint != second.series_scope_fingerprint
+
+
 def test_provider_binding_rejects_quarantined_identity_and_manifest_drift():
     instrument, series = _provider_inputs(resolved=False)
 

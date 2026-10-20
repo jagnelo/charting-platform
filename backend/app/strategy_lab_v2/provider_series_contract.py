@@ -13,7 +13,13 @@ from enum import StrEnum
 from typing import Any
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
-from app.strategy_lab_v2.contracts import AdjustmentMode, DataSeriesManifest, EventGranularity
+from app.strategy_lab_v2.capabilities import CapabilityCell, CapabilityRequirement
+from app.strategy_lab_v2.contracts import (
+    AdjustmentMode,
+    DataSeriesManifest,
+    EventGranularity,
+    ProductClass,
+)
 from app.strategy_lab_v2.coverage import (
     CoverageAttestation,
     CoverageVerificationReport,
@@ -70,6 +76,175 @@ class ProviderCoverageResolution:
         )
 
 
+_TIMEFRAME_ALIASES = {
+    "m1": "M1",
+    "1m": "M1",
+    "m5": "M5",
+    "5m": "M5",
+    "m15": "M15",
+    "15m": "M15",
+    "m30": "M30",
+    "30m": "M30",
+    "h1": "H1",
+    "1h": "H1",
+    "h2": "H2",
+    "2h": "H2",
+    "h4": "H4",
+    "4h": "H4",
+    "h12": "H12",
+    "12h": "H12",
+    "d1": "D1",
+    "1d": "D1",
+    "w1": "W1",
+    "1w": "W1",
+    "mn": "MN",
+    "1mo": "MN",
+    "y1": "Y1",
+    "1y": "Y1",
+}
+
+
+def _canonical_timeframe(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return _TIMEFRAME_ALIASES.get(value.casefold())
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderSeriesCapabilityEvidence:
+    """Locally read Provider records offered to Strategy's capability preflight.
+
+    The host resolver supplies these values from persisted Provider state. They
+    are re-verified here before a capability cell can reach the API summary;
+    API payload fields never construct this evidence.
+    """
+
+    instrument: Any
+    series: Any
+    manifest: DataSeriesManifest
+    coverage_assessment: Any
+    dataset_state: Any | None
+    calendar_digest: str
+    evaluated_at: datetime
+    product_class: ProductClass
+    execution_models: frozenset[str]
+    account_models: frozenset[str]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.manifest, DataSeriesManifest):
+            raise TypeError("manifest must be a DataSeriesManifest")
+        if not isinstance(self.product_class, ProductClass):
+            raise TypeError("product_class must be a ProductClass")
+        require_sha256_digest(self.calendar_digest, field_name="calendar_digest")
+        if _aware_utc(self.evaluated_at) is None:
+            raise ValueError("evaluated_at must be timezone-aware")
+        for name in ("execution_models", "account_models"):
+            if isinstance(getattr(self, name), str | bytes):
+                raise TypeError(f"{name} must be a collection of host-authorized values")
+            values = frozenset(getattr(self, name))
+            if not values or any(not isinstance(item, str) or not item.strip() for item in values):
+                raise ValueError(f"{name} must contain non-empty host-authorized values")
+            object.__setattr__(self, name, values)
+
+
+def provider_series_capability_cell(
+    evidence: ProviderSeriesCapabilityEvidence,
+    requirement: CapabilityRequirement,
+) -> CapabilityCell | None:
+    """Admit a provider-backed bar requirement only from current local evidence.
+
+    Returning ``None`` deliberately maps identity, coverage, freshness, or
+    lineage failure to an unsupported data preflight; it does not query a
+    provider, select another series, or synthesize a fallback cell.
+    """
+
+    if not isinstance(evidence, ProviderSeriesCapabilityEvidence):
+        raise TypeError("evidence must be ProviderSeriesCapabilityEvidence")
+    if not isinstance(requirement, CapabilityRequirement):
+        raise TypeError("requirement must be a CapabilityRequirement")
+    manifest = evidence.manifest
+    if (
+        requirement.event_type != "ohlcv"
+        or requirement.event_granularity is not EventGranularity.BAR
+        or evidence.product_class is not requirement.product_class
+        or manifest.instrument_id != requirement.instrument_id
+        or manifest.event_type != requirement.event_type
+        or manifest.event_granularity is not requirement.event_granularity
+        or _canonical_timeframe(manifest.timeframe) != _canonical_timeframe(requirement.timeframe)
+        or manifest.session != requirement.session
+        or manifest.feed != requirement.feed
+        or manifest.start != requirement.start
+        or manifest.end != requirement.end
+        or manifest.adjustment is not requirement.adjustment
+        or manifest.corporate_action_semantics != requirement.corporate_action_semantics
+    ):
+        return None
+
+    binding = verify_provider_series_binding(evidence.instrument, evidence.series, manifest)
+    freshness = assess_provider_freshness(
+        evidence.dataset_state,
+        instrument=evidence.instrument,
+        series=evidence.series,
+        evaluated_at=evidence.evaluated_at,
+    )
+    if not binding.verified or freshness.status is not ProviderFreshness.CURRENT:
+        return None
+    coverage = resolve_provider_coverage(
+        evidence.instrument,
+        evidence.series,
+        manifest,
+        evidence.coverage_assessment,
+        calendar_digest=evidence.calendar_digest,
+        attested_at=evidence.evaluated_at,
+    )
+    if not coverage.verified or coverage.attestation is None:
+        return None
+    covered_start = _aware_utc(getattr(evidence.coverage_assessment, "covered_start", None))
+    covered_end = _aware_utc(getattr(evidence.coverage_assessment, "covered_end", None))
+    if covered_start is None or covered_end is None:
+        return None
+    state_start = _aware_utc(getattr(evidence.dataset_state, "coverage_start", None))
+    state_end = _aware_utc(getattr(evidence.dataset_state, "coverage_end", None))
+    if (
+        state_start is None
+        or state_end is None
+        or state_start > covered_start
+        or state_end < covered_end
+    ):
+        return None
+
+    evidence_digest = content_digest(
+        {
+            "provider_binding": binding.series_scope_fingerprint,
+            "manifest_fingerprint": content_digest(manifest),
+            "coverage_attestation": coverage.attestation.fingerprint,
+            "freshness": freshness,
+            "provider_series_id": getattr(evidence.series, "id", None),
+            "provider_source_id": getattr(evidence.series, "data_source_id", None),
+            "provider_source_series_key": getattr(evidence.series, "source_series_key", None),
+        }
+    )
+    return CapabilityCell(
+        instrument_id=requirement.instrument_id,
+        product_class=evidence.product_class,
+        event_granularities=frozenset({manifest.event_granularity}),
+        event_types=frozenset({manifest.event_type}),
+        timeframes=frozenset({requirement.timeframe}),
+        adjustments=frozenset({manifest.adjustment}),
+        sessions=frozenset({manifest.session}),
+        feeds=frozenset({manifest.feed}),
+        execution_models=evidence.execution_models,
+        account_models=evidence.account_models,
+        corporate_action_semantics=frozenset({manifest.corporate_action_semantics}),
+        # A verified, complete attestation binds the manifest's requested
+        # half-open interval. First/last observation timestamps are not the
+        # corresponding interval edges and must not manufacture edge gaps.
+        history_start=manifest.start,
+        history_end=manifest.end,
+        evidence_digest=evidence_digest,
+    )
+
+
 def _value(value: Any) -> Any:
     return getattr(value, "value", value)
 
@@ -117,8 +292,11 @@ def verify_provider_series_binding(
     elif manifest.adjustment is not adjustment:
         mismatches.append("strategy_adjustment_mismatch")
 
+    if _canonical_timeframe(getattr(series, "timeframe", None)) != _canonical_timeframe(
+        manifest.timeframe
+    ):
+        mismatches.append("provider_timeframe_mismatch")
     comparisons = (
-        ("timeframe", getattr(series, "timeframe", None), manifest.timeframe),
         ("session", getattr(series, "session_code", None), manifest.session),
         ("feed", getattr(series, "feed_scope", None), manifest.feed),
     )
@@ -153,6 +331,7 @@ def verify_provider_series_binding(
         "data_source_id": getattr(series, "data_source_id", None),
         "source_series_key": getattr(series, "source_series_key", None),
         "timeframe": getattr(series, "timeframe", None),
+        "adjustment_version": getattr(series, "adjustment_version", None),
         "session": getattr(series, "session_code", None),
         "feed": getattr(series, "feed_scope", None),
         "adjustment_basis": str(basis),
@@ -199,6 +378,7 @@ def provider_coverage_evidence_digest(
                 "feed": getattr(series, "feed_scope", None),
                 "session": getattr(series, "session_code", None),
                 "timeframe": getattr(series, "timeframe", None),
+                "adjustment_version": getattr(series, "adjustment_version", None),
                 "adjustment_basis": _value(getattr(series, "adjustment_basis", None)),
             },
             "provider": provenance.get("provider"),

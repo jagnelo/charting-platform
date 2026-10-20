@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any
 
@@ -27,9 +27,15 @@ from app.strategy_lab_v2.execution_capabilities import (
     ExecutionCapabilityBinding,
     preflight_execution_capability,
 )
+from app.strategy_lab_v2.provider_series_contract import (
+    ProviderSeriesCapabilityEvidence,
+    provider_series_capability_cell,
+)
 
 CapabilityCellsResolver = Callable[
-    ..., Sequence[CapabilityCell] | Awaitable[Sequence[CapabilityCell]]
+    ...,
+    Sequence[CapabilityCell | ProviderSeriesCapabilityEvidence]
+    | Awaitable[Sequence[CapabilityCell | ProviderSeriesCapabilityEvidence]],
 ]
 ExecutionBindingResolver = Callable[
     ..., ExecutionCapabilityBinding | Awaitable[ExecutionCapabilityBinding]
@@ -125,11 +131,65 @@ class CapabilityPreflightService:
         cells = await cells_result if inspect.isawaitable(cells_result) else cells_result
         if not isinstance(cells, Sequence) or isinstance(cells, str | bytes):
             raise TypeError("capability_cells must return a sequence")
-        if any(not isinstance(item, CapabilityCell) for item in cells):
-            raise TypeError("capability_cells must return only typed CapabilityCell values")
+        if any(
+            not isinstance(item, CapabilityCell | ProviderSeriesCapabilityEvidence)
+            for item in cells
+        ):
+            raise TypeError(
+                "capability_cells must return typed CapabilityCell or ProviderSeriesCapabilityEvidence values"
+            )
+        verified_cells: list[CapabilityCell] = []
+        for requirement in request.requirements:
+            if (
+                requirement.event_type == "ohlcv"
+                and requirement.event_granularity is EventGranularity.BAR
+            ):
+                verification_requirement = requirement
+                for degradation in request.degradations:
+                    if degradation.instrument_id != requirement.instrument_id:
+                        continue
+                    if degradation.field not in {
+                        "timeframe",
+                        "adjustment",
+                        "session",
+                        "feed",
+                        "corporate_action_semantics",
+                    }:
+                        continue
+                    replacement_value: Any = degradation.substituted_value
+                    if degradation.field == "adjustment":
+                        replacement_value = AdjustmentMode(replacement_value)
+                    verification_requirement = replace(
+                        verification_requirement,
+                        **{degradation.field: replacement_value},
+                    )
+                candidates = tuple(
+                    item
+                    for item in cells
+                    if isinstance(item, ProviderSeriesCapabilityEvidence)
+                    and item.manifest.instrument_id == verification_requirement.instrument_id
+                )
+                matching_cells = tuple(
+                    cell
+                    for candidate in candidates
+                    if (
+                        cell := provider_series_capability_cell(candidate, verification_requirement)
+                    )
+                    is not None
+                )
+                if len(matching_cells) != 1:
+                    continue
+                verified_cells.append(matching_cells[0])
+                continue
+            verified_cells.extend(
+                item
+                for item in cells
+                if isinstance(item, CapabilityCell)
+                and item.instrument_id == requirement.instrument_id
+            )
         report = preflight_capabilities(
             request.requirements,
-            tuple(cells),
+            tuple(verified_cells),
             allow_degraded=request.allow_degraded,
             degradations=request.degradations,
         )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -10,11 +11,21 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.capabilities import CapabilityCell, CapabilityRequirement, Degradation
 from app.strategy_lab_v2.capability_preparation import CapabilityPreflightService
 from app.strategy_lab_v2.capability_summary import CapabilitySummaryDecision
-from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
+from app.strategy_lab_v2.contracts import (
+    AdjustmentMode,
+    DataSeriesManifest,
+    EventGranularity,
+    ProductClass,
+)
 from app.strategy_lab_v2.execution_capabilities import ExecutionCapabilityBinding
+from app.strategy_lab_v2.provider_series_contract import (
+    ProviderSeriesCapabilityEvidence,
+    provider_coverage_evidence_digest,
+)
 
 _START = datetime(2024, 1, 1, tzinfo=UTC)
 _END = datetime(2024, 2, 1, tzinfo=UTC)
+_NOW = datetime(2026, 10, 20, 20, tzinfo=UTC)
 
 
 def _requirement(*, session: str = "regular") -> CapabilityRequirement:
@@ -51,6 +62,89 @@ def _cell() -> CapabilityCell:
         history_start=_START,
         history_end=_END,
         evidence_digest=content_digest("trusted-coverage-evidence"),
+    )
+
+
+def _provider_evidence(
+    *,
+    identity_status: str = "resolved",
+    coverage_status: str = "ready",
+    dataset_status: str = "fresh",
+    content_marker: str = "bars-v1",
+) -> ProviderSeriesCapabilityEvidence:
+    instrument = SimpleNamespace(
+        id=7,
+        domain_key="US.AAPL",
+        identity_status=identity_status,
+    )
+    series = SimpleNamespace(
+        id=31,
+        instrument_id=7,
+        data_source_id=4,
+        source_series_key="AAPL:D1:consolidated:regular:split_adjusted:v1",
+        timeframe="D1",
+        session_code="regular",
+        feed_scope="consolidated",
+        adjustment_basis="split_adjusted",
+        is_active=True,
+        provenance={"provider": "local-provider", "corporate_action_semantics": "split-v1"},
+    )
+    assessment = SimpleNamespace(
+        status=coverage_status,
+        covered_start=datetime(2024, 1, 2, tzinfo=UTC),
+        covered_end=datetime(2024, 1, 31, tzinfo=UTC),
+        bar_count=22,
+        missing_slices=()
+        if coverage_status == "ready"
+        else ((datetime(2024, 1, 10, tzinfo=UTC), datetime(2024, 1, 11, tzinfo=UTC)),),
+    )
+    calendar_digest = content_digest("XNYS-calendar-v1")
+    manifest = DataSeriesManifest(
+        instrument_id="US.AAPL",
+        event_type="ohlcv",
+        event_granularity=EventGranularity.BAR,
+        timeframe="D1",
+        session="regular",
+        feed="consolidated",
+        start=_START,
+        end=_END,
+        adjustment=AdjustmentMode.SPLIT_ADJUSTED,
+        corporate_action_semantics="split-v1",
+        coverage_evidence_digest=content_digest("placeholder"),
+        content_digest=content_digest(content_marker),
+        row_count=22,
+    )
+    manifest = replace(
+        manifest,
+        coverage_evidence_digest=provider_coverage_evidence_digest(
+            instrument,
+            series,
+            assessment,
+            calendar_digest=calendar_digest,
+        ),
+    )
+    state = SimpleNamespace(
+        instrument_id=7,
+        data_source_id=4,
+        dataset_type="ohlcv",
+        dataset_key="D1:adj",
+        status=dataset_status,
+        stale_after=datetime(2026, 10, 21, tzinfo=UTC),
+        fetched_at=datetime(2026, 10, 20, 19, tzinfo=UTC),
+        coverage_start=datetime(2024, 1, 1, tzinfo=UTC),
+        coverage_end=datetime(2024, 2, 1, tzinfo=UTC),
+    )
+    return ProviderSeriesCapabilityEvidence(
+        instrument=instrument,
+        series=series,
+        manifest=manifest,
+        coverage_assessment=assessment,
+        dataset_state=state,
+        calendar_digest=calendar_digest,
+        evaluated_at=_NOW,
+        product_class=ProductClass.EQUITY,
+        execution_models=frozenset({"bar-close"}),
+        account_models=frozenset({"cash-equity"}),
     )
 
 
@@ -96,9 +190,9 @@ def _payload(*, session: str = "regular", extra: dict[str, Any] | None = None) -
 async def test_capability_preflight_joins_typed_requirements_with_host_evidence() -> None:
     observed: dict[str, Any] = {}
 
-    async def resolve_cells(**kwargs: Any) -> tuple[CapabilityCell, ...]:
+    async def resolve_cells(**kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
         observed["cells_request"] = kwargs
-        return (_cell(),)
+        return (_provider_evidence(),)
 
     async def resolve_binding(**kwargs: Any) -> ExecutionCapabilityBinding:
         observed["binding_request"] = kwargs
@@ -129,7 +223,7 @@ async def test_capability_preflight_joins_typed_requirements_with_host_evidence(
 
 @pytest.mark.asyncio
 async def test_missing_host_coverage_fails_closed_without_inventing_cells() -> None:
-    async def resolve_cells(**_kwargs: Any) -> tuple[CapabilityCell, ...]:
+    async def resolve_cells(**_kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
         return ()
 
     async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
@@ -207,8 +301,8 @@ async def test_capability_preflight_requires_a_digest_bound_to_the_request() -> 
 
 @pytest.mark.asyncio
 async def test_explicit_degradation_is_preserved_but_never_ranking_eligible() -> None:
-    async def resolve_cells(**_kwargs: Any) -> tuple[CapabilityCell, ...]:
-        return (_cell(),)
+    async def resolve_cells(**_kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
+        return (_provider_evidence(),)
 
     async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
         return _binding()
@@ -257,9 +351,9 @@ async def test_revoked_host_coverage_cannot_reuse_a_previous_rigorous_preflight(
     evidence_available = True
     observed_owners: list[str] = []
 
-    async def resolve_cells(**kwargs: Any) -> tuple[CapabilityCell, ...]:
+    async def resolve_cells(**kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
         observed_owners.append(kwargs["principal"])
-        return (_cell(),) if evidence_available else ()
+        return (_provider_evidence(),) if evidence_available else ()
 
     async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
         return _binding()
@@ -300,11 +394,11 @@ async def test_host_resolver_outage_cannot_fall_back_to_previous_success(
     outage = False
     calls: list[str] = []
 
-    async def resolve_cells(**_kwargs: Any) -> tuple[CapabilityCell, ...]:
+    async def resolve_cells(**_kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
         calls.append("coverage")
         if outage and failed_resolver == "coverage":
             raise LookupError("coverage evidence unavailable")
-        return (_cell(),)
+        return (_provider_evidence(),)
 
     async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
         calls.append("engine")
@@ -344,8 +438,8 @@ async def test_host_resolver_outage_cannot_fall_back_to_previous_success(
 async def test_rigorous_data_cannot_authorize_an_unsupported_engine_scope(
     field: str, unsupported: frozenset[Any]
 ) -> None:
-    async def resolve_cells(**_kwargs: Any) -> tuple[CapabilityCell, ...]:
-        return (_cell(),)
+    async def resolve_cells(**_kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
+        return (_provider_evidence(),)
 
     async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
         changes: dict[str, Any] = {field: unsupported}
