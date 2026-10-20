@@ -9,7 +9,7 @@ Created from `staging` at `281a57bd9fb782c0f85bfb5127c713ea15037f68`.
 - Closure authorization: pending technical proof. The existing human delegation in docs/feature-integration-coordination.md permits coordinator acceptance of validated necessary technical repairs without another per-fix signoff, but is not current acceptance or deployment authority.
 - Planning state: ready; full_integration/full_stack_browser is retained. No token budget was requested or invented.
 
-## Active changeset context: planning_and_evidence
+## Completed changeset context: planning_and_evidence
 
 Intent: freeze the narrow repair scope and authoritative failure evidence before implementation. This context owns only this directory's plan.yaml, handoff.md, validation.jsonl and generated session.json. All four are classified as this context's operational files; no application source has changed.
 
@@ -27,6 +27,8 @@ TC owns the current heavy diagnostic slot for its separate F8n/F8u failures. No 
 
 All55retained services/data, assigned TC services/volumes, port15190, private quotas, provider holds, feature checkouts and dirty root edits remain untouched. This repair has no migration or deployment impact. Its goal is a subtask of the already-active unbounded four-feature coordinator goal; after plan-ready, record the explicit duplicate-goal unavailability reason instead of replacing that overall objective.
 
-## Immediate action
+## Planning closure
 
-Validate and commit/push the four owned planning files. Run the normal plan-ready and goal-state helpers, close the operational planning record without a self-referential SHA loop, and verify clean HEAD/origin parity before selecting the implementation context. No application fix or acceptance is claimed yet.
+Planning commit ed9f1d7ee6b5dad7fffe3c6579aa3399c99206c0 was pushed successfully and matched origin/fix/workstation-cold-add-tool. The scoped staged path review contained exactly the four owned operational records; workstream validation and git diff --check passed. Normal plan-ready succeeded for the exact claim. Goal-state is unavailable solely because the existing root coordinator goal already covers this subtask; that root goal remains active and unbounded. No application source changed and no product acceptance is claimed.
+
+This separate operational closure contains helper-generated session state and this evidence. Its enclosing SHA must be verified externally after push; do not chase a self-referential hash. The sole next action after confirming clean HEAD/origin parity is to begin the named cold_command_regression context, using only the owned view/test files and this own workstream, and establish a deterministic baseline failure before a source fix. TC retains the sole heavy diagnostic slot.

@@ -1,5 +1,5 @@
 {
-  "acceptance_criteria": [],
+  "acceptance_criteria": ["COLD1", "COLD2", "COLD3", "COLD4", "COLD5"],
   "active_session_id": "db7b071c-755d-497b-ab37-928deddfbf80",
   "branch": "fix/workstation-cold-add-tool",
   "dirty_paths": [],
@@ -24,30 +24,37 @@
     "volume_count": 0,
     "worktree_id": "fix-workstation-cold-add-tool-8778b7e649"
   },
-  "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/workstation-cold-add-tool: Human-authorized central four-feature integration with delegated technical repair acceptance recorded in docs/feature-integration-coordination.md. Diagnose and repair the shared cold Add tool to Study Results failure blocking exact Provider CI39342948219, preserving ordinary clicks, queued intent, ready-tab fast behavior, teardown, all existing assertions and tolerances. Use a narrow staging-based coordinator repair; do not edit feature worktrees, provider controls or data, staging product files directly, deployments or paid/trial operations.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_request": {
-    "objective": "Advance fix/workstation-cold-add-tool: Human-authorized central four-feature integration with delegated technical repair acceptance recorded in docs/feature-integration-coordination.md. Diagnose and repair the shared cold Add tool to Study Results failure blocking exact Provider CI39342948219, preserving ordinary clicks, queued intent, ready-tab fast behavior, teardown, all existing assertions and tolerances. Use a narrow staging-based coordinator repair; do not edit feature worktrees, provider controls or data, staging product files directly, deployments or paid/trial operations.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
   },
-  "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
-  "head": "e8552b23f5ccdf692c308b13e1f07c2667508eae",
-  "implementation_sha": "281a57bd9fb782c0f85bfb5127c713ea15037f68",
-  "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/workstation-cold-add-tool: Human-authorized central four-feature integration with delegated technical repair acceptance recorded in docs/feature-integration-coordination.md. Diagnose and repair the shared cold Add tool to Study Results failure blocking exact Provider CI39342948219, preserving ordinary clicks, queued intent, ready-tab fast behavior, teardown, all existing assertions and tolerances. Use a narrow staging-based coordinator repair; do not edit feature worktrees, provider controls or data, staging product files directly, deployments or paid/trial operations.. Acceptance criteria: COLD1: A deterministic regression demonstrates a concrete cold-command lifecycle or readiness failure on the unchanged baseline; any unproven explanation remains explicitly unproven.; COLD2: Accepted ordinary tool commands execute exactly once when their usable target becomes available, preserve the already-usable-tab fast path and keyboard behavior, and do not mutate after component teardown.; COLD3: The unchanged ordinary Add tool to Study Results flow reveals the actual tool within its original15s and exact ARIA contract; no forced click, retry acceptance, hydration-wait workaround, timeout increase or weaker result oracle hides a failure.; COLD4: Affected and complete frontend unit tests, type/build, the required zero-retry full functional/104visual profile, exact-source branch CI and exact staging Exhaustive pass with references and tolerances unchanged.; COLD5: Clean synchronized publication and explicit delegated technical closure preserve exact implementation/evidence and integration_capture exact branch HEAD; no feature worktree, protected branch product file, provider control/quota/data, paid/trial operation or deployment is changed by implementation.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-20T00:38:13.334038+00:00",
+  "goal_request": {
+    "objective": "Advance fix/workstation-cold-add-tool: Human-authorized central four-feature integration with delegated technical repair acceptance recorded in docs/feature-integration-coordination.md. Diagnose and repair the shared cold Add tool to Study Results failure blocking exact Provider CI39342948219, preserving ordinary clicks, queued intent, ready-tab fast behavior, teardown, all existing assertions and tolerances. Use a narrow staging-based coordinator repair; do not edit feature worktrees, provider controls or data, staging product files directly, deployments or paid/trial operations.. Acceptance criteria: COLD1: A deterministic regression demonstrates a concrete cold-command lifecycle or readiness failure on the unchanged baseline; any unproven explanation remains explicitly unproven.; COLD2: Accepted ordinary tool commands execute exactly once when their usable target becomes available, preserve the already-usable-tab fast path and keyboard behavior, and do not mutate after component teardown.; COLD3: The unchanged ordinary Add tool to Study Results flow reveals the actual tool within its original15s and exact ARIA contract; no forced click, retry acceptance, hydration-wait workaround, timeout increase or weaker result oracle hides a failure.; COLD4: Affected and complete frontend unit tests, type/build, the required zero-retry full functional/104visual profile, exact-source branch CI and exact staging Exhaustive pass with references and tolerances unchanged.; COLD5: Clean synchronized publication and explicit delegated technical closure preserve exact implementation/evidence and integration_capture exact branch HEAD; no feature worktree, protected branch product file, provider control/quota/data, paid/trial operation or deployment is changed by implementation.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "covered_by_existing_coordinator_goal",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "The root four-feature coordinator goal is already active and this repair is its current subtask; do not create a duplicate branch-local goal.",
+  "head": "ed9f1d7ee6b5dad7fffe3c6579aa3399c99206c0",
+  "implementation_sha": "ed9f1d7ee6b5dad7fffe3c6579aa3399c99206c0",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "Verify clean synchronized operational closure externally, then begin cold_command_regression with deterministic baseline tests; TC owns the heavy slot.",
   "parent_branch": "staging",
-  "plan_hash": "ce6f5100b7124bfc424269ada3c812ef1c578f4928692c67c6627354b1e6c37a",
-  "planning_required": true,
-  "planning_state": "draft",
+  "plan_hash": "496d238edbbcda2c3310c4c321c4f2084271ae46411ec84a909b8eee112a6543",
+  "planning_required": false,
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "plan",
-    "total": 0
+    "current_phase": "planning_operational_closure",
+    "total": 5
   },
-  "remote": "e8552b23f5ccdf692c308b13e1f07c2667508eae",
-  "remote_sha": null,
+  "remote": "ed9f1d7ee6b5dad7fffe3c6579aa3399c99206c0",
+  "remote_sha": "ed9f1d7ee6b5dad7fffe3c6579aa3399c99206c0",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
