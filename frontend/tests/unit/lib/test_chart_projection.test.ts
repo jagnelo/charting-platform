@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   adjustChartProjectionRange,
+  isChartRangeAtLatest,
   MAX_CHART_PROJECTION_STEPS,
   normalizeChartProjectionSteps,
 } from '@/lib/workstation/chart-projection'
@@ -25,5 +26,25 @@ describe('chart projection space', () => {
     expect(Math.sqrt(expanded[0] * expanded[1])).toBeCloseTo(Math.sqrt(1000))
     expect(adjustChartProjectionRange(...expanded, -1, true)[0]).toBeCloseTo(10)
     expect(adjustChartProjectionRange(...expanded, -1, true)[1]).toBeCloseTo(100)
+  })
+
+  it('derives latest-bar state from the requested range across an older-page prepend', () => {
+    const latest = 499
+    const span = 150
+    const staleRendererMax = 544
+    const requestedHistoricalMax = 473
+
+    // uPlot commits setScale through a microtask. The still-current renderer
+    // range can therefore say "latest" while the wheel-requested range has
+    // already moved into history.
+    expect(isChartRangeAtLatest(staleRendererMax, latest, span)).toBe(true)
+    expect(isChartRangeAtLatest(requestedHistoricalMax, latest, span)).toBe(false)
+
+    // Loading the preceding fixture page prepends 20 bars and shifts both the
+    // requested viewport and latest index equally. The interaction state must
+    // remain historical while the data update preserves that viewport.
+    expect(isChartRangeAtLatest(requestedHistoricalMax + 20, latest + 20, span)).toBe(false)
+    expect(isChartRangeAtLatest(latest - span * 0.08, latest, span)).toBe(true)
+    expect(isChartRangeAtLatest(Number.NaN, latest, span)).toBe(false)
   })
 })

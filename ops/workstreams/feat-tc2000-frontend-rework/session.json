@@ -37,23 +37,26 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": null,
-    "e2e_summary": "Not started at the recorded boundary; this exact guard run cannot validate the later uncommitted F8n/F8u observer candidate.",
+    "conclusion": "failure",
+    "e2e_summary": "189 passed, 110 expected skips, one hard F8u removed-span failure and one retry-passing F8m readiness failure",
     "head_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "jobs": {
-      "backend": "in_progress",
+      "backend": "success",
       "branch_declared": "success",
-      "e2e": "not_started",
-      "exhaustive_feature_branch": "not_started_or_policy_skipped_after_required_jobs",
+      "e2e": "failure_189_passed_110_expected_skips_f8u_hard_f8m_flaky",
+      "exhaustive_feature_branch": "skipped_by_branch_policy",
       "frontend_unit": "success"
     },
     "run_id": 39345866954,
-    "status": "in_progress on exact clean published frozen-import guard source",
+    "status": "terminal red on exact clean published frozen-import guard source; later local f21 candidate is not covered",
     "visuals": "No pixel pass inferred; TCP2 full 104-case matrix and official V25 parity remain open."
   },
   "dirty_paths": [
+    "frontend/src/components/chart/UPlotChart.vue",
+    "frontend/src/lib/workstation/chart-projection.ts",
     "frontend/tests/e2e/flows.spec.ts",
     "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+    "frontend/tests/unit/lib/test_chart_projection.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -107,7 +110,7 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
+  "head": "f21b66af7463d9d7330f65da10f85b79583c49b6",
   "implementation_sha": "918b81eb06f1fb2979781946ddbf8b991b580703",
   "integration_checkpoint": {
     "acceptance": "pending",
@@ -140,22 +143,22 @@
     }
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-20T00:16:02+00:00",
+  "last_checkpoint": "2026-10-20T01:42:00+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
     "conclusion": "failure",
-    "e2e_summary": "189 passed, 110 expected skips, two hard failures in both attempts: F8n-gesture and F8u",
-    "head_sha": "5da1dab3fb448165dced330c8bf61eecfcdc8aea",
+    "e2e_summary": "189 passed, 110 expected skips, one hard F8u removed-span failure and one retry-passing F8m readiness failure",
+    "head_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
-      "e2e": "failure_189_passed_110_expected_skips_f8n_gesture_and_f8u_failed_both_attempts",
+      "e2e": "failure_189_passed_110_expected_skips_f8u_hard_f8m_flaky",
       "exhaustive_feature_branch": "skipped_by_branch_policy",
       "frontend_unit": "success"
     },
-    "run_id": 39342525119,
-    "scope": "Exact published common-staging merge 5da1dab3fb448165dced330c8bf61eecfcdc8aea. Backend, Frontend Unit and Branch-declared passed. E2E job118369687512 was terminal red with189 passed,110 expected skips and hard F8n-gesture and F8u failures in both attempts. Artifact12230757066 is retained; Exhaustive remained skipped by feature-branch policy.",
+    "run_id": 39345866954,
+    "scope": "Exact published frozen-import guard source13ee184268ab8ef2b144241a05ecc30e16c1a1a7. Backend, Frontend Unit and Branch-declared passed. E2E job118380822617 was terminal red with189 passed,110 expected skips, a hard F8u removed-span failure and a retry-passing F8m readiness failure. This run does not cover local f21 or the later dirty product candidate; Exhaustive remained skipped by feature-branch policy.",
     "visuals": "No pixel pass inferred; TCP2 full 104-case local visual matrix and official V25 parity remain open."
   },
   "frozen_upstream_import_guard": {
@@ -173,17 +176,20 @@
     "artifact_id": 12230757066,
     "artifact_sha256": "4eeeb028074031b05725efc6ab9c9b479834fdf5e353dd6d11e370bc3cc32d29",
     "base_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
-    "classification": "F8u searched a removed label span after TC made the label an accessible settings button; F8n retry targeted a detached pre-hydration uPlot and the first attempt emitted horizontal wheel after the recovery click without returning the pointer to u-over.",
-    "focused_checks": "Playwright discovery2; ChartPlotLibrary45/45; ESLint; git diff --check",
+    "classification": "F8u searched a removed label span after TC made the label an accessible settings button; isolated f21 ordinary drag now passes. F8n hydration targeting is corrected. Both retained failures issue the same local older-page request after zoom and prepend20 bars (500 to520) during TC's consecutive Shift-plus-horizontal recovery sequence. The target is the primary chart; the lower Relative Strength crosshair is linked output. uPlot setScale defers scale commit to a microtask while the old component derived isAtLatest from the stale committed scale. Staging-based source299 passes only a simpler single horizontal recovery, so its pass is environmental evidence rather than equivalent coverage.",
+    "focused_checks": "Isolated f21 five-case run4_pass_1_F8n_fail; unchanged F8m1_pass; chart_projection4/4; ChartPlotLibrary45/45; conditional_uplot_lifecycles33/33; targeted ESLint; git diff --check",
     "source_paths": [
       "frontend/tests/e2e/flows.spec.ts",
-      "frontend/tests/unit/components/test_chart_plot_library.test.ts"
+      "frontend/tests/unit/components/test_chart_plot_library.test.ts",
+      "frontend/src/components/chart/UPlotChart.vue",
+      "frontend/src/lib/workstation/chart-projection.ts",
+      "frontend/tests/unit/lib/test_chart_projection.test.ts"
     ],
-    "state": "uncommitted_pending_released_focused_functional_browser_slot",
+    "state": "f21_local_unpublished_plus_dirty_product_range_state_fix_pending_next_released_browser_slot",
     "visual_followup": "Full104 remains deferred until F8n/F8u close and the coordinator separately releases capacity."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Preserve terminal evidence for exact guard run39345866954, freeze the current two-test candidate, and use the released single heavy slot for focused zero-retry F8n/F8u and nearest-adjacent ordinary-flow proof in one new internal-only fixture. Run full104 only after those functional gates close and capacity is separately released.",
+  "next_action": "Root owns the sole heavy slot for its live104 visual matrix. Keep TC offline; at the next explicit slot, prove the dirty requested-range latest-state fix with unchanged zero-retry F8n-gesture in one isolated internal-only fixture. Do not restart cancelled diagnostic83 or launch full104 first.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -212,17 +218,17 @@
     "completed": [
       "TCP1"
     ],
-    "current_blocker": "Frozen-import guard13ee is cleanly published with exact CI39345866954 active. Historical merge run39342525119 is red on hard F8n/F8u failures; the artifact-backed two-test observer reconciliation is prepared and the coordinator has released one isolated focused browser slot for its proof before full104. TCP3 awaits accepted Provider then ETF releases; TCP4-TCP5 and REF-HELP-V25 remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_F8N_F8U_FUNCTIONAL_RECONCILIATION_THEN_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
-    "next_action": "Freeze the current two-test candidate and use the released single slot for F8n/F8u plus nearest-adjacent zero-retry ordinary flows in one new internal-only fixture. Do not launch full104 before functional closure or import Provider/ETF source.",
+    "current_blocker": "Exact13ee CI is terminal red on hard F8u and retry-passing F8m. Local f21 proves F8u and unchanged F8m but still fails TC's consecutive F8n recovery after real primary-chart wheel input. Both retained F8n traces prepend20 local bars during gestures; source299 passes only a simpler single recovery. A narrow dirty product correction derives latest state from the requested range because uPlot commits scales asynchronously; deterministic unit coverage passes but runtime proof awaits the next released heavy slot. TCP3 awaits accepted Provider then ETF releases; TCP4-TCP5 and REF-HELP-V25 remain open.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_F8N_PRODUCT_RANGE_STATE_FIX_PENDING_RUNTIME_PROOF_THEN_FULL104_OPEN;TCP3_PROVIDER_ETF_RELEASE_AND_CONSUMER_RECONCILIATION_OPEN;TCP4_COMBINED_PROFILE_OPEN;TCP5_REVIEW_OPEN",
+    "next_action": "Root owns the sole heavy slot for live104 visuals. When explicitly reassigned, run unchanged zero-retry F8n-gesture against the dirty range-state fix in one isolated internal-only fixture before any full104 matrix.",
     "total": 5,
-    "updated_at": "2026-10-20T00:16:02+00:00"
+    "updated_at": "2026-10-20T01:42:00+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
-    "current_pending_range": null,
+    "current_local_head": "f21b66af7463d9d7330f65da10f85b79583c49b6",
+    "current_pending_range": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7..f21b66af7463d9d7330f65da10f85b79583c49b6 plus uncommitted product range-state fix",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
@@ -230,11 +236,11 @@
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
     "remote_tracking_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
-    "status": "reviewed frozen-import guard13ee184 is synchronized cleanly and automatic exact CI39345866954 is active; later F8n/F8u candidate remains uncommitted with one focused isolated slot released"
+    "status": "origin remains at terminal-red guard13ee; local f21 observer candidate and dirty requested-range product correction are unpublished pending focused runtime proof"
   },
   "remote": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
   "remote_sha": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

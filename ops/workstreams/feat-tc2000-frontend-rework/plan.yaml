@@ -30,42 +30,36 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The reviewed frozen-upstream import-only guard is now cleanly published at
-  exact local/origin source13ee184268ab8ef2b144241a05ecc30e16c1a1a7.
-  Automatic exact-source run39345866954 is active; Branch-declared and Frontend
-  Unit are green while Backend remains in progress. The guard still preserves
-  ordinary authorized(path,plan), fixed checkpoint2b92, ownership counts and
-  Provider/ETF exclusions;22 common imports remain immutable and tied to the
-  reviewed staging281 snapshot plus its byte-identical canonical green receipt.
+  Exact local source f21b66af7463d9d7330f65da10f85b79583c49b6 is one
+  unpublished commit ahead of origin13ee184268ab8ef2b144241a05ecc30e16c1a1a7.
+  Exact run39345866954 on13ee is terminal red: Backend, Frontend and
+  Branch-declared passed; E2E job118380822617 reported189 passed/110 expected
+  skips, a hard F8u removed-span failure and a retry-passing F8m readiness
+  failure. The published guard remains valid; this run is not evidence for f21.
 
-  Parent merge run39342525119 remains terminal red on5da1dab3: Backend,
-  Frontend and Branch-declared passed, but E2E job118369687512 reported189
-  passed/110 expected skips and two hard F8n/F8u failures in both attempts.
-  Authenticated artifact12230757066 is verified at
-  /tmp/tc-5da-functional-red-12230757066.zip (7,891,723 bytes; SHA256
-  4eeeb028074031b05725efc6ab9c9b479834fdf5e353dd6d11e370bc3cc32d29)
-  and extracted read-only beneath the same basename.
+  The isolated internal-only f21 fixture proved the current accessible F8u
+  real-drag path and its numeric-column outcome, but F8n-gesture remained hard
+  red after a real primary-chart horizontal wheel sequence. The exact five-case
+  run finished4 pass/1 fail with zero retries; a later diagnostic failed before
+  horizontal telemetry, and coordinator diagnostic request83 was cancelled
+  before execution to release the heavy slot. The unchanged F8m case then
+  passed1/1 in the same fixture. The temporary six-container/four-volume/internal-
+  network project and four unique images were removed; all55 retained containers,
+  the assigned TC six services/four volumes and existing listener state were
+  left unchanged. No browser handle remains.
 
-  Exact trace/source comparison establishes two TC observer mismatches without
-  weakening behavior. F8u's RSI row and menu were present, but TC replaced its
-  former label span with the accessible Edit RSI settings button while the test
-  still searched for the removed span. F8n retry observed a visible pre-hydration
-  uPlot which detached before its bounding-box read; on the first attempt the
-  test clicked Go to latest and then emitted its horizontal wheel without moving
-  the pointer back from the disappearing button to the uPlot overlay, so the
-  wheel targeted chart chrome and no second recovery control appeared. The
-  one-file candidate now waits on the existing chart busy contract, uses ordinary
-  actionability against the live visible u-over before each gesture phase, and
-  drags from the current accessible indicator label button. It retains the real
-  wheel/drag paths, renderer-identity/numeric-column outcomes, all existing
-  assertions and10-second limits, zero-retry requirement and visual policy.
-  Playwright discovery collects exactly F8n/F8u; ChartPlotLibrary45/45, ESLint
-  and diff checks pass. Browser proof waits for the explicitly released heavy
-  slot; full104 visuals must not run on the known-red app and follow functional
-  closure. No Provider/ETF source is imported or accepted. TCP2 normalized104,
-  TCP3 released Provider/ETF consumers, TCP4, TCP5 and every full-roadmap
-  criterion remain open; the reviewed local-only Help reference, unchanged0.005
-  tolerance and REF-HELP-V25 required_missing state remain intact.
+  Trace inspection proves the failed wheel targeted the primary chart's live
+  u-over, not the linked Relative Strength chart. Static source inspection then
+  proves a product timing defect: uPlot setScale queues its commit in a
+  microtask, but setupInteraction immediately rereads u.scales.x and can derive
+  isAtLatest from the previous frame. The current narrow dirty source derives
+  latest state from the clamped requested range instead and adds a pure unit
+  regression; the projection and adjacent uPlot lifecycle suites pass41/41,
+  targeted ESLint and diff checks pass. No timeout,
+  retry, assertion, renderer-identity outcome, visual oracle or0.005 tolerance
+  changed. Runtime proof must wait for the next explicitly released heavy slot;
+  do not restart the cancelled diagnostic or launch full104 first. TCP2 full104,
+  TCP3 released Provider/ETF consumers, TCP4, TCP5 and REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1557,6 +1551,7 @@ historical_implementation_records_continued:
   - "Product commit 721b0efbea486361fa0632b2f874353ca7802127 connects the Boolean watchlist header's `aria-controls` to its conditional pin menu, with regression coverage for regular and stacked headers and detached watchlist roots. It also replaces Code Library `useId()` form IDs with a component-instance UID after a two-root test exposed duplicate `code-library-create-v-0` IDs. Focused watchlist tests passed 81/81; Code Library tests passed 12/12; full serial frontend Vitest passed 129 files / 1,206 tests; production type-check/build passed; authenticated F8u-boolean passed 1/1 (the browser flow predates the separate Code Library ID correction). The 10 protected visual diffs were reviewed without finding a justified source or oracle change: workspace-floating references predate the current five-row fixture assertion; Study structured-result references predate current promotion controls; two 1080p sandbox-error comparisons remain pixel-only with state assertions passing. No reference, mask, threshold, skip, or policy changed. Exact stack cleanup and resource audit left zero attributable Docker resources. Current direct refs: TC `721b0efbea486361fa0632b2f874353ca7802127`, staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, ETF `26d9f84b5ac35ed0fe0b31b196caae1a6ee05139`; neither dependency is in staging. The current full authenticated and visual matrices are not yet rerun at 721b0ef."
   - "At product source 721b0efbea486361fa0632b2f874353ca7802127, three complete pinned serial authenticated Chromium runs executed 182 cases each. Results were 177 passed / 3 documented skipped / 2 failed; then 176 passed / 3 skipped / 3 failed on fresh volumes; then 178 passed / 3 skipped / 1 failed on fresh volumes. Six distinct failures were F8r-breadth-narrow, F8s-market-map-python-output, the two all-family readiness presentation cases, F8x-library, and F8r-python-library-narrow. Every unchanged focused replay passed 1/1 (readiness pair 2/2); no test or acceptance rule was changed. The latest full result remains 178/182 with one intermittent narrow Python Library window-mount failure and is not a green full gate. Exact-tip four-project visual Playwright 1.62.1 matrix: 94/104; 10 screenshot differences after interaction/state checks: workspace-floating at all four viewports (8,995 / 9,825 / 8,995 / 9,825 pixels), Study structured-result at all four (109,320 / 105,698 / 22,035 / 21,352), and Study sandbox-error at 1080p/100 and 1080p/125 (13,360 / 11,188). These exactly match the protected prior categories/counts. No reference, mask, threshold, skip, fallback, or acceptance policy changed. Full serial frontend Vitest passed 129 files / 1,206 tests; production type-check/build passed. Visual manifest validated. Assigned test stack cleanup removed its containers, volumes, network, and four generated image tags; final resource audit reported zero containers, volumes, unique image bytes, test sessions, or unknown resources. Current direct refs remain staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, ETF `26d9f84b5ac35ed0fe0b31b196caae1a6ee05139`; neither dependency is in staging."
 remaining_gaps:
+  - "Current F8n offline diagnosis: staging-based source299 passed its simpler single horizontal recovery, but TC's retained traces exercise Shift recovery plus a second horizontal recovery. Both TC failures issued the same local-only older-page request after zoom and prepended20 bars (500->520) during the gesture sequence; the target was the primary chart, not the linked Relative Strength pane. uPlot setScale commits through a microtask, so the candidate derives latest state from the clamped requested range rather than stale u.scales.x. A deterministic regression preserves the historical classification across the20-bar offset;82/82 focused unit tests, targeted ESLint and diff check pass. Unchanged zero-retry F8n runtime proof remains required in the next released slot; localf21 and dirty fix remain unpublished. Historical4/5 and F8m1/1 remain honest; TCP2-TCP5 and REF-HELP-V25 remain open."
   - "Current preparation boundary (2026-10-19): exact TC source c8d386d/CI39140104361 is ordinary-green; staging26443f94/CI39294027643 has zero product checkpoints; Providera8440efb remains unaccepted and ETFd1c560dc remains preparation-only. post-release-reconciliation-map.md now provides the actionable identity, series/coverage/derived-lineage, corporate-action, ETF PIT/freshness, migration, compatibility, and immutable Code/Study consumer plan. Execution waits for Provider then ETF green staging releases. Geometry e995d501 remains unstaged and is not duplicated. TCP2 full104, TCP3-TCP5, and REF-HELP-V25 remain open."
   - "Current pushed source c8d386d01c65b3eb31e8ddc8f30df1c00822837f has coordinator-confirmed green ordinary CI39140104361 and the narrow Help-manifest path declaration now passes. Stack-free Help manifest10/10, visual-policy26/26, scope23 paths, workstream34 records, JSON and diff checks pass. This does not execute the104 visual cases or establish official V25 parity. Five Provider Compose projects and the assigned TC stack remain running with about2.8GiB available, so the normalized pinned-Noble full104 matrix stays queued for a coordinator-granted isolated slot; no service was touched. Provider then ETF product staging acceptance still gates TCP3, and TCP4/TCP5 remain open."
   - "At product source d413d845939e68e9738b621329fa8d63a419ddf8, the first seeded 177-case flows.spec.ts run passed 174, skipped 2, and had one F8m link-menu timeout; its unchanged focused replay and second unchanged full run passed (175/177, 2 skips, zero failures). The exact-tip visual run remains 94/104 with the same ten protected screenshot diffs. The initial default workstation performance suite passed 3/4, then the complete isolated performance file passed 4/4 with the opt-in 10k-row fixture enabled. Full frontend Vitest passed 1,208 tests / 129 files. Preserve both functional-run outcomes alongside the older raw gate history."

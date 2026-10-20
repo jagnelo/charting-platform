@@ -201,7 +201,11 @@ import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useQuery } from '@tanstack/vue-query'
 import { isEditorTarget } from '@/lib/workstation/keyboard'
-import { adjustChartProjectionRange, normalizeChartProjectionSteps } from '@/lib/workstation/chart-projection'
+import {
+  adjustChartProjectionRange,
+  isChartRangeAtLatest,
+  normalizeChartProjectionSteps,
+} from '@/lib/workstation/chart-projection'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
 import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
@@ -1935,7 +1939,7 @@ async function initChart() {
     const [xArr] = uplot.data as number[][]
     if (xArr?.length) {
       const span = savedView.xMax - savedView.xMin
-      isAtLatest.value = savedView.xMax >= xArr[xArr.length - 1] - span * 0.08
+      isAtLatest.value = isChartRangeAtLatest(savedView.xMax, xArr[xArr.length - 1], span)
     }
   } else {
     setInitialView(uplot)
@@ -2016,13 +2020,6 @@ function setupInteraction(u: uPlot) {
   const isOnYAxis   = (cx: number) => cx > getRect().right
   const isOnXAxis   = (cy: number) => cy > getRect().bottom
 
-  const updateAtLatest = () => {
-    const [x] = u.data as number[][]
-    if (!x?.length) { isAtLatest.value = true; return }
-    const span = u.scales.x.max! - u.scales.x.min!
-    isAtLatest.value = u.scales.x.max! >= x[x.length - 1] - span * 0.08
-  }
-
   const setXRange = (min: number, max: number) => {
     const [x] = u.data as number[][]
     if (!x?.length) return
@@ -2032,7 +2029,11 @@ function setupInteraction(u: uPlot) {
     if (min < lBound) { min = lBound; max = min + span }
     if (max > rBound) { max = rBound; min = max - span }
     u.setScale('x', { min, max })
-    updateAtLatest()
+    // uPlot batches scale commits. Reading u.scales.x here can therefore
+    // observe the previous frame and leave the return-to-latest affordance
+    // stale after a real wheel/trackpad pan. The clamped requested range is
+    // the authoritative interaction state for this turn.
+    isAtLatest.value = isChartRangeAtLatest(max, x[x.length - 1], span)
     // Note: drawings are re-rendered via the draw hook after uPlot commits the canvas.
     // An explicit renderVisualOverlays() here would draw at the new scale while the chart
     // canvas is still at the old scale (uPlot batches canvas updates), causing drawings to float.

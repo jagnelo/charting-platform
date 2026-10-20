@@ -21786,3 +21786,100 @@ functional-reproduction/repair-first; the prepared full104 visual recipe at
 `/tmp/tc-tcp2-visual-plan-13ee184.md` must not launch until these functional
 gates close and the coordinator separately releases capacity. Official
 `REF-HELP-V25` remains `required_missing`; TCP2-TCP5 remain open.
+
+## 2026-10-20 01:11Z — Focused runtime handoff and offline F8n product correction
+
+The single authorized internal-only fixture ran exact local commit
+`f21b66af7463d9d7330f65da10f85b79583c49b6` with pinned Noble 1.62.1, one
+worker and zero retries. The five-case F8n/F8u-adjacent run finished `4/5`:
+the current accessible F8u RSI source completed a real ordinary drag and
+produced the expected numeric watchlist column, while `F8n-gesture` failed
+after real horizontal wheel input because the return-to-latest affordance did
+not appear. A later bounded diagnostic stopped before horizontal telemetry.
+Coordinator diagnostic request83 was deliberately cancelled before execution
+to release the critical slot; it was neither a browser failure nor a safety
+rejection and must not be restarted. The unchanged `F8m-chart-panels` case ran
+once in the same fixture and passed `1/1` in 12.6 seconds.
+
+The first failed F8n trace is retained under
+`/tmp/tc-f8n-f8u-focus-20261020T002824Z/artifacts/initial-f8n-failure` (trace
+SHA-256 `d5b5e29de3e6f4ebfe0ebf0bcb870f7d7b0cffd4321d6d6c7ddc1974ae622073`;
+screenshot SHA-256
+`dcb04342772a2c3930b850340d17ce0c573d5786472579cb7ed34b1abe661a0a`).
+It proves the gesture targeted the primary chart's live `.u-over` inside
+`data-tool-key="primary-chart"`; the visible crosshair in the lower Relative
+Strength pane was linked-cursor output, not the wheel target. The second
+diagnostic artifacts remain under the sibling `diagnostic-results` directory.
+
+The exact temporary project's six containers, four volumes, internal network
+and four unique images were removed after label/ID verification. All `55`
+pre-existing retained containers remained running. The assigned TC six
+services and four volumes were unchanged, listener `15190` was absent both
+before and after and was not touched, and no Playwright/Chromium test process
+remained. Fresh capacity after cleanup was 1,573 MiB available and 54 GiB disk.
+The coordinator owns the next heavy slot; no new browser, Compose or full
+visual run is permitted until another explicit release.
+
+Offline source inspection establishes a narrow product timing defect. uPlot's
+`setScale` stores the requested range and queues `_commit` through a microtask;
+the component then immediately reread `u.scales.x`, which can still contain the
+previous frame, to update `isAtLatest`. A real wheel pan can therefore move the
+renderer while leaving the recovery affordance stale. The dirty source now
+derives latest state from the already-clamped requested range, using a pure
+`isChartRangeAtLatest` helper also shared by viewport restoration. The focused
+projection plus adjacent chart/conditional-uPlot lifecycle suites pass `41/41`;
+targeted ESLint and `git diff --check` pass. No
+gesture, timeout, retry, assertion, renderer-identity outcome, screenshot
+reference, mask or `0.005` tolerance changed. Runtime proof of this product
+correction is still required before publication. Local `f21` and the dirty
+product correction remain unpublished; origin remains `13ee184`.
+
+Exact run `39345866954` on published `13ee184` is terminal red and is preserved
+as such: Backend, Frontend Unit and Branch-declared passed; E2E job
+`118380822617` reported `189` passed, `110` expected skips, one hard F8u
+removed-span failure and one retry-passing F8m readiness failure. It does not
+cover local `f21` or the dirty product correction. TCP2 full `104`, TCP3
+Provider/ETF consumer reconciliation, TCP4 combined validation, TCP5 closure
+and official `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 01:42Z — Offline F8n trace reconciliation
+
+The coordinator's staging-based source `299b075cd6dfb1f9974a38003f3b66f7539d15f6`
+passed its full `155`-case functional profile plus two expected skips, including
+ordinary F8t and F8n gesture coverage, in pinned Noble 1.62.1. That result is
+useful environmental evidence but is not equivalent to the TC failure: source
+`299` exercises one horizontal-pan/latest-recovery cycle, while current TC F8n
+first exercises Shift+wheel recovery and then repeats a real horizontal-pan
+recovery against the same renderer instance.
+
+Both retained TC traces identify the same cold-data transition. The initial
+zoom starts `GET /api/v1/ohlcv/local/SPY/D1?before=2024-01-30T21:00:00Z&limit=500`;
+the response completes in about `42-47 ms` and prepends the only `20` older
+fixture bars, changing the chart provenance from `500` to `520` bars while the
+gesture sequence is active. DOM evidence resolves the hovered overlay to
+`data-tool-key="primary-chart"`; the lower Relative Strength crosshair is linked
+cursor output, not the event target. The first trace reached Shift recovery and
+then failed the second horizontal recovery; the diagnostic trace failed the
+Shift recovery before horizontal telemetry. These are distinct observed
+failure windows around the same prepend, not evidence that source `299`'s
+simpler pass covers TC's consecutive-recovery contract.
+
+Static uPlot inspection confirms `setScale()` records a pending range and queues
+its commit in a microtask. The pre-fix component immediately rereads the old
+committed `u.scales.x`; it can therefore classify a requested historical range
+as still latest. The candidate instead classifies the already-clamped requested
+range. Its pure regression now models both sides explicitly: a stale latest
+renderer range returns true, the requested historical range returns false, and
+adding the same `20`-bar prepend offset to viewport and latest index preserves
+the false result. Focused stack-free checks pass `82/82` across chart projection,
+Chart Plot Library and conditional-uPlot lifecycle suites; targeted ESLint and
+`git diff --check` pass. No timeout, assertion, retry, gesture, renderer identity,
+snapshot, mask or `0.005` tolerance changed.
+
+The candidate remains deliberately unpublished until the unchanged zero-retry
+F8n gesture proves it in the next explicitly released browser slot. Root owns
+the sole heavy slot for its live `104`-visual matrix; no TC browser, Compose,
+build or broad suite ran. Local `f21` remains one commit ahead of origin
+`13ee184`, with the product correction and owner evidence dirty. Historical
+`4/5` focused functional, `1/1` F8m, and both failed F8n traces remain intact.
+TCP2-TCP5 and official `REF-HELP-V25` parity remain open.
