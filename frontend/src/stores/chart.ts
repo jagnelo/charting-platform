@@ -51,6 +51,7 @@ function createChartStore(storeId: string) {
     let _saveTimer:     ReturnType<typeof setTimeout>  | null = null
     let _coveragePoller: ReturnType<typeof setInterval> | null = null
     let _loadGeneration = 0
+    let inFlightLoad: { key: string; promise: Promise<void> } | null = null
     // A chart can finish its initial indicator request after the user has
     // already added/edited a plot. Never let that late hydration replace the
     // user's newer stack (this is especially important while a plot is being
@@ -172,11 +173,10 @@ function createChartStore(storeId: string) {
       })
     }
 
-    async function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false, nextTransformParams: ChartTransformParams = transformParams.value) {
+    async function performLoadBars(sym: string, tf: Timeframe, nextBarType: ChartBarType, localOnly: boolean, normalizedTransformParams: ChartTransformParams) {
       if (!sym || !tf) return
       cancelPendingIndicatorSave()
       const generation = ++_loadGeneration
-      const normalizedTransformParams = Object.fromEntries(Object.entries(nextTransformParams).filter(([, value]) => typeof value === 'number' && Number.isFinite(value))) as ChartTransformParams
       const transformKey = JSON.stringify(normalizedTransformParams)
       const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && JSON.stringify(transformParams.value) === transformKey
       const sameSelection = symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && JSON.stringify(transformParams.value) === transformKey
@@ -285,6 +285,34 @@ function createChartStore(storeId: string) {
         if (isCurrent()) isLoading.value = false
       }
       if (isCurrent() && !loadedInstrument.is_synthetic) _pollCoverage(sym, generation)
+    }
+
+    function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false, nextTransformParams: ChartTransformParams = transformParams.value): Promise<void> {
+      if (!sym || !tf) return Promise.resolve()
+      const normalizedTransformParams = Object.fromEntries(Object.entries(nextTransformParams).filter(([, value]) => typeof value === 'number' && Number.isFinite(value))) as ChartTransformParams
+      const requestKey = JSON.stringify([
+        sym,
+        tf,
+        nextBarType,
+        Boolean(localOnly),
+        normalizedTransformParams.brick_size ?? null,
+        normalizedTransformParams.reversal_pct ?? null,
+        normalizedTransformParams.box_size ?? null,
+        normalizedTransformParams.reversal ?? null,
+      ])
+      // Golden Layout can mount more than one virtual root for the same chart
+      // store while a workspace is settling. Those roots must share one exact
+      // hydration: restarting it clears bars, advances the generation and can
+      // replace a viewport the user has already panned. Different selections,
+      // timeframes, transforms and local/provider modes retain their distinct
+      // keys, while a later call after settlement remains a genuine refresh.
+      if (inFlightLoad?.key === requestKey) return inFlightLoad.promise
+      const promise = performLoadBars(sym, tf, nextBarType, localOnly, normalizedTransformParams)
+        .finally(() => {
+          if (inFlightLoad?.promise === promise) inFlightLoad = null
+        })
+      inFlightLoad = { key: requestKey, promise }
+      return promise
     }
 
     async function loadMoreBars() {

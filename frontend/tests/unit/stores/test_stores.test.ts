@@ -236,6 +236,155 @@ describe('useChartStore', () => {
     expect(api.get).toHaveBeenCalledWith('/instrument-indicators/42')
   })
 
+  it('coalesces concurrent identical chart hydration from shared mounted roots', async () => {
+    let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/COALESCE') {
+        return new Promise(resolve => { releaseInstrument = resolve }) as any
+      }
+      if (path === '/ohlcv/local/COALESCE/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const firstMountedRoot = store.loadBars('COALESCE', 'D1', 'candles', true)
+    await vi.waitFor(() => expect(releaseInstrument).toBeTypeOf('function'))
+    const secondMountedRoot = store.loadBars('COALESCE', 'D1', 'candles', true)
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/COALESCE')).toHaveLength(1)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/COALESCE/D1')).toHaveLength(1)
+
+    releaseInstrument({ id: 42, symbol: 'COALESCE', stats: { week52_high: 1 } })
+    await Promise.all([firstMountedRoot, secondMountedRoot])
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(1)
+    expect(store.bars).toHaveLength(1)
+    expect(store.loading).toBe(false)
+  })
+
+  it('starts a fresh identical hydration after the prior request settles', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH') return Promise.resolve({ id: 42, symbol: 'REFRESH', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/REFRESH/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH', 'D1', 'candles', true)
+    await store.loadBars('REFRESH', 'D1', 'candles', true)
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/REFRESH')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(2)
+  })
+
+  it('does not coalesce in-flight timeframe, transform, or route-mode changes', async () => {
+    let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    const instrument = new Promise(resolve => { releaseInstrument = resolve })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/VARIANT') return instrument as any
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path.startsWith('/ohlcv/')) {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const requests = [
+      store.loadBars('VARIANT', 'D1', 'candles', true),
+      store.loadBars('VARIANT', 'W1', 'candles', true),
+      store.loadBars('VARIANT', 'W1', 'renko', true, { brick_size: 4 }),
+      store.loadBars('VARIANT', 'W1', 'renko', false, { brick_size: 4 }),
+    ]
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/VARIANT')).toHaveLength(4)
+    releaseInstrument({ id: 42, symbol: 'VARIANT', stats: { week52_high: 1 } })
+    await Promise.all(requests)
+
+    expect(store.symbol).toBe('VARIANT')
+    expect(store.timeframe).toBe('W1')
+    expect(store.barType).toBe('renko')
+    expect(store.localOnlyMode).toBe(false)
+  })
+
+  it('does not coalesce changed-symbol or ABA selections while prior loads are pending', async () => {
+    const pendingInstruments = new Map<string, Array<{
+      resolve: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    }>>()
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path.startsWith('/instruments/')) {
+        const symbol = path.slice('/instruments/'.length)
+        return new Promise(resolve => {
+          const pending = pendingInstruments.get(symbol) ?? []
+          pending.push({ resolve: resolve as (value: { id: number; symbol: string; stats: { week52_high: number } }) => void })
+          pendingInstruments.set(symbol, pending)
+        }) as any
+      }
+      if (path.startsWith('/ohlcv/local/')) return Promise.resolve([]) as any
+      if (path.startsWith('/instrument-indicators/')) return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const firstA = store.loadBars('AAA', 'D1', 'candles', true)
+    const middleB = store.loadBars('BBB', 'D1', 'candles', true)
+    const latestA = store.loadBars('AAA', 'D1', 'candles', true)
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/AAA')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/BBB')).toHaveLength(1)
+
+    pendingInstruments.get('AAA')?.[0].resolve({ id: 1, symbol: 'AAA', stats: { week52_high: 1 } })
+    pendingInstruments.get('BBB')?.[0].resolve({ id: 2, symbol: 'BBB', stats: { week52_high: 1 } })
+    pendingInstruments.get('AAA')?.[1].resolve({ id: 3, symbol: 'AAA', stats: { week52_high: 1 } })
+    await Promise.all([firstA, middleB, latestA])
+
+    expect(store.symbol).toBe('AAA')
+    expect(store.instrument?.id).toBe(3)
+  })
+
+  it('keeps a newer in-flight load coalesced when an older failed request settles', async () => {
+    let rejectOldInstrument!: (reason?: unknown) => void
+    let resolveNewInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/OLD') {
+        return new Promise((_resolve, reject) => { rejectOldInstrument = reject }) as any
+      }
+      if (path === '/instruments/NEW') {
+        return new Promise(resolve => { resolveNewInstrument = resolve }) as any
+      }
+      if (path.startsWith('/ohlcv/local/')) return Promise.resolve([]) as any
+      if (path === '/instrument-indicators/2') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const oldLoad = store.loadBars('OLD', 'D1', 'candles', true)
+    const newLoad = store.loadBars('NEW', 'D1', 'candles', true)
+
+    rejectOldInstrument(new Error('old request failed'))
+    await oldLoad
+    const duplicateNewLoad = store.loadBars('NEW', 'D1', 'candles', true)
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/NEW')).toHaveLength(1)
+    resolveNewInstrument({ id: 2, symbol: 'NEW', stats: { week52_high: 1 } })
+    await Promise.all([newLoad, duplicateNewLoad])
+
+    expect(store.symbol).toBe('NEW')
+    expect(store.instrument?.id).toBe(2)
+  })
+
   it('keeps provider-capable bars behind canonical instrument resolution', async () => {
     let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {

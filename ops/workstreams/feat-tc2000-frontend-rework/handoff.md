@@ -21945,3 +21945,34 @@ separate unless a deterministic regression proves the same cause. No browser,
 Compose or full104 run is permitted for that correction until the coordinator
 releases another slot. TCP2-TCP5, Provider/ETF consumption and official
 `REF-HELP-V25` parity remain open.
+
+## 2026-10-20 02:36Z — Duplicate identical chart hydration correction
+
+The named `duplicate-identical-chart-hydration` context starts from a
+deterministic red store regression: before the correction, two concurrent
+identical `loadBars` calls against one shared chart store issued two instrument
+requests (`1` failed, `40` skipped). The correction shares only the exact
+in-flight symbol, timeframe, bar type, local/provider mode and all four current
+typed transform dimensions. A later call after settlement remains a genuine
+refresh.
+
+The expanded regression set now also proves that changed-symbol and A→B→A
+selections remain distinct while requests overlap, and that settlement of an
+older failed instrument request cannot clear a newer in-flight load. Different
+timeframes, transforms and route modes likewise remain distinct. The existing
+generation checks still own stale-result suppression, while component teardown
+and user-moved viewport behavior are unchanged.
+
+The chart-store suite passes `45/45`; the bounded chart-store, chart-projection,
+Chart Plot Library and conditional-uPlot lifecycle set passes `127/127` on this
+final candidate; the locked `npm run type-check` and `git diff --check` pass.
+The attempted direct `npx
+eslint` invocation is not validation evidence: this package has no locked
+ESLint dependency or script, and npm failed with `EAI_AGAIN` while trying to
+reach `registry.npmjs.org`; the shell's later successful diff check had masked
+that earlier command failure. No dependency was fetched or added. This is
+stack-free source evidence, not runtime acceptance: exact source `4525` stays
+rejected, unchanged zero-retry F8n proof remains required, and F8m's deferred
+presets/layout bootstrap race remains a separate defect. No browser, Compose,
+provider call, screenshot/oracle/tolerance change or upstream import occurred.
+TCP2-TCP5 and official `REF-HELP-V25` parity remain open.
