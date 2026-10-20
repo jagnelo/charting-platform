@@ -43,8 +43,14 @@ The API-side `CapabilityPreflightService` strictly parses those requested
 semantics and explicit substitutions, then combines them with typed capability
 cells and an exact execution/conformance binding supplied by trusted local host
 resolvers. Coverage evidence and engine claims are never accepted from the
-request body. The registered API remains fail-closed until the production host
-composes the provider-platform coverage resolver and local Nautilus binding.
+request body. The registered API remains fail-closed unless its production
+host composes the local Provider evidence reader with exact pinned Nautilus RC
+evidence and an explicit supported scope. The current composition admits only
+regular-session daily XNYS OHLCV for equity with `market` execution and a `cash`
+account. It is capability-preflight evidence, not proof of a native execution
+run; frozen-series decoding remains separately required for execution. Forward,
+broker, trading, and all other product/execution/account scopes remain
+unavailable.
 The registered PostgreSQL adapter accepts that host composition through the
 local `STRATEGY_LAB_V2_API_BINDINGS=module:factory` setting. Its synchronous
 factory receives the shared async session factory and persistence bundle, and returns typed
@@ -122,6 +128,19 @@ To connect it, configure `STRATEGY_LAB_V2_API_BINDINGS` as
 absolute `STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH` and
 `STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN` for the API and preparation service,
 and provide `STRATEGY_LAB_V2_PREPARATION_BINDINGS_FACTORY=module:factory`.
+Capability preflight additionally requires the operator-owned
+`STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE` value exactly
+`{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"]}`
+and the four Nautilus RC artifact/source/image pin settings documented by the
+local conformance source. Missing, partial, malformed, or unsupported
+scope/evidence configuration leaves that route unavailable; it does not affect
+the existing search/calendar bindings.
+The backend and opt-in preparation service mount this same operator directory
+read-only and receive the same artifact/source/image pins; no artifact is
+discovered by filename. The later preparation context also compares its
+selected `RuntimeIsolationProfile.runtime_image_digest` with the RC release pin
+and rejects mismatches before dispatch, so preflight evidence cannot authorize
+a different worker image.
 Generate the shared token locally (for example, `openssl rand -hex 32`) and
 keep it in the local environment file. The bindings factory is called with the
 shared `PostgresStrategyLabV2Persistence`, artifact root, and verified

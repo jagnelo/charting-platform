@@ -619,17 +619,22 @@ class UnixSocketWalkForwardProgressClient:
             ) from error
 
 
-def build_api_bindings(_session_factory: Any, persistence: Any) -> Any:
-    """Build API host bindings for local search and calendar adapters.
+def build_api_bindings(session_factory: Any, persistence: Any) -> Any:
+    """Build API host bindings for local preflight, search and calendar adapters.
 
     The calendar factory is a trusted host adapter because the provider-platform
     owns frozen-series decoding. It receives the shared persistence bundle and
     must return an async owner-authenticated calendar resolver. Keeping this
     factory optional preserves the existing typed 501 precondition when market
-    data has not been composed into the local host yet.
+    data has not been composed into the local host yet. Capability preflight is
+    enabled only by the separate exact-pinned, narrow local backtest scope
+    composition; it never changes search or calendar defaults.
     """
 
     from app.strategy_lab_v2.application import StrategyLabV2ApiBindings
+    from app.strategy_lab_v2.provider_capability_host import (
+        build_provider_capability_preflight,
+    )
     from app.strategy_lab_v2.workers import (
         forward_worker_runtime_profile_fingerprint_from_environment,
     )
@@ -638,6 +643,7 @@ def build_api_bindings(_session_factory: Any, persistence: Any) -> Any:
     artifact_store = _walk_forward_artifact_store_from_environment()
     return StrategyLabV2ApiBindings(
         search_dispatch=UnixSocketSearchDispatchClient.from_environment(),
+        capability_preflight=build_provider_capability_preflight(session_factory),
         walk_forward_observation_calendar=calendar_resolver,
         walk_forward_artifact_store=artifact_store,
         forward_worker_runtime_profile_fingerprint=(

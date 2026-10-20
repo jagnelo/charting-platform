@@ -15327,3 +15327,167 @@ TC immutable CodeVersion/completed Study remain gated on their accepted green
 releases; combined application/Exhaustive and local `full_stack_browser` remain
 open. The checkpoint remains `in_progress`, not accepted or ready for
 integration; no scope, tolerance, retry, skip, or validation gate was weakened.
+
+## 2026-10-20 — production host-composition audit
+
+The findings in this section describe the initial audit state at 21:48 UTC.
+The same-context implementation continuation below supersedes its statement
+that the generic host resolver was still missing.
+
+The source is clean and synchronized at `790223f3aad553e4dacd2efffb13cdece4e50f28`.
+The existing owner claim remains `02d5ffaa-53b5-4dec-b39c-0f36612b5436`; the
+formal local goal remains unavailable/blocked and was not recreated. Repository
+context classified this exact checkout as the Strategy implementation
+worktree.
+
+The production registration path is `app.main` registering
+`create_registered_strategy_lab_v2_router()`;
+`get_strategy_lab_v2_adapter()` loads the optional
+`STRATEGY_LAB_V2_API_BINDINGS` factory, and the configured implementation in
+`search_dispatch_rpc.build_api_bindings()` currently composes only local search
+dispatch, optional calendar/artifact bindings, and forward-worker profile
+metadata. It does not set `StrategyLabV2ApiBindings.capability_preflight`.
+Consequently the registered capability-preflight operation still fails closed
+with HTTP 501 when no separate host binding is supplied. The factory's
+`session_factory` argument is currently unused. Bounded offline factory and
+unconfigured-preflight regressions both passed (2 tests); these establish the
+existing seam and disabled behavior, not a usable default runtime.
+
+The separately configured preparation service does load the operator-pinned
+Nautilus RC evidence through `LocalNautilusRcConformanceEvidenceSource`, then
+calls `STRATEGY_LAB_V2_PREPARATION_BINDINGS_FACTORY` with persistence,
+artifact-root and the exact conformance resolution. That factory must provide a
+`FrozenSeriesDecoder` and trial-specific context resolver. The resulting
+`NautilusTrialPreparationContext` carries the conformance-derived execution
+binding for a hydrated trial, but this is not a generic capability resolver for
+an API requirement. No production-owned API resolver currently joins the local
+Provider reader to an exact host-approved product/execution/account-model
+registry and conformance binding. This is the next branch-owned implementation
+slice, not a human/permission stop: reuse the exact-pinned evidence source and
+existing conformance binding helper, with a narrow operator-owned allowlist
+only for scope semantics proven by the native runtime/SDK and current tests.
+Missing, partial, malformed, stale, or wrong-build evidence must keep the route
+unavailable. Do not infer support from RC fixture success alone or request
+payloads. Frozen series execution still requires the configured production
+decoder. The
+Provider reader, identity/coverage/freshness checks, lineage binding and
+`slv2_0009` merged migration ancestry repair remain independently implemented,
+but caller tests using typed test bindings do not make the default API runtime
+usable or establish native execution.
+
+Exact hosted run `39501877296` is for this source. At the latest read on
+2026-10-20 21:46:51 UTC, Frontend Unit Tests had passed and Backend Tests were
+still in progress; no terminal result is claimed here. Do not replay earlier
+red run `39498341861` on source `812cac68ea8431fa35eef40de7a9fa89c423314a`.
+The normal UV preflight initially hit the read-only shared cache and then could
+not fetch uncached QuantLib because DNS/network was unavailable. The repository
+context command succeeded with the installed environment via `uv run
+--no-sync`. The required session-start helper reached its full-stack profile
+readiness check, which failed after 180 seconds with Docker API permission
+denied; it recorded the blocked preflight and created no new claim. This was not
+a Compose/profile launch and no container, service, database, or dataset was
+changed. The existing claim and workstream state remain authoritative.
+
+No capability was falsely enabled and no fake engine binding, provider/live
+request, DB, runtime, Compose/browser fixture, staging/sibling write, or cleanup
+was used. Checkpoint remains `in_progress`, not accepted or ready for
+integration. Full local `full_stack_browser`, combined fresh/upgrade PostgreSQL,
+exact-source terminal CI, exhaustive/application gates, and accepted ETF/TC
+consumer releases remain open across the full roadmap.
+
+### Same-context composition continuation
+
+The coordinator's course correction keeps the audit regression and production
+composition in one Provider-host-composition context. The implementation now
+adds `provider_capability_host.build_provider_capability_preflight` to
+`search_dispatch_rpc.build_api_bindings`, passing the actual host session
+factory to `ProviderLocalCapabilityEvidenceReader` and loading
+`LocalNautilusRcConformanceEvidenceSource.from_environment(...).load()` before
+calling `build_nautilus_backtest_execution_binding`.
+
+The only configured tuple admitted is product `equity`, execution model
+`market`, account model `cash`. The source basis is the non-futures path in
+`nautilus_runtime_adapter_probe._probe` (equity + market + cash), the probe's
+runtime requirement construction, and the Provider reader's strict
+regular-session daily XNYS OHLCV filter. The configured strings must exactly
+match those values; payload declarations cannot expand them. The helper still
+requires matching, complete, exact-pinned Nautilus RC evidence. Missing or
+partial artifact pins, absent scope config, malformed/extra/other scopes, and
+load/build errors leave the optional capability binding unset, preserving the
+registered route's 501 behavior. Search dispatch, calendar, artifact store and
+forward worker profile bindings remain unchanged. This is a preflight support
+claim only; it does not establish a native execution run, frozen-series decoder,
+forward capability, or broker/trading route.
+
+The focused factory suite passed 11 tests (7 deselected): it covers the
+configured seam, missing configuration, unsupported/malformed scope variants,
+partial evidence pins, and wrong-build rejection at the existing
+binding-builder boundary. The
+configured seam test stubs only the loader/builder to verify composition; it is
+not conformance or execution evidence. Exact hosted run `39501877296` is still
+historical to base `790223f3aad553e4dacd2efffb13cdece4e50f28`, not this dirty
+context. A broader filtered offline selection passed 33 tests across the API
+factory, Provider reader/preflight, capability service, and API route (57
+deselected). The unfiltered selection also attempted an unrelated Unix-domain
+socket transport test and got `PermissionError` binding its socket in this
+restricted environment; it had no assertion failure and is preserved in the
+validation journal. The actual Provider-row consumer cases and migration
+ancestry checks remain in the prior 790 source history.
+Final closure checks passed: Ruff check/format, targeted `py_compile`, JSON
+parsing, `git diff --check`, and the UV-managed no-sync workstream validator
+(41 records). The ordinary `make branch-validate` wrapper attempted dependency
+sync and was blocked downloading uncached QuantLib because host DNS was
+unavailable; the direct no-sync repository validator passed. Exact source is
+still the single uncommitted context based on `790223f3aad553e4dacd2efffb13cdece4e50f28`;
+the normal commit/push and resulting exact-source CI remain next.
+
+### Compose/runtime boundary and exact typing-gate receipt (2026-10-20)
+
+The host-composition context additionally forwards the opt-in scope and exact
+RC artifact/source/image pins through the ordinary backend service, and mounts
+the same operator-owned evidence directory read-only into backend and
+preparation. The backtest worker receives neither these evidence variables nor
+the mount. Root `.env.example`, `backend/.env.example`, and the Strategy Lab
+guide document empty-by-default behavior and the exact scope. Existing
+preparation/result-materialization contracts compare a selected runtime
+profile/launch image digest to the pinned RC image; the API composition remains
+preflight-only and does not start a runtime.
+
+Latest bounded verification after the Compose change: the API factory and
+resolved-Compose unit selection passed `4 passed, 17 deselected`; resolved
+default Compose assertions passed for blank scope/pins, matching read-only
+backend/preparation mounts, and absent worker exposure. A separate resolved
+configured Compose assertion passed for forwarding explicit equity/market/cash
+JSON scope and equal 64-character pins through backend and preparation. Ruff
+check, Ruff format check, targeted Python compilation, and `git diff --check`
+passed for host composition and tests. No service was built or started. This
+host context is not published; its exact-source CI must run after a source
+commit.
+
+Coordinator supplied terminal exact-source receipt `39501877296` for base
+`790223f3aad553e4dacd2efffb13cdece4e50f28`: Backend `118901132839` and
+Frontend `118901132390` succeeded; Branch-declared `118910405861` is terminal
+red; E2E `118910406025` was still running at the latest coordinator result, so
+the whole run is not green. The existing declared command is
+`cd backend && uv run mypy app/strategy_lab_v2 strategy_runtime`, with 151
+errors across 29 files/439 checked. Preserve this red; do not replay it or
+weaken the command. Twelve diagnostics are `_aware_utc` argument annotations
+on Provider consumer optional inputs; 139 concern imported ORM forward names,
+configuration types, and database async/task contracts. No full declared Mypy
+rerun has occurred in this context.
+
+Typing repair edits were started prematurely before the host context was
+closed. They are preserved but excluded from the host-only changeset and remain
+an unfinished separate typing context: `backend/app/config.py`,
+`backend/app/database.py`,
+`backend/app/strategy_lab_v2/provider_series_contract.py`, plus ORM annotation
+files `backend/app/models/etf_holdings.py`, `indicator_preset.py`,
+`instrument_event.py`, `instrument_indicator_config.py`,
+`instrument_reconciliation.py`, `listing.py`, `market_data_foundation.py`,
+`ohlcv.py`, `price_alert.py`, `provider_runtime.py`, `strategy.py`,
+`tokenized_asset.py`, and `watchlist.py`. The attempted one-file Mypy probe on
+`watchlist.py` still traversed imports and reported 130 errors across 26 files;
+it is not evidence that the declared command passes. Publish the host-only
+source/record set first, then resume the typing context separately and run the
+exact declared command plus relevant tests. Runtime semantics, thresholds, and
+checker scope must remain unchanged.

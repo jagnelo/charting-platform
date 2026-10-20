@@ -104,6 +104,11 @@ services:
       STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY: ${STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY:-}
       STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH: ${STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH:-/run/strategy-lab-v2/preparation.sock}
       STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN: ${STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN:-}
+      STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE: ${STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE:-}
+      STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY: /nautilus-rc-evidence
+      STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256: ${STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256:-}
+      STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256: ${STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256:-}
+      STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256: ${STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256:-}
       STRATEGY_LAB_V2_FORWARD_WORKER_ID: ${STRATEGY_LAB_V2_FORWARD_WORKER_ID:-}
       STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT: ${STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT:-}
       REDIS_URL:         redis://redis:6379/0
@@ -385,6 +390,14 @@ services:
       - research_results:/results
       - strategy_lab_artifacts:/strategy-lab-artifacts
       - strategy_lab_v2_preparation_socket:/run/strategy-lab-v2
+      # Read-only copy of the operator-pinned conformance artifact. Empty pins
+      # keep API capability preflight unavailable; the worker never mounts this.
+      - type: bind
+        source: ${STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_HOST_DIRECTORY:-./.ai/runtime/strategy-lab-v2/nautilus-rc-evidence}
+        target: /nautilus-rc-evidence
+        read_only: true
+        bind:
+          create_host_path: true
       - ${PROVIDER_QUOTA_LEDGER_HOST_DIR:-${HOME}/.config/charting-platform/provider-quota}:/var/lib/charting-platform/provider-quota
       - ${FINRA_ORF_REFRESH_TOKEN_STATE_HOST_DIR:-${HOME}/.config/charting-platform/provider-secrets/finra-orf}:/var/lib/charting-platform/provider-secrets/finra-orf
 

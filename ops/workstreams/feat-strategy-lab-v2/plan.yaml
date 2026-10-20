@@ -128,6 +128,30 @@ integration_checkpoint:
       clean push/freeze, and canonical staging merge. Preserve the full roadmap.
     source: /home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json#checkpoint_acceptance_delegation_question
   exact_source_ci:
+    latest_repaired_source:
+      sha: 790223f3aad553e4dacd2efffb13cdece4e50f28
+      run_id: 39501877296
+      whole_run_state: not_green
+      backend_job_id: 118901132839
+      backend_conclusion: success
+      frontend_job_id: 118901132390
+      frontend_conclusion: success
+      branch_declared_job_id: 118910405861
+      branch_declared_conclusion: failure
+      branch_declared_summary: >-
+        Existing declared mypy command reports 151 errors across 29 files and
+        439 checked. Twelve are Provider _aware_utc argument annotation errors;
+        139 are imported ORM forward names, configuration, and database
+        async/task annotations. Do not rerun or weaken the command before the
+        scoped annotation repair is complete.
+      e2e_job_id: 118910406025
+      e2e_state_at_coordinator_report: in_progress
+      checks: >-
+        Backend and Frontend Unit Tests succeeded. Branch-declared Tests failed
+        on mypy annotation diagnostics; E2E was still running at the coordinator
+        report. This exact-source run covers Provider local-reader/preflight
+        consumer and additive slv2_0009 merge at 790223f3; it does not cover the
+        current unpublished host-composition changes.
     sha: 1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de
     run_id: 38812646577
     conclusion: success_historical
@@ -359,28 +383,47 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: provider-only-consumer-wiring
+  current_phase: provider-host-composition
   current_blocker: >-
     Provider staging 9b230ba4c97126a2937667138c6eb2a0aa297baf is accepted and
-    released for this Provider-only phase; exact CI 39484176087 and Exhaustive
-    job 118849529356 are green. The existing Provider checks are currently helper-
-    level only; actual consumer wiring and caller-level positive/denial evidence
-    remain branch-owned work, not an upstream blocker. ETF point-in-time
-    membership and TC2000 immutable CodeVersion/Study releases remain real
-    downstream dependencies. Static
-    Alembic inspection reports distinct Provider head b6e9a42d1c73 and Strategy
-    head slv2_0008; retain both histories and defer an additive graph merge until
-    the accepted ETF/TC heads arrive. Historical Strategy source
-    54fa13e1ba17a40de6f242e16d5a96d8217615cb / CI 38820638540 exit 152
-    remains unproven and preserved. Combined consumer/PostgreSQL/application,
-    coordinated exhaustive, exact-current-source CI after future changes, and
-    local full_stack_browser gates remain open.
+    released. Branch-owned Provider local reader, capability preflight checks,
+    actual consumer tests, and additive slv2_0009 merge revision are implemented
+    at 790223f3aad553e4dacd2efffb13cdece4e50f28. The current owned context adds
+    `provider_capability_host.build_provider_capability_preflight` to the actual
+    `search_dispatch_rpc.build_api_bindings` factory. It admits only the explicit
+    equity/market/cash tuple established by the runtime adapter probe and the
+    Provider reader's canonical regular-session daily XNYS OHLCV contract; every
+    other scope configuration remains unavailable. Exact pinned Nautilus RC
+    evidence is required and validated by the existing backtest binding builder.
+    This is capability-preflight evidence, not proof of a native execution run;
+    frozen-series decoding remains separately required for execution. The
+    current subcontext also forwards blank-by-default scope and evidence pins
+    through Compose and mounts the same operator evidence directory read-only
+    into backend and preparation only; backtest worker remains unexposed. The
+    preparation runtime-profile contract rejects an image digest that differs
+    from the evidence release pin. Compose's resolved default and configured
+    scope/pin wiring has been verified stack-free. Exact CI 39501877296 is not
+    green: backend and frontend succeeded, declared mypy failed (151 errors),
+    and E2E was still in progress at the coordinator report. The current host
+    source has no exact CI yet. Separate typing-compatibility edits were started
+    prematurely and remain dirty/unvalidated; publish the host-only context
+    first, then finish those edits in their own context. Preserve all earlier
+    migration and exit-152 receipts.
+    Preserve earlier red CI 39498341861 for 812cac68 and historical unproven
+    54fa13e1/38820638540 exit 152. ETF PIT membership and TC immutable
+    CodeVersion/Study remain gated on accepted green releases. Fresh/upgrade and
+    combined PostgreSQL/application, coordinated exhaustive, terminal exact CI,
+    and local full_stack_browser gates remain open.
   next_action: >-
-    First wire the released Provider-only identity, local-series, coverage,
-    freshness and provenance checks into the actual Strategy local-read/preflight/
-    acquisition/execution path, then prove caller-level success, rejected
-    identity, unavailable/stale/partial coverage, and immutable-lineage behavior
-    with bounded stack-free tests and no hidden transport.
+    Publish only the completed Provider host-composition files and workstream
+    receipt after host-only validation; keep the listed typing edits out of that
+    changeset. Preserve unavailable behavior for missing, partial, malformed,
+    or wrong-build evidence and every scope except the proven equity/market/cash
+    backtest tuple. Then resume and close the separately recorded mypy typing
+    compatibility context. Continue ETF PIT and TC immutable
+    CodeVersion/Study reconciliation only after their accepted green releases,
+    then complete combined PostgreSQL/application, exhaustive, exact CI and
+    full_stack_browser gates before checkpoint review.
     Keep ETF point-in-time membership and TC2000 immutable CodeVersion/Study
     consumers explicitly gated on their later accepted green staging releases;
     preserve owner, known-at,

@@ -103,6 +103,8 @@ def test_walk_forward_progress_command_round_trips_and_rejects_mutation() -> Non
 def test_local_api_bindings_factory_requires_and_uses_complete_socket_configuration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
     monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
     monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
     forward_profile_digest = content_digest("forward-runtime")
@@ -110,12 +112,20 @@ def test_local_api_bindings_factory_requires_and_uses_complete_socket_configurat
     monkeypatch.setenv(
         "STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT", forward_profile_digest
     )
+    monkeypatch.setattr(
+        provider_capability_host.LocalNautilusRcConformanceEvidenceSource,
+        "from_environment",
+        lambda _environment: pytest.fail("disabled scope must not read the evidence artifact"),
+    )
 
     from app.strategy_lab_v2.application import StrategyLabV2ApiBindings
 
     bindings = rpc_module.build_api_bindings(None, None)
 
     assert isinstance(bindings, StrategyLabV2ApiBindings)
+    # The registered search/calendar host does not enable capability preflight
+    # without both the exact pinned evidence and explicit supported scope.
+    assert bindings.capability_preflight is None
     assert isinstance(bindings.search_dispatch, rpc_module.UnixSocketSearchDispatchClient)
     assert bindings.search_dispatch.socket_path == Path("/run/strategy/preparation.sock")
     assert bindings.forward_worker_runtime_profile_fingerprint == forward_profile_digest
@@ -123,6 +133,131 @@ def test_local_api_bindings_factory_requires_and_uses_complete_socket_configurat
     monkeypatch.delenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN")
     with pytest.raises(ValueError, match="must both be configured"):
         rpc_module.build_api_bindings(None, None)
+
+
+def test_local_api_factory_composes_only_the_proven_provider_backtest_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    monkeypatch.setenv(
+        provider_capability_host.CAPABILITY_SCOPE_CONFIG_ENV,
+        '{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"]}',
+    )
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY", "/operator/nautilus-evidence"
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256", "a" * 64)
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256", "b" * 64)
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256", "c" * 64)
+
+    resolution = object()
+    evidence_source = type("PinnedEvidenceSource", (), {"load": lambda self: resolution})()
+    monkeypatch.setattr(
+        provider_capability_host.LocalNautilusRcConformanceEvidenceSource,
+        "from_environment",
+        lambda _environment: evidence_source,
+    )
+    observed: dict[str, Any] = {}
+
+    def bind_backtest(value: Any, **kwargs: Any) -> object:
+        observed["resolution"] = value
+        observed.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(
+        provider_capability_host,
+        "build_nautilus_backtest_execution_binding",
+        bind_backtest,
+    )
+
+    bindings = rpc_module.build_api_bindings(lambda: None, object())
+
+    assert bindings.capability_preflight is not None
+    assert observed["resolution"] is resolution
+    assert observed["product_classes"] == frozenset({provider_capability_host.ProductClass.EQUITY})
+    assert observed["execution_models"] == frozenset({"market"})
+    assert observed["account_models"] == frozenset({"cash"})
+
+
+@pytest.mark.parametrize(
+    "scope",
+    [
+        '{"product_classes":["future"],"execution_models":["market"],"account_models":["cash"]}',
+        '{"product_classes":["equity"],"execution_models":["bar-close-v1"],"account_models":["cash-equity-v1"]}',
+        '{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"],"extra":true}',
+        "not-json",
+    ],
+)
+def test_local_api_factory_keeps_invalid_scope_configuration_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+    scope: str,
+) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    monkeypatch.setenv(provider_capability_host.CAPABILITY_SCOPE_CONFIG_ENV, scope)
+    bindings = rpc_module.build_api_bindings(lambda: None, object())
+    assert bindings.capability_preflight is None
+
+
+def test_local_api_factory_keeps_wrong_build_evidence_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    monkeypatch.setenv(
+        provider_capability_host.CAPABILITY_SCOPE_CONFIG_ENV,
+        '{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"]}',
+    )
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY", "/operator/nautilus-evidence"
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256", "a" * 64)
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256", "b" * 64)
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256", "c" * 64)
+
+    source = type("WrongBuildEvidenceSource", (), {"load": lambda self: object()})()
+    monkeypatch.setattr(
+        provider_capability_host.LocalNautilusRcConformanceEvidenceSource,
+        "from_environment",
+        lambda _environment: source,
+    )
+
+    def reject_wrong_build(*_args: Any, **_kwargs: Any) -> Any:
+        raise ValueError("conformance build does not match the pinned runtime")
+
+    monkeypatch.setattr(
+        provider_capability_host,
+        "build_nautilus_backtest_execution_binding",
+        reject_wrong_build,
+    )
+    bindings = rpc_module.build_api_bindings(lambda: None, object())
+    assert bindings.capability_preflight is None
+
+
+def test_local_api_factory_keeps_partial_pinned_evidence_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    monkeypatch.setenv(
+        provider_capability_host.CAPABILITY_SCOPE_CONFIG_ENV,
+        '{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"]}',
+    )
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY", "/operator/nautilus-evidence"
+    )
+
+    bindings = rpc_module.build_api_bindings(lambda: None, object())
+    assert bindings.capability_preflight is None
 
 
 def test_local_api_bindings_factory_composes_provider_owned_walk_forward_calendar(
