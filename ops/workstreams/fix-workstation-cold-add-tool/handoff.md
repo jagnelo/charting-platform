@@ -2,6 +2,14 @@
 
 Created from `staging` at `281a57bd9fb782c0f85bfb5127c713ea15037f68`.
 
+## Current checkpoint —2026-10-20T00:43Z
+
+Source correction d12a730a4f98009fecf585e80daa9a66e23d2410 is published and origin-identical. Three added ordinary menu-event regressions exercise pending hydration acknowledgement/exactly-once, cancellation after unmount, and the already-usable-tab fast path. On unchanged application source, the 26-case file had exactly two deterministic failures (menu remained open; old view mutated the store after unmount), with24passing. The minimal source change moves acknowledgement before waits, rechecks mount state after readiness, and cancels activation-loop work after teardown. The same26cases then passed in6.18s with one worker and no retries; git diff --check passed. These concrete lifecycle defects are proved, but neither is yet established as the cause of Provider's hosted F8t failure. Do NOT claim that failure closed or repair accepted.
+
+Dependency setup initially failed before test collection because the staging dependency copy contained macOS optional native packages. Matching existing Linux rollup4.62.4 and esbuild0.21.5 packages were read-only copied from Provider into this own ignored node_modules; no dependency/lock/source file or sibling cache changed.
+
+Full unit/type/build, unchanged ordinary F8t functional/browser and104visual proof, exact branch CI and guarded staging/EIG remain open. TC retains the sole heavy slot; no root fixture was launched. Closing this own operational record is the current action; then inspect remote CI and prepare the future safe exact-source diagnostic without starting competing heavy work. No feature checkpoint accepted or merged; root goal remains active.
+
 ## Human authorization
 
 - Recorded at: 2026-10-20T00:31:25.486206+00:00
@@ -28,6 +36,10 @@ TC owns the current heavy diagnostic slot for its separate F8n/F8u failures. No 
 All55retained services/data, assigned TC services/volumes, port15190, private quotas, provider holds, feature checkouts and dirty root edits remain untouched. This repair has no migration or deployment impact. Its goal is a subtask of the already-active unbounded four-feature coordinator goal; after plan-ready, record the explicit duplicate-goal unavailability reason instead of replacing that overall objective.
 
 ## Planning closure
+
+## Active implementation context: cold_command_regression
+
+Entered after operational closure8fe5dc3e8afd2d92320bd18f170c4358053c99d4 was independently confirmed clean and identical to origin. Own paths are frontend/src/views/WorkstationView.vue, the existing popout-bindings unit test harness (and optional dedicated tool-command test file), and this own workstream. Intent: reproduce accepted-command acknowledgement/readiness/teardown behavior using actual ordinary menu events and deferred workspace load; do not present a lifecycle defect as the proven hosted-flake cause without matching evidence. Package-lock hashes match staging exactly; dependencies are copied into this own ignored node_modules (no sibling symlink/cache mutation). One bounded unit worker only; no competing fixture.
 
 Planning commit ed9f1d7ee6b5dad7fffe3c6579aa3399c99206c0 was pushed successfully and matched origin/fix/workstation-cold-add-tool. The scoped staged path review contained exactly the four owned operational records; workstream validation and git diff --check passed. Normal plan-ready succeeded for the exact claim. Goal-state is unavailable solely because the existing root coordinator goal already covers this subtask; that root goal remains active and unbounded. No application source changed and no product acceptance is claimed.
 

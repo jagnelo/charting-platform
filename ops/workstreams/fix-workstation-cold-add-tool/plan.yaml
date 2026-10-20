@@ -47,11 +47,11 @@ migration_impact: none
 deployment_impact: none
 status: in_progress
 remaining_gaps:
-  - Cause and repair are not yet proven. The failed-attempt trace is absent; the successful retry cannot prove the failed action worked.
+  - Two deterministic lifecycle defects are fixed with baseline-red/fixed-green tests, but their relationship to the hosted F8t failure is unproven. The failed-attempt trace is absent; the successful retry cannot prove the failed action worked.
   - Full local and exact-source hosted validation plus delegated technical acceptance and guarded staging integration remain mandatory.
 progress:
-  completed: []
+  completed: [COLD1]
   total: 5
-  current_phase: planning_and_evidence
+  current_phase: cold_command_regression_operational_closure
   current_blocker: none
-  next_action: Validate and publish this planning context, record the existing unbounded coordinator goal as the execution aid without creating a duplicate branch goal, then verify the clean synchronized boundary before implementation.
+  next_action: Close synchronized source d12a730a4 operational evidence, inspect exact hosted CI, and prepare unchanged ordinary browser proof for a future safe slot; TC retains the sole heavy slot.
