@@ -848,17 +848,6 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       dataset_manifest: { benchmark_coverage: { status: 'ready' } },
       artifacts: [],
     }
-    // The existing gap-state reference deliberately shows these adjacent
-    // surfaces loading. Hold their reads so backend speed cannot change the
-    // background while the sandbox failure/recovery controls are asserted.
-    await page.route(/\/api\/v1\/market-groups\/us-benchmarks(?:\?.*)?$/, async route => {
-      if (route.request().method() !== 'GET') return route.continue()
-      await new Promise<void>(() => {})
-    })
-    await page.route(/\/api\/v1\/ohlcv\/(?:local\/)?SPY\/[^/?]+(?:\/transformed)?(?:\?.*)?$/, async route => {
-      if (route.request().method() !== 'GET') return route.continue()
-      await new Promise<void>(() => {})
-    })
     await page.route(/\/api\/v1\/code\/validate$/, async route => {
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] }) })
@@ -874,10 +863,6 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       }
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(failedRun) })
-    })
-    await page.route(url => url.pathname.endsWith('/api/v1/research/runs'), async route => {
-      if (route.request().method() !== 'GET') return route.fallback()
-      await new Promise<void>(() => {})
     })
     await page.route(/\/api\/v1\/research\/runs\/780$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(failedRun) })
