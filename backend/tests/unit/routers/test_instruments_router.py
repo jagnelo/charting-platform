@@ -4,6 +4,7 @@ from decimal import Decimal
 
 import pytest
 
+from app.lib.time_utils import wire_datetime
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
 from app.models.instrument_stats import InstrumentStats
@@ -15,31 +16,28 @@ from app.routers.instruments import (
     _ensure_52w_stats,
     _instrument_search_exchange,
     _needs_52w_stats_refresh,
-    _wire_datetime,
 )
 from app.schemas.instrument import FieldProvenanceOut, InstrumentListingOut, InstrumentStatsOut
 from tests.unit.conftest import AsyncSessionAdapter
 
 
-def test_wire_datetime_normalizes_aware_and_naive_provenance_values():
-    assert _wire_datetime(datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)) == ("2026-01-02T03:04:05Z")
-    assert _wire_datetime(datetime.fromisoformat("2026-01-02T05:04:05+02:00")) == (
+def test_shared_wire_datetime_normalizes_aware_and_naive_provenance_values():
+    assert wire_datetime(datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)) == ("2026-01-02T03:04:05Z")
+    assert wire_datetime(datetime.fromisoformat("2026-01-02T05:04:05+02:00")) == (
         "2026-01-02T03:04:05Z"
     )
-    assert _wire_datetime(datetime(2026, 1, 2, 3, 4, 5)) == "2026-01-02T03:04:05Z"
-    assert _wire_datetime(None) is None
+    assert wire_datetime(datetime(2026, 1, 2, 3, 4, 5)) == "2026-01-02T03:04:05Z"
+    assert wire_datetime(None) is None
 
 
-def test_instrument_read_contract_timestamps_share_canonical_wire_format():
-    """Membership/coverage consumers must not leak Python's ``+00:00`` spelling."""
-
+def test_shared_wire_datetime_normalizes_offsets_to_utc_z():
     aware = datetime.fromisoformat("2026-01-02T05:04:05+02:00")
     naive = datetime(2026, 1, 2, 3, 4, 5)
-    assert _wire_datetime(aware) == "2026-01-02T03:04:05Z"
-    assert _wire_datetime(naive) == "2026-01-02T03:04:05Z"
+    assert wire_datetime(aware) == "2026-01-02T03:04:05Z"
+    assert wire_datetime(naive) == "2026-01-02T03:04:05Z"
 
 
-def test_instrument_response_schemas_serialize_timestamps_as_canonical_utc_z():
+def test_instrument_response_schemas_keep_pydantic_datetime_json_contract():
     naive = datetime(2026, 9, 12, 14, 30)
     aware = datetime(2026, 9, 12, 16, 30, tzinfo=UTC)
 
@@ -58,10 +56,10 @@ def test_instrument_response_schemas_serialize_timestamps_as_canonical_utc_z():
         delisted_at=None,
     )
 
-    assert stats.model_dump(mode="json")["computed_at"] == "2026-09-12T14:30:00Z"
-    assert provenance.model_dump(mode="json")["fetched_at"] == "2026-09-12T14:30:00Z"
+    assert stats.model_dump(mode="json")["computed_at"] == "2026-09-12T14:30:00"
+    assert provenance.model_dump(mode="json")["fetched_at"] == "2026-09-12T14:30:00"
     assert provenance.model_dump(mode="json")["observed_at"] == "2026-09-12T16:30:00Z"
-    assert listing.model_dump(mode="json")["effective_at"] == "2026-09-12T14:30:00Z"
+    assert listing.model_dump(mode="json")["effective_at"] == "2026-09-12T14:30:00"
     assert listing.model_dump(mode="json")["known_at"] == "2026-09-12T16:30:00Z"
 
 
@@ -280,8 +278,9 @@ class TestInstrument52WStats:
         assert float(refreshed.stats.week52_low) == 120.0
         assert refreshed.stats.field_provenance["week52_high"]["source"] == "internal_ohlcv_52w"
         fetched_at = refreshed.stats.field_provenance["week52_high"]["fetched_at"]
-        assert fetched_at.endswith("Z")
-        assert "+00:00" not in fetched_at
+        fetched_at_datetime = datetime.fromisoformat(fetched_at)
+        assert fetched_at_datetime.tzinfo is not None
+        assert fetched_at_datetime.utcoffset() == timedelta(0)
         assert (
             refreshed.stats.field_provenance["week52_high"]["observed_at"]
             == base.date().isoformat()
