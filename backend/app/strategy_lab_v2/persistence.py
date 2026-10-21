@@ -121,6 +121,7 @@ SearchDispatchBindingResolver = Callable[
 class PostgresStrategyLabV2Persistence:
     """All durable v2 adapters sharing one async SQLAlchemy session factory."""
 
+    session_factory: Callable[[], Any]
     aggregate_store: PostgresAggregateStore
     resources: PostgresResourceReader
     acquisition: PostgresAcquisitionAdapter
@@ -309,6 +310,7 @@ class PostgresStrategyLabV2Persistence:
         search_state = PostgresSearchStateAdapter(session_factory)
         worker_state = PostgresWorkerStateAdapter(session_factory)
         return cls(
+            session_factory=session_factory,
             aggregate_store=aggregate_store,
             resources=PostgresResourceReader(
                 aggregate_store,

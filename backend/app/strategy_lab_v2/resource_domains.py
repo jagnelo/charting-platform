@@ -31,6 +31,7 @@ from app.strategy_lab_v2.contracts import (
     CarryInMode,
     DataSeriesManifest,
     DataSnapshot,
+    ETFMembershipReference,
     EvaluationWindow,
     EventGranularity,
     ExperimentDefinition,
@@ -554,6 +555,7 @@ def _normalize_snapshot(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
         "preflight_report",
         "series",
         "created_at",
+        "etf_memberships",
         "resource_id",
         "id",
     }
@@ -569,12 +571,16 @@ def _normalize_snapshot(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
         series_raw = attributes["series"]
         if not isinstance(series_raw, Sequence) or isinstance(series_raw, str | bytes):
             raise ValueError("snapshot series must be a sequence")
+        memberships_raw = attributes.get("etf_memberships", ())
+        if not isinstance(memberships_raw, Sequence) or isinstance(memberships_raw, str | bytes):
+            raise ValueError("snapshot etf_memberships must be a sequence")
         snapshot = DataSnapshot(
             snapshot_id=attributes["snapshot_id"],
             provider_snapshot_id=attributes["provider_snapshot_id"],
             preflight_report=_preflight_report(attributes["preflight_report"]),
             series=tuple(_data_series_manifest(item) for item in series_raw),
             created_at=_datetime_attribute(attributes["created_at"], "created_at"),
+            etf_memberships=tuple(_etf_membership_reference(item) for item in memberships_raw),
         )
     except KeyError as error:
         raise ValueError(f"snapshot attribute is required: {error.args[0]}") from error
@@ -587,10 +593,40 @@ def _normalize_snapshot(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
         "preflight_report": _preflight_attributes(snapshot.preflight_report),
         "series": tuple(_series_attributes(item) for item in snapshot.series),
         "created_at": snapshot.created_at,
+        "etf_memberships": tuple(
+            {
+                "etf_instrument_id": item.etf_instrument_id,
+                "decision_time": item.decision_time,
+                "snapshot_id": item.snapshot_id,
+                "content_digest": item.content_digest,
+            }
+            for item in snapshot.etf_memberships
+        ),
     }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
     return ResourceDomainNormalization(normalized, snapshot.fingerprint, snapshot)
+
+
+def _etf_membership_reference(value: Any) -> ETFMembershipReference:
+    if not isinstance(value, Mapping) or set(value) != {
+        "etf_instrument_id",
+        "decision_time",
+        "snapshot_id",
+        "content_digest",
+    }:
+        raise ValueError(
+            "ETF snapshot inputs require exact identity, decision, snapshot, and digest fields"
+        )
+    try:
+        return ETFMembershipReference(
+            etf_instrument_id=value["etf_instrument_id"],
+            decision_time=_datetime_attribute(value["decision_time"], "ETF decision_time"),
+            snapshot_id=value["snapshot_id"],
+            content_digest=value["content_digest"],
+        )
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"ETF membership reference is invalid: {error}") from error
 
 
 def _normalize_trial(attributes: Mapping[str, Any]) -> ResourceDomainNormalization:

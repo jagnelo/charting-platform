@@ -133,7 +133,9 @@ class NautilusTrialDomainHydrator:
     requesting owner and agrees with the experiment's content bindings.
     """
 
-    def __init__(self, reader: OwnerScopedDomainReader) -> None:
+    def __init__(
+        self, reader: OwnerScopedDomainReader, *, etf_membership_reader: Any = None
+    ) -> None:
         if not all(
             callable(getattr(reader, method, None))
             for method in (
@@ -144,6 +146,11 @@ class NautilusTrialDomainHydrator:
         ):
             raise TypeError("reader must provide owner-scoped domain contract reads")
         self._reader = reader
+        if etf_membership_reader is not None and not callable(
+            getattr(etf_membership_reader, "resolve_pinned_etf_membership", None)
+        ):
+            raise TypeError("etf_membership_reader must expose resolve_pinned_etf_membership()")
+        self._etf_membership_reader = etf_membership_reader
 
     async def hydrate_attempt(
         self,
@@ -205,6 +212,28 @@ class NautilusTrialDomainHydrator:
             raise TrialDomainHydrationError(
                 "experiment snapshot is missing or unavailable to this owner"
             )
+        if snapshot.etf_memberships:
+            if self._etf_membership_reader is None:
+                raise TrialDomainHydrationError(
+                    "frozen ETF membership cannot be revalidated on this worker host"
+                )
+            for reference in snapshot.etf_memberships:
+                try:
+                    membership = await self._etf_membership_reader.resolve_pinned_etf_membership(
+                        reference
+                    )
+                except Exception as error:
+                    raise TrialDomainHydrationError(
+                        "frozen ETF membership is unavailable for restart validation"
+                    ) from error
+                if (
+                    membership.snapshot_id != reference.snapshot_id
+                    or membership.etf_instrument_id != reference.etf_instrument_id
+                    or membership.content_digest != reference.content_digest
+                ):
+                    raise TrialDomainHydrationError(
+                        "persisted ETF membership digest differs from the frozen experiment input"
+                    )
 
         strategies: list[StrategyVersion] = []
         packages: dict[str, StrategyPackage] = {}

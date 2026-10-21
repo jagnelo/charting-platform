@@ -23,7 +23,7 @@ from app.strategy_lab_v2.capabilities import (
 )
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, build_capability_summary
 from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
-from app.strategy_lab_v2.etf_pit import ETFPointInTimeMembership
+from app.strategy_lab_v2.etf_pit import ETFPointInTimeMembership, membership_reference
 from app.strategy_lab_v2.execution_capabilities import (
     ExecutionCapabilityBinding,
     preflight_execution_capability,
@@ -253,12 +253,19 @@ class CapabilityPreflightService:
         summary = build_capability_summary(report, execution)
         if etf_memberships:
             lineage_digests = tuple(item.content_digest for item in etf_memberships)
+            membership_references = tuple(
+                membership_reference(item, decision_time=decision_time)
+                for item, (_, decision_time) in zip(
+                    etf_memberships, request.etf_memberships, strict=True
+                )
+            )
             return replace(
                 summary,
                 binding_fingerprint=content_digest(
                     {"execution": summary.binding_fingerprint, "etf_lineage": lineage_digests}
                 ),
                 input_lineage_fingerprints=lineage_digests,
+                etf_memberships=membership_references,
             )
         return summary
 

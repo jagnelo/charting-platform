@@ -437,6 +437,14 @@ def test_snapshot_attributes_rehydrate_preflight_and_series_contracts() -> None:
                 }
             ],
             "created_at": "2026-09-17T12:00:00Z",
+            "etf_memberships": [
+                {
+                    "etf_instrument_id": "US.ARCA.SPY",
+                    "decision_time": "2022-01-01T00:00:00Z",
+                    "snapshot_id": 41,
+                    "content_digest": content_digest("frozen-spy-membership"),
+                }
+            ],
             "resource_id": "snapshot-1",
         },
     )
@@ -447,6 +455,7 @@ def test_snapshot_attributes_rehydrate_preflight_and_series_contracts() -> None:
         result.attributes["preflight_report"]["fingerprint"] == _preflight_payload()["fingerprint"]
     )
     assert result.attributes["series"][0]["adjustment"] == "split_adjusted"
+    assert result.attributes["etf_memberships"][0]["snapshot_id"] == 41
     assert result.attributes["created_at"] == datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
 
 

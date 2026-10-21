@@ -480,12 +480,35 @@ class DataSeriesManifest:
 
 
 @dataclass(frozen=True, slots=True)
+class ETFMembershipReference:
+    """Persisted identity needed to revalidate one frozen ETF PIT input."""
+
+    etf_instrument_id: str
+    decision_time: datetime
+    snapshot_id: int
+    content_digest: str
+
+    def __post_init__(self) -> None:
+        _nonempty(self.etf_instrument_id, "etf_instrument_id")
+        _aware(self.decision_time, "decision_time")
+        if (
+            not isinstance(self.snapshot_id, int)
+            or isinstance(self.snapshot_id, bool)
+            or self.snapshot_id <= 0
+        ):
+            raise ValueError("ETF snapshot_id must be a positive integer")
+        require_sha256_digest(self.content_digest, field_name="ETF membership content_digest")
+        object.__setattr__(self, "decision_time", self.decision_time.astimezone(UTC))
+
+
+@dataclass(frozen=True, slots=True)
 class DataSnapshot:
     snapshot_id: str
     provider_snapshot_id: str
     preflight_report: PreflightReport
     series: tuple[DataSeriesManifest, ...]
     created_at: datetime
+    etf_memberships: tuple[ETFMembershipReference, ...] = ()
 
     def __post_init__(self) -> None:
         from app.strategy_lab_v2.capabilities import PreflightClass, PreflightReport
@@ -498,10 +521,25 @@ class DataSnapshot:
             raise ValueError("unsupported preflight reports cannot freeze a data snapshot")
         _aware(self.created_at, "created_at")
         series = tuple(self.series)
+        etf_memberships = tuple(self.etf_memberships)
         if not series:
             raise ValueError("a frozen data snapshot must contain at least one series")
         if any(not isinstance(item, DataSeriesManifest) for item in series):
             raise TypeError("data snapshot series must use DataSeriesManifest records")
+        if any(not isinstance(item, ETFMembershipReference) for item in etf_memberships):
+            raise TypeError("ETF membership inputs must use ETFMembershipReference records")
+        membership_keys = [(item.etf_instrument_id, item.decision_time) for item in etf_memberships]
+        if len(membership_keys) != len(set(membership_keys)):
+            raise ValueError("ETF membership selectors must be unique in a frozen snapshot")
+        object.__setattr__(
+            self,
+            "etf_memberships",
+            tuple(
+                sorted(
+                    etf_memberships, key=lambda item: (item.etf_instrument_id, item.decision_time)
+                )
+            ),
+        )
         keys = [
             (
                 item.instrument_id,
@@ -625,6 +663,7 @@ class DataSnapshot:
             {
                 "capability_contract_digest": self.preflight_report.fingerprint,
                 "series": self.series,
+                "etf_memberships": self.etf_memberships,
             }
         )
 

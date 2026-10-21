@@ -7,6 +7,7 @@ gate: historical visibility is decided only by the snapshot's known_at.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -15,6 +16,7 @@ from typing import Any
 from sqlalchemy import select
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import ETFMembershipReference
 
 _COMPLETE = {"complete", "issuer_current", "issuer_reported", "self_snapshotted"}
 
@@ -52,6 +54,7 @@ async def resolve_etf_pit_membership(
     *,
     etf_instrument_id: str,
     decision_time: datetime,
+    snapshot_id: int | None = None,
 ) -> ETFPointInTimeMembership:
     """Read the exact persisted ETF snapshot locally; never refresh or fallback."""
 
@@ -82,22 +85,24 @@ async def resolve_etf_pit_membership(
     if len(profiles) != 1:
         raise ValueError("ETF profile is missing or ambiguous")
     profile = profiles[0]
-    snapshots = (
-        (
-            await session.execute(
-                select(ETFHoldingsSnapshot).where(
-                    ETFHoldingsSnapshot.etf_profile_id == profile.id,
-                    ETFHoldingsSnapshot.composition_date <= decision_time.date(),
-                    ETFHoldingsSnapshot.known_at.is_not(None),
-                    ETFHoldingsSnapshot.known_at <= decision_time,
-                )
-            )
-        )
-        .scalars()
-        .all()
+    snapshot_query = select(ETFHoldingsSnapshot).where(
+        ETFHoldingsSnapshot.etf_profile_id == profile.id,
+        ETFHoldingsSnapshot.known_at.is_not(None),
+        ETFHoldingsSnapshot.known_at <= decision_time,
     )
+    if snapshot_id is None:
+        snapshot_query = snapshot_query.where(
+            ETFHoldingsSnapshot.composition_date <= decision_time.date()
+        )
+    else:
+        if not isinstance(snapshot_id, int) or isinstance(snapshot_id, bool) or snapshot_id <= 0:
+            raise ValueError("pinned ETF snapshot_id must be a positive integer")
+        snapshot_query = snapshot_query.where(ETFHoldingsSnapshot.id == snapshot_id)
+    snapshots = (await session.execute(snapshot_query)).scalars().all()
     if not snapshots:
-        raise ValueError("no ETF snapshot was known at decision time")
+        raise ValueError("pinned ETF snapshot is missing or was not known at decision time")
+    if snapshot_id is not None and len(snapshots) != 1:
+        raise ValueError("pinned ETF snapshot identity is ambiguous")
     snapshots.sort(key=lambda item: (item.composition_date, item.known_at), reverse=True)
     latest_key = (snapshots[0].composition_date, snapshots[0].known_at)
     latest = [item for item in snapshots if (item.composition_date, item.known_at) == latest_key]
@@ -257,3 +262,40 @@ def freeze_etf_pit_membership(
         "constituents": tuple(constituents),
     }
     return ETFPointInTimeMembership(**lineage, content_digest=content_digest(lineage))
+
+
+def membership_reference(
+    membership: ETFPointInTimeMembership, *, decision_time: datetime
+) -> ETFMembershipReference:
+    """Create the small immutable selector persisted by a DataSnapshot."""
+
+    if not isinstance(membership, ETFPointInTimeMembership):
+        raise TypeError("membership must be verified ETFPointInTimeMembership evidence")
+    return ETFMembershipReference(
+        etf_instrument_id=membership.etf_instrument_id,
+        decision_time=decision_time,
+        snapshot_id=membership.snapshot_id,
+        content_digest=membership.content_digest,
+    )
+
+
+class LocalETFMembershipReader:
+    """Worker-side persisted membership reader used only for restart checks."""
+
+    def __init__(self, session_factory: Callable[[], Any]) -> None:
+        if not callable(session_factory):
+            raise TypeError("session_factory must be callable")
+        self._session_factory = session_factory
+
+    async def resolve_pinned_etf_membership(
+        self, reference: ETFMembershipReference
+    ) -> ETFPointInTimeMembership:
+        if not isinstance(reference, ETFMembershipReference):
+            raise TypeError("reference must be ETFMembershipReference")
+        async with self._session_factory() as session:
+            return await resolve_etf_pit_membership(
+                session,
+                etf_instrument_id=reference.etf_instrument_id,
+                decision_time=reference.decision_time,
+                snapshot_id=reference.snapshot_id,
+            )

@@ -271,6 +271,9 @@ async def test_etf_membership_digest_is_bound_and_members_require_provider_requi
         payload_digest=content_digest(payload),
     )
     assert summary.input_lineage_fingerprints == (membership.content_digest,)
+    assert len(summary.etf_memberships) == 1
+    assert summary.etf_memberships[0].snapshot_id == membership.snapshot_id
+    assert summary.etf_memberships[0].decision_time == _START
     assert summary.binding_fingerprint != _binding().fingerprint
 
 

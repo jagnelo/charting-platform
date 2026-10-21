@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from types import MappingProxyType
 from typing import Any
 
@@ -10,6 +11,7 @@ from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     DataSnapshot,
+    ETFMembershipReference,
     ExperimentDefinition,
     PortfolioComposition,
     RunAttempt,
@@ -23,6 +25,57 @@ from app.strategy_lab_v2.trial_hydration import (
     NautilusTrialDomainHydrator,
     TrialDomainHydrationError,
 )
+
+
+def _inputs_with_etf_membership_reference() -> dict[str, Any]:
+    values = _inputs()
+    old_snapshot: DataSnapshot = values["snapshot"]
+    reference = ETFMembershipReference(
+        etf_instrument_id="US:ETF:SPY",
+        decision_time=old_snapshot.created_at,
+        snapshot_id=41,
+        content_digest=content_digest("frozen-membership"),
+    )
+    snapshot = replace(old_snapshot, etf_memberships=(reference,))
+    experiment: ExperimentDefinition = values["experiment"]
+    experiment = replace(experiment, snapshot_fingerprint=snapshot.fingerprint)
+    old_trial: ScientificTrial = values["trial"]
+    trial = ScientificTrial.create(
+        experiment_fingerprint=experiment.fingerprint,
+        snapshot_fingerprint=snapshot.fingerprint,
+        preflight_report=old_trial.preflight_report,
+        parameter_set=old_trial.parameter_set,
+        scenario=old_trial.scenario,
+        seed=old_trial.seed,
+        randomization=old_trial.randomization,
+        evaluation_window=old_trial.evaluation_window,
+    )
+    attempt: RunAttempt = values["attempt"]
+    values.update(
+        snapshot=snapshot,
+        experiment=experiment,
+        trial=trial,
+        attempt=replace(attempt, trial_id=trial.trial_id),
+        etf_reference=reference,
+    )
+    return values
+
+
+class PinnedMembershipReader:
+    def __init__(self, digest: str, *, snapshot_id: int = 41) -> None:
+        self.digest = digest
+        self.snapshot_id = snapshot_id
+        self.references: list[ETFMembershipReference] = []
+
+    async def resolve_pinned_etf_membership(self, reference: ETFMembershipReference) -> Any:
+        from types import SimpleNamespace
+
+        self.references.append(reference)
+        return SimpleNamespace(
+            etf_instrument_id=reference.etf_instrument_id,
+            snapshot_id=self.snapshot_id,
+            content_digest=self.digest,
+        )
 
 
 class MemoryDomainReader:
@@ -217,3 +270,38 @@ async def test_hydrator_fails_closed_when_an_experiment_package_pin_is_unavailab
             principal="alice",
             attempt_resource_id=values["attempt"].attempt_id,
         )
+
+
+@pytest.mark.asyncio
+async def test_hydrator_revalidates_frozen_etf_membership_digest_on_restart() -> None:
+    values = _inputs_with_etf_membership_reference()
+    membership_reader = PinnedMembershipReader(values["etf_reference"].content_digest)
+    hydrated = await NautilusTrialDomainHydrator(
+        MemoryDomainReader(values), etf_membership_reader=membership_reader
+    ).hydrate_attempt(principal="alice", attempt_resource_id=values["attempt"].attempt_id)
+
+    assert hydrated.snapshot.etf_memberships == (values["etf_reference"],)
+    assert membership_reader.references == [values["etf_reference"]]
+
+
+@pytest.mark.asyncio
+async def test_hydrator_rejects_changed_or_unavailable_etf_membership_on_restart() -> None:
+    values = _inputs_with_etf_membership_reference()
+    with pytest.raises(TrialDomainHydrationError, match="cannot be revalidated"):
+        await NautilusTrialDomainHydrator(MemoryDomainReader(values)).hydrate_attempt(
+            principal="alice", attempt_resource_id=values["attempt"].attempt_id
+        )
+
+    changed = PinnedMembershipReader(content_digest("changed-membership"))
+    with pytest.raises(TrialDomainHydrationError, match="digest differs"):
+        await NautilusTrialDomainHydrator(
+            MemoryDomainReader(values), etf_membership_reader=changed
+        ).hydrate_attempt(principal="alice", attempt_resource_id=values["attempt"].attempt_id)
+
+    substituted_snapshot = PinnedMembershipReader(
+        values["etf_reference"].content_digest, snapshot_id=42
+    )
+    with pytest.raises(TrialDomainHydrationError, match="digest differs"):
+        await NautilusTrialDomainHydrator(
+            MemoryDomainReader(values), etf_membership_reader=substituted_snapshot
+        ).hydrate_attempt(principal="alice", attempt_resource_id=values["attempt"].attempt_id)

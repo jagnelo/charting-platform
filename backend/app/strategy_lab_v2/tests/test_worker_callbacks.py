@@ -69,6 +69,8 @@ class _Persistence:
 
 
 class _ComposedPersistence:
+    session_factory = staticmethod(lambda: None)
+
     def __init__(self) -> None:
         self.root: Path | None = None
         self.lookup_arguments: dict[str, Any] | None = None
@@ -95,6 +97,8 @@ class _ComposedPersistence:
 
 
 class _SearchDispatchPersistence(_Persistence):
+    session_factory = staticmethod(lambda: None)
+
     class _Store:
         async def load_by_request_fingerprint(self, _request_fingerprint: str) -> None:
             return None

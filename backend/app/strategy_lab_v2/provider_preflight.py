@@ -27,6 +27,7 @@ from app.strategy_lab_v2.capabilities import CapabilityRequirement
 from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
     DataSeriesManifest,
+    ETFMembershipReference,
     EventGranularity,
     ProductClass,
 )
@@ -101,6 +102,21 @@ class ProviderLocalCapabilityEvidenceReader:
                 session,
                 etf_instrument_id=etf_instrument_id,
                 decision_time=decision_time,
+            )
+
+    async def resolve_pinned_etf_membership(
+        self, reference: ETFMembershipReference
+    ) -> ETFPointInTimeMembership:
+        """Re-read exactly the frozen producer snapshot for restart validation."""
+
+        if not isinstance(reference, ETFMembershipReference):
+            raise TypeError("reference must be ETFMembershipReference")
+        async with self._session_factory() as session:
+            return await resolve_etf_pit_membership(
+                session,
+                etf_instrument_id=reference.etf_instrument_id,
+                decision_time=reference.decision_time,
+                snapshot_id=reference.snapshot_id,
             )
 
     async def __call__(

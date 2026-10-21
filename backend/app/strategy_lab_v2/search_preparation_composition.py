@@ -18,6 +18,7 @@ from typing import Any
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.conformance_fixtures import NautilusRcConformanceResolution
 from app.strategy_lab_v2.engine_execution import NautilusExecutionScope
+from app.strategy_lab_v2.etf_pit import LocalETFMembershipReader
 from app.strategy_lab_v2.event_tape_artifacts import FrozenSeriesDecoder
 from app.strategy_lab_v2.nautilus_trial_materializer import (
     NautilusTrialRuntimeInputMaterializer,
@@ -145,7 +146,10 @@ def create_search_preparation_evidence_resolver(
     )
 
     return NautilusTrialSearchDispatchEvidenceResolver(
-        domain_hydrator=NautilusTrialDomainHydrator(persistence.resources),
+        domain_hydrator=NautilusTrialDomainHydrator(
+            persistence.resources,
+            etf_membership_reader=LocalETFMembershipReader(persistence.session_factory),
+        ),
         runtime_materializer=runtime_materializer,
         strategy_package_resolver=strategy_package_resolver,
         artifact_store=artifact_store,

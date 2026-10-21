@@ -7,6 +7,7 @@ from enum import StrEnum
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
 from app.strategy_lab_v2.capabilities import Degradation, PreflightClass, PreflightReport
+from app.strategy_lab_v2.contracts import ETFMembershipReference
 from app.strategy_lab_v2.execution_capabilities import ExecutionCapabilityPreflight
 
 
@@ -31,6 +32,7 @@ class CapabilitySummary:
     authoritative: bool
     can_publish_authoritative_results: bool
     input_lineage_fingerprints: tuple[str, ...] = ()
+    etf_memberships: tuple[ETFMembershipReference, ...] = ()
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.report_fingerprint, field_name="report_fingerprint")
@@ -74,6 +76,14 @@ class CapabilitySummary:
         if len(lineage) != len(set(lineage)):
             raise ValueError("input lineage fingerprints must be unique")
         object.__setattr__(self, "input_lineage_fingerprints", lineage)
+        memberships = tuple(self.etf_memberships)
+        if any(not isinstance(item, ETFMembershipReference) for item in memberships):
+            raise TypeError("etf_memberships must contain ETFMembershipReference values")
+        if tuple(item.content_digest for item in memberships) != lineage:
+            raise ValueError(
+                "ETF membership references must exactly match input lineage fingerprints"
+            )
+        object.__setattr__(self, "etf_memberships", memberships)
 
     @property
     def fingerprint(self) -> str:

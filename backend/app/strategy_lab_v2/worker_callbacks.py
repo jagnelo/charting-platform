@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.etf_pit import LocalETFMembershipReader
 from app.strategy_lab_v2.nautilus_worker_terminal import (
     create_nautilus_oos_worker_terminal_evidence_resolver,
 )
@@ -148,7 +149,10 @@ async def create_search_dispatch(
     materializer = create_authenticated_search_dispatch_materializer(
         dispatch_store,
         queue_name=queue_name,
-        domain_hydrator=NautilusTrialDomainHydrator(cast(OwnerScopedDomainReader, resources)),
+        domain_hydrator=NautilusTrialDomainHydrator(
+            cast(OwnerScopedDomainReader, resources),
+            etf_membership_reader=LocalETFMembershipReader(persistence.session_factory),
+        ),
     )
 
     initialized_materializer = _SearchDispatchWorkerHandoffMaterializer(
@@ -343,7 +347,10 @@ def default_evidence_resolver_factory(
     ):
         raise TypeError("persistence must expose owner-scoped domain resource reads")
     publisher = artifact_publication(artifact_root)
-    hydrator = NautilusTrialDomainHydrator(cast(OwnerScopedDomainReader, resources))
+    hydrator = NautilusTrialDomainHydrator(
+        cast(OwnerScopedDomainReader, resources),
+        etf_membership_reader=LocalETFMembershipReader(persistence.session_factory),
+    )
 
     async def lookup(
         *, request_fingerprint: str, attempt_id: str, payload_digest: str | None = None

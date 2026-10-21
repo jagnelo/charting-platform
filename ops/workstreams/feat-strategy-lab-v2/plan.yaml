@@ -5,18 +5,19 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: strategy-provider-etf-pit-consumer-reconciliation
+    name: strategy-etf-experiment-fingerprint-restart-revalidation
     status: in_progress
-    source_commit: 1b1614964e16de55227e09554d752aaec6f0694f
+    source_commit: b7946579cba4b4a8f4132274e411b7e1cf55c3f4
     intent: >-
-      Wire exact accepted Provider identity, canonical local-series, coverage,
-      freshness, and immutable provenance through Strategy's local-read and
-      capability-preflight API consumer. Reconcile accepted ETF known-at PIT
-      membership through that same local preflight and constituent coverage path.
-      Reconcile TC2000 immutable Study/Code consumers only after its accepted green
-      staging release. Recompute final Alembic heads after TC; preserve every
-      history/data set with an additive no-DDL merge revision, then complete
-      combined acceptance only after all required gates.
+      Persist exact ETF membership references and content digests in immutable
+      DataSnapshot/Experiment fingerprints, round-trip the refs through existing
+      resource and capability persistence, and revalidate the pinned snapshot
+      digest before worker hydration on restart. Preserve all Provider/ETF
+      point-in-time/coverage checks. Reconcile TC2000 immutable Study/Code
+      consumers only after its accepted green staging release. Recompute final
+      Alembic heads after TC; preserve every history/data set with an additive
+      no-DDL merge revision, then complete combined acceptance only after all
+      required gates.
     owned_paths:
       - backend/alembic/env.py
       - backend/alembic/versions/*strategy_lab*.py
@@ -27,11 +28,22 @@ integration_checkpoint:
       - backend/app/strategy_lab_v2/tests/test_provider_series_contract.py
       - backend/app/strategy_lab_v2/provider_preflight.py
       - backend/app/strategy_lab_v2/etf_pit.py
+      - backend/app/strategy_lab_v2/contracts.py
       - backend/app/strategy_lab_v2/capability_preparation.py
       - backend/app/strategy_lab_v2/capability_summary.py
+      - backend/app/strategy_lab_v2/resource_domains.py
+      - backend/app/strategy_lab_v2/postgres_capability.py
+      - backend/app/strategy_lab_v2/trial_hydration.py
+      - backend/app/strategy_lab_v2/persistence.py
+      - backend/app/strategy_lab_v2/search_preparation_composition.py
+      - backend/app/strategy_lab_v2/worker_callbacks.py
       - backend/app/strategy_lab_v2/tests/test_provider_preflight.py
       - backend/app/strategy_lab_v2/tests/test_etf_pit.py
       - backend/app/strategy_lab_v2/tests/test_capability_preparation.py
+      - backend/app/strategy_lab_v2/tests/test_resource_domains.py
+      - backend/app/strategy_lab_v2/tests/test_postgres_capability.py
+      - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
+      - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
       - backend/app/strategy_lab_v2/tests/test_capability_consumer_api.py
       - backend/alembic/versions/slv2_0009_merge_provider_strategy_heads.py
       - backend/tests/unit/strategy_lab_v2/test_schema_migration.py

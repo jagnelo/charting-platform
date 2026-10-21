@@ -12,12 +12,14 @@ import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import require_sha256_digest
 from app.strategy_lab_v2.capabilities import Degradation
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, CapabilitySummaryDecision
+from app.strategy_lab_v2.contracts import ETFMembershipReference
 
 
 class AsyncSessionFactory(Protocol):
@@ -144,7 +146,9 @@ class PostgresCapabilityAdapter:
         session: AsyncSessionLike = self._session_factory()
         async with session:
             async with session.begin():
-                return await self._load_one(session, owner_id, report_fingerprint, binding_fingerprint)
+                return await self._load_one(
+                    session, owner_id, report_fingerprint, binding_fingerprint
+                )
 
     async def load_all(self, *, principal: Any) -> tuple[CapabilitySummary, ...]:
         """Read all summaries for a principal in fingerprint order."""
@@ -169,12 +173,12 @@ class PostgresCapabilityAdapter:
                     ),
                     {"owner_id": owner_id},
                 )
-                summaries = tuple(
-                    _authenticate_row(row, owner_id) for row in result.mappings()
-                )
+                summaries = tuple(_authenticate_row(row, owner_id) for row in result.mappings())
                 ordered = tuple(sorted(summaries, key=lambda item: item.fingerprint))
                 if summaries != ordered:
-                    raise ValueError("PostgreSQL capability summaries are not deterministically ordered")
+                    raise ValueError(
+                        "PostgreSQL capability summaries are not deterministically ordered"
+                    )
                 return summaries
 
     async def _load_one(
@@ -257,15 +261,26 @@ def _summary_values(owner_id: str, summary: CapabilitySummary) -> dict[str, Any]
         "data_gaps_json": json.dumps(list(summary.data_gaps), separators=(",", ":")),
         "execution_gaps_json": json.dumps(list(summary.execution_gaps), separators=(",", ":")),
         "degradations_json": json.dumps(
-            [
-                {
-                    "instrument_id": item.instrument_id,
-                    "field": item.field,
-                    "substituted_value": item.substituted_value,
-                    "reason": item.reason,
-                }
-                for item in summary.degradations
-            ],
+            {
+                "degradations": [
+                    {
+                        "instrument_id": item.instrument_id,
+                        "field": item.field,
+                        "substituted_value": item.substituted_value,
+                        "reason": item.reason,
+                    }
+                    for item in summary.degradations
+                ],
+                "etf_memberships": [
+                    {
+                        "etf_instrument_id": item.etf_instrument_id,
+                        "decision_time": item.decision_time.isoformat(),
+                        "snapshot_id": item.snapshot_id,
+                        "content_digest": item.content_digest,
+                    }
+                    for item in summary.etf_memberships
+                ],
+            },
             separators=(",", ":"),
         ),
         "ranking_eligible": summary.ranking_eligible,
@@ -297,9 +312,17 @@ def _decode_summary(row: Mapping[str, Any]) -> CapabilitySummary:
     try:
         data_gaps = _decode_string_list(row["data_gaps_json"], "data_gaps_json")
         execution_gaps = _decode_string_list(row["execution_gaps_json"], "execution_gaps_json")
-        raw_degradations = json.loads(row["degradations_json"])
-        if not isinstance(raw_degradations, list):
-            raise ValueError("degradations_json must contain a list")
+        extension = json.loads(row["degradations_json"])
+        if isinstance(extension, list):  # historical rows before ETF lineage storage
+            raw_degradations = extension
+            raw_memberships = []
+        elif isinstance(extension, dict) and set(extension) == {"degradations", "etf_memberships"}:
+            raw_degradations = extension["degradations"]
+            raw_memberships = extension["etf_memberships"]
+        else:
+            raise ValueError("degradations_json envelope is malformed")
+        if not isinstance(raw_degradations, list) or not isinstance(raw_memberships, list):
+            raise ValueError("degradations_json envelope fields must contain lists")
         degradations = tuple(
             Degradation(
                 item["instrument_id"],
@@ -312,6 +335,18 @@ def _decode_summary(row: Mapping[str, Any]) -> CapabilitySummary:
         )
         if len(degradations) != len(raw_degradations):
             raise ValueError("degradations_json contains malformed entries")
+        memberships = tuple(
+            ETFMembershipReference(
+                item["etf_instrument_id"],
+                datetime.fromisoformat(item["decision_time"]),
+                item["snapshot_id"],
+                item["content_digest"],
+            )
+            for item in raw_memberships
+            if isinstance(item, dict)
+        )
+        if len(memberships) != len(raw_memberships):
+            raise ValueError("degradations_json contains malformed ETF membership references")
         return CapabilitySummary(
             row["report_fingerprint"],
             row["binding_fingerprint"],
@@ -326,6 +361,8 @@ def _decode_summary(row: Mapping[str, Any]) -> CapabilitySummary:
                 row["can_publish_authoritative_results"],
                 "can_publish_authoritative_results",
             ),
+            tuple(item.content_digest for item in memberships),
+            memberships,
         )
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         raise ValueError("PostgreSQL capability summary row is malformed") from error

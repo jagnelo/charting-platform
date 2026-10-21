@@ -14,7 +14,12 @@ from app.strategy_lab_v2.capabilities import (
     preflight_capabilities,
 )
 from app.strategy_lab_v2.capability_summary import build_capability_summary
-from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
+from app.strategy_lab_v2.contracts import (
+    AdjustmentMode,
+    ETFMembershipReference,
+    EventGranularity,
+    ProductClass,
+)
 from app.strategy_lab_v2.execution_capabilities import (
     ExecutionCapabilityBinding,
     preflight_execution_capability,
@@ -72,7 +77,9 @@ class FakeSession:
                 and values.get("binding_fingerprint", binding) == binding
             ]
             return FakeResult(
-                sorted(rows, key=lambda row: (row["report_fingerprint"], row["binding_fingerprint"]))
+                sorted(
+                    rows, key=lambda row: (row["report_fingerprint"], row["binding_fingerprint"])
+                )
             )
         if normalized.startswith("INSERT INTO"):
             key = (
@@ -120,8 +127,10 @@ def _summary(*, degraded: bool = False):
         content_digest("coverage"),
     )
     degradations = (
-        Degradation("US.AAPL", "session", "regular", "use regular-session evidence"),
-    ) if degraded else ()
+        (Degradation("US.AAPL", "session", "regular", "use regular-session evidence"),)
+        if degraded
+        else ()
+    )
     report = preflight_capabilities(
         (requirement,), (cell,), allow_degraded=degraded, degradations=degradations
     )
@@ -150,11 +159,14 @@ async def test_capability_adapter_registers_replays_and_scopes_summaries() -> No
     assert registered.decision is CapabilitySummaryStateDecision.REGISTERED
     replay = await adapter.ensure(principal="owner-a", summary=summary)
     assert replay.decision is CapabilitySummaryStateDecision.REPLAY_EXISTING
-    assert await adapter.load(
-        principal="owner-a",
-        report_fingerprint=summary.report_fingerprint,
-        binding_fingerprint=summary.binding_fingerprint,
-    ) == summary
+    assert (
+        await adapter.load(
+            principal="owner-a",
+            report_fingerprint=summary.report_fingerprint,
+            binding_fingerprint=summary.binding_fingerprint,
+        )
+        == summary
+    )
     assert await adapter.load_all(principal="owner-b") == ()
 
 
@@ -170,12 +182,37 @@ async def test_capability_adapter_conflicts_on_changed_projection_identity() -> 
 
 
 @pytest.mark.asyncio
+async def test_capability_adapter_persists_and_rehydrates_etf_membership_reference() -> None:
+    session = FakeSession()
+    adapter = PostgresCapabilityAdapter(lambda: session)
+    reference = ETFMembershipReference(
+        "US:ETF:SPY", START, 41, content_digest("pinned-etf-membership")
+    )
+    summary = replace(
+        _summary(),
+        input_lineage_fingerprints=(reference.content_digest,),
+        etf_memberships=(reference,),
+    )
+
+    await adapter.ensure(principal="owner-a", summary=summary)
+    loaded = await adapter.load(
+        principal="owner-a",
+        report_fingerprint=summary.report_fingerprint,
+        binding_fingerprint=summary.binding_fingerprint,
+    )
+
+    assert loaded == summary
+
+
+@pytest.mark.asyncio
 async def test_capability_adapter_rejects_tampered_rows() -> None:
     session = FakeSession()
     adapter = PostgresCapabilityAdapter(lambda: session)
     summary = _summary()
     await adapter.ensure(principal="owner-a", summary=summary)
-    session.summaries[("owner-a", summary.report_fingerprint, summary.binding_fingerprint)]["summary_fingerprint"] = content_digest("tampered")
+    session.summaries[("owner-a", summary.report_fingerprint, summary.binding_fingerprint)][
+        "summary_fingerprint"
+    ] = content_digest("tampered")
     with pytest.raises(ValueError, match="fingerprint"):
         await adapter.load(
             principal="owner-a",
@@ -190,4 +227,3 @@ def test_capability_schema_is_explicit_and_identifiers_are_validated() -> None:
     assert "PRIMARY KEY (owner_id, report_fingerprint, binding_fingerprint)" in schema.statements[0]
     with pytest.raises(ValueError, match="safe SQL identifier"):
         PostgresCapabilitySchema(summary_table="unsafe;drop")
-
