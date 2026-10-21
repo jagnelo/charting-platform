@@ -29,6 +29,11 @@ from app.models.instrument import Instrument
 from app.models.provider_runtime import ProviderRequestLog
 from app.providers.base import IdentifierRecord
 from app.providers.errors import bounded_redact_provider_message
+from app.services.etf_consumer_types import (
+    is_equity_holding_type,
+    is_placeholder_symbol,
+    normalize_holding_type,
+)
 from app.services.etf_holdings import (
     ETF_HOLDINGS_INTERNAL_PROVIDER,
     _ensure_holdings_dates_are_not_future,
@@ -114,6 +119,36 @@ SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
 
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
+
+_DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY = {
+    "filing_reconstructed_holdings": "filing_reconstructed",
+    "issuer_reported_dated_complete_holdings": "complete",
+    "issuer_reported_complete_daily_holdings_csv": "complete",
+    "issuer_reported_full_investment_holdings": "complete",
+    "issuer_page_declared_current_complete_holdings": "complete",
+    "issuer_reported_product_page_holdings_table": "complete",
+}
+
+
+def _holdings_completeness_status(
+    result_metadata: dict[str, Any] | None,
+    aliases: dict[str, Any] | None,
+) -> str:
+    """Resolve explicit completeness and narrowly declared legacy quality labels."""
+
+    metadata = result_metadata or {}
+    configured_aliases = aliases or {}
+    explicit = metadata.get("completeness_status") or configured_aliases.get(
+        "holdings_completeness_status"
+    )
+    if explicit:
+        return str(explicit)
+    source_quality = str(
+        metadata.get("source_quality")
+        or configured_aliases.get("holdings_source_quality")
+        or ""
+    ).strip().lower()
+    return _DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY.get(source_quality, "unknown")
 _CANARY_HISTORY_KEY = "canary_history"
 _CANARY_HISTORY_LIMIT = 90
 
@@ -157,11 +192,34 @@ def holdings_snapshot_is_bootstrap_ready(snapshot: ETFHoldingsSnapshot | None) -
     coverage evidence but cannot make a locked source retry-ineligible.
     """
 
-    return bool(
-        snapshot is not None
-        and getattr(snapshot, "completeness_status", None) in USABLE_HOLDINGS_COMPLETENESS
-        and int(getattr(snapshot, "resolved_count", 0) or 0) > 0
-    )
+    if (
+        snapshot is None
+        or getattr(snapshot, "completeness_status", None) not in USABLE_HOLDINGS_COMPLETENESS
+    ):
+        return False
+
+    rows = getattr(snapshot, "holdings", None)
+    if rows is None:
+        rows = getattr(snapshot, "rows", None)
+    if rows is not None:
+        return any(
+            normalize_holding_type(getattr(row, "row_type", None)) == "security"
+            and is_equity_holding_type(getattr(row, "holding_type", None))
+            and bool(getattr(row, "is_resolved", False))
+            and getattr(row, "constituent_instrument_id", None) is not None
+            and (
+                getattr(row, "constituent_symbol", None)
+                or getattr(getattr(row, "constituent_instrument", None), "symbol", None)
+            )
+            and not is_placeholder_symbol(
+                getattr(row, "constituent_symbol", None)
+                or getattr(getattr(row, "constituent_instrument", None), "symbol", None)
+            )
+            for row in rows
+        )
+
+    # Metadata-only legacy snapshots have no materialized detail to inspect.
+    return int(getattr(snapshot, "resolved_count", 0) or 0) > 0
 
 
 @asynccontextmanager
@@ -610,10 +668,10 @@ async def _bootstrap_from_sec_filings(
     latest = await get_latest_snapshot(
         db,
         profile.instrument_id,
-        include_holdings=False,
+        include_holdings=True,
         include_controlled_fixture=False,
     )
-    if latest is not None:
+    if holdings_snapshot_is_bootstrap_ready(latest):
         probe = await probe_etf_holdings_adapter_route(db, profile)
         return ETFHoldingsBootstrapResult(
             profile=profile,
@@ -646,10 +704,10 @@ async def _bootstrap_from_sec_filings(
         latest = await get_latest_snapshot(
             db,
             profile.instrument_id,
-            include_holdings=False,
+            include_holdings=True,
             include_controlled_fixture=False,
         )
-        if latest is not None:
+        if holdings_snapshot_is_bootstrap_ready(latest):
             probe = await probe_etf_holdings_adapter_route(db, profile)
             return ETFHoldingsBootstrapResult(
                 profile=profile,
@@ -1450,6 +1508,12 @@ async def refresh_etf_holdings_for_date(
         composition_date = _date_from_value(result_metadata.get("composition_date"))
         if composition_date is None:
             composition_date = requested_date
+        published_at = _datetime_from_value(result_metadata.get("published_at"))
+        known_at = (
+            _datetime_from_value(result_metadata.get("known_at"))
+            or published_at
+            or datetime.now(UTC)
+        )
         if composition_date > requested_date:
             failure = ValueError(
                 "Issuer dated holdings route returned a composition date after the requested "
@@ -1496,22 +1560,54 @@ async def refresh_etf_holdings_for_date(
                 rows=fetch_result.rows,
                 composition_date=composition_date,
                 as_of_date=requested_date,
-                known_at=datetime.now(UTC),
-                provenance="issuer_self_snapshotted_holdings",
+                known_at=known_at,
+                published_at=published_at,
+                provenance=str(
+                    result_metadata.get("snapshot_provenance")
+                    or "issuer_self_snapshotted_holdings"
+                ),
                 source_provider=str(source_provider),
                 source_url=fetch_result.source_url,
                 source_identifier=fetch_result.source_identifier or issuer_product_id,
-                source_quality="self_snapshotted_holdings",
-                completeness_status=str(aliases.get("holdings_completeness_status") or "unknown"),
-                parser_version=f"{adapter.adapter_key}-{source_format}-v1",
+                source_quality=str(
+                    result_metadata.get("source_quality")
+                    or aliases.get("holdings_source_quality")
+                    or "self_snapshotted_holdings"
+                ),
+                completeness_status=_holdings_completeness_status(result_metadata, aliases),
+                parser_version=str(
+                    result_metadata.get("parser_version")
+                    or f"{adapter.adapter_key}-{source_format}-v1"
+                ),
                 raw_payload_text=fetch_result.raw_text,
                 raw_payload_json=fetch_result.raw_json,
                 legal_metadata={
                     **result_metadata,
                     "terms_note": aliases.get("terms_note"),
                     "artifact_identity_validation": artifact_identity_validation,
+                    "timing_provenance": {
+                        "composition_date": (
+                            "provider_reported"
+                            if _date_from_value(result_metadata.get("composition_date"))
+                            else "requested_date_fallback"
+                        ),
+                        "as_of_date": "requested_date",
+                        "known_at": (
+                            "provider_reported"
+                            if result_metadata.get("known_at")
+                            else "published_at_fallback"
+                            if published_at
+                            else "ingestion_time_fallback"
+                        ),
+                        "published_at": "provider_reported" if published_at else "not_reported",
+                    },
                 },
-                notes="Fetched through the ETF profile's dated issuer holdings adapter route.",
+                notes=(
+                    "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
+                    "provider-specific adapter."
+                    if result_metadata.get("route_resolution") == "sec_edgar_filing_fallback"
+                    else "Fetched through the ETF profile's dated issuer holdings adapter route."
+                ),
                 # Issuer artifacts already carry their canonical symbol/identifier
                 # evidence.  Do not fan out synchronously to optional metadata
                 # providers for every row; unresolved rows remain explicit and can
@@ -1984,6 +2080,23 @@ def _date_from_value(value: Any) -> date | None:
     return None
 
 
+def _datetime_from_value(value: Any) -> datetime | None:
+    """Parse an optional provider timestamp and normalize it to UTC."""
+
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str) and value.strip():
+        try:
+            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 def _bool_alias(aliases: dict[str, Any], key: str) -> bool:
     value = aliases.get(key)
     if isinstance(value, bool):
@@ -2407,6 +2520,31 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         )
         raise
 
+    published_at = _datetime_from_value(result_metadata.get("published_at"))
+    known_at = (
+        _datetime_from_value(result_metadata.get("known_at"))
+        or published_at
+        or datetime.now(UTC)
+    )
+    timing_provenance = {
+        "composition_date": (
+            "provider_reported"
+            if _date_from_value(result_metadata.get("composition_date"))
+            else "profile_alias_fallback"
+            if _alias_date(aliases, "holdings_composition_date")
+            else "ingestion_date_fallback"
+        ),
+        "as_of_date": "provider_reported" if result_metadata.get("as_of_date") else "profile_alias_fallback",
+        "known_at": (
+            "provider_reported"
+            if result_metadata.get("known_at")
+            else "published_at_fallback"
+            if published_at
+            else "ingestion_time_fallback"
+        ),
+        "published_at": "provider_reported" if published_at else "not_reported",
+    }
+
     try:
         snapshot = await ingest_holdings_snapshot(
             db,
@@ -2414,7 +2552,8 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             rows=fetch_result.rows,
             composition_date=composition_date,
             as_of_date=as_of_date,
-            known_at=datetime.now(UTC),
+            known_at=known_at,
+            published_at=published_at,
             provenance=str(
                 result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
             ),
@@ -2422,13 +2561,11 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             source_url=fetch_result.source_url,
             source_identifier=fetch_result.source_identifier or issuer_product_id,
             source_quality=str(
-                result_metadata.get("source_quality") or "self_snapshotted_holdings"
+                result_metadata.get("source_quality")
+                or aliases.get("holdings_source_quality")
+                or "self_snapshotted_holdings"
             ),
-            completeness_status=str(
-                result_metadata.get("completeness_status")
-                or aliases.get("holdings_completeness_status")
-                or "unknown"
-            ),
+            completeness_status=_holdings_completeness_status(result_metadata, aliases),
             parser_version=parser_version,
             raw_payload_text=fetch_result.raw_text,
             raw_payload_json=fetch_result.raw_json,
@@ -2440,6 +2577,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
                 "probe_status": probe.status,
                 "probe_confidence": str(probe.confidence),
                 "artifact_identity_validation": artifact_identity_validation,
+                "timing_provenance": timing_provenance,
             },
             notes=(
                 "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "

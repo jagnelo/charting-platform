@@ -1089,6 +1089,26 @@ def normalize_indicator_params(indicator_type: str, params: dict | None = None) 
     return normalized
 
 
+def resolve_indicator_output(indicator_type: str, params: dict | None = None) -> str | None:
+    """Resolve a declared output without guessing for multi-output indicators.
+
+    Single-output indicators remain backward-compatible when no output is
+    selected. Multi-output indicators require an explicit valid selection.
+    """
+    definition = INDICATOR_REGISTRY.get(indicator_type)
+    if definition is None:
+        return None
+
+    requested = (params or {}).get("output")
+    if requested is not None and requested != "":
+        return (
+            requested
+            if isinstance(requested, str) and requested in definition.output_keys
+            else None
+        )
+    return definition.output_keys[0] if len(definition.output_keys) == 1 else None
+
+
 def _coerce_series(data: OHLCVSeries | list) -> OHLCVSeries:
     if isinstance(data, OHLCVSeries):
         return data

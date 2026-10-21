@@ -68,6 +68,41 @@ def test_combo_definition_as_of_exclusion_normalizes_known_at_to_utc():
     }
 
 
+@pytest.mark.asyncio
+async def test_combo_resolver_excludes_future_definition_without_members():
+    combo = SimpleNamespace(
+        id=41,
+        stable_key="future",
+        version=2,
+        name="Future Combo",
+        payload={},
+        updated_at=datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2))),
+    )
+
+    class Result:
+        def scalar_one_or_none(self):
+            return combo
+
+    class FakeDB:
+        async def execute(self, _statement):
+            return Result()
+
+    result = await sources.resolve_watchlist_source(
+        FakeDB(),
+        1,
+        "combo:future",
+        as_of=datetime(2023, 12, 31, 23, 0, tzinfo=UTC),
+    )
+
+    assert result.members == ()
+    assert result.exclusions == (
+        {
+            "reason": "combo_definition_not_known_at_as_of",
+            "known_at": "2024-01-01T00:00:00Z",
+        },
+    )
+
+
 def test_holdings_route_provenance_serializes_published_at_as_canonical_utc():
     profile = SimpleNamespace(
         adapter_key="demo",
@@ -75,11 +110,15 @@ def test_holdings_route_provenance_serializes_published_at_as_canonical_utc():
         adapter_confidence=0.9,
     )
     snapshot = SimpleNamespace(
+        id=41,
+        provenance="issuer_public",
         source_quality="provider",
         completeness_status="complete",
         row_count=2,
         resolved_count=2,
         unresolved_count=0,
+        snapshot_hash="snapshot-41",
+        known_at=datetime(2024, 1, 1, 1, 0, tzinfo=UTC),
         total_weight=1.0,
         published_at=datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2))),
         parser_version="v1",

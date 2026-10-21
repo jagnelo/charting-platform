@@ -59,6 +59,7 @@ class FakeBootstrapDB:
         self.nested_enters = 0
         self.nested_exits = 0
         self.flush_calls = 0
+        self.is_active = True
 
     def begin_nested(self):
         return _AsyncNestedContext(self)
@@ -166,6 +167,16 @@ def test_holdings_snapshot_readiness_requires_resolved_complete_evidence(
     assert holdings_snapshot_is_bootstrap_ready(snapshot) is expected
 
 
+def test_holdings_snapshot_readiness_uses_present_rows_instead_of_summary_count():
+    snapshot = SimpleNamespace(
+        completeness_status="complete",
+        resolved_count=8,
+        rows=[],
+    )
+
+    assert holdings_snapshot_is_bootstrap_ready(snapshot) is False
+
+
 @pytest.mark.asyncio
 async def test_sec_bootstrap_does_not_treat_non_equity_rows_as_ready(monkeypatch):
     """A materialized cash-only snapshot must still allow SEC fallback."""
@@ -179,26 +190,26 @@ async def test_sec_bootstrap_does_not_treat_non_equity_rows_as_ready(monkeypatch
     non_equity_snapshot = SimpleNamespace(
         completeness_status="complete",
         resolved_count=1,
-        holdings=[
+        rows=[
             SimpleNamespace(
                 row_type="cash",
                 holding_type="cash",
                 is_resolved=True,
                 constituent_instrument_id=None,
-                constituent_symbol=None,
+                constituent_instrument=None,
             )
         ],
     )
     ready_snapshot = SimpleNamespace(
         completeness_status="filing_reconstructed",
         resolved_count=1,
-        holdings=[
+        rows=[
             SimpleNamespace(
                 row_type="security",
                 holding_type="equity",
                 is_resolved=True,
                 constituent_instrument_id=42,
-                constituent_symbol="AAPL",
+                constituent_instrument=SimpleNamespace(symbol="AAPL"),
             )
         ],
     )
@@ -336,6 +347,7 @@ async def test_bootstrap_uses_async_nested_transaction_for_ready_routes(monkeypa
     db = FakeBootstrapDB()
     instrument = SimpleNamespace(id=101, symbol="NIKL", name="Sprott Nickel Miners ETF")
     profile = SimpleNamespace(
+        id=301,
         instrument=instrument,
         issuer=None,
         fund_family=None,
@@ -431,6 +443,7 @@ async def test_dated_refresh_preserves_provider_snapshot_metadata(monkeypatch):
     db = FakeBootstrapDB()
     instrument = SimpleNamespace(id=101, symbol="QQQ", name="Invesco QQQ Trust")
     profile = SimpleNamespace(
+        id=302,
         instrument=instrument,
         adapter_key="invesco",
         provider_aliases={},
@@ -498,7 +511,7 @@ async def test_dated_refresh_preserves_provider_snapshot_metadata(monkeypatch):
     assert captured["parser_version"] == "invesco-sec-v2"
     assert captured["known_at"] == datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC)
     assert captured["published_at"] == datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC)
-    assert captured["timing_provenance"] == {
+    assert captured["legal_metadata"]["timing_provenance"] == {
         "composition_date": "requested_date_fallback",
         "as_of_date": "requested_date",
         "known_at": "provider_reported",
@@ -514,6 +527,7 @@ async def test_latest_refresh_preserves_profile_declared_source_quality(monkeypa
     db = FakeBootstrapDB()
     instrument = SimpleNamespace(id=101, symbol="SPY", name="SPDR S&P 500 ETF Trust")
     profile = SimpleNamespace(
+        id=303,
         instrument=instrument,
         adapter_key="spdr",
         provider_aliases={"holdings_source_quality": "issuer_reported_dated_complete_holdings"},
@@ -541,7 +555,7 @@ async def test_latest_refresh_preserves_profile_declared_source_quality(monkeypa
                 raw_json={"rows": ["AAPL"]},
                 source_url="https://spdr.example/spy.csv",
                 source_identifier="SPY",
-                legal_metadata={},
+                legal_metadata={"completeness_status": "complete"},
             )
 
     async def fake_ingest(_db, **kwargs):

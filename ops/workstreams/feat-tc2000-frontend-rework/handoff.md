@@ -1,5 +1,81 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-21: Provider/ETF/Study preservation repair in progress
+
+The branch remains at `80ccb110ea9fdc4b4405540586eb275d714f0aea` (origin-matched).
+Accepted Provider+ETF staging `628c1634f4894403339687586adee74d45637d51` is an
+ancestor through committed merge `4aa25453897ebea53c7f61c6077549bee3c87cfb`
+(parents `e365d042451734647649fe40778d16a097a2b920` and `628c1634...`); there
+is no active `MERGE_HEAD`. This preservation repair is still uncommitted. No
+disposable fixture or new runtime was created. Exact 80ccb CI remains red
+(38 failed, 3,377 passed); this repair responds to lost TC behavior and does
+not rewrite that receipt.
+
+Active working-tree paths:
+
+```text
+backend/app/config.py
+backend/app/routers/calendar.py
+backend/app/routers/market_groups.py
+backend/app/routers/ohlcv.py
+backend/app/schemas/etf_holdings.py
+backend/app/schemas/instrument.py
+backend/app/schemas/radar.py
+backend/app/services/alert_engine.py
+backend/app/services/etf_holdings_refresh.py
+backend/app/services/indicators.py
+backend/app/services/screener_engine.py
+backend/app/services/watchlist_sources.py
+backend/app/tasks/alert_tasks.py
+backend/app/tasks/data_tasks.py
+backend/research_runner/runner.py
+backend/tests/unit/routers/test_analysis_router.py
+backend/tests/unit/routers/test_coverage_router.py
+backend/tests/unit/routers/test_instruments_router.py
+backend/tests/unit/routers/test_ohlcv_router.py
+backend/tests/unit/services/test_etf_holdings_bootstrap.py
+backend/tests/unit/services/test_etf_holdings_schemas.py
+backend/tests/unit/services/test_response_timestamp_schemas.py
+backend/tests/unit/services/test_top_down_taxonomy.py
+backend/tests/unit/services/test_watchlist_sources.py
+ops/workstreams/feat-tc2000-frontend-rework/plan.yaml
+```
+
+Root-approved protected-path adaptations still requiring exact path/blob/delta
+recording and final diff review: `backend/app/config.py`,
+`backend/app/routers/calendar.py`, `backend/app/routers/market_groups.py`,
+`backend/app/routers/ohlcv.py`, `backend/app/schemas/etf_holdings.py`,
+`backend/app/schemas/instrument.py`, `backend/app/schemas/radar.py`,
+`backend/app/services/alert_engine.py`,
+`backend/app/services/etf_holdings_refresh.py`,
+`backend/app/services/indicators.py`,
+`backend/app/services/screener_engine.py`,
+Working-tree focused evidence: timestamp/readiness/watchlist selection21/21;
+Study adapter regressions12/12; output-selector, alert and screener cases16/16;
+all3,416 unit tests collect; the nine changed non-runner files pass104/104.
+The new future-combo resolver regression first reproduced a TypeError from
+passing two arguments to `_combo_definition_as_of_exclusion`, whose contract is
+one argument; the corrected call now excludes a future-known combo and returns
+empty members as expected. The isolated statsmodels OLS case passes with `-s`
+and all four thread variables pinned by the canonical research-runner image.
+The monolithic118-case module still exits1 at that OLS case with native
+`OpenBLAS error: Memory allocation still failed after 10 retries, giving up.`
+under the existing512MiB cap. Following canonical
+`scripts/backend_coverage.py` `partition(..., 50)` semantics, all118 unique
+node IDs passed exactly once in sequential fresh processes sized50/50/18,
+zero retries (logs `/tmp/tc-628c-runner-shard-{1,2,3}-20261021.log`). This is
+focused working-tree evidence, not full backend coverage or exact-source CI.
+Preserve the exact80ccb red separately. Next: finish exact manifest/scope and
+workstream checks, then obtain Root final-diff review before a coherent
+commit/push. No fixture was created. TCP3 overall, TCP4, TCP5, the full
+roadmap and official `REF-HELP-V25` remain open.
+manifest/guard checks and Root final-diff review before any commit/push. No
+fixture has been created. TCP3 overall, TCP4, TCP5, the full roadmap and official
+`REF-HELP-V25` remain open.
+canonical-environment runner module, then exact manifest/guard and Root final
+diff review before any coherent commit/push. No fixture has been created. TCP3
+overall, TCP4, TCP5, the full roadmap and official `REF-HELP-V25` remain open.
+
 ## Current status — 2026-10-21: accepted Provider+ETF merge reconciliation
 
 The exact accepted green staging release `628c1634f4894403339687586adee74d45637d51`

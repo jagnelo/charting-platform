@@ -9,8 +9,9 @@ release:
   receipt_sha256: a70713a499032714740fc332b295a1644500e25d3c6d03a40729ed6c701146bc
 limitations: Exact frozen Provider, ETF, and common integration blobs from coordinator-approved
   green staging only; no sibling source import, no TC consumer acceptance, no whole-checkpoint
-  waiver. Six explicitly approved Provider contract adaptations remain excluded from
-  immutable paths and are bound separately to their accepted 9b230 blobs.
+  waiver. Six Provider contract adaptations and the explicitly approved TC consumer/Study
+  preservation paths are recorded separately in the branch plan against their accepted source
+  blobs; unrelated imported paths remain immutable.
 paths:
 - path: .env.example
   state: present
@@ -252,10 +253,6 @@ paths:
   state: present
   mode: '100644'
   blob: e535978687cc93352dbbfc25685d14463bc08c0c
-- path: backend/app/config.py
-  state: present
-  mode: '100644'
-  blob: 3d73c7ea60b28e8bfa9cadaacb0cbc1aa5b5bade
 - path: backend/app/lib/quantlib_greeks.py
   state: present
   mode: '100644'
@@ -388,10 +385,6 @@ paths:
   state: present
   mode: '100644'
   blob: 17d362d12b523e488771a449500a75c91857d472
-- path: backend/app/routers/calendar.py
-  state: present
-  mode: '100644'
-  blob: 0f2d9aa38538168c96ca343dcc6bed5bd5e2459c
 - path: backend/app/routers/etf_holdings.py
   state: present
   mode: '100644'
@@ -408,14 +401,6 @@ paths:
   state: present
   mode: '100644'
   blob: 0f260d1a418cb9b3142c4e399edd9c08d718a00f
-- path: backend/app/routers/market_groups.py
-  state: present
-  mode: '100644'
-  blob: 6319f5e2dfa43adf1dde30bf724cca9988416cd1
-- path: backend/app/routers/ohlcv.py
-  state: present
-  mode: '100644'
-  blob: e5db3ee5933707be2dc491be21e93adaf364a1db
 - path: backend/app/routers/options_exposure.py
   state: present
   mode: '100644'
@@ -428,22 +413,6 @@ paths:
   state: present
   mode: '100644'
   blob: 7edc575ea9fc8e84b080057871f0797aa1623b6a
-- path: backend/app/schemas/etf_holdings.py
-  state: present
-  mode: '100644'
-  blob: 2cfffada11487169e40f8591402534e4fd398c22
-- path: backend/app/schemas/instrument.py
-  state: present
-  mode: '100644'
-  blob: be9c342f96c85bdd7f8768e3705a5cf309ddffbd
-- path: backend/app/schemas/radar.py
-  state: present
-  mode: '100644'
-  blob: 9f86a0da5f6aae3c183ecda8474150474ccbbb15
-- path: backend/app/services/alert_engine.py
-  state: present
-  mode: '100644'
-  blob: 29bba6cd17c7f2b77d4359748f9d99ebd90031a8
 - path: backend/app/services/bar_aggregation.py
   state: present
   mode: '100644'
@@ -484,10 +453,6 @@ paths:
   state: present
   mode: '100644'
   blob: 371e615989a8e4e38b437a0bc75afec4eddb4f12
-- path: backend/app/services/etf_holdings_refresh.py
-  state: present
-  mode: '100644'
-  blob: 0d1cf03bef8f513e41513d34c182bb3756fa3864
 - path: backend/app/services/evaluator_preflight.py
   state: present
   mode: '100644'
@@ -500,10 +465,6 @@ paths:
   state: present
   mode: '100644'
   blob: 374236387ad56a4d739120f281aa73bdac381168
-- path: backend/app/services/indicators.py
-  state: present
-  mode: '100644'
-  blob: 09b47bfa97e62e609d17098eaa5a7273886adaf6
 - path: backend/app/services/instrument_mastering.py
   state: present
   mode: '100644'
@@ -616,10 +577,6 @@ paths:
   state: present
   mode: '100644'
   blob: bf685c854cc440a83d49cbe8f41b4c761449f79c
-- path: backend/app/services/screener_engine.py
-  state: present
-  mode: '100644'
-  blob: ff9e39027421e2ad3c0c245030f7a01d97ccaa2a
 - path: backend/app/services/short_interest.py
   state: present
   mode: '100644'
@@ -628,18 +585,6 @@ paths:
   state: present
   mode: '100644'
   blob: ae547767a98f80e6fcd7c16257fd73ac777f9b8e
-- path: backend/app/services/watchlist_sources.py
-  state: present
-  mode: '100644'
-  blob: 39941d2dd0f23e103e4ffa50585be6f703fcbb2b
-- path: backend/app/tasks/alert_tasks.py
-  state: present
-  mode: '100644'
-  blob: 7c54220a48f4959f67e2ed4424b22a693ad36132
-- path: backend/app/tasks/data_tasks.py
-  state: present
-  mode: '100644'
-  blob: 854485aa9b7381584649673d22417ad4bc8fb1bf
 - path: backend/app/tasks/etf_holdings_tasks.py
   state: present
   mode: '100644'
@@ -664,10 +609,6 @@ paths:
   state: present
   mode: '100644'
   blob: 97d08320444d82ab0fe145827f457022551c1c64
-- path: backend/research_runner/runner.py
-  state: present
-  mode: '100644'
-  blob: e4e1b10dd3b559cf33c726b7e4a3758a172e8114
 - path: backend/tests/conftest.py
   state: present
   mode: '100644'
@@ -908,18 +849,10 @@ paths:
   state: present
   mode: '100644'
   blob: 498c67c1ba17fcc73bcf578725310d03edd4ee85
-- path: backend/tests/unit/routers/test_coverage_router.py
-  state: present
-  mode: '100644'
-  blob: 7f406af5bd2778f9cbfeb5b3fc9da7de6b99c8df
 - path: backend/tests/unit/routers/test_market_data_admin_router.py
   state: present
   mode: '100644'
   blob: 5ba732cafb722901fa48042c8b828a602db9f460
-- path: backend/tests/unit/routers/test_ohlcv_router.py
-  state: present
-  mode: '100644'
-  blob: 78a5df108a784dbdd76a6b5e87ecb174a3a3fe65
 - path: backend/tests/unit/routers/test_options_exposure.py
   state: present
   mode: '100644'

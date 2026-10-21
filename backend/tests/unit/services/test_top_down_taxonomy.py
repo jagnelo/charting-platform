@@ -148,14 +148,13 @@ def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
     )
 
 
-def test_spdr_slyg_route_uses_small_cap_growth_sec_identity():
-    """SLYG must not inherit SPYG's SEC series/class identity."""
-
+def test_spdr_slyg_holds_unverified_sec_issuer_identity():
+    """A taxonomy mapping does not authorize an unverified SEC issuer identity."""
     identifiers = known_etf_route_metadata("SLYG")["provider_aliases"]
-    assert identifiers["sec_cik"] == "0001064642"
-    assert identifiers["sec_series_id"] == "S000006990"
-    assert identifiers["sec_class_id"] == "C000019043"
-    assert identifiers["sec_fund_tickers_symbol"] == "SLYG"
+    assert identifiers["holdings_adapter"] == "spdr"
+    assert "sec_cik" not in identifiers
+    assert "sec_series_id" not in identifiers
+    assert "sec_class_id" not in identifiers
 
 
 def test_ishares_family_roles_declare_the_supported_as_of_history_route():

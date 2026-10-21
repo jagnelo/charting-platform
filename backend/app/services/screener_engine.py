@@ -22,6 +22,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.lib.time_utils import wire_datetime
 from app.models.alert_firing_event import AlertFiringEvent
 from app.models.basket import Basket, BasketMember
 from app.models.indicator_cache import IndicatorCache
@@ -401,11 +402,37 @@ def _series_to_cacheable(result: dict[str, np.ndarray]) -> dict[str, list]:
 def _pick_indicator_output(
     result: dict[str, np.ndarray],
     preferred: str | None,
-) -> tuple[str, np.ndarray]:
-    if preferred and preferred in result:
-        return preferred, result[preferred]
-    key = next(iter(result.keys()))
-    return key, result[key]
+) -> tuple[str | None, np.ndarray | None]:
+    """Select a declared output; never guess when a result is ambiguous."""
+
+    if preferred:
+        return (preferred, result[preferred]) if preferred in result else (None, None)
+    if len(result) == 1:
+        key = next(iter(result))
+        return key, result[key]
+    return None, None
+
+
+def _indicator_output_warning(
+    indicator_type: str,
+    preferred: str,
+    result: dict[str, np.ndarray],
+) -> dict[str, str]:
+    options = ", ".join(result.keys()) or "none"
+    if preferred:
+        return {
+            "code": "invalid_indicator_output",
+            "message": (
+                f"Indicator {indicator_type!r} output {preferred!r} is unavailable; "
+                f"choose one of: {options}."
+            ),
+        }
+    return {
+        "code": "explicit_indicator_output_required",
+        "message": (
+            f"Indicator {indicator_type!r} returns multiple outputs; choose one of: {options}."
+        ),
+    }
 
 
 async def _compute_indicator_cached(
@@ -642,6 +669,8 @@ async def _evaluate_condition(
             db, instrument.id, timeframe, ind_type, ind_params, data
         )
         key, series = _pick_indicator_output(result, output)
+        if key is None or series is None:
+            return False, {"_warning": _indicator_output_warning(ind_type, output, result)}
         val = None
         for v in reversed(series):
             if not np.isnan(v):
@@ -666,6 +695,14 @@ async def _evaluate_condition(
         )
         key_a, arr_a = _pick_indicator_output(res_a, str(a.get("output") or ""))
         key_b, arr_b = _pick_indicator_output(res_b, str(b.get("output") or ""))
+        if key_a is None or arr_a is None:
+            return False, {
+                "_warning": _indicator_output_warning(a["type"], str(a.get("output") or ""), res_a)
+            }
+        if key_b is None or arr_b is None:
+            return False, {
+                "_warning": _indicator_output_warning(b["type"], str(b.get("output") or ""), res_b)
+            }
 
         n = min(len(arr_a), len(arr_b))
         if n < 2:
@@ -710,6 +747,8 @@ async def _evaluate_condition(
             db, instrument.id, timeframe, ind_type, ind_params, data
         )
         key, indicator_series = _pick_indicator_output(result, output)
+        if key is None or indicator_series is None:
+            return False, {"_warning": _indicator_output_warning(ind_type, output, result)}
         n = min(len(price_series), len(indicator_series))
         if n < 2:
             return False, computed
@@ -1322,7 +1361,7 @@ def _dispatch_screener_alert_event(
             "trigger_type": alert.trigger_type,
             "entered_ids": list(entered),
             "left_ids": list(left),
-            "triggered_at": alert.triggered_at.isoformat() if alert.triggered_at else None,
+            "triggered_at": wire_datetime(alert.triggered_at),
         }
         # Targeted delivery prevents one user's scan membership from leaking to another.
         loop = asyncio.get_event_loop()

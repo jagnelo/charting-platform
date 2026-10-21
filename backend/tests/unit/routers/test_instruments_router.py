@@ -17,7 +17,12 @@ from app.routers.instruments import (
     _instrument_search_exchange,
     _needs_52w_stats_refresh,
 )
-from app.schemas.instrument import FieldProvenanceOut, InstrumentListingOut, InstrumentStatsOut
+from app.schemas.instrument import (
+    FieldProvenanceOut,
+    InstrumentIdentifierOut,
+    InstrumentListingOut,
+    InstrumentStatsOut,
+)
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -55,12 +60,23 @@ def test_instrument_response_schemas_keep_pydantic_datetime_json_contract():
         known_at=aware,
         delisted_at=None,
     )
+    identifier = InstrumentIdentifierOut(
+        identifier_type="figi",
+        identifier_value="BBG000B9XRY4",
+        is_primary=True,
+        is_active=True,
+        effective_at=naive,
+        known_at=aware,
+        retired_at=None,
+    )
 
-    assert stats.model_dump(mode="json")["computed_at"] == "2026-09-12T14:30:00"
-    assert provenance.model_dump(mode="json")["fetched_at"] == "2026-09-12T14:30:00"
+    assert stats.model_dump(mode="json")["computed_at"] == "2026-09-12T14:30:00Z"
+    assert provenance.model_dump(mode="json")["fetched_at"] == "2026-09-12T14:30:00Z"
     assert provenance.model_dump(mode="json")["observed_at"] == "2026-09-12T16:30:00Z"
-    assert listing.model_dump(mode="json")["effective_at"] == "2026-09-12T14:30:00"
+    assert listing.model_dump(mode="json")["effective_at"] == "2026-09-12T14:30:00Z"
     assert listing.model_dump(mode="json")["known_at"] == "2026-09-12T16:30:00Z"
+    assert identifier.model_dump(mode="json")["effective_at"] == "2026-09-12T14:30:00Z"
+    assert identifier.model_dump(mode="json")["known_at"] == "2026-09-12T16:30:00Z"
 
 
 class TestInstrumentAutoCreate:

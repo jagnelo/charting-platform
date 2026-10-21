@@ -30,22 +30,33 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The exact accepted Provider+ETF staging628c1634f4894403339687586adee74d45637d51
-  remains merged into the TC worktree but uncommitted: HEAD is the first parent
-  e365d042451734647649fe40778d16a097a2b920 and MERGE_HEAD is the released SHA.
-  The authoritative latest selected API/unit slice is13/13 passed in23.19s
-  (exec-1b7a6078-0b22-4b25-b2da-76d96d8a4dd7); the earlier 12-case run with
-  1 failure and subsequent13-case run with2 failures remain historical and are
-  not deleted. The focused slice does not equal
-  exact-source CI or full-profile acceptance. Alembic upgrade reached the
-  no-DDL merge head e9c23a7b1d40 on the exact synthetic database; ORM
-  create_all/drop_all teardown then exposed the historical Watchlist FK-name
-  mismatch, not an upgrade failure. The generated database was dropped and
-  independently verified absent. Scope/import, exact byte/receipt, graph,
-  graph, workstream, scope, structured-data and diff checks pass; only the
-  reviewed merge commit/push and exact-source CI remain. Strategy owns the
-  current DB slot; no further DB test until coordinator sequencing. TCP3 overall, TCP4,
-  TCP5, full roadmap and official REF-HELP-V25 remain open.
+  Current HEAD is80ccb110ea9fdc4b4405540586eb275d714f0aea. The accepted
+  Provider+ETF release628c1634f4894403339687586adee74d45637d51 is already an
+  ancestor through committed merge4aa25453897ebea53c7f61c6077549bee3c87cfb
+  (parents e365d042451734647649fe40778d16a097a2b920 and 628c1634...); there
+  is no active MERGE_HEAD.
+  The single in-progress, uncommitted repair restores narrowly scoped TC
+  Provider/ETF consumer behavior and removed Study adapters across the exact
+  active paths listed in the current handoff. Root has authorized the listed
+  protected-path adaptations; exact accepted blobs and rationale still need
+  complete manifest/record entries and final review, while every unrelated
+  frozen import remains byte-exact. Bounded working-tree checks pass:
+  timestamp/readiness/watchlist selection21/21, Study adapters12/12,
+  timestamp/readiness/watchlist selection21/21, Study adapters12/12,
+  selector/alert/screener cases16/16, all3416 unit tests collect, and the nine
+  changed non-runner files pass104/104. The future-combo resolver regression
+  first reproduced a TypeError from passing two arguments to the existing
+  one-argument helper; the corrected call preserves known_at exclusion and
+  empty members. The monolithic118-case runner module exits1 at statsmodels
+  OLS with native OpenBLAS allocation failure despite the canonical four thread
+  variables; the isolated OLS case passes. Using unchanged
+  scripts/backend_coverage.py partition(...,50) semantics, all118 unique node
+  IDs passed exactly once in fresh sequential processes sized50/50/18, zero
+  retries. This focused evidence does not waive the full backend coverage gate.
+  Exact80ccb CI remains historically red38failed/3377passed. No fixture was
+  created. Next action: finish exact manifest/scope and workstream checks and
+  obtain Root final-diff review before commit/push. TCP3 overall, TCP4, TCP5,
+  full roadmap and official REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -579,6 +590,7 @@ owned_paths:
   - backend/app/routers/favorites.py
   - backend/app/schemas/favorites.py
   - backend/tests/unit/routers/test_favorites_router.py
+  - backend/tests/unit/routers/test_instruments_router.py
   - backend/app/routers/strategy_lab.py
   - backend/app/routers/research.py
   - backend/app/schemas/analysis.py
@@ -602,6 +614,10 @@ owned_paths:
   - backend/app/services/tc_e2e_seed.py
   - backend/app/services/strategy_lab_nautilus.py
   - backend/tests/unit/services/test_top_down_taxonomy.py
+  - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+  - backend/tests/unit/services/test_etf_holdings_schemas.py
+  - backend/tests/unit/services/test_response_timestamp_schemas.py
+  - backend/tests/unit/services/test_watchlist_sources.py
   - backend/tests/unit/services/test_benchmark_family_coverage.py
   - backend/tests/unit/services/test_benchmark_family_history.py
   - backend/tests/unit/services/test_benchmark_family_holdings_runs.py
@@ -627,12 +643,20 @@ excluded_paths:
   - .env.example
   - backend/.env.example
   - backend/app/providers/
+  - backend/app/config.py
+  - backend/app/routers/calendar.py
+  - backend/app/routers/market_groups.py
+  - backend/app/schemas/radar.py
   - backend/app/routers/providers.py
   - backend/app/routers/ohlcv.py
   - backend/app/routers/etf_holdings.py
   - backend/app/routers/instruments.py
   - backend/app/services/market_data.py
   - backend/app/services/provider_*
+  - backend/app/services/alert_engine.py
+  - backend/app/services/indicators.py
+  - backend/app/services/screener_engine.py
+  - backend/app/services/watchlist_sources.py
   - backend/app/services/instrument_sync.py
   - backend/app/services/instrument_mastering.py
   - backend/app/services/bulk_fetch.py
@@ -644,10 +668,23 @@ excluded_paths:
   - backend/app/schemas/etf_holdings*
   - backend/app/schemas/instrument.py
   - backend/app/tasks/data_tasks.py
+  - backend/app/tasks/alert_tasks.py
   - backend/app/tasks/etf_holdings_tasks.py
   - backend/app/workers/arq_worker.py
+  - backend/research_runner/runner.py
   - backend/tests/live/test_etf_holdings_live_providers.py
-  - backend/tests/unit/services/test_etf_holdings*
+  - backend/tests/unit/services/test_etf_holdings_capability.py
+  - backend/tests/unit/services/test_etf_holdings_sec.py
+  - backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py
+  - backend/tests/unit/services/test_etf_holdings_refresh.py
+  - backend/tests/unit/services/test_etf_holdings_adapters.py
+  - backend/tests/unit/services/test_etf_holdings_visibility.py
+  - backend/tests/unit/services/test_etf_holdings_edgar.py
+  - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+  - backend/tests/unit/services/test_etf_holdings_resolution.py
+  - backend/tests/unit/routers/test_coverage_router.py
+  - backend/tests/unit/routers/test_ohlcv_router.py
   - backend/tests/unit/tasks/test_etf_holdings*
   - backend/tests/integration/api/test_etf_holdings.py
   - frontend/src/views/ETFHoldingsView.vue
@@ -839,6 +876,118 @@ approved_provider_contract_adaptations:
       The separate Massive docs name historical_adjustment_factor for dividend and split rows,
       but that accepted adapter does not normalize it; that distinct source contract is outside
       this approved Alpaca compatibility change.
+  - path: backend/app/config.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 3d73c7ea60b28e8bfa9cadaacb0cbc1aa5b5bade
+    delta: Restore only the two default-off TC large-universe fixture settings.
+    rationale: Keep health/seed test mode explicit without enabling provider routing, refresh, or live work.
+  - path: backend/app/routers/calendar.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 0f2d9aa38538168c96ca343dcc6bed5bd5e2459c
+    delta: Restore canonical UTC-Z timestamp serializers for existing calendar responses.
+    rationale: Preserve TC wire-format contract using the shared serializer; no calendar acquisition changes.
+  - path: backend/app/routers/market_groups.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 6319f5e2dfa43adf1dde30bf724cca9988416cd1
+    delta: >-
+      Restore TC historical profile eligibility by requiring observed_at and fetched_at at or before
+      the UTC-normalized cutoff.
+    rationale: >-
+      Historical classification must use profile evidence both observed and fetched by the cutoff;
+      this is read-only and does not fetch or alter upstream profiles.
+  - path: backend/app/routers/ohlcv.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: e5db3ee5933707be2dc491be21e93adaf364a1db
+    delta: >-
+      Restore TC database-only local adjustment/materialization routes, canonical/provider/derived views,
+      and local W1/MN materialization while retaining all released Provider fetch/admission guards.
+    rationale: >-
+      This is a TC consumer view over persisted canonical evidence; it adds no provider transport,
+      fallback, quota path, or interactive acquisition.
+  - path: backend/app/schemas/etf_holdings.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 2cfffada11487169e40f8591402534e4fd398c22
+    delta: >-
+      Additively restore published_at, cadence, parser_version, timing_provenance and source_identifier
+      metadata to TC-facing ETF response schemas and canonical UTC serialization.
+    rationale: Keep the released ETF capability, availability, identity and source lineage authoritative.
+  - path: backend/app/schemas/instrument.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: be9c342f96c85bdd7f8768e3705a5cf309ddffbd
+    delta: Restore canonical UTC-Z serializers on TC instrument/profile subresponses.
+    rationale: Preserve every released Provider identity/listing field and serialize existing timestamps only.
+  - path: backend/app/schemas/radar.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 9f86a0da5f6aae3c183ecda8474150474ccbbb15
+    delta: Restore canonical UTC-Z serializers on existing Radar response timestamps.
+    rationale: Keep Provider coverage fields intact; no Radar provider or data behavior changes.
+  - path: backend/app/services/alert_engine.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 29bba6cd17c7f2b77d4359748f9d99ebd90031a8
+    delta: >-
+      Restore strict optional named-output selectors for indicator alerts and canonical UTC-Z event
+      timestamps, rejecting absent/ambiguous multi-output selection.
+    rationale: Preserve TC alert output identity without selecting a guessed indicator series or changing data routes.
+  - path: backend/app/services/etf_holdings_refresh.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 0d1cf03bef8f513e41513d34c182bb3756fa3864
+    delta: >-
+      Restore row-level canonical-equity snapshot readiness with metadata-only fallback only when row detail
+      is absent; apply the same predicate at the two SEC-bootstrap checks and preserve explicit provider
+      published/known timestamps, cadence, parser, source identity and timing metadata into persisted evidence.
+    rationale: >-
+      Cash/non-equity/placeholder-only detail must not suppress fallback. Retain Provider admission,
+      refresh, settlement, request holds, transport, identity validation and request evidence unchanged.
+  - path: backend/app/services/indicators.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 09b47bfa97e62e609d17098eaa5a7273886adaf6
+    delta: Restore resolve_indicator_output with explicit valid selection for multi-output definitions.
+    rationale: Preserve single-output compatibility while refusing unknown, invalid and ambiguous outputs.
+  - path: backend/app/services/screener_engine.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: ff9e39027421e2ad3c0c245030f7a01d97ccaa2a
+    delta: >-
+      Restore strict output-name selection for TC screener predicates and canonical UTC-Z alert-event time.
+    rationale: Preserve the released provider preflight and source guards; ambiguous/invalid outputs remain rejected.
+  - path: backend/app/services/watchlist_sources.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 39941d2dd0f23e103e4ffa50585be6f703fcbb2b
+    delta: >-
+      Restore UTC-normalized PIT comparisons/digests, combo-definition cutoffs, canonical ETF-member
+      eligibility/counts, and additive cadence/parser/source/timing provenance.
+    rationale: Keep ETF current/stale/unknown availability and identity decisions from the released capability contract.
+  - path: backend/app/tasks/alert_tasks.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 7c54220a48f4959f67e2ed4424b22a693ad36132
+    delta: Restore canonical UTC-Z serialization for existing websocket alert timestamps.
+    rationale: Wire-format preservation only; alert-task scheduling and execution remain unchanged.
+  - path: backend/app/tasks/data_tasks.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 854485aa9b7381584649673d22417ad4bc8fb1bf
+    delta: Materialize eligible W1/MN views locally after the existing D1 refresh path.
+    rationale: Reuse persisted D1 bars only; no new provider calls, schedules, quota use, or acquisition path.
+  - path: backend/research_runner/runner.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: e4e1b10dd3b559cf33c726b7e4a3758a172e8114
+    delta: >-
+      Restore minimal TC Study/range/event adapters and explicit output dispatch: run
+      study_series_to_series once over the full prepared universe before generic per-member batch;
+      validate/project named range-center output; map scalar/range/event batch contracts explicitly;
+      and map only selected event artifacts to current-observation booleans.
+    rationale: >-
+      Preserve event UTC-day matching, future-event exclusion, member/symbol scope, malformed and
+      ambiguous-output rejection, released sandbox/memory/process caps, terminal controls, preflight
+      and lineage. No acquisition or native-execution claim is added.
+  - path: backend/tests/unit/routers/test_coverage_router.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 7f406af5bd2778f9cbfeb5b3fc9da7de6b99c8df
+    delta: Extend existing exact coverage-response fixtures with the released lineage/evidence envelope.
+    rationale: Preserve all status/range/provider-neutral assertions and positively verify additive fields.
+  - path: backend/tests/unit/routers/test_ohlcv_router.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 78a5df108a784dbdd76a6b5e87ecb174a3a3fe65
+    delta: Extend the retained-bar response expectation with released derived-lineage fields.
+    rationale: Keep existing local-only and consumer-shape assertions and verify additive fields explicitly.
 approved_frozen_upstream_snapshots:
   - source_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/281a57bd9fb782c0f85bfb5127c713ea15037f68.json

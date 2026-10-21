@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
+from app.lib.time_utils import wire_datetime
 from app.models.alert_firing_event import AlertFiringEvent
 from app.models.indicator_alert import IndicatorAlert
 from app.models.instrument import Instrument
@@ -19,7 +20,12 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
 from app.providers.errors import bounded_redact_provider_message
 from app.services.evaluator_preflight import preflight_ohlcv
-from app.services.indicators import OHLCVSeries, get_latest_value, required_bars_for_indicator
+from app.services.indicators import (
+    OHLCVSeries,
+    get_latest_value,
+    required_bars_for_indicator,
+    resolve_indicator_output,
+)
 from app.services.market_data import fetch_ohlcv, get_current_price_async
 from app.services.onesignal import send_alert_notification, send_indicator_alert_notification
 from app.websocket.manager import ws_manager
@@ -291,14 +297,19 @@ async def _fire_price_alert(db: AsyncSession, alert: PriceAlert, current_price: 
             "condition": condition_val,
             "threshold": threshold,
             "current_price": current_price,
-            "triggered_at": now.isoformat(),
+            "triggered_at": wire_datetime(now),
         },
     )
     logger.info(f"Price alert {alert_id} fired: {symbol} @ {current_price}")
 
 
 async def _fire_indicator_alert(
-    db: AsyncSession, alert: IndicatorAlert, val_a: float, val_b: float | None
+    db: AsyncSession,
+    alert: IndicatorAlert,
+    val_a: float,
+    val_b: float | None,
+    output_a: str | None = None,
+    output_b: str | None = None,
 ):
     now = datetime.now(UTC)
     # Capture fields before commit (commit expires ORM attributes, lazy-load fails in async)
@@ -308,7 +319,7 @@ async def _fire_indicator_alert(
     alert_id = alert.id
     user_id = alert.user_id
     instrument_id = alert.instrument_id
-    threshold_value = float(alert.threshold_value) if alert.threshold_value else val_b
+    threshold_value = float(alert.threshold_value) if alert.threshold_value is not None else val_b
 
     alert.triggered_at = now
     alert.trigger_count = (alert.trigger_count or 0) + 1
@@ -327,6 +338,9 @@ async def _fire_indicator_alert(
         condition_snapshot=json.dumps(
             {
                 "indicator": indicator_type,
+                "output_a": output_a,
+                "indicator_b": alert.indicator_b_type,
+                "output_b": output_b,
                 "condition": condition,
                 "value_a": val_a,
                 "value_b": val_b,
@@ -346,6 +360,9 @@ async def _fire_indicator_alert(
         value=val_a,
         threshold=threshold_value,
         alert_id=alert_id,
+        output_a=output_a,
+        output_b=output_b,
+        indicator_b_type=alert.indicator_b_type,
     )
     if notif_id:
         alert.last_notification_id = notif_id
@@ -360,10 +377,13 @@ async def _fire_indicator_alert(
             "firing_event_id": firing_id,
             "symbol": symbol,
             "indicator": indicator_type,
+            "output_a": output_a,
+            "indicator_b": alert.indicator_b_type,
+            "output_b": output_b,
             "condition": condition,
             "value_a": val_a,
             "value_b": val_b,
-            "triggered_at": now.isoformat(),
+            "triggered_at": wire_datetime(now),
         },
     )
     logger.info(f"Indicator alert {alert_id} fired: {symbol} {indicator_type}={val_a:.4f}")
@@ -426,14 +446,40 @@ async def run_alert_check():
                 if len(data.closes) < 2:
                     continue
 
-                val_a = get_latest_value(alert.indicator_a_type, data, alert.indicator_a_params)
+                output_a = resolve_indicator_output(
+                    alert.indicator_a_type, alert.indicator_a_params
+                )
+                if output_a is None:
+                    logger.warning(
+                        "Indicator alert %s skipped: %s has no valid explicit output",
+                        alert.id,
+                        alert.indicator_a_type,
+                    )
+                    continue
+                val_a = get_latest_value(
+                    alert.indicator_a_type, data, alert.indicator_a_params, output_a
+                )
                 if val_a is None:
                     continue
 
                 val_b = None
+                output_b = None
                 if alert.indicator_b_type:
+                    output_b = resolve_indicator_output(
+                        alert.indicator_b_type, alert.indicator_b_params or {}
+                    )
+                    if output_b is None:
+                        logger.warning(
+                            "Indicator alert %s skipped: %s has no valid explicit output",
+                            alert.id,
+                            alert.indicator_b_type,
+                        )
+                        continue
                     val_b = get_latest_value(
-                        alert.indicator_b_type, data, alert.indicator_b_params or {}
+                        alert.indicator_b_type,
+                        data,
+                        alert.indicator_b_params or {},
+                        output_b,
                     )
 
                 threshold = (
@@ -445,7 +491,7 @@ async def run_alert_check():
                 if _indicator_condition_met(
                     alert.condition, val_a, last_a, threshold, val_b, last_b
                 ):
-                    await _fire_indicator_alert(db, alert, val_a, val_b)
+                    await _fire_indicator_alert(db, alert, val_a, val_b, output_a, output_b)
 
                 # Always persist latest values for display in UI
                 alert.last_value_a = Decimal(str(val_a))

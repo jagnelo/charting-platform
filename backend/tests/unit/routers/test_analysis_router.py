@@ -557,10 +557,12 @@ async def test_historical_profile_snapshot_cutoff_requires_fetch_proof():
     )
 
     assert result == {}
-    sql = str(db.statement.compile(compile_kwargs={"literal_binds": True}))
-    assert "observed_at <= '2024-03-10 00:00:00+00:00'" in sql
-    assert "fetched_at IS NOT NULL" in sql
-    assert "fetched_at <= '2024-03-10 00:00:00+00:00'" in sql
+    compiled = db.statement.compile()
+    sql = str(compiled)
+    assert "instrument_profile_snapshot.observed_at <=" in sql
+    assert "instrument_profile_snapshot.fetched_at IS NOT NULL" in sql
+    assert "instrument_profile_snapshot.fetched_at <=" in sql
+    assert list(compiled.params.values()).count(datetime(2024, 3, 10, tzinfo=UTC)) == 2
 
 
 def test_relative_rotation_sampling_retains_latest_aligned_observation():

@@ -54,6 +54,10 @@ def test_etf_holdings_response_schemas_serialize_timestamps_as_canonical_utc_z()
         provenance="sec",
         source_provider="sec",
         source_quality="issuer_filing",
+        cadence="monthly",
+        parser_version="sec-v1",
+        source_identifier="sec:filing:2026-09",
+        timing_provenance={"known_at_basis": "filing_acceptance"},
     )
     timeline = ETFConstituentTimelinePoint(
         snapshot_id=3,
@@ -62,6 +66,10 @@ def test_etf_holdings_response_schemas_serialize_timestamps_as_canonical_utc_z()
         published_at=aware,
         weight=0.25,
         source_provider="sec",
+        source_identifier="sec:filing:2026-09",
+        cadence="monthly",
+        parser_version="sec-v1",
+        timing_provenance={"known_at_basis": "filing_acceptance"},
         provenance="sec",
     )
     evolution = ETFHoldingsWeightEvolutionPointOut(
@@ -71,6 +79,10 @@ def test_etf_holdings_response_schemas_serialize_timestamps_as_canonical_utc_z()
         published_at=aware,
         weight=0.25,
         source_provider="sec",
+        source_identifier="sec:filing:2026-09",
+        cadence="monthly",
+        parser_version="sec-v1",
+        timing_provenance={"known_at_basis": "filing_acceptance"},
         provenance="sec",
     )
     filing = ETFHoldingsBackfillFilingOut(
@@ -101,7 +113,11 @@ def test_etf_holdings_response_schemas_serialize_timestamps_as_canonical_utc_z()
     assert adapter.model_dump(mode="json")["published_at"] == "2026-09-12T16:30:00Z"
     assert snapshot.model_dump(mode="json")["known_at"] == "2026-09-12T14:30:00Z"
     assert date_row.model_dump(mode="json")["published_at"] == "2026-09-12T16:30:00Z"
+    assert date_row.model_dump(mode="json")["source_identifier"] == "sec:filing:2026-09"
+    assert date_row.model_dump(mode="json")["cadence"] == "monthly"
+    assert date_row.model_dump(mode="json")["timing_provenance"]["known_at_basis"] == "filing_acceptance"
     assert timeline.model_dump(mode="json")["known_at"] == "2026-09-12T14:30:00Z"
+    assert timeline.model_dump(mode="json")["parser_version"] == "sec-v1"
     assert evolution.model_dump(mode="json")["published_at"] == "2026-09-12T16:30:00Z"
     assert filing.model_dump(mode="json")["acceptance_datetime"] == "2026-09-12T14:30:00Z"
     assert job.model_dump(mode="json")["started_at"] == "2026-09-12T14:30:00Z"
