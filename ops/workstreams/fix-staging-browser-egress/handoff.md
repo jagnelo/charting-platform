@@ -1,13 +1,39 @@
 # fix/staging-browser-egress
 
+## Final checkpoint packet
+
+Local matrix PASSED, source `cea8bca280f5bd9ea681eb9a184e4d938031609e`: actual full
+post-fix functional155/10616.1m and strict104/10413.3m, one worker/zero retries,
+unchanged reference/mask/0.005 policy. Both popup focus cases passed. Workflow132
+passes under actual inherited CI flags. Backend3227/43783%, frontend967/type/build
+and migration evidence reused only with exact unchanged executed-input hashes;
+complete matrix and earlier red/setup receipts preserved under
+`.ai/validation/repair-browser-20261021/matrix.md`.
+
+Cleanup62663passed; independent root baseline re-inventory exactly matches all
+70containers77volumes19networks77image records, no changed/missing/new identities.
+Only the generated fixture was removed; retained services/data/quotas intact.
+Coordinator accepts this repair scope under the verbatim standing delegation
+below, CONDITIONAL on all mandatory final-published-HEAD branch CI jobs. Plan is
+ready_for_integration; integration_capture is exact branch HEAD. Actual guarded
+REMEDIATE_DEGRADED=1 merge and resulting staging EIG must pass before ETF release.
+No final CI, staging release, roadmap completion or deployment is claimed here.
+
+This final packet changes only this workstream after validated source CEA; push
+once and record final actual SHA/remote sync/CI externally without self-hash
+metadata churn. Session JSON is the truthful pre-publication CEA/remote-DA capture,
+not a claim it can contain its own later packet hash. Native goal limitation is
+unavailable, never falsely active; root's existing turn continues supervision.
+
 Created from `staging` at `0f424665049e9b6f4464e1f228cebd263c755ad9`.
 
 ## Human authorization
 
 - Recorded at: 2026-10-21T07:07:15.961310+00:00
-- Request: I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human. Apply this standing authorization to repair the exact degraded staging browser-network and hosted cleanup-path defects, preserving all tests, datasets and provider holds.
-- Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
-- Planning state: draft; the implementation agent must complete scope, acceptance criteria, tests, and local validation profile before creating a goal.
+- Human request, verbatim: I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human
+- Coordinator application of that standing request: repair the exact degraded staging browser-network, scoped hosted cleanup and related test-readiness defects while preserving tests, datasets and provider holds. This scope derivation is not an additional human quotation.
+- Checkpoint acceptance is now delegated coordinator technical acceptance, conditional on actual final-source branch CI and repaired staging EIG; no deployment is claimed.
+- Planning state: ready; exact assigned preflight and committed planning checkpoint completed before implementation.
 
 Update this handoff at each coherent boundary.
 
@@ -37,7 +63,7 @@ its sandbox Make runtime preparation also cannot access the existing private
 quota directory. Use the established HOST route for runtime-dependent commands,
 not a private-directory permissions change. Commit planning checkpoint first.
 
-## Current source checkpoint and remaining validation
+## Prior source checkpoint preparation (historical; final receipt above governs)
 
 Plan/preflight are committed and ready; original root thread continues without
 a duplicate native goal. Published da15aaf72920133a20357afab9439d549d1b8c88 contains
