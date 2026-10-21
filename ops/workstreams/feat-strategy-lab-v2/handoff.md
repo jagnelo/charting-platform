@@ -15872,3 +15872,28 @@ operation ran. The repair is published as exact tested source
 red run `39633844512` remains preserved and was not rerun. Keep all production
 unverified-reference denial, actual TC release/resolver, final migration graph,
 combined PostgreSQL/application, Exhaustive, and `full_stack_browser` gates open.
+
+### Negative resolver test typing boundary — 2026-10-21
+
+Exact-source CI review for `6fbbb3203895eeb31021b5421f9f1b0f5d828da8`
+reported Branch-declared job `119361856415` red with one MyPy error at
+`test_trial_hydration.py:367`: the deliberately synchronous negative callback
+did not satisfy the async resolver annotation. The test now uses a narrow
+`typing.cast` to the existing `SelectedStudyArtifactResolver` alias at that
+constructor boundary only. The callback remains synchronous and the exact
+`TypeError` assertion remains intact; no production annotation or behavior was
+changed.
+
+The assigned bounded node passed 1/1 in 0.34s after a pre-launch
+`MemAvailable` check of 2,354,888 KiB (above the required 1 GiB). Ruff check,
+Ruff format check, and `git diff --check` passed. The source-only change is
+published as `0b5d30e48dab251894622b0eb6df0cc508105345`, pushed and synchronized
+with `origin/feat/strategy-lab-v2`; root owns its exact-source CI. No full MyPy,
+suite, DB, browser, native execution, provider operation, or TC consumer work
+ran. The prior MyPy red remains historical evidence and was not replayed.
+
+The feature checkpoint remains `in_progress` and unaccepted. TC owner-scoped
+resolver/API consumption and accepted green TC staging, final migration graph,
+combined PostgreSQL/application, exact-source CI, Exhaustive, and
+`full_stack_browser` gates remain open. Production continues to deny unverified
+selected references; the full roadmap and every prior failure receipt remain.

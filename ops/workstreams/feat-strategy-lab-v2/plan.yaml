@@ -10,20 +10,17 @@ integration_checkpoint:
       source_commit: b2fbcabf822041b41410f982a8ed45eed76815ce
       integration_capture: exact branch HEAD
   active_changeset:
-    name: strategy-v2-null-study-reference-compatibility
+    name: strategy-v2-negative-resolver-typing-boundary
     status: complete
-    base_source_commit: 3b317f8dcbdd7430744225f9286e0490dd148ba0
-    source_commit: fc0cd9fed5e793bb879087f9b96561477e628cf7
+    base_source_commit: fc0cd9fed5e793bb879087f9b96561477e628cf7
+    source_commit: 0b5d30e48dab251894622b0eb6df0cc508105345
     integration_capture: exact branch HEAD
     intent: >-
-      Canonicalize an explicit selected_study_artifact: null from existing owner-graph/asdict
-      serialization as absence so no-reference fingerprints retain exact historical identity.
-      Preserve strict validation and production denial for every non-null unverified reference.
-      Add a pure golden roundtrip regression and isolate nested SDK identity binding by adding only
-      a selected reference to the same baseline StrategyVersion. Do not activate TC consumption.
+      Preserve the synchronous callback in the hydrator's negative test while using a narrow cast
+      to the existing async resolver alias at the deliberately invalid constructor boundary. Keep
+      the exact TypeError assertion and production async resolver contract unchanged.
     owned_paths:
-      - backend/app/strategy_lab_v2/resource_domains.py
-      - backend/app/strategy_lab_v2/tests/test_resource_domains.py
+      - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
@@ -406,17 +403,17 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: null-study-reference-compatibility-source-closed
+  current_phase: negative-resolver-test-typing-boundary-source-closed
   current_blocker: >-
-    The no-reference explicit-null compatibility repair is tested and published as
-    fc0cd9fed5e793bb879087f9b96561477e628cf7; the exact hosted CI result for this
-    source is coordinator-owned and pending. Earlier CI 39633844512 remains red and
-    preserved as the defect evidence. Actual TC release/resolver consumption, final
-    migration graph, combined PostgreSQL/application, Exhaustive and full_stack_browser
-    gates remain open; the full feature checkpoint remains in_progress and unaccepted.
+    The scoped test typing correction is tested and published as
+    0b5d30e48dab251894622b0eb6df0cc508105345; exact-source CI is coordinator-owned.
+    The triggering Branch-declared MyPy red 119361856415 on 6fbbb remains preserved.
+    Actual TC release/resolver consumption, final migration graph, combined
+    PostgreSQL/application, Exhaustive and full_stack_browser gates remain open;
+    the full feature checkpoint remains in_progress and unaccepted.
   next_action: >-
-    Root owns hosted CI for fc0cd9fed5e793bb879087f9b96561477e628cf7; do not replay
-    the held red run or launch more tests in this slot. Keep production unverified
+    Root owns exact-source CI for 0b5d30e48dab251894622b0eb6df0cc508105345; do not
+    rerun the prior CI or exceed the assigned light slot. Keep production unverified
     references denied. Resume actual TC owner-scoped resolver/API consumer work and
     recompute the final graph only after accepted green TC staging; retain every
     combined PostgreSQL/application, exact CI, Exhaustive and full_stack_browser gate.
