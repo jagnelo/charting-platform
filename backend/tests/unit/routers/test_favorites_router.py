@@ -8,9 +8,7 @@ class TestFavoritesRouter:
         assert initial.status_code == 200
         assert initial.json() == []
 
-        added = client.put(
-            f"/api/v1/favorites/instruments/{instrument.id}", headers=auth_headers
-        )
+        added = client.put(f"/api/v1/favorites/instruments/{instrument.id}", headers=auth_headers)
         assert added.status_code == 200
         assert added.json()["symbol"] == instrument.symbol
         assert added.json()["instrument_id"] == instrument.id
@@ -44,9 +42,12 @@ class TestFavoritesRouter:
         )
         assert removed.status_code == 204
         assert client.get("/api/v1/favorites", headers=auth_headers).json() == []
-        assert client.delete(
-            f"/api/v1/favorites/instruments/{instrument.id}", headers=auth_headers
-        ).status_code == 204
+        assert (
+            client.delete(
+                f"/api/v1/favorites/instruments/{instrument.id}", headers=auth_headers
+            ).status_code
+            == 204
+        )
         db.refresh(other_favorite)
         assert other_favorite.user_id == second_user.id
 

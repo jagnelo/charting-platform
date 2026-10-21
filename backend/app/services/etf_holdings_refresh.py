@@ -143,12 +143,18 @@ def _holdings_completeness_status(
     )
     if explicit:
         return str(explicit)
-    source_quality = str(
-        metadata.get("source_quality")
-        or configured_aliases.get("holdings_source_quality")
-        or ""
-    ).strip().lower()
+    source_quality = (
+        str(
+            metadata.get("source_quality")
+            or configured_aliases.get("holdings_source_quality")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
     return _DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY.get(source_quality, "unknown")
+
+
 _CANARY_HISTORY_KEY = "canary_history"
 _CANARY_HISTORY_LIMIT = 90
 
@@ -1563,8 +1569,7 @@ async def refresh_etf_holdings_for_date(
                 known_at=known_at,
                 published_at=published_at,
                 provenance=str(
-                    result_metadata.get("snapshot_provenance")
-                    or "issuer_self_snapshotted_holdings"
+                    result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
                 ),
                 source_provider=str(source_provider),
                 source_url=fetch_result.source_url,
@@ -2522,9 +2527,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
 
     published_at = _datetime_from_value(result_metadata.get("published_at"))
     known_at = (
-        _datetime_from_value(result_metadata.get("known_at"))
-        or published_at
-        or datetime.now(UTC)
+        _datetime_from_value(result_metadata.get("known_at")) or published_at or datetime.now(UTC)
     )
     timing_provenance = {
         "composition_date": (
@@ -2534,7 +2537,9 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             if _alias_date(aliases, "holdings_composition_date")
             else "ingestion_date_fallback"
         ),
-        "as_of_date": "provider_reported" if result_metadata.get("as_of_date") else "profile_alias_fallback",
+        "as_of_date": "provider_reported"
+        if result_metadata.get("as_of_date")
+        else "profile_alias_fallback",
         "known_at": (
             "provider_reported"
             if result_metadata.get("known_at")

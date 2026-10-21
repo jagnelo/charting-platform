@@ -4824,11 +4824,7 @@ async def benchmark_family_coverage(
                 and current_snapshot_usable
             ]
             selected_snapshot = next(
-                (
-                    row
-                    for row in snapshot_rows
-                    if canonical_snapshot_usable.get(row.id, False)
-                ),
+                (row for row in snapshot_rows if canonical_snapshot_usable.get(row.id, False)),
                 None,
             )
             if not current_snapshot_usable:

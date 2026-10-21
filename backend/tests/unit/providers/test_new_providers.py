@@ -822,11 +822,7 @@ class TestAlpacaOHLCVParsing:
     @pytest.mark.parametrize("field", ["adjustment_factor", "adjustmentFactor"])
     def test_corporate_actions_parse_only_the_recognized_explicit_factor(self, field):
         events = _parse_corporate_action_events(
-            {
-                "cash_dividends": [
-                    {"ex_date": "2025-01-02", "rate": "0.25", field: "0.9975"}
-                ]
-            },
+            {"cash_dividends": [{"ex_date": "2025-01-02", "rate": "0.25", field: "0.9975"}]},
             "AAPL",
             datetime(2025, 1, 3, tzinfo=UTC),
         )

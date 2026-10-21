@@ -119,8 +119,15 @@ class RadarDetectionSummaryOut(BaseModel):
     updated_at: datetime
 
     @field_serializer(
-        "observed_at", "signal_at", "context_at", "fresh_until", "outcome_last_evaluated_at",
-        "target_hit_at", "invalidated_at", "created_at", "updated_at",
+        "observed_at",
+        "signal_at",
+        "context_at",
+        "fresh_until",
+        "outcome_last_evaluated_at",
+        "target_hit_at",
+        "invalidated_at",
+        "created_at",
+        "updated_at",
     )
     def serialize_timestamps(self, value: datetime | None) -> str | None:
         return wire_datetime(value)
@@ -153,8 +160,14 @@ class RadarThreadEventOut(BaseModel):
     updated_at: datetime
 
     @field_serializer(
-        "observed_at", "signal_at", "context_at", "outcome_last_evaluated_at",
-        "target_hit_at", "invalidated_at", "created_at", "updated_at",
+        "observed_at",
+        "signal_at",
+        "context_at",
+        "outcome_last_evaluated_at",
+        "target_hit_at",
+        "invalidated_at",
+        "created_at",
+        "updated_at",
     )
     def serialize_timestamps(self, value: datetime | None) -> str | None:
         return wire_datetime(value)

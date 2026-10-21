@@ -34,7 +34,9 @@ async def list_favorites(
             select(FavoriteInstrument, Instrument)
             .join(Instrument, Instrument.id == FavoriteInstrument.instrument_id)
             .where(FavoriteInstrument.user_id == current_user.id)
-            .order_by(FavoriteInstrument.position, FavoriteInstrument.added_at, FavoriteInstrument.id)
+            .order_by(
+                FavoriteInstrument.position, FavoriteInstrument.added_at, FavoriteInstrument.id
+            )
         )
     ).all()
     return [_favorite_out(favorite, instrument) for favorite, instrument in rows]

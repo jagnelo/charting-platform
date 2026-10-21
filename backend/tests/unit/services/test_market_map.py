@@ -5,11 +5,11 @@ import pytest
 
 from app.schemas.market_map import MarketMapRequest
 from app.services.market_map import (
-    _market_map_required_bars,
     _as_utc,
     _cache_key,
     _condition_tree_matches_declared,
     _events_by_instrument,
+    _market_map_required_bars,
     _period_bounds,
     _profile_area_provenance,
     _profile_field_conflict,

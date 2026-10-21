@@ -148,9 +148,12 @@ async def test_alpaca_explicit_factor_flows_from_parser_to_persisted_observation
 
     assert db.query(InstrumentEvent).count() == 2
     assert db.query(InstrumentEvent).filter_by(adjustment_factor=Decimal("0.9975")).count() == 2
-    assert db.query(AdjustmentFactorObservation).filter_by(
-        factor=Decimal("0.9975"), factor_kind="provider_supplied"
-    ).count() == 1
+    assert (
+        db.query(AdjustmentFactorObservation)
+        .filter_by(factor=Decimal("0.9975"), factor_kind="provider_supplied")
+        .count()
+        == 1
+    )
 
 
 @pytest.mark.asyncio

@@ -43,8 +43,8 @@ from app.services.breadth import (
     evaluate_condition,
     required_bars_for_condition,
 )
-from app.services.ohlcv_coverage import bar_visible_through_clause
 from app.services.evaluator_preflight import EvaluatorCoverageItem, preflight_ohlcv
+from app.services.ohlcv_coverage import bar_visible_through_clause
 from app.services.watchlist_sources import (
     CurrentAnalysisSourceError,
     current_analysis_source_error_detail,

@@ -115,7 +115,10 @@ def test_etf_holdings_response_schemas_serialize_timestamps_as_canonical_utc_z()
     assert date_row.model_dump(mode="json")["published_at"] == "2026-09-12T16:30:00Z"
     assert date_row.model_dump(mode="json")["source_identifier"] == "sec:filing:2026-09"
     assert date_row.model_dump(mode="json")["cadence"] == "monthly"
-    assert date_row.model_dump(mode="json")["timing_provenance"]["known_at_basis"] == "filing_acceptance"
+    assert (
+        date_row.model_dump(mode="json")["timing_provenance"]["known_at_basis"]
+        == "filing_acceptance"
+    )
     assert timeline.model_dump(mode="json")["known_at"] == "2026-09-12T14:30:00Z"
     assert timeline.model_dump(mode="json")["parser_version"] == "sec-v1"
     assert evolution.model_dump(mode="json")["published_at"] == "2026-09-12T16:30:00Z"

@@ -5,8 +5,8 @@ from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_stats import InstrumentStats
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.strategy_lab_nautilus import (
-    _timeframe_to_bar_spec,
     _nanos_to_iso,
+    _timeframe_to_bar_spec,
     run_single_instrument_nautilus_backtest,
 )
 
