@@ -31,7 +31,7 @@ closure_summary: >-
   recorded. The monolithic attempt and prior red/setup receipts remain partial
   or failed as originally observed. Provider 9b230ba4c97126a2937667138c6eb2a0aa297baf
   is accepted/released; ETF's local EICP1-EICP7 technical review is complete.
-  Exact C hosted CI is pending and mandatory, followed by central guarded staging
+  Exact final-published-head hosted CI is pending and mandatory, followed by central guarded staging
   integration/EIG. integration_capture: exact branch HEAD. This checkpoint does
   not close the fourteen-criterion feature roadmap, issuer onboarding, or the
   post-integration 30-day observation gate. MSMR/QQQ and Militia/GOOG remain
@@ -70,7 +70,7 @@ integration_checkpoint:
     its 30-day trial. No staging writes, sibling edits, frozen-source changes,
     promotion, deployment or trial activation.
   acceptance_authorization: pending
-  latest_resume_reconciliation:
+  historical_resume_reconciliation_2026_10_15:
     recorded_at: "2026-10-15T22:36:00Z"
     branch_head: c58cfeafdba77ee22b89caec9ec7d3057657c6f3
     common_repair_staging_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
@@ -92,6 +92,30 @@ integration_checkpoint:
       reserved heavy-validation slot, merge that exact synchronized staging SHA
       into this same branch, implement/test the real ETF_HOLDINGS bridge, then
       run the combined full profile and exact-source CI.
+  latest_resume_reconciliation:
+    recorded_at: "2026-10-21T04:53:55Z"
+    branch_head_at_review: 79e0604c0a4b398a0fd92bdd4b099c308eee43eb
+    provider_checkpoint: accepted_and_released
+    provider_staging_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    local_full_profile: >-
+      Complete source-qualified component matrix. B strict visuals passed
+      104/104 and all nine declared branch commands passed. Backend 3227 unit
+      plus 437 integration, frontend 967 tests/111 files plus type/build,
+      functional 155 passed/106 declared skips, Compose/research probes, and
+      migration compatibility against the accepted Provider release are reused
+      from A198 only for identical input trees/configuration recorded in
+      .ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md. The
+      monolithic attempt remains partial; the previous four-visual failure and
+      setup failures remain red/partial historical evidence.
+    coordinator_technical_review: conditionally_approved
+    human_acceptance_delegation: >-
+      Yes—approve that initial scope and handle checkpoint acceptance.
+    final_source_capture: exact branch HEAD
+    exact_final_branch_ci: pending_on_final_published_head; mandatory
+    staging_integration_and_EIG: central_coordinator_owned_after_green_final_head_CI
+    provider_and_issuer_http_or_quota: none; live flags remain disabled
+    quarantines: MSMR/QQQ and Militia/GOOG remain unresolved/quarantined
+    roadmap: all fourteen criteria, issuer onboarding and 30-day observation remain open
   latest_provider_release:
     recorded_at: "2026-10-20T20:58:03Z"
     status: accepted_and_released_in_synchronized_green_staging
@@ -506,7 +530,7 @@ current_phase: bounded_etf_checkpoint_review_and_final_publication_2026_10_21
 current_blocker: >-
   The 15 Tier-0 and 156 Tier-1 investigations remain preserved. The bounded
   ETF checkpoint has coordinator technical review approval based on
-  implementation B 79e0604c0a4b398a0fd92bdd4b099c308eee43eb; final C hosted
+  implementation B 79e0604c0a4b398a0fd92bdd4b099c308eee43eb; final published-head hosted
   exact-source CI is mandatory and pending. The full local matrix is complete:
   B's strict 104-case visual matrix and all nine declared branch commands
   passed; backend, frontend, functional, migration-compatibility, Compose and
@@ -519,7 +543,7 @@ current_blocker: >-
   fourteen-criterion roadmap and post-integration 30-day observation, issuer
   onboarding, unresolved/quarantined MSMR/QQQ and Militia/GOOG, and disabled
   unknown/quota-held/unreviewed/paid/trial/unsafe operations. Checkpoint review
-  is conditionally approved, not finally accepted or integrated; exact C CI and
+  is conditionally approved, not finally accepted or integrated; exact final-head CI and
   coordinator-owned guarded staging integration/EIG remain pending.
 integration_capture: exact branch HEAD
 
@@ -1510,13 +1534,13 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Publish final own-workstream records C only, after validating the exact B
+  Publish final own-workstream records D only, after validating the exact B
   matrix receipt and preserving historical partial/red/setup evidence. Keep
   integration_capture as exact branch HEAD to avoid a self-hash loop. Run the
   audit-count sentinel, workstream/schema/hash validation, JSONL parse,
   branch-test manifest check and diff checks, then commit only this branch's
-  workstream records and push C once. Verify clean local/origin parity and
-  inspect the exact C CI run; its terminal green result and coordinator-owned
+  workstream records and push D once. Verify clean local/origin parity and
+  inspect the exact D CI run; its terminal green result and coordinator-owned
   guarded staging integration/EIG are still required before final checkpoint
   acceptance. Do not rerun backend/browser gates, push B separately, or create
   a metadata-only follow-up. Preserve all fourteen original criteria, the full
