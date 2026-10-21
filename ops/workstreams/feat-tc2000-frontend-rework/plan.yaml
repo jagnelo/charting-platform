@@ -30,33 +30,17 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Current HEAD is80ccb110ea9fdc4b4405540586eb275d714f0aea. The accepted
-  Provider+ETF release628c1634f4894403339687586adee74d45637d51 is already an
-  ancestor through committed merge4aa25453897ebea53c7f61c6077549bee3c87cfb
-  (parents e365d042451734647649fe40778d16a097a2b920 and 628c1634...); there
-  is no active MERGE_HEAD.
-  The single in-progress, uncommitted repair restores narrowly scoped TC
-  Provider/ETF consumer behavior and removed Study adapters across the exact
-  active paths listed in the current handoff. Root has authorized the listed
-  protected-path adaptations; exact accepted blobs and rationale still need
-  complete manifest/record entries and final review, while every unrelated
-  frozen import remains byte-exact. Bounded working-tree checks pass:
-  timestamp/readiness/watchlist selection21/21, Study adapters12/12,
-  timestamp/readiness/watchlist selection21/21, Study adapters12/12,
-  selector/alert/screener cases16/16, all3416 unit tests collect, and the nine
-  changed non-runner files pass104/104. The future-combo resolver regression
-  first reproduced a TypeError from passing two arguments to the existing
-  one-argument helper; the corrected call preserves known_at exclusion and
-  empty members. The monolithic118-case runner module exits1 at statsmodels
-  OLS with native OpenBLAS allocation failure despite the canonical four thread
-  variables; the isolated OLS case passes. Using unchanged
-  scripts/backend_coverage.py partition(...,50) semantics, all118 unique node
-  IDs passed exactly once in fresh sequential processes sized50/50/18, zero
-  retries. This focused evidence does not waive the full backend coverage gate.
-  Exact80ccb CI remains historically red38failed/3377passed. No fixture was
-  created. Next action: finish exact manifest/scope and workstream checks and
-  obtain Root final-diff review before commit/push. TCP3 overall, TCP4, TCP5,
-  full roadmap and official REF-HELP-V25 remain open.
+  Exact source6c720dc6bce1f37a6c0972c31f6dc2def408b27a CI39604702686 is
+  terminal red with one legacy cached-lineage capability failure/3416 passes.
+  The narrowly reviewed correction preserves cached identity/source/transport
+  lineage without adapter state, leaves availability/current usability unknown,
+  and treats absent legacy parser/source metadata as None. Focused capability/
+  watchlist tests130/130, affected non-runner tests104/104, and research-runner
+  tests118/118 in canonical sequential50/50/18 shards passed. Scope self-tests,
+  staged-byte guard, workstream, JSONL and diff checks passed. The source and
+  owned regression are staged with the exact G adaptation record; publication
+  and fresh exact-source CI remain. No fixture/build was created. TCP3 overall,
+  TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -954,8 +938,14 @@ approved_provider_contract_adaptations:
     accepted_blob: 39941d2dd0f23e103e4ffa50585be6f703fcbb2b
     delta: >-
       Restore UTC-normalized PIT comparisons/digests, combo-definition cutoffs, canonical ETF-member
-      eligibility/counts, and additive cadence/parser/source/timing provenance.
-    rationale: Keep ETF current/stale/unknown availability and identity decisions from the released capability contract.
+      eligibility/counts, additive cadence/parser/source/timing provenance, and cached capability
+      lineage evaluation without adapter state. Optional parser/source fields absent from legacy
+      snapshot projections remain None.
+    rationale: >-
+      Preserve released ETF current/stale/unknown availability and identity decisions. Cached
+      lineage remains inspectable without adapter state while current usability stays unknown;
+      missing optional legacy metadata is not fabricated. The accepted baseline remains G blob
+      39941d2dd0f23e103e4ffa50585be6f703fcbb2b; the staged index must equal the worktree.
   - path: backend/app/tasks/alert_tasks.py
     source_sha: 628c1634f4894403339687586adee74d45637d51
     accepted_blob: 7c54220a48f4959f67e2ed4424b22a693ad36132
@@ -1097,7 +1087,16 @@ progress:
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
   current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_RECONCILIATION_DELIVERED_ETF_CONSUMER_RECONCILIATION_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
-    Complete the exact-byte frozen-import and migration-graph checks, rerun scope/workstream/structured-data/diff validation, then commit and push the meaningful 628c reconciliation once and observe its exact-source CI. The latest focused slice is13/13 passed, but is not full-profile or checkpoint acceptance. Do not run another DB test until Root sequences the request against Strategy. Prepare the full local profile/resource plan only; no browser/Compose/full suite while Strategy owns the slot. TCP3 overall, TCP4, TCP5, full roadmap, and official REF-HELP-V25 remain open.
+    Commit and push the narrowly reviewed legacy ETF snapshot compatibility correction on top of
+    exact source6c720dc6bce1f37a6c0972c31f6dc2def408b27a. Scope self-tests34/34, the actual guard
+    (465 changed paths;356 immutable imports;23 exact adaptations), workstream validation and
+    staged/unstaged diff checks passed. Preserve the terminal-red CI receipt (one cached-lineage
+    capability failure), and require fresh exact-source CI. The focused
+    capability/watchlist slice passed130/130; nine affected
+    non-runner files104/104; the118 runner cases passed exactly once in canonical sequential
+    50/50/18 shards; no fixture was created. This is not full-profile or checkpoint acceptance.
+    Coordinator-gated local profile follows only after publication. TCP3 overall, TCP4, TCP5, full
+    roadmap, and official REF-HELP-V25 remain open.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1154,19 +1153,15 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    TC is reconciling the coordinator-released green Provider+ETF staging source
-    628c1634f4894403339687586adee74d45637d51 as the second parent of the current
-    uncommitted merge (first parent e365d042451734647649fe40778d16a097a2b920).
-    The release receipt is tracked at
-    ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/628c1634f4894403339687586adee74d45637d51.json
-    and exact import bytes are pinned in the 628 manifest. The prior Provider-only
-    source 669b498 and exact red CI39504855454 remain historical and unchanged.
-    Current reconciliation preserves the released ETF capability/currentness
-    contract, TC PIT known_at filtering, and source-owned Study/CodeVersion
-    behavior. A no-DDL Alembic merge revision joins existing TC Favorites head
-    a7c91e03d54b and released ETF capability head d1e7f2a9c4b6; no database was
-    touched. Bounded validation and exact-source CI are still pending. TCP3 overall,
-    TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
+    The narrow compatibility correction on exact source6c720 restores cached
+    capability lineage when adapter state is absent, while availability/current
+    usability remain unknown and absent optional parser/source metadata remains
+    None. Focused capability/watchlist, affected non-runner, and partitioned runner
+    evidence is green; scope/workstream validation and publication remain. Exact
+    CI39604702686 is historically red for the missing-legacy-metadata case and
+    must remain preserved; fresh exact-source CI is required. No local fixture was
+    created. TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain
+    open.
 current_checkpoint_status: >-
   Current boundary (2026-10-21): TCP1 and TCP2 remain narrowly accepted only as
   previously recorded. The TC-owned normal merge of coordinator-released green

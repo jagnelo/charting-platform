@@ -1,5 +1,24 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-21: narrow legacy ETF snapshot compatibility correction
+
+Current branch source is `6c720dc6bce1f37a6c0972c31f6dc2def408b27a` (origin matched
+before this correction). Exact CI `39604702686` is terminal red: 3,416 passed,
+one capability test failed because legacy cached snapshot projections omit
+optional `parser_version`/`source_identifier` fields. The TC-owned correction
+keeps cached lineage evaluation available without adapter state, preserves
+unknown availability/current usability, and returns `None` for absent optional
+metadata. It changes only `watchlist_sources.py` and its owned service test; the
+frozen capability test remains byte-exact. Focused evidence: capability/watchlist
+130/130; affected non-runner tests104/104; all118 research-runner cases passed
+exactly once in canonical sequential50/50/18 shards; Ruff and scope self-tests
+passed. After staging the approved exact adaptation record and source, the
+actual guard passed for465 changed paths, including356 immutable imports and23
+exact approved Provider adaptations; workstream validation and staged/unstaged
+diff checks also passed. No fixture/build was started. Next: publish this narrow fix,
+then require fresh exact-source CI before the coordinator-assigned full profile.
+TCP3 overall, TCP4/TCP5, full roadmap, and official `REF-HELP-V25` remain open.
+
 ## Current status — 2026-10-21: Provider/ETF/Study preservation repair in progress
 
 The branch remains at `80ccb110ea9fdc4b4405540586eb275d714f0aea` (origin-matched).

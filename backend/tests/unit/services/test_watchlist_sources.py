@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -108,6 +108,7 @@ def test_holdings_route_provenance_serializes_published_at_as_canonical_utc():
         adapter_key="demo",
         adapter_status="verified",
         adapter_confidence=0.9,
+        instrument=SimpleNamespace(symbol="DEMO"),
     )
     snapshot = SimpleNamespace(
         id=41,
@@ -117,19 +118,23 @@ def test_holdings_route_provenance_serializes_published_at_as_canonical_utc():
         row_count=2,
         resolved_count=2,
         unresolved_count=0,
+        composition_date=date(2024, 1, 1),
         snapshot_hash="snapshot-41",
         known_at=datetime(2024, 1, 1, 1, 0, tzinfo=UTC),
         total_weight=1.0,
         published_at=datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2))),
-        parser_version="v1",
-        source_identifier="demo:2024-01-01",
         source_provider="demo",
+        source_url="https://issuer.example/current.csv",
         extra_data={},
     )
 
     provenance = sources._holdings_route_provenance(profile, snapshot)
 
     assert provenance["snapshot_published_at"] == "2024-01-01T00:00:00Z"
+    assert provenance["snapshot_parser_version"] is None
+    assert provenance["snapshot_source_identifier"] is None
+    assert provenance["availability"] == "unknown"
+    assert provenance["usable_for_current_analysis"] is None
 
 
 def test_source_versions_and_membership_digests_are_invariant_to_timestamp_offsets():

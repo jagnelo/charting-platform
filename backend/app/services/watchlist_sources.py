@@ -372,7 +372,7 @@ def _holdings_route_provenance(
 
     capability = (
         evaluate_capability(profile, snapshot, state)
-        if profile is not None and snapshot is not None and state is not None and as_of is None
+        if profile is not None and snapshot is not None and as_of is None
         else None
     )
 
@@ -400,9 +400,15 @@ def _holdings_route_provenance(
             wire_datetime(snapshot.published_at) if snapshot is not None else None
         ),
         "snapshot_cadence": legal_metadata.get("cadence"),
-        "snapshot_parser_version": snapshot.parser_version if snapshot is not None else None,
+        # These lineage fields were added after legacy snapshot projections had
+        # already been persisted.  Older ORM-shaped fixtures/objects may omit
+        # the attributes entirely; absence must remain unknown rather than
+        # failing the route or fabricating lineage.
+        "snapshot_parser_version": (
+            getattr(snapshot, "parser_version", None) if snapshot is not None else None
+        ),
         "snapshot_source_identifier": (
-            snapshot.source_identifier if snapshot is not None else None
+            getattr(snapshot, "source_identifier", None) if snapshot is not None else None
         ),
         "snapshot_timing_provenance": timing_provenance,
         "canonical_member_count": canonical_member_count,
