@@ -291,6 +291,8 @@ def test_pinned_browser_uses_egress_bridge_and_strict_acceptance() -> None:
     )
     assert '--network "$${STACK_COMPOSE_PROJECT}_host-access"' in runner
     assert "-e STACK_URL=http://host-port-relay" in runner
+    assert "--memory $(PLAYWRIGHT_DOCKER_MEMORY)" in runner
+    assert "--cpus $(PLAYWRIGHT_DOCKER_CPUS)" in runner
     assert "_charting" not in runner
     assert "--network host" not in runner
     assert "/usr/share/fonts" not in runner

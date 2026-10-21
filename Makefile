@@ -49,10 +49,12 @@ RUNTIME_HELPER := $(WORKFLOW_PYTHON) scripts/worktree-runtime.py
 RUNTIME_ENV_FILE := $(shell $(RUNTIME_HELPER) env-file)
 RUNTIME_ENV = set -a; . "$(RUNTIME_ENV_FILE)"; set +a;
 PLAYWRIGHT_DOCKER_IMAGE ?= mcr.microsoft.com/playwright:v1.62.1-noble
+PLAYWRIGHT_DOCKER_MEMORY ?= 1536m
+PLAYWRIGHT_DOCKER_CPUS ?= 2
 # Only the browser uses this egress-capable bridge. The fixed-destination relay
 # reaches the local app; backend/worker remain on internal charting with denied
 # provider egress. Existing browser SDK requests still use normal outbound DNS.
-PLAYWRIGHT_DOCKER = docker run --rm --platform linux/amd64 --userns=host --user "$$(id -u):$$(id -g)" --network "$${STACK_COMPOSE_PROJECT}_host-access" -v "$(CURDIR):/workspace" -w /workspace/frontend -e STACK_URL=http://host-port-relay -e E2E_SEED_MARKET_DATA -e RUN_BOARD_VISUAL_PARITY -e PLAYWRIGHT_WORKERS -e CI $(PLAYWRIGHT_DOCKER_IMAGE)
+PLAYWRIGHT_DOCKER = docker run --rm --memory $(PLAYWRIGHT_DOCKER_MEMORY) --cpus $(PLAYWRIGHT_DOCKER_CPUS) --platform linux/amd64 --userns=host --user "$$(id -u):$$(id -g)" --network "$${STACK_COMPOSE_PROJECT}_host-access" -v "$(CURDIR):/workspace" -w /workspace/frontend -e STACK_URL=http://host-port-relay -e E2E_SEED_MARKET_DATA -e RUN_BOARD_VISUAL_PARITY -e PLAYWRIGHT_WORKERS -e CI $(PLAYWRIGHT_DOCKER_IMAGE)
 # Read LOG_LEVEL from the dev env file so uvicorn's --log-level matches it.
 BACKEND_LOG_LEVEL := $(shell grep -E '^LOG_LEVEL=' backend/.env.dev 2>/dev/null | cut -d= -f2 | tr '[:upper:]' '[:lower:]')
 BACKEND_LOG_LEVEL := $(if $(BACKEND_LOG_LEVEL),$(BACKEND_LOG_LEVEL),info)
