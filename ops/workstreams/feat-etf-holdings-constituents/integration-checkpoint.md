@@ -558,3 +558,36 @@ tests cannot safely be implemented. Exact-source CI and current-source
 `full_stack_browser` remain required before ETF checkpoint review. Human
 acceptance, feature-worker staging integration, promotion, deployment, paid or
 trial activation, operational observation and data cleanup are not authorized.
+# Bounded checkpoint final review state — 2026-10-21
+
+Coordinator technical review is conditionally approved for the bounded ETF
+checkpoint at implementation B `79e0604c0a4b398a0fd92bdd4b099c308eee43eb`.
+The complete source-qualified local matrix is recorded in
+`.ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md`; it includes
+the exact B strict visual/branch runs and explicitly qualifies reused A198
+backend, frontend, functional, Compose/research and migration-compatibility
+results by identical tested input hashes. It does not claim the interrupted
+monolithic attempt exited zero. Earlier red/partial/setup evidence is retained.
+
+The human-authorized acceptance delegation is recorded verbatim in the plan
+and session: “Yes—approve that initial scope and handle checkpoint acceptance.”
+The coordinator's review is conditional on mandatory terminal-green exact-C
+branch CI and its guarded staging merge/EIG. Neither is claimed complete here.
+Provider is accepted/released at synchronized green staging SHA
+`9b230ba4c97126a2937667138c6eb2a0aa297baf` (CI `39484176087`, EIG job
+`118849529356`). ETF's EICP1–EICP7 local technical review is complete on B;
+exact hosted C CI is pending. The final source capture is `integration_capture:
+exact branch HEAD`, avoiding a self-referential hash update.
+
+This bounded checkpoint does not close the original ETF feature. All fourteen
+original criteria, full issuer onboarding, the post-integration 30-day
+observation gate and historical audit evidence remain open. The 15 Tier-0 and
+156 Tier-1 investigations remain preserved. MSMR/QQQ and Militia/GOOG remain
+unresolved/quarantined; unknown, quota-held, unreviewed, paid/trial and unsafe
+operations remain disabled/non-routable. No live request, quota replay,
+deployment or feature-worker staging integration is claimed or authorized.
+
+The final C commit contains only ETF-owned workstream records. After it is
+pushed once, record/inspect exact C CI externally without a tracked metadata
+follow-up. The central coordinator owns final acceptance, guarded staging
+integration and EIG; this worker stops at the prepared checkpoint handoff.

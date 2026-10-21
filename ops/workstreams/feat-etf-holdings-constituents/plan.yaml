@@ -14,8 +14,30 @@ human_intent_authorization: >-
   instructed the agent to independently fix the full-gate-blocking F9c chart
   control hit-target defect within this assigned branch.
 planning_state: ready
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: >-
+  The human delegated bounded checkpoint acceptance to the central coordinator:
+  “Yes—approve that initial scope and handle checkpoint acceptance.” The
+  coordinator has conditionally approved the reviewed ETF checkpoint, subject
+  to terminal-green exact-final-C branch CI and coordinator-owned guarded
+  staging integration/EIG. This is not yet final ETF checkpoint acceptance,
+  staging integration, deployment, or closure of the original ETF roadmap.
+closure_summary: >-
+  Bounded ETF integration checkpoint, implementation B
+  79e0604c0a4b398a0fd92bdd4b099c308eee43eb, validated by the source-qualified
+  local matrix in .ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md.
+  The matrix includes B strict visuals 104/104 and all declared branch commands;
+  backend, frontend, functional, Compose/research and prior-release migration
+  results are reused from A198 only where identical tested input hashes are
+  recorded. The monolithic attempt and prior red/setup receipts remain partial
+  or failed as originally observed. Provider 9b230ba4c97126a2937667138c6eb2a0aa297baf
+  is accepted/released; ETF's local EICP1-EICP7 technical review is complete.
+  Exact C hosted CI is pending and mandatory, followed by central guarded staging
+  integration/EIG. integration_capture: exact branch HEAD. This checkpoint does
+  not close the fourteen-criterion feature roadmap, issuer onboarding, or the
+  post-integration 30-day observation gate. MSMR/QQQ and Militia/GOOG remain
+  unresolved/quarantined; unknown, quota-held, unreviewed, paid/trial and unsafe
+  operations remain disabled/non-routable. No live calls, quota replay, staging
+  self-integration, deployment, or retained-data cleanup is claimed.
 validation_tier: full_integration
 human_validation_authorization: "The human requested continued product development from staging; all application/provider changes use the complete integration gate."
 local_validation_profile: full_stack_browser
@@ -475,43 +497,31 @@ deferred_live_checks:
 live_test_impact: "Network-bearing issuer calls run only when RUN_LIVE_ETF_HOLDINGS_TESTS=1; the ordinary branch test explicitly sets it to 0 and retains nine no-network registry/route contracts. The network-enabled command remains under deferred_live_checks. Any authorized live check must be bounded, rate-conscious, and restricted to reviewed public/free or already-entitled routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: "Additive ETF capability/freshness/schema-observation state and the ETF_HOLDINGS shared-capability seed; preserve existing snapshots and compatibility reads."
 deployment_impact: "New disabled-by-default ETF canary configuration, shared provider-platform capability/entitlement/budget integration, and post-deployment 30-day shadow evidence; no paid activation or deployment in this session."
-status: in_progress
+status: ready_for_integration
 progress:
   completed:
     - EICP1
   total: 7
-current_phase: ci_harness_fixture_reconciliation_2026_10_21
+current_phase: bounded_etf_checkpoint_review_and_final_publication_2026_10_21
 current_blocker: >-
-  The 15 Tier-0 and 156 Tier-1 investigations remain preserved. Accepted
-  Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf remains merged in
-  ETF history. Historical exact CI 39514774818 remains terminal red and was
-  not rerun. Its 17 failed integration cases now all pass in local evidence:
-  11 API cases and the related market-universe/provider-concurrency cases were
-  green within the combined ordered run (109 passed); the sole failure in that
-  run was a separate market-universe diagnostic caused by passing a
-  psycopg-only `options` query parameter into asyncpg. That target then passed
-  1/1 against a uniquely created owned database with a normal query-free URL;
-  the exact database was dropped after the test process and connections ended.
-  The second ordered replay was interrupted at 63 passed under the coordinator
-  instruction not to rerun the full 110 only to erase the configuration receipt;
-  it is partial, not a pass. The actual shared-runtime module passed 31/31 in
-  287.77s on the assigned loopback PostgreSQL/Redis fixture. An earlier fresh
-  schema race raised a registry DataSource INSERT IntegrityError before quota
-  admission; this is recorded only as a cold-initialization observation, not a
-  quota denial or a proven/fixed parallel-cold-start contract. The targeted
-  after-startup test now seeds the canonical runtime as application lifespan
-  does and preserves exact assertions: one successful response, one
-  ProviderQuotaAdmissionError, and one settled unit. No producer or production
-  admission redesign was added. The previous full module's 30/1 cold-seed run,
-  first ordered 109/1 options run, and interrupted 63-pass replay remain
-  historical evidence with their exact classifications. The complete
-  bridge/refresh/adapter unit modules, denial/discovery coverage, shared budget,
-  canary/read-service truth, and quarantines remain as previously recorded.
-  MSMR/QQQ and Militia/GOOG remain unresolved/quarantined; unknown,
-  quota-held, paid/trial, and unsafe operations stay disabled. The final local
-  backend profile, full_stack_browser, migration/startup review, fresh
-  exact-source CI, full issuer roadmap and observation gate remain open.
-  Checkpoint stays in_progress/not accepted.
+  The 15 Tier-0 and 156 Tier-1 investigations remain preserved. The bounded
+  ETF checkpoint has coordinator technical review approval based on
+  implementation B 79e0604c0a4b398a0fd92bdd4b099c308eee43eb; final C hosted
+  exact-source CI is mandatory and pending. The full local matrix is complete:
+  B's strict 104-case visual matrix and all nine declared branch commands
+  passed; backend, frontend, functional, migration-compatibility, Compose and
+  research-probe evidence is reused from A198 only where the exact input-tree
+  hashes match, as detailed in the retained matrix receipt. The original
+  monolithic attempt remains partial, the earlier four-visual-failure receipt
+  remains red, and all prior setup failures remain historical rather than
+  relabeled. Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf is
+  accepted and released; this does not itself accept ETF. Preserve the full
+  fourteen-criterion roadmap and post-integration 30-day observation, issuer
+  onboarding, unresolved/quarantined MSMR/QQQ and Militia/GOOG, and disabled
+  unknown/quota-held/unreviewed/paid/trial/unsafe operations. Checkpoint review
+  is conditionally approved, not finally accepted or integrated; exact C CI and
+  coordinator-owned guarded staging integration/EIG remain pending.
+integration_capture: exact branch HEAD
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1500,21 +1510,17 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Finish the current coherent test-harness receipt: run the exact audit-count
-  sentinel, workstream/schema/hash validator, Ruff check/format, syntax compile,
-  and diff review; preserve the evidence that all original 17 CI failures pass,
-  the 31-case shared-runtime module passes after explicit application-style
-  startup seeding, and the ordered run's only failure was a diagnostic
-  psycopg-options/asyncpg mismatch. Keep that unrelated test and production code
-  unchanged. Append accurate handoff/validation/session evidence, commit and
-  push the two owned test-file fixture corrections plus their durable records,
-  then inspect only exact-source CI. Do not replay the 110-test ordered run just
-  to replace its recorded configuration failure; the required full local
-  backend profile and fresh exact-source CI remain mandatory. Continue the
-  remaining shared admission, discovery, API/worker/current/PIT, migration and
-  startup contracts after the coherent publication. Preserve historical CI
-  39514774818 as red, the full roadmap, and all current quarantines. No live
-  issuer/SEC/Provider HTTP, quota spend/reset, paid/trial activation, staging or
-  sibling mutation, cleanup of retained data, self-acceptance or deployment.
-  Preserve the full fourteen-criterion roadmap and later observation gate;
-  stop at ready_for_human_review, never self-accept.
+  Publish final own-workstream records C only, after validating the exact B
+  matrix receipt and preserving historical partial/red/setup evidence. Keep
+  integration_capture as exact branch HEAD to avoid a self-hash loop. Run the
+  audit-count sentinel, workstream/schema/hash validation, JSONL parse,
+  branch-test manifest check and diff checks, then commit only this branch's
+  workstream records and push C once. Verify clean local/origin parity and
+  inspect the exact C CI run; its terminal green result and coordinator-owned
+  guarded staging integration/EIG are still required before final checkpoint
+  acceptance. Do not rerun backend/browser gates, push B separately, or create
+  a metadata-only follow-up. Preserve all fourteen original criteria, the full
+  issuer roadmap and post-integration 30-day observation, historical failures,
+  MSMR/QQQ and Militia/GOOG quarantines, and disabled unknown/quota-held/
+  unreviewed/paid/trial/unsafe operations. No live HTTP, quota spend/reset,
+  sibling/staging write, deployment, or self-integration.

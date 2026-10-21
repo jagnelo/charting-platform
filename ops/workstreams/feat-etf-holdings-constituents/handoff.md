@@ -1,5 +1,54 @@
 # feat/etf-holdings-constituents
 
+## Bounded ETF integration checkpoint — final publication C pending — 2026-10-21
+
+The coordinator's technical review is **approved conditionally** for the bounded
+checkpoint, not for staging release or whole-roadmap completion. Reviewed
+implementation B is `79e0604c0a4b398a0fd92bdd4b099c308eee43eb`; its complete
+local profile evidence is
+`.ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md`. The exact final
+records-only source C must still receive terminal-green exact-source branch CI,
+and the central coordinator owns guarded staging integration and the
+Exhaustive Integration Gate (EIG).
+
+The approved matrix is assembled from actual source-qualified runs, not a
+fabricated monolithic exit-zero: B strict visuals passed 104/104 and all nine
+declared branch commands (seven groups) passed. Backend 3,227 unit + 437
+integration, frontend 967/111 files with type checks/build, functional 155
+passed/106 declared skips, Compose/research probes, and prior-release
+compatibility passed on A198 only where the retained receipt proves their input
+trees/configuration match B. The original combined attempt remains partial;
+the earlier four-visual-failure report and all setup/failed-attempt history
+remain accurately classified. The 208 screenshot oracles and original
+assertions, masks, tolerances, and retry policy are unchanged. Exact matrix
+details and input hashes remain in the validation receipt.
+
+The human delegated checkpoint acceptance with the answer: “Yes—approve that
+initial scope and handle checkpoint acceptance.” The standing authorization is
+`/home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md`.
+The coordinator's conditional technical approval requires exact C CI and
+staging EIG; it is not current ETF source acceptance. Provider is accepted and
+released at `9b230ba4c97126a2937667138c6eb2a0aa297baf`. ETF's local EICP1–EICP7
+technical checkpoint review is complete on B, while hosted exact-C CI is
+pending. `integration_capture` is **exact branch HEAD**; no commit attempts to
+record its own hash.
+
+The original fourteen-criterion ETF roadmap remains open, as do issuer
+onboarding and the post-integration 30-day observation gate. The preserved
+“15 Tier-0 and 156 Tier-1” investigations are not replaced by the bounded
+checkpoint. MSMR/QQQ and Militia/GOOG remain unresolved and quarantined.
+Unknown, quota-held, unreviewed, paid/trial, and unsafe operations remain
+disabled/non-routable. No live issuer/SEC/provider traffic, quota replay,
+staging/sibling mutation, deployment, or retained-data cleanup is authorized
+or claimed.
+
+Next action: validate and commit only this workstream-record packet as C, push C
+once, verify origin parity, and inspect that exact CI run. Do not push B
+separately, repeat the completed local matrix, or create a follow-up
+metadata/hash-loop commit. After exact-C CI is green, hand off to the central
+coordinator for acceptance, guarded staging integration, and EIG; the feature
+worker does not self-integrate.
+
 ## Isolated shared-runtime DB/Redis slot — 2026-10-20
 
 Coordinator assigned the next exclusive narrow ETF DB/Redis validation slot
