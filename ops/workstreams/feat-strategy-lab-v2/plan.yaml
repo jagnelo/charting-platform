@@ -5,21 +5,22 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: strategy-etf-preexisting-fingerprint-compatibility
+    name: strategy-etf-postgres-pit-reader-restart
     status: in_progress
-    source_commit: 74c0be661dd88467f79055419c2f8e5cbd0992d6
+    source_commit: 8f9a82888874db7e8595942d2e68a22a1175c330
     intent: >-
-      Preserve pre-ETF DataSnapshot and CapabilitySummary canonical fingerprints
-      whenever no ETF lineage is present, so persisted experiment pins and legacy
-      summary_fingerprint rows remain readable. Keep non-empty ETF references
-      bound in the immutable input fingerprint and summary projection. Retain the
-      separate committed preflight denial/API round-trip tests and published
-      restart digest verification. Do not rewrite existing persisted pins or
-      historical rows. Reconcile TC2000 immutable Study/Code
-      consumers only after its accepted green staging release. Recompute final
-      Alembic heads after TC; preserve every history/data set with an additive
-      no-DDL merge revision, then complete combined acceptance only after all
-      required gates.
+      Prove the accepted Provider/ETF consumer against real PostgreSQL: local
+      persisted point-in-time selection, exact pinned membership re-resolution,
+      restart hydration and changed-content rejection. The integration test
+      must run in normal backend integration using an explicitly assigned URL
+      when present, otherwise the repository test_database_url and lazily its
+      existing pg_container fixture. Preserve the exact mapped FK closure and
+      all constraints in a unique schema. Keep pre-ETF fingerprints and stored
+      rows compatible; do not rewrite persisted pins or historical rows.
+      Reconcile TC2000 immutable Study/Code consumers only after its accepted
+      green staging release. Recompute final Alembic heads after TC; preserve
+      every history/data set with an additive no-DDL merge revision, then
+      complete combined acceptance only after all required gates.
     owned_paths:
       - backend/alembic/env.py
       - backend/alembic/versions/*strategy_lab*.py
@@ -50,6 +51,7 @@ integration_checkpoint:
       - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
       - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
       - backend/app/strategy_lab_v2/tests/test_capability_consumer_api.py
+      - backend/tests/integration/strategy_lab_v2/test_etf_pit_postgres.py
       - backend/alembic/versions/slv2_0009_merge_provider_strategy_heads.py
       - backend/tests/unit/strategy_lab_v2/test_schema_migration.py
       - backend/tests/integration/strategy_lab_v2/test_forward_dispatch_admission_migration_postgres.py

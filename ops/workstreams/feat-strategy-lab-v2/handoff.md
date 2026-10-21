@@ -15635,3 +15635,51 @@ The compatibility repair keeps the original DataSnapshot canonical payload exact
 Golden tests pin the pre-ETF DataSnapshot digest `sha256:3d447b549896bc978ca47a95434999273ad1d85c3af2200821ef5eb9f705ad15` and CapabilitySummary digest `sha256:7fc609eee912c4353afd9401c695a2e325196e8b0db31d9e3dc776836e47cc73`; both are derived from the canonical payload/field layout at `1ee42b69`, not self-comparisons. A legacy bare-list `degradations_json` row with the old summary fingerprint is also read back, while the existing ETF-bearing summary test confirms new lineage remains bound.
 
 Focused offline suite passed `125/125` across core contracts, capability persistence/summary/preflight, registered API, ETF PIT and hydration. Ruff and formatting pass; unchanged MyPy command passed with 443 checked files. This is not a real database read: TC still owns the only focused DB worker slot, so the five-table local ETF SQL fixture remains pending coordinator assignment. Exact push CI `39590234613` for preflight/API commit `74c0be661dd88467f79055419c2f8e5cbd0992d6` was pending at last check; older run `39588922595` on `932ca0bd` was still in progress. The compatibility source context is separate and will have its own exact CI. Full SLICP3/4/5, PostgreSQL/combined application, full_stack_browser, final migration graph, and TC consumer remain open.
+
+### Real PostgreSQL ETF PIT reader and restart verification — 2026-10-21
+
+The Strategy coordinator assigned one bounded PostgreSQL slot. Added
+`backend/tests/integration/strategy_lab_v2/test_etf_pit_postgres.py` under the
+normal backend `tests/integration` tree. The fixture prefers the explicit
+`STRATEGY_ETF_PIT_DATABASE_URL`; otherwise it lazily uses the repository's
+`test_database_url`, then requests the existing `pg_container` only if neither
+URL is configured. There is no skip path or new CI secret/service. It creates a
+unique `strategy_etf_pit_<12 hex>` schema containing only the five consumer
+tables and their actual transitive FK closure, using real mapped metadata and
+retaining constraints/indexes.
+
+The approved run used only container
+`a669981a1fa05d8fd58821fa171be628d4bd9527a70226a284c78bbae82f2992`
+(`strategy-etf-pit-pg-20261021-02d5ffaa`), cached PostgreSQL 16 image
+`sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea`,
+384 MiB memory, one CPU, 256 MiB data tmpfs, dummy-only credentials and
+loopback port `127.0.0.1:32769`. `RUN_LIVE_PROVIDER_TESTS=0` and
+`RUN_LIVE_ETF_HOLDINGS_TESTS=0` were set. The full focused module passed
+`4 passed in 2.91s`; this includes actual SQL selection/denial cases and the
+`NautilusTrialDomainHydrator` restart path, which rejects a changed membership
+digest. The generated per-test schema was `strategy_etf_pit_<12 hex>`; its
+random suffix was not emitted by pytest. The fixture dropped the schema, and
+only this exact container was stopped/removed and verified absent. The earlier
+1-pass/3-error attempt remains historical evidence; this final run is 4/4.
+
+Stack-free checks also passed: Ruff check/format, Python compile, integration
+collection of all four tests, the FK-closure test plus pure ETF PIT and
+trial-hydration suites (`16 passed`), and the branch workstream validator
+(`43` records). `git diff --check` passed. The `make branch-validate` wrapper
+could not bootstrap because cached offline dependencies lacked QuantLib; the
+same validator was run directly with the repository UV interpreter and
+`--no-sync`, and passed. No full suite, retained database, provider/issuer
+network, Compose/browser profile, TC database test, or other service was used.
+
+Preserve exact-source CI `39590595226` on base
+`8f9a82888874db7e8595942d2e68a22a1175c330` as red: Backend Unit had `4,953
+passed, 1 skipped, 2 failed` (including the post-ETF migration-head assertion
+seeing `d1e7f2a9c4b6` plus `slv2_0009`, and an unrelated
+`Persistence.session_factory` test failure); Frontend Unit passed, and
+integration/coverage, branch-declared, E2E, and Exhaustive jobs were skipped
+after Backend Unit failed. The migration graph must be recomputed only after
+accepted TC staging; do not weaken the invariant or import TC source. This new
+SQL test is not covered by that base run. Checkpoint remains `in_progress`, not
+accepted. Full SLICP3/4/5, post-TC migration reconciliation, combined
+PostgreSQL/application, full_stack_browser, exhaustive and exact-source CI
+remain open.
