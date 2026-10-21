@@ -15986,3 +15986,29 @@ The prepared private context remains separate from TC release: public non-null r
 denied; post-release resolver activation, owner/restart/PostgreSQL proof, final migration graph,
 combined application, exact CI, Exhaustive, and `full_stack_browser` remain open. The overall
 checkpoint is still `in_progress` and unaccepted; the full roadmap is intact.
+
+### Focused resolver test typing compatibility — 2026-10-21
+
+After publication of `4ee664450c3b4e2aab5de062262c5164f47e2c6f`, the focused MyPy check of both
+new files found seven test-only diagnostics: five fake-session arguments crossed the production
+`AsyncSession` annotation, the ORM fixture's nullable run hash needed narrowing, and the mixed ORM
+response rows needed an explicit `list[list[Any]]` annotation. The production resolver retains its
+real `AsyncSession` contract. The test now uses one explicit `typing.cast` adapter at only the fake
+injection seam, asserts the fixture hash is populated, and types the response list. `typing.cast`
+does not change runtime behavior; no assertions were removed or weakened and pytest was not
+rerun. The existing `27/27` focused runtime result therefore remains the prior exact test receipt;
+this typing-only repair received its own exact two-file MyPy recheck.
+
+The original published source's push CI `39666087938` is coordinator-owned and was still in
+progress at this review boundary; no status is inferred here. Public non-null references remain
+denied, and the private resolver remains unwired. TC release/consumer reconciliation and all
+combined database/application, final migration, Exhaustive, full-profile, and checkpoint gates
+remain open.
+
+The coordinator then granted one additional bounded rerun for the corrected injection seam. With
+`MemAvailable` at `2,242,380` KiB, the same offline, single-process, 1 GiB `RLIMIT_AS`, 120s/15s
+bounded command collected and passed `27/27` in `1.60s`. Ruff formatting was applied mechanically
+to the test file; final Ruff check/format, `git diff --check`, and workstream/JSON validation passed.
+The focused two-file MyPy pass remains valid after this formatting-only adjustment. The initial
+seven typing errors remain in the journal; no production typing was weakened and no assertion was
+removed or altered. This is the only test rerun for the typing seam; no suite or service gate ran.

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.visitors import iterate
 
 from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
@@ -20,6 +21,12 @@ _RUN_ID = 4101
 _VERSION_ID = 5202
 _ARTIFACT_ID = 6303
 _RUN_HASH = "a" * 64
+
+
+def _as_test_async_session(session: FakeAsyncSession) -> AsyncSession:
+    """Adapt the deterministic fake at the production AsyncSession seam only."""
+
+    return cast(AsyncSession, session)
 
 
 class FakeResult:
@@ -112,6 +119,7 @@ def _graph() -> (
         reproducibility_hash=_RUN_HASH,
         resource_usage={"evaluation": {"status": "completed"}},
     )
+    assert run.reproducibility_hash is not None
     artifact = ResearchArtifact(
         id=_ARTIFACT_ID,
         research_run_id=run.id,
@@ -160,7 +168,7 @@ def _graph() -> (
     # Strategy v2's authenticated principal exposes a canonical decimal string;
     # the shared research tables use the corresponding integer User primary key.
     principal = type("Principal", (), {"id": str(_OWNER_ID)})()
-    responses = [[run], [version], [asset], [artifact]]
+    responses: list[list[Any]] = [[run], [version], [asset], [artifact]]
     return reference, responses, principal
 
 
@@ -170,7 +178,7 @@ async def test_resolves_exact_owner_scoped_completed_named_study_artifact() -> N
     session = FakeAsyncSession(responses)
 
     resolved = await _resolve_selected_study_artifact(
-        session=session, principal=principal, reference=reference
+        session=_as_test_async_session(session), principal=principal, reference=reference
     )
 
     assert resolved == reference
@@ -279,7 +287,9 @@ async def test_rejects_missing_ambiguous_foreign_or_drifted_study_evidence(case:
 
     with pytest.raises(SelectedStudyArtifactResolutionError):
         await _resolve_selected_study_artifact(
-            session=FakeAsyncSession(responses), principal=principal, reference=reference
+            session=_as_test_async_session(FakeAsyncSession(responses)),
+            principal=principal,
+            reference=reference,
         )
 
 
@@ -291,17 +301,19 @@ async def test_rejects_untyped_reference_and_invalid_principal_without_queries()
 
     with pytest.raises(SelectedStudyArtifactResolutionError):
         await _resolve_selected_study_artifact(
-            session=session, principal=principal, reference=untyped_reference
+            session=_as_test_async_session(session),
+            principal=principal,
+            reference=untyped_reference,
         )
     with pytest.raises(SelectedStudyArtifactResolutionError):
         await _resolve_selected_study_artifact(
-            session=session,
+            session=_as_test_async_session(session),
             principal=type("Principal", (), {"id": True})(),
             reference=reference,
         )
     with pytest.raises(SelectedStudyArtifactResolutionError):
         await _resolve_selected_study_artifact(
-            session=session,
+            session=_as_test_async_session(session),
             principal=type("Principal", (), {"id": "owner-73"})(),
             reference=reference,
         )
