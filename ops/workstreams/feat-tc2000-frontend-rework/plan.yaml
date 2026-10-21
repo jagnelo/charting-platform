@@ -31,19 +31,23 @@ human_interim_help_reference_authorization: >-
   source repair.
 current_blocker: >-
   The accepted Provider+ETF staging source628c1634f4894403339687586adee74d45637d51
-  is in committed TC ancestry. The reviewed consumer-preservation repair remains
-  an unpublished working-tree candidate based on d7b19c22. It preserves released
-  producer identity, freshness, admission, and hold behavior while restoring
-  only approved TC semantics. The selected API slice passed13/13 and the six
-  affected service-unit modules passed157/157; the latter includes the final
-  family duplicate-weight regression. The API pass predates only the final
-  independent literal job-key expectation, whose value matches the canonical
-  helper's enum order and UTC-Z output. Exact-source CI and the full new-source
-  profile remain required. The exact generated diagnostic database was dropped
-  only after its test parents ended and zero sessions were verified; a catalog
-  check confirms it is absent. Do not recreate it. TCP3 overall, TCP4/TCP5, full
-  roadmap, and official REF-HELP-V25
-  remain open.
+  is in committed TC ancestry. The consumer-preservation repair was published
+  at ef30fac341b5c302e908b286f977fd03882d6e82; its exact CI39619728143 is red:
+  backend unit3421 passed, integration458 passed and one failed. The failure is
+  test-only: the historical family refresh fake no longer receives the fixed
+  as_of value after the independent literal job-key assertion was added. This
+  correction restores that assignment immediately before the historical POST;
+  the task argument remains +00:00 and the literal canonical D1,W1,MN/Z key is
+  unchanged. Ruff and diff checks pass locally; no local API DB was recreated,
+  so fresh exact-source CI is required. The prior selected API13/13 and six
+  affected unit modules157/157 remain historical evidence, not a rerun of this
+  correction. The first ef30 source build was killed during frontend npm build
+  by the then-768MiB builder cap; no app project started. Root independently
+  confirmed oom_kill=1 and has bounded the same builder to1536MiB/2CPU with3GiB
+  total memory+swap. Rebuild only from a fresh corrected source archive and
+  serialize service builds. The exact diagnostic DB was dropped and confirmed
+  absent; do not recreate it. TCP3 overall, TCP4/TCP5, full roadmap, and official
+  REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -971,8 +975,8 @@ approved_provider_contract_adaptations:
   - path: backend/tests/integration/api/test_etf_holdings.py
     source_sha: 628c1634f4894403339687586adee74d45637d51
     accepted_blob: b6695b3af0a86bb590f14f105e29ed09efea4e34
-    delta: Preserve the existing +00:00 task argument and independently assert the exact canonical history job key.
-    rationale: Verify enum-ordered D1,W1,MN identity and UTC-Z job bounds without deriving the expected key from production code or changing the queued task payload.
+    delta: Preserve the historical plan's aware as_of value for the fake planner, keep the task argument +00:00, and independently assert the exact canonical history job key.
+    rationale: Exercise the five-argument historical queue payload and verify enum-ordered D1,W1,MN identity with UTC-Z job bounds without deriving the expected key from production code or changing the queued task payload.
   - path: backend/tests/integration/api/test_workspaces.py
     source_sha: 628c1634f4894403339687586adee74d45637d51
     accepted_blob: f2fe5f58fad7e7d09daef68940970bb1d970f9a4
@@ -1232,7 +1236,11 @@ current_checkpoint_status: >-
   equal weighting across unique eligible IDs, and unchanged raw snapshot
   lineage. The API assertion now independently pins the canonical job-key
   literal while retaining the original +00:00 task argument; the selected API
-  run predates only that assertion wording. The exact d7b19 CI remains red and
+  run predates only that assertion wording. Exact ef30fac CI39619728143 is also
+  red (3,421 backend unit passed; 458 integration passed and one fixture failed).
+  The current test-only correction restores the historical fake planner's fixed
+  aware as_of value before the second request; exact CI for the correction remains
+  required. The exact d7b19 CI remains red and
   must be preserved; exact-source CI and full-profile acceptance are pending.
   The no-DDL Alembic upgrade reached e9c23a7b1d40 on the exact
   generated DB. Teardown exposed an ORM-vs-historical-migration Watchlist FK

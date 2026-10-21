@@ -3,9 +3,14 @@
 ## Current status — 2026-10-21: Provider+ETF consumer-preservation repair
 
 Accepted green staging `628c1634f4894403339687586adee74d45637d51` is committed
-in TC ancestry. The reviewed consumer-preservation repair is an unpublished
-working-tree candidate based on `d7b19c22`; exact branch CI and the full
-source-qualified local profile are still required. The six affected service
+in TC ancestry. The consumer-preservation repair was published at
+`ef30fac341b5c302e908b286f977fd03882d6e82`. Exact CI `39619728143` is red:
+backend unit 3,421 passed; integration 458 passed and one fixture failed
+because the historical family-refresh fake lacked its fixed aware `as_of_value`.
+The current test-only correction restores that assignment before the historical
+POST, retaining the `+00:00` task argument and independent canonical UTC-Z key;
+Ruff and diff checks pass locally, but fresh exact-source CI remains required.
+The six affected service
 unit modules pass 157/157, including eligible-only aggregation of duplicate
 native benchmark-family weights, equal weights over unique eligible IDs, and
 unchanged raw snapshot lineage. The API slice passed 13/13 before its final
