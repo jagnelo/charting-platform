@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 
 def text(path: str) -> str:
     return (Path(__file__).parents[2] / path).read_text()
@@ -127,6 +129,91 @@ def test_cleanup_and_readiness_are_scoped_to_the_current_worktree() -> None:
     assert "docker system prune" not in session
     assert "unknown_components" in session
     assert "validation_evidence_current" in session
+
+
+def hosted_cleanup_module(tmp_path: Path, monkeypatch, branch: str):
+    spec = importlib.util.spec_from_file_location(
+        "agent_session_hosted_cleanup",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    def git(*args, **kwargs):
+        if args == ("branch", "--show-current"):
+            return branch
+        if args == ("rev-parse", "HEAD"):
+            return "a" * 40
+        raise AssertionError((args, kwargs))
+
+    monkeypatch.setattr(module, "git", git)
+    monkeypatch.setattr(module, "root", lambda: tmp_path)
+    monkeypatch.setattr(module, "common_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        module, "worktree_records", lambda: [{"path": str(tmp_path), "branch": branch}]
+    )
+    for name, value in {
+        "GITHUB_ACTIONS": "true",
+        "CI": "true",
+        "GITHUB_EVENT_NAME": "push",
+        "GITHUB_REF": f"refs/heads/{branch}",
+        "GITHUB_WORKSPACE": str(tmp_path),
+        "GITHUB_SHA": "a" * 40,
+    }.items():
+        monkeypatch.setenv(name, value)
+    return module
+
+
+@pytest.mark.parametrize("branch", ["staging", "master"])
+def test_exact_hosted_push_checkout_allows_only_cleanup(tmp_path, monkeypatch, branch):
+    module = hosted_cleanup_module(tmp_path, monkeypatch, branch)
+    assert module.branch_and_path(allow_protected=True, allow_hosted_cleanup=True) == (
+        branch,
+        tmp_path,
+    )
+    # Neither implementation/claim entry nor retained-volume operations opt in.
+    with pytest.raises(SystemExit, match="protected branch"):
+        module.branch_and_path(allow_hosted_cleanup=True)
+    with pytest.raises(SystemExit, match="assigned worktree mismatch"):
+        module.branch_and_path(allow_protected=True)
+    source = text("scripts/agent-session.py")
+    assert source.count("allow_hosted_cleanup=True") == 1
+    assert "allow_hosted_cleanup=True" in source.split("def cleanup()", 1)[1]
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("GITHUB_ACTIONS", "false"),
+        ("CI", "false"),
+        ("GITHUB_EVENT_NAME", "pull_request"),
+        ("GITHUB_REF", "refs/heads/master"),
+        ("GITHUB_WORKSPACE", ""),
+        ("GITHUB_WORKSPACE", "/tmp/not-the-checkout"),
+        ("GITHUB_SHA", "b" * 40),
+    ],
+)
+def test_hosted_cleanup_rejects_unverified_identity(tmp_path, monkeypatch, name, value):
+    module = hosted_cleanup_module(tmp_path, monkeypatch, "staging")
+    monkeypatch.setenv(name, value)
+    with pytest.raises(SystemExit, match="assigned worktree mismatch"):
+        module.branch_and_path(allow_protected=True, allow_hosted_cleanup=True)
+
+
+def test_hosted_cleanup_rejects_feature_and_unregistered_checkouts(
+    tmp_path, monkeypatch
+):
+    module = hosted_cleanup_module(tmp_path, monkeypatch, "feat/example")
+    with pytest.raises(SystemExit, match="assigned worktree mismatch"):
+        module.branch_and_path(allow_protected=True, allow_hosted_cleanup=True)
+    module = hosted_cleanup_module(tmp_path, monkeypatch, "staging")
+    monkeypatch.setattr(module, "worktree_records", lambda: [])
+    with pytest.raises(SystemExit, match="Git does not register"):
+        module.branch_and_path(allow_protected=True, allow_hosted_cleanup=True)
+    monkeypatch.setattr(module, "common_root", lambda: tmp_path / "other-repository")
+    with pytest.raises(SystemExit, match="assigned worktree mismatch"):
+        module.branch_and_path(allow_protected=True, allow_hosted_cleanup=True)
 
 
 def test_session_record_refreshes_legacy_remote_sha_with_origin_ref(
@@ -284,6 +371,9 @@ def test_provider_live_policy_covers_adapter_and_runtime_configuration_paths() -
         "backend/app/services/provider_quota_coordinator.py"
     )
     assert module.external_service_path("backend/app/services/market_events.py")
+    assert module.external_service_path(
+        "backend/app/services/etf_holdings_provider_bridge.py"
+    )
     assert module.external_service_path("backend/app/services/short_interest.py")
     assert module.external_service_path("backend/app/routers/market_data_admin.py")
     assert not module.external_service_path("frontend/src/views/Workstation.vue")

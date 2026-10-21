@@ -18,6 +18,7 @@ goal: Repair the exact degraded staging browser-network and hosted cleanup-path 
 scope:
   - Route the pinned browser through the existing fixed-destination host-access relay so the existing OneSignal SDK can load, while backend and worker remain internal and egress-denied.
   - Permit scoped resource cleanup for an actual hosted staging/master checkout without opening implementation, claims, retained-volume operations or arbitrary local root checkouts.
+  - Reconcile the existing provider-calling-service safety classifier with the newly integrated ETF bridge; preserve the existing exhaustive coverage assertion and all provider holds.
   - Preserve all assertions, references, masks, 0.005 tolerance and datasets; explicitly run canonical functional and visual acceptance with zero retries.
 owned_paths:
   - Makefile
