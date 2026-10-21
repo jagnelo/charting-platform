@@ -46,17 +46,16 @@ integration_checkpoint:
       - ops/workstreams/feat-strategy-lab-v2/
   post_release_reconciliation_map: ops/workstreams/feat-strategy-lab-v2/post-release-reconciliation.md
   current_coordination_boundary:
-    staging_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
-    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261020T205101Z-9b230ba4c971.json
-    exact_ci_run: 39484176087
-    exhaustive_job: 118849529356
-    scope: Accepted Provider product checkpoint plus synchronized common repairs; Strategy may reconcile Provider-only consumers.
+    staging_sha: 628c1634f4894403339687586adee74d45637d51
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261021T103732Z-628c1634f489.json
+    exact_ci_run: 39575596904
+    exhaustive_job: 119148454190
+    scope: Accepted Provider and ETF product checkpoints plus synchronized repairs; Strategy may reconcile Provider and ETF/PIT consumers.
     status: >-
-      Provider is released for bounded Strategy consumer reconciliation. ETF
-      point-in-time membership and TC2000 immutable CodeVersion/Study contracts
-      remain gated on their own accepted green staging releases. The full
-      dependency-ordered combined checkpoint and every full validation gate
-      remain open.
+      Provider and ETF are released for bounded Strategy consumer reconciliation.
+      TC2000 immutable CodeVersion/Study contracts remain gated on the accepted
+      green TC staging release. The full dependency-ordered combined checkpoint,
+      final migration-head reconciliation, and every full validation gate remain open.
   released_auxiliary_reconciliation:
     staging_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
     canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261019T230653Z-281a57bd9fb7.json
