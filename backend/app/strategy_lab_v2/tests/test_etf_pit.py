@@ -26,12 +26,16 @@ def _records(*, known_at=None, complete="complete", row_type="security"):
         source_artifact_id=4,
         provenance="issuer",
         source_provider="local",
-        source_quality="verified",
+        source_quality="issuer_reported_current_holdings",
         completeness_status=complete,
         row_count=1,
         resolved_count=1,
         unresolved_count=0,
         snapshot_hash="snapshot-hash",
+        extra_data={
+            "source_tier": "issuer_native",
+            "artifact_identity_validation": {"status": "matched"},
+        },
     )
     instrument = NS(
         id=5, domain_key="US:EQ:ABC", identity_status="resolved", is_active=True, is_synthetic=False
@@ -72,6 +76,11 @@ def test_freezes_exact_pit_membership_and_canonical_digest():
         ({"known_at": datetime(2025, 3, 4, 16, tzinfo=UTC)}, "not known"),
         ({"complete": "partial"}, "not complete"),
         ({"row_type": "cash"}, "row evidence"),
+        ({"quality": "unverified"}, "quality is unknown or denied"),
+        ({"identity": "unverified"}, "lacks producer-verified"),
+        ({"tier": "sec_filing"}, "source tier is denied"),
+        ({"weight": Decimal("Infinity")}, "row evidence"),
+        ({"weight": Decimal("NaN")}, "row evidence"),
     ],
 )
 def test_rejects_missing_late_or_partial_historical_membership(change, message):
@@ -82,6 +91,14 @@ def test_rejects_missing_late_or_partial_historical_membership(change, message):
         snapshot.completeness_status = change["complete"]
     if "row_type" in change:
         rows[0][0].row_type = change["row_type"]
+    if "quality" in change:
+        snapshot.source_quality = change["quality"]
+    if "identity" in change:
+        snapshot.extra_data["artifact_identity_validation"]["status"] = change["identity"]
+    if "tier" in change:
+        snapshot.extra_data["source_tier"] = change["tier"]
+    if "weight" in change:
+        rows[0][0].weight = change["weight"]
     with pytest.raises(ValueError, match=message):
         freeze_etf_pit_membership(
             etf_instrument=etf,

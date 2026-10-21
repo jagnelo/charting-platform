@@ -30,6 +30,7 @@ class CapabilitySummary:
     executable: bool
     authoritative: bool
     can_publish_authoritative_results: bool
+    input_lineage_fingerprints: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.report_fingerprint, field_name="report_fingerprint")
@@ -67,6 +68,12 @@ class CapabilitySummary:
         ):
             raise ValueError("authoritative publication requires executable authoritative rigor")
         object.__setattr__(self, "degradations", degradations)
+        lineage = tuple(self.input_lineage_fingerprints)
+        for value in lineage:
+            require_sha256_digest(value, field_name="input_lineage_fingerprint")
+        if len(lineage) != len(set(lineage)):
+            raise ValueError("input lineage fingerprints must be unique")
+        object.__setattr__(self, "input_lineage_fingerprints", lineage)
 
     @property
     def fingerprint(self) -> str:
@@ -99,7 +106,9 @@ def build_capability_summary(
         else CapabilitySummaryDecision.RIGOROUS
     )
     executable = execution.executable
-    ranking_eligible = report.ranking_eligible and executable and decision is CapabilitySummaryDecision.RIGOROUS
+    ranking_eligible = (
+        report.ranking_eligible and executable and decision is CapabilitySummaryDecision.RIGOROUS
+    )
     can_publish = (
         execution.can_publish_authoritative_results
         and report.classification is PreflightClass.RIGOROUS

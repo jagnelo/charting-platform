@@ -98,4 +98,5 @@ def build_provider_capability_preflight(
     return CapabilityPreflightService(
         capability_cells=provider_reader,
         execution_binding=resolve_execution_binding,
+        etf_membership_reader=provider_reader.resolve_etf_membership,
     )

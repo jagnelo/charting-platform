@@ -5,17 +5,18 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: strategy-provider-only-consumer-reconciliation
+    name: strategy-provider-etf-pit-consumer-reconciliation
     status: in_progress
-    source_commit: 1f46f65b6aea9a791b5846b48e868b8fc448944e
+    source_commit: 1b1614964e16de55227e09554d752aaec6f0694f
     intent: >-
       Wire exact accepted Provider identity, canonical local-series, coverage,
       freshness, and immutable provenance through Strategy's local-read and
-      capability-preflight API consumer. Join the actual released Provider and
-      Strategy Alembic heads with an additive no-DDL Strategy merge revision;
-      preserve both histories and existing data. Keep ETF point-in-time and
-      TC2000 immutable Study/Code consumers gated until their green releases,
-      then complete combined acceptance only after all required gates.
+      capability-preflight API consumer. Reconcile accepted ETF known-at PIT
+      membership through that same local preflight and constituent coverage path.
+      Reconcile TC2000 immutable Study/Code consumers only after its accepted green
+      staging release. Recompute final Alembic heads after TC; preserve every
+      history/data set with an additive no-DDL merge revision, then complete
+      combined acceptance only after all required gates.
     owned_paths:
       - backend/alembic/env.py
       - backend/alembic/versions/*strategy_lab*.py
@@ -25,8 +26,11 @@ integration_checkpoint:
       - backend/app/strategy_lab_v2/provider_series_contract.py
       - backend/app/strategy_lab_v2/tests/test_provider_series_contract.py
       - backend/app/strategy_lab_v2/provider_preflight.py
+      - backend/app/strategy_lab_v2/etf_pit.py
       - backend/app/strategy_lab_v2/capability_preparation.py
+      - backend/app/strategy_lab_v2/capability_summary.py
       - backend/app/strategy_lab_v2/tests/test_provider_preflight.py
+      - backend/app/strategy_lab_v2/tests/test_etf_pit.py
       - backend/app/strategy_lab_v2/tests/test_capability_preparation.py
       - backend/app/strategy_lab_v2/tests/test_capability_consumer_api.py
       - backend/alembic/versions/slv2_0009_merge_provider_strategy_heads.py

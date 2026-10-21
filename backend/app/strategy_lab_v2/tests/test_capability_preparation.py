@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 
@@ -17,6 +18,7 @@ from app.strategy_lab_v2.contracts import (
     EventGranularity,
     ProductClass,
 )
+from app.strategy_lab_v2.etf_pit import ETFConstituentIdentity, ETFPointInTimeMembership
 from app.strategy_lab_v2.execution_capabilities import ExecutionCapabilityBinding
 from app.strategy_lab_v2.provider_series_contract import (
     ProviderSeriesCapabilityEvidence,
@@ -219,6 +221,104 @@ async def test_capability_preflight_joins_typed_requirements_with_host_evidence(
     assert observed["cells_request"]["idempotency_key"] == "capability-key"
     assert observed["cells_request"]["requirements"] == (_requirement(),)
     assert observed["binding_request"]["report"].fingerprint == summary.report_fingerprint
+
+
+@pytest.mark.asyncio
+async def test_etf_membership_digest_is_bound_and_members_require_provider_requirements() -> None:
+    membership = ETFPointInTimeMembership(
+        etf_instrument_id="US:ETF:SPY",
+        etf_database_id=1,
+        profile_id=2,
+        snapshot_id=3,
+        composition_date=_START.date(),
+        known_at=_START,
+        published_at=_START,
+        source_artifact_id=4,
+        provenance="issuer",
+        source_provider="local",
+        source_quality="issuer_reported_current_holdings",
+        completeness_status="complete",
+        snapshot_hash="snapshot-hash",
+        constituents=(ETFConstituentIdentity(5, "US.AAPL", "row-hash", 1, Decimal("1")),),
+        content_digest=content_digest("immutable-etf-membership"),
+    )
+
+    async def resolve_cells(**_kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
+        return (_provider_evidence(),)
+
+    async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
+        return _binding()
+
+    async def resolve_membership(**_kwargs: Any) -> ETFPointInTimeMembership:
+        return membership
+
+    payload = _payload(
+        extra={
+            "etf_memberships": [
+                {"etf_instrument_id": "US:ETF:SPY", "decision_time": _START.isoformat()}
+            ]
+        }
+    )
+    summary = await CapabilityPreflightService(
+        capability_cells=resolve_cells,
+        execution_binding=resolve_binding,
+        etf_membership_reader=resolve_membership,
+    )(
+        principal="owner-1",
+        request_id="request-etf",
+        idempotency_key="capability-etf",
+        payload=payload,
+        payload_digest=content_digest(payload),
+    )
+    assert summary.input_lineage_fingerprints == (membership.content_digest,)
+    assert summary.binding_fingerprint != _binding().fingerprint
+
+
+@pytest.mark.asyncio
+async def test_etf_membership_denies_missing_constituent_provider_requirement() -> None:
+    membership = ETFPointInTimeMembership(
+        "US:ETF:SPY",
+        1,
+        2,
+        3,
+        _START.date(),
+        _START,
+        _START,
+        4,
+        "issuer",
+        "local",
+        "issuer_reported_current_holdings",
+        "complete",
+        "snapshot-hash",
+        (ETFConstituentIdentity(5, "US.MISSING", "row-hash", 1, Decimal("1")),),
+        content_digest("missing-constituent"),
+    )
+
+    async def resolve_cells(**_kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
+        return (_provider_evidence(),)
+
+    async def resolve_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
+        return _binding()
+
+    payload = _payload(
+        extra={
+            "etf_memberships": [
+                {"etf_instrument_id": "US:ETF:SPY", "decision_time": _START.isoformat()}
+            ]
+        }
+    )
+    with pytest.raises(ValueError, match="explicit Provider coverage"):
+        await CapabilityPreflightService(
+            capability_cells=resolve_cells,
+            execution_binding=resolve_binding,
+            etf_membership_reader=lambda **_kwargs: membership,
+        )(
+            principal="owner-1",
+            request_id="request-etf",
+            idempotency_key="capability-etf",
+            payload=payload,
+            payload_digest=content_digest(payload),
+        )
 
 
 @pytest.mark.asyncio

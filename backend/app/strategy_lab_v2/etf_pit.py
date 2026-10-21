@@ -12,6 +12,8 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import select
+
 from app.strategy_lab_v2.canonical import content_digest
 
 _COMPLETE = {"complete", "issuer_current", "issuer_reported", "self_snapshotted"}
@@ -43,6 +45,80 @@ class ETFPointInTimeMembership:
     snapshot_hash: str
     constituents: tuple[ETFConstituentIdentity, ...]
     content_digest: str
+
+
+async def resolve_etf_pit_membership(
+    session: Any,
+    *,
+    etf_instrument_id: str,
+    decision_time: datetime,
+) -> ETFPointInTimeMembership:
+    """Read the exact persisted ETF snapshot locally; never refresh or fallback."""
+
+    from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+    from app.models.instrument import Instrument
+
+    if not isinstance(etf_instrument_id, str) or not etf_instrument_id.strip():
+        raise ValueError("etf_instrument_id must be a canonical domain key")
+    if decision_time.tzinfo is None or decision_time.utcoffset() is None:
+        raise ValueError("ETF decision_time must be timezone-aware")
+    instruments = (
+        (
+            await session.execute(
+                select(Instrument).where(Instrument.domain_key == etf_instrument_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if len(instruments) != 1:
+        raise ValueError("ETF canonical identity is missing or ambiguous")
+    instrument = instruments[0]
+    profiles = (
+        (await session.execute(select(ETFProfile).where(ETFProfile.instrument_id == instrument.id)))
+        .scalars()
+        .all()
+    )
+    if len(profiles) != 1:
+        raise ValueError("ETF profile is missing or ambiguous")
+    profile = profiles[0]
+    snapshots = (
+        (
+            await session.execute(
+                select(ETFHoldingsSnapshot).where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                    ETFHoldingsSnapshot.composition_date <= decision_time.date(),
+                    ETFHoldingsSnapshot.known_at.is_not(None),
+                    ETFHoldingsSnapshot.known_at <= decision_time,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not snapshots:
+        raise ValueError("no ETF snapshot was known at decision time")
+    snapshots.sort(key=lambda item: (item.composition_date, item.known_at), reverse=True)
+    latest_key = (snapshots[0].composition_date, snapshots[0].known_at)
+    latest = [item for item in snapshots if (item.composition_date, item.known_at) == latest_key]
+    if len(latest) != 1:
+        raise ValueError("latest ETF point-in-time snapshot is ambiguous")
+    snapshot = latest[0]
+    rows = (
+        await session.execute(
+            select(ETFHolding, Instrument)
+            .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
+            .where(ETFHolding.snapshot_id == snapshot.id)
+            .order_by(ETFHolding.position, ETFHolding.id)
+        )
+    ).all()
+    return freeze_etf_pit_membership(
+        etf_instrument=instrument,
+        profile=profile,
+        snapshot=snapshot,
+        rows=tuple(rows),
+        decision_time=decision_time,
+    )
 
 
 def freeze_etf_pit_membership(
@@ -88,6 +164,27 @@ def freeze_etf_pit_membership(
         raise ValueError("ETF snapshot is not complete")
     if not snapshot.provenance or not snapshot.source_provider or not snapshot.snapshot_hash:
         raise ValueError("ETF snapshot provenance is incomplete")
+    # Match the released producer's durable artifact-identity field/status.
+    # Current availability/canary state is intentionally excluded: it cannot
+    # prove historical visibility at this decision timestamp.
+    metadata = snapshot.extra_data if isinstance(snapshot.extra_data, dict) else {}
+    legal_metadata = metadata.get("legal_metadata")
+    legal_metadata = legal_metadata if isinstance(legal_metadata, dict) else {}
+    validation = metadata.get("artifact_identity_validation")
+    if not validation:
+        validation = legal_metadata.get("artifact_identity_validation")
+    validation = validation if isinstance(validation, dict) else {}
+    if validation.get("status") not in {"matched", "matched_inferred"}:
+        raise ValueError("ETF snapshot lacks producer-verified artifact identity")
+    # The producer can infer source tier from several metadata fields. Strategy
+    # intentionally requires an explicit persisted tier and never repeats that
+    # inference, so absent provenance stays unavailable.
+    source_tier = metadata.get("source_tier") or legal_metadata.get("source_tier")
+    if source_tier not in {"issuer_native", "successor_native", "licensed_vendor"}:
+        raise ValueError("ETF snapshot source tier is denied for Strategy inputs")
+    quality = str(snapshot.source_quality or "").strip().lower()
+    if not quality.startswith(("issuer_", "successor_", "licensed_", "self_snapshotted_")):
+        raise ValueError("ETF snapshot source quality is unknown or denied")
     if snapshot.row_count <= 0 or len(rows) != snapshot.row_count:
         raise ValueError("ETF membership row count is partial")
     if snapshot.unresolved_count != 0 or snapshot.resolved_count != snapshot.row_count:
@@ -112,7 +209,9 @@ def freeze_etf_pit_membership(
             or instrument.is_synthetic
             or not holding.source_row_hash
             or not isinstance(weight, Decimal)
+            or not weight.is_finite()
             or weight < 0
+            or weight > 1
         ):
             raise ValueError("ETF constituent identity or row evidence is invalid")
         if (

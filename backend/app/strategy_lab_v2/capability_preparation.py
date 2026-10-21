@@ -23,6 +23,7 @@ from app.strategy_lab_v2.capabilities import (
 )
 from app.strategy_lab_v2.capability_summary import CapabilitySummary, build_capability_summary
 from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
+from app.strategy_lab_v2.etf_pit import ETFPointInTimeMembership
 from app.strategy_lab_v2.execution_capabilities import (
     ExecutionCapabilityBinding,
     preflight_execution_capability,
@@ -49,10 +50,12 @@ class CapabilityPreflightRequest:
     requirements: tuple[CapabilityRequirement, ...]
     allow_degraded: bool = False
     degradations: tuple[Degradation, ...] = ()
+    etf_memberships: tuple[tuple[str, datetime], ...] = ()
 
     def __post_init__(self) -> None:
         requirements = tuple(self.requirements)
         degradations = tuple(self.degradations)
+        etf_memberships = tuple(self.etf_memberships)
         if not requirements or any(
             not isinstance(item, CapabilityRequirement) for item in requirements
         ):
@@ -63,12 +66,15 @@ class CapabilityPreflightRequest:
             raise TypeError("allow_degraded must be a boolean")
         object.__setattr__(self, "requirements", requirements)
         object.__setattr__(self, "degradations", degradations)
+        object.__setattr__(self, "etf_memberships", etf_memberships)
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, Any]) -> CapabilityPreflightRequest:
         if not isinstance(payload, Mapping):
             raise ValueError("capability preflight payload must be an object")
-        unknown = sorted(set(payload) - {"requirements", "allow_degraded", "degradations"})
+        unknown = sorted(
+            set(payload) - {"requirements", "allow_degraded", "degradations", "etf_memberships"}
+        )
         if unknown:
             raise ValueError(
                 "capability preflight payload contains unsupported fields: " + ", ".join(unknown)
@@ -82,10 +88,14 @@ class CapabilityPreflightRequest:
         allow_degraded = payload.get("allow_degraded", False)
         if not isinstance(allow_degraded, bool):
             raise ValueError("allow_degraded must be a boolean")
+        raw_memberships = payload.get("etf_memberships", ())
+        if not isinstance(raw_memberships, Sequence) or isinstance(raw_memberships, str | bytes):
+            raise ValueError("etf_memberships must be an array")
         return cls(
             requirements=tuple(_requirement(item) for item in raw_requirements),
             allow_degraded=allow_degraded,
             degradations=tuple(_degradation(item) for item in raw_degradations),
+            etf_memberships=tuple(_etf_membership(item) for item in raw_memberships),
         )
 
 
@@ -97,6 +107,7 @@ class CapabilityPreflightService:
         *,
         capability_cells: CapabilityCellsResolver,
         execution_binding: ExecutionBindingResolver,
+        etf_membership_reader: Callable[..., Any] | None = None,
     ) -> None:
         if not callable(capability_cells):
             raise TypeError("capability_cells must be callable")
@@ -104,6 +115,9 @@ class CapabilityPreflightService:
             raise TypeError("execution_binding must be callable")
         self._capability_cells = capability_cells
         self._execution_binding = execution_binding
+        if etf_membership_reader is not None and not callable(etf_membership_reader):
+            raise TypeError("etf_membership_reader must be callable")
+        self._etf_membership_reader = etf_membership_reader
 
     async def __call__(
         self,
@@ -121,6 +135,37 @@ class CapabilityPreflightService:
         if not isinstance(payload_digest, str) or payload_digest != content_digest(payload):
             raise ValueError("payload_digest does not match the canonical request payload")
         request = CapabilityPreflightRequest.from_payload(payload)
+
+        etf_memberships = []
+        for etf_instrument_id, decision_time in request.etf_memberships:
+            if self._etf_membership_reader is None:
+                raise ValueError("ETF membership preflight is unavailable on this host")
+            resolved = self._etf_membership_reader(
+                etf_instrument_id=etf_instrument_id,
+                decision_time=decision_time,
+            )
+            evidence = await resolved if inspect.isawaitable(resolved) else resolved
+            if not isinstance(evidence, ETFPointInTimeMembership):
+                raise TypeError("ETF membership reader returned untrusted evidence")
+            for member in evidence.constituents:
+                member_requirements = tuple(
+                    item for item in request.requirements if item.instrument_id == member.domain_key
+                )
+                if len(member_requirements) != 1:
+                    raise ValueError(
+                        "every frozen ETF constituent requires one explicit Provider coverage requirement"
+                    )
+                member_requirement = member_requirements[0]
+                if (
+                    member_requirement.product_class is not ProductClass.EQUITY
+                    or member_requirement.event_type != "ohlcv"
+                    or member_requirement.event_granularity is not EventGranularity.BAR
+                    or not member_requirement.start <= decision_time <= member_requirement.end
+                ):
+                    raise ValueError(
+                        "ETF constituents require equity OHLCV coverage spanning decision_time"
+                    )
+            etf_memberships.append(evidence)
 
         cells_result = self._capability_cells(
             principal=principal,
@@ -205,7 +250,17 @@ class CapabilityPreflightService:
         if not isinstance(binding, ExecutionCapabilityBinding):
             raise TypeError("execution_binding must return an ExecutionCapabilityBinding")
         execution = preflight_execution_capability(report, binding)
-        return build_capability_summary(report, execution)
+        summary = build_capability_summary(report, execution)
+        if etf_memberships:
+            lineage_digests = tuple(item.content_digest for item in etf_memberships)
+            return replace(
+                summary,
+                binding_fingerprint=content_digest(
+                    {"execution": summary.binding_fingerprint, "etf_lineage": lineage_digests}
+                ),
+                input_lineage_fingerprints=lineage_digests,
+            )
+        return summary
 
 
 def _requirement(value: Any) -> CapabilityRequirement:
@@ -271,6 +326,17 @@ def _degradation(value: Any) -> Degradation:
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError(f"invalid capability degradation: {error}") from error
+
+
+def _etf_membership(value: Any) -> tuple[str, datetime]:
+    if not isinstance(value, Mapping) or set(value) != {"etf_instrument_id", "decision_time"}:
+        raise ValueError(
+            "ETF membership inputs require exactly etf_instrument_id and decision_time"
+        )
+    instrument_id = value["etf_instrument_id"]
+    if not _nonempty(instrument_id):
+        raise ValueError("etf_instrument_id must not be empty")
+    return instrument_id, _datetime(value["decision_time"], "decision_time")
 
 
 def _datetime(value: Any, field_name: str) -> datetime:

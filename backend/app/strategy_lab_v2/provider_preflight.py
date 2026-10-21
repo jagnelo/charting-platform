@@ -30,6 +30,7 @@ from app.strategy_lab_v2.contracts import (
     EventGranularity,
     ProductClass,
 )
+from app.strategy_lab_v2.etf_pit import ETFPointInTimeMembership, resolve_etf_pit_membership
 from app.strategy_lab_v2.provider_series_contract import (
     ProviderSeriesCapabilityEvidence,
     provider_coverage_evidence_digest,
@@ -87,6 +88,20 @@ class ProviderLocalCapabilityEvidenceReader:
         self._execution_models = _host_scopes(execution_models, "execution_models")
         self._account_models = _host_scopes(account_models, "account_models")
         self._clock = clock
+
+    async def resolve_etf_membership(
+        self, *, etf_instrument_id: str, decision_time: datetime
+    ) -> ETFPointInTimeMembership:
+        """Resolve frozen ETF membership from local rows only; no refresh path."""
+
+        if decision_time.tzinfo is None or decision_time.utcoffset() is None:
+            raise ValueError("ETF decision_time must be timezone-aware")
+        async with self._session_factory() as session:
+            return await resolve_etf_pit_membership(
+                session,
+                etf_instrument_id=etf_instrument_id,
+                decision_time=decision_time,
+            )
 
     async def __call__(
         self,
