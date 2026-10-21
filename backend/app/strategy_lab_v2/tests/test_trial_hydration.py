@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from types import MappingProxyType
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -24,6 +24,7 @@ from app.strategy_lab_v2.resource_domains import DomainResourceContract
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
 from app.strategy_lab_v2.trial_hydration import (
     NautilusTrialDomainHydrator,
+    SelectedStudyArtifactResolver,
     TrialDomainHydrationError,
 )
 
@@ -364,7 +365,9 @@ async def test_hydrator_resolver_validation_accepts_functions_and_async_callable
     with pytest.raises(TypeError, match="must be asynchronous"):
         NautilusTrialDomainHydrator(
             MemoryDomainReader(values),
-            selected_study_artifact_resolver=synchronous_resolver,
+            selected_study_artifact_resolver=cast(
+                SelectedStudyArtifactResolver, synchronous_resolver
+            ),
         )
 
 
