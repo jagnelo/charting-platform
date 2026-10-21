@@ -246,6 +246,7 @@ import {
   mergeChartIndicatorsWithRadar,
   radarIndicatorSignature,
 } from '@/lib/radar/visuals'
+import { watchIndicatorStack } from '@/lib/uplot/indicatorLifecycle'
 import type { DrawingPoint }   from '@/lib/drawings/types'
 import type { ChartComparisonSeries, ChartDrawing, ChartPythonSeries, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType, OHLCVBar } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
@@ -3382,7 +3383,7 @@ watch([() => chartStore.symbol, () => chartStore.timeframe, () => chartStore.bar
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
 watch([visibleComparisonSeries, visiblePythonSeries], () => { if (uplot) updateData(); else initChart() }, { deep: true })
-watch(visibleActiveIndicators, async () => { await nextTick(); initChart() }, { deep: true })
+watchIndicatorStack(() => visibleActiveIndicators.value, () => initChart())
 watch(effectiveChartType, async (type) => {
   if (chartStore.symbol && chartStore.barType !== type) {
     await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, type, chartStore.localOnlyMode, {
@@ -3442,7 +3443,6 @@ watch(() => chartStore.indicators.map(i => i.showYProjection), () => { redrawVis
 watch(() => visibleAlerts.value.map(a => `${a.id}:${a.show_projection}`).join('|'), () => { redrawVisuals() })
 watch(() => drawStore.drawingProjections,  () => { redrawVisuals() })
 watch(() => props.overlayDrawings, () => { redrawVisuals() }, { deep: true })
-watch(() => props.overlayIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(showCurrentPriceProjection, () => { redrawVisuals() })
 watch(showHighLowProjection,      () => { redrawVisuals() })
 watch(showApproxVolumeProfile,    () => { initChart() })

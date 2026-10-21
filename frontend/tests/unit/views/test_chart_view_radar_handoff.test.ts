@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { nextTick } from 'vue'
+import { defineComponent, nextTick, watch } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ChartView from '@/views/ChartView.vue'
@@ -125,6 +125,86 @@ describe('ChartView radar handoff', () => {
       wrapper,
     }
   }
+
+  it('keeps the indicator rail geometry across a keyed active-panel switch while the new panel is loading', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const chartStore = useChartStore()
+    const p0Store = usePanelStore('p0')
+    const p1Store = usePanelStore('p1')
+    const layoutStore = useLayoutStore()
+    const drawStore = useDrawingsStore()
+    const alertsStore = useAlertsStore()
+    const optionsExposureStore = useOptionsExposureStore()
+    const presetsStore = usePresetsStore()
+    layoutStore.layout = '2h'
+    p0Store.instrument = { id: 7, symbol: 'SPY', name: 'SPDR S&P 500 ETF', currency: 'USD', is_active: true }
+    p1Store.instrument = null
+    p1Store.isLoading = true
+    vi.spyOn(drawStore, 'loadDrawings').mockResolvedValue(undefined)
+    vi.spyOn(alertsStore, 'loadAlerts').mockResolvedValue(undefined)
+    vi.spyOn(optionsExposureStore, 'load').mockResolvedValue(undefined)
+    vi.spyOn(optionsExposureStore, 'reset').mockImplementation(() => {})
+    vi.spyOn(chartStore, 'loadBars').mockResolvedValue(undefined)
+    vi.spyOn(presetsStore, 'loadPresets').mockResolvedValue(undefined)
+
+    const IndicatorPanelShellStub = defineComponent({
+      props: {
+        panelId: { type: String, required: true },
+        panelWidth: { type: Number, required: false },
+        panelOpen: { type: Boolean, required: true },
+      },
+      emits: ['instrument-available', 'update:panel-open'],
+      setup(props, { emit }) {
+        const panelStore = usePanelStore(props.panelId)
+        watch(() => panelStore.instrument?.id, (id) => {
+          if (id) emit('instrument-available')
+        }, { immediate: true })
+        return { emit }
+      },
+      template: `<aside class="indicator-panel-shell" :data-open="panelOpen" :style="panelOpen ? { width: panelWidth + 'px' } : { width: '16px' }"><button @click="emit('update:panel-open', !panelOpen)"></button></aside>`,
+    })
+
+    const wrapper = mount(ChartView, {
+      global: {
+        plugins: [pinia],
+        stubs: {
+          SearchBar: { template: '<div />' },
+          TimeframeSelector: { template: '<div />' },
+          LayoutPicker: { template: '<div />' },
+          DrawingToolbar: { template: '<div />' },
+          IndicatorPanel: IndicatorPanelShellStub,
+          WatchlistPanel: { template: '<div />' },
+          ResizeHandle: { template: '<div />' },
+          TextPromptModal: { template: '<div />' },
+          OptionsChainPanel: { template: '<div />' },
+          OptionsExposurePanel: { template: '<div />' },
+          MultiChartLayout: { template: '<div />' },
+          UPlotChart: { template: '<div />' },
+        },
+      },
+    })
+
+    await flushPromises()
+    expect(wrapper.get('.indicator-panel-shell').attributes('data-open')).toBe('true')
+    expect(wrapper.get('.indicator-panel-shell').attributes('style')).toContain('width: 220px')
+
+    layoutStore.activePanelId = 'p1'
+    await nextTick()
+    expect(wrapper.get('.indicator-panel-shell').attributes('data-open')).toBe('true')
+    expect(wrapper.get('.indicator-panel-shell').attributes('style')).toContain('width: 220px')
+
+    await wrapper.get('.indicator-panel-shell button').trigger('click')
+    await nextTick()
+    expect(wrapper.get('.indicator-panel-shell').attributes('data-open')).toBe('false')
+    expect(wrapper.get('.indicator-panel-shell').attributes('style')).toContain('width: 16px')
+
+    layoutStore.activePanelId = 'p0'
+    await nextTick()
+    expect(wrapper.get('.indicator-panel-shell').attributes('data-open')).toBe('false')
+    expect(wrapper.get('.indicator-panel-shell').attributes('style')).toContain('width: 16px')
+    wrapper.unmount()
+  })
 
   it('keeps the preferred radar detection selected when arriving from the radar page', async () => {
     const pinia = createPinia()

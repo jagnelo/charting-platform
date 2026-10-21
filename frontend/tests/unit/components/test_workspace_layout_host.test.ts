@@ -27,8 +27,10 @@ const { goldenLayouts, MockGoldenLayout } = vi.hoisted(() => {
 
   loadLayout(layout: unknown) {
     this.loaded = layout
+    let activeComponentItem: any = undefined
     const parentItem: any = {
-      setActiveComponentItem: vi.fn(),
+      setActiveComponentItem: vi.fn((item: any) => { activeComponentItem = item }),
+      getActiveComponentItem: () => activeComponentItem,
       contentItems: [] as any[],
       header: { tabs: [] as any[] },
     }
@@ -215,6 +217,29 @@ describe('WorkspaceLayoutHost', () => {
     })
     const component = goldenLayouts[0].root.contentItems[0]
     expect(component.parentItem.setActiveComponentItem).toHaveBeenCalledWith(component, false, true)
+    wrapper.unmount()
+  })
+
+  it('does not synthesize tab clicks when the supported stack getter reports the component active', async () => {
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        activeWindowKey: 'chart-1',
+        renderTool: () => h('div'),
+      },
+    })
+    const component = goldenLayouts[0].root.contentItems[0]
+    const tabClick = vi.fn()
+    component.parentItem.header.tabs = [{ contentItem: component, element: { click: tabClick } }]
+
+    await new Promise(resolve => setTimeout(resolve, 60))
+    const settledActivationCount = component.parentItem.setActiveComponentItem.mock.calls.length
+    await new Promise(resolve => setTimeout(resolve, 75))
+
+    expect('activeComponentItem' in component.parentItem).toBe(false)
+    expect(component.parentItem.getActiveComponentItem()).toBe(component)
+    expect(component.parentItem.setActiveComponentItem).toHaveBeenCalledTimes(settledActivationCount)
+    expect(tabClick).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 

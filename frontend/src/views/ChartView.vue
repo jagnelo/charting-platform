@@ -196,7 +196,10 @@
         :panel-id="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
         :key="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
         :panel-width="layoutStore.panelWidths.indicatorPanel"
+        :panel-open="indicatorPanelOpen"
         @select-symbol="onSymbolSelect"
+        @update:panel-open="onIndicatorPanelOpenChange"
+        @instrument-available="onIndicatorPanelInstrumentAvailable"
       />
     </div>
   </div>
@@ -244,6 +247,21 @@ const alertsStore     = useAlertsStore()
 const presetsStore    = usePresetsStore()
 const optionsExposureStore = useOptionsExposureStore()
 const radarStore      = useRadarStore()
+
+// Keep the shared right-rail disclosure outside the keyed panel subtree. The
+// keyed IndicatorPanel remounts when the active chart changes; a temporarily
+// missing instrument during that handoff must not resize the chart grid.
+const indicatorPanelOpen = ref(false)
+const indicatorPanelOpenPreference = ref<boolean | null>(null)
+
+function onIndicatorPanelOpenChange(open: boolean) {
+  indicatorPanelOpen.value = open
+  indicatorPanelOpenPreference.value = open
+}
+
+function onIndicatorPanelInstrumentAvailable() {
+  if (indicatorPanelOpenPreference.value === null) indicatorPanelOpen.value = true
+}
 
 // Active panel store — in single mode this is the global chart store, in multi mode it's the active panel
 const activePanelStore = computed(() =>

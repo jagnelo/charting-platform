@@ -1,5 +1,35 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-21: independent F8m/F8n/F8s repairs
+
+Exact CI `39654421515` on `9b7238ad` was terminal red with two hard failures:
+F8m's ordinary pointerup was retargeted when a keyed active-panel switch
+collapsed the shared Indicator rail between pointerdown and pointerup, and F8s
+failed to settle the active Golden Layout tab. Separately, the local full
+functional profile reported 192 passed, 3 failed, 2 skipped; its F8n failure
+showed a final uPlot renderer identity mismatch after recovery. The one-shot
+F8m/F8s instrumented diagnostic and all red artifacts remain historical evidence.
+F8s passed once during diagnosis on frozen `9b7238ad`, before the getter repair;
+that pass does not validate the repaired source. The getter correction has
+baseline-red/green component proof and still needs final fixed-source browser
+validation.
+
+The current locally committed, not-yet-pushed candidate makes three independent corrections: ChartView
+owns IndicatorPanel open state across keyed remounts and shows a truthful loading
+placeholder; UPlotChart avoids rebuilding for semantically equivalent indicator
+stacks while retaining real change detection; WorkspaceLayoutHost uses Golden
+Layout's supported `getActiveComponentItem()` API. Focused tests pass 28/28;
+frontend coverage passes 137 files/1321 tests (85.59% statements/lines, 73.57%
+branches, 75.35% functions); `vue-tsc --noEmit`, production build, TC scope
+self-tests/guard, workstream validation, and `git diff --check` pass. No backend
+or migration source changed; their earlier evidence remains source-qualified.
+
+Next: publish the coherent candidate, then require exact-source CI and root review
+of a refreshed source archive/private launcher before any build/browser action.
+The final unchanged functional and 104-case visual gates remain mandatory.
+TCP3 overall, TCP4/TCP5, the full roadmap, and official `REF-HELP-V25` remain
+open. Do not touch retained services, volumes, provider holds, or datasets.
+
 ## Current status — 2026-10-21: Provider+ETF consumer-preservation repair
 
 Accepted green staging `628c1634f4894403339687586adee74d45637d51` is committed

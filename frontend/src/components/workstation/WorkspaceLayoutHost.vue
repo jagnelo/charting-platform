@@ -323,7 +323,7 @@ function activateWindow(windowKey: string | null | undefined) {
         if (Array.isArray(headerTabs) && headerTabs.some((tab: any) => tab.contentItem === component)) {
           parent.header.processActiveComponentChanged?.(component)
         }
-        if (component.parentItem.activeComponentItem !== component) {
+        if (parent.getActiveComponentItem?.() !== component) {
           const tab = component.parentItem.header?.tabs?.find((candidate: any) => candidate.contentItem === component)
           tab?.element?.click?.()
         }
@@ -345,7 +345,7 @@ function activateWindow(windowKey: string | null | undefined) {
         activationRetryTimer = null
         return
       }
-      if (component.parentItem?.activeComponentItem === component) {
+      if (component.parentItem?.getActiveComponentItem?.() === component) {
         if (activationRetryTimer !== null) window.clearInterval(activationRetryTimer)
         activationRetryTimer = null
         return

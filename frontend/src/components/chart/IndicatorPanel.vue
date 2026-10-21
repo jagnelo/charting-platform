@@ -7,10 +7,12 @@
       :title="isPanelOpen ? 'Hide panel' : 'Show panel'"
       :aria-label="isPanelOpen ? 'Hide indicator panel' : 'Show indicator panel'"
       :aria-expanded="isPanelOpen ? 'true' : 'false'"
-      @click="isPanelOpen = !isPanelOpen"
+      @click="setPanelOpen(!isPanelOpen)"
     ><WorkstationGlyph :kind="isPanelOpen ? 'chevron-left' : 'chevron-right'" /></button>
 
     <div v-show="isPanelOpen" class="panel-body">
+
+    <div v-if="!chartStore.instrument && chartStore.isLoading" class="empty-hint" role="status">Loading panel data…</div>
 
     <!-- ── Instrument info ───────────────────────────────────────────────── -->
     <InstrumentInfoPanel
@@ -685,8 +687,12 @@ import { api } from '@/lib/api'
 import { VueDraggable } from 'vue-draggable-plus'
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
-const props = defineProps<{ panelId: string; panelWidth?: number }>()
-const emit = defineEmits<{ selectSymbol: [symbol: string] }>()
+const props = defineProps<{ panelId: string; panelWidth?: number; panelOpen: boolean }>()
+const emit = defineEmits<{
+  selectSymbol: [symbol: string]
+  'update:panel-open': [open: boolean]
+  'instrument-available': []
+}>()
 
 const router         = useRouter()
 const alertsStore    = useAlertsStore()
@@ -731,7 +737,13 @@ const sessionRange = computed(() => {
 })
 
 // ── Panel & section collapse state ───────────────────────────────────────────
-const isPanelOpen    = ref(false)   // starts hidden until an instrument is loaded
+const isPanelOpen = computed(() => props.panelOpen)
+function setPanelOpen(open: boolean) {
+  emit('update:panel-open', open)
+}
+function markInstrumentAvailable() {
+  emit('instrument-available')
+}
 const alertsOpen     = ref(false)
 const indicatorsOpen = ref(false)
 const drawingsOpen   = ref(false)
@@ -792,8 +804,11 @@ const activeScreeners = computed(() =>
 )
 
 watch(() => chartStore.instrument?.id, async (id) => {
-  if (!id) { membership.value = null; isPanelOpen.value = false; return }
-  isPanelOpen.value = true
+  if (!id) {
+    membership.value = null
+    return
+  }
+  markInstrumentAvailable()
   // Reset section states for new instrument; content-based watches will re-open them
   watchlistsOpen.value = false
   screenersOpen.value  = false

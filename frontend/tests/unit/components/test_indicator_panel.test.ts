@@ -42,7 +42,7 @@ describe('IndicatorPanel section disclosures', () => {
     } as never)
 
     const wrapper = mount(IndicatorPanel, {
-      props: { panelId: 'p0' },
+      props: { panelId: 'p0', panelOpen: true },
       global: {
         plugins: [pinia],
         stubs: {
@@ -66,6 +66,8 @@ describe('IndicatorPanel section disclosures', () => {
     expect(panelToggle.attributes('aria-label')).toBe('Hide indicator panel')
     expect(panelToggle.attributes('aria-expanded')).toBe('true')
     await panelToggle.trigger('click')
+    expect(wrapper.emitted('update:panel-open')).toEqual([[false]])
+    await wrapper.setProps({ panelOpen: false })
     expect(panelToggle.attributes('aria-label')).toBe('Show indicator panel')
     expect(panelToggle.attributes('aria-expanded')).toBe('false')
 
@@ -123,6 +125,36 @@ describe('IndicatorPanel section disclosures', () => {
     expect(indicatorHeader.attributes('aria-expanded')).toBe('false')
     expect(wrapper.find(`[id="${indicatorBodyId}"]`).exists()).toBe(false)
     wrapper.unmount()
+  })
+
+  it('retains a shell-owned open state while the active panel has no instrument during loading', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const chartStore = usePanelStore('p1')
+    chartStore.instrument = null
+    chartStore.isLoading = true
+    const wrapper = mount(IndicatorPanel, {
+      props: { panelId: 'p1', panelOpen: true, panelWidth: 220 },
+      global: {
+        plugins: [pinia],
+        stubs: {
+          AlertForm: { template: '<div />' },
+          HoverTooltip: { template: '<span><slot /></span>' },
+          InstrumentInfoPanel: { template: '<div />' },
+          TextPromptModal: { template: '<div />' },
+          VueDraggable: { template: '<div><slot /></div>' },
+          WorkstationGlyph: { template: '<span />' },
+        },
+      },
+    })
+
+    await Promise.resolve()
+    await nextTick()
+    expect(wrapper.get('.side-panel').classes()).not.toContain('side-panel--collapsed')
+    expect(wrapper.get('.side-panel').attributes('style')).toContain('width: 220px')
+    expect(wrapper.get('[role="status"]').text()).toBe('Loading panel data…')
+    await wrapper.get('.panel-toggle').trigger('click')
+    expect(wrapper.emitted('update:panel-open')).toEqual([[false]])
   })
 
   it('uses native selection buttons with separate row-action controls', async () => {
@@ -197,7 +229,7 @@ describe('IndicatorPanel section disclosures', () => {
     vi.spyOn(api, 'get').mockResolvedValue({ watchlists: [], screeners: [] } as never)
 
     const wrapper = mount(IndicatorPanel, {
-      props: { panelId: 'p0' },
+      props: { panelId: 'p0', panelOpen: true },
       global: {
         plugins: [pinia],
         stubs: {

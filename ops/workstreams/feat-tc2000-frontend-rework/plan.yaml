@@ -30,24 +30,26 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The accepted Provider+ETF staging source628c1634f4894403339687586adee74d45637d51
-  is in committed TC ancestry. The consumer-preservation repair was published
-  at ef30fac341b5c302e908b286f977fd03882d6e82; its exact CI39619728143 is red:
-  backend unit3421 passed, integration458 passed and one failed. The failure is
-  test-only: the historical family refresh fake no longer receives the fixed
-  as_of value after the independent literal job-key assertion was added. This
-  correction restores that assignment immediately before the historical POST;
-  the task argument remains +00:00 and the literal canonical D1,W1,MN/Z key is
-  unchanged. Ruff and diff checks pass locally; no local API DB was recreated,
-  so fresh exact-source CI is required. The prior selected API13/13 and six
-  affected unit modules157/157 remain historical evidence, not a rerun of this
-  correction. The first ef30 source build was killed during frontend npm build
-  by the then-768MiB builder cap; no app project started. Root independently
-  confirmed oom_kill=1 and has bounded the same builder to1536MiB/2CPU with3GiB
-  total memory+swap. Rebuild only from a fresh corrected source archive and
-  serialize service builds. The exact diagnostic DB was dropped and confirmed
-  absent; do not recreate it. TCP3 overall, TCP4/TCP5, full roadmap, and official
-  REF-HELP-V25 remain open.
+  The current candidate fixes three independent TC-owned frontend failures
+  found across two source-qualified runs: exact CI39654421515 on source9b7238ad
+  recorded F8m pointerup retargeting and F8s tab activation failure; the local
+  full functional profile and one-shot diagnostic separately exposed F8n renderer
+  identity loss. (1) F8m pointerup was
+  retargeted after a keyed active-panel remount collapsed the shared Indicator
+  rail; (2) F8n recreated uPlot on semantically identical indicator stacks;
+  (3) F8s Golden Layout activation queried a nonexistent activeComponentItem
+  property. F8s passed once in the one-shot diagnostic on frozen9b before the
+  getter repair; that does not validate repaired source. The getter correction
+  has baseline-red/green component proof. The first two retain their ordinary interaction, loading and
+  renderer-identity contracts; the third uses the supported Stack getter. The
+  one-shot diagnostic reproduced the F8m geometry shift; it is not acceptance.
+  Focused suites pass28/28, full frontend coverage passes137 files/1321 tests
+  (85.59% statements/lines,73.57% branches,75.35% functions), vue-tsc and
+  production build pass, and scope/workstream/diff checks pass. The exact new
+  source is committed locally but not pushed and requires normal publication, exact-source CI,
+  and a final unchanged functional plus104-case visual run. No backend or
+  migration bytes changed; their full proof is earlier-source evidence only.
+  TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -558,6 +560,7 @@ owned_paths:
   - frontend/src/components/chart/InstrumentInfoPanel.vue
   - frontend/src/components/chart/IndicatorPanel.vue
   - frontend/src/components/chart/DrawingToolbar.vue
+  - frontend/src/lib/uplot/indicatorLifecycle.ts
   - frontend/src/components/alerts/AlertForm.vue
   - frontend/src/components/strategy/
   - frontend/src/stores/dashboardLinks.ts
@@ -1139,17 +1142,17 @@ progress:
   completed: [TCP1, TCP2]
   total: 5
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
-  current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_RECONCILIATION_DELIVERED_ETF_CONSUMER_RECONCILIATION_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
+  current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_DELIVERED;TC_FRONTEND_F8M_F8N_F8S_REPAIR_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
-    Publish the reviewed Provider+ETF consumer-preservation repair based on d7b19c22; final staged-byte
-    scope/manifest and workstream checks now pass. The six affected service-unit
-    modules passed157/157, including eligible-only native-weight aggregation for benchmark-family
-    duplicate rows, unique-ID derived equal weights, and unchanged raw snapshot lineage. The
-    integration test independently pins the canonical history-job key while retaining the queued
-    +00:00 task argument. The13/13 API slice is earlier evidence; exact-source CI and the full
-    source-qualified local profile remain required. After publication, run the already-approved
-    isolated profile with fresh source identities; do not touch retained services/data or claim
-    TCP3 complete. TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
+    Publish the coherent frontend candidate after the completed focused tests,
+    full coverage, type-check, build, scope/self-tests, workstream validation and
+    diff checks. Preserve exact red run39654421515 and one-shot diagnostic receipts.
+    After push, obtain exact-source CI and coordinator review of the refreshed
+    source archive/private launcher before any build or browser execution. Reuse
+    only the existing owned fixture/project and stopped warm builder; do not
+    recreate or clean retained services/volumes. Final functional and104-case
+    visual gates remain required; TCP3 overall, TCP4/TCP5, full roadmap and
+    official REF-HELP-V25 remain open.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1216,6 +1219,30 @@ progress:
     created. TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain
     open.
 current_checkpoint_status: >-
+  Current boundary (2026-10-21): the candidate fixes three separately evidenced
+  frontend defects across two source-qualified runs. Exact red CI39654421515 on
+  source9b7238ad recorded F8m pointerup retargeting and F8s tab activation failure;
+  the separate local full functional run (192 passed,3 failed,2 skipped) and
+  bounded diagnostic exposed F8n final uPlot identity loss. F8m pointerup
+  retargeting was caused by the keyed panel transition collapsing the right rail
+  between pointerdown and pointerup; F8n final uPlot identity was caused by
+  redundant chart rebuilds for semantically equal indicator arrays; F8s repeated
+  synthetic tab activation came from reading unsupported Stack.activeComponentItem
+  instead of getActiveComponentItem(). F8s passed once in the one-shot diagnostic
+  on frozen9b before the getter repair; that does not validate repaired source.
+  The getter correction has baseline-red/green component proof. The F8m diagnostic
+  and prior hosted red remain preserved, not acceptance. Current unit evidence is28/28
+  across four focused files; full Vitest coverage is137 files/1321 tests with
+  85.59% statements/lines,73.57% branches,75.35% functions; vue-tsc and production
+  build pass. The new indicatorLifecycle helper has one exact TC owned_paths entry;
+  scope self-tests, actual guard, workstream validator and diff check pass. This
+  frontend-only candidate is committed locally but not pushed or CI-tested. Final exact-source
+  CI and unchanged full functional/104 visual profile are still required. Earlier
+  backend coverage and migration-compatibility receipts remain qualified to their
+  own source and are not relabeled. TCP3 overall, TCP4/TCP5, full roadmap and
+  official REF-HELP-V25 remain open.
+
+  Historical Provider+ETF reconciliation details follow unchanged:
   Current boundary (2026-10-21): TCP1 and TCP2 remain narrowly accepted only as
   previously recorded. The TC-owned normal merge of coordinator-released green
   Provider+ETF staging628c1634f4894403339687586adee74d45637d51 is committed in
