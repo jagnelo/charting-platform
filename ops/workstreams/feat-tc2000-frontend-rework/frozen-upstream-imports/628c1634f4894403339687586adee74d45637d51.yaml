@@ -1065,10 +1065,6 @@ paths:
   state: present
   mode: '100644'
   blob: e712b21a6200ce7ec7ed68c2ab2138649e14f6fb
-- path: backend/tests/unit/test_provider_live_usage.py
-  state: present
-  mode: '100644'
-  blob: 6cb1c0cea5d04f94ecf6f7c6b0b34dcf2767176b
 - path: backend/tests/unit/test_provider_secret_wiring.py
   state: present
   mode: '100644'

@@ -30,17 +30,21 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact source6c720dc6bce1f37a6c0972c31f6dc2def408b27a CI39604702686 is
-  terminal red with one legacy cached-lineage capability failure/3416 passes.
-  The narrowly reviewed correction preserves cached identity/source/transport
-  lineage without adapter state, leaves availability/current usability unknown,
-  and treats absent legacy parser/source metadata as None. Focused capability/
-  watchlist tests130/130, affected non-runner tests104/104, and research-runner
-  tests118/118 in canonical sequential50/50/18 shards passed. Scope self-tests,
-  staged-byte guard, workstream, JSONL and diff checks passed. The source and
-  owned regression are staged with the exact G adaptation record; publication
-  and fresh exact-source CI remain. No fixture/build was created. TCP3 overall,
-  TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
+  Exact source4165ec60ae53ab53c4c35d236a24051dfea1c8dc CI39607757349 is
+  terminal red with one wall-clock-sensitive MarketData App reset-window test
+  failure and3416 passes; the prior cached-lineage failure is fixed. The real
+  provider reset-window guard is correct and remains unchanged. The owned test
+  now uses a fixed aware instant and the real quota coordinator's existing now=
+  seam; a negative test rejects a snapshot from the immediately preceding
+  reset window and verifies the ledger status is unchanged. Focused pair2/2,
+  live-usage/quota coordinator/contract/routing tests293/293, Ruff,
+  scope self-tests34/34, actual scope guard (465 changed paths;355 immutable
+  imports;24 exact adaptations), and workstream validation pass. This test path
+  is explicitly bound to accepted G blob6cb1c0cea5d04f94ecf6f7c6b0b34dcf2767176b
+  and omitted from immutable import equality; the guard itself is unchanged.
+  Commit/push and fresh exact-source CI remain. The prepared4165 fixture has not
+  been built or started. TCP3 overall, TCP4/TCP5, full roadmap, and official
+  REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -946,6 +950,17 @@ approved_provider_contract_adaptations:
       lineage remains inspectable without adapter state while current usability stays unknown;
       missing optional legacy metadata is not fabricated. The accepted baseline remains G blob
       39941d2dd0f23e103e4ffa50585be6f703fcbb2b; the staged index must equal the worktree.
+  - path: backend/tests/unit/test_provider_live_usage.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 6cb1c0cea5d04f94ecf6f7c6b0b34dcf2767176b
+    delta: >-
+      Make the MarketData App current-snapshot overcount test use a fixed aware instant away
+      from the daily reset boundary, and add an immediately-preceding-window rejection test.
+    rationale: >-
+      The real coordinator correctly rejects a prior reset-window snapshot; inject the same fixed
+      instant through its existing now= seam while calling the original reconciliation function.
+      Compare read-only baseline status before/after rejection to prove no ledger usage changed.
+      Do not relax reset-window validation or invoke a live provider.
   - path: backend/app/tasks/alert_tasks.py
     source_sha: 628c1634f4894403339687586adee74d45637d51
     accepted_blob: 7c54220a48f4959f67e2ed4424b22a693ad36132
@@ -1087,16 +1102,14 @@ progress:
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
   current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_RECONCILIATION_DELIVERED_ETF_CONSUMER_RECONCILIATION_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
-    Commit and push the narrowly reviewed legacy ETF snapshot compatibility correction on top of
-    exact source6c720dc6bce1f37a6c0972c31f6dc2def408b27a. Scope self-tests34/34, the actual guard
-    (465 changed paths;356 immutable imports;23 exact adaptations), workstream validation and
-    staged/unstaged diff checks passed. Preserve the terminal-red CI receipt (one cached-lineage
-    capability failure), and require fresh exact-source CI. The focused
-    capability/watchlist slice passed130/130; nine affected
-    non-runner files104/104; the118 runner cases passed exactly once in canonical sequential
-    50/50/18 shards; no fixture was created. This is not full-profile or checkpoint acceptance.
-    Coordinator-gated local profile follows only after publication. TCP3 overall, TCP4, TCP5, full
-    roadmap, and official REF-HELP-V25 remain open.
+    Commit and push the exact test-only MarketData App reset-boundary correction. Focused pair2/2,
+    live-usage/quota regressions293/293, Ruff, scope self-tests34/34, actual scope guard (465 changed
+    paths;355 immutable imports;24 exact adaptations), and workstream validation passed. Exact4165
+    CI39607757349 remains terminal red with3,416 passed and one failure from the prior
+    datetime.now(UTC)-5m fixture crossing the13:30UTC reset; preserve that receipt and require fresh
+    exact-source CI. After publication, retarget the never-executed isolated fixture/archive to the
+    new SHA. Root controls bounded build approval; no container/service resource has been created.
+    TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:

@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
@@ -17,6 +18,7 @@ from _pytest.outcomes import Exit as PytestExit
 
 from app.config import provider_rate_limit_seed, settings
 from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimension
+from app.services import provider_quota_coordinator
 from app.services.provider_quota_coordinator import (
     provider_quota_baseline_status,
     reconcile_provider_quota_baseline,
@@ -131,7 +133,7 @@ def test_marketdata_app_current_account_snapshot_replaces_stale_local_overcount(
     monkeypatch.setattr(
         settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "provider-quota.sqlite3")
     )
-    now = datetime.now(UTC)
+    now = datetime(2026, 10, 21, 14, 0, tzinfo=UTC)
     seed = provider_rate_limit_seed("marketdata_app")
     policy = SimpleNamespace(
         quota_scope=seed["quota_scope"],
@@ -147,6 +149,11 @@ def test_marketdata_app_current_account_snapshot_replaces_stale_local_overcount(
         evidence_reference="test-fixture:marketdata-app:previous-counter",
         source="provider_account_observation",
         now=now,
+    )
+    monkeypatch.setattr(
+        provider_quota_coordinator,
+        "reconcile_provider_quota_baseline",
+        partial(reconcile_provider_quota_baseline, now=now),
     )
     usage = ProviderAccountUsage(
         provider="marketdata_app",
@@ -185,6 +192,77 @@ def test_marketdata_app_current_account_snapshot_replaces_stale_local_overcount(
     )
     assert status["effective_used_units"] == 0
     assert status["remaining_units"] == 100
+
+
+def test_marketdata_app_snapshot_from_before_reset_is_rejected_without_ledger_change(
+    tmp_path: Path, monkeypatch
+):
+    monkeypatch.setattr(
+        settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "provider-quota.sqlite3")
+    )
+    current = datetime(2026, 10, 21, 13, 31, tzinfo=UTC)
+    observed_at = datetime(2026, 10, 21, 13, 26, tzinfo=UTC)
+    seed = provider_rate_limit_seed("marketdata_app")
+    policy = SimpleNamespace(
+        quota_scope=seed["quota_scope"],
+        quota_contract=seed["quota_contract"],
+    )
+    from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+    monkeypatch.setattr(
+        provider_quota_coordinator,
+        "reconcile_provider_quota_baseline",
+        partial(reconcile_provider_quota_baseline, now=current),
+    )
+    status_before = provider_quota_baseline_status(
+        provider_name="marketdata_app",
+        capability="account_usage",
+        policy=policy,
+        dimension_name="credits_per_day",
+        now=current,
+    )
+    usage = ProviderAccountUsage(
+        provider="marketdata_app",
+        observed_at=observed_at,
+        unit="credits",
+        limit=100,
+        remaining=100,
+        consumed=0,
+        reset_at=observed_at + timedelta(hours=18),
+        dimensions=(
+            ProviderAccountUsageDimension(
+                name="credits_per_day",
+                unit="credits",
+                limit=100,
+                remaining=100,
+                consumed=0,
+                reset_at=observed_at + timedelta(hours=18),
+            ),
+        ),
+        response_headers={
+            "x-api-ratelimit-limit": "100",
+            "x-api-ratelimit-remaining": "100",
+            "x-api-ratelimit-consumed": "0",
+        },
+    )
+
+    with pytest.raises(
+        ProviderQuotaAdmissionError,
+        match="quota baseline is not for the current provider reset window",
+    ):
+        live_usage.reconcile_native_account_usage("marketdata_app", usage)
+
+    status = provider_quota_baseline_status(
+        provider_name="marketdata_app",
+        capability="account_usage",
+        policy=policy,
+        dimension_name="credits_per_day",
+        now=current,
+    )
+    assert status == status_before
+    assert status["baseline"] is None
+    assert status["local_settled_since_baseline_units"] == 0
+    assert status["reserved_units"] == 0
 
 
 _MERGER_SPEC = importlib.util.spec_from_file_location(

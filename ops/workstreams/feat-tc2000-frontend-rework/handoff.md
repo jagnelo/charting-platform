@@ -1,5 +1,25 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-21: deterministic MarketData App reset-window test
+
+Published source `4165ec60ae53ab53c4c35d236a24051dfea1c8dc` remains the base for
+this bounded test-only correction. Exact CI `39607757349` is terminal red with
+3,416 passed and one failure: the current-account overcount test used
+`datetime.now(UTC)-5m` across the 13:30 UTC MarketData App daily reset. The
+production guard correctly rejected that prior-window observation and is
+unchanged. The test now fixes an aware time at 14:00 UTC, routes the same time
+through the original quota coordinator via its `now=` seam, and adds a 13:31 /
+13:26 UTC negative proving the prior-window rejection leaves read-only ledger
+status unchanged. Focused pair: 2/2; full live-usage plus quota coordinator,
+contract and routing tests: 293/293; Ruff and scope self-tests passed. The test
+path is explicitly bound to accepted G blob `6cb1c0cea5d04f94ecf6f7c6b0b34dcf2767176b`
+and removed from frozen-import equality; no production quota code or guard
+changed. Exact-source publication/CI remain pending. The prepared `4165` fixture
+has only a source export and config files: no build, containers, volumes or
+networks have been created. Retarget its source identity after publication;
+wait for Root's bounded-build review. Full runtime gates and TCP3 overall,
+TCP4/TCP5, the full roadmap and official `REF-HELP-V25` remain open.
+
 ## Current status — 2026-10-21: narrow legacy ETF snapshot compatibility correction
 
 Current branch source is `6c720dc6bce1f37a6c0972c31f6dc2def408b27a` (origin matched
