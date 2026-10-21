@@ -1,5 +1,39 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-22: Study loading-state visual fixture correction
+
+The local strict visual attempt on published source
+`05664729ea612d4bc27812cf86ab9fca02603880` was stopped by the coordinator at
+case41/104 after two initial readiness failures (Study running and sandbox
+error); the browser exited143. Preserve it as incomplete red evidence, not a
+timeout or pixel mismatch. All four protected Linux profiles for both cases
+show `Refreshing…`, `Shared Unavailable`, `Loading SPY…`, and persisted-runs
+`Loading`. The exact running reference
+`study-lab-running-gap-visual-1080p-100-linux.png` has SHA-256
+`524b1a4e99c42dfdd0d92ca1710b25a693ee9d7e9fa2221af8480498a53fc53e`; all eight
+reference hashes are recorded in the append-only validation receipt.
+
+The one-file fixture correction keeps default loaded-chart readiness intact and
+uses a separate seeded loading mode for only these two gap cases. It positively
+checks workspace host and `Loading SPY…` without requiring a canvas; the running
+case holds benchmark, OHLCV and first-page research-run requests and asserts
+`running 12/100`, Cancel, `Refreshing…`, chart Loading and persisted-runs
+Loading. The sandbox case retains its existing post-run loading assertions and
+holds its first page in the unified route handler. No product behavior,
+assertion timeout, screenshot reference, mask, skip or `0.005` tolerance changed.
+
+Stack-free checks on the candidate pass: Playwright collection lists104 tests;
+visual manifest validation and its10 unit tests pass; Vue type-check, TC scope
+guard, workstream validation and diff check pass. The separate
+`--require-approved` manifest gate still reports existing `board_covered`
+status; official V25 parity remains open. No browser rerun has occurred. The
+prior functional195 pass/2 declared skips and hosted E2E191 evidence remain
+qualified to source056, not this uncommitted test-only candidate. Next: publish
+this correction and receipt once, then prepare a visual-only frozen-source
+runner using the existing frontend image for coordinator review; no rebuild,
+fixture recreation, smoke, functional replay or browser launch before review.
+TCP3 overall, TCP4/TCP5, full roadmap and official `REF-HELP-V25` remain open.
+
 ## Current status — 2026-10-21: reviewed F8m/F8n/F8s repair candidate
 
 The candidate is based on exact branch source

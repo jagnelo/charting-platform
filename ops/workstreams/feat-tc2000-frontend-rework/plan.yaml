@@ -30,25 +30,30 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The reviewed frontend candidate is the five-path repair on base
-  20f69b21fba025ae90abf95f72968a5133c35464. F8n's captured uPlot replacement
-  occurred under the same chart-root/parent after empty initial indicators and
-  unchanged renderer settings; the semantic renderer lifecycle now preserves
-  identity for equivalent configuration while rebuilding for real config/data
-  changes. F8s menu event diagnosis showed ordinary pointerdown/focus listener
-  synchronization could reposition an open fixed menu between press and release;
-  restoring the old syncShellMenuListeners body produced a focused red
-  (left:120px expected, left:420px actual), and the scoped fix makes that same
-  regression green while retaining resize/scroll positioning and menu actions.
-  This is component evidence, not browser acceptance. Full frontend coverage,
-  vue-tsc, and Vite production build are green on this candidate. The previously
-  completed 20f full functional profile remains red for F8k and F8s; F8n's
-  diagnostic reproduction and hosted F8n hard failure remain preserved. Publish
-  once, then obtain exact-source CI and coordinator review of a refreshed source
-  archive/private launcher before any frontend-only refresh or full
-  functional/104 visual run. Backend and Compose bytes are unchanged; their
-  earlier receipts remain qualified to their own source. TCP3 overall,
-  TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
+  A fixture-only visual-readiness correction is prepared against published
+  source 05664729ea612d4bc27812cf86ab9fca02603880. The local strict visual
+  attempt on that source was stopped by the coordinator at case41/104 (exit143)
+  after readiness failures in the Study Lab running and sandbox-error gap
+  cases; preserve this as incomplete red evidence, not a timeout or pixel
+  mismatch. All four protected Linux profiles for each of those cases show the
+  same state: Refreshing…, Shared Unavailable, Loading SPY…, and persisted-runs
+  Loading. The candidate changes only those intentional loading fixtures:
+  default loaded readiness remains unchanged, while loading mode checks the
+  workspace host and loading chart without requiring a canvas; the running
+  fixture holds benchmark, OHLCV and first-page research-run requests, and the
+  sandbox first-page hold is in the unified handler. Original actions,
+  assertions, timeouts, references, masks, skips and0.005 tolerance remain.
+  Stack-free validation passes: Playwright lists104 tests; visual manifest
+  validation and its10 unit tests pass; Vue type-check, TC scope guard,
+  workstream validation and git diff check pass. The separate require-approved
+  manifest gate remains blocked by existing board_covered status; official V25
+  parity is not inferred. This candidate has not run in a browser. The prior
+  source-qualified functional195 pass/2 declared skips and hosted CI191 E2E
+  evidence remain tied to source056. Publish this one test-only correction and
+  its receipt, then prepare the reviewed visual-only frozen-source runner using
+  the existing frontend image; no rebuild, fixture recreation, smoke, or
+  functional replay. TCP3 overall, TCP4/TCP5, full roadmap, and official
+  REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1143,16 +1148,15 @@ progress:
   completed: [TCP1, TCP2]
   total: 5
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
-  current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_DELIVERED;TC_FRONTEND_F8M_F8N_F8S_REPAIR_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
+  current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_DELIVERED;TC_STUDY_VISUAL_LOADING_FIXTURE_PUBLICATION_PENDING;TCP2_FINAL_VISUAL_MATRIX_PENDING;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
-    Obtain exact-source CI for this published five-path repair, then prepare a
-    refreshed source archive and private launcher proposal for coordinator review.
-    Keep the old-sync baseline RED and restored component GREEN distinctly
-    recorded; no browser closure is claimed. Any permitted
-    frontend-only refresh must reuse the existing owned fixture and preserve the
-    unchanged backend/Compose provenance; do not rebuild or recreate retained
-    services/volumes without that review. Then run unchanged full functional and
-    104-case visual gates. TCP3 overall, TCP4/TCP5, full roadmap and official
+    Publish the root-reviewed test-only Study loading-state correction with this
+    receipt. Then prepare a visual-only frozen-source archive/runner for root
+    review, reusing the existing healthy frontend image and qualified functional
+    evidence; do not rebuild, recreate, smoke, rerun functional, or start a
+    browser before that review. Preserve the stopped 056 visual attempt as
+    incomplete red and run the unchanged full104 strict matrix only when its
+    exact runner is reviewed. TCP3 overall, TCP4/TCP5, full roadmap and official
     REF-HELP-V25 remain open.
 
     Historical next-action record follows unchanged, superseded only for the

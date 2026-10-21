@@ -15,9 +15,19 @@ async function assertSeededBackend(page: Page) {
   expect(payload.e2e_seed_market_data, 'visual fixture mode must match the backend stack').toBe(true)
 }
 
-async function waitForShellReady(page: Page) {
+type ShellReadiness = 'loaded' | 'expected-chart-loading'
+
+async function waitForShellReady(page: Page, readiness: ShellReadiness = 'loaded') {
   await expect(page.locator('.workstation')).toBeVisible()
   await expect(page.locator('.workstation__layout-state')).toHaveCount(0)
+  if (readiness === 'expected-chart-loading') {
+    expect(process.env.E2E_SEED_MARKET_DATA, 'the loading-gap fixture requires the seeded market-data stack').toBe('true')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    const chartState = page.locator('.chart-tool .tool-state')
+    await expect(chartState).toBeVisible({ timeout: 15_000 })
+    await expect(chartState).toHaveText('Loading SPY…', { timeout: 15_000 })
+    return
+  }
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 15_000 })
   if (process.env.E2E_SEED_MARKET_DATA === 'true') {
     await expect(page.locator('.ratio-chart__legend strong').first()).toHaveText('SPY/RSP', { timeout: 15_000 })
@@ -801,9 +811,16 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ versions: [{ id: 777 }] }) })
     })
-    await page.route(/\/api\/v1\/research\/runs$/, async route => {
+    await page.route(url => url.pathname.endsWith('/api/v1/research/runs'), async route => {
       if (route.request().method() === 'GET') {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+        const requestUrl = new URL(route.request().url())
+        if (!requestUrl.searchParams.has('before_created_at') && !requestUrl.searchParams.has('before_id')) {
+          // Match the persisted-runs loading state in this chart-loading visual
+          // without racing an empty first-page response.
+          await new Promise<void>(() => undefined)
+          return
+        }
+        await route.continue()
         return
       }
       if (route.request().method() !== 'POST') return route.continue()
@@ -812,6 +829,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await page.route(/\/api\/v1\/research\/runs\/778$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(runningRun) })
     })
+    await page.route(/\/api\/v1\/market-groups\/us-benchmarks(?:\?.*)?$/, async route => {
+      if (route.request().method() !== 'GET') return route.continue()
+      // Keep shared benchmark freshness in the same unavailable state as the
+      // protected loading-gap references instead of racing a seeded response.
+      await new Promise<void>(() => {})
+    })
     await page.route(/\/api\/v1\/ohlcv(?:\/|$)/, async () => {
       // This capture is about the Study run state, not chart-data readiness.
       // Keep the unrelated chart in its saved loading state even when a seeded
@@ -819,7 +842,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await new Promise(() => undefined)
     })
     await page.goto('/chart')
-    await waitForShellReady(page)
+    await waitForShellReady(page, 'expected-chart-loading')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const study = page.locator('.study-lab-tool')
@@ -833,8 +856,10 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.locator('.study-lab-tool__run-status--running')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('running 12/100')
     await expect(study.getByRole('button', { name: 'Cancel study run', exact: true })).toBeVisible()
-    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
-    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refreshing…', { timeout: 15_000 })
+    await expect(page.locator('.chart-tool .tool-state')).toHaveText('Loading SPY…')
+    await expect(page.getByRole('region', { name: 'Study Lab research results' }))
+      .toContainText('Loading reproducible research runs…')
     await expect(page).toHaveScreenshot('study-lab-running-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -949,12 +974,6 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     })
     // R5 uses a 26-row lookahead; keep this deterministic loading fixture tied
     // to the initial page rather than a particular requested page size.
-    await page.route(url => url.pathname.endsWith('/api/v1/research/runs')
-      && !url.searchParams.has('before_created_at')
-      && !url.searchParams.has('before_id'), async route => {
-      if (route.request().method() !== 'GET') return route.continue()
-      await new Promise<void>(() => {})
-    })
     await page.route(/\/api\/v1\/code\/validate$/, async route => {
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] }) })
@@ -963,9 +982,16 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ versions: [{ id: 779 }] }) })
     })
-    await page.route(/\/api\/v1\/research\/runs$/, async route => {
+    await page.route(url => url.pathname.endsWith('/api/v1/research/runs'), async route => {
       if (route.request().method() === 'GET') {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+        const requestUrl = new URL(route.request().url())
+        if (!requestUrl.searchParams.has('before_created_at') && !requestUrl.searchParams.has('before_id')) {
+          // Keep the first persisted-runs page pending; later pagination remains
+          // an ordinary backend request and cannot be shadowed by another route.
+          await new Promise<void>(() => undefined)
+          return
+        }
+        await route.continue()
         return
       }
       if (route.request().method() !== 'POST') return route.continue()
@@ -975,7 +1001,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(failedRun) })
     })
     await page.goto('/chart')
-    await waitForShellReady(page)
+    await waitForShellReady(page, 'expected-chart-loading')
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const study = page.locator('.study-lab-tool')
     await expect(study).toBeVisible({ timeout: 10_000 })
