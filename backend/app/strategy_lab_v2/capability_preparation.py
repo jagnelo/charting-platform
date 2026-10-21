@@ -64,6 +64,9 @@ class CapabilityPreflightRequest:
             raise TypeError("degradations must contain typed Degradation values")
         if not isinstance(self.allow_degraded, bool):
             raise TypeError("allow_degraded must be a boolean")
+        membership_keys = tuple(etf_memberships)
+        if len(membership_keys) != len(set(membership_keys)):
+            raise ValueError("ETF membership selectors must be unique in a preflight")
         object.__setattr__(self, "requirements", requirements)
         object.__setattr__(self, "degradations", degradations)
         object.__setattr__(self, "etf_memberships", etf_memberships)
@@ -147,6 +150,23 @@ class CapabilityPreflightService:
             evidence = await resolved if inspect.isawaitable(resolved) else resolved
             if not isinstance(evidence, ETFPointInTimeMembership):
                 raise TypeError("ETF membership reader returned untrusted evidence")
+            if evidence.etf_instrument_id != etf_instrument_id:
+                raise ValueError("ETF membership reader returned a foreign ETF identity")
+            if (
+                evidence.known_at.tzinfo is None
+                or evidence.known_at.utcoffset() is None
+                or evidence.known_at > decision_time
+                or evidence.composition_date > decision_time.date()
+            ):
+                raise ValueError("ETF membership is missing or later than decision_time")
+            member_keys = tuple(member.domain_key for member in evidence.constituents)
+            member_ids = tuple(member.instrument_id for member in evidence.constituents)
+            if (
+                not member_keys
+                or len(member_keys) != len(set(member_keys))
+                or len(member_ids) != len(set(member_ids))
+            ):
+                raise ValueError("ETF membership is empty or contains duplicate identities")
             for member in evidence.constituents:
                 member_requirements = tuple(
                     item for item in request.requirements if item.instrument_id == member.domain_key

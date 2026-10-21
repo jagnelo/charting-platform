@@ -325,6 +325,110 @@ async def test_etf_membership_denies_missing_constituent_provider_requirement() 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("failure", "expected_error"),
+    [
+        ("foreign_identity", "foreign ETF identity"),
+        ("late_known_at", "later than decision_time"),
+        ("duplicate_member", "duplicate identities"),
+    ],
+)
+async def test_etf_membership_mismatch_denies_before_provider_or_execution_resolution(
+    failure: str, expected_error: str
+) -> None:
+    membership = ETFPointInTimeMembership(
+        "US:ETF:SPY",
+        1,
+        2,
+        3,
+        _START.date(),
+        _START,
+        _START,
+        4,
+        "issuer",
+        "local",
+        "issuer_reported_current_holdings",
+        "complete",
+        "snapshot-hash",
+        (ETFConstituentIdentity(5, "US.AAPL", "row-hash", 1, Decimal("1")),),
+        content_digest("mismatched-etf-membership"),
+    )
+    if failure == "foreign_identity":
+        membership = replace(membership, etf_instrument_id="US:ETF:QQQ")
+    elif failure == "late_known_at":
+        membership = replace(membership, known_at=_START.replace(year=_START.year + 1))
+    else:
+        membership = replace(
+            membership,
+            constituents=(
+                membership.constituents[0],
+                ETFConstituentIdentity(6, "US.AAPL", "duplicate-row-hash", 2, Decimal("0.5")),
+            ),
+        )
+    calls: list[str] = []
+
+    async def unexpected_cells(**_kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
+        calls.append("provider")
+        return (_provider_evidence(),)
+
+    async def unexpected_binding(**_kwargs: Any) -> ExecutionCapabilityBinding:
+        calls.append("execution")
+        return _binding()
+
+    payload = _payload(
+        extra={
+            "etf_memberships": [
+                {"etf_instrument_id": "US:ETF:SPY", "decision_time": _START.isoformat()}
+            ]
+        }
+    )
+    with pytest.raises(ValueError, match=expected_error):
+        await CapabilityPreflightService(
+            capability_cells=unexpected_cells,
+            execution_binding=unexpected_binding,
+            etf_membership_reader=lambda **_kwargs: membership,
+        )(
+            principal="owner-1",
+            request_id="request-etf-mismatch",
+            idempotency_key="capability-etf-mismatch",
+            payload=payload,
+            payload_digest=content_digest(payload),
+        )
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_duplicate_etf_selector_denies_before_any_preflight_dispatch() -> None:
+    calls: list[str] = []
+
+    async def unexpected(**_kwargs: Any) -> Any:
+        calls.append("called")
+        return None
+
+    payload = _payload(
+        extra={
+            "etf_memberships": [
+                {"etf_instrument_id": "US:ETF:SPY", "decision_time": _START.isoformat()},
+                {"etf_instrument_id": "US:ETF:SPY", "decision_time": _START.isoformat()},
+            ]
+        }
+    )
+    with pytest.raises(ValueError, match="selectors must be unique"):
+        await CapabilityPreflightService(
+            capability_cells=unexpected,
+            execution_binding=unexpected,
+            etf_membership_reader=unexpected,
+        )(
+            principal="owner-1",
+            request_id="request-etf-duplicate",
+            idempotency_key="capability-etf-duplicate",
+            payload=payload,
+            payload_digest=content_digest(payload),
+        )
+    assert calls == []
+
+
+@pytest.mark.asyncio
 async def test_missing_host_coverage_fails_closed_without_inventing_cells() -> None:
     async def resolve_cells(**_kwargs: Any) -> tuple[ProviderSeriesCapabilityEvidence, ...]:
         return ()

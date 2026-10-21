@@ -63,6 +63,7 @@ from app.strategy_lab_v2.contracts import (
     ArtifactManifest,
     ArtifactRetention,
     CarryInMode,
+    ETFMembershipReference,
     ForwardInstance,
     ForwardState,
     MetricBasis,
@@ -489,6 +490,7 @@ class FakeAdapter:
         self.mutations: list[tuple[str, str, str]] = []
         self.legacy_imports: list[str] = []
         self.preflights: list[tuple[str, str, str]] = []
+        self.etf_memberships: tuple[ETFMembershipReference, ...] = ()
         self.search_states: dict[str, SearchExecutionState] = {}
         self.search_dispatches: list[SearchDispatchResolution] = []
         self.walk_forward_dispatch_requests: list[dict[str, Any]] = []
@@ -599,6 +601,8 @@ class FakeAdapter:
             executable=True,
             authoritative=True,
             can_publish_authoritative_results=True,
+            input_lineage_fingerprints=tuple(item.content_digest for item in self.etf_memberships),
+            etf_memberships=self.etf_memberships,
         )
 
     async def initialize_search(self, **kwargs: Any) -> SearchStateResolution:
@@ -1312,6 +1316,36 @@ def test_capability_preflight_delegates_and_returns_typed_summary() -> None:
         assert adapter.preflights == [
             ("capability-key", "capability-request", content_digest(payload))
         ]
+
+
+def test_capability_preflight_api_round_trips_frozen_etf_reference() -> None:
+    adapter = FakeAdapter()
+    reference = ETFMembershipReference(
+        etf_instrument_id="US:ETF:SPY",
+        decision_time=NOW,
+        snapshot_id=41,
+        content_digest=content_digest("frozen-etf-membership"),
+    )
+    adapter.etf_memberships = (reference,)
+    payload = {"requirements": [{"instrument_id": "AAPL", "field": "close"}]}
+    with _client(adapter) as client:
+        response = client.post(
+            "/api/v1/strategy-lab/v2/capabilities/preflight",
+            headers={"Idempotency-Key": "capability-etf-key"},
+            json=payload,
+        )
+
+    assert response.status_code == 200
+    attributes = response.json()["data"]["attributes"]
+    assert attributes["input_lineage_fingerprints"] == [reference.content_digest]
+    assert attributes["etf_memberships"] == [
+        {
+            "etf_instrument_id": "US:ETF:SPY",
+            "decision_time": NOW.isoformat(timespec="microseconds").replace("+00:00", "Z"),
+            "snapshot_id": 41,
+            "content_digest": reference.content_digest,
+        }
+    ]
 
 
 def test_capability_preflight_fails_closed_until_host_binding_is_configured() -> None:

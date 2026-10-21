@@ -5,14 +5,17 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: strategy-etf-experiment-fingerprint-restart-revalidation
+    name: strategy-etf-pit-preflight-api-denial-and-restart-validation
     status: in_progress
-    source_commit: b7946579cba4b4a8f4132274e411b7e1cf55c3f4
+    source_commit: 932ca0bd11e8c3515eb36973cbc0dff8bfbcfbd1
     intent: >-
       Persist exact ETF membership references and content digests in immutable
       DataSnapshot/Experiment fingerprints, round-trip the refs through existing
       resource and capability persistence, and revalidate the pinned snapshot
-      digest before worker hydration on restart. Preserve all Provider/ETF
+      digest before worker hydration on restart. Before Provider/execution
+      preflight, reject duplicate selectors, foreign ETF evidence, late/missing
+      known_at, and empty/duplicate constituents; expose frozen reference and
+      digest through the registered capability API. Preserve all Provider/ETF
       point-in-time/coverage checks. Reconcile TC2000 immutable Study/Code
       consumers only after its accepted green staging release. Recompute final
       Alembic heads after TC; preserve every history/data set with an additive
@@ -28,6 +31,7 @@ integration_checkpoint:
       - backend/app/strategy_lab_v2/tests/test_provider_series_contract.py
       - backend/app/strategy_lab_v2/provider_preflight.py
       - backend/app/strategy_lab_v2/etf_pit.py
+      - backend/app/strategy_lab_v2/canonical.py
       - backend/app/strategy_lab_v2/contracts.py
       - backend/app/strategy_lab_v2/capability_preparation.py
       - backend/app/strategy_lab_v2/capability_summary.py
@@ -42,6 +46,8 @@ integration_checkpoint:
       - backend/app/strategy_lab_v2/tests/test_capability_preparation.py
       - backend/app/strategy_lab_v2/tests/test_resource_domains.py
       - backend/app/strategy_lab_v2/tests/test_postgres_capability.py
+      - backend/app/strategy_lab_v2/tests/test_core.py
+      - backend/app/strategy_lab_v2/tests/test_api_router.py
       - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
       - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
       - backend/app/strategy_lab_v2/tests/test_capability_consumer_api.py
