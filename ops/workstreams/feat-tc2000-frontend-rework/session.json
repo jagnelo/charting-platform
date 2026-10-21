@@ -37,25 +37,35 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "backend_job_id": 118911116181,
-    "branch_declared_job_id": 118911809083,
+    "backend_job_id": 119475524444,
+    "branch_declared_job_id": 119485245047,
     "conclusion": "failure",
-    "e2e_job_id": 118912013490,
-    "e2e_summary": "skipped after backend test collection failed; no E2E cases executed",
-    "frontend_unit_job_id": 118911116375,
-    "head_sha": "669b49804205411245f46463db5bcfa41860248b",
+    "e2e_job_id": 119485244807,
+    "e2e_summary": "189 passed,110 declared skips,one hard F8n failure and one retry-passing F8s flake on source20f69b21; candidate changes after this source still need exact CI",
+    "frontend_unit_job_id": 119475524846,
+    "head_sha": "20f69b21fba025ae90abf95f72968a5133c35464",
     "jobs": {
-      "backend": "failure_16_collection_errors_get_search_provider_chain_missing_from_accepted_provider",
-      "branch_declared": "skipped_after_backend_failure",
-      "e2e": "skipped_after_backend_failure",
-      "exhaustive_feature_branch": "skipped_after_backend_failure",
+      "backend": "success_3421_unit_459_integration_83_percent",
+      "branch_declared": "success",
+      "e2e": "red_with_one_hard_failure_and_one_retry_passing_flake",
+      "exhaustive_feature_branch": "expected_skip",
       "frontend_unit": "success"
     },
-    "run_id": 39504855454,
-    "status": "terminal red for exact merge source669b; backend collection is blocked by the deferred ETF-owned import boundary",
-    "visuals": "No hosted E2E or visual cases ran. Previously accepted TCP2 local visual evidence remains separately source-qualified; official V25 parity remains required_missing."
+    "run_id": 39673014884,
+    "status": "terminal red for exact source20f69b21; the five-path frontend candidate modifies that source and has no exact-source CI yet",
+    "visuals": "No candidate visual acceptance. Final unchanged strict104 visual gate and official V25 parity remain required."
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "frontend/src/components/chart/UPlotChart.vue",
+    "frontend/src/lib/uplot/rendererLifecycle.ts",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/unit/lib/test_renderer_lifecycle.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -135,9 +145,9 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "ef30fac341b5c302e908b286f977fd03882d6e82",
+  "head": "20f69b21fba025ae90abf95f72968a5133c35464",
   "merge_head": null,
-  "implementation_sha": "ef30fac341b5c302e908b286f977fd03882d6e82",
+  "implementation_sha": "20f69b21fba025ae90abf95f72968a5133c35464",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -145,22 +155,26 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-21T14:43:49+00:00",
+  "last_checkpoint": "2026-10-21T22:20:00+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
     "conclusion": "failure",
-    "e2e_summary": "not used as evidence in this audited backend integration result",
-    "head_sha": "ef30fac341b5c302e908b286f977fd03882d6e82",
+    "e2e_summary": "189 passed,110 declared skips,one hard F8n failure and one retry-passing F8s flake",
+    "head_sha": "20f69b21fba025ae90abf95f72968a5133c35464",
     "jobs": {
-      "backend": "unit_3421_passed; integration_458_passed_1_fixture_failure"
+      "backend": "3421 unit passed;459 integration passed;83 percent coverage",
+      "branch_declared": "success",
+      "e2e": "one hard failure plus one retry-passing flaky case",
+      "exhaustive_feature_branch": "expected skip",
+      "frontend_unit": "success"
     },
-    "run_id": 39619728143,
-    "scope": "Exact ef30fac341b5c302e908b286f977fd03882d6e82 source: backend unit3421 passed; integration458 passed and one test-fixture failure. The historical refresh fake lacked its fixed as_of_value. This terminal red receipt is preserved; no other job outcome is inferred here.",
+    "run_id": 39673014884,
+    "scope": "Exact source20f69b21fba025ae90abf95f72968a5133c35464. E2E119485244807 reported189 passed,110 declared skips, hard F8n and retry-passing F8s flake. Backend119475524444 (3421 unit+459 integration,83%), frontend119475524846 and branch119485245047 succeeded; EIG119485248119 was an expected skip. This predates the current five-path candidate changes.",
     "visuals": "No visual acceptance inferred. New-source full local profile and exact-source CI remain required."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit and push the reviewed Provider+ETF consumer-preservation repair based on d7b19c22; final staged-byte scope/manifest, workstream, structured-record, and diff checks pass. Then run the already-approved new-source full profile and exact branch CI. The selected API slice passed13/13 before its final independent literal job-key assertion; the six affected service-unit modules pass157/157 including eligible-only family native-weight aggregation, unique-ID derived equal weights, and unchanged raw snapshot lineage. Preserve exact d7b19 red CI. The exact generated diagnostic DB was safely dropped after zero sessions; do not recreate it. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
+  "next_action": "Publish the reviewed five-path frontend repair once after staged scope/workstream/structured-record checks. Then observe exact-source CI and prepare the refreshed private source archive/frontend-only refresh plus full functional/strict104 visual proposal for coordinator hash, fixture and capacity review. Do not execute build, refresh or browser phases before that review. Preserve the prior functional reds; TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",

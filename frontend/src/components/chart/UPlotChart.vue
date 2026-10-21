@@ -247,6 +247,13 @@ import {
   radarIndicatorSignature,
 } from '@/lib/radar/visuals'
 import { watchIndicatorStack } from '@/lib/uplot/indicatorLifecycle'
+import {
+  clearRenderedRenderer,
+  createRendererLifecycleState,
+  initializeRenderer,
+  invalidateRendererLifecycle,
+  rendererConfigurationSignature,
+} from '@/lib/uplot/rendererLifecycle'
 import type { DrawingPoint }   from '@/lib/drawings/types'
 import type { ChartComparisonSeries, ChartDrawing, ChartPythonSeries, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType, OHLCVBar } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
@@ -443,6 +450,7 @@ let activeDrawingPaneKey: string | null = null  // null = main chart; indicator 
 let resizeObserver: ResizeObserver | null = null
 let lastSeriesCount = 0
 let firstRenderedBarTs: string | null = null
+const rendererLifecycle = createRendererLifecycleState()
 // Reactive bars, indicators, overlays, and visibility can request overlapping
 // async rebuilds. Older generations must not add sub-panels after a newer
 // renderer has replaced them.
@@ -1748,8 +1756,44 @@ function getDrawingProjection(drawing: AnyDrawing): boolean {
 }
 
 // ── Init chart ────────────────────────────────────────────────────────────────
+function rendererSignature(): string {
+  return rendererConfigurationSignature({
+    symbol: chartStore.symbol,
+    timeframe: chartStore.timeframe,
+    barType: chartStore.barType,
+    localOnly: chartStore.localOnlyMode,
+    transform: chartStore.transformParams,
+    chartType: effectiveChartType.value,
+    logScale: isLogScale.value,
+    volumeProfile: showApproxVolumeProfile.value,
+    indicators: visibleActiveIndicators.value,
+    subPanes: subPanes.value.map(pane => ({ key: pane.key, label: pane.label })),
+    series: buildSeries().map(series => ({
+      label: series.label,
+      scale: series.scale,
+      show: series.show,
+      stroke: series.stroke,
+      width: series.width,
+      fill: series.fill,
+      points: series.points,
+    })),
+  })
+}
+
 async function initChart() {
   if (!chartRef.value || !wrapperRef.value) return
+  const signature = rendererSignature()
+  await initializeRenderer(
+    rendererLifecycle,
+    signature,
+    uplot !== null,
+    () => rebuildChart(),
+    updateData,
+  )
+}
+
+async function rebuildChart(): Promise<boolean> {
+  if (!chartRef.value || !wrapperRef.value) return false
   const generation = ++initGeneration
 
   // Snapshot the current viewport before destroying so we can restore it after
@@ -1766,7 +1810,7 @@ async function initChart() {
   // (log toggle, indicator changes). Only explicit user actions reset them.
 
   const data = chartStore.uplotData as number[][]
-  if (!data[0]?.length) return
+  if (!data[0]?.length) return false
 
   const w = wrapperRef.value.clientWidth || 900
   const totalSubPaneH = subPanes.value.reduce((sum, p) => sum + (subPaneHeights[p.key] ?? SUB_PANE_DEFAULT_H), 0)
@@ -1947,9 +1991,10 @@ async function initChart() {
   }
   syncCanvasSize(w, h)
   await buildSubPanes(generation)
-  if (generation !== initGeneration) return
+  if (generation !== initGeneration) return false
   applyLinkedTimestamp(props.linkedTimestamp)
   chartReady.value = true
+  return true
 }
 
 // ── Initial view: last DEFAULT_BARS_VISIBLE bars ──────────────────────────────
@@ -3312,7 +3357,12 @@ function handleResize() {
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────────
 function destroyAll(invalidate = true) {
-  if (invalidate) initGeneration += 1
+  if (invalidate) {
+    initGeneration += 1
+    invalidateRendererLifecycle(rendererLifecycle)
+  } else {
+    clearRenderedRenderer(rendererLifecycle)
+  }
   chartReady.value = false
   if (interactionCleanup) { interactionCleanup(); interactionCleanup = null }
   uplot?.destroy(); uplot = null

@@ -467,10 +467,14 @@ function removeShellMenuListeners() {
   window.removeEventListener('scroll', positionShellMenus, true)
 }
 
+function scheduleShellMenuPosition() {
+  void nextTick(positionShellMenus)
+}
+
 function syncShellMenuListeners() {
   const open = workspaceMenuOpen.value || toolLibraryOpen.value || keyboardHelpOpen.value || recentSymbolsOpen.value
   if (!open) return removeShellMenuListeners()
-  void nextTick(() => { positionShellMenus(); addShellMenuListeners() })
+  addShellMenuListeners()
 }
 
 function toggleWorkspaceMenu() {
@@ -478,6 +482,7 @@ function toggleWorkspaceMenu() {
   closeShellMenus(open ? 'workspace' : undefined)
   workspaceMenuOpen.value = open
   if (open) {
+    scheduleShellMenuPosition()
     const selectedIndex = (workspaceStore.workspaces ?? []).findIndex(item => item.id === workspaceStore.workspace?.id)
     workspaceOptionIndex.value = selectedIndex >= 0 ? selectedIndex : 0
     void focusShellMenu('workspace')
@@ -569,7 +574,10 @@ function toggleToolLibrary(focusLast = false) {
   const open = !toolLibraryOpen.value
   closeShellMenus(open ? 'tool-library' : undefined)
   toolLibraryOpen.value = open
-  if (open) closeSymbolSearch()
+  if (open) {
+    closeSymbolSearch()
+    scheduleShellMenuPosition()
+  }
   if (open) void focusShellMenu('tool-library', focusLast ? -1 : 0)
   else toolLibraryTrigger.value?.focus()
   syncShellMenuListeners()
@@ -579,7 +587,10 @@ function toggleKeyboardHelp(focusLast = false) {
   const open = !keyboardHelpOpen.value
   closeShellMenus(open ? 'help' : undefined)
   keyboardHelpOpen.value = open
-  if (open) closeSymbolSearch()
+  if (open) {
+    closeSymbolSearch()
+    scheduleShellMenuPosition()
+  }
   if (open) void focusShellMenu('help', focusLast ? -1 : 0)
   else keyboardHelpTrigger.value?.focus()
   syncShellMenuListeners()
@@ -589,7 +600,10 @@ function toggleRecentSymbols(focusLast = false) {
   const open = !recentSymbolsOpen.value
   closeShellMenus(open ? 'recent' : undefined)
   recentSymbolsOpen.value = open
-  if (open) closeSymbolSearch()
+  if (open) {
+    closeSymbolSearch()
+    scheduleShellMenuPosition()
+  }
   if (open) void focusShellMenu('recent', focusLast ? -1 : 0)
   else recentSymbolsTrigger.value?.focus()
   syncShellMenuListeners()
@@ -2092,6 +2106,8 @@ function handleKeydown(event: KeyboardEvent) {
     closeShellMenus('help')
     closeSymbolSearch()
     keyboardHelpOpen.value = true
+    scheduleShellMenuPosition()
+    syncShellMenuListeners()
     return
   }
   if (event.key === 'Backspace' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {

@@ -1,6 +1,48 @@
 # feat/tc2000-frontend-rework
 
-## Current status — 2026-10-21: independent F8m/F8n/F8s repairs
+## Current status — 2026-10-21: reviewed F8m/F8n/F8s repair candidate
+
+The candidate is based on exact branch source
+`20f69b21fba025ae90abf95f72968a5133c35464` and changes only five reviewed
+frontend files: `UPlotChart.vue`, new `rendererLifecycle.ts`,
+`WorkstationView.vue`, and their two unit suites. The preserved hosted red
+`39654421515` on `9b7238ad` had F8m/F8s failures. Later exact CI
+`39673014884` was on source `20f69b21fba025ae90abf95f72968a5133c35464`, not9b:
+E2E job119485244807 reported189 passed,110 declared skips, one hard F8n failure
+and one retry-passing F8s flake; Backend job119475524444 (3,421 unit +459
+integration,83%), Frontend Unit job119475524846, and Branch-declared
+job119485245047 passed; EIG job119485248119 was an expected skip. Separately,
+the 20f local full functional run was193 passed,2 failed,2 skipped (F8k/F8s),
+and diagnostic02 reproduced F8n uPlot identity loss. These remain historical
+source-qualified failures, not candidate results.
+
+The F8n trace showed uPlot replacement under the same chart-root/parent after
+empty initial indicators and otherwise equivalent renderer settings. The
+candidate compares semantic renderer configuration, preserves the plot and
+updates data for equivalent refreshes, and still rebuilds for real renderer
+changes. For the F8s menu geometry regression, the exact old
+`syncShellMenuListeners` behavior was restored in isolation: the test failed
+with expected `left:120px` but received `left:420px`. Restoring the candidate
+implementation made the same regression pass while actual resize positioning
+and ordinary menu activation remain covered. This is unit/component evidence,
+not proof that the unchanged browser flows pass.
+
+Focused renderer/indicator tests pass8/8; root-verified frontend coverage
+`exec55d96932` and Vite build `execf7722a10` pass. Vue type-check passed in
+`exec230a3d63-84ba-490f-8cf3-320ad8e966dd` (8/8 lifecycle tests plus type-check)
+and `exec6f0c8970-790e-4113-b213-347c9ab882f2` (three menu checks plus
+type-check; the filtered run did not count lifecycle tests). Root reviewed all
+five source/test paths. The candidate
+has not yet been published or run through exact-source CI; the final unchanged
+functional and strict104 visual gates remain pending. After publication, wait
+for root review of the refreshed source archive/runtime proposal before any
+build, service refresh, or browser run. Backend/Compose bytes are unchanged,
+so prior backend and migration receipts remain qualified to their original
+source. Keep TCP3 overall, TCP4/TCP5, the full roadmap, and official
+`REF-HELP-V25` open; preserve the local-only Help decision, original references,
+masks, zero-retry policy and0.005 tolerance.
+
+## Historical status — 2026-10-21: prior F8m/F8n/F8s diagnosis
 
 Exact CI `39654421515` on `9b7238ad` was terminal red with two hard failures:
 F8m's ordinary pointerup was retargeted when a keyed active-panel switch

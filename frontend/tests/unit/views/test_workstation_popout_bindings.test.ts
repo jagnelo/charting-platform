@@ -1029,6 +1029,56 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('does not reposition the open tool menu between an interior pointer press and release', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    let triggerLeft = 120
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const trigger = wrapper.get('.workstation__tool-library > button')
+    vi.spyOn(trigger.element, 'getBoundingClientRect').mockImplementation(() => ({
+      x: triggerLeft,
+      y: 32,
+      left: triggerLeft,
+      top: 32,
+      right: triggerLeft + 72,
+      bottom: 56,
+      width: 72,
+      height: 24,
+      toJSON: () => ({}),
+    }) as DOMRect)
+
+    await trigger.trigger('click')
+    await nextTick()
+    const menu = wrapper.get('.workstation__tool-library-menu')
+    const positionedBeforePress = menu.attributes('style')
+    expect(positionedBeforePress).toContain('left: 120px')
+
+    triggerLeft = 420
+    const item = menu.get('[role="menuitem"]')
+    await item.trigger('pointerdown', { button: 0 })
+    await nextTick()
+
+    // A shell-level interior press must not move the fixed hit target before
+    // the browser delivers the corresponding pointerup/click.
+    expect(menu.attributes('style')).toBe(positionedBeforePress)
+    await item.trigger('focusin')
+    await nextTick()
+    expect(menu.attributes('style')).toBe(positionedBeforePress)
+    await item.trigger('pointerup', { button: 0 })
+
+    // Geometry still follows the trigger on actual viewport changes.
+    window.dispatchEvent(new Event('resize'))
+    await nextTick()
+    expect(menu.attributes('style')).toContain('left: 420px')
+
+    await item.trigger('click')
+    expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
+    expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
   it('opens shell menus from the keyboard, navigates items, and restores trigger focus', async () => {
     routeState.path = '/'
     routeState.params = {}

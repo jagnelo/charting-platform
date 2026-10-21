@@ -30,26 +30,25 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The current candidate fixes three independent TC-owned frontend failures
-  found across two source-qualified runs: exact CI39654421515 on source9b7238ad
-  recorded F8m pointerup retargeting and F8s tab activation failure; the local
-  full functional profile and one-shot diagnostic separately exposed F8n renderer
-  identity loss. (1) F8m pointerup was
-  retargeted after a keyed active-panel remount collapsed the shared Indicator
-  rail; (2) F8n recreated uPlot on semantically identical indicator stacks;
-  (3) F8s Golden Layout activation queried a nonexistent activeComponentItem
-  property. F8s passed once in the one-shot diagnostic on frozen9b before the
-  getter repair; that does not validate repaired source. The getter correction
-  has baseline-red/green component proof. The first two retain their ordinary interaction, loading and
-  renderer-identity contracts; the third uses the supported Stack getter. The
-  one-shot diagnostic reproduced the F8m geometry shift; it is not acceptance.
-  Focused suites pass28/28, full frontend coverage passes137 files/1321 tests
-  (85.59% statements/lines,73.57% branches,75.35% functions), vue-tsc and
-  production build pass, and scope/workstream/diff checks pass. The exact new
-  source is committed locally but not pushed and requires normal publication, exact-source CI,
-  and a final unchanged functional plus104-case visual run. No backend or
-  migration bytes changed; their full proof is earlier-source evidence only.
-  TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
+  The reviewed frontend candidate is the five-path repair on base
+  20f69b21fba025ae90abf95f72968a5133c35464. F8n's captured uPlot replacement
+  occurred under the same chart-root/parent after empty initial indicators and
+  unchanged renderer settings; the semantic renderer lifecycle now preserves
+  identity for equivalent configuration while rebuilding for real config/data
+  changes. F8s menu event diagnosis showed ordinary pointerdown/focus listener
+  synchronization could reposition an open fixed menu between press and release;
+  restoring the old syncShellMenuListeners body produced a focused red
+  (left:120px expected, left:420px actual), and the scoped fix makes that same
+  regression green while retaining resize/scroll positioning and menu actions.
+  This is component evidence, not browser acceptance. Full frontend coverage,
+  vue-tsc, and Vite production build are green on this candidate. The previously
+  completed 20f full functional profile remains red for F8k and F8s; F8n's
+  diagnostic reproduction and hosted F8n hard failure remain preserved. Publish
+  once, then obtain exact-source CI and coordinator review of a refreshed source
+  archive/private launcher before any frontend-only refresh or full
+  functional/104 visual run. Backend and Compose bytes are unchanged; their
+  earlier receipts remain qualified to their own source. TCP3 overall,
+  TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -460,28 +459,29 @@ historical_blocker_archive: >-
   tolerance. Full integration and broader AC4-AC7/R1/R5/R6 remain open; provider
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
-  name: TC2000 dense Market Map selection and F8m panel-menu observer
-  status: abea0c0_pushed_exact_CI_clean_functional_E2E;_visual_and_upstream_gates_open
-  commit_sha: abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476
-  remote_sha: abea0c0d83ccecad7654e1bbb8a8fc0fb9db5476
+  name: TC2000 F8m/F8n/F8s renderer and menu lifecycle repair
+  status: five_path_reviewed_and_published_by_this_changeset_exact_CI_and_browser_pending
+  commit_sha: enclosing_changeset_commit
+  remote_sha: enclosing_changeset_commit
   intent: >-
-    Retain the matched Market Map cell through selection so selected IDs,
-    symbols, downstream publication and accessible announcement derive from
-    one source of truth; avoid rescanning a 10,000-cell map after keyboard search.
-    Reconcile the retry-passing F8m Grey option observer by waiting for the
-    clicked wildcard panel menu to be expanded and scoping the ordinary option
-    click to its visible panel-owned menu, without changing product behavior.
+    Preserve uPlot identity across semantically equivalent renderer initialization
+    and prevent shell-menu listener synchronization from moving a fixed menu
+    between ordinary pointer press and release. Keep genuine renderer changes,
+    data updates, resize/scroll positioning, keyboard access and ordinary menu
+    activation intact.
   owned_paths:
-    - frontend/src/components/workstation/MarketMapTool.vue
-    - frontend/tests/unit/components/test_market_map_tool.test.ts
-    - frontend/tests/e2e/flows.spec.ts
+    - frontend/src/components/chart/UPlotChart.vue
+    - frontend/src/lib/uplot/rendererLifecycle.ts
+    - frontend/src/views/WorkstationView.vue
+    - frontend/tests/unit/lib/test_renderer_lifecycle.test.ts
+    - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
   next_action: >-
-    Preserve the exact clean functional CI result for abea0c0 without starting
-    another local browser run. Continue TC-owned source-only review while
-    Provider retains heavy validation priority; read the downstream reconciliation
-    map only at a genuine green-staging reconciliation boundary. Do not reconcile
-    Provider/ETF before synchronized released staging, claim TCP2 visual
-    completion, or alter screenshot references/tolerances.
+    Publish this coherent candidate once; verify exact refs and automatic CI.
+    Then submit a refreshed source-qualified proposal to reuse only the existing
+    owned runtime for frontend-only functional and strict104 visual gates. Do not
+    execute build/runtime/browser work before coordinator review; preserve all
+    screenshot references, masks, retries and 0.005 tolerance. No TCP2 full-gate
+    closure or downstream checkpoint acceptance is claimed.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -555,6 +555,7 @@ owned_paths:
   - frontend/src/views/StrategyLabView.vue
   - frontend/src/components/workstation/
   - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/lib/uplot/rendererLifecycle.ts
   - frontend/src/components/chart/ChartPanel.vue
   - frontend/src/components/chart/LayoutPicker.vue
   - frontend/src/components/chart/InstrumentInfoPanel.vue
@@ -1144,15 +1145,15 @@ progress:
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
   current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_DELIVERED;TC_FRONTEND_F8M_F8N_F8S_REPAIR_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
-    Publish the coherent frontend candidate after the completed focused tests,
-    full coverage, type-check, build, scope/self-tests, workstream validation and
-    diff checks. Preserve exact red run39654421515 and one-shot diagnostic receipts.
-    After push, obtain exact-source CI and coordinator review of the refreshed
-    source archive/private launcher before any build or browser execution. Reuse
-    only the existing owned fixture/project and stopped warm builder; do not
-    recreate or clean retained services/volumes. Final functional and104-case
-    visual gates remain required; TCP3 overall, TCP4/TCP5, full roadmap and
-    official REF-HELP-V25 remain open.
+    Obtain exact-source CI for this published five-path repair, then prepare a
+    refreshed source archive and private launcher proposal for coordinator review.
+    Keep the old-sync baseline RED and restored component GREEN distinctly
+    recorded; no browser closure is claimed. Any permitted
+    frontend-only refresh must reuse the existing owned fixture and preserve the
+    unchanged backend/Compose provenance; do not rebuild or recreate retained
+    services/volumes without that review. Then run unchanged full functional and
+    104-case visual gates. TCP3 overall, TCP4/TCP5, full roadmap and official
+    REF-HELP-V25 remain open.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1219,28 +1220,31 @@ progress:
     created. TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain
     open.
 current_checkpoint_status: >-
-  Current boundary (2026-10-21): the candidate fixes three separately evidenced
-  frontend defects across two source-qualified runs. Exact red CI39654421515 on
-  source9b7238ad recorded F8m pointerup retargeting and F8s tab activation failure;
-  the separate local full functional run (192 passed,3 failed,2 skipped) and
-  bounded diagnostic exposed F8n final uPlot identity loss. F8m pointerup
-  retargeting was caused by the keyed panel transition collapsing the right rail
-  between pointerdown and pointerup; F8n final uPlot identity was caused by
-  redundant chart rebuilds for semantically equal indicator arrays; F8s repeated
-  synthetic tab activation came from reading unsupported Stack.activeComponentItem
-  instead of getActiveComponentItem(). F8s passed once in the one-shot diagnostic
-  on frozen9b before the getter repair; that does not validate repaired source.
-  The getter correction has baseline-red/green component proof. The F8m diagnostic
-  and prior hosted red remain preserved, not acceptance. Current unit evidence is28/28
-  across four focused files; full Vitest coverage is137 files/1321 tests with
-  85.59% statements/lines,73.57% branches,75.35% functions; vue-tsc and production
-  build pass. The new indicatorLifecycle helper has one exact TC owned_paths entry;
-  scope self-tests, actual guard, workstream validator and diff check pass. This
-  frontend-only candidate is committed locally but not pushed or CI-tested. Final exact-source
-  CI and unchanged full functional/104 visual profile are still required. Earlier
-  backend coverage and migration-compatibility receipts remain qualified to their
-  own source and are not relabeled. TCP3 overall, TCP4/TCP5, full roadmap and
-  official REF-HELP-V25 remain open.
+  Current boundary (2026-10-21): the five-path frontend repair is based on
+  20f69b21fba025ae90abf95f72968a5133c35464. Preserve the exact hosted red
+  39654421515 on 9b7238ad (F8m/F8s), hosted run39673014884 on exact source
+  20f69b21fba025ae90abf95f72968a5133c35464 (189 passed,110 declared skips,
+  hard F8n and retry-passing F8s flake; backend/frontend/branch jobs green), and
+  the 20f local full functional result (193 passed,2 failed,2 skipped; F8k/F8s),
+  plus diagnostic02's F8n identity reproduction; these are historical failures,
+  not results for this repair.
+  F8n's trace showed uPlot replacement under the same chart-root/parent after
+  empty initial indicators and semantically unchanged renderer settings. The
+  renderer lifecycle now skips equivalent configurations while retaining real
+  configuration rebuilds and same-configuration data updates. For F8s, restoring
+  the old syncShellMenuListeners body made the focused geometry test fail
+  (expected left120px, received left420px); the restored candidate passes and
+  still repositions on actual resize while preserving ordinary item activation.
+  This component regression does not establish browser closure. Focused renderer/
+  indicator tests pass8/8, related workstation tests pass, and root-verified full
+  frontend coverage (exec55d96932), vue-tsc (exec230a3d63-84ba-490f-8cf3-320ad8e966dd
+  and exec6f0c8970-790e-4113-b213-347c9ab882f2; both include npm run type-check),
+  and Vite build (execf7722a10,13.52s) are green. No backend or Compose bytes changed;
+  prior backend/migration receipts remain qualified to their original source.
+  Final candidate exact-source CI and unchanged full functional/104 strict visual
+  gates remain pending; no fixture/runtime action is authorized before coordinator
+  review. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain
+  open.
 
   Historical Provider+ETF reconciliation details follow unchanged:
   Current boundary (2026-10-21): TCP1 and TCP2 remain narrowly accepted only as
