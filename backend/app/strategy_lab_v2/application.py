@@ -2441,6 +2441,14 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if not isinstance(relationships, Mapping) or not isinstance(meta, Mapping):
             raise ValueError("resource relationships and meta must be mappings")
         normalized_domain = normalize_resource_attributes(request.resource_type, attributes)
+        if (
+            isinstance(normalized_domain.typed_contract, StrategyVersion)
+            and normalized_domain.typed_contract.selected_study_artifact is not None
+        ):
+            raise ValueError(
+                "selected Study artifact references are unavailable until the released "
+                "owner-scoped verifier is wired"
+            )
         await self._validate_domain_dependencies(owner, normalized_domain.typed_contract)
         attributes = normalized_domain.attributes
         state_meta = dict(meta)

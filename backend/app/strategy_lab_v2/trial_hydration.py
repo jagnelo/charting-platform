@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import inspect
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Protocol
@@ -16,6 +17,7 @@ from app.strategy_lab_v2.contracts import (
     PortfolioComposition,
     RunAttempt,
     ScientificTrial,
+    SelectedStudyArtifactReference,
     StrategyPackage,
     StrategyVersion,
 )
@@ -50,6 +52,15 @@ class OwnerScopedDomainReader(Protocol):
         resource_type: ApiResourceType,
         fingerprints: Sequence[str],
     ) -> Mapping[str, DomainResourceContract]: ...
+
+
+SelectedStudyArtifactResolver = Callable[..., Awaitable[SelectedStudyArtifactReference]]
+
+
+def _is_async_callable(callback: Callable[..., Any]) -> bool:
+    return inspect.iscoroutinefunction(callback) or inspect.iscoroutinefunction(
+        getattr(callback, "__call__", None)
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,7 +145,11 @@ class NautilusTrialDomainHydrator:
     """
 
     def __init__(
-        self, reader: OwnerScopedDomainReader, *, etf_membership_reader: Any = None
+        self,
+        reader: OwnerScopedDomainReader,
+        *,
+        etf_membership_reader: Any = None,
+        selected_study_artifact_resolver: SelectedStudyArtifactResolver | None = None,
     ) -> None:
         if not all(
             callable(getattr(reader, method, None))
@@ -150,7 +165,16 @@ class NautilusTrialDomainHydrator:
             getattr(etf_membership_reader, "resolve_pinned_etf_membership", None)
         ):
             raise TypeError("etf_membership_reader must expose resolve_pinned_etf_membership()")
+        if selected_study_artifact_resolver is not None and not callable(
+            selected_study_artifact_resolver
+        ):
+            raise TypeError("selected_study_artifact_resolver must be callable")
+        if selected_study_artifact_resolver is not None and not _is_async_callable(
+            selected_study_artifact_resolver
+        ):
+            raise TypeError("selected Study artifact resolver must be asynchronous")
         self._etf_membership_reader = etf_membership_reader
+        self._selected_study_artifact_resolver = selected_study_artifact_resolver
 
     async def hydrate_attempt(
         self,
@@ -253,6 +277,26 @@ class NautilusTrialDomainHydrator:
                 raise TrialDomainHydrationError(
                     "experiment strategy package is missing or unavailable to this owner"
                 )
+            study_reference = strategy.selected_study_artifact
+            if study_reference is not None:
+                resolver = self._selected_study_artifact_resolver
+                if resolver is None:
+                    raise TrialDomainHydrationError(
+                        "selected Study artifact cannot be revalidated on this worker host"
+                    )
+                try:
+                    resolved = await resolver(principal=principal, reference=study_reference)
+                except Exception as error:
+                    raise TrialDomainHydrationError(
+                        "selected Study artifact is unavailable for restart validation"
+                    ) from error
+                if (
+                    not isinstance(resolved, SelectedStudyArtifactReference)
+                    or resolved != study_reference
+                ):
+                    raise TrialDomainHydrationError(
+                        "selected Study artifact differs from the immutable strategy reference"
+                    )
             strategies.append(strategy)
             packages[strategy_fingerprint] = package
 

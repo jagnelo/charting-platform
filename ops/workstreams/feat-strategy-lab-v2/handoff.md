@@ -15755,3 +15755,56 @@ ready for its normal commit/push and exact-source CI; the next CI, combined
 PostgreSQL/application, final TC graph/consumer, Exhaustive and full
 `full_stack_browser` gates remain open. Full roadmap and checkpoint stay
 `in_progress`, not accepted; formal goal remains unavailable.
+
+### Producer-neutral V2 selected Study artifact reference preparation — 2026-10-21
+
+The coordinator-authorized bounded context adds an immutable
+`SelectedStudyArtifactReference` to the engine-neutral `StrategyVersion` shape:
+selected ResearchRun, CodeVersion, named artifact, output-contract identity,
+reproducibility hash, CodeVersion digest, dataset-manifest digest, and artifact
+content digest. Resource normalization/rehydration accepts only this exact
+field set and binds a supplied reference into the StrategyVersion fingerprint;
+when absent, the key stays omitted and the historical seven-field
+StrategyVersion canonical representation is retained. The field is marked for
+canonical omission only when null, preserving old nested SDK-manifest payloads
+as well as direct strategy identities.
+
+The trial restart hydrator exposes only an injectable asynchronous
+owner-scoped resolver seam; plain async functions and async callable objects
+are accepted, while synchronous callbacks are rejected. Its default denies
+selected references, and an injected resolver must return the exact typed
+immutable reference. The API
+mutation boundary unconditionally rejects these payloads until the released
+owner-scoped verifier is wired; there is no production binding switch to
+mistakenly enable a test resolver. No TC lookup, consumer adapter, native-
+execution authority, API activation, database migration, or shared TC path was
+added. A test resolver is contract-test scaffolding only; it is not producer
+evidence. TC release, real owner/type/completion/terminal/digest verification,
+restart revalidation, final Alembic graph reconciliation, and combined full
+validation remain open.
+
+The independent pre-change goldens were derived in a separate interpreter from
+the exact `42c05021` Git objects: StrategyVersion
+`sha256:b9cd02de1e0b205ea040cf33badba19f39715a2145a8306effb9573c6d2a8ddd`,
+StrategySdkManifest
+`sha256:7a39bba534453a2ce621add3d4f6edda60f642285f198022360e1405de823907`,
+and StrategyPackage
+`sha256:c806796528369f35a386b63a2357e5a420f5122ff25876fa9fe778c12831a884`.
+The new test asserts those literals and that a selected reference changes the
+nested manifest/package identities. The first bounded eight-node test run was
+7/8: the only failure was stale expected wording for the deliberate mismatch
+denial; that assertion was corrected without changing behavior. The repeated
+final-source focused run passed 8/8 (1.31s). It covers direct and nested legacy
+goldens, reference roundtrip and identity binding, malformed/untrusted extra
+field rejection, API default denial, async function/object callback handling,
+typed exact-reference checks, and owner-isolation denial before resolver use.
+
+Focused MyPy passed on five changed production modules. Its first run exposed a
+local variable annotation collision with the earlier ETF reference loop; the
+variable was renamed and the rerun passed without suppressions. Ruff check and
+format passed on eight Python files, the UV-managed workstream validator
+validated 43 records, and `git diff --check` passed. The initial assertion red
+and MyPy diagnostic remain in `validation.jsonl`. No database/container,
+network/provider call, browser, native engine, full suite, or staging action
+ran. Changeset remains in progress and unaccepted; preserve the full roadmap
+and all historical failure receipts.

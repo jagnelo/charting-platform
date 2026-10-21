@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -8,7 +8,11 @@ from typing import Any
 import pytest
 
 from app.strategy_lab_v2.api_resources import ApiResourceType
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import (
+    canonical_json,
+    content_digest,
+    content_digest_dataclass_projection,
+)
 from app.strategy_lab_v2.capabilities import (
     CapabilityCell,
     CapabilityRequirement,
@@ -19,6 +23,7 @@ from app.strategy_lab_v2.contracts import (
     EventGranularity,
     ExperimentDefinition,
     ProductClass,
+    SelectedStudyArtifactReference,
     StrategyVersion,
 )
 from app.strategy_lab_v2.forward_execution_plan import ForwardExecutionPlan
@@ -26,6 +31,7 @@ from app.strategy_lab_v2.resource_domains import (
     normalize_resource_attributes,
     rehydrate_resource_contract,
 )
+from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
 
 SOURCE_DIGEST = content_digest("strategy-source")
 ARTIFACT_DIGEST = content_digest("dependency-wheel")
@@ -46,6 +52,21 @@ def _attributes() -> dict:
         ],
         "parameter_schema": {"lookback": {"type": "integer"}},
         "default_parameters": {"lookback": 20},
+    }
+
+
+def _selected_study_artifact() -> dict[str, Any]:
+    return {
+        "research_run_id": 41,
+        "code_version_id": 12,
+        "artifact_id": 87,
+        "artifact_name": "parameters",
+        "artifact_type": "strategy_parameters",
+        "output_contract": "strategy-parameters.v1",
+        "run_reproducibility_hash": "run-hash-41",
+        "code_version_digest": content_digest("code-version"),
+        "dataset_manifest_digest": content_digest("dataset-manifest"),
+        "artifact_content_digest": content_digest({"lookback": 20}),
     }
 
 
@@ -73,6 +94,100 @@ def test_persisted_strategy_attributes_rehydrate_to_the_same_typed_contract() ->
     assert isinstance(expected, StrategyVersion)
     assert restored.fingerprint == normalized.domain_fingerprint
     assert restored.fingerprint == expected.fingerprint
+
+
+def test_strategy_without_study_reference_keeps_historical_fingerprint_projection() -> None:
+    strategy = normalize_resource_attributes(ApiResourceType.STRATEGY, _attributes()).typed_contract
+
+    assert isinstance(strategy, StrategyVersion)
+    assert (
+        "selected_study_artifact"
+        not in normalize_resource_attributes(ApiResourceType.STRATEGY, _attributes()).attributes
+    )
+    assert strategy.fingerprint == content_digest_dataclass_projection(
+        strategy,
+        (
+            "strategy_id",
+            "version_id",
+            "sdk_version",
+            "source_digest",
+            "dependencies",
+            "parameter_schema",
+            "default_parameters",
+        ),
+    )
+    assert strategy.fingerprint == content_digest(strategy)
+    assert "selected_study_artifact" not in canonical_json(strategy)
+
+
+def test_no_reference_nested_sdk_and_package_identities_match_pre_change_goldens() -> None:
+    values = _inputs()
+    manifest = values["strategy_manifest"]
+    package = values["strategy_package"]
+
+    # Generated from the exact 42c05021 Git objects in a separate interpreter;
+    # fixed values deliberately do not call the canonical helpers as an oracle.
+    assert manifest.strategy.fingerprint == (
+        "sha256:b9cd02de1e0b205ea040cf33badba19f39715a2145a8306effb9573c6d2a8ddd"
+    )
+    assert manifest.fingerprint == (
+        "sha256:7a39bba534453a2ce621add3d4f6edda60f642285f198022360e1405de823907"
+    )
+    assert package.fingerprint == (
+        "sha256:c806796528369f35a386b63a2357e5a420f5122ff25876fa9fe778c12831a884"
+    )
+
+    strategy_attributes = _attributes()
+    strategy_attributes["selected_study_artifact"] = _selected_study_artifact()
+    referenced_strategy = normalize_resource_attributes(
+        ApiResourceType.STRATEGY, strategy_attributes
+    ).typed_contract
+    assert isinstance(referenced_strategy, StrategyVersion)
+    referenced_manifest = replace(manifest, strategy=referenced_strategy)
+    referenced_package = replace(package, strategy_fingerprint=referenced_strategy.fingerprint)
+    assert referenced_manifest.fingerprint != manifest.fingerprint
+    assert referenced_package.fingerprint != package.fingerprint
+
+
+def test_selected_study_artifact_reference_roundtrips_and_binds_strategy_fingerprint() -> None:
+    attributes = _attributes()
+    attributes["selected_study_artifact"] = _selected_study_artifact()
+    normalized = normalize_resource_attributes(ApiResourceType.STRATEGY, attributes)
+    restored = rehydrate_resource_contract(ApiResourceType.STRATEGY, normalized.attributes)
+
+    assert isinstance(normalized.typed_contract, StrategyVersion)
+    assert isinstance(restored, StrategyVersion)
+    assert restored.selected_study_artifact == SelectedStudyArtifactReference(
+        **_selected_study_artifact()
+    )
+    assert restored.fingerprint == normalized.domain_fingerprint
+    assert (
+        restored.fingerprint
+        != normalize_resource_attributes(ApiResourceType.STRATEGY, _attributes()).domain_fingerprint
+    )
+
+
+def test_selected_study_artifact_rejects_untrusted_extra_or_malformed_fields() -> None:
+    extra = _attributes()
+    extra["selected_study_artifact"] = {**_selected_study_artifact(), "verified": True}
+    with pytest.raises(ValueError, match="exactly the immutable reference fields"):
+        normalize_resource_attributes(ApiResourceType.STRATEGY, extra)
+
+    malformed = _attributes()
+    malformed["selected_study_artifact"] = {
+        **_selected_study_artifact(),
+        "artifact_id": True,
+    }
+    with pytest.raises(ValueError, match="artifact_id must be a positive integer"):
+        normalize_resource_attributes(ApiResourceType.STRATEGY, malformed)
+
+    malformed_text = _attributes()
+    malformed_text["selected_study_artifact"] = {
+        **_selected_study_artifact(),
+        "artifact_name": 87,
+    }
+    with pytest.raises(ValueError, match="artifact_name must be a non-empty string"):
+        normalize_resource_attributes(ApiResourceType.STRATEGY, malformed_text)
 
 
 def test_rehydration_fails_closed_for_untyped_resource_domains() -> None:

@@ -49,6 +49,7 @@ from app.strategy_lab_v2.contracts import (
     RiskExposureMeasure,
     RunAttempt,
     ScientificTrial,
+    SelectedStudyArtifactReference,
     SharedRiskPolicy,
     StrategyDependency,
     StrategyPackage,
@@ -194,6 +195,7 @@ def _normalize_strategy(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
         "dependencies",
         "parameter_schema",
         "default_parameters",
+        "selected_study_artifact",
         "resource_id",
         "id",
     }
@@ -233,6 +235,41 @@ def _normalize_strategy(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
     if not isinstance(default_parameters, Mapping):
         raise ValueError("strategy default_parameters must be a mapping")
     try:
+        selected_study_artifact_raw = attributes.get("selected_study_artifact")
+        selected_study_artifact: SelectedStudyArtifactReference | None = None
+        if selected_study_artifact_raw is not None:
+            if not isinstance(selected_study_artifact_raw, Mapping):
+                raise ValueError("strategy selected_study_artifact must be a mapping")
+            selected_fields = {
+                "research_run_id",
+                "code_version_id",
+                "artifact_id",
+                "artifact_name",
+                "artifact_type",
+                "output_contract",
+                "run_reproducibility_hash",
+                "code_version_digest",
+                "dataset_manifest_digest",
+                "artifact_content_digest",
+            }
+            if set(selected_study_artifact_raw) != selected_fields:
+                raise ValueError(
+                    "strategy selected_study_artifact must contain exactly the immutable reference fields"
+                )
+            selected_study_artifact = SelectedStudyArtifactReference(
+                research_run_id=selected_study_artifact_raw["research_run_id"],
+                code_version_id=selected_study_artifact_raw["code_version_id"],
+                artifact_id=selected_study_artifact_raw["artifact_id"],
+                artifact_name=selected_study_artifact_raw["artifact_name"],
+                artifact_type=selected_study_artifact_raw["artifact_type"],
+                output_contract=selected_study_artifact_raw["output_contract"],
+                run_reproducibility_hash=selected_study_artifact_raw["run_reproducibility_hash"],
+                code_version_digest=selected_study_artifact_raw["code_version_digest"],
+                dataset_manifest_digest=selected_study_artifact_raw["dataset_manifest_digest"],
+                artifact_content_digest=selected_study_artifact_raw["artifact_content_digest"],
+            )
+        elif "selected_study_artifact" in attributes:
+            raise ValueError("strategy selected_study_artifact cannot be null")
         strategy = StrategyVersion(
             strategy_id=attributes["strategy_id"],
             version_id=attributes["version_id"],
@@ -241,6 +278,7 @@ def _normalize_strategy(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
             dependencies=tuple(dependencies),
             parameter_schema=parameter_schema,
             default_parameters=default_parameters,
+            selected_study_artifact=selected_study_artifact,
         )
     except KeyError as error:
         raise ValueError(f"strategy attribute is required: {error.args[0]}") from error
@@ -261,6 +299,20 @@ def _normalize_strategy(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
         "parameter_schema": strategy.parameter_schema,
         "default_parameters": strategy.default_parameters,
     }
+    if strategy.selected_study_artifact is not None:
+        reference = strategy.selected_study_artifact
+        normalized["selected_study_artifact"] = {
+            "research_run_id": reference.research_run_id,
+            "code_version_id": reference.code_version_id,
+            "artifact_id": reference.artifact_id,
+            "artifact_name": reference.artifact_name,
+            "artifact_type": reference.artifact_type,
+            "output_contract": reference.output_contract,
+            "run_reproducibility_hash": reference.run_reproducibility_hash,
+            "code_version_digest": reference.code_version_digest,
+            "dataset_manifest_digest": reference.dataset_manifest_digest,
+            "artifact_content_digest": reference.artifact_content_digest,
+        }
     if api_ids:
         normalized["resource_id"] = api_ids[0]
     return ResourceDomainNormalization(normalized, strategy.fingerprint, strategy)

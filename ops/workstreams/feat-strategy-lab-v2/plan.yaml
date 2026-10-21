@@ -5,23 +5,25 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: strategy-interim-accepted-etf-migration-head-merge
+    name: strategy-v2-selected-study-artifact-reference-preparation
     status: in_progress
-    source_commit: b9906150a67165f554c0d02a6e72a877fda0135a
+    source_commit: 42c05021a5d7f201e2ccd354128036bc02e178c6
     intent: >-
-      Merge only the actual accepted ETF revision d1e7f2a9c4b6 and the
-      Strategy-owned slv2_0009 head with a unique additive no-DDL Strategy
-      revision, preserving both parent histories and the single-head invariant.
-      TC2000 remains unreleased: do not import its source or claim the graph is
-      final. After its accepted green staging release, recompute real heads and
-      add a further no-DDL merge only if the graph requires it. Preserve all
-      ETF PIT, callback/replay, immutable-input, legacy fingerprint and full
-      roadmap requirements; no database migration, stamp, reparent, reset or
-      data change is authorized here.
+      Prepare only a producer-neutral, I/O-free immutable selected Study run / CodeVersion / named
+      artifact reference in Strategy v2 contracts and normalization, with a minimal injectable
+      owner-scoped validation seam and fail-closed production defaults. Preserve exact historical
+      no-reference fingerprints and Native authority. TC producer lookup/consumption, shared paths,
+      API activation, database migration, external queries, runtime proof, and final migration graph
+      remain gated on accepted green TC staging and later assigned validation capacity.
     owned_paths:
-      - backend/alembic/versions/slv2_0010_merge_accepted_etf_and_strategy_heads.py
-      - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
-      - ops/workstreams/feat-strategy-lab-v2/migration-compatibility.md
+      - backend/app/strategy_lab_v2/contracts.py
+      - backend/app/strategy_lab_v2/canonical.py
+      - backend/app/strategy_lab_v2/resource_domains.py
+      - backend/app/strategy_lab_v2/application.py
+      - backend/app/strategy_lab_v2/trial_hydration.py
+      - backend/app/strategy_lab_v2/tests/test_resource_domains.py
+      - backend/app/strategy_lab_v2/tests/test_application.py
+      - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl

@@ -23,6 +23,10 @@ def _canonical_value(value: Any) -> Any:
                 [item.name, _canonical_value(getattr(value, item.name))]
                 for item in dataclasses.fields(value)
                 if not item.name.startswith("_")
+                and not (
+                    item.metadata.get("canonical_omit_none", False)
+                    and getattr(value, item.name) is None
+                )
             ],
         ]
     if isinstance(value, Enum):

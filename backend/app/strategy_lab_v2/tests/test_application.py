@@ -681,6 +681,43 @@ def test_api_host_bindings_reject_sync_request_resolvers() -> None:
         StrategyLabV2ApiBindings(search_dispatch=cast(Any, synchronous_resolver))
 
 
+@pytest.mark.asyncio
+async def test_api_rejects_unresolved_selected_study_reference_before_persistence() -> None:
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    request = ResourceMutationRequest(
+        ApiResourceType.STRATEGY,
+        "selected-study-reference",
+        {
+            "attributes": {
+                "strategy_id": "momentum",
+                "version_id": "v1",
+                "sdk_version": "strategy-sdk.v2",
+                "source_digest": content_digest("strategy-source"),
+                "selected_study_artifact": {
+                    "research_run_id": 41,
+                    "code_version_id": 12,
+                    "artifact_id": 87,
+                    "artifact_name": "parameters",
+                    "artifact_type": "strategy_parameters",
+                    "output_contract": "strategy-parameters.v1",
+                    "run_reproducibility_hash": "run-hash-41",
+                    "code_version_digest": content_digest("code-version"),
+                    "dataset_manifest_digest": content_digest("dataset-manifest"),
+                    "artifact_content_digest": content_digest({"lookback": 20}),
+                },
+            }
+        },
+        NOW,
+    )
+
+    with pytest.raises(ValueError, match="released owner-scoped verifier is wired"):
+        await adapter.create_resource(
+            principal="alice",
+            request_id="request-selected-study-reference",
+            request=request,
+        )
+
+
 def test_load_api_bindings_factory_uses_local_module_attribute(monkeypatch: Any) -> None:
     async def capability_preflight(**_kwargs: Any) -> CapabilitySummary:
         raise AssertionError("factory resolver is captured here, not invoked")

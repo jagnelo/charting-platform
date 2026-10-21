@@ -147,6 +147,48 @@ class StrategyDependency:
 
 
 @dataclass(frozen=True, slots=True)
+class SelectedStudyArtifactReference:
+    """Immutable pointer to one explicitly selected persisted Study output.
+
+    This value records claims to be checked by an owner-scoped host resolver; it
+    is not itself evidence that the producer run or artifact was verified.
+    """
+
+    research_run_id: int
+    code_version_id: int
+    artifact_id: int
+    artifact_name: str
+    artifact_type: str
+    output_contract: str
+    run_reproducibility_hash: str
+    code_version_digest: str
+    dataset_manifest_digest: str
+    artifact_content_digest: str
+
+    def __post_init__(self) -> None:
+        for name in ("research_run_id", "code_version_id", "artifact_id"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                raise ValueError(f"{name} must be a positive integer")
+        for name in (
+            "artifact_name",
+            "artifact_type",
+            "output_contract",
+            "run_reproducibility_hash",
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, str):
+                raise ValueError(f"{name} must be a non-empty string")
+            _nonempty(value, name)
+        for name in (
+            "code_version_digest",
+            "dataset_manifest_digest",
+            "artifact_content_digest",
+        ):
+            require_sha256_digest(getattr(self, name), field_name=name)
+
+
+@dataclass(frozen=True, slots=True)
 class StrategyVersion:
     strategy_id: str
     version_id: str
@@ -155,6 +197,9 @@ class StrategyVersion:
     dependencies: tuple[StrategyDependency, ...] = ()
     parameter_schema: Mapping[str, Any] = field(default_factory=dict)
     default_parameters: Mapping[str, Any] = field(default_factory=dict)
+    selected_study_artifact: SelectedStudyArtifactReference | None = field(
+        default=None, metadata={"canonical_omit_none": True}
+    )
 
     def __post_init__(self) -> None:
         for name in ("strategy_id", "version_id", "sdk_version"):
@@ -182,6 +227,10 @@ class StrategyVersion:
         )
         object.__setattr__(self, "parameter_schema", freeze_json(self.parameter_schema))
         object.__setattr__(self, "default_parameters", freeze_json(self.default_parameters))
+        if self.selected_study_artifact is not None and not isinstance(
+            self.selected_study_artifact, SelectedStudyArtifactReference
+        ):
+            raise TypeError("selected_study_artifact must be a SelectedStudyArtifactReference")
 
     @property
     def fingerprint(self) -> str:
