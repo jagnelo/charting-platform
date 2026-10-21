@@ -15873,6 +15873,66 @@ red run `39633844512` remains preserved and was not rerun. Keep all production
 unverified-reference denial, actual TC release/resolver, final migration graph,
 combined PostgreSQL/application, Exhaustive, and `full_stack_browser` gates open.
 
+### Private selected-Study resolver preparation — 2026-10-21
+
+The coordinator authorized one independent internal preparation context against
+the existing Strategy worktree and shared ORM models. The context is based on
+published branch tip `05e5df177abe9c264f163566635daeebbb488fa9`; no TC branch or
+unaccepted TC source has been merged, copied, or imported. The current accepted
+staging baseline remains Provider+ETF only (`628c1634f4894403339687586adee74d45637d51`);
+TC producer consumption remains gated on its actual green accepted staging
+release even though its backend contract has green backend CI.
+
+The only intended source/test scope is a private resolver helper and fake
+async-session tests. It may authenticate owner → ResearchRun → CodeVersion/Study
+CodeAsset → one uniquely named ResearchArtifact; require a genuinely completed
+run/evaluation, exact `study` output contract and supported explicit artifact
+type; and recompute canonical version, dataset-manifest, and full artifact
+payload digests against the typed immutable reference. Missing, foreign,
+nonterminal, ambiguous, deleted, malformed, unsupported, or drifted rows must
+fail closed. The producer's raw reproducibility hash is pinned only when present
+and well-formed; this helper does not claim that hash independently proves
+execution or native Nautilus authority.
+
+Producer review is tied to immutable Git objects, not a copied sibling tree:
+published backend source `6c720dc6bce1f37a6c0972c31f6dc2def408b27a` and current
+TC feature object `9b7238ad4768199f4a3e9b23bb2c4a62c595a956` have identical blobs
+for `models/research.py`, `routers/research.py`, `services/research_jobs.py`,
+and `research_runner/runner.py` (respectively
+`22fc688302006ca0951bb8d570b75883421f8cc2`,
+`0137156db165a43e2798eef608481925c2e54846`,
+`f023dc4a5638f138b72cb1da9179f463ec7e18b2`, and
+`88768a772676f28105bfdd4f82f84de74841406a`). The TC feature tip is not treated
+as accepted product source. The actual shared schema has `CodeAsset.user_id`,
+`kind`, and stable identity; `CodeVersion` source, version, output contract,
+parameters, SDK/runtime/dependencies/lookback/diagnostics; owner-bound
+`ResearchRun` status/config/dataset manifest/reproducibility hash; and named
+`ResearchArtifact` ID/type/payload. The private resolver checks the Study run
+and asset owners against Strategy's canonical decimal-string principal ID
+(mapped strictly to the integer shared `User.id`), requires transport and
+evaluation status `completed`, and rejects duplicate same-name artifacts.
+
+The code-version digest is Strategy's canonical `content_digest` over those
+identity/executable fields plus the asset identity; dataset and full artifact
+payload use the same canonical digest format (`sha256:<hex>`). The producer run
+hash is separately pinned in its actual runner representation: 64 lower-case
+hex from SHA-256 of its sorted-JSON hash input. It is not recomputed from
+incomplete persisted fields or described as an execution attestation. Supported
+Study artifact types are limited to the explicit runner output methods
+`scalar`, `series`, `boolean`, `table`, `bar`, `histogram`, `range`, `scatter`,
+`heatmap`, `dashboard`, and `events`; arbitrary/unknown types and mismatched
+payload `type` are denied. The resolver only authenticates persisted immutable
+input and does not interpret an artifact as executable strategy behavior.
+
+No API, worker, persistence, or public strategy admission wiring is authorized
+in this context. Every public non-null selected reference remains denied until
+actual accepted TC green staging. Test definitions may be prepared, but no tests,
+full MyPy, DB, Compose, browser, native, provider, or network operation may run
+until a separate root-granted light slot. Required post-release resolver wiring,
+restart/PostgreSQL proof, final Alembic graph, combined application/full profile,
+exact CI, Exhaustive, and `full_stack_browser` remain open; the full roadmap and
+checkpoint status are unchanged.
+
 ### Negative resolver test typing boundary — 2026-10-21
 
 Exact-source CI review for `6fbbb3203895eeb31021b5421f9f1b0f5d828da8`
@@ -15897,3 +15957,32 @@ resolver/API consumption and accepted green TC staging, final migration graph,
 combined PostgreSQL/application, exact-source CI, Exhaustive, and
 `full_stack_browser` gates remain open. Production continues to deny unverified
 selected references; the full roadmap and every prior failure receipt remain.
+
+### Bounded private resolver review and light-slot evidence — 2026-10-21
+
+The fake async-session now asserts that the actual SQLAlchemy statements bind the exact run,
+version, asset, artifact-run, artifact-name, and owner values in addition to filtering on the
+expected columns. The drift negatives mutate persisted source/version, dataset manifest, and
+artifact payload while retaining the original immutable reference; a non-finite artifact value
+also verifies canonical-digest failure is translated to a fail-closed resolver error. A wrong
+asset identifier, foreign run/asset owners, duplicate artifact name, missing/deleted records,
+terminal/evaluation/contract/type errors, and malformed/untyped principal/reference cases are
+covered. This is test scaffolding only; no API, worker, or persistence path imports the private
+resolver, and the public API's non-null-reference denial is unchanged.
+
+The sole applicable test conftest is `backend/app/strategy_lab_v2/tests/conftest.py`; it installs
+`uvloop` and defines an event-loop policy, with no autouse fixtures, network, service, database,
+or file I/O. The granted single focused command ran from `backend/` with offline/no-sync UV,
+live-provider flags off, one pytest process, no xdist, inherited 1 GiB `RLIMIT_AS`, and a 120s
+timeout plus 15s interrupt grace:
+
+`UV_CACHE_DIR=/tmp/uv-strategy-lab-v2 UV_OFFLINE=1 RUN_LIVE_PROVIDER_TESTS=0 RUN_LIVE_ETF_HOLDINGS_TESTS=0 rtk proxy setsid timeout --signal=INT --kill-after=15s 120s /usr/bin/prlimit --as=1073741824 -- uv run --no-sync pytest -q app/strategy_lab_v2/tests/test_study_artifact_resolver.py --maxfail=1`
+
+The module collected and passed `27/27` in `1.82s`; pre-launch `MemAvailable` was `2,497,492`
+KiB. Focused MyPy on only `study_artifact_resolver.py` passed (`1` source file) under the same
+1 GiB address-space cap, then Ruff check and format check passed for the two changed Python files.
+No DB, Docker/Compose, network/provider, native, browser, full suite, or full MyPy operation ran.
+The prepared private context remains separate from TC release: public non-null references remain
+denied; post-release resolver activation, owner/restart/PostgreSQL proof, final migration graph,
+combined application, exact CI, Exhaustive, and `full_stack_browser` remain open. The overall
+checkpoint is still `in_progress` and unaccepted; the full roadmap is intact.
