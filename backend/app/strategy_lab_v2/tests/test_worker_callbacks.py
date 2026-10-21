@@ -20,6 +20,7 @@ from app.strategy_lab_v2.tests.test_worker_initial_state import (
 )
 from app.strategy_lab_v2.tests.test_worker_process import _request
 from app.strategy_lab_v2.worker_callbacks import (
+    _etf_membership_reader_for_persistence,
     _SearchDispatchWorkerHandoffMaterializer,
     create,
     create_default_search_dispatch_binding_resolver,
@@ -533,6 +534,16 @@ def test_default_evidence_resolver_factory_composes_persistence_and_artifacts() 
 
     assert callable(resolver)
     assert persistence.root == Path("/tmp/artifacts")
+
+
+def test_etf_membership_reader_requires_a_callable_host_session_factory() -> None:
+    persistence = _ComposedPersistence()
+    reader = _etf_membership_reader_for_persistence(persistence)
+    assert reader is not None
+    assert callable(reader.resolve_pinned_etf_membership)
+
+    legacy_persistence = object()
+    assert _etf_membership_reader_for_persistence(legacy_persistence) is None
 
 
 @pytest.mark.asyncio

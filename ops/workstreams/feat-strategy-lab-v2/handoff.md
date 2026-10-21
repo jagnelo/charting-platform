@@ -15683,3 +15683,43 @@ SQL test is not covered by that base run. Checkpoint remains `in_progress`, not
 accepted. Full SLICP3/4/5, post-TC migration reconciliation, combined
 PostgreSQL/application, full_stack_browser, exhaustive and exact-source CI
 remain open.
+
+### Preserve legacy terminal callback hosts without weakening ETF restart checks — 2026-10-21
+
+Coordinator review of exact Backend Unit CI `39590595226` established that the
+`Persistence.session_factory` failure was caused by this Strategy ETF callback
+composition, not an unrelated issue. Production
+`PostgresStrategyLabV2Persistence` owns a callable `session_factory`; the legacy
+terminal test host intentionally implements owner-scoped resource reads and
+terminal persistence without that optional SQL reader port. Both callback
+composition sites had unconditionally accessed the missing attribute.
+
+`worker_callbacks.py` now constructs `LocalETFMembershipReader` only when
+`getattr(persistence, "session_factory", None)` is callable. Otherwise the
+hydrator receives no ETF reader: old no-ETF terminal flows continue, and the
+existing `NautilusTrialDomainHydrator` check still rejects ETF-bearing snapshots
+with “cannot be revalidated.” No worker terminal, receipt identity, owner,
+replay, retry, or dispatch behavior was altered.
+
+The exact hosted failure was reproduced locally. The first attempted fix updated
+the terminal resolver site but missed the second construction in
+`create_search_dispatch`; that intermediate run still failed the same replay
+test and is retained in validation history. After both sites used the optional
+reader helper, focused worker callbacks, Nautilus terminal/replay, ETF hydration,
+persistence, and worker entrypoint tests passed `44/44` in 4.56s. The unchanged
+declared Mypy command passed with 443 source files; Ruff check/format passed.
+The direct focused tests include the previously failing multi-strategy receipt
+replay and no-second-dispatch assertions, plus the existing ETF missing-reader
+rejection test.
+
+Exact `8f9a8288` workflow `39590595226` remains red and preserved: Backend Unit
+had 4,953 passed, 1 skipped, 2 failed; Frontend passed. The migration-head
+assertion is an interim actual Provider+Strategy graph pending accepted TC
+staging, not a reason to weaken it or create the final merge early. Its second
+failure was this callback regression. The SQL test commit `ef7681df` exact CI
+`39593283662` was in progress when this bounded repair began; its actual terminal
+state is to be recorded without a metadata-only commit. Publish this repair as a
+separate source context; exact post-fix CI and the full local/combined/PostgreSQL,
+full_stack_browser, Exhaustive, TC consumer and final migration gates remain
+open. Checkpoint stays `in_progress` and the formal session goal remains
+unavailable.

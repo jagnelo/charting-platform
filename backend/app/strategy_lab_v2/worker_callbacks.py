@@ -50,6 +50,20 @@ EvidenceResolverFactory = Callable[
 WalkForwardProgressClient = Callable[..., Awaitable[WalkForwardProgressRpcReceipt]]
 
 
+def _etf_membership_reader_for_persistence(persistence: Any) -> LocalETFMembershipReader | None:
+    """Expose ETF SQL revalidation only when the host provides its real session port.
+
+    Older callback hosts may provide owner-scoped reads through another adapter
+    and have no ETF references. Keep those no-ETF flows compatible; the domain
+    hydrator rejects ETF-bearing snapshots when this local reader is unavailable.
+    """
+
+    session_factory = getattr(persistence, "session_factory", None)
+    if not callable(session_factory):
+        return None
+    return LocalETFMembershipReader(session_factory)
+
+
 async def _dispatch_for_stream_entry(dispatch_store: Any, entry: Any, attempt_id: str):
     """Resolve a search dispatch through the immutable payload identity.
 
@@ -151,7 +165,7 @@ async def create_search_dispatch(
         queue_name=queue_name,
         domain_hydrator=NautilusTrialDomainHydrator(
             cast(OwnerScopedDomainReader, resources),
-            etf_membership_reader=LocalETFMembershipReader(persistence.session_factory),
+            etf_membership_reader=_etf_membership_reader_for_persistence(persistence),
         ),
     )
 
@@ -349,7 +363,7 @@ def default_evidence_resolver_factory(
     publisher = artifact_publication(artifact_root)
     hydrator = NautilusTrialDomainHydrator(
         cast(OwnerScopedDomainReader, resources),
-        etf_membership_reader=LocalETFMembershipReader(persistence.session_factory),
+        etf_membership_reader=_etf_membership_reader_for_persistence(persistence),
     )
 
     async def lookup(
