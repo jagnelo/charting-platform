@@ -10,3 +10,29 @@ Created from `staging` at `0f424665049e9b6f4464e1f228cebd263c755ad9`.
 - Planning state: draft; the implementation agent must complete scope, acceptance criteria, tests, and local validation profile before creating a goal.
 
 Update this handoff at each coherent boundary.
+
+## Active remediation
+
+Coordinator owns exclusive claim `40d0a916-6760-4366-aeeb-6fe5a3229761` in this
+exact worktree; all four original feature worktrees remain untouched. Plan is
+complete with four criteria, full_integration/full_stack_browser. Native root
+goal exists but was platform-blocked by serverOverloaded; no duplicate native
+goal, accounting reset, model substitution or goal-active claim is made.
+
+Exact failed staging CI39550914940 EIG119064591156: backend/migrations/frontend
+prefix passed; functional browser 148 failed,106 skipped,7 passed. First and
+repeated failures identify OneSignalSDK.page.js ERR_NAME_NOT_RESOLVED because
+the canonical browser uses the internal charting network. Cleanup then rejects
+hosted root checkout as not the persistent staging worktree. Visual stage was
+not reached. Full logs/artifact remain authoritative; not a transient retry.
+
+Repair the default browser command to use existing host-access/host-port-relay
+without exposing backend/worker, run acceptance with zero retries, and permit
+only exact hosted protected-root cleanup through a narrow opt-in internal
+argument. Preserve ordinary path/claim checks and retained-resource controls.
+No provider HTTP, new secrets, source/oracle/tolerance changes or broad cleanup.
+
+Initial plan-ready call correctly refused an uncommitted planning checkpoint;
+its sandbox Make runtime preparation also cannot access the existing private
+quota directory. Use the established HOST route for runtime-dependent commands,
+not a private-directory permissions change. Commit planning checkpoint first.

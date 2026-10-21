@@ -5,30 +5,49 @@ parent_branch: staging
 parent_sha: 0f424665049e9b6f4464e1f228cebd263c755ad9
 dependency_authorization: "Human standing integration authorization explicitly covers necessary reconciliation repairs. Repair directly from exact degraded staging 0f424665049e9b6f4464e1f228cebd263c755ad9; no bypass of acceptance or validation gates."
 human_intent_authorization: "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human. Apply this standing authorization to repair the exact degraded staging browser-network and hosted cleanup-path defects, preserving all tests, datasets and provider holds."
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: full_stack_browser
+local_validation_reason: The canonical browser runner network and hosted cleanup boundary require real functional and strict visual validation, plus scoped workflow regression tests.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "I, the human in charge, explicitly authorize any and all actions the AI agent(s) may request in order to progress development, reconciliation and promotion of the four feature branches into staging and production so the product may be deployed and tested in full, by the human. Apply this standing authorization to repair the exact degraded staging browser-network and hosted cleanup-path defects, preserving all tests, datasets and provider holds."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+goal: Repair the exact degraded staging browser-network and hosted cleanup-path defects without weakening validation or provider isolation.
+scope:
+  - Route the pinned browser through the existing fixed-destination host-access relay so the existing OneSignal SDK can load, while backend and worker remain internal and egress-denied.
+  - Permit scoped resource cleanup for an actual hosted staging/master checkout without opening implementation, claims, retained-volume operations or arbitrary local root checkouts.
+  - Preserve all assertions, references, masks, 0.005 tolerance and datasets; explicitly run canonical functional and visual acceptance with zero retries.
+owned_paths:
+  - Makefile
+  - scripts/agent-session.py
+  - tests/workflow/test_agent_session.py
+  - tests/workflow/test_staging_workflow.py
+  - ops/workstreams/fix-staging-browser-egress/
+dependencies:
+  - Exact degraded staging 0f424665049e9b6f4464e1f228cebd263c755ad9; ETF is not released until repaired exact staging EIG passes.
+acceptance_criteria:
+  - id: AC1
+    text: Canonical browser commands use the host-access relay with normal outbound DNS, one worker and zero retries, leaving backend and worker provider egress denied.
+  - id: AC2
+    text: Only verified hosted protected-branch root checkouts can use scoped cleanup; ordinary incorrect paths, feature sessions and mismatched CI identity remain rejected.
+  - id: AC3
+    text: Focused workflow regressions and a complete source-qualified full-stack functional/visual matrix pass with exact retained-resource cleanup evidence.
+  - id: AC4
+    text: Publish clean exact source with mandatory branch CI green for coordinator-owned remediation integration and exact staging EIG; do not claim staging release on branch CI alone.
+branch_tests:
+  - make test-workflow
+branch_tests_reason: Exercise native runner command contracts and positive/negative hosted cleanup admission, retaining all existing workflow protections.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
-remaining_gaps: []
+status: in_progress
+remaining_gaps:
+  - Exact repaired staging EIG and downstream TC/Strategy integration remain coordinator-owned and pending.
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 4
+  current_phase: implement scoped harness repair
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Implement and test the runner network and narrowly scoped hosted cleanup path, then complete the full-stack matrix.
