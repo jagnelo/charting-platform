@@ -6,8 +6,9 @@ integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
     name: strategy-v2-selected-study-artifact-reference-preparation
-    status: in_progress
-    source_commit: 42c05021a5d7f201e2ccd354128036bc02e178c6
+    status: complete
+    source_commit: b2fbcabf822041b41410f982a8ed45eed76815ce
+    integration_capture: exact branch HEAD
     intent: >-
       Prepare only a producer-neutral, I/O-free immutable selected Study run / CodeVersion / named
       artifact reference in Strategy v2 contracts and normalization, with a minimal injectable
@@ -405,37 +406,25 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: interim-accepted-etf-migration-graph
+  current_phase: study-reference-preparation-source-context-closed
   current_blocker: >-
-    Exact Backend Unit CI 39594216381 on Strategy source b9906150 reports
-    4,955 passed, one declared skip, and only the interim migration-head failure:
-    actual accepted ETF head d1e7f2a9c4b6 plus Strategy slv2_0009. The terminal
-    callback replay failure from the prior CI was repaired and is verified by
-    that full unit job. This context adds the unique no-DDL Strategy revision
-    slv2_0010 with both actual heads as parents and strengthens the graph test to
-    require that exact single head and ancestry. No DB was migrated or changed.
-    TC2000 has not been accepted into staging: this is interim ETF graph
-    alignment only. Recompute actual heads after exact accepted TC staging and
-    add a further no-DDL merge only if required. Preserve prior CI failures and
-    the callback, owner/replay, PIT, immutable fingerprint, ORM metadata and
-    migration-history guarantees. Combined PostgreSQL/application, final TC
-    graph, exact new-source CI, Exhaustive and full_stack_browser gates remain
-    open; full roadmap/checkpoint remains in_progress and not accepted.
+    The independent producer-neutral Study-reference preparation source context
+    is complete and published at b2fbcabf822041b41410f982a8ed45eed76815ce,
+    clean and synchronized with origin at the time of this checkpoint. Root owns
+    exact-source CI 39632499036. The wider feature/checkpoint remains in_progress
+    and unaccepted: actual TC release/resolver consumption, final migration
+    graph, combined PostgreSQL/application, exact-source CI, Exhaustive, and
+    full_stack_browser gates remain open. Production-selected references remain
+    denied until a released owner-scoped verifier is wired and validated.
   next_action: >-
-    Focused-validate and publish only the additive interim slv2_0010 merge,
-    exact single-head/ancestry regression, and this workstream receipt. Inspect
-    its exact-source hosted CI once. Do not run a local database/container or
-    heavy profile while TC owns that lane. After actual TC green staging release,
-    merge only that exact released baseline into this branch, recompute the real
-    migration heads and add another additive no-DDL merge only if needed; then
-    continue the TC immutable CodeVersion/Study consumer and all combined gates.
-    Preserve the full roadmap and checkpoint status in_progress. Keep ETF
-    point-in-time membership and TC2000 immutable CodeVersion/Study consumers
-    gated on their accepted green releases; preserve owner, known-at,
-    source/output and worker terminal causality assertions. Reconcile additive
-    migrations only from actual staged heads, then run the combined
-    PostgreSQL/application, exhaustive, local full_stack_browser and exact-source
-    CI gates.
+    On the next safe focused-validation slot, refine the nested-manifest
+    nonempty-reference assertion to clone the same baseline manifest.strategy
+    and add only selected_study_artifact; do not run it while TC owns the test
+    slot. Then, only after actual accepted green TC staging release, resume the
+    TC consumer using the published owner-scoped contracts, recompute actual
+    Alembic heads, and run assigned combined PostgreSQL/application plus all
+    required exact-source, Exhaustive, and local full_stack_browser gates. Keep
+    production unverified-reference denial and the full roadmap/checkpoint open.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

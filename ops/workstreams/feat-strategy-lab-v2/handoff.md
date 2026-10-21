@@ -15808,3 +15808,27 @@ and MyPy diagnostic remain in `validation.jsonl`. No database/container,
 network/provider call, browser, native engine, full suite, or staging action
 ran. Changeset remains in progress and unaccepted; preserve the full roadmap
 and all historical failure receipts.
+
+### Post-push operational closure — 2026-10-21
+
+The independent producer-neutral Study-reference preparation source context is
+complete at published source `b2fbcabf822041b41410f982a8ed45eed76815ce`; the
+branch was clean and synchronized with `origin/feat/strategy-lab-v2` at that
+source boundary. Root owns exact-source CI `39632499036` and will track the
+final operational-record tip; no CI result is inferred here. The exact
+pre-change StrategyVersion, StrategySdkManifest, and StrategyPackage golden
+hashes remain documented above with provenance from the `42c05021` Git objects.
+The initial 7/8 assertion wording red and initial focused MyPy diagnostic are
+preserved in the append-only validation journal; final eight focused tests,
+focused five-module MyPy, Ruff/format, and workstream validation passed.
+
+Root review identified one remaining test-quality refinement: the nonempty
+nested-manifest inequality should clone the same baseline `manifest.strategy`
+and add only `selected_study_artifact`, rather than use a differently shaped
+strategy object. This is explicitly pending a later safe focused-validation
+slot; the pytest slot is closed now and no test/source edit was made for it.
+Production selected references remain unconditionally denied until a released
+TC owner-scoped verifier is wired. Actual TC resolver/API consumption, final
+Alembic graph, combined PostgreSQL/application, exact-source CI, Exhaustive,
+and `full_stack_browser` remain open. The broader feature checkpoint remains
+`in_progress`, unaccepted, and retains all 18 roadmap criteria.
