@@ -24,7 +24,7 @@ from app.services.benchmark_family_coverage import (
     assess_observed_holdings_cadence,
     assess_observed_holdings_continuity,
 )
-from app.services.etf_holdings import (
+from app.services.etf_consumer_types import (
     is_equity_holding_type,
     is_placeholder_symbol,
     normalize_holding_type,

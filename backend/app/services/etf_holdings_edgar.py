@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from typing import Any
 
-import httpx
+import httpx as _httpx
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,7 +17,23 @@ from app.models.etf_holdings import (
 )
 from app.models.instrument import Instrument
 from app.services.etf_holdings import ingest_holdings_snapshot
+from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
+
+
+class _HeldSECHTTPXNamespace:
+    """SEC transport awaits its own reviewed shared-runtime binding."""
+
+    def AsyncClient(self, *_args, **_kwargs):
+        raise ETFHoldingsRouteHeldError(
+            "SEC holdings requests require a dedicated reviewed ETF_HOLDINGS binding"
+        )
+
+    def __getattr__(self, name):
+        return getattr(_httpx, name)
+
+
+httpx = _HeldSECHTTPXNamespace()
 
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 SEC_SUBMISSIONS_FILE_URL = "https://data.sec.gov/submissions/{file_name}"
@@ -86,12 +102,10 @@ def _acceptance_datetime(value: Any) -> datetime | None:
 
 
 def _known_at(filing: EdgarNportFiling) -> datetime:
-    acceptance_datetime = getattr(filing, "acceptance_datetime", None)
-    if acceptance_datetime is not None:
-        return acceptance_datetime
-    filing_date = getattr(filing, "filing_date", None)
-    if filing_date is not None:
-        return datetime.combine(filing_date, time.min, tzinfo=UTC)
+    if filing.acceptance_datetime is not None:
+        return filing.acceptance_datetime
+    if filing.filing_date is not None:
+        return datetime.combine(filing.filing_date, time.min, tzinfo=UTC)
     return datetime.now(UTC)
 
 
@@ -509,8 +523,8 @@ async def _backfill_sec_holdings(
                     follow_redirects=True,
                 )
                 response.raise_for_status()
-                parsed_composition_date, rows = parse_xml(response.text)
-                composition_date = parsed_composition_date or filing.report_date
+                composition_date, rows = parse_xml(response.text)
+                composition_date = composition_date or filing.report_date
                 if composition_date is None:
                     skipped += 1
                     reason = missing_date_reason
@@ -525,8 +539,6 @@ async def _backfill_sec_holdings(
                     state.failure_reason = reason
                     failures.append({"accession_number": filing.accession_number, "reason": reason})
                     continue
-                acceptance_datetime = getattr(filing, "acceptance_datetime", None)
-                filing_date = getattr(filing, "filing_date", None)
                 snapshot = await ingest_holdings_snapshot(
                     db,
                     etf_instrument=profile.instrument,
@@ -548,28 +560,6 @@ async def _backfill_sec_holdings(
                         "source_format": source_format,
                         "accession_number": filing.accession_number,
                         "form": filing.form,
-                    },
-                    timing_provenance={
-                        "composition_date": (
-                            "provider_reported"
-                            if parsed_composition_date
-                            else "filing_report_date_fallback"
-                        ),
-                        "as_of_date": (
-                            "filing_report_date"
-                            if filing.report_date
-                            else "composition_date_fallback"
-                        ),
-                        "known_at": (
-                            "filing_acceptance_time"
-                            if acceptance_datetime
-                            else "filing_date_fallback"
-                            if filing_date
-                            else "ingestion_time_fallback"
-                        ),
-                        "published_at": (
-                            "filing_acceptance_time" if acceptance_datetime else "not_reported"
-                        ),
                     },
                     notes=notes,
                     # SEC reconstruction already has a dated, filing-scoped

@@ -45,7 +45,11 @@ from app.services.breadth import (
 )
 from app.services.ohlcv_coverage import bar_visible_through_clause
 from app.services.evaluator_preflight import EvaluatorCoverageItem, preflight_ohlcv
-from app.services.watchlist_sources import resolve_watchlist_source
+from app.services.watchlist_sources import (
+    CurrentAnalysisSourceError,
+    current_analysis_source_error_detail,
+    resolve_watchlist_source,
+)
 
 _OFFSETS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252}
 _PROFILE_FIELD_CONFLICT_RELATIVE_TOLERANCE = 0.01
@@ -1080,6 +1084,12 @@ async def build_market_map(
         raise ValueError(str(exc)) from exc
     except ValueError as exc:
         raise ValueError(str(exc)) from exc
+    source_error = current_analysis_source_error_detail(
+        resolved.descriptor,
+        historical=membership_as_of is not None,
+    )
+    if source_error is not None:
+        raise CurrentAnalysisSourceError(source_error)
     members_by_id = {}
     for member in resolved.members:
         members_by_id.setdefault(member.instrument_id, member)
@@ -1359,19 +1369,26 @@ async def build_market_map(
                 _warning("reference_not_found", "The relative-return reference is not canonical.")
             )
     elif request.reference_source_id:
+        reference_membership_as_of = _membership_evaluation_timestamp(
+            request, source_id=request.reference_source_id
+        )
         try:
             reference_resolved = await resolve_watchlist_source(
                 db,
                 user_id,
                 request.reference_source_id,
-                as_of=_membership_evaluation_timestamp(
-                    request, source_id=request.reference_source_id
-                ),
+                as_of=reference_membership_as_of,
             )
         except LookupError as exc:
             raise ValueError(str(exc)) from exc
         except ValueError as exc:
             raise ValueError(str(exc)) from exc
+        reference_source_error = current_analysis_source_error_detail(
+            reference_resolved.descriptor,
+            historical=reference_membership_as_of is not None,
+        )
+        if reference_source_error is not None:
+            raise CurrentAnalysisSourceError(reference_source_error)
         reference_source = reference_resolved.descriptor
         reference_source_membership_version = reference_source.membership_version
         exclusions.extend(

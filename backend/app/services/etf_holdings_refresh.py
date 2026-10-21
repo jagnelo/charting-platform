@@ -1,38 +1,44 @@
 from __future__ import annotations
 
+import asyncio
 import csv
+import time
 import zipfile
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO, StringIO
 from typing import Any
 
-import httpx
-from sqlalchemy import select
+import httpx as _httpx
+from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.models.data_source import DataSource
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
+    ETFHoldingsRawArtifact,
     ETFHoldingsSnapshot,
     ETFProfile,
 )
-from app.models.instrument import EquityDetail, Instrument
+from app.models.instrument import Instrument
+from app.models.provider_runtime import ProviderRequestLog
 from app.providers.base import IdentifierRecord
+from app.providers.errors import bounded_redact_provider_message
 from app.services.etf_holdings import (
     ETF_HOLDINGS_INTERNAL_PROVIDER,
+    _ensure_holdings_dates_are_not_future,
+    _hash_payload,
+    _schema_fingerprint,
     ensure_etf_profile,
     ensure_lightweight_etf_instrument,
     get_etf_profile_for_instrument,
     get_latest_snapshot,
     ingest_holdings_snapshot,
-    is_equity_holding_type,
-    is_placeholder_symbol,
-    normalize_holding_type,
     reconcile_snapshot_constituents,
 )
 from app.services.etf_holdings_adapters import (
@@ -44,12 +50,55 @@ from app.services.etf_holdings_adapters import (
     parse_etf_discovery_table,
     parse_xlsx_table,
 )
+from app.services.etf_holdings_capability import (
+    evaluate_capability,
+    freshness_deadline,
+    infer_expected_cadence,
+)
+from app.services.etf_holdings_provider_bridge import (
+    ETFHoldingsRouteHeldError,
+    ProviderBackedHTTPXClient,
+    bind_etf_holdings_request_context,
+    require_unbound_etf_holdings_context,
+)
 from app.services.instrument_mastering import register_identifier
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 
 
+class _ETFRefreshHTTPXNamespace:
+    """Keep discovery transports fail-closed until they have reviewed bindings."""
+
+    def AsyncClient(self, *args, **kwargs):
+        if args:
+            raise ETFHoldingsRouteHeldError(
+                "ETF refresh clients require keyword-only shared-admission configuration"
+            )
+        return ProviderBackedHTTPXClient(**kwargs)
+
+    def __getattr__(self, name):
+        return getattr(_httpx, name)
+
+
+# Discovery/enrichment calls are not yet bound to an evidence-reviewed ETF
+# operation. They must fail closed instead of bypassing Provider with raw HTTPX.
+httpx = _ETFRefreshHTTPXNamespace()
+
+
 class ETFHoldingsRouteNotReadyError(ValueError):
     """Raised when an ETF matched an adapter but lacks route metadata."""
+
+
+class ETFHoldingsSchemaDriftError(ValueError):
+    """Raised when an unchanged parser receives a different artifact shape."""
+
+    def __init__(self, *, previous: str, observed: str, parser_version: str):
+        self.previous_fingerprint = previous
+        self.observed_fingerprint = observed
+        self.parser_version = parser_version
+        super().__init__(
+            "ETF holdings source schema fingerprint drift detected "
+            f"(previous={previous}, observed={observed}, parser={parser_version})."
+        )
 
 
 @dataclass(slots=True)
@@ -65,45 +114,40 @@ SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
 
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
-
-# A few mature adapters predate the explicit completeness field but already
-# declare the artifact's evidence level in their source-quality contract. Keep
-# this mapping deliberately narrow: current/daily/table labels remain unknown
-# unless the adapter explicitly reports completeness, so a route cannot gain
-# readiness merely from a generic quality string.
-_DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY = {
-    "filing_reconstructed_holdings": "filing_reconstructed",
-    "issuer_reported_dated_complete_holdings": "complete",
-    "issuer_reported_complete_daily_holdings_csv": "complete",
-    "issuer_reported_full_investment_holdings": "complete",
-    "issuer_page_declared_current_complete_holdings": "complete",
-    "issuer_reported_product_page_holdings_table": "complete",
-}
+_CANARY_HISTORY_KEY = "canary_history"
+_CANARY_HISTORY_LIMIT = 90
 
 
-def _holdings_completeness_status(
-    result_metadata: dict[str, Any] | None,
-    aliases: dict[str, Any] | None,
-) -> str:
-    """Resolve explicit completeness, including narrowly declared legacy quality labels."""
+def _state_metadata(value: Any) -> dict[str, Any]:
+    """Return persisted adapter metadata in the dictionary shape we require."""
 
-    metadata = result_metadata or {}
-    configured_aliases = aliases or {}
-    explicit = metadata.get("completeness_status") or configured_aliases.get(
-        "holdings_completeness_status"
+    return value if isinstance(value, dict) else {}
+
+
+def _failure_streak(value: Any) -> int:
+    """Read a persisted failure streak without allowing malformed JSON to abort a run."""
+
+    metadata = _state_metadata(value)
+    try:
+        return max(0, int(metadata.get("consecutive_failures") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _append_canary_observation(
+    metadata: dict[str, Any], observation: dict[str, Any]
+) -> dict[str, Any]:
+    """Keep a bounded, JSON-safe history for shadow-gate evaluation."""
+
+    metadata = _state_metadata(metadata)
+    existing = metadata.get(_CANARY_HISTORY_KEY)
+    history = (
+        [item for item in existing if isinstance(item, dict)] if isinstance(existing, list) else []
     )
-    if explicit:
-        return str(explicit)
-    source_quality = (
-        str(
-            metadata.get("source_quality")
-            or configured_aliases.get("holdings_source_quality")
-            or ""
-        )
-        .strip()
-        .lower()
-    )
-    return _DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY.get(source_quality, "unknown")
+    return {
+        **metadata,
+        _CANARY_HISTORY_KEY: [*history, observation][-_CANARY_HISTORY_LIMIT:],
+    }
 
 
 def holdings_snapshot_is_bootstrap_ready(snapshot: ETFHoldingsSnapshot | None) -> bool:
@@ -113,44 +157,15 @@ def holdings_snapshot_is_bootstrap_ready(snapshot: ETFHoldingsSnapshot | None) -
     coverage evidence but cannot make a locked source retry-ineligible.
     """
 
-    if (
-        snapshot is None
-        or getattr(snapshot, "completeness_status", None) not in USABLE_HOLDINGS_COMPLETENESS
-    ):
-        return False
-    rows = getattr(snapshot, "holdings", None)
-    if rows is None:
-        rows = getattr(snapshot, "rows", None)
-    if rows:
-        return any(
-            normalize_holding_type(getattr(row, "row_type", None)) == "security"
-            and is_equity_holding_type(getattr(row, "holding_type", None))
-            and bool(getattr(row, "is_resolved", False))
-            and getattr(row, "constituent_instrument_id", None) is not None
-            and (
-                getattr(row, "constituent_symbol", None)
-                or getattr(getattr(row, "constituent_instrument", None), "symbol", None)
-            )
-            and not is_placeholder_symbol(
-                getattr(row, "constituent_symbol", None)
-                or getattr(getattr(row, "constituent_instrument", None), "symbol", None)
-            )
-            for row in rows
-        )
-    # Legacy metadata-only snapshots intentionally persist summary counters
-    # without row detail. Keep their raw resolved count as compatibility
-    # evidence; materialized rows above must satisfy the canonical predicate.
-    return int(getattr(snapshot, "resolved_count", 0) or 0) > 0
+    return bool(
+        snapshot is not None
+        and getattr(snapshot, "completeness_status", None) in USABLE_HOLDINGS_COMPLETENESS
+        and int(getattr(snapshot, "resolved_count", 0) or 0) > 0
+    )
 
 
 @asynccontextmanager
 async def _bootstrap_savepoint(db: AsyncSession):
-    # Lightweight unit-test doubles do not expose SQLAlchemy's savepoint API.
-    # Keep the helper usable with those doubles while production sessions always
-    # take the real nested transaction path.
-    if not hasattr(db, "begin_nested"):
-        yield
-        return
     nested = db.begin_nested()
     if hasattr(nested, "__aenter__"):
         async with nested:
@@ -324,6 +339,7 @@ async def discover_etf_profiles_from_issuer_feed(
 ) -> dict:
     """Fetch a confirmed issuer ETF list and upsert ETF profiles from it."""
 
+    require_unbound_etf_holdings_context("ETF issuer discovery")
     adapter = get_holdings_adapter(adapter_key)
     if adapter is None:
         raise ValueError(f"No ETF holdings adapter is registered for {adapter_key}.")
@@ -430,6 +446,7 @@ async def discover_etf_profiles_from_sec_fund_tickers(
 ) -> dict:
     """Upsert lightweight ETF profiles from SEC's public fund ticker mapping."""
 
+    require_unbound_etf_holdings_context("SEC ETF fund-ticker discovery")
     async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
         response = await client.get(
             source_url,
@@ -521,6 +538,7 @@ async def enrich_etf_profile_from_sec_fund_tickers(
     if profile.instrument is None:
         raise ValueError("ETF profile is missing its linked instrument.")
 
+    require_unbound_etf_holdings_context("SEC ETF fund-ticker enrichment")
     symbol = profile.instrument.symbol.strip().upper()
     async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
         response = await client.get(
@@ -592,14 +610,10 @@ async def _bootstrap_from_sec_filings(
     latest = await get_latest_snapshot(
         db,
         profile.instrument_id,
-        # SEC fallback eligibility must inspect materialized rows.  A raw
-        # resolved counter can describe cash, derivatives, unresolved, or
-        # placeholder rows and must not suppress the fallback when no
-        # canonical equity member is actually available.
-        include_holdings=True,
+        include_holdings=False,
         include_controlled_fixture=False,
     )
-    if holdings_snapshot_is_bootstrap_ready(latest):
+    if latest is not None:
         probe = await probe_etf_holdings_adapter_route(db, profile)
         return ETFHoldingsBootstrapResult(
             profile=profile,
@@ -632,10 +646,10 @@ async def _bootstrap_from_sec_filings(
         latest = await get_latest_snapshot(
             db,
             profile.instrument_id,
-            include_holdings=True,
+            include_holdings=False,
             include_controlled_fixture=False,
         )
-        if holdings_snapshot_is_bootstrap_ready(latest):
+        if latest is not None:
             probe = await probe_etf_holdings_adapter_route(db, profile)
             return ETFHoldingsBootstrapResult(
                 profile=profile,
@@ -711,21 +725,361 @@ async def refresh_all_known_etf_holdings(db: AsyncSession) -> dict:
     }
 
 
+def _canary_failure_class(failure: Exception | str) -> str:
+    text = str(failure).lower()
+    if "future composition" in text or "future as-of" in text or "future published-at" in text:
+        return "future_dated_source"
+    if "issuer access challenge" in text or "cloudflare ray id" in text:
+        return "issuer_access_blocked"
+    if isinstance(failure, ETFHoldingsSchemaDriftError) or "schema fingerprint drift" in text:
+        return "schema_drift"
+    if "identity" in text or "mismatch" in text:
+        return "identity_mismatch"
+    if "parseable rows" in text or "complete rows" in text or "empty" in text:
+        return "empty_or_partial_source"
+    if isinstance(failure, httpx.HTTPStatusError):
+        status_code = failure.response.status_code
+        # A 401 is materially different from an arbitrary upstream HTTP
+        # failure: it proves that the candidate route requires credentials or
+        # an entitlement that this free/public path does not currently have.
+        # Keep that distinction in the persisted capability evidence so an
+        # operator can review access/terms without mistaking it for transport
+        # or parser drift.
+        if status_code == 401:
+            return "authentication_required"
+        if status_code == 403:
+            return "access_denied"
+        if status_code == 429:
+            return "quota_rate_limited"
+        return f"http_{status_code}"
+    if isinstance(failure, httpx.HTTPError | TimeoutError | ConnectionError):
+        return "transport_error"
+    if "parse" in text or "schema" in text or "column" in text:
+        return "parser_or_schema_error"
+    return "provider_error"
+
+
+async def _ensure_schema_fingerprint_is_stable(
+    db: AsyncSession,
+    profile: ETFProfile,
+    *,
+    parser_version: str,
+    raw_payload_text: str | None = None,
+    raw_payload_json: dict | None = None,
+) -> None:
+    """Reject an unexplained artifact-shape change before snapshot persistence.
+
+    A stored fingerprint is evidence about the last successful route, not a
+    reason to accept a new shape silently.  A deliberate parser-version change
+    is the explicit recovery mechanism: it lets an adapter release document
+    the schema migration while an unchanged parser remains fail-closed.
+    Lightweight unit fakes that do not expose a database execute method skip
+    this persistence-boundary check; real refreshes always use AsyncSession.
+    """
+
+    execute = getattr(db, "execute", None)
+    if not callable(execute):
+        return
+    observed = _schema_fingerprint(
+        raw_payload_text=raw_payload_text,
+        raw_payload_json=raw_payload_json,
+    )
+    if not observed:
+        return
+    result = await execute(
+        select(ETFHoldingsAdapterState).where(
+            ETFHoldingsAdapterState.etf_profile_id == profile.id,
+            ETFHoldingsAdapterState.adapter_key == (profile.adapter_key or "unresolved"),
+        )
+    )
+    state = result.scalar_one_or_none()
+    if state is None:
+        return
+    metadata = _state_metadata(state.extra_data)
+    previous = metadata.get("schema_fingerprint")
+    if not previous or str(previous) == observed:
+        return
+    previous_parser = str(getattr(state, "parser_version", None) or "")
+    if previous_parser and previous_parser != parser_version:
+        return
+    raise ETFHoldingsSchemaDriftError(
+        previous=str(previous),
+        observed=observed,
+        parser_version=parser_version,
+    )
+
+
+async def run_etf_holdings_capability_canaries(
+    db: AsyncSession,
+    *,
+    symbols: list[str],
+    max_symbols: int,
+    timeout_seconds: float = 60.0,
+    failure_threshold: int = 3,
+    cooldown_seconds: int = 3600,
+) -> dict[str, Any]:
+    """Run a bounded, opt-in route sweep and persist operational evidence.
+
+    Canaries use the existing ETF adapter contract and state row. They do not
+    create generic provider health or entitlement records; the shared provider
+    platform bridge will consume this observation once it reaches staging.
+    """
+
+    requested = []
+    for symbol in symbols:
+        normalized = str(symbol).strip().upper()
+        if normalized and normalized not in requested:
+            requested.append(normalized)
+    requested = requested[: max(0, max_symbols)]
+    profiles = (
+        (
+            await db.execute(
+                select(ETFProfile)
+                .options(selectinload(ETFProfile.instrument))
+                .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+                .where(Instrument.symbol.in_(requested))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    by_symbol = {
+        str(profile.instrument.symbol).strip().upper(): profile
+        for profile in profiles
+        if profile.instrument is not None
+    }
+    reports: list[dict[str, Any]] = []
+    summary = {
+        "requested": len(requested),
+        "checked": 0,
+        "recovered": 0,
+        "skipped": 0,
+        "failed": 0,
+        "missing_profiles": 0,
+    }
+    now = datetime.now(UTC)
+
+    for symbol in requested:
+        profile = by_symbol.get(symbol)
+        if profile is None:
+            summary["missing_profiles"] += 1
+            reports.append({"symbol": symbol, "status": "missing_profile"})
+            continue
+        adapter_key = profile.adapter_key or "unresolved"
+        state = (
+            await db.execute(
+                select(ETFHoldingsAdapterState).where(
+                    ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                    ETFHoldingsAdapterState.adapter_key == adapter_key,
+                )
+            )
+        ).scalar_one_or_none()
+        metadata = _state_metadata(state.extra_data if state is not None else None)
+        open_until_text = metadata.get("circuit_open_until")
+        open_until = None
+        if open_until_text:
+            try:
+                open_until = datetime.fromisoformat(str(open_until_text))
+                if open_until.tzinfo is None:
+                    open_until = open_until.replace(tzinfo=UTC)
+            except ValueError:
+                open_until = None
+        if open_until is not None and open_until > now:
+            summary["skipped"] += 1
+            if state is not None:
+                state.status = "circuit_open"
+                state.last_checked_at = now
+                circuit_capability = evaluate_capability(profile, None, state, now=now)
+                state.extra_data = _append_canary_observation(
+                    {
+                        **metadata,
+                        "last_canary_at": now.isoformat(),
+                        "last_canary_status": "circuit_open",
+                    },
+                    {
+                        "observed_at": now.isoformat(),
+                        "status": "circuit_open",
+                        "availability": circuit_capability.availability,
+                        "usable_for_current_analysis": False,
+                        "source_tier": circuit_capability.source_tier,
+                        "source_provider": metadata.get("source_provider"),
+                        "source_url": getattr(state, "source_url", None),
+                        "source_identifier": getattr(state, "source_identifier", None),
+                        "transport_kind": circuit_capability.transport_kind,
+                        "identity_verified": circuit_capability.identity_verified,
+                        "symbol_audit_outcome": circuit_capability.symbol_audit.outcome,
+                        "failure_streak": _failure_streak(metadata),
+                        "failure_class": metadata.get("last_canary_failure_class"),
+                        "failure_reason": state.failure_reason,
+                        "circuit_state": "open",
+                        "recovered": False,
+                    },
+                )
+            reports.append(
+                {
+                    "symbol": symbol,
+                    "status": "circuit_open",
+                    "circuit_open_until": open_until.isoformat(),
+                }
+            )
+            continue
+
+        started = time.perf_counter()
+        previous_failures = _failure_streak(metadata)
+        try:
+            snapshot = await asyncio.wait_for(
+                _refresh_adapter_route(db, profile),
+                timeout=max(float(timeout_seconds), 0.1),
+            )
+        except ETFHoldingsRouteNotReadyError as exc:
+            summary["skipped"] += 1
+            await _record_skip(db, profile, "needs_issuer_route", str(exc))
+            status = "needs_issuer_route"
+            failure_class = "route_not_ready"
+            snapshot = None
+            failure_text = str(exc)
+        except Exception as exc:  # noqa: BLE001 - canary records provider-specific failure.
+            summary["failed"] += 1
+            await _record_failure(db, profile, exc)
+            status = "failure"
+            failure_class = _canary_failure_class(exc)
+            snapshot = None
+            failure_text = str(exc)
+        else:
+            summary["checked"] += 1
+            await _record_success(db, profile, snapshot=snapshot)
+            status = "success"
+            failure_class = None
+            failure_text = None
+
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+        state = (
+            await db.execute(
+                select(ETFHoldingsAdapterState).where(
+                    ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                    ETFHoldingsAdapterState.adapter_key == adapter_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if state is None:
+            reports.append({"symbol": symbol, "status": status})
+            continue
+        current_metadata = _state_metadata(state.extra_data)
+        failures = _failure_streak(current_metadata)
+        recovered = status == "success" and previous_failures > 0
+        if recovered:
+            summary["recovered"] += 1
+        circuit_state = "closed"
+        circuit_open_until = None
+        if status != "success" and failures >= max(1, failure_threshold):
+            circuit_state = "open"
+            circuit_open_until = datetime.now(UTC) + timedelta(seconds=max(1, cooldown_seconds))
+            state.status = "circuit_open"
+        observation_now = datetime.now(UTC)
+        current_metadata = dict(current_metadata)
+        if status == "success":
+            # This marker is written only after the bounded route fetch and
+            # snapshot ingestion succeeded. It allows a newly verified route
+            # to supersede an older static issuer-access challenge.
+            current_metadata["symbol_audit_revalidated_at"] = observation_now.isoformat()
+        else:
+            current_metadata.pop("symbol_audit_revalidated_at", None)
+        state.extra_data = current_metadata
+        capability_snapshot = snapshot
+        if capability_snapshot is None:
+            # A failed refresh does not erase the stored prior composition.
+            # Resolve the same visible latest snapshot used by API consumers
+            # so the operational observation says degraded/last-known rather
+            # than unavailable when durable holdings still exist.
+            capability_snapshot = await get_latest_snapshot(
+                db,
+                profile.instrument_id,
+                include_holdings=False,
+                include_controlled_fixture=False,
+            )
+        capability = evaluate_capability(
+            profile,
+            capability_snapshot,
+            state,
+            now=observation_now,
+        )
+        observation = {
+            "observed_at": observation_now.isoformat(),
+            "status": status,
+            "availability": capability.availability,
+            "usable_for_current_analysis": capability.usable_for_current_analysis,
+            "source_tier": capability.source_tier,
+            "source_provider": capability.source_provider,
+            "source_url": (
+                snapshot.source_url if snapshot is not None else getattr(state, "source_url", None)
+            ),
+            "source_identifier": (
+                snapshot.source_identifier
+                if snapshot is not None
+                else getattr(state, "source_identifier", None)
+            ),
+            "transport_kind": capability.transport_kind,
+            "identity_verified": capability.identity_verified,
+            "symbol_audit_outcome": capability.symbol_audit.outcome,
+            "composition_date": (
+                capability.composition_date.isoformat() if capability.composition_date else None
+            ),
+            "freshness_deadline": (
+                capability.freshness_deadline.isoformat() if capability.freshness_deadline else None
+            ),
+            "row_count": capability.row_count,
+            "resolved_count": capability.resolved_count,
+            "unresolved_count": capability.unresolved_count,
+            "completeness_status": capability.completeness_status,
+            "schema_fingerprint": capability.schema_fingerprint,
+            "parser_version": (
+                snapshot.parser_version
+                if snapshot is not None
+                else getattr(state, "parser_version", None)
+            ),
+            "latency_ms": elapsed_ms,
+            "failure_class": failure_class,
+            "failure_reason": failure_text or capability.failure_reason,
+            "failure_streak": failures,
+            "circuit_state": circuit_state,
+            "recovered": recovered,
+        }
+        state.extra_data = {
+            **current_metadata,
+            "last_canary_at": datetime.now(UTC).isoformat(),
+            "last_canary_status": status,
+            "last_canary_latency_ms": elapsed_ms,
+            "last_canary_failure_class": failure_class,
+            "last_failure_class": failure_class,
+            "last_canary_failure_reason": failure_text,
+            "last_canary_recovered": recovered,
+            "circuit_state": circuit_state,
+            "circuit_open_until": circuit_open_until.isoformat() if circuit_open_until else None,
+        }
+        state.extra_data = _append_canary_observation(state.extra_data, observation)
+        reports.append(
+            {
+                "symbol": symbol,
+                "status": status,
+                "availability": capability.availability,
+                "latency_ms": elapsed_ms,
+                "failure_class": failure_class,
+                "recovered": recovered,
+                "circuit_state": circuit_state,
+            }
+        )
+
+    await db.flush()
+    return {**summary, "reports": reports}
+
+
 async def reconcile_all_etf_holdings_classifications(
     db: AsyncSession,
     *,
     max_profiles: int = 50,
     max_enrichments_per_profile: int = 32,
-    max_snapshots_per_profile: int = 4,
 ) -> dict:
-    """Resume missing free-source constituent enrichment in bounded batches.
-
-    Maintenance must eventually cover dated canonical snapshots as well as the
-    latest one.  Keep the work bounded in both dimensions: a run visits at
-    most ``max_profiles`` ETF profiles, at most ``max_snapshots_per_profile``
-    snapshots per profile, and at most ``max_enrichments_per_profile`` rows per
-    profile.  Controlled/e2e fixtures remain excluded.
-    """
+    """Resume missing free-source constituent classifications in bounded batches."""
 
     profiles = (
         (
@@ -739,143 +1093,99 @@ async def reconcile_all_etf_holdings_classifications(
         .all()
     )
     processed = enriched = remaining = failed = 0
-    snapshots_selected = snapshots_processed = snapshots_skipped = 0
     candidate_profiles = 0
     for profile in profiles:
         if profile.instrument is None:
             continue
-        snapshots = (
-            (
-                await db.execute(
-                    select(ETFHoldingsSnapshot)
-                    .options(
-                        selectinload(ETFHoldingsSnapshot.rows)
-                        .selectinload(ETFHolding.constituent_instrument)
-                        .selectinload(Instrument.equity_detail)
-                    )
-                    .where(
-                        ETFHoldingsSnapshot.etf_profile_id == profile.id,
-                        ETFHoldingsSnapshot.provenance != "controlled_fixture",
-                        ETFHoldingsSnapshot.source_provider != "e2e_reference",
-                    )
-                    .order_by(
-                        ETFHoldingsSnapshot.composition_date.desc(),
-                        ETFHoldingsSnapshot.known_at.desc().nullslast(),
-                        ETFHoldingsSnapshot.id.desc(),
-                    )
-                    .limit(max(0, max_snapshots_per_profile))
+        snapshot = (
+            await db.execute(
+                select(ETFHoldingsSnapshot)
+                .options(
+                    selectinload(ETFHoldingsSnapshot.rows)
+                    .selectinload(ETFHolding.constituent_instrument)
+                    .selectinload(Instrument.equity_detail)
                 )
+                .where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                    ETFHoldingsSnapshot.provenance != "controlled_fixture",
+                    ETFHoldingsSnapshot.source_provider != "e2e_reference",
+                )
+                .order_by(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                    ETFHoldingsSnapshot.id.desc(),
+                )
+                .limit(1)
             )
-            .scalars()
-            .all()
-        )
-        if not snapshots:
+        ).scalar_one_or_none()
+        if snapshot is None:
             continue
-        snapshots_selected += len(snapshots)
-
-        def row_needs_enrichment(row: ETFHolding) -> bool:
-            # Classification maintenance only applies to canonical member
-            # candidates. Cash, derivatives, and other disclosed non-member
-            # rows remain evidence-only and must not keep a snapshot in the
-            # enrichment queue forever.
-            if normalize_holding_type(row.row_type) != "security" or not is_equity_holding_type(
-                row.holding_type
-            ):
-                return False
-            instrument = row.constituent_instrument
-            if (
-                instrument is None
-                or not row.is_resolved
-                or is_placeholder_symbol(instrument.symbol)
-            ):
-                return True
-            detail = instrument.equity_detail
-            return detail is None or not (detail.industry or detail.sector)
-
-        def missing_rows(snapshot: ETFHoldingsSnapshot) -> int:
-            return sum(1 for row in snapshot.rows if row_needs_enrichment(row))
-
-        if not any(missing_rows(snapshot) for snapshot in snapshots):
-            continue
-        if candidate_profiles >= max(0, max_profiles):
-            break
-        candidate_profiles += 1
-        profile_budget = max(0, max_enrichments_per_profile)
-        for snapshot in snapshots:
-            missing_before = missing_rows(snapshot)
-            if missing_before == 0:
-                continue
-            if profile_budget == 0:
-                snapshots_skipped += 1
-                remaining += missing_before
-                continue
-            before = sum(
-                1
-                for row in snapshot.rows
-                if row.constituent_instrument is not None
-                and not is_placeholder_symbol(row.constituent_instrument.symbol)
-                and row.constituent_instrument.equity_detail is not None
-                and (
+        missing_before = sum(
+            1
+            for row in snapshot.rows
+            if row.constituent_instrument is not None
+            and (
+                row.constituent_instrument.equity_detail is None
+                or not (
                     row.constituent_instrument.equity_detail.industry
                     or row.constituent_instrument.equity_detail.sector
                 )
             )
-            # Pass the remaining configured cap through to the snapshot
-            # reconciler. It applies the cap to individual resolver attempts;
-            # decrement the profile budget by the number of rows that could
-            # have consumed it, keeping the bound across dated snapshots.
-            attempt_limit = profile_budget
-            try:
-                await reconcile_snapshot_constituents(
-                    db,
-                    snapshot,
-                    max_classification_enrichment=attempt_limit,
-                )
-            except Exception as exc:  # noqa: BLE001 - isolate one profile's maintenance failure.
-                failed += 1
-                await _record_failure(db, profile, exc)
-                await db.flush()
-                continue
-            profile_budget -= min(profile_budget, missing_before)
-            snapshots_processed += 1
-            processed += 1
-            # Re-load the rows after reconciliation. Assigning a new instrument
-            # foreign key does not guarantee that an already-eager-loaded
-            # relationship exposes the newly created profile/detail in every
-            # SQLAlchemy session mode. Counting the refreshed rows keeps the
-            # maintenance receipt truthful for both identifier promotion and
-            # classification enrichment.
-            refreshed_rows = (
-                await db.execute(
-                    select(
-                        ETFHolding.constituent_instrument_id,
-                        Instrument.symbol,
-                        EquityDetail.industry,
-                        EquityDetail.sector,
-                    )
-                    .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
-                    .outerjoin(EquityDetail, EquityDetail.instrument_id == Instrument.id)
-                    .where(ETFHolding.snapshot_id == snapshot.id)
-                )
-            ).all()
-            after = sum(
-                1
-                for row in refreshed_rows
-                if row[0] is not None and not is_placeholder_symbol(row[1]) and (row[2] or row[3])
+        )
+        if missing_before == 0:
+            continue
+        if candidate_profiles >= max(0, max_profiles):
+            break
+        candidate_profiles += 1
+        before = sum(
+            1
+            for row in snapshot.rows
+            if row.constituent_instrument is not None
+            and row.constituent_instrument.equity_detail is not None
+            and (
+                row.constituent_instrument.equity_detail.industry
+                or row.constituent_instrument.equity_detail.sector
             )
-            enriched += max(0, after - before)
-            remaining += sum(
-                1
-                for row in refreshed_rows
-                if row[0] is None or is_placeholder_symbol(row[1]) or not (row[2] or row[3])
+        )
+        try:
+            await reconcile_snapshot_constituents(
+                db,
+                snapshot,
+                max_classification_enrichment=max_enrichments_per_profile,
             )
+        except Exception as exc:  # noqa: BLE001 - isolate one profile's maintenance failure.
+            failed += 1
+            await _record_failure(db, profile, exc)
+            await db.flush()
+            continue
+        after = sum(
+            1
+            for row in snapshot.rows
+            if row.constituent_instrument is not None
+            and row.constituent_instrument.equity_detail is not None
+            and (
+                row.constituent_instrument.equity_detail.industry
+                or row.constituent_instrument.equity_detail.sector
+            )
+        )
+        processed += 1
+        enriched += max(0, after - before)
+        remaining += sum(
+            1
+            for row in snapshot.rows
+            if row.constituent_instrument is not None
+            and (
+                row.constituent_instrument.equity_detail is None
+                or not (
+                    row.constituent_instrument.equity_detail.industry
+                    or row.constituent_instrument.equity_detail.sector
+                )
+            )
+        )
     await db.flush()
     return {
         "profiles": candidate_profiles,
         "processed": processed,
-        "snapshots_selected": snapshots_selected,
-        "snapshots_processed": snapshots_processed,
-        "snapshots_skipped": snapshots_skipped,
         "enriched": enriched,
         "remaining": remaining,
         "failed": failed,
@@ -1046,7 +1356,6 @@ async def refresh_etf_holdings_for_date(
     profile: ETFProfile,
     *,
     requested_date: date,
-    record_failure: bool = True,
 ):
     """Fetch and persist a dated issuer holdings snapshot from an explicit template route."""
 
@@ -1062,104 +1371,175 @@ async def refresh_etf_holdings_for_date(
     identifiers = _string_aliases(profile)
     symbol = profile.instrument.symbol
     issuer_product_id = _issuer_product_identifier(identifiers)
+    fetch_result = None
     try:
-        fetch_result = await adapter.fetch_for_date(
-            symbol=symbol,
-            requested_date=requested_date,
-            issuer_product_id=issuer_product_id,
-            identifiers=identifiers,
-        )
+        with bind_etf_holdings_request_context(
+            db=db,
+            adapter=adapter,
+            profile_id=profile.id,
+            instrument_id=profile.instrument.id,
+            provider_symbol=symbol,
+            operation="fetch_etf_holdings_for_date",
+        ) as request_binding:
+            try:
+                fetch_result = await adapter.fetch_for_date(
+                    symbol=symbol,
+                    requested_date=requested_date,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers,
+                )
+            except BaseException as exc:
+                await _retain_rejected_fetch_artifact(
+                    db,
+                    profile,
+                    adapter,
+                    request_binding,
+                    failure=exc,
+                    validation={"requested_date": requested_date.isoformat()},
+                    requested_date=requested_date,
+                )
+                raise
         if not fetch_result.rows:
-            raise ValueError("Issuer dated holdings route returned no parseable rows.")
+            failure = ValueError("Issuer dated holdings route returned no parseable rows.")
+            await _retain_rejected_fetch_artifact(
+                db,
+                profile,
+                adapter,
+                request_binding,
+                fetch_result=fetch_result,
+                failure=failure,
+                validation={"status": "no_parseable_rows"},
+                requested_date=requested_date,
+            )
+            raise failure
         artifact_identity_validation = _validate_artifact_identity(profile, fetch_result.raw_text)
-        _ensure_artifact_identity_is_safe(artifact_identity_validation)
+        try:
+            _ensure_artifact_identity_is_safe(artifact_identity_validation)
+        except ValueError as exc:
+            await _retain_rejected_fetch_artifact(
+                db,
+                profile,
+                adapter,
+                request_binding,
+                fetch_result=fetch_result,
+                failure=exc,
+                validation=artifact_identity_validation,
+                requested_date=requested_date,
+            )
+            raise
 
-        result_metadata = fetch_result.legal_metadata or {}
+        result_metadata = {
+            **(fetch_result.legal_metadata or {}),
+            "provider_request_log_ids": request_binding.request_log_ids,
+            "provider_request_attempts": _provider_request_attempts(request_binding),
+        }
+        result_metadata = {
+            **result_metadata,
+            "expected_cadence": result_metadata.get("expected_cadence")
+            or infer_expected_cadence(
+                source_access=getattr(getattr(adapter, "config", None), "source_access", None),
+                metadata=result_metadata,
+            ),
+        }
         source_format = str(result_metadata.get("source_format") or "csv")
         source_provider = (
             _first_alias(aliases, "holdings_source_provider", "source_provider")
             or result_metadata.get("source_provider")
             or adapter.source_provider
         )
-        reported_composition_date = _date_from_value(result_metadata.get("composition_date"))
-        composition_date = reported_composition_date
+        composition_date = _date_from_value(result_metadata.get("composition_date"))
         if composition_date is None:
             composition_date = requested_date
         if composition_date > requested_date:
-            raise ValueError(
+            failure = ValueError(
                 "Issuer dated holdings route returned a composition date after the requested "
                 f"date ({composition_date.isoformat()} > {requested_date.isoformat()})."
             )
-        published_at = _datetime_from_value(result_metadata.get("published_at"))
-        known_at = (
-            _datetime_from_value(result_metadata.get("known_at"))
-            or published_at
-            or datetime.now(UTC)
-        )
-        timing_provenance = {
-            "composition_date": (
-                "provider_reported" if reported_composition_date else "requested_date_fallback"
-            ),
-            "as_of_date": "requested_date",
-            "known_at": (
-                "provider_reported"
-                if result_metadata.get("known_at")
-                else "published_at_fallback"
-                if published_at
-                else "ingestion_time_fallback"
-            ),
-            "published_at": "provider_reported" if published_at else "not_reported",
-        }
-        snapshot = await ingest_holdings_snapshot(
-            db,
-            etf_instrument=profile.instrument,
-            rows=fetch_result.rows,
-            composition_date=composition_date,
-            as_of_date=requested_date,
-            known_at=known_at,
-            published_at=published_at,
-            provenance=str(
-                result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
-            ),
-            source_provider=str(source_provider),
-            source_url=fetch_result.source_url,
-            source_identifier=fetch_result.source_identifier or issuer_product_id,
-            source_quality=str(
-                result_metadata.get("source_quality")
-                or aliases.get("holdings_source_quality")
-                or "self_snapshotted_holdings"
-            ),
-            completeness_status=_holdings_completeness_status(result_metadata, aliases),
-            parser_version=str(
-                result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
-            ),
-            raw_payload_text=fetch_result.raw_text,
-            raw_payload_json=fetch_result.raw_json,
-            legal_metadata={
-                **result_metadata,
-                "terms_note": aliases.get("terms_note"),
-                "artifact_identity_validation": artifact_identity_validation,
-            },
-            timing_provenance=timing_provenance,
-            notes=(
-                "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
-                "provider-specific adapter."
-                if result_metadata.get("route_resolution") == "sec_edgar_filing_fallback"
-                else "Fetched through the ETF profile's dated issuer holdings adapter route."
-            ),
-            # Issuer artifacts already carry their canonical symbol/identifier
-            # evidence.  Do not fan out synchronously to optional metadata
-            # providers for every row; unresolved rows remain explicit and can
-            # be reconciled by a bounded background job later.
-            allow_provider_enrichment=False,
-        )
+            await _retain_rejected_fetch_artifact(
+                db,
+                profile,
+                adapter,
+                request_binding,
+                fetch_result=fetch_result,
+                failure=failure,
+                validation={
+                    "status": "composition_after_requested_date",
+                    "reported_composition_date": composition_date.isoformat(),
+                },
+                requested_date=requested_date,
+            )
+            raise failure
+        try:
+            _ensure_holdings_dates_are_not_future(
+                composition_date,
+                requested_date,
+            )
+        except ValueError as exc:
+            await _retain_rejected_fetch_artifact(
+                db,
+                profile,
+                adapter,
+                request_binding,
+                fetch_result=fetch_result,
+                failure=exc,
+                validation={
+                    "status": "future_dated",
+                    "reported_composition_date": composition_date.isoformat(),
+                },
+                requested_date=requested_date,
+            )
+            raise
+        try:
+            snapshot = await ingest_holdings_snapshot(
+                db,
+                etf_instrument=profile.instrument,
+                rows=fetch_result.rows,
+                composition_date=composition_date,
+                as_of_date=requested_date,
+                known_at=datetime.now(UTC),
+                provenance="issuer_self_snapshotted_holdings",
+                source_provider=str(source_provider),
+                source_url=fetch_result.source_url,
+                source_identifier=fetch_result.source_identifier or issuer_product_id,
+                source_quality="self_snapshotted_holdings",
+                completeness_status=str(aliases.get("holdings_completeness_status") or "unknown"),
+                parser_version=f"{adapter.adapter_key}-{source_format}-v1",
+                raw_payload_text=fetch_result.raw_text,
+                raw_payload_json=fetch_result.raw_json,
+                legal_metadata={
+                    **result_metadata,
+                    "terms_note": aliases.get("terms_note"),
+                    "artifact_identity_validation": artifact_identity_validation,
+                },
+                notes="Fetched through the ETF profile's dated issuer holdings adapter route.",
+                # Issuer artifacts already carry their canonical symbol/identifier
+                # evidence.  Do not fan out synchronously to optional metadata
+                # providers for every row; unresolved rows remain explicit and can
+                # be reconciled by a bounded background job later.
+                allow_provider_enrichment=False,
+            )
+        except BaseException as exc:
+            await _retain_rejected_fetch_artifact(
+                db,
+                profile,
+                adapter,
+                request_binding,
+                fetch_result=fetch_result,
+                failure=exc,
+                validation={
+                    "status": "ingest_rejected",
+                    "requested_date": requested_date.isoformat(),
+                    "composition_date": composition_date.isoformat(),
+                },
+                requested_date=requested_date,
+            )
+            raise
     except Exception as exc:
-        # A family refresh invokes this function inside a per-role savepoint.
-        # Let that savepoint roll back before mutating the adapter state; an
-        # integrity error would otherwise leave the session inside a failed
-        # transaction and replace the provider error with SQLAlchemy's
-        # misleading "closed transaction" message.
-        if record_failure:
+        # An ingest flush can invalidate the caller's transaction. Keep the
+        # original exception intact and let its owner roll back; never use the
+        # failed caller session to record diagnostics after independent raw
+        # retention has already preserved the fetched evidence.
+        if db.is_active:
             await _record_failure(db, profile, exc)
             await db.flush()
         raise
@@ -1201,7 +1581,6 @@ async def refresh_benchmark_family_holdings_for_date(
     refreshed = unavailable = failed = 0
     for role in requested_roles:
         mapping = family.get(role) if isinstance(family.get(role), dict) else None
-        route_evidence = _history_route_evidence(mapping)
         symbol = (
             str(mapping.get("symbol")).strip().upper()
             if mapping and mapping.get("symbol")
@@ -1214,46 +1593,36 @@ async def refresh_benchmark_family_holdings_for_date(
                     "role": role,
                     "symbol": None,
                     "status": "unavailable",
-                    **route_evidence,
                     "message": "No verified mapped proxy is configured for this family role.",
                 }
             )
             continue
 
         try:
-            # Keep each role inside its own savepoint.  A provider/parser
-            # failure can invalidate the current SQLAlchemy transaction (for
-            # example, after an integrity error); without a role boundary the
-            # following roles all report the misleading "closed transaction
-            # inside context manager" error instead of running independently.
-            async with _bootstrap_savepoint(db):
-                instrument = await ensure_lightweight_etf_instrument(
-                    db,
-                    symbol=symbol,
-                    name=str(mapping.get("label") or symbol),
+            instrument = await ensure_lightweight_etf_instrument(
+                db,
+                symbol=symbol,
+                name=str(mapping.get("label") or symbol),
+            )
+            profile = await ensure_etf_profile(db, instrument)
+            _apply_known_route_metadata(profile)
+            probe = await probe_etf_holdings_adapter_route(db, profile)
+            if probe.status != "ready":
+                unavailable += 1
+                legs.append(
+                    {
+                        "role": role,
+                        "symbol": symbol,
+                        "status": "route_not_ready",
+                        "message": probe.reason or "No usable free holdings route is configured.",
+                    }
                 )
-                profile = await ensure_etf_profile(db, instrument)
-                _apply_known_route_metadata(profile)
-                probe = await probe_etf_holdings_adapter_route(db, profile)
-                if probe.status != "ready":
-                    unavailable += 1
-                    legs.append(
-                        {
-                            "role": role,
-                            "symbol": symbol,
-                            "status": "route_not_ready",
-                            **route_evidence,
-                            "message": probe.reason
-                            or "No usable free holdings route is configured.",
-                        }
-                    )
-                    continue
-                snapshot = await refresh_etf_holdings_for_date(
-                    db,
-                    profile,
-                    requested_date=requested_date,
-                    record_failure=False,
-                )
+                continue
+            snapshot = await refresh_etf_holdings_for_date(
+                db,
+                profile,
+                requested_date=requested_date,
+            )
         except ETFHoldingsRouteNotReadyError as exc:
             unavailable += 1
             legs.append(
@@ -1261,26 +1630,16 @@ async def refresh_benchmark_family_holdings_for_date(
                     "role": role,
                     "symbol": symbol,
                     "status": "route_not_ready",
-                    **route_evidence,
                     "message": str(exc),
                 }
             )
         except Exception as exc:  # noqa: BLE001 - isolate one family leg's backfill failure.
-            try:
-                await _record_failure(db, profile, exc)
-                await db.flush()
-            except Exception:  # noqa: BLE001 - preserve the provider/parser root cause.
-                # Failure telemetry is best effort after a provider/database
-                # rollback.  Never replace the original leg error with a
-                # secondary state-recording failure.
-                pass
             failed += 1
             legs.append(
                 {
                     "role": role,
                     "symbol": symbol,
                     "status": "failed",
-                    **route_evidence,
                     "message": str(exc) or "Dated family holdings refresh failed.",
                 }
             )
@@ -1293,7 +1652,6 @@ async def refresh_benchmark_family_holdings_for_date(
                     "status": "refreshed",
                     "snapshot_id": snapshot.id,
                     "composition_date": snapshot.composition_date,
-                    **route_evidence,
                 }
             )
 
@@ -1322,19 +1680,6 @@ def _normalize_benchmark_family_roles(roles: list[str] | None) -> list[str]:
         if normalized_role not in normalized_roles:
             normalized_roles.append(normalized_role)
     return normalized_roles
-
-
-def _history_route_evidence(mapping: dict[str, Any] | None) -> dict[str, Any]:
-    """Return the declared historical route without inferring provider support."""
-
-    route = mapping.get("history_route") if isinstance(mapping, dict) else None
-    route = route if isinstance(route, dict) else {}
-    return {
-        "history_route_status": str(route.get("status") or "not_reported"),
-        "history_route_provider": str(route["provider"]) if route.get("provider") else None,
-        "history_route_policy": str(route["policy"]) if route.get("policy") else None,
-        "history_route_source_url": (str(route["source_url"]) if route.get("source_url") else None),
-    }
 
 
 def _normalize_benchmark_family_keys(family_keys: list[str] | None) -> list[str]:
@@ -1575,6 +1920,20 @@ def _first_alias(aliases: dict[str, Any], *keys: str) -> str | None:
     return None
 
 
+def _provider_request_attempts(request_binding: Any) -> list[dict[str, Any]]:
+    """Persist each request-log ID with the exact redacted effective URL."""
+
+    return [
+        {
+            "request_log_id": request_id,
+            "request_url": bounded_redact_provider_message(
+                request_binding.request_urls_by_log_id.get(request_id, ""), max_length=2000
+            ),
+        }
+        for request_id in request_binding.request_log_ids
+    ]
+
+
 def _issuer_product_identifier(identifiers: dict[str, Any]) -> str | None:
     """Choose issuer route identity before weaker SEC series metadata.
 
@@ -1623,23 +1982,6 @@ def _date_from_value(value: Any) -> date | None:
     if isinstance(value, str) and value.strip():
         return date.fromisoformat(value.strip())
     return None
-
-
-def _datetime_from_value(value: Any) -> datetime | None:
-    """Parse an optional provider timestamp and normalize it to UTC."""
-
-    if isinstance(value, datetime):
-        parsed = value
-    elif isinstance(value, str) and value.strip():
-        try:
-            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
-        except ValueError:
-            return None
-    else:
-        return None
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC)
 
 
 def _bool_alias(aliases: dict[str, Any], key: str) -> bool:
@@ -1936,107 +2278,415 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             f"{probe.reason or probe.status} Required route metadata: {required}."
         )
 
-    fetch_result = await adapter.fetch_latest(
-        symbol=symbol,
-        issuer_product_id=issuer_product_id,
-        identifiers=identifiers,
-    )
+    with bind_etf_holdings_request_context(
+        db=db,
+        adapter=adapter,
+        profile_id=profile.id,
+        instrument_id=profile.instrument.id,
+        provider_symbol=symbol,
+        operation="fetch_etf_holdings_latest",
+    ) as request_binding:
+        try:
+            fetch_result = await adapter.fetch_latest(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
+        except BaseException as exc:
+            await _retain_rejected_fetch_artifact(
+                db,
+                profile,
+                adapter,
+                request_binding,
+                failure=exc,
+            )
+            raise
     if not fetch_result.rows:
-        raise ValueError("Issuer holdings route returned no parseable rows.")
+        failure = ValueError("Issuer holdings route returned no parseable rows.")
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=failure,
+        )
+        raise failure
     artifact_identity_validation = _validate_artifact_identity(profile, fetch_result.raw_text)
-    _ensure_artifact_identity_is_safe(artifact_identity_validation)
+    try:
+        _ensure_artifact_identity_is_safe(artifact_identity_validation)
+    except ValueError as exc:
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=exc,
+            validation=artifact_identity_validation,
+        )
+        raise
 
-    result_metadata = fetch_result.legal_metadata or {}
+    result_metadata = {
+        **(fetch_result.legal_metadata or {}),
+        "provider_request_log_ids": request_binding.request_log_ids,
+        "provider_request_attempts": _provider_request_attempts(request_binding),
+    }
+    result_metadata = {
+        **result_metadata,
+        "expected_cadence": result_metadata.get("expected_cadence")
+        or infer_expected_cadence(
+            source_access=getattr(getattr(adapter, "config", None), "source_access", None),
+            metadata=result_metadata,
+        ),
+    }
     source_format = str(result_metadata.get("source_format") or "csv")
     source_provider = (
         _first_alias(aliases, "holdings_source_provider", "source_provider")
         or result_metadata.get("source_provider")
         or adapter.source_provider
     )
-    configured_composition_date = _alias_date(aliases, "holdings_composition_date")
-    reported_composition_date = _date_from_value(result_metadata.get("composition_date"))
     composition_date = (
-        configured_composition_date or reported_composition_date or datetime.now(UTC).date()
+        _alias_date(aliases, "holdings_composition_date")
+        or _date_from_value(result_metadata.get("composition_date"))
+        or datetime.now(UTC).date()
     )
-    configured_as_of_date = _alias_date(aliases, "holdings_as_of_date")
-    reported_as_of_date = _date_from_value(result_metadata.get("as_of_date"))
-    as_of_date = configured_as_of_date or reported_as_of_date
-    published_at = _datetime_from_value(result_metadata.get("published_at"))
-    known_at = (
-        _datetime_from_value(result_metadata.get("known_at")) or published_at or datetime.now(UTC)
+    as_of_date = _alias_date(aliases, "holdings_as_of_date") or _date_from_value(
+        result_metadata.get("as_of_date")
     )
-    timing_provenance = {
-        "composition_date": (
-            "profile_configured"
-            if configured_composition_date
-            else "provider_reported"
-            if reported_composition_date
-            else "ingestion_date_fallback"
-        ),
-        "as_of_date": (
-            "profile_configured"
-            if configured_as_of_date
-            else "provider_reported"
-            if reported_as_of_date
-            else "not_reported"
-        ),
-        "known_at": (
-            "provider_reported"
-            if result_metadata.get("known_at")
-            else "published_at_fallback"
-            if published_at
-            else "ingestion_time_fallback"
-        ),
-        "published_at": "provider_reported" if published_at else "not_reported",
-    }
+    try:
+        _ensure_holdings_dates_are_not_future(composition_date, as_of_date)
+    except ValueError as exc:
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=exc,
+            validation={"status": "future_dated"},
+        )
+        raise
+    cadence = result_metadata.get("expected_cadence")
+    deadline = freshness_deadline(composition_date, str(cadence or "unspecified"))
+    if deadline is not None and datetime.now(UTC).date() > deadline:
+        failure = ValueError(
+            f"Issuer holdings composition {composition_date.isoformat()} is stale "
+            f"for the reviewed {cadence or 'unspecified'} cadence."
+        )
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=failure,
+            validation={"status": "stale", "freshness_deadline": deadline.isoformat()},
+        )
+        raise failure
+    parser_version = str(
+        result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
+    )
+    try:
+        await _ensure_schema_fingerprint_is_stable(
+            db,
+            profile,
+            parser_version=parser_version,
+            raw_payload_text=fetch_result.raw_text,
+            raw_payload_json=fetch_result.raw_json,
+        )
+    except ETFHoldingsSchemaDriftError as exc:
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=exc,
+            validation={"status": "schema_drift"},
+        )
+        raise
 
-    snapshot = await ingest_holdings_snapshot(
-        db,
-        etf_instrument=profile.instrument,
-        rows=fetch_result.rows,
-        composition_date=composition_date,
-        as_of_date=as_of_date,
-        known_at=known_at,
-        published_at=published_at,
-        provenance=str(
-            result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
-        ),
-        source_provider=str(source_provider),
-        source_url=fetch_result.source_url,
-        source_identifier=fetch_result.source_identifier or issuer_product_id,
-        source_quality=str(
-            result_metadata.get("source_quality")
-            or aliases.get("holdings_source_quality")
-            or "self_snapshotted_holdings"
-        ),
-        completeness_status=_holdings_completeness_status(result_metadata, aliases),
-        parser_version=str(
-            result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
-        ),
-        raw_payload_text=fetch_result.raw_text,
-        raw_payload_json=fetch_result.raw_json,
-        legal_metadata={
-            **(fetch_result.legal_metadata or {}),
-            "terms_note": aliases.get("terms_note"),
-            "probe_status": probe.status,
-            "probe_confidence": str(probe.confidence),
-            "artifact_identity_validation": artifact_identity_validation,
-        },
-        timing_provenance=timing_provenance,
-        notes=(
-            "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
-            "provider-specific adapter."
-            if result_metadata.get("route_resolution") == "sec_edgar_filing_fallback"
-            else "Fetched through the ETF profile's issuer holdings adapter route."
-        ),
-        # Keep refresh bounded and provider-neutral.  Constituent resolution
-        # uses canonical symbols/identifiers first; optional enrichment is a
-        # separate job, never part of the issuer download transaction.
-        allow_provider_enrichment=False,
-    )
+    try:
+        snapshot = await ingest_holdings_snapshot(
+            db,
+            etf_instrument=profile.instrument,
+            rows=fetch_result.rows,
+            composition_date=composition_date,
+            as_of_date=as_of_date,
+            known_at=datetime.now(UTC),
+            provenance=str(
+                result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
+            ),
+            source_provider=str(source_provider),
+            source_url=fetch_result.source_url,
+            source_identifier=fetch_result.source_identifier or issuer_product_id,
+            source_quality=str(
+                result_metadata.get("source_quality") or "self_snapshotted_holdings"
+            ),
+            completeness_status=str(
+                result_metadata.get("completeness_status")
+                or aliases.get("holdings_completeness_status")
+                or "unknown"
+            ),
+            parser_version=parser_version,
+            raw_payload_text=fetch_result.raw_text,
+            raw_payload_json=fetch_result.raw_json,
+            legal_metadata={
+                **(fetch_result.legal_metadata or {}),
+                "provider_request_log_ids": request_binding.request_log_ids,
+                "provider_request_attempts": _provider_request_attempts(request_binding),
+                "terms_note": aliases.get("terms_note"),
+                "probe_status": probe.status,
+                "probe_confidence": str(probe.confidence),
+                "artifact_identity_validation": artifact_identity_validation,
+            },
+            notes=(
+                "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
+                "provider-specific adapter."
+                if result_metadata.get("route_resolution") == "sec_edgar_filing_fallback"
+                else "Fetched through the ETF profile's issuer holdings adapter route."
+            ),
+            # Keep refresh bounded and provider-neutral.  Constituent resolution
+            # uses canonical symbols/identifiers first; optional enrichment is a
+            # separate job, never part of the issuer download transaction.
+            allow_provider_enrichment=False,
+        )
+    except BaseException as exc:
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=exc,
+            validation={
+                "status": "ingest_rejected",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": as_of_date.isoformat() if as_of_date else None,
+            },
+        )
+        raise
     profile.adapter_status = "success"
     profile.adapter_confidence = probe.confidence
     return snapshot
+
+
+async def _retain_rejected_fetch_artifact(
+    db: AsyncSession,
+    profile: ETFProfile,
+    adapter: Any,
+    request_binding: Any,
+    *,
+    failure: BaseException,
+    fetch_result: Any | None = None,
+    validation: dict[str, Any] | None = None,
+    requested_date: date | None = None,
+) -> ETFHoldingsRawArtifact | None:
+    """Persist rejected response evidence using only committed parent rows."""
+
+    profile_identity = inspect(profile).identity
+    if not profile_identity:
+        return None
+    profile_id = int(profile_identity[0])
+    artifact_db = AsyncSession(bind=db.bind, expire_on_commit=False)
+    try:
+        if await artifact_db.get(ETFProfile, profile_id) is None:
+            # The request bridge rejects uncommitted profiles before transport;
+            # never create an artifact against caller-owned uncommitted state.
+            await artifact_db.rollback()
+            return None
+        artifact = await _retain_rejected_fetch_artifact_in_session(
+            artifact_db,
+            profile_id=profile_id,
+            adapter=adapter,
+            request_binding=request_binding,
+            failure=failure,
+            fetch_result=fetch_result,
+            validation=validation,
+            requested_date=requested_date,
+        )
+        await artifact_db.commit()
+        return artifact
+    except BaseException:
+        await artifact_db.rollback()
+        raise
+    finally:
+        await artifact_db.close()
+
+
+async def _retain_rejected_fetch_artifact_in_session(
+    db: AsyncSession,
+    *,
+    profile_id: int,
+    adapter: Any,
+    request_binding: Any,
+    failure: BaseException,
+    fetch_result: Any | None = None,
+    validation: dict[str, Any] | None = None,
+    requested_date: date | None = None,
+) -> ETFHoldingsRawArtifact | None:
+    """Build canonical rejected evidence in its dedicated owner session."""
+
+    request_log_ids = list(dict.fromkeys(request_binding.request_log_ids))
+    logs_by_id = {}
+    if request_log_ids:
+        logs = list(
+            (
+                await db.scalars(
+                    select(ProviderRequestLog).where(ProviderRequestLog.id.in_(request_log_ids))
+                )
+            ).all()
+        )
+        logs_by_id = {row.id: row for row in logs}
+    logs = [logs_by_id[log_id] for log_id in request_log_ids if log_id in logs_by_id]
+    raw_text = getattr(fetch_result, "raw_text", None)
+    raw_json = getattr(fetch_result, "raw_json", None)
+    response_evidence = [
+        {
+            "request_log_id": row.id,
+            "request_url": bounded_redact_provider_message(
+                request_binding.request_urls_by_log_id.get(row.id, ""), max_length=2000
+            )
+            or None,
+            "success": row.success,
+            "error_type": row.error_type,
+            "error_message": bounded_redact_provider_message(row.error_message, max_length=1000)
+            if row.error_message
+            else None,
+            "response_headers": row.response_headers,
+            "response_payloads": row.response_payloads,
+        }
+        for row in logs
+    ]
+    if raw_text is None and raw_json is None:
+        last_response_payloads = next(
+            (row.response_payloads for row in reversed(logs) if row.response_payloads), None
+        )
+        last_response = last_response_payloads[-1] if last_response_payloads else None
+        if isinstance(last_response, str):
+            raw_text = last_response
+        elif isinstance(last_response, dict | list):
+            raw_json = last_response
+    content_payload = raw_json if raw_json is not None else raw_text
+    if content_payload is None:
+        # When no response body exists (for example a connect timeout), retain
+        # a compact diagnostic as an explicit JSON evidence payload. Attempt
+        # lineage remains separate and does not affect response-body hashes.
+        content_payload = {
+            "failure_type": type(failure).__name__,
+            "failure_message": bounded_redact_provider_message(failure, max_length=1000),
+            "validation": validation,
+        }
+        raw_json = content_payload
+    content_hash = _hash_payload(content_payload)
+    source_kind = "issuer_adapter_rejected_fetch"
+    existing = await db.scalar(
+        select(ETFHoldingsRawArtifact).where(
+            ETFHoldingsRawArtifact.etf_profile_id == profile_id,
+            ETFHoldingsRawArtifact.source_kind == source_kind,
+            ETFHoldingsRawArtifact.content_hash == content_hash,
+        )
+    )
+    current_attempt_evidence = {
+        "provider_request_log_ids": request_log_ids,
+        "request_urls": [
+            bounded_redact_provider_message(
+                request_binding.request_urls_by_log_id.get(log_id, ""), max_length=2000
+            )
+            for log_id in request_log_ids
+        ],
+        "request_attempts": response_evidence,
+    }
+    if existing is not None:
+        # Keep the content-addressed payload/provenance stable, but do not lose
+        # the distinct Provider attempts that returned identical rejected bytes.
+        metadata = dict(existing.legal_metadata or {})
+        prior_ids = list(metadata.get("provider_request_log_ids") or [])
+        prior_urls = list(metadata.get("request_urls") or [])
+        prior_attempts = list(metadata.get("request_attempts") or [])
+        urls_by_id = dict(zip(prior_ids, prior_urls, strict=False))
+        attempts_by_id = {
+            item.get("request_log_id"): item
+            for item in prior_attempts
+            if isinstance(item, dict) and item.get("request_log_id") is not None
+        }
+        for log_id, url in zip(
+            current_attempt_evidence["provider_request_log_ids"],
+            current_attempt_evidence["request_urls"],
+            strict=False,
+        ):
+            urls_by_id.setdefault(log_id, url)
+        attempts_by_id.update(
+            {
+                item["request_log_id"]: item
+                for item in current_attempt_evidence["request_attempts"]
+                if item.get("request_log_id") is not None
+            }
+        )
+        merged_ids = list(dict.fromkeys([*prior_ids, *request_log_ids]))
+        metadata.update(
+            {
+                "provider_request_log_ids": merged_ids,
+                "request_urls": [urls_by_id.get(log_id) for log_id in merged_ids],
+                "request_attempts": [
+                    attempts_by_id[log_id] for log_id in merged_ids if log_id in attempts_by_id
+                ],
+            }
+        )
+        if requested_date is not None:
+            requested_dates = list(metadata.get("rejected_requested_dates") or [])
+            metadata["rejected_requested_dates"] = list(
+                dict.fromkeys([*requested_dates, requested_date.isoformat()])
+            )
+        existing.legal_metadata = metadata
+        await db.flush()
+        return existing
+    provider_name = str(getattr(adapter, "source_provider", "")).strip().lower()
+    source = await db.scalar(select(DataSource).where(DataSource.name == provider_name))
+    first_log = logs[0] if logs else None
+    artifact = ETFHoldingsRawArtifact(
+        etf_profile_id=profile_id,
+        data_source_id=source.id if source is not None else None,
+        source_kind=source_kind,
+        source_url=bounded_redact_provider_message(
+            getattr(fetch_result, "source_url", None)
+            or (
+                request_binding.request_urls_by_log_id.get(request_log_ids[-1])
+                if request_log_ids
+                else ""
+            ),
+            max_length=2000,
+        ),
+        source_identifier=getattr(fetch_result, "source_identifier", None),
+        content_type=("text/plain" if raw_text is not None else "application/json"),
+        content_hash=content_hash,
+        composition_date=None,
+        as_of_date=None,
+        published_at=None,
+        fetched_at=(
+            first_log.completed_at if first_log and first_log.completed_at else datetime.now(UTC)
+        ),
+        parser_version=str(getattr(adapter, "adapter_key", "unknown"))[:40],
+        payload_text=raw_text,
+        payload_json=raw_json,
+        legal_metadata={
+            **current_attempt_evidence,
+            "failure_type": type(failure).__name__,
+            "failure_message": bounded_redact_provider_message(failure, max_length=1000),
+            "validation": validation,
+            "request_attempts": response_evidence,
+            "evidence_source": "shared_provider_request_log_and_refresh_rejection",
+            **(
+                {"rejected_requested_dates": [requested_date.isoformat()]}
+                if requested_date is not None
+                else {}
+            ),
+        },
+    )
+    db.add(artifact)
+    await db.flush()
+    return artifact
 
 
 async def _record_skip(
@@ -2059,7 +2709,16 @@ async def _record_skip(
         db.add(state)
     state.status = status
     state.failure_reason = failure_reason or "No concrete free issuer adapter route is configured."
-    state.last_checked_at = datetime.now(UTC)
+    now = datetime.now(UTC)
+    state.last_checked_at = now
+    state.last_failure_at = now
+    state_metadata = _state_metadata(state.extra_data)
+    state.extra_data = {
+        **state_metadata,
+        "consecutive_failures": _failure_streak(state_metadata) + 1,
+        "last_error_class": "RouteNotReady",
+        "last_failure_class": "route_not_ready",
+    }
 
 
 async def _record_probe(
@@ -2086,10 +2745,15 @@ async def _record_probe(
     state.source_url = probe.source_url
     state.source_identifier = probe.issuer_product_id
     state.last_checked_at = datetime.now(UTC)
+    state_metadata = _state_metadata(state.extra_data)
     state.extra_data = {
-        **(state.extra_data or {}),
+        **state_metadata,
         "probe_confidence": str(probe.confidence),
         "required_identifiers": probe.required_identifiers,
+        "consecutive_failures": 0
+        if probe.status == "ready"
+        else _failure_streak(state_metadata) + 1,
+        "last_failure_class": None if probe.status == "ready" else "route_not_ready",
     }
 
 
@@ -2113,6 +2777,28 @@ async def _record_success(db: AsyncSession, profile: ETFProfile, snapshot=None) 
     state.rate_limit_state = None
     state.last_success_at = now
     state.last_checked_at = now
+    observation_metadata = _state_metadata(snapshot.extra_data if snapshot is not None else None)
+    state_metadata = _state_metadata(state.extra_data)
+    state.extra_data = {
+        **state_metadata,
+        **{
+            key: observation_metadata.get(key)
+            for key in (
+                "source_tier",
+                "source_provider",
+                "transport_kind",
+                "expected_cadence",
+                "schema_fingerprint",
+            )
+            if observation_metadata.get(key) is not None
+        },
+        "consecutive_failures": 0,
+        "last_failure_class": None,
+        "last_canary_failure_class": None,
+    }
+    state.extra_data.pop("last_schema_drift", None)
+    if snapshot is not None and snapshot.source_provider:
+        state.extra_data["source_provider"] = snapshot.source_provider
     if snapshot is not None:
         state.source_url = snapshot.source_url
         state.source_identifier = snapshot.source_identifier
@@ -2139,30 +2825,14 @@ def _rate_limit_state_for_failure(exc: Exception | str) -> str | None:
 
 async def _record_failure(db: AsyncSession, profile: ETFProfile, failure: Exception | str) -> None:
     adapter_key = profile.adapter_key or "unresolved"
-    # The request-scoped async session deliberately disables autoflush.  A
-    # preceding adapter probe can therefore leave its new state row in
-    # ``session.new`` without making it visible to this SELECT.  Reusing that
-    # pending object avoids a second INSERT against the unique
-    # (etf_profile_id, adapter_key) constraint when the dated fetch fails.
-    state = next(
-        (
-            pending
-            for pending in getattr(db, "new", ())
-            if isinstance(pending, ETFHoldingsAdapterState)
-            and pending.etf_profile_id == profile.id
-            and pending.adapter_key == adapter_key
-        ),
-        None,
-    )
-    if state is None:
-        state = (
-            await db.execute(
-                select(ETFHoldingsAdapterState).where(
-                    ETFHoldingsAdapterState.etf_profile_id == profile.id,
-                    ETFHoldingsAdapterState.adapter_key == adapter_key,
-                )
+    state = (
+        await db.execute(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                ETFHoldingsAdapterState.adapter_key == adapter_key,
             )
-        ).scalar_one_or_none()
+        )
+    ).scalar_one_or_none()
     if state is None:
         state = ETFHoldingsAdapterState(etf_profile_id=profile.id, adapter_key=adapter_key)
         db.add(state)
@@ -2171,3 +2841,18 @@ async def _record_failure(db: AsyncSession, profile: ETFProfile, failure: Except
     state.rate_limit_state = _rate_limit_state_for_failure(failure)
     state.last_failure_at = datetime.now(UTC)
     state.last_checked_at = state.last_failure_at
+    state_metadata = _state_metadata(state.extra_data)
+    failure_class = _canary_failure_class(failure)
+    state.extra_data = {
+        **state_metadata,
+        "consecutive_failures": _failure_streak(state_metadata) + 1,
+        "last_error_class": type(failure).__name__ if isinstance(failure, Exception) else "Error",
+        "last_failure_class": failure_class,
+    }
+    if isinstance(failure, ETFHoldingsSchemaDriftError):
+        state.extra_data["last_schema_drift"] = {
+            "previous_fingerprint": failure.previous_fingerprint,
+            "observed_fingerprint": failure.observed_fingerprint,
+            "parser_version": failure.parser_version,
+            "observed_at": state.last_failure_at.isoformat(),
+        }

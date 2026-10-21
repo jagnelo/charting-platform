@@ -1,0 +1,4033 @@
+# ETF Holdings Constituents — Approved Implementation Plan
+
+## 1. Purpose and authority
+
+This is the exhaustive, durable implementation plan for branch
+`feat/etf-holdings-constituents`. It records the plan approved by the human on
+2026-09-02 so a later Codex implementation session can resume without relying on
+conversation history.
+
+Implementation must occur only in the registered worktree:
+
+`/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents`
+
+This document authorizes implementation direction, not closure. The branch must
+stop at `ready_for_human_review`. It must not integrate into `staging` or
+`master`, promote, deploy, delete worktrees, mutate another worktree, or clean
+resources outside its repository-scoped workflow ownership.
+
+Governing sources, in precedence order:
+
+1. latest unambiguous human instruction;
+2. automatically discovered `AGENTS.md`;
+3. `docs/agent-orchestration.md`;
+4. branch-owned schema-4 `plan.yaml`;
+5. this implementation plan;
+6. current code, tests, provider ledger, handoff, and validation evidence.
+
+If sources disagree, preserve the stricter safety/evidence boundary and update
+durable records in the same coherent checkpoint as the decision.
+
+## Current implementation checkpoint — VistaShares native promotion — 2026-09-25
+
+VistaShares is now a native provider route for RTOO, AIS, AMMO, QUSA, OMAH,
+ACKY, and DRKY. Each official product page declares a symbol-scoped complete
+holdings CSV; the adapter verifies page/form identity, declared row-count
+completeness, account identity, a single non-future composition date, freshness,
+and derivative/cash row semantics. The bounded live evidence returned
+2026-09-24 snapshots with 62, 64, 53, 85, 76, 38, and 68 rows respectively.
+The provider universe is consequently 496 registered / 420 native / 76
+fallback-only, with 55 route-discovery fallback records. The shared
+provider-platform `ETF_HOLDINGS` capability bridge remains intentionally
+deferred until that branch reaches staging.
+
+## 2. Authoritative starting baseline
+
+### 2.1 Git and workflow
+
+- Branch: `feat/etf-holdings-constituents`
+- Parent role: `staging`
+- Original staging base: `89bb5c05ad1635156285d392b7c39b3c341ad8f1`
+- Latest staging merge commit: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
+- Staging SHA incorporated by that merge: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
+- Earlier fully represented branch checkpoint: `a8d618995fbd928c66117271bb7ac9152a935ab5`
+- Validation tier: `full_integration`
+- Required local profile: `docker_integration`
+- Goal budget: unbounded unless the human later authorizes an exact positive
+  budget; no budget is currently authorized.
+- Human closure authorization: pending.
+
+### 2.2 Provider state
+
+Current code is authoritative. Derive these values again at each checkpoint;
+never maintain them as an independent implementation constant.
+
+| Classification | Count |
+|---|---:|
+| Registered issuer adapter configurations | 496 |
+| Native/live-backed providers | 416 |
+| Audited fallback-only providers | 80 |
+| Native plus fallback | 496 |
+
+The current 80 fallback audits divide into:
+
+| Audit status | Count |
+|---|---:|
+| `issuer_access_blocked` | 7 |
+| `needs_first_party_route_discovery` | 63 |
+| `non_executable_public_source` | 3 |
+| `provider_not_a_portfolio_publisher` | 7 |
+
+The approved plan began from a 356-native/140-fallback baseline. The current
+checkpoint has reconciled `docs/etf-provider-universe.md` and the branch-owned
+ledger to 414 native and 82 fallback providers; code-derived counts remain the
+authoritative truth and must be re-derived at every subsequent checkpoint.
+
+### 2.3 Historical continuity
+
+This is continuation work, not a rebuild:
+
+| Checkpoint | Registered | Native | Fallback |
+|---|---:|---:|---:|
+| Initial July continuation context | 345 | 288 | 57 |
+| Expanded named-issuer reconciliation | 496 | 332 | 164 |
+| Prior checkpoint `a8d6189` | 496 | 339 | 157 |
+| Approved-plan baseline | 496 | 356 | 140 |
+
+Relative to `a8d6189`, current code includes native promotions for `academy`,
+`acsi_funds`, `alerian`, `altshares`, `calvert`, `fairlead`, `impact_shares`,
+`keating`, `leverage_shares`, `oakmark`, `oshares`, `range`, `redwood`, `rex`,
+`sofi`, `sterling_fund`, `thrivent`, and `truth_social`.
+
+`anfield` moved in the opposite direction after its issuer route returned 404;
+it is deliberately fallback-only. Do not restore native status merely to match
+an older count.
+
+### 2.4 Validation already known and still required
+
+Last known deterministic evidence at the current provider implementation:
+
+- complete adapter unit module: 501 passed;
+- default/non-opt-in live module: 2 passed, 404 skipped;
+- Ruff over the adapter and ETF tests: passed.
+
+Those are historical context and must not be presented as validation of a future
+implementation SHA. The complete opt-in live matrix has not been rerun at the
+356-native baseline. Older evidence at 339 native was 346 passed and 1 skipped;
+that also is not current proof.
+
+## 3. Non-negotiable correctness contracts
+
+### 3.1 Native means a real provider-owned route
+
+A provider can leave `FALLBACK_ISSUER_AUDITS` and count as native only when:
+
+1. A complete holdings source is controlled by the issuer, fund sponsor, or an
+   explicitly entitled first-party service.
+2. The application can execute it under a documented public, free, or
+   already-entitled access model.
+3. It returns complete portfolio constituents, not prices, a factsheet, top-ten
+   holdings, fund metadata, a different index, or SEC filing data.
+4. The adapter owns a concrete `fetch_latest` entry point; registry-only
+   aliasing to generic fallback is not native.
+5. Symbol mapping is strict enough that the route cannot silently return the
+   wrong fund.
+6. Parsing handles the provider's actual schema, preamble, encoding, file type,
+   date fields, cash/derivative rows, identifiers, and weight conventions.
+7. Source provenance and as-of/freshness fields state what was truly supplied.
+8. Empty, partial, stale, unauthorized, blocked, mismatched, or malformed
+   responses fail explicitly or use a documented truthful fallback policy.
+9. Deterministic fixtures test the provider-specific route and parser.
+10. Concrete opt-in live coverage includes the adapter key in the exhaustive
+    live-backed-provider matrix.
+11. Current bounded live evidence proves the route executes, unless a genuine
+    external outage is separately and narrowly evidenced after deterministic
+    correctness is proved.
+
+SEC-derived holdings must always remain labelled SEC-derived. Successful SEC
+fallback is not native issuer coverage.
+
+### 3.2 Fallback is an evidence-backed disposition
+
+Every remaining fallback must record:
+
+- adapter key and display name;
+- controlled audit status;
+- last attempted UTC date;
+- first-party domains and routes examined;
+- representative US ETF symbols/products;
+- exact access/result category;
+- why the source is incomplete, blocked, non-executable, irrelevant, inactive,
+  or still undiscovered;
+- whether an entitlement would change the result;
+- next concrete action or terminal disposition;
+- safe source references, never credentials, cookies, or sensitive payloads.
+
+"Needs discovery" is a queue state, not an acceptable final conclusion after
+the exhaustive pass.
+
+### 3.3 Set and matrix invariants
+
+At every coherent checkpoint:
+
+```text
+registered == native + fallback
+native intersection fallback == empty
+native union fallback == registered
+every native key has provider-owned fetch behavior
+every native key has deterministic route/parser tests
+every native key has concrete live-test coverage
+every fallback key has exactly one current ledger record
+no ledger key exists outside the registered universe
+```
+
+Tests, not prose, must enforce these relationships.
+
+## 4. Required AI-driven development lifecycle
+
+### 4.1 Resume and preflight
+
+Every implementation model must:
+
+1. Enter only the exact ETF worktree.
+2. Read `AGENTS.md`, `docs/agent-orchestration.md`, `plan.yaml`, this document,
+   `handoff.md`, `session.json`, and `validation.jsonl` completely.
+3. Run `make agent-context` and confirm the implementation role, exact branch,
+   and exact assigned `.ai/worktrees/...` path.
+4. Inspect status, local HEAD, remote feature HEAD, session, and writer claim.
+5. Resume the supported session or start the repository-prescribed next session
+   while preserving prior session IDs.
+6. Do not install, switch, merge, rebase, reset, clean, or touch another
+   worktree as a preflight shortcut.
+
+### 4.2 Goal handling
+
+Create or resume exactly one session-local Codex goal from the objective emitted
+by `make agent-session-plan-ready`. Omit `token_budget` unless a later human
+instruction records an exact authorization. Record the goal active through the
+repository workflow.
+
+Goals are execution aids; committed workstream state is durable truth. Do not
+mark the goal complete before AC1–AC8 are complete. Do not mark it blocked just
+because provider research is slow or one route is unavailable.
+
+### 4.3 Changeset discipline
+
+Use bounded, named changesets. Each provider or coherent provider-family
+changeset should contain:
+
+1. documented research/disposition;
+2. adapter/config/audit changes;
+3. deterministic fixtures and tests;
+4. live-test registration and bounded probe evidence;
+5. ledger and provider-universe updates;
+6. current count/matrix evidence;
+7. handoff/session/validation updates.
+
+Before moving on:
+
+- run focused provider tests and exhaustive invariants;
+- run Ruff over touched Python files;
+- inspect the diff for secrets, broad formatting, unrelated edits, stale counts,
+  and unsupported claims;
+- commit a coherent implementation context;
+- push only the reviewed exact range to the feature branch;
+- record a separate operations checkpoint commit/push when workflow commands
+  update durable session state.
+
+Never retry a rejected push indirectly. Record the exact SHA/range and transport
+hold if egress rejects it.
+
+### 4.4 Human-in-the-loop pause conditions
+
+Request direction before:
+
+- buying or requesting a new subscription, credential, account, browser login,
+  or material entitlement;
+- interpreting unclear licensing/automated-access terms in a way that changes
+  product behavior;
+- expanding the provider universe materially beyond the current 496;
+- changing a public product contract or schema outside owned ETF paths;
+- integrating, promoting, deploying, deleting branches/worktrees, or modifying
+  another worktree;
+- making a product decision that evidence alone cannot resolve.
+
+An ordinary issuer-route failure is not a workstream blocker. Classify it
+precisely and continue down the queue.
+
+## 5. Phase A — repair durable state before provider changes
+
+### A1. Re-derive registry truth
+
+Use a read-only import/query against the adapter module to derive registered,
+native, fallback, and status sets, plus missing/extra/intersection sets. Also
+derive native keys lacking owned `fetch_latest`, deterministic coverage, or
+concrete live-test coverage. Record the command and summary in
+`validation.jsonl`; do not hard-code 356/140 into implementation logic.
+
+### A2. Reconcile documentation
+
+Update `docs/etf-provider-universe.md` from derived state: correct current
+counts/statuses/names, native definition, and SHA-specific opt-in live evidence.
+Keep historical counts only when explicitly dated and labelled historical.
+
+### A3. Repair ownership and handoff
+
+Keep feature operations metadata inside
+`ops/workstreams/feat-etf-holdings-constituents/`. Do not claim global
+`ops/state.json` or `ops/handoff.md`. Handoff must name exact SHA, evidence, and
+next bounded changeset.
+
+### A4. Exit gate
+
+AC1 completes only after counts are derived and consistent, stale current-state
+prose is reconciled, workstream validation passes, the durable-state checkpoint
+contains no provider implementation, and local/remote SHAs match.
+
+## 6. Phase B — exhaustive provider audit ledger
+
+Create `ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml`.
+
+### B1. Top-level contract
+
+```yaml
+schema: 1
+branch: feat/etf-holdings-constituents
+baseline_sha: <exact SHA>
+baseline_registered_count: 496
+baseline_native_count: 356
+baseline_fallback_count: 140
+ranking_method: <stable documented rule>
+generated_at: <UTC timestamp>
+providers: [...]
+```
+
+### B2. Provider record contract
+
+```yaml
+- adapter_key: example
+  display_name: Example
+  starting_status: needs_first_party_route_discovery
+  current_status: queued
+  queue_rank: 1
+  representative_symbols: []
+  estimated_us_etf_count: null
+  estimated_us_etf_aum: null
+  us_equity_breadth: null
+  estimate_sources: []
+  first_party_domains: []
+  candidate_routes: []
+  source_format: null
+  access_model: public
+  credential_required: false
+  route_complete: false
+  symbol_mapping_proven: false
+  current_holdings_proven: false
+  parser_fixture: null
+  live_test: null
+  attempt_history: []
+  disposition: needs_first_party_route_discovery
+  disposition_reason: <issuer-specific text>
+  next_action: <one concrete action>
+  implementation_sha: null
+  validation_refs: []
+```
+
+Attempt history records UTC timestamp, route/domain, method, HTTP/result
+category, lesson, and non-sensitive evidence reference.
+
+### B3. Deterministic prioritization
+
+Rank lexicographically by:
+
+1. estimated US-listed ETF count, descending;
+2. estimated ETF AUM, descending;
+3. US-equity holdings breadth, descending;
+4. expected source freshness/daily availability, descending;
+5. adapter key ascending as stable tie-break.
+
+Unknown values sort after known values at each dimension. Store evidence date
+and source. Better evidence may re-rank the queue, but the calculation must stay
+deterministic and committed.
+
+### B4. Controlled statuses
+
+- `queued`
+- `in_research`
+- `native_candidate`
+- `native_promoted`
+- `issuer_access_blocked`
+- `non_executable_public_source`
+- `provider_not_a_portfolio_publisher`
+- `inactive_or_successor_disposition`
+- `needs_first_party_route_discovery` (temporary only)
+- `human_decision_required`
+
+Do not invent a terminal status merely to reduce the open count.
+
+### B5. Ledger invariants
+
+Add deterministic validation proving all starting fallback keys appear once;
+current fallbacks have non-promoted entries; promoted keys remain historically
+recorded; active queue ranks are unique/contiguous; dates are ISO-8601; terminal
+records have specific evidence; counts reconcile to code; and no secret-looking
+fields or values are stored.
+
+## 7. Phase C — normalize in-code fallback audits
+
+Preserve `IssuerFallbackAudit` unless a small backward-compatible extension is
+proved necessary. Normalize every `FALLBACK_ISSUER_AUDITS` item so status is
+controlled, `last_checked` is real, reason names actual route/result evidence,
+and access blocking is distinguished from 404, incomplete data, non-publisher,
+staleness, and missing mapping. Never generalize one dead route into proof that
+no source exists. Keep detailed attempt history in the ledger and concise
+product-facing disposition in runtime code.
+
+Phase C is complete only when no final fallback retains a generic untouched
+discovery note.
+
+## 8. Phase D — provider investigation loop
+
+For each ranked provider:
+
+1. Confirm issuer identity, current brand/successor, relevant US ETFs, and
+   representative symbols. Distinguish issuer, adviser, sub-adviser, white-label
+   platform, index owner, private-equity manager, and unrelated names.
+2. Inspect legitimate first-party fund pages, network requests, holdings
+   downloads, CSV/XLS/XLSX/JSON/XML endpoints, official APIs, embedded fund IDs,
+   data centers, and already-entitled configured sources.
+3. Never use a third-party aggregator as provider-owned proof, circumvent access
+   controls, or store credentials/cookies.
+4. Prove the response is full holdings for the requested fund, current enough,
+   identifiable, and interpretable for weights, cash, derivatives, short rows,
+   and multiple representative products.
+5. Prove stable reproduction without private transient browser state, or an
+   allowed deterministic session-init flow.
+6. Select a precise status. A complete executable source becomes
+   `native_candidate`; blocks, incompleteness, non-publisher relationships, and
+   successor states retain specific evidence. If still unknown after bounded
+   research, record a narrow next action and continue elsewhere.
+
+## 9. Phase E — native implementation contract
+
+### E1. Adapter construction
+
+Implement the smallest truthful provider-specific adapter. Reuse shared request
+or parsing primitives only when the provider contract truly matches. Define or
+explicitly inherit provider-specific route construction, method/headers/body,
+timeouts/retries, symbol mapping, response detection, parsing, normalized
+fields, as-of extraction, provenance, freshness, and explicit failures.
+
+### E2. Parsing cases
+
+Cover applicable BOM/encoding, delimiter/quoting, spreadsheet sheets/preambles,
+JSON wrappers/pagination, percent versus decimal weights, locale numbers,
+missing identifiers, duplicates/share classes, shorts, cash, derivatives,
+totals/footers, absent/stale dates, HTML errors with HTTP 200, wrong-fund
+responses, and empty/partial portfolios.
+
+Do not loosen global parsing for one malformed provider unless safety for every
+existing consumer is regression tested.
+
+### E3. Registry transition order
+
+After adapter and deterministic tests exist:
+
+1. wire the concrete adapter into `ISSUER_ADAPTER_CONFIGS`;
+2. set native/live-backed flags truthfully;
+3. remove the key from `FALLBACK_ISSUER_AUDITS`;
+4. mark the ledger record promoted;
+5. add concrete live coverage;
+6. derive and verify the simple expected delta: native +1, fallback -1,
+   registered unchanged;
+7. regenerate/reconcile documentation.
+
+Unexpected deltas require investigation before commit.
+
+### E4. Minimum deterministic tests
+
+For every promotion test route/request construction, known mapping, unknown
+symbol behavior, realistic fixture parsing, source/as-of/freshness metadata,
+malformed/empty/partial behavior, relevant HTTP/access failures, no false native
+classification through SEC fallback, and exhaustive registry ownership.
+
+Use small sanitized fixtures in established conventions. Never commit private
+or unbounded source downloads.
+
+### E5. Minimum live tests
+
+Add the key to concrete coverage in
+`backend/tests/live/test_etf_holdings_live_providers.py`. Probe representative
+symbols, plausible nonempty full portfolios, requested-provider provenance,
+plausible date, challenge/error payload detection, bounded request volume, and
+diagnostics separating route drift from parser failure. Network probes stay
+opt-in behind `RUN_LIVE_ETF_HOLDINGS_TESTS=1`.
+
+A mock never replaces the live probe; a live probe never replaces deterministic
+parser tests.
+
+## 10. Starting fallback population
+
+Seed the ledger from these 140 baseline keys. Re-derive and diff before commit;
+if code changed, record the delta rather than silently copying this snapshot.
+
+### 10.1 `issuer_access_blocked` — 8
+
+- `aegon`
+- `anfield`
+- `guinness_atkinson`
+- `manulife`
+- `q3`
+- `ridgeline`
+- `westwood`
+- `wisdomtree`
+
+### 10.2 `non_executable_public_source` — 3
+
+- `epwa`
+- `pacific_investments`
+- `planrock`
+
+### 10.3 `provider_not_a_portfolio_publisher` — 6
+
+- `epiris`
+- `eurazeo`
+- `marathon`
+- `msc_group`
+- `orix`
+- `rock_point`
+
+### 10.4 `needs_first_party_route_discovery` — 123
+
+- `advisors_asset_management`
+- `alphaclone`
+- `alphamark_advisors`
+- `amg_national`
+- `amplius`
+- `anydrus`
+- `argent`
+- `arin`
+- `ars`
+- `avory`
+- `avos`
+- `azimut`
+- `baillie_gifford`
+- `ballast`
+- `bancreek`
+- `beehive`
+- `blueprint`
+- `bridgeway`
+- `brookstone`
+- `bufferlabs`
+- `bushido`
+- `capforce`
+- `castellan`
+- `conductor_fund`
+- `credit_suisse`
+- `cresalta`
+- `desjardins`
+- `discipline_funds`
+- `dvx_ventures`
+- `ea_series_trust`
+- `elements`
+- `elm`
+- `emirate_abu_dhabi`
+- `esoterica`
+- `etf_managers_group`
+- `even_herd`
+- `everence`
+- `falconx`
+- `fcf_advisors`
+- `first_manhattan`
+- `fitzgerald`
+- `formula_folio`
+- `fpa`
+- `framework_digital_advisors`
+- `freedom`
+- `fundstrat`
+- `gc_ferry_parent`
+- `genter_capital`
+- `gotham`
+- `granite_group_advisors`
+- `guggenheim`
+- `hexis`
+- `highland_capital`
+- `hilton`
+- `horizons`
+- `hoya`
+- `jlens`
+- `knowledge_leaders`
+- `logiq`
+- `long_pond`
+- `lsv`
+- `m2_financial`
+- `m_d_sass`
+- `madison_avenue`
+- `matrix`
+- `max`
+- `mcelhenny_sheffield`
+- `measured_risk_portfolios`
+- `merchant_investment_management`
+- `meridian`
+- `merk`
+- `merlyn_ai`
+- `mig_capital`
+- `militia`
+- `milliman`
+- `moonvest`
+- `nestyield`
+- `new_age_alpha`
+- `nicholas_wealth`
+- `norris_perne_french`
+- `north_square`
+- `opus_capital_management`
+- `pabrai`
+- `panagram`
+- `parnassus_investments`
+- `pathfinder`
+- `performance_trust`
+- `portfolio_building_block`
+- `premise_capital`
+- `putnam`
+- `pzena`
+- `quadratic`
+- `rareview_funds`
+- `return_stacked`
+- `river1`
+- `riverfront`
+- `robo_global`
+- `roc`
+- `rockefeller_capital`
+- `saba_capital`
+- `sammons_enterprises`
+- `sapient`
+- `saturna`
+- `segall_bryant_hamill`
+- `siren`
+- `smi_funds`
+- `sophus`
+- `srh`
+- `stance`
+- `strategy_shares`
+- `stratified`
+- `subversive`
+- `suncoast`
+- `swedish_export_credit`
+- `towle`
+- `trimtabs`
+- `tweedy_browne`
+- `us_benchmark_series`
+- `vega_financial`
+- `vistashares`
+- `wellesley_asset_management`
+- `worth_charting`
+- `yoke`
+
+## 11. Per-changeset verification
+
+Replace `<selector>` with provider-specific test names/keys. Codex shell calls
+must carry the repository-required `rtk` prefix; commands stored here show the
+underlying reproducible invocation.
+
+1. Workstream validation:
+
+   ```sh
+   uv run --project backend python scripts/validate-workstream.py \
+     ops/workstreams/feat-etf-holdings-constituents
+   ```
+
+2. Focused deterministic tests:
+
+   ```sh
+   uv run --project backend pytest \
+     backend/tests/unit/services/test_etf_holdings_adapters.py \
+     -k '<selector> or recognition_only_adapter_has_an_explicit_source_audit or every_live_backed_adapter_owns_its_fetch_entry_point' \
+     -q --no-cov
+   ```
+
+3. Default live-module contracts:
+
+   ```sh
+   uv run --project backend pytest \
+     backend/tests/live/test_etf_holdings_live_providers.py \
+     -k 'provider_matrix_covers_every_registered_issuer_adapter or live_backed_providers_each_have_a_concrete_live_route_test' \
+     -q --no-cov
+   ```
+
+4. Bounded changed-provider live probe:
+
+   ```sh
+   RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest \
+     backend/tests/live/test_etf_holdings_live_providers.py \
+     -k '<selector> or provider_matrix_covers_every_registered_issuer_adapter or live_backed_providers_each_have_a_concrete_live_route_test' \
+     -q --no-cov
+   ```
+
+5. Ruff:
+
+   ```sh
+   uv run --project backend ruff check \
+     backend/app/services/etf_holdings_adapters.py \
+     backend/tests/unit/services/test_etf_holdings_adapters.py \
+     backend/tests/live/test_etf_holdings_live_providers.py
+   ```
+
+6. Derive provider counts/status/matrix and append concise SHA-specific evidence
+   to `validation.jsonl`.
+7. Run `git diff --check`; inspect unstaged and staged diffs.
+8. Commit/push the coherent implementation context; then record and push the
+   separate branch-owned operations checkpoint where required.
+
+## 12. Milestones and failure classification
+
+After each 5–10 promotions or coherent issuer family, run the complete adapter
+unit module, default live module, full opt-in live module when rate limits
+permit, Ruff, workstream/ledger validators, count query, workflow progress, and
+clean/remote synchronization checks. If the full live matrix cannot reasonably
+run every changeset, store each route's last live-probe date, but run the full
+current matrix before review.
+
+Classify live failures causally:
+
+| Failure | Required response |
+|---|---|
+| DNS/network outage | Preserve deterministic evidence; record external condition; retry reasonably |
+| 401/403/entitlement | Verify access model; classify blocked or request human decision |
+| CAPTCHA/bot challenge | Do not bypass; classify access blocked |
+| 404/410 | Find current official route/product state; do not retain native on a dead route |
+| HTML/error body with 200 | Fail content validation and investigate route drift |
+| Schema drift | Add fixture, repair narrowly, rerun deterministic and live tests |
+| Empty/partial holdings | Fail promotion/native route unless explicitly explained |
+| Stale as-of date | Distinguish calendar cadence from genuinely stale data |
+| Wrong fund returned | Treat as critical symbol-mapping failure |
+
+## 13. Final validation and review gate
+
+After all 140 starting fallbacks have final ledger outcomes:
+
+1. Re-derive final sets/counts/status totals and prove every invariant.
+2. Run the complete deterministic adapter module.
+3. Run the default live module.
+4. Run the complete opt-in live provider matrix with
+   `RUN_LIVE_ETF_HOLDINGS_TESTS=1`.
+5. Run Ruff over all owned Python files.
+6. Validate the workstream and provider ledger.
+7. Run `make agent-session-validate SESSION_ID=<active-session-id>` for the
+   required `docker_integration` profile. The repository-selected Docker-backed
+   full-integration gate is mandatory; focused green tests do not replace it.
+8. Push exact reviewed implementation and operations checkpoint commits.
+9. Record exact-SHA CI. A green run for another SHA is not evidence.
+10. Confirm repository-owned Docker resources are accounted for and use only
+    scoped cleanup.
+11. Confirm clean status and local HEAD equals remote feature HEAD.
+12. Update ledger, provider universe, plan AC progress/gaps, handoff, validation
+    records, and session state with exact evidence.
+13. Set `ready_for_human_review` through repository workflow and stop. Do not
+    integrate, promote, deploy, delete the branch, or claim human closure.
+
+## 14. Definition of ready for human review
+
+- All 140 starting fallbacks appear exactly once in historical ledger state.
+- Every proven complete legitimate first-party route is implemented and
+  validated as native.
+- Every remaining provider has a dated issuer-specific defensible disposition;
+  no untouched generic discovery placeholder is treated as final.
+- Classification remains truthful even if the final native count is lower than
+  hoped.
+- Registry sets reconcile without intersections or omissions.
+- Every native owns its route and has deterministic plus live coverage.
+- Code, tests, live manifest, documentation, ledger, plan, handoff, and
+  validation records agree.
+- Complete deterministic, current opt-in live, Ruff, Docker integration, and
+  exact-SHA CI evidence is current, with only narrowly documented genuine
+  external outages distinguished from application failures.
+- Branch is clean and synchronized.
+- Closure remains pending; integration and deployment have not occurred.
+
+## 15. Immediate next action
+
+This original activation checklist is retained for historical continuity. The
+current execution resumes after the completed GC Ferry Parent, Genter Capital,
+and Gotham checkpoints; the live next action is recorded in the latest
+execution section below.
+
+Resume the branch workflow and active unbudgeted Codex goal. Begin AC1 and AC2,
+not a speculative provider adapter:
+
+1. derive registry/native/fallback sets from code;
+2. reconcile any delta from 496/356/140;
+3. create the complete provider ledger with controlled fields;
+4. calculate/document the deterministic priority order;
+5. add ledger/count invariants;
+6. update stale provider-universe counts;
+7. validate, commit, push, and checkpoint that durable-state changeset;
+8. begin the highest-ranked provider investigation loop.
+
+This ordering makes every later decision recoverable and safe to continue
+across Codex models.
+
+## 16. Previous execution checkpoint — 2026-09-02 (superseded by §17)
+
+The approved plan is active in the dedicated feature worktree. The durable
+implementation state has advanced beyond the historical 356/140 baseline as
+follows:
+
+| Classification | Current count |
+|---|---:|
+| Registered issuer adapter configurations | 496 |
+| Native/live-backed providers | 374 |
+| Audited fallback-only providers | 122 |
+
+The current fallback status split is 8 `issuer_access_blocked`, 105
+`needs_first_party_route_discovery`, 3 `non_executable_public_source`, and 6
+`provider_not_a_portfolio_publisher`. The ledger still retains all 140 original
+records exactly once, including the dated terminal dispositions for providers
+that no longer remain in the runtime fallback set. There are 87 queued records
+still requiring issuer-specific evidence or a final disposition.
+
+Completed work in this execution includes the following native promotions and
+dispositions already recorded in the branch-owned ledger: Guggenheim, ARS,
+Avory, Ballast, Bancreek, BeeHive, Blueprint, Bridgeway, Brookstone,
+BufferLABS, Bushido, CapForce, Castellan, Conductor Fund, CresAlta, Elm,
+Esoterica, and Even Herd. ETF Managers Group is recorded as an
+`inactive_or_successor_disposition` after Amplify's official acquisition and
+fund-reorganization notice; Emirate Abu Dhabi, DVx Ventures, EA Series Trust,
+and the other previously reviewed identities retain their evidence-specific
+terminal or blocked dispositions.
+
+The current implementation checkpoint is `0ac2cc29a7cfb1d8b27468a9c74618ad67c3a0f9`.
+It adds `EvenHerdHoldingsAdapter` for EHLS, resolves the official product-page
+declared daily `holdings.csv`, filters the EHLS account strictly, preserves
+cash and long/short rows, records issuer-reported freshness and provenance,
+and includes deterministic and opt-in live coverage. Deterministic adapter
+tests pass 521/521; default live contracts pass 2 with 437 opt-in skips; the
+bounded Even Herd live route passes 1/1; Ruff, workstream validation, and
+whitespace checks pass. The full Docker-backed integration gate at
+`2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd` reached e2e-functional but recorded
+153 passed, 106 skipped, and one failure in the unrelated
+`F8p-current-history` Study Lab browser flow. A fresh-stack isolated retry
+reproduced the failure as a missing histogram element (`toBeVisible` timeout),
+not an ETF holdings error. AC7 therefore remains open pending an independent
+repair or approved disposition of that pre-existing e2e gap; no unrelated
+application code is changed by this workstream. The separate durable
+operations checkpoint must record the updated ledger, handoff,
+provider-universe counts, validation evidence, and session next action before
+the next queue investigation.
+
+The next ranked queue item at that checkpoint was `everence`; §17 records its
+resolution. Continue the same evidence loop from the next queued provider:
+inspect official product and holdings routes, promote only a complete
+executable first-party source with strict identity and parser tests, otherwise
+record a dated issuer-specific disposition. The Docker readiness check succeeds
+under the narrow elevated permission required to access the local socket, while
+the unprivileged sandbox cannot open that socket. The full Docker-backed
+integration gate remains pending; this permission boundary is not permission to
+weaken the native-route contract or to integrate the feature branch.
+
+## 17. Current execution checkpoint — Everence/Praxis — 2026-09-02
+
+The ranked `everence` audit is now resolved through the existing Praxis native
+publisher route. The official Praxis ETF catalogue and individual holdings
+pages identify PRXG, PRXV, and PRXI and declare complete current holdings CSVs
+at the issuer's Azure publisher. The route is current as of September 2, 2026;
+the PRXG, PRXV, and PRXI files contain 161, 277, and 277 account-scoped rows
+respectively.
+
+The implementation adds an explicit `EverenceHoldingsAdapter` that subclasses
+the verified `PraxisHoldingsAdapter` rather than duplicating transport logic.
+It preserves the Everence adapter key and parent/publisher relationship in
+provenance, rejects unsupported symbols as native routes, filters each CSV to
+the exact requested account, parses exchange-suffixed international tickers
+such as `ASML NA`, preserves SEDOL identifiers, recognizes money-market/cash
+rows, and records the issuer-disclosed composition date. The existing Praxis
+adapter now shares the same exchange-aware symbol normalization and identifier
+preservation, improving PRXI coverage without changing its verified route.
+
+The code-derived split after this promotion is 496 registered, 375
+native/live-backed, and 121 fallback-only providers. Fallback status counts are
+8 issuer-access-blocked, 104 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger still
+retains all 140 historical records exactly once, with `everence` now marked
+`native_promoted`; 86 queued fallback records remain for the next audit pass.
+
+Implementation checkpoint `1b29a6fb97bd353adce61b03b2aa216f56c83e53` contains
+the route, tests, and live-manifest changes. The full deterministic adapter
+module passes 522 tests; the default live module passes 2 with 440 opt-in
+skips; and the bounded opt-in PRXG, PRXV, and PRXI checks pass 4 selected
+cases (the fourth is the live-route matrix contract). Ruff, workstream
+validation, and whitespace checks pass. The Docker-backed gate's existing
+unrelated F8p-current-history Study Lab failure remains a separate AC7 gap and
+must not be fixed from this ETF workstream.
+
+## 18. Current execution checkpoint — FalconX/21Shares — 2026-09-02
+
+The ranked `falconx` audit is now resolved as a parent-company promotion through
+FalconX's independently managed 21Shares ETF/ETP subsidiary. FalconX's official
+acquisition announcement establishes the parent/publisher relationship, while
+the official 21Shares U.S. product catalogue currently lists ARKB, TETH, TOXR,
+TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS.
+
+The catalogue's ARKB product page declares the primary and secondary API hosts
+and the `/api/product_details/{ticker}` route. As of September 2, 2026, both
+official hosts returned current September 1 product-detail payloads for all ten
+symbols. The payloads contain complete parseable constituent data: one crypto
+asset row for each single-asset product, four rows for TCAN, and nine rows for
+TKNS, including cash or money-market entries where disclosed.
+
+The implementation adds an explicit `FalconXHoldingsAdapter` that subclasses
+the existing 21Shares transport, switches the parent route to the page-declared
+primary and secondary hosts, restricts native readiness/fetching to the ten
+verified U.S. symbols, and records FalconX as `parent_issuer` with 21Shares as
+the publisher. The 21Shares parser's crypto classification now includes the
+verified XRP, DOT, SUI, HYPE, and Canton Coin tickers in addition to its prior
+asset set. Unsupported symbols remain `needs_issuer_route` unless SEC
+identifiers enable the universal filing fallback.
+
+The code-derived split after this promotion is 496 registered, 376
+native/live-backed, and 120 fallback-only providers. Fallback status counts are
+8 issuer-access-blocked, 103 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger still
+retains all 140 historical records exactly once, with `falconx` now marked
+`native_promoted`; 85 queued fallback records remain for the next audit pass.
+
+Implementation checkpoint `2ffa2796a00391b482b03f1cb2a5be12a1a1be61` contains
+the adapter, registry/config, deterministic parser/provenance test, and
+ten-product opt-in live coverage. The focused FalconX/21Shares unit slice
+passes 4 tests; the opt-in FalconX live route passes 1 test while exercising all
+ten symbols; Ruff and whitespace checks pass. The full deterministic adapter
+module and default live contract matrix must be rerun after the durable ledger
+checkpoint. The Docker-backed gate's existing unrelated F8p-current-history
+Study Lab failure remains a separate AC7 gap and must not be fixed from this ETF
+workstream.
+
+The next ranked queue item is `fcf_advisors`. Continue the same evidence loop:
+inspect official product and holdings routes, promote only a complete executable
+first-party source with strict identity and parser tests, otherwise record a
+dated issuer-specific disposition. Do not integrate, promote, deploy, or push
+the feature branch without the separately required authorization.
+
+## 19. Current execution checkpoint — FCF Advisors successor disposition — 2026-09-02
+
+The ranked `fcf_advisors` audit is resolved as an inactive/successor identity,
+not as a duplicate native provider. Abacus Life's official rebrand and
+acquisition announcement states that FCF Advisors was acquired and rebranded as
+Abacus FCF Advisors. The current official Abacus FCF catalogue publishes ABFL,
+ABLG, ABLD, ABOT, ABLS, and ABXB product pages, while the historical FCF
+Advisors identity no longer presents a distinct publisher route.
+
+Each current successor product page links a complete daily
+`{SYMBOL}_allHoldings.csv` file from `abacusfcf.com`. Bounded read-only checks on
+September 2, 2026 returned HTTP 200 for all six files; they contained 58, 51,
+50, 52, 48, and 9 data rows respectively (plus headers), with issuer dates
+shown as September 1, 2026 on the product pages. The existing
+`AbacusGlobalHoldingsAdapter` already validates these pages, discovers the
+declared files, parses identifiers/quantities/values/weights and cash rows, and
+has deterministic plus opt-in live coverage.
+
+No `FcfAdvisorsHoldingsAdapter` is added: current holdings belong to the
+existing `abacus_global` successor identity, and registering a second native
+route would misrepresent the provider universe and duplicate coverage. The
+FCF ledger record keeps its runtime fallback key for historical discovery, but
+its dated `current_status` and `disposition` are
+`inactive_or_successor_disposition`; its next action is to resolve historical
+symbols to `abacus_global` and reopen only if FCF Advisors becomes a distinct
+current ETF publisher again.
+
+The code-derived split remains 496 registered, 376 native/live-backed, and 120
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 103 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger still
+retains all 140 historical records exactly once, and 84 queued fallback records
+remain for the next audit pass. The next ranked queue item is
+`first_manhattan`.
+
+This successor-only audit changes durable evidence and queue state but no
+runtime code. The focused ledger/reconciliation tests, workstream validator,
+and whitespace checks pass. The existing full deterministic/live evidence at
+the FalconX checkpoint remains valid; Docker integration still has the
+unrelated F8p-current-history Study Lab gap.
+
+## 20. Current execution checkpoint — First Manhattan — 2026-09-02
+
+The ranked `first_manhattan` audit is resolved as a dated
+`non_executable_public_source` disposition. First Manhattan's official
+Excelsior ETF site identifies two current U.S. products, FMCX and FMCE, through
+the home catalogue and their product pages. The official pages explicitly state
+that, unlike traditional ETFs, the funds do not make their assets public daily
+and instead disclose holdings sixty days after the end of each quarter. The
+official FMCX prospectus independently confirms the non-transparent disclosure
+model. No complete current holdings file or reproducible machine-readable
+endpoint is declared by the issuer.
+
+This evidence does not satisfy the feature's current holdings contract, which
+requires a complete executable first-party artifact with current-date
+provenance. No `FirstManhattanHoldingsAdapter` is added, and the identity is
+not promoted through SEC filings or a third-party table. The ledger retains the
+runtime fallback key for discovery compatibility while recording FMCX/FMCE,
+the official domains and product routes, quarterly-sixty-day freshness, the
+dated evidence refs, and the explicit non-executable disposition.
+
+The code-derived split remains 496 registered, 376 native/live-backed, and 120
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 103 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher; the First Manhattan
+ledger disposition does not alter the runtime audit manifest. The exhaustive
+ledger retains all 140 historical records exactly once, and 83 queued fallback
+records remain. The next ranked queue item is `fitzgerald`.
+
+This checkpoint changes the provider-audit evidence and queue state but no
+runtime code. The focused ledger/reconciliation tests, workstream validator,
+and whitespace checks must be recorded against the resulting durable SHA. The
+existing full deterministic/live evidence at the FalconX checkpoint remains
+valid; the current Docker-backed gate still has the unrelated reproducible
+F8p-current-history Study Lab histogram timeout.
+
+## 21. Current execution checkpoint — Fitzgerald/Nicholas Wealth — 2026-09-02
+
+The ranked `fitzgerald` audit is promoted through the official XFUNDS by
+Nicholas Wealth pages for the Fitz-Gerald Must Have Portfolio ETF (FITZ) and
+the Fitz-Gerald Must Have Portfolio and Options Overlay ETF (FIZY). Each page
+declares a holdings download whose page script resolves to a nonce-scoped
+`twm_download=holdings&ticker={symbol}` CSV endpoint on `nicholasx.com`.
+
+Bounded live requests on September 2, 2026 returned HTTP 200 CSV artifacts
+dated September 2, 2026. FITZ returned 31 parseable rows and FIZY returned 112
+rows, including the FIZY option positions. The new explicit
+`FitzgeraldHoldingsAdapter` validates the requested product page and issuer
+domain, discovers the current nonce-bearing download URL rather than relying
+on a stale hard-coded nonce, enforces ticker scoping, preserves CUSIPs,
+quantities, market values, weights, cash, and dates, and classifies FIZY option
+contracts as derivatives with no tradable equity symbol. Its metadata records
+Nicholas Wealth as publisher and parent issuer, the Fitz-Gerald product
+relationship, current daily provenance, and the page-declared route.
+
+The adapter configuration is native/live-backed and the live manifest covers
+both FITZ and FIZY in one bounded opt-in test. The deterministic unit test
+covers nonce discovery, issuer-domain rejection, current-date parsing,
+account scoping, metadata, and derivative classification. The full
+deterministic adapter module passes 524 tests; the default live contract matrix
+passes 2 with 442 opt-in skips; the focused opt-in Fitzgerald test passes 1;
+Ruff and whitespace checks pass.
+
+The code-derived split after this promotion is 496 registered, 377
+native/live-backed, and 119 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 102 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger retains
+all 140 historical records exactly once, with `fitzgerald` marked
+`native_promoted`; 82 queued fallback records remain and the next ranked item
+is `formula_folio`. The separate `nicholas_wealth` identity remains queued for
+its own identity audit; this promotion does not create a duplicate route for
+that key.
+
+Implementation checkpoint
+`a1caaa0c6da2ded19891795b58e6e6ffe9ae09fd` contains the adapter, registry and
+config, deterministic parser/provenance coverage, and opt-in live coverage.
+The durable ledger/docs/session checkpoint must reference this code SHA. The
+full current opt-in provider matrix and Docker-backed integration gate remain
+pending at the 377-native baseline; the known unrelated F8p-current-history
+Study Lab histogram timeout remains an AC7 gap.
+
+## 22. Current execution checkpoint — FormulaFolios inactive/successor disposition — 2026-09-02
+
+The ranked `formula_folio` audit found no current portfolio to promote. The
+official SEC-hosted August 1, 2023 supplement names FormulaFolios Hedged Growth
+ETF (FFHG), FormulaFolios Smart Growth ETF (FFSG), FormulaFolios Tactical Growth
+ETF (FFTG), and FormulaFolios Tactical Income ETF (FFTI), and records the
+Board-authorized orderly liquidation: trading ended October 6, 2023, the funds'
+assets were expected to be liquidated and distributed on October 16, 2023, and
+the funds would terminate after distribution. The official FormulaFolios site
+is retained only as a historical candidate domain and does not establish a
+current executable holdings route.
+
+Brookstone's official combination announcement establishes that Brookstone and
+FormulaFolios combined under the Brookstone name, with the FormulaFolios brand
+retained for asset-management oversight. Current Brookstone ETFs and their
+complete holdings routes are already represented by the distinct native
+`brookstone` identity; no duplicate FormulaFolios adapter or SEC-derived native
+route is warranted.
+
+The ledger record now preserves FFHG, FFSG, FFTG, and FFTI, the historical and
+successor domains, both dated official evidence references, the liquidation
+dates, and an explicit `inactive_or_successor_disposition`. Route completeness,
+symbol mapping, and current holdings proof remain false. The runtime
+`FormulaFolioReconciledFallbackHoldingsAdapter` and audit manifest are retained
+for historical/compatibility behavior, so runtime fallback status counts do not
+change.
+
+The code-derived split remains 496 registered, 377 native/live-backed, and 119
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 102 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with
+`formula_folio` now terminally recorded as inactive/successor; 81 queued
+fallback records remain and the next ranked item is `fpa`. The separate
+`brookstone` identity remains the current native successor route.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation; no runtime code changes are required. The focused ledger and
+reconciliation tests, workstream validator, whitespace checks, and validation
+receipt must be recorded against the resulting documentation SHA. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+377-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout still an AC7 gap.
+
+## 30. Current execution checkpoint — Granite Group Advisors non-portfolio disposition — 2026-09-03
+
+The ranked `granite_group_advisors` audit resolved a wealth-management adviser
+identity rather than a distinct ETF portfolio publisher. Granite Group Advisors'
+official site describes customized wealth-management portfolios and allocation to
+independent fund managers. Its official Form ADV says the firm does not offer
+proprietary products such as target-date or lifestyle funds; it may purchase
+exchange-traded funds for client accounts, but that is client-account activity,
+not sponsorship or publication of ETF portfolios. SEC and AdviserInfo records
+identify the organization as an investment adviser/manager and do not expose an
+ETF trust, product catalogue, or issuer holdings feed.
+
+The ledger now records `granite_group_advisors` as
+`provider_not_a_portfolio_publisher`, preserving the official Granite Group and
+SEC/AdviserInfo routes and dated evidence. No runtime adapter, registry,
+fallback-manifest, or live-test change is required; manager/13F disclosures
+remain explicitly ineligible as ETF constituents. The code-derived split remains
+496 registered, 381 native/live-backed, and 115 fallback-only providers. Runtime
+fallback status counts remain 8 issuer-access-blocked, 98
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The exhaustive ledger retains all 140 historical
+records exactly once, with 73 queued fallback records remaining; the next ranked
+queued item is `hexis`.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation. The current runtime implementation baseline remains
+`5f8d0b9dacf7231ae9ea1a906d1360c798bd1812`; the ledger and documentation
+receipt must reference the resulting documentation SHA and dated Granite Group
+evidence. The complete deterministic adapter suite, full opt-in provider matrix,
+and Docker-backed integration gate remain pending at the 381-native baseline;
+the known unrelated reproducible F8p-current-history Study Lab histogram timeout
+remains an AC7 gap.
+
+## 29. Current execution checkpoint — Gotham ETFs native promotion — 2026-09-03
+
+The ranked `gotham` audit found complete executable first-party routes for the
+three current Gotham ETFs. Gotham's official catalogue and product pages
+identify GSPY as The Gotham Enhanced 500 ETF, GVLU as The Gotham 1000 Value ETF,
+and SHRT as The Gotham Short Strategies ETF. Each symbol-specific page exposes
+an official `DownloadHoldings` CSV route on `gothametfs.com`; the current SAI
+also identifies the three funds and directs investors to GothamETFs.com for
+daily portfolio holdings. The official September 2, 2026 exports contained 502
+GSPY rows, 481 GVLU rows, and 677 SHRT rows.
+
+The new explicit `GothamHoldingsAdapter` maps only GSPY, GVLU, and SHRT to their
+verified product download paths. It rejects unsupported symbols and unapproved
+source URLs, requires the exact declared CSV schema and one consistent as-of
+date, validates the final URL remains on the issuer host and requested product
+path, parses percentage-point and dollar values, preserves CUSIPs and signed
+shares, assigns USD, and records Gotham ETFs publisher / Gotham Asset Management
+parent provenance. Cash & Other rows are normalized as cash; SHRT TRS rows are
+normalized as derivatives with no tradable symbol while retaining signed short
+quantities and source identifiers.
+
+The deterministic unit test covers all three symbol mappings, probe behavior,
+source URL rejection, complete-schema parsing, date/weight/value conversion,
+cash semantics, and SHRT derivative/short semantics. The opt-in live test
+fetches all three official CSV routes, enforces conservative minimum row counts,
+checks current provenance/freshness, and requires SHRT cash, derivative, and
+negative-position evidence. `gotham` is now in the native/live-backed registry,
+the ETF.com reconciliation native set, and the exhaustive live-provider
+manifest; it is removed from the fallback audit manifest.
+
+The code-derived split after this promotion is 496 registered, 381
+native/live-backed, and 115 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 98 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `gotham` marked
+`native_promoted`; 74 queued fallback records remain and the next ranked item is
+`granite_group_advisors`.
+
+Implementation checkpoint SHA: `5f8d0b9dacf7231ae9ea1a906d1360c798bd1812`.
+The provider-audit ledger and documentation checkpoint must reference this SHA
+and the dated Gotham evidence. The focused Gotham unit and opt-in live checks
+passed; the complete deterministic adapter suite, full opt-in provider matrix,
+and Docker-backed integration gate remain pending at the 381-native baseline.
+The known unrelated reproducible F8p-current-history Study Lab histogram
+timeout remains an AC7 gap.
+
+## 28. Current execution checkpoint — Genter Capital identity reconciliation — 2026-09-03
+
+The ranked `genter_capital` audit resolved an alternate identity for an
+existing native publisher rather than requiring a second adapter. Genter
+Capital's official product pages and public settings document identify the
+GENT, GEND, GENM, and GENW funds and bind each ticker to a fund-scoped
+identifier. The repository already implements that route as `mcivy` through
+Genter's disclosed Nottingham Company fund-data endpoint, with strict
+symbol/fund/name checks, complete holdings parsing, cash and derivative
+classification, effective-date freshness, deterministic coverage, and an
+opt-in live GEND test. ETF Database's issuer-brand record also labels the
+Genter products as McIvy Co. LLC / Genter Capital, confirming the identity
+relationship.
+
+The ledger now records `genter_capital` as
+`inactive_or_successor_disposition`, preserving the four representative
+symbols, official Genter and Nottingham routes, dated source evidence, and the
+existing `mcivy` runtime configuration/live receipt. Route completeness and
+symbol mapping remain false for the duplicate key so native ownership is not
+double-counted; no runtime adapter, registry, fallback manifest, or live test
+changes are required. The existing `mcivy` adapter remains the sole native
+owner and should be extended only for additional Genter products after the
+same identity-verified, complete current holdings contract is proven.
+
+The code-derived split remains 496 registered, 380 native/live-backed, and 116
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 99 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. With GC Ferry
+Parent and Genter Capital resolved in the ledger, 75 records remain queued and
+`gotham` is the next planned audit item.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation. The current runtime implementation baseline remains
+`e33ddd8ebd919d14e1969af2aa36537864ece0f2`; the ledger and documentation
+receipt must be recorded against the resulting documentation SHA. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+380-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout still an AC7 gap.
+
+## 27. Current execution checkpoint — GC Ferry Parent identity reconciliation — 2026-09-03
+
+The ranked `gc_ferry_parent` audit resolved a corporate-parent identity rather
+than a distinct holdings publisher. The SEC's August 25, 2026 Form 8-K
+identifies GC Ferry Parent, L.P. as the seller and GC Ferry Holdings, Inc. as
+First Eagle in the proposed Victory Capital acquisition. The current First
+Eagle Form ADV records the ownership chain from GC Ferry Parent through GC
+Ferry Holdings and First Eagle Holdings to First Eagle Investment Management,
+LLC, and identifies FEIM as adviser to the First Eagle ETF Trust. GC Ferry
+Parent is therefore an ownership/holding identity above the publisher and does
+not expose an independent ETF holdings route.
+
+First Eagle's official ETF catalogue identifies the current FEGE, FEOE, USFE,
+and FEMD products and links their publisher-owned product pages. Those pages,
+not GC Ferry Parent, are the source of current holdings tables. The existing
+`first_eagle` adapter remains the sole native owner for the publisher route;
+creating a second GC Ferry adapter would duplicate ownership and misstate
+provenance. No runtime adapter, registry, fallback manifest, or live test
+changes are required for this identity disposition.
+
+The provider-audit ledger now records `gc_ferry_parent` as
+`provider_not_a_portfolio_publisher`, with the four representative First Eagle
+symbols, dated SEC/Form ADV/catalogue evidence, explicit First Eagle publisher
+resolution, and a reopen condition only if GC Ferry Parent later exposes a
+distinct ETF portfolio route. The code-derived split remains 496 registered,
+380 native/live-backed, and 116 fallback-only providers. Runtime fallback
+status counts remain 8 issuer-access-blocked, 99 needs-first-party-route-
+discovery, 3 non-executable-public-source, and 6 non-portfolio-publisher; 76
+ledger records remain queued and `genter_capital` is the next planned audit
+item.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation. The current runtime implementation baseline remains
+`e33ddd8ebd919d14e1969af2aa36537864ece0f2`; the ledger and documentation
+receipt must be recorded against the resulting documentation SHA. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+380-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout still an AC7 gap.
+
+## 26. Current execution checkpoint — Fundstrat Granny Shots — 2026-09-03
+
+The ranked `fundstrat` audit found complete executable first-party routes for
+the Fundstrat Granny Shots ETF family. The official full-holdings pages on
+`grannyshots.com` identify and publish current portfolios for GRNY (Fundstrat
+Granny Shots US Large Cap ETF), GRNJ (Fundstrat Granny Shots US Small- & Mid-Cap
+ETF), and GRNI (Fundstrat Granny Shots US Large Cap & Income ETF). Each page
+server-renders a complete table with Ticker, CUSIP, Name, Weight, Shares, and
+Market Value fields plus a Holdings-as-of date of September 2, 2026. The live
+row counts were 42 for GRNY, 62 for GRNJ, and 130 for GRNI.
+
+The new explicit `FundstratHoldingsAdapter` maps only GRNY, GRNJ, and GRNI to
+their verified full-holdings pages. It validates symbol-specific page identity,
+rejects unapproved URLs, selects the complete table by required headers,
+requires a bounded non-trivial row count, parses and requires the disclosed
+holdings-as-of date, converts percentage and dollar strings, preserves CUSIPs
+and shares, assigns USD, and records Fundstrat Capital as publisher/parent.
+GRNI's `Type=Option` rows are mapped to derivative holdings with no tradable
+symbol, while ordinary stock rows are normalized to equity holdings. The route
+does not depend on SEC reconstruction or an undocumented endpoint.
+
+The deterministic unit test covers all three symbol mappings, probe behavior,
+unsupported symbols, source URL rejection, identity checks, complete-table
+parsing, date parsing, weight/value conversion, identifier preservation, GRNI
+option classification, and publisher/provenance metadata. The opt-in live test
+fetches all three official pages, requires their observed minimum row counts,
+checks current metadata, and requires derivative classification on GRNI. The
+ETF.com brand reconciliation invariant now treats `fundstrat` as
+native-promoted, the fallback manifest no longer lists it, and the
+live-provider manifest owns the bespoke three-product route test.
+
+The code-derived split after this promotion is 496 registered, 380
+native/live-backed, and 116 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 99 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `fundstrat` marked
+`native_promoted`; 77 queued fallback records remain and the next ranked item
+is `gc_ferry_parent`.
+
+Implementation checkpoint SHA: `e33ddd8ebd919d14e1969af2aa36537864ece0f2`.
+The provider-audit ledger and documentation checkpoint must reference this SHA
+and the dated Granny Shots evidence. The complete opt-in provider matrix and
+Docker-backed integration gate remain pending at the 380-native baseline; the
+known unrelated reproducible F8p-current-history Study Lab histogram timeout
+remains an AC7 gap.
+
+## 25. Current execution checkpoint — Freedom ETFs / FRDM — 2026-09-03
+
+The ranked `freedom` audit found a complete, executable first-party route for
+the Freedom 100 Emerging Markets ETF (`FRDM`). Freedom ETFs' official product
+page at `https://freedometfs.com/frdm/` identifies the requested ticker and fund
+name, declares a Fund Holdings table with the headers Ticker, Name, CUSIP,
+SEDOL, Shares, Price, Market Value ($mm), and % of Net Assets, and publishes a
+separate Effective Date table. The live page returned an effective date of
+September 2, 2026 and 136 embedded holding rows, including a Cash & Other row.
+The table is server-rendered in the issuer page HTML; no undocumented or paid
+endpoint was required.
+
+The new explicit `FreedomHoldingsAdapter` is scoped strictly to FRDM and the
+verified product-page URL. It validates the page identity, rejects an
+unapproved source URL, selects the table by its complete holdings schema,
+requires a bounded complete result, parses the separate effective-date table,
+converts Market Value ($mm) into dollar market values, converts percentage-point
+weights into canonical decimals, preserves CUSIP/SEDOL/shares, assigns USD, and
+classifies Cash & Other as cash. Metadata records the issuer page, effective-date
+freshness, Freedom ETFs as publisher/parent, and the native snapshot
+provenance. Long-form month-name dates are now accepted by the shared issuer
+date parser because the official page uses `September 2, 2026`.
+
+The deterministic unit test covers FRDM probing, unsupported-symbol routing,
+source URL rejection, page identity, table parsing, effective-date parsing,
+million-dollar conversion, weight conversion, identifiers, cash semantics, and
+publisher/provenance metadata. The opt-in live test fetches the official page,
+requires at least 100 rows and a cash row, and verifies the native metadata
+contract. The ETFDB issuer-league reconciliation invariant now treats
+`freedom` as native-promoted, the fallback manifest no longer lists it, and the
+live-provider manifest owns the bespoke FRDM test.
+
+The code-derived split after this promotion is 496 registered, 379
+native/live-backed, and 117 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 100 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `freedom` marked
+`native_promoted`; 78 queued fallback records remain and the next ranked item
+is `fundstrat`.
+
+Implementation checkpoint SHA: `5518a3c3f43556d81aedcbb0ff2c0e1de47fe7be`.
+The provider-audit ledger and documentation checkpoint must reference this SHA
+and the dated Freedom page/live evidence. The complete opt-in provider matrix
+and Docker-backed integration gate remain pending at the 379-native baseline;
+the known unrelated reproducible F8p-current-history Study Lab histogram timeout
+remains an AC7 gap.
+
+## 24. Current execution checkpoint — Framework Digital Advisors / GSR BESO — 2026-09-03
+
+The ranked `framework_digital_advisors` audit found one current executable
+first-party route. The official Framework/GSR product page at
+`https://gsretps.io/etf/beso` identifies BESO as the GSR Crypto Core3 ETF and
+declares the `gsr-transformer.gsr.io` API client. Its details endpoint returns
+the matching BESO product identity and `updateAt: 2026-09-01T00:00:00.000Z`;
+its holdings endpoint returns nine rows, including the underlying ETF/fund
+positions and a Cash & Other row.
+
+The new explicit `FrameworkDigitalAdvisorsHoldingsAdapter` validates the
+official product-page identity, uses only the issuer-declared details and
+holdings hosts, verifies the returned ticker, parses the JSON schema with
+strict symbol/name requirements, converts percentage-point weights, classifies
+underlying ETFs/funds and cash, and records the details `updateAt` date as
+composition/as-of freshness. Metadata preserves GSR ETFs as the publisher and
+Framework Digital Advisors as adviser/parent identity. The adapter is
+deliberately scoped to BESO: SEC-listed DATZ and other candidate GSR symbols
+currently return no product page or API data, so they are not silently
+reconstructed through EDGAR.
+
+The deterministic unit test covers product identity, official-domain rejection,
+details/holdings request ordering, symbol mapping, fund/cash classification,
+weight conversion, freshness, and parent/publisher provenance. The bounded
+opt-in live test covers the current BESO API route and requires a cash row. The
+ETFDB issuer-league reconciliation invariant now treats
+`framework_digital_advisors` as native-promoted, and the live-provider manifest
+owns a bespoke route test for the new adapter.
+
+The code-derived split after this promotion is 496 registered, 378
+native/live-backed, and 118 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 101 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with
+`framework_digital_advisors` marked `native_promoted`; 79 queued fallback
+records remain and the next ranked item is `freedom`.
+
+Implementation and validation records for this checkpoint must reference the
+resulting adapter/config/test SHA and the dated Framework/GSR evidence. The
+complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 378-native baseline; the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout remains an AC7 gap.
+
+## 23. Current execution checkpoint — FPA alias to First Pacific Advisors — 2026-09-02
+
+The ranked `fpa` audit resolved an identity duplicate rather than adding a
+second native adapter. First Pacific Advisors' official fund catalogue lists
+the FPA Global Equity ETF (FPAG), FPA Short Duration Government ETF (FPAS), and
+FPA Global Allocation ETF (FPAA), all advised by First Pacific Advisors, LP.
+The repository already represents that same issuer as `first_pacific`, with a
+provider-specific dated multi-fund CSV adapter, deterministic parser coverage,
+and an opt-in live test for the verified FPAG route.
+
+The official FPAG page-declared daily export returned a September 2, 2026 CSV
+and the bounded opt-in `first_pacific` live test passed. The FPAS and FPAA
+product pages currently render placeholder `X/X/XX` holdings dates and no
+complete current rows in the bounded check; their current holdings routes are
+therefore not independently proven. Because `fpa` is an abbreviation for the
+same First Pacific Advisors identity, creating a duplicate native FPA adapter
+would violate provider ownership and could double-count the issuer.
+
+The ledger record now preserves FPAG, FPAS, and FPAA, the official FPA catalogue
+and product domains, the verified FPAG daily route, the runtime
+`first_pacific` configuration reference, and the explicit
+`inactive_or_successor_disposition`. Route completeness and symbol mapping for
+the duplicate key remain false; the existing `first_pacific` adapter remains
+the sole native owner and should be extended to FPAS/FPAA only after each
+product exposes a complete executable current holdings artifact and live proof.
+
+The code-derived split remains 496 registered, 377 native/live-backed, and 119
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 102 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `fpa` recorded as
+an inactive/successor alias; 80 queued fallback records remain and the next
+ranked item is `framework_digital_advisors`.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation; no runtime code changes are required. The focused
+ledger/reconciliation tests, workstream validator, whitespace checks, and live
+receipt must be recorded against the resulting documentation SHA. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+377-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout still an AC7 gap.
+
+## 31. Current execution checkpoint — Hexis Capital Management / NICO — 2026-09-03
+
+The ranked `hexis` audit found a complete, executable first-party route for the
+Hexis Active Nicotine Engagement ETF (`NICO`). The official product page at
+`https://hexis.capital/nico` identifies the fund and links to the public Hexis
+FilePoint application. The FilePoint NICO view at
+`https://hexis.filepoint.live/iframe_main.html` exposes a `Download Holdings`
+control, and its official application script declares the exact daily holdings
+CSV filename and route. The current CSV fetched on September 3, 2026 was dated
+September 3, 2026 and contained 18 NICO rows, including equities,
+exchange-suffixed international listings, signed TRS derivative positions, the
+FXFXX money-market fund, and Cash&Other.
+
+The new explicit `HexisHoldingsAdapter` is scoped strictly to NICO and the
+issuer-owned FilePoint chain. It validates product identity, the FilePoint
+iframe markers, the declared application-script filename, official host/path
+preservation, NICO account identity, the complete CSV schema, and one
+consistent as-of date. It splits exchange-suffixed symbols such as `033780 KS`,
+classifies funds/cash/derivatives, preserves raw CUSIPs and signed quantities,
+and records Hexis Capital Management/FilePoint publisher provenance plus the
+product/app/script/snapshot routes. Unsupported symbols continue to use the
+existing SEC fallback path only when a CIK is supplied; SEC data is not used to
+silently promote an unverified product.
+
+The deterministic unit test covers route declaration validation, request
+ordering, NICO identity, schema/date checks, exchange mapping, fund/cash/TRS
+classification, signed positions, and publisher/provenance metadata. The
+opt-in live test fetches the current FilePoint CSV, requires at least 20 rows,
+and verifies current-date, cash, derivative, and international-exchange
+semantics. The ETFDB issuer-league reconciliation invariant now treats `hexis`
+as native-promoted, removes it from the runtime fallback audit, and the
+live-provider manifest owns the bespoke NICO route test.
+
+The code-derived split after this promotion is 496 registered, 382
+native/live-backed, and 114 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 97 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `hexis` marked
+`native_promoted`; 72 queued fallback records remain and the next ranked item
+is `highland_capital`.
+
+Implementation and validation records for this checkpoint must reference the
+resulting Hexis adapter/config/test SHA and dated Hexis product, FilePoint, SEC,
+and live CSV evidence. The complete opt-in provider matrix and Docker-backed
+integration gate remain pending at the 382-native baseline; the known unrelated
+reproducible F8p-current-history Study Lab histogram timeout remains an AC7 gap.
+
+## 32. Current execution checkpoint — Highland Capital non-executable source — 2026-09-03
+
+The ranked `highland_capital` audit found a reachable issuer-owned holdings
+artifact but no complete canonical symbol mapping. Highland Capital's official
+ETF page at `https://www.highlandcap.com/etf/` identifies the HCM Large Cap
+Growth ETF (`AQLG`) and links the current CSV
+`https://www.highlandcap.com/wp-content/uploads/etf-holdings/AQLG_holdings_current.csv`.
+The live file returned 130 rows with names, CUSIPs, quantities, and percentage
+weights. Every row's `Ticker` field is blank. The same page identifies holdings
+as of August 25, 2026, while the second Highland Capital Large Cap Value ETF
+described in the current prospectus still has no assigned ticker or current
+holdings route.
+
+The official SEC prospectus at
+`https://www.sec.gov/Archives/edgar/data/1771146/000177114626000253/ck0001771146-20260129.htm`
+corroborates the AQLG product identity and directs investors to Highland's
+website for daily holdings, but it does not repair the missing ticker-bearing
+artifact. Third-party 13F/portfolio pages and external CUSIP lookups are not
+acceptable substitutes for issuer-published constituent mapping. Highland is
+therefore recorded as `non_executable_public_source`, with route completeness
+and symbol mapping unproven; no runtime adapter or false native promotion is
+added.
+
+The ledger preserves the issuer page, CSV, and SEC evidence, records AQLG as
+the representative symbol, and leaves the runtime fallback adapter unchanged.
+The ledger now has 71 queued records; runtime fallback status counts remain
+8 issuer-access-blocked, 97 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher because the
+code-derived Highland audit entry remains discovery while its ledger
+disposition is more specific. The next ranked queue item is `hilton`.
+
+The complete deterministic/live matrix and Docker-backed integration gate remain
+pending at the 382-native baseline; the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout remains an AC7 gap.
+
+## 33. Current execution checkpoint — Hilton SMCO/HBDC native promotion — 2026-09-03
+
+The ranked `hilton` audit found a complete, executable first-party route for
+both currently identified Hilton ETFs. The official Hilton ETFs home page and
+product pages identify the Hilton Small-MidCap Opportunity ETF (`SMCO`) and the
+Hilton BDC Corporate Bond ETF (`HBDC`). Each product page declares the shared
+`https://hiltonetfjson.com/etf/AllHoldings.csv` download, and the dedicated
+all-holdings pages provide the same route context. The current CSV returned on
+September 3, 2026 contained one `2026-09-02` snapshot with 160 HBDC account
+rows and 66 SMCO account rows.
+
+The new `HiltonHoldingsAdapter` validates the requested SMCO/HBDC identity,
+official product-page host/path, declared complete AllHoldings filename, data
+host/path, complete schema, account filtering, and one consistent trade date.
+It treats the issuer's percentage-point `Weightings` values as canonical
+fractions, preserves CUSIPs and raw source fields, retains signed quantities,
+and classifies SMCO equity, money-market fund, and Cash&Other rows alongside
+HBDC fixed-income, fund, and cash rows. Metadata records the Hilton ETFs
+publisher, Hilton Capital Management parent, official product/all-holdings/CSV
+routes, dated issuer-disclosed freshness, and the native snapshot provenance.
+
+The deterministic unit test covers unsupported symbols, source-route rejection,
+product-page declaration, request ordering, account-scoped filtering, date and
+weight conversion, fund/cash/fixed-income classification, and provenance. The
+opt-in live test fetches both SMCO and HBDC from the current official CSV,
+requires at least ten rows per account, and verifies each product's expected
+holding classes and metadata. Hilton is removed from the runtime fallback
+discovery audit and promoted in the exhaustive ledger.
+
+The code-derived split after this promotion is 496 registered, 383
+native/live-backed, and 113 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 96 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `hilton` marked
+`native_promoted`; 70 queued fallback records remain and the next ranked item
+is `horizons`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 383-native baseline; the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout remains an AC7 gap.
+
+## 34. Current execution checkpoint — Horizons inactive/successor disposition — 2026-09-03
+
+The ranked `horizons` audit found no current independent Horizons U.S. ETF
+publisher to promote. The official SEC reorganization document maps the former
+Horizons DAX Germany ETF, Horizons NASDAQ 100 Covered Call ETF, and Horizons
+S&P 500 Covered Call ETF into corresponding Global X DAX (`DAX`), Global X
+Nasdaq 100 Covered Call (`QYLD`), and Global X S&P 500 Covered Call (`HSPX`)
+funds. It states that Global X Management Company becomes adviser and that
+the Horizons target funds are transferred in complete liquidation and
+termination. Current Global X product pages expose the successor products and
+their holdings sections. The legacy Horizons USA URL now redirects to the
+Global X Canada site, and the last Horizons ETF Trust I financial statements
+are historical.
+
+Because the successor mapping is explicit and the current portfolio routes are
+already owned by the existing `global_x` identity, a separate Horizons native
+adapter would duplicate publisher ownership and misstate provenance. The
+ledger therefore records `horizons` as a dated
+`inactive_or_successor_disposition`, preserves the historical representative
+symbols and SEC/Global X routes, and leaves the runtime fallback class intact.
+No Holdings adapter, deterministic parser test, or live-provider entry is
+added for Horizons; future work should reopen only if Horizons independently
+sponsors a current U.S.-listed ETF and publishes a distinct complete
+first-party holdings route.
+
+The code-derived split remains 496 registered, 383 native/live-backed, and 113
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 96 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once; 69 queued fallback
+records remain and the next ranked item is `hoya`.
+
+## 35. Current execution checkpoint — Hoya alias reconciliation — 2026-09-03
+
+The ranked `hoya` audit confirmed that Hoya Capital's official HOMZ and RIET
+product pages identify the current U.S.-listed ETFs, publish complete
+identifier/CUSIP/shares/market-value holdings tables, and link the complete
+fund workbooks through the issuer-owned
+`download-holdings-usbanks.php?fund={symbol}` route. The official pages report
+current holdings-as-of dates and identify Hoya Capital as the ETF issuer/adviser.
+
+The repository already has a native `pettee` adapter for this same Hoya route.
+It validates the symbol-specific product page, the page-declared workbook URL,
+the workbook identity and required schema, and canonical row mapping while
+preserving CUSIPs and Hoya Capital Real Estate provenance. The bounded opt-in
+live test now exercises both HOMZ and RIET and passed for both current
+workbooks.
+
+The StockAnalysis `hoya` provider key is consequently recorded in the audit
+ledger as an `inactive_or_successor_disposition` alias of `pettee`. The runtime
+alias and URL-domain hints resolve Hoya Capital display names and
+`hoyaetfs.com`/`hoyacapital.com` product URLs to the existing native adapter.
+No duplicate Hoya adapter is added, and no SEC-derived fallback is promoted.
+The code-derived split remains 496 registered, 383 native/live-backed, and 113
+fallback-only providers; the exhaustive ledger now has 68 queued records and
+the next ranked item is `jlens`.
+
+## 36. Current execution checkpoint — JLens/TOV native promotion — 2026-09-03
+
+The ranked `jlens` audit verified the official JLens page at
+`https://investjewishly.org/`, which identifies TOV as the JLens 500 Jewish
+Advocacy U.S. ETF and exposes a complete server-rendered Fund Holdings table.
+The table includes ticker, name, CUSIP, SEDOL, shares, price, Market Value
+($mm), and percentage-of-net-assets columns; a separate Fund Data & Pricing
+table exposes the 2026-09-02 fund-data as-of date. The page is the first-party
+route of record; the adapter does not infer a holdings composition date from
+the pricing metadata.
+
+`JLensHoldingsAdapter` is registered as the native `jlens` owner. It enforces
+TOV and official-host identity, requires the complete holdings schema and a
+minimum-row completeness guard, converts Market Value ($mm) into dollars,
+preserves source identifiers/weights, and records JLens/Empowered Funds
+publisher provenance plus the fund-data date. Deterministic and bounded opt-in
+live tests cover parser mapping, value/date semantics, metadata, request
+routing, and the current 498-row page.
+
+The runtime fallback audit no longer contains `jlens`; the ledger record is
+`native_promoted`, with the official route and both parser/live evidence refs.
+The code-derived split is 496 registered, 384 native/live-backed, and 112
+fallback-only providers; runtime fallback status counts are 8 blocked, 95 route
+discovery, 3 non-executable, and 6 non-portfolio-publisher. The ledger has 67
+queued fallback records remaining, with `knowledge_leaders` next. The known
+unrelated F8p-current-history Study Lab histogram timeout remains the full
+Docker integration blocker.
+
+## 37. Current execution checkpoint — Knowledge Leaders/KNO native promotion — 2026-09-03
+
+The ranked `knowledge_leaders` audit found an executable first-party route in
+the official AXS Investments KNO product page and its declared FilePoint
+iframe. AXS identifies KNO and CUSIP 46144X396; the FilePoint application
+publishes the dated aggregate `BBH_AXS_ETF_PVAL_WEB.{YYYYMMDD}.csv` export.
+The 2026-09-02 snapshot contains 83 KNO rows and a single composition date.
+
+`KnowledgeLeadersHoldingsAdapter` validates both page and FilePoint hosts,
+requires the declared schema, bounds date lookback to 15 days, filters the
+multi-fund export to KNO, rejects mixed-date snapshots, preserves all available
+identifiers and source fields, converts percentage weights, and explicitly
+classifies cash and other-assets rows. The adapter records AXS Investments as
+publisher and Knowledge Leaders Capital as strategy parent/originator. The
+deterministic and bounded opt-in live tests cover route identity, date fallback,
+filtering, mapping, provenance, and current row/classification behavior.
+
+The runtime fallback audit no longer contains `knowledge_leaders`; its ledger
+record is `native_promoted` with official route, parser fixture, and live
+evidence references. The code-derived split is 496 registered, 385
+native/live-backed, and 111 fallback-only providers; runtime statuses are 8
+blocked, 94 route discovery, 3 non-executable, and 6 non-portfolio-publisher.
+The ledger has 66 queued fallback records remaining, with `logiq` next. The
+known unrelated F8p-current-history Study Lab histogram timeout remains the
+Docker integration blocker.
+
+## 38. Current execution checkpoint — Logiq/LCO native promotion — 2026-09-03
+
+The ranked `logiq` audit found a complete executable first-party route on the
+official LOGIQ ETF page at `https://logiqetf.com/`. The page identifies the
+LOGIQ Contrarian Opportunities ETF (`LCO`) and declares both the fund-scoped
+holdings download and static `TidalFG_Holdings_LCO.csv` export. The current
+issuer CSV is dated 2026-09-02 and contains 86 LCO rows.
+
+`LogiqHoldingsAdapter` subclasses the verified Tidal sponsor CSV path, adds
+strict LOGIQ page identity and route-marker validation, enforces the static
+issuer-domain CSV, requires at least 20 parsed rows, preserves CUSIPs,
+quantities, market values, and percentage weights, and classifies CASH and
+currency rows such as EUR as cash. It records LOGIQ ETF and LOGIQ Capital
+Partners provenance and supports LCO only. Deterministic fixture coverage
+exercises route declaration, source-domain checks, date and value parsing,
+cash/currency classification, metadata, and unsupported symbols; bounded opt-in
+live coverage exercises the current official route.
+
+The runtime fallback audit no longer contains `logiq`; the ledger record is
+`native_promoted` with official route, parser fixture, and live evidence refs.
+The code-derived split is 496 registered, 386 native/live-backed, and 110
+fallback-only providers; runtime statuses are 8 blocked, 93 route discovery, 3
+non-executable, and 6 non-portfolio-publisher. The ledger has 65 queued
+fallback records remaining, with `long_pond` next. The known unrelated
+F8p-current-history Study Lab histogram timeout remains the Docker integration
+blocker.
+
+## 41. Current execution checkpoint — M2 Financial / CapForce identity reconciliation — 2026-09-03
+
+The ranked `m2_financial` audit established that M2 Financial LLC is the
+investment adviser named in the Capital-Force ETF Trust filings for FFTY and
+BOUT, while CapForce is the issuer-owned portfolio publisher whose official
+product pages expose the complete current holdings tables. The existing
+`CapForceHoldingsAdapter` already owns both routes and their deterministic and
+opt-in live coverage.
+
+No separate M2 holdings route is executable or necessary. The provider-audit
+ledger records M2 as `provider_not_a_portfolio_publisher`, preserves FFTY/BOUT
+representative symbols and dated CapForce/SEC evidence, and explicitly resolves
+the adviser identity to the native CapForce publisher. Runtime fallback code is
+unchanged so the code-derived status counts remain 8 blocked, 91 route
+discovery, 3 non-executable, and 6 non-portfolio-publisher; the ledger queue is
+now 62 records and the next ranked issuer is `m_d_sass`.
+
+The next implementation cycle should investigate `m_d_sass` first-party ETF
+product pages and complete holdings routes, update the runtime audit only when
+the repository’s code-derived status truly changes, and maintain the same
+focused/deterministic/live/workstream validation sequence before each durable
+checkpoint.
+
+## 42. Current execution checkpoint — M.D. Sass / SASS route disposition — 2026-09-03
+
+The ranked `m_d_sass` audit checked the official M.D. Sass ETF page at
+`https://www.mdsassetf.com/`. The page identifies SASS and renders a Top 10
+Holdings table, but its current response contains `XX/XX/XXXX` date
+placeholders and dash values for every row, NAV, and AUM field. The official
+M.D. Sass SAI confirms the adviser and fund identity but is not a current
+complete holdings artifact. Third-party data and 13F filings are intentionally
+not treated as issuer-native ETF holdings.
+
+The ledger now records `m_d_sass` as `non_executable_public_source`, with the
+official page/SAI routes, SASS representative symbol, dated evidence, and a
+re-test action. No adapter or SEC-derived promotion is added. Runtime code
+remains unchanged: 496 registered, 388 native/live-backed, 108 fallback-only;
+runtime statuses are 8 blocked, 91 route discovery, 3 non-executable, and 6
+non-portfolio-publisher, while the ledger queue is 61 records and the next
+ranked issuer is `madison_avenue`.
+
+The next cycle should investigate `madison_avenue` first-party ETF product
+pages and complete holdings routes, preserving the distinction between an
+issuer-published current artifact and stale, placeholder, third-party, or
+regulatory-only data. Repeat focused invariants, deterministic/live checks,
+Ruff, workstream validation, and the durable checkpoint before any promotion.
+
+## 39. Current execution checkpoint — Long Pond/LPRE native promotion — 2026-09-03
+
+The ranked `long_pond` audit found an executable first-party route in the
+official Long Pond LPRE product page and its public CMS endpoint. The page at
+`https://www.longpondetf.com/lpre` identifies the Long Pond Real Estate Select
+ETF (`LPRE`) and declares a dated Holdings section. The CMS page route returns
+the exact `longpond-lpre-HoldingsComponent-1` component and its six-column
+holdings schema; the current 2026-09-01 payload contains 24 rows.
+
+`LongPondHoldingsAdapter` validates the official product-page host and LPRE
+identity, fetches the issuer CMS endpoint, validates the page/component/schema
+identity, requires a complete dated payload, maps FIGI/ticker/quantity/value/
+weight fields into canonical rows, and records Long Pond Capital / Exchange
+Traded Concepts provenance. It does not reconstruct holdings through SEC
+filings. The deterministic fixture covers the strict route and schema checks,
+date/value/weight mapping, metadata, request sequence, and unsupported symbols;
+the opt-in live test covers the current official route.
+
+The runtime fallback audit no longer contains `long_pond`; its ledger record is
+`native_promoted` with official route, parser fixture, and live evidence refs.
+The code-derived split is 496 registered, 387 native/live-backed, and 109
+fallback-only providers; runtime statuses are 8 blocked, 92 route discovery, 3
+non-executable, and 6 non-portfolio-publisher. The ledger has 64 queued
+fallback records remaining, with `lsv` next. The known unrelated F8p-current-
+history Study Lab histogram timeout remains the Docker integration blocker.
+## 40. Current execution checkpoint — LSV/LSVD native promotion — 2026-09-03
+
+The ranked `lsv` audit found a complete executable first-party route on the
+official LSV Asset Management product page at
+`https://www.lsvasset.com/disciplined-value-etf/`. The page identifies the LSV
+Disciplined Value ETF (`LSVD`), declares its 2026-09-01 holdings date, and links
+the complete `https://www.lsvasset.com/ETFLive/LSVD-holdings.csv` export. The
+current issuer file contains 136 rows and the exact Name, Ticker, ISIN, Number
+of Shares, Market Value, and % of NAV schema.
+
+`LsvHoldingsAdapter` validates the official page host and LSVD identity, requires
+the page-declared CSV route and exact schema, converts percentage-point weights,
+preserves ISIN/ticker/quantity/value fields, classifies Cash and the treasury-
+obligations sweep rows as cash equivalents, and records LSV Asset Management /
+The Advisors' Inner Circle Fund provenance. It does not reconstruct holdings
+through SEC filings. The deterministic fixture covers route and schema checks,
+date/value/weight mapping, cash classification, metadata, request routing, and
+unsupported symbols; bounded opt-in live coverage exercises the current route.
+
+The runtime fallback audit no longer contains `lsv`; its ledger record is
+`native_promoted` with official route, parser fixture, and live evidence refs.
+The code-derived split is 496 registered, 388 native/live-backed, and 108
+fallback-only providers; runtime statuses are 8 blocked, 91 route discovery, 3
+non-executable, and 6 non-portfolio-publisher. The ledger has 63 queued
+fallback records remaining, with `m2_financial` next. The known unrelated
+F8p-current-history Study Lab histogram timeout remains the Docker integration
+blocker.
+## 43. Current execution checkpoint — Madison Avenue / 6 Meridian identity reconciliation — 2026-09-03
+
+The ranked `madison_avenue` audit established that Madison Avenue Financial
+Solutions LLC (doing business as 6 Meridian) is the sub-adviser for the ETC 6
+Meridian ETF family. The official 6 Meridian catalogue identifies SIXH, SIXL,
+SIXA, SIXS, and SXQG and their pages expose current holdings sections, while
+SEC filings identify Exchange Traded Concepts as the fund adviser/trust
+publisher. The Madison Avenue identity therefore does not own a distinct
+portfolio-publishing route for a duplicate native adapter.
+
+The ledger records `madison_avenue` as `provider_not_a_portfolio_publisher`,
+preserves the five representative symbols and dated 6 Meridian/SEC evidence,
+and resolves the sub-adviser identity to the actual publisher. No duplicate
+adapter or SEC-derived promotion is added. Runtime code remains unchanged at
+496 registered, 388 native/live-backed, and 108 fallback-only; runtime statuses
+remain 8 blocked, 91 route discovery, 3 non-executable, and 6
+non-portfolio-publisher, while the ledger queue is 60 records and the next
+ranked issuer is `matrix`.
+
+The next cycle should investigate `matrix` first-party ETF product pages and
+complete holdings routes, preserving the distinction between issuer-published
+current artifacts and sub-adviser or regulatory identity evidence. Repeat
+focused invariants, deterministic/live checks, Ruff, workstream validation,
+and the durable checkpoint before any promotion.
+## 44. Current execution checkpoint — Matrix / MAVF issuer-access disposition — 2026-09-03
+
+The ranked `matrix` audit verified the official Matrix Advisors Value ETF page
+at `https://matrixadvisorsvalueetf.com/`. Indexed content identifies MAVF and
+shows a complete 27-row holdings table with ticker, name, CUSIP, shares, market
+value, and percentage columns. A bounded direct HTTP request from the adapter
+transport receives a Cloudflare “Attention Required” block before the page can
+be captured reproducibly.
+
+The ledger records `matrix` as `issuer_access_blocked`, preserving the MAVF
+route and dated web/transport evidence. No adapter or indexed/SEC-derived
+promotion is added. Runtime code remains 496 registered, 388 native/live-backed,
+108 fallback-only; runtime statuses remain 8 blocked, 91 route discovery, 3
+non-executable, and 6 non-portfolio-publisher because this terminal ledger
+disposition remains represented by the existing code-derived fallback adapter,
+while the ledger queue is 59 records and the next ranked issuer is `max`.
+
+The next cycle should investigate `max` first-party ETF product pages and
+complete holdings routes, retaining the distinction between an issuer route
+that exists but is transport-blocked and one that is executable. Repeat
+focused invariants, deterministic/live checks, Ruff, workstream validation,
+and the durable checkpoint before any promotion.
+## 45. Current execution checkpoint — MAX ETNs / CARD-CARU-JETD-JETU native promotion — 2026-09-03
+
+The ranked `max` audit verified the official MAX ETNs catalogue and product
+pages at `https://www.maxetns.com/products` and the CARD, CARU, JETD, and JETU
+routes. The catalogue identifies five Bank of Montreal MAX products. Four
+product pages expose complete server-rendered Index Constituents and Weights
+lists with 20 named constituents and an as-of date; SPYU is listed but its
+official page does not expose a constituent list.
+
+The native `max` adapter validates supported product identity and exact
+official routes, parses the complete dated constituent-weight list, and
+records the disclosure as ETN index components. Deterministic parser coverage
+and the bounded opt-in JETU live route pass. SPYU remains outside the native
+route until an equivalent issuer-owned constituent artifact is published; no
+third-party or SEC-derived data is promoted.
+
+The ledger now records `max` as `native_promoted`, increasing the code-derived
+split to 496 registered, 389 native/live-backed, and 107 fallback-only
+providers. Runtime fallback statuses are 8 issuer-access-blocked, 90
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The 140-record ledger has 58 queued fallback records;
+the next ranked issuer is `mcelhenny_sheffield`.
+
+Required durable evidence for this checkpoint:
+
+- `backend/app/services/etf_holdings_adapters.py::MaxHoldingsAdapter`
+- `backend/tests/unit/services/test_etf_holdings_adapters.py::test_max_adapter_fetches_jetu_index_constituents`
+- `backend/tests/live/test_etf_holdings_live_providers.py::test_live_max_jetu_product_page_index_constituents`
+- `web:max-etns-official-product-pages-2026-09-03`
+- `live:max-jetu-current-index-components-2026-09-03`
+
+The next cycle should continue with `mcelhenny_sheffield`, preserving the
+issuer-owned route requirement and repeating focused invariants, deterministic
+and opt-in live checks, Ruff, workstream validation, and the durable checkpoint
+before any further promotion.
+
+## 46. Current execution checkpoint — McElhenny Sheffield / MSMR native promotion — 2026-09-03
+
+The ranked `mcelhenny_sheffield` audit verified the official McElhenny
+Sheffield product page at `https://mscmfunds.com/msmr-etf/`. The page identifies
+MSMR as the McElhenny Sheffield Managed Risk ETF and publishes a complete
+seven-row current holdings table with Stock Ticker, CUSIP, Security Desc,
+Shares, Price, Market Value, Weightings, and Effective Date columns. The page
+reports current holdings as of August 31, 2026; the row effective date is
+September 1, 2026 and the table includes a Cash & Other row.
+
+Implementation adds `McElhennySheffieldHoldingsAdapter`, a provider-specific
+HTML-table fetch/parser that permits MSMR only, enforces the exact official
+route and product identity, rejects missing schema or dates, maps symbols and
+CUSIPs plus numeric holdings fields, classifies ETF/fund and cash rows, and
+preserves page/effective dates and native provenance. The registry config,
+fallback audit tuple, adapter map, deterministic fixture, live-backed manifest,
+and bespoke opt-in live test are updated together.
+
+The durable ledger checkpoint promotes `mcelhenny_sheffield`, updates the
+derived split to 496 registered / 390 native / 106 fallback, reduces the
+route-discovery runtime status to 89, and leaves 57 queued records with
+`measured_risk_portfolios` next. Required focused, deterministic, live, Ruff,
+and workstream checks must be recorded against the final implementation SHA;
+the known unrelated F8p-current-history Study Lab histogram timeout remains
+the full-integration blocker.
+
+## 47. Current execution checkpoint — Measured Risk Portfolios / SNTH-SNTQ native promotion — 2026-09-03
+
+The ranked `measured_risk_portfolios` audit verified the official Measured
+Risk Portfolios and SynthEquity sites. The SynthEquity product pages identify
+SNTH and SNTQ and declare issuer-owned daily holdings CSV routes. SNTH uses
+`https://synthequityfunds.com/wp-content/uploads/2026/07/snth_holdings_full.csv`;
+SNTQ uses `https://synthequityfunds.com/wp-json/mrp/v4/sntq-holdings-csv`.
+SNTH returned a current September 3, 2026 snapshot with 17 rows. The SNTQ
+endpoint is issuer-owned and parser-tested, but currently responds
+`Unavailable midnight-7am ET.` outside its serving window; it is not claimed
+as a separate live-green route in this checkpoint.
+
+Implementation adds `MeasuredRiskPortfoliosHoldingsAdapter` with strict
+SNTH/SNTQ product and route support, account-scoped dated CSV parsing,
+ticker/CUSIP and numeric-field mapping, percentage-point weight conversion,
+fixed-income/fund/option/cash classification, and provider-owned daily
+holdings provenance. A 403 from the issuer transport is retried once through
+the established browser-compatible synchronous requests path. The
+deterministic fixture covers both declared routes and the bounded opt-in live
+test exercises the current SNTH CSV, including Treasury, equity, option, and
+Cash&Other/money-market semantics.
+
+The registry, fallback audit tuple, adapter map, unit fixture, live-backed
+manifest, and bespoke live test are updated together. The durable ledger
+promotes `measured_risk_portfolios`, bringing the derived split to 496
+registered / 391 native / 105 fallback, reducing route-discovery runtime
+status to 88, and leaving 56 queued records with
+`merchant_investment_management` next. Required focused, deterministic,
+opt-in live, Ruff, and workstream checks are recorded against implementation
+SHA `e5567bec0ed53268195cf1866250e9e1a199143a`; the full opt-in matrix and
+Docker-backed integration gate remain pending with the known unrelated
+F8p-current-history Study Lab histogram timeout blocker.
+
+## 48. Current execution checkpoint — Merchant Investment Management disposition — 2026-09-03
+
+The ranked `merchant_investment_management` audit verified the official
+Merchant site at `https://www.merchantim.com/` and the firm's SEC Form ADV.
+Merchant presents itself as a strategic and capital partner to wealth
+management firms and service providers, with non-controlling equity
+partnerships, business infrastructure, and alternative investment solutions;
+it exposes no sponsored U.S. ETF catalogue or complete issuer holdings route.
+The Form ADV records sub-advisory services to sponsors of two Canadian ETFs
+and holdings recommendations that sponsors execute. That is advisory/sub-
+advisory evidence, not a provider-owned U.S. ETF portfolio publication route.
+
+The ledger records `merchant_investment_management` as a dated
+`provider_not_a_portfolio_publisher` disposition. No native adapter is added,
+and no adviser recommendations, 13F data, Canadian products, or SEC-derived
+reconstruction is promoted as U.S. ETF constituents. Runtime code remains at
+496 registered / 391 native / 105 fallback, with 8 blocked, 88 route
+discovery, 3 non-executable, and 6 non-portfolio-publisher statuses. The
+ledger has 55 queued fallback records and `meridian` is next.
+
+The official Merchant site and Form ADV evidence are retained under
+`web:merchant-investment-official-business-and-sec-adv-2026-09-03`. Focused
+ledger/workstream checks and diff validation remain required after this
+checkpoint; the full opt-in live matrix and Docker-backed integration gate
+remain pending with the known unrelated F8p-current-history Study Lab
+histogram timeout blocker.
+
+## 49. Current execution checkpoint — 6 Meridian / SIXH-SIXL-SIXA-SIXS-SXQG native promotion — 2026-09-03
+
+The ranked `meridian` audit verified the official 6 Meridian catalogue and
+five symbol-scoped product pages at `https://www.6meridianfunds.com/`. Each
+page identifies the requested ETF and publishes a complete holdings component
+in the Nuxt hydration payload. The shared schema includes company name, ticker,
+FIGI, shares, market value, percentage of NAV, and a current holdings date of
+September 1, 2026. SIXH additionally exposes an SPX option and an explicit Cash
+& Other row, demonstrating that the payload is not only a top-ten equity view.
+
+Implementation adds `SixMeridianHoldingsAdapter`, a provider-specific fetch and
+parser for the five official routes. It validates exact HTTPS host/path and
+product identity, resolves only the requested `sixmeridianetfs-{slug}-
+HoldingsComponent`, maps FIGI/source ticker and numeric fields, keeps source
+tickers when they are not tradable platform symbols, classifies cash,
+derivatives, funds, fixed income, and equities, and preserves the composition
+date and Exchange Traded Concepts / 6 Meridian legal publisher metadata. A
+bounded 403 retry uses the established browser-compatible requests path without
+introducing a second source.
+
+The registry, explicit config, ETF.com native-brand set, fallback audit tuple,
+adapter map, deterministic fixture, live-backed manifest, and bespoke live test
+are updated together. The durable ledger promotes `meridian`, bringing the
+derived split to 496 registered / 392 native / 104 fallback, reducing
+route-discovery runtime status to 87, and leaving 54 queued records with
+`merk` next. The implementation commit is
+`e055868d4922f7ae937d6e8dd8c0b78797865934`; focused deterministic checks and
+the bounded opt-in SIXH live route pass. The complete opt-in matrix and
+Docker-backed integration gate remain pending with the known unrelated
+F8p-current-history Study Lab histogram timeout blocker.
+
+## 50. Current execution checkpoint — Merk / STGF inactive-successor disposition — 2026-09-03
+
+The ranked `merk` audit verified the official Merk STGF product page, the
+official SEC prospectus, and the current Merk/VanEck gold product page. Merk's
+official page identifies the Merk Stagflation ETF (`STGF`) and explicitly
+states that it was liquidated in December 2023; its final holdings and market
+data are historical as of December 26, 2023. The SEC prospectus confirms STGF
+as a historical Listed Funds Trust series advised by Merk Investments LLC.
+
+The current Merk-branded gold relationship is the VanEck Merk Gold ETF
+(`OUNZ`). The official current page identifies Merk Investments LLC as sponsor
+and VanEck as the product relationship, so OUNZ is not a distinct current Merk
+ETF publisher route and must remain under the existing VanEck ownership
+context rather than receive a duplicate Merk adapter.
+
+The durable ledger records `merk` as
+`inactive_or_successor_disposition`. No native adapter, parser fixture, or
+live test is added. Runtime code remains at 496 registered / 392 native / 104
+fallback, with 8 issuer-access-blocked, 87 route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher statuses. The
+ledger now has 53 queued records with `merlyn_ai` next. Evidence refs are
+`web:merk-stgf-liquidation-2026-09-03`,
+`web:merk-stgf-sec-fund-identity-2026-09-03`, and
+`web:merk-ounz-vaneck-successor-2026-09-03`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 392-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout blocker retained.
+
+## 51. Current execution checkpoint — Merlyn.AI / WIZ-SNUG-BOB-DUDE inactive-successor disposition — 2026-09-03
+
+The ranked `merlyn_ai` audit verified the historical Merlyn.AI ETF series and
+their liquidation records. The official SEC filings enumerate the four
+Merlyn.AI funds—WIZ, SNUG, BOB, and DUDE—under EA Series Trust. The ETF
+Architect announcement records SNUG and BOB closing in November 2022 because
+of insufficient assets, while the SEC liquidation supplements and issuer
+announcement record WIZ and DUDE closing and liquidating in November 2023.
+
+The historical MerlynETF site and SEC disclosures cannot provide a current
+executable holdings portfolio for any of the four symbols. The complete
+historical identity is retained for reconciliation, but stale liquidation-era
+constituents are not promoted as current ETF holdings.
+
+The durable ledger records `merlyn_ai` as a dated
+`inactive_or_successor_disposition`; no native adapter, parser fixture, or
+live test is added. Runtime code remains at 496 registered / 392 native / 104
+fallback, with 8 issuer-access-blocked, 87 route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher statuses. The
+ledger now has 52 queued records with `mig_capital` next. Evidence refs are
+`web:merlyn-ai-liquidation-2026-09-03` and
+`web:merlyn-ai-sec-fund-series-2026-09-03`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 392-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout blocker retained.
+
+## 52. Current execution checkpoint — MIG Capital / MIGO native route — 2026-09-03
+
+The ranked `mig_capital` audit verified MIG Capital's official ETF site at
+`https://www.migcapitaletf.com/` and the firm's about page. The homepage
+identifies MIGO as the MIG Core ETF and publishes a complete 50-row holdings
+component in the Nuxt hydration payload, dated September 1, 2026. The firm
+page confirms that MIG Capital launched the long-only ETF in 2026; the current
+SEC index independently identifies the MIGO series.
+
+Implementation adds `MigCapitalHoldingsAdapter`, scoped to the exact HTTPS
+homepage and `migocap-home-HoldingsComponent-1`. It validates the MIG Core ETF
+identity, extracts only the complete holdings component, preserves FIGI and
+source ticker values, maps numeric holdings fields, classifies ETF funds,
+equities, and cash rows, and records the Exchange Traded Concepts / MIG Capital
+publisher relationship. Config, registry, fallback audit removal, deterministic
+fixture, live-backed manifest, and bespoke opt-in MIGO live coverage are aligned.
+
+The durable ledger records `mig_capital` as `native_promoted`, increasing the
+code-derived split to 496 registered, 393 native/live-backed, and 103
+fallback-only providers. Runtime fallback statuses are 8 issuer-access-blocked,
+86 needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The 140-record ledger now has 51 queued fallback
+records; the next ranked issuer is `militia`.
+
+The focused deterministic adapter checks and bounded opt-in MIGO live route pass
+at implementation SHA `590d0f4de26a8c89171f0d9842eef82ac7bff394`. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+393-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout retained as the integration blocker. Evidence refs:
+`web:mig-capital-official-migo-holdings-2026-09-03` and
+`live:mig-capital-migo-current-holdings-2026-09-03`.
+
+## 53. Current execution checkpoint — Militia / ORR native route — 2026-09-03
+
+The ranked `militia` audit verified `https://militiaetf.com/`. The official
+page identifies the Militia Long/Short Equity ETF (ticker `ORR`) and
+server-renders its complete current portfolio in WPDataTables table `table_11`
+(`wpdatatable` 97). The table exposes 203 dated rows with ticker, name, CUSIP,
+signed shares, price, USD-million market value, percent of net assets, and
+`EFFECTIVE_DATE`; the live snapshot is dated September 3, 2026. The official
+SEC prospectus independently identifies ORR and daily full-holdings
+dissemination on the Militia site.
+
+`MilitiaHoldingsAdapter` validates the exact official homepage and product
+identity, parses only the complete embedded table, preserves source
+tickers/CUSIPs/effective dates and signed long/short positions, converts
+USD-million market values to canonical dollars, and classifies the FGXXX
+government-obligations fund and Cash&Other row correctly. Configuration,
+registry ownership, fallback-audit removal, deterministic fixture, live-backed
+manifest, and bespoke opt-in live coverage are aligned.
+
+The durable ledger records `militia` as `native_promoted`, increasing the
+code-derived split to 496 registered, 394 native/live-backed, and 102
+fallback-only providers. Runtime fallback statuses are 8 issuer-access-blocked,
+85 needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The 140-record ledger now has 50 queued fallback
+records; the next ranked issuer is `milliman`.
+
+Focused Militia unit/live checks pass and the deterministic adapter suite passes
+540 tests. The full opt-in live matrix and Docker-backed integration gate remain
+pending at the current baseline; the known unrelated reproducible F8p-current-
+history Study Lab histogram timeout remains the integration blocker. Evidence
+refs: `web:militia-official-orr-holdings-2026-09-03`,
+`web:militia-sec-daily-holdings-dissemination`, and
+`live:militia-orr-current-holdings-2026-09-03`.
+
+## 54. Current execution checkpoint — Milliman / MHIG-MHIP native route — 2026-09-03
+
+Milliman's official MHIG and MHIP product pages declare complete dated
+holdings CSV artifacts on `mfassets.millimanfunds.com`; the SEC prospectus
+confirms daily online holdings dissemination. The native adapter validates
+exact product pages, resolves concrete dated URLs from rendered links or
+serialized Next.js holdings metadata, and parses issuer rows with truthful
+date/provenance and derivative, fixed-income, fund, equity, and cash
+classification. The bounded MHIP live route is green.
+
+Current code-derived state is 496 registered / 395 native-live-backed / 101
+fallback-only, with 49 queued ledger records and `moonvest` next. The full
+opt-in live matrix and Docker-backed integration gate remain pending; the known
+unrelated F8p-current-history Study Lab histogram timeout is retained. Evidence
+refs: `web:milliman-official-mhip-holdings-2026-09-03`,
+`web:milliman-sec-daily-holdings-dissemination`, and
+`live:milliman-mhip-current-holdings-2026-09-03`.
+
+## 55. Current execution checkpoint — Moonvest / MNVT native route — 2026-09-03
+
+Moonvest's official MNVT page publishes a complete dated WPDataTables holdings
+table. The native adapter validates the product identity, parses issuer rows,
+normalizes USD-million market values, and classifies fund and cash rows. The
+bounded MNVT live route is green.
+
+Current code-derived state is 496 registered / 396 native-live-backed / 100
+fallback-only, with 48 queued ledger records and `nestyield` next. The full
+opt-in live matrix and Docker-backed integration gate remain pending; the known
+unrelated F8p-current-history Study Lab histogram timeout is retained. Evidence
+refs: `web:moonvest-official-mnvt-holdings-2026-09-03`,
+`web:moonvest-sec-mnvt-identity-2026-09-03`, and
+`live:moonvest-mnvt-current-holdings-2026-09-03`.
+
+## 56. Current execution checkpoint — NestYield / EGGQ-EGGY-EGGS native route — 2026-09-03
+
+NestYield's official product pages publish complete dated holdings tables for
+EGGQ, EGGY, and EGGS. The native adapter validates symbol-scoped identities,
+parses issuer rows and option positions, preserves dates/identifiers, and
+classifies funds, equities, derivatives, and cash. All three bounded live
+routes are green.
+
+Current code-derived state is 496 registered / 397 native-live-backed / 99
+fallback-only, with 47 queued ledger records and `new_age_alpha` next. The full
+opt-in live matrix and Docker-backed integration gate remain pending; the known
+unrelated F8p-current-history Study Lab histogram timeout is retained. Evidence
+refs: `web:nestyield-official-eggs-holdings-2026-09-03`,
+`web:nestyield-sec-series-identities-2026-09-03`, and
+`live:nestyield-current-holdings-2026-09-03`.
+
+## 57. Current execution checkpoint — New Age Alpha inactive/successor disposition — 2026-09-03
+
+The official New Age Alpha site now presents h-factor analytics, indexing, and
+advisory services. Its issuer announcement records closure and liquidation of
+the AVDR and AVDG ETFs in July 2022; the historical SEC registration confirms
+the former trust identity but no current executable holdings artifact exists.
+The ledger records an inactive/successor disposition without a native adapter.
+
+Runtime state remains 496 registered / 397 native-live-backed / 99
+fallback-only, with 46 queued ledger records and `nicholas_wealth` next. The
+full opt-in live matrix and Docker-backed integration gate remain pending; the
+known unrelated F8p-current-history Study Lab histogram timeout is retained.
+Evidence refs: `web:new-age-alpha-avdr-liquidation-2026-09-03` and
+`web:new-age-alpha-historical-sec-identity-2026-09-03`.
+
+## 58. Current audit checkpoint — Nicholas Wealth access-blocked disposition — 2026-09-03
+
+The official Nicholas Wealth XFUNDS catalogue and product pages identify the
+current product family, but backend-equivalent requests to representative
+pages returned Cloudflare challenges before a complete issuer holdings artifact
+could be resolved. Nicholas Wealth therefore remains fallback-only with an
+`issuer_access_blocked` disposition; no unproven native adapter was retained.
+
+The code-derived split remains 496 registered / 397 native-live-backed / 99
+fallback-only. Runtime fallback statuses are 9 issuer-access-blocked, 81
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger has 45 queued records and
+`norris_perne_french` is next. Evidence refs:
+`web:nicholas-wealth-official-xfunds-2026-09-03`,
+`web:nicholas-wealth-sec-series-identities-2026-09-03`, and
+`web:nicholas-wealth-access-blocked-2026-09-03`.
+
+## 59. Current promotion checkpoint — Norris Perne French / NPFE native route — 2026-09-03
+
+NPF Investment Advisors' official NPFE page declares a complete current
+holdings JSON endpoint. A bounded live request returned 328 rows dated
+September 3, 2026. `NorrisPerneFrenchHoldingsAdapter` validates the product
+identity/domain, fetches the page-declared WordPress AJAX payload, maps issuer
+fields into canonical rows, classifies cash and derivative-like positions,
+and records current-date and publisher provenance. Deterministic fixture,
+opt-in live coverage, registry ownership, and ledger promotion are aligned.
+
+Current state is 496 registered / 398 native-live-backed / 98 fallback-only,
+with 44 queued records and `north_square` next. Evidence refs:
+`web:norris-perne-french-official-npfe-2026-09-03`,
+`web:norris-perne-french-sec-series-2026-09-03`, and
+`live:norris-perne-french-npfe-current-holdings-2026-09-03`.
+
+## 60. Current audit checkpoint — North Square non-executable public source — 2026-09-03
+
+North Square's official NSIV/NSIG pages and FilePoint catalogue identify the
+current ETF products but expose only quarterly characteristics and
+available-upon-request complete holdings. No public executable current
+artifact was proven, so `north_square` remains fallback-only as
+`non_executable_public_source` without SEC-derived promotion.
+
+Current state is 496 registered / 398 native-live-backed / 98 fallback-only,
+with 43 queued records and `opus_capital_management` next. Evidence refs:
+`web:north-square-nsiv-non-executable-2026-09-03`,
+`web:north-square-nsig-filepoint-2026-09-03`, and
+`web:north-square-sec-disclosure-2026-09-03`.
+
+## 61. Current promotion checkpoint — Opus Capital Management / OSCV native route — 2026-09-03
+
+The official Aptus OSCV product page and its declared WordPress API provide a
+complete current holdings table. `OpusCapitalManagementHoldingsAdapter`
+restricts the route to OSCV, parses the issuer table through the shared Aptus
+parser, and adds provider-specific route and snapshot provenance. Deterministic
+fixture and opt-in live coverage are aligned with registry ownership and the
+ledger promotion.
+
+Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
+with 42 queued records and `pabrai` next. Evidence refs:
+`web:opus-capital-management-official-oscv-2026-09-03`,
+`web:opus-capital-management-sec-series-2026-09-03`, and
+`live:opus-capital-management-oscv-current-holdings-2026-09-03`.
+
+## 62. Current audit checkpoint — Pabrai Wagons / WAGN non-executable public source — 2026-09-03
+
+The official WAGN investor-resources page publishes periodic complete-holdings
+PDFs rather than a current executable daily route. The June 30, 2026 N-CSR
+confirms the latest dated Schedule of Investments but does not establish a
+current symbol-scoped artifact. `pabrai` is therefore terminally recorded as
+`non_executable_public_source` without a native adapter or SEC-derived
+promotion.
+
+Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
+with 41 queued records and `panagram` next. Evidence refs:
+`web:pabrai-wagons-investor-resources-2026-09-03` and
+`web:pabrai-wagons-current-report-2026-09-03`.
+
+## 63. Current audit checkpoint — Panagram CLO ETFs successor disposition — 2026-09-03
+
+Panagram's CLOX/CLOZ funds were renamed Eldridge AAA/BBB-B CLO ETFs while
+retaining symbols; the active Eldridge adapter already provides the current
+daily holdings route. The ledger records Panagram as an inactive/successor
+identity with no duplicate code or SEC-derived promotion.
+
+Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
+with 40 queued records and `parnassus_investments` next. Evidence refs:
+`web:panagram-eldridge-successor-2026-09-03` and
+`web:panagram-eldridge-sec-name-change-2026-09-03`.
+
+## 64. Current audit checkpoint — Parnassus daily route access-blocked — 2026-09-03
+
+Parnassus advertises PRCS/PRVS daily holdings, but backend-equivalent access to
+the official PRCS route returned no usable body. The ledger records an
+issuer-access-blocked disposition with no native adapter or SEC-derived
+promotion pending a usable issuer payload.
+
+Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
+with 39 queued records and `pathfinder` next. Evidence refs:
+`web:parnassus-official-daily-holdings-routes-2026-09-03` and
+`web:parnassus-sec-etf-identity-2026-09-03`.
+
+## Current promotion checkpoint — Pathfinder / PFDE native route — 2026-09-03
+
+The official PFDE page, JavaScript bundle, and issuer-hosted FilePoint CSV form
+a complete current first-party route. Pathfinder is promoted through a
+provider-specific adapter with strict identity and parsing checks and truthful
+Pathfinder ETFs / Opal Capital Management provenance. PFOE remains pending a
+separate executable route proof. Counts are 496 registered / 400 native / 96
+fallback, with 38 queued records and `performance_trust` next. Evidence refs:
+`web:pathfinder-official-pfde-2026-09-03`,
+`web:pathfinder-sec-daily-disclosure-2026-09-03`, and
+`live:pathfinder-pfde-current-holdings-2026-09-03`.
+
+## Current audit checkpoint — Performance Trust / STBF non-executable public source — 2026-09-03
+
+The official PTAM resources page exposes an issuer-hosted STBF monthly holdings
+PDF, but its July 31, 2026 as-of date and August 7, 2026 object modification
+date are stale for the current September 3 audit. Record the dated
+`non_executable_public_source` disposition, retain the provider fallback, and
+recheck for a current route before considering native promotion. Counts are 496
+registered / 400 native / 96 fallback, with 37 queued records and
+`portfolio_building_block` next. Evidence refs:
+`web:performance-trust-ptam-resources-2026-09-03`,
+`web:performance-trust-current-holdings-pdf-2026-09-03`, and
+`live:performance-trust-holdings-pdf-stale-2026-09-03`.
+
+## Current promotion checkpoint — Portfolio Building Block / PBOG-PBEU-PBPH native route — 2026-09-03
+
+The official product pages declare a complete query-based holdings CSV. The
+current PBOG route returned a September 2, 2026 CSV; the provider-specific
+adapter now covers PBOG, PBEU, and PBPH with strict account/page validation,
+shared FilePoint-compatible parsing, and issuer provenance. Counts are 496
+registered / 401 native / 95 fallback, with 36 queued records and
+`premise_capital` next. Evidence refs:
+`web:portfolio-building-block-pbog-2026-09-03`,
+`web:portfolio-building-block-pbeu-2026-09-03`, and
+`live:portfolio-building-block-current-pbog-csv-2026-09-03`.
+
+## Current audit checkpoint — Premise Capital / TCTL issuer-access-blocked — 2026-09-03
+
+The historical Premise Capital/TCTL route points to `tctl.us`; DNS resolution
+failed for both issuer hostnames, so no current first-party holdings artifact
+could be executed. Preserve the fallback and record an issuer-access-blocked
+disposition. Counts are 496 registered / 401 native / 95 fallback, with 35
+queued records and `putnam` next. Evidence refs:
+`web:premise-tctl-current-identity-2026-09-03` and
+`live:premise-tctl-domain-unreachable-2026-09-03`.
+
+## Current audit checkpoint — Putnam / Franklin successor periodic disclosure — 2026-09-03
+
+The Putnam retail ETF catalogue now redirects to Franklin Templeton. Its public
+successor catalogue and GraphQL endpoint map 14 symbols, but live probes yielded
+delayed January–July 2026 snapshots and no PFRX rows. Official materials specify
+lagged quarterly complete-holdings disclosure. Keep `putnam` fallback-only as
+`non_executable_public_source` until current complete coverage, parser fixtures,
+and bounded live tests are proven.
+
+Counts are 496 registered / 401 native / 95 fallback, with 34 queued records and
+`pzena` next; runtime statuses are 11 blocked, 72 route-discovery, 6
+non-executable, and 6 non-portfolio-publisher. Evidence refs:
+`web:putnam-franklin-current-etf-catalogue-2026-09-03`,
+`web:putnam-quarterly-holdings-disclosure-2026-09-03`, and
+`live:putnam-franklin-api-stale-or-empty-2026-09-03`.
+
+## Current audit checkpoint — Pzena / PZIV-PZLV issuer-access-blocked — 2026-09-03
+
+The official Pzena catalogue and prospectuses identify PZIV/PZLV and advertise
+daily holdings, but live backend-equivalent requests yielded only an unusable
+page shell. Preserve `pzena` as `issuer_access_blocked` until a complete
+symbol-scoped payload is accessible and parsable; do not reconstruct through
+SEC filings.
+
+Counts are 496 registered / 401 native / 95 fallback, with 33 queued records and
+`quadratic` next; runtime statuses are 12 blocked, 72 route-discovery, 6
+non-executable, and 6 non-portfolio-publisher. Evidence refs:
+`web:pzena-current-etf-catalogue-2026-09-03`,
+`web:pzena-daily-holdings-disclosure-2026-09-03`, and
+`live:pzena-etf-page-shell-blocked-2026-09-03`.
+
+## Current promotion checkpoint — Quadratic / IVOL-BNDD native route — 2026-09-03
+
+The KFA IVOL/BNDD pages expose complete holdings downloads, and the verified
+KraneShares dated CSV route returned current September 2, 2026 rows. The
+Quadratic adapter strictly limits symbols to IVOL/BNDD, delegates to the tested
+KraneShares parser, and records publisher/provenance metadata. Counts are 496
+registered / 402 native / 94 fallback, with 32 queued and `rareview_funds` next.
+Evidence refs: `web:quadratic-kfa-current-holdings-2026-09-03` and
+`live:quadratic-kraneshares-current-csv-2026-09-03`.
+
+## Current audit checkpoint — Rareview Funds stale holdings sources — 2026-09-03
+
+The Rareview ETF catalogue is current as a product list, but accessible
+holdings sections are stale historical tables and no current complete data route
+is declared. Retain `rareview_funds` as `non_executable_public_source` until a
+current symbol-scoped artifact and parser/live evidence are available. Counts
+are 496 registered / 402 native / 94 fallback, with 31 queued and
+`return_stacked` next. Evidence refs: `web:rareview-current-etf-catalogue-2026-09-03`
+and `web:rareview-stale-holdings-pages-2026-09-03`.
+
+## Current audit checkpoint — Return Stacked daily holdings routes — 2026-09-03
+
+The Return Stacked product pages declare complete daily holdings CSVs for all
+eight current products (RSST, RSIT, RSSY, RSSX, RSBT, RSBY, RSBA, RSSB). The
+provider-specific adapter reuses the strict CSV parser while fixing the
+issuer-owned route map and Return Stacked provenance. Counts are 496 registered
+/ 403 native / 93 fallback, with 30 queued and `river1` next. Evidence refs:
+`web:return-stacked-current-product-pages-2026-09-03` and
+`live:return-stacked-current-holdings-csv-2026-09-03`.
+
+## Current promotion checkpoint — River1 / RVER issuer XLS route — 2026-09-03
+
+River1's RVER product page declares a fund-scoped full holdings XLS download.
+The native adapter reuses the strict legacy-XLS parser while validating the
+RVER identity and `fund=rver` export scope. Counts are 496 registered / 404
+native / 92 fallback, with 29 queued and `riverfront` next. Evidence refs:
+`web:river1-current-rver-page-2026-09-03` and
+`live:river1-current-holdings-xls-2026-09-03`.
+
+## Current audit checkpoint — RiverFront sub-adviser disposition — 2026-09-03
+
+RiverFront's official sub-advised ETF page identifies RFDI and RFEM as
+sub-advised products in partnership with First Trust. First Trust's current
+RFDI and RFEM holdings tables are the publisher-owned routes; RiverFront is not
+the legal adviser/distributor or portfolio publisher. RFEU is terminated and
+the RFDA successor no longer uses RiverFront as sub-adviser.
+
+Record `riverfront` as `provider_not_a_portfolio_publisher`, preserve the
+fallback adapter, and resolve future requests to a First Trust native adapter.
+Do not create a duplicate RiverFront adapter or use SEC reconstruction. The
+current split is 496 registered / 404 native / 92 fallback, with 28 queued
+records and `robo_global` next. Runtime statuses are 12 blocked, 66
+route-discovery, 7 non-executable, and 7 non-portfolio-publisher. Evidence
+refs: `web:riverfront-subadvised-first-trust-2026-09-03` and
+`web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03`.
+
+## Current promotion checkpoint — ROBO Global / ROBO-HTEC-THNQ Nuxt routes — 2026-09-03
+
+The official ROBO Global ROBO, HTEC, and THNQ pages expose complete current
+holdings through issuer-controlled Nuxt hydration components dated September 1,
+2026. The native adapter is limited to those three verified symbols, checks the
+route and component identity, normalizes ticker/exchange rows without inventing
+symbols, and records issuer/legal-publisher provenance.
+
+Counts are 496 registered / 405 native / 91 fallback, with 27 queued and `roc`
+next. Runtime statuses are 12 blocked, 65 route-discovery, 7 non-executable,
+and 7 non-portfolio-publisher. Evidence refs:
+`web:robo-global-current-robo-htec-thnq-pages-2026-09-03` and
+`live:robo-global-current-nuxt-holdings-2026-09-03`.
+
+## Current audit checkpoint — ROC / ROCI inactive disposition — 2026-09-03
+
+ROCI's official liquidation materials document Board approval on October 11,
+2023, cessation of trading October 20, and dissolution October 27. Because the
+sole product is inactive, retain `roc` as an explicit
+`inactive_or_successor_disposition`; do not add a native route or reconstruct
+holdings from SEC filings.
+
+Counts are 496 registered / 405 native / 91 fallback, with 26 queued and
+`rockefeller_capital` next. Runtime statuses remain 12 blocked, 65
+route-discovery, 7 non-executable, and 7 non-portfolio-publisher. Evidence ref:
+`web:roc-roci-liquidation-2023-10-11`.
+
+## Current promotion checkpoint — Rockefeller ETFs daily holdings routes — 2026-09-03
+
+The official Rockefeller ETFs RMOP, RMNY, RMCA, RSMC, and RGEF pages declare
+complete fund-scoped TidalFG daily holdings CSVs. All five current routes
+returned parseable September 3, 2026 holdings. The native adapter validates
+page identity and declared product/account scope and records Rockefeller ETFs /
+Tidal Investments provenance.
+
+Counts are 496 registered / 406 native / 90 fallback, with 26 queued and
+`saba_capital` next. Evidence refs:
+`web:rockefeller-current-product-pages-and-csv-routes-2026-09-03` and
+`live:rockefeller-current-daily-holdings-csv-2026-09-03`.
+
+## Current promotion checkpoint — Saba Capital / CEFS Nuxt route — 2026-09-03
+
+The official Saba ETF CEFS page publishes complete holdings in its Nuxt
+hydration component, dated September 1, 2026. The current page exposed 77
+parseable rows; the native adapter validates the exact `cefs` route and
+`sabaetf-temp-holdings-1` component and records Exchange Traded Concepts / Saba
+Capital provenance.
+
+Counts are 496 registered / 407 native / 89 fallback, with 25 queued and
+`sammons_enterprises` next. Evidence refs:
+`web:saba-cefs-current-nuxt-holdings-2026-09-03` and
+`live:saba-cefs-current-nuxt-holdings-2026-09-03`.
+
+## Current promotion checkpoint — Beacon / Sammons BTR-BSR-BTA CSV routes — 2026-09-04
+
+The official Beacon Tactical Risk (BTR), Unified Catalyst (BSR), and Tactical
+Alternatives (BTA) pages declare complete Craft CDN holdings CSVs. The three
+current files returned parseable September 1, 2026 rows; the native adapter
+validates each exact product-page/link pair and records Beacon Capital
+Management / Sammons provenance.
+
+Counts are 496 registered / 408 native / 88 fallback, with 24 queued and
+`sapient` next. Evidence refs:
+`web:beacon-sammons-current-btr-bsr-bta-pages-2026-09-03` and
+`live:beacon-sammons-current-holdings-csv-2026-09-03`.
+
+## Current promotion checkpoint — Sapient Quality Select / SQS HTML route — 2026-09-04
+
+Sapient Quality Select's official product page publishes a complete current
+SQS holdings HTML table with ticker, name, CUSIP, shares, price, market value,
+net-assets weight, and effective date. The current table was dated September
+3, 2026; the native adapter validates the page identity and table schema and
+records Sapient Capital / Empowered Funds provenance without SEC
+reconstruction.
+
+Counts are 496 registered / 409 native / 87 fallback, with 23 queued and
+`saturna` next. Evidence refs:
+`web:sapient-current-sqs-holdings-html-table-2026-09-04` and
+`live:sapient-current-sqs-holdings-html-table-2026-09-04`.
+
+## Current audit checkpoint — Saturna issuer-access-blocked Amana pages — 2026-09-04
+
+Saturna Capital's official AMEI, AMGR, and AMEM pages document current
+holdings tables, but bounded backend-equivalent requests received HTTP 403 from
+the issuer WAF for all three routes. Saturna remains an explicit
+`issuer_access_blocked` fallback; AMSU is not currently present in the active
+ETF page set.
+
+Counts are 496 registered / 409 native / 87 fallback, with 22 queued and
+`segall_bryant_hamill` next. Evidence ref:
+`live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked`.
+
+## Current audit checkpoint — Segall Bryant & Hamill non-executable public source — 2026-09-04
+
+The official CI SBH ETF page identifies USSE and publishes prospectus/material
+links, but no complete current holdings table or executable holdings download
+is declared. Historical SEC filings are not promoted as a current route, so
+`segall_bryant_hamill` remains an explicit `non_executable_public_source`
+fallback.
+
+Counts are 496 registered / 409 native / 87 fallback, with 21 queued and
+`siren` next. Evidence ref:
+`web:segall-bryant-hamill-current-etf-page-2026-09-04`.
+
+## Current audit checkpoint — Siren non-executable public source — 2026-09-04
+
+Siren's official BLCN and LEAD pages expose top-ten holdings and fiscal-year
+Q1/Q3 portfolio documents, but no complete current daily holdings table or
+executable current holdings download is declared. Periodic reports and SEC
+filings are not promoted as current routes, so `siren` remains an explicit
+`non_executable_public_source` fallback.
+
+Counts are 496 registered / 409 native / 87 fallback, with 20 queued and
+`smi_funds` next. Evidence ref:
+`web:siren-current-product-pages-2026-09-04`.
+
+## Current promotion checkpoint — SMI Funds / 3FourteenSMI RAA-FCTE HTML routes — 2026-09-04
+
+The official 3FourteenSMI RAA and FCTE pages publish complete current holdings
+tables with description, ticker, weight, market value, FIGI, shares, and dated
+snapshots. The native adapter validates both product identities and parsed
+current rows without SEC reconstruction.
+
+Counts are 496 registered / 410 native / 86 fallback, with 19 queued and
+`sophus` next. Evidence refs:
+`web:smi-funds-current-raa-fcte-holdings-pages-2026-09-04` and
+`live:smi-funds-current-raa-fcte-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — Sophus issuer-access-blocked EMEM/EMSC pages — 2026-09-04
+
+Sophus Capital's official EMEM and EMSC pages publish complete current
+holdings tables, but bounded backend requests received HTTP 403/challenge
+responses for both routes. No executable native route is promoted, so
+`sophus` remains an explicit `issuer_access_blocked` fallback.
+
+Counts are 496 registered / 410 native / 86 fallback, with 18 queued and
+`srh` next. Evidence ref:
+`live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked`.
+
+## Current promotion checkpoint — SRH Funds / SRHQ-SRHR HTML routes — 2026-09-04
+
+SRH Funds' official SRHQ and SRHR product pages publish complete current
+holdings tables with security, ticker, security ID, shares, market value,
+weight, and dated snapshots. The native adapter validates product identity and
+table headers, maps security IDs and percentage weights, and records SRH
+Advisors / Paralel provenance without SEC reconstruction. Both bounded live
+probes returned parseable current rows.
+
+Counts are 496 registered / 411 native / 85 fallback, with 17 queued and
+`stance` next. Evidence refs:
+`web:srh-current-srhq-srhr-holdings-pages-2026-09-04` and
+`live:srh-current-srhq-srhr-holdings-pages-2026-09-04`.
+
+## Current promotion checkpoint — Stance / Hennessy STNC HTML route — 2026-09-04
+
+Hennessy's official STNC product page publishes both a top-ten table and a
+complete 48-row total-holdings table dated September 2, 2026. The native
+adapter selects the complete table, validates the Hennessy/STNC identity and
+headers, maps CUSIPs, shares, market values, and weights, and records Hennessy
+Advisors / Stance Capital provenance without SEC reconstruction. The bounded
+live probe passed against the complete table.
+
+Counts are 496 registered / 412 native / 84 fallback, with 16 queued and
+`strategy_shares` next. Evidence refs:
+`web:stance-hennessy-current-stnc-holdings-page-2026-09-04` and
+`live:stance-hennessy-current-stnc-holdings-page-2026-09-04`.
+
+## Current audit checkpoint — Strategy Shares non-executable public source — 2026-09-04
+
+Strategy Shares' official GOLY, HNDL, MPLY, and ROMO pages expose top-ten
+holdings tables and top-holdings CSV links, but no complete current daily
+holdings artifact. Periodic shareholder and SEC reports are not promoted as a
+current executable route, so `strategy_shares` remains an explicit
+`non_executable_public_source` fallback.
+
+Counts remain 496 registered / 412 native / 84 fallback, with 15 queued and
+`subversive` next. Evidence ref:
+`web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04`.
+
+## Current audit checkpoint — Subversive issuer-access-blocked GOP/NANC pages — 2026-09-04
+
+Subversive's official GOP and NANC pages expose current holdings tables, but
+bounded backend-equivalent requests received HTTP 403 for both routes. No
+executable native route is promoted, so `subversive` remains an explicit
+`issuer_access_blocked` fallback.
+
+Counts remain 496 registered / 412 native / 84 fallback, with 14 queued and
+`stratified` next. Evidence ref:
+`live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked`.
+
+## Current promotion checkpoint — Stratified / SSPY-SHUS Nuxt routes — 2026-09-04
+
+Stratified's official SSPY and SHUS product pages expose complete current
+holdings in the Nuxt `__NUXT_DATA__` hydration payload, with issuer-reported
+dates and stable ticker/FIGI/quantity/market-value/weight fields. The native
+adapter resolves only SSPY and SHUS, dereferences the requested holdings
+component, preserves cash rows, and records the issuer-page provenance. The
+bounded live probes passed for both products.
+
+Counts are 496 registered / 413 native / 83 fallback, with 13 queued and
+`suncoast` next. Evidence refs:
+`web:stratified-current-sspy-shus-holdings-pages-2026-09-04` and
+`live:stratified-current-sspy-shus-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — Suncoast issuer-access-blocked SEMG page — 2026-09-04
+
+Suncoast's official SEMG page exposes a complete current holdings table, but
+the bounded backend-equivalent request returned HTTP 403. No executable native
+route is promoted, so `suncoast` remains an explicit `issuer_access_blocked`
+fallback and the next queued issuer remains `suncoast`.
+
+## Current audit checkpoint — Swedish Export Credit non-publisher — 2026-09-04
+
+Swedish Export Credit Corporation's official investor-relations material
+identifies SEK as a state-owned export-credit financing institution issuing
+debt, not an independent U.S. ETF portfolio publisher. No ETF holdings route
+applies; the record is closed as `provider_not_a_portfolio_publisher` and
+`towle` is next.
+## Current promotion checkpoint — TrimTabs / Abacus FCF successor CSV routes — 2026-09-04
+
+The former TrimTabs TTAC and TTAI products are now Abacus FCF's ABFL and ABLG;
+the same trust also publishes ABLD, ABOT, ABLS, and ABXB. Each official Abacus
+FCF product page declares a complete daily holdings CSV at the provider-owned
+`DailyUploads/<SYMBOL>_allHoldings.csv` route. The native adapter validates the
+product-page identity, strict symbol-scoped URL, legacy aliases, and complete
+CSV rows while preserving Abacus FCF provenance.
+
+Counts are 496 registered / 414 native / 82 fallback, with 10 queued records
+and `tweedy_browne` next. Evidence refs:
+`web:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04` and
+`live:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — AVOS access-blocked and Tweedy Browne non-executable — 2026-09-04
+
+Avos Global Equities' official AVOS page exposes a complete current holdings
+table, but bounded backend-equivalent access returned HTTP 403, so no native
+adapter is retained. Tweedy Browne's official FilePoint page exposes only a
+stale 2024 COPY artifact with the current snapshot marked TBD; it is recorded as
+non-executable. The next queued issuer by ledger rank is `us_benchmark_series`.
+
+Counts remain 496 registered / 414 native / 82 fallback, with 6 queued records.
+Evidence refs:
+`web:avos-current-holdings-page-2026-09-04`,
+`live:avos-current-holdings-page-2026-09-04-blocked`, and
+`web:tweedy-browne-current-copy-holdings-page-2026-09-04`.
+
+## Current audit checkpoint — US Benchmark Series non-executable current route — 2026-09-04
+
+F/m Investments' official US Benchmark Series catalogue identifies the ten
+Treasury ETFs and current fund metadata, but the bounded product-page holdings
+section is empty and downloadable holdings materials are periodic. No current
+complete executable route is promoted. The next queued issuer is
+`vega_financial`; counts remain 496 registered / 414 native / 82 fallback with
+5 queued records.
+
+Evidence ref: `web:us-benchmark-series-current-fm-pages-2026-09-04`.
+
+## Current audit checkpoint — VegaShares non-executable complete route — 2026-09-04
+
+VegaShares' official ODTE, VAIE, XSPC, CGPT, and COOL pages publish current
+top-ten holdings and a full-holdings affordance, but the bounded response does
+not declare a resolvable complete holdings artifact. No native route is
+promoted. The next queued issuer is `vistashares`; counts remain 496 registered
+/ 414 native / 82 fallback with 4 queued records.
+
+Evidence ref: `web:vega-shares-current-product-pages-2026-09-04`.
+
+## Current audit checkpoint — VistaShares non-executable complete route — 2026-09-04
+
+VistaShares' official RTOO, AIS, AMMO, QUSA, OMAH, ACKY, and DRKY pages expose
+current top-ten holdings and a Download All Holdings affordance, but the bounded
+response does not declare a resolvable complete artifact. No native route is
+promoted. The next queued issuer is `wellesley_asset_management`; counts remain
+496 registered / 414 native / 82 fallback with 3 queued records.
+
+Evidence ref: `web:vistashares-current-product-pages-2026-09-04`.
+
+## Current audit checkpoint — Wellesley adviser/non-publisher disposition — 2026-09-04
+
+Wellesley Asset Management's official identity material describes an
+investment adviser/sub-adviser rather than an independent ETF portfolio
+publisher. No distinct first-party ETF catalogue applies. The next queued
+issuer is `worth_charting`; counts remain 496 registered / 414 native / 82
+fallback with 2 queued records.
+
+Evidence ref: `web:wellesley-asset-management-current-identity-pages-2026-09-04`.
+### Final issuer-queue checkpoint (2026-09-04)
+
+Wellesley was dispositioned as a non-portfolio publisher. Worth Charting WRTH and Yoke YOKE were audited against their official current holdings pages; each page exposes a complete artifact, but the application HTTP client receives issuer HTTP 403, so both remain issuer-access-blocked fallbacks. The ranked queue is now empty at 496 registered / 414 native / 82 fallback. Proceed to final deterministic/live/Docker/exact-SHA validation only.
+Final validation status: backend unit suite 1,341 passed (34 warnings), default live contract 2 passed/504 skipped. The complete opt-in live matrix initially yielded 277 passed, 1 skipped, and 10 failures; a narrow retry recovered iShares IVV/IWN, the Logan identity-drift repair, the stale Kensington KAMO row-count assertion, and Federated Hermes' redesigned daily-holdings API route, leaving 5 persistent provider/network failures recorded in validation.jsonl. The complete Docker integration gate terminated successfully after dependency/lint, image build, stack health, frontend test/build, research-runner probes, functional E2E, visual E2E, and cleanup; standalone confirmation was Chromium 154 passed/2 skipped and visual 104 passed. Exact-SHA CI/remote synchronization and human closure authorization remain pending.
+
+## Current validation checkpoint — Logan current product identity repair — 2026-09-03
+
+The official Logan Capital full-holdings page now identifies LCLG as
+`Logan Large Cap Growth ETF (LCLG)` rather than the historical
+`Broad Innovative Growth` name. The existing provider-owned Filepoint CSV route
+remains complete, dated, and executable. The Logan adapter now accepts both the
+current and historical product names while retaining the page/table/download
+identity guards; its deterministic unit test and bounded opt-in live probe pass.
+
+This repair removes one of the ten initial opt-in live failures. The remaining
+matrix disposition is seven narrowly evidenced external/provider failures;
+deterministic, default-live, Docker integration, functional E2E, visual E2E,
+Ruff, and workstream checks remain green. Exact-SHA CI/remote synchronization
+and human closure authorization remain pending.
+
+Evidence refs: `web:logan-current-lclg-full-holdings-2026-09-03`,
+`live:logan-lclg-current-holdings-2026-09-03`.
+
+## Current validation checkpoint — Kensington KAMO current row-count contract — 2026-09-03
+
+Kensington's official combined daily CSV currently exposes seven complete KAMO
+account rows (five securities plus money-market/cash entries), all sharing the
+current disclosure date. The previous live minimum of eight was stale; it is
+now seven, without weakening the adapter's identity, date, account filtering,
+or non-empty-row guards. The bounded KAMO live probe, focused unit test, Ruff,
+workstream validation, and diff-check pass. Six external/provider failures
+remain in the opt-in matrix; exact-SHA CI/remote synchronization and human
+closure authorization remain pending.
+
+Evidence refs: `web:kensington-kamo-current-holdings-2026-09-03`,
+`live:kensington-kamo-current-holdings-2026-09-03`.
+
+## Current validation checkpoint — Federated Hermes redesigned daily-holdings API — 2026-09-03
+
+Federated Hermes' legacy product pages now redirect to a redesigned first-party
+catalogue whose page-data binds each ticker to a legacy product ID and declares
+the `EtfDailyHoldings` JSON endpoint. The adapter now validates that ticker/ID
+binding, parses the complete dated API payload (including fixed-income,
+derivative, and cash rows), and preserves issuer provenance. The deterministic
+current-route test and bounded FTRB live probe pass with 707 rows. Five external
+provider failures remain in the opt-in matrix; exact-SHA CI/remote
+synchronization and human closure authorization remain pending.
+
+Evidence refs: `web:federated-hermes-current-etf-api-2026-09-03`,
+`live:federated-hermes-ftrb-current-holdings-2026-09-03`.
+
+## Current capability checkpoint — 2026-09-04
+
+The ETF-local capability context is implemented in commit
+`712db8c2514764368dc7204f5b6e4febd87fef7e`, pushed to the same-named remote
+branch. It adds a per-symbol capability evaluator and API/UI contract for
+`current`, `degraded`, `stale`, `unavailable`, `not_applicable`, and `unknown`
+states; explicit identity, completeness, source-tier, transport, cadence,
+freshness, schema, failure-streak, and current-analysis usability metadata;
+value-free schema fingerprints; and disabled-by-default bounded route canaries
+with circuit/recovery evidence. Current/usable requires complete, fresh,
+identity-verified issuer-native, successor-native, or licensed-vendor data.
+SEC, stale, partial, failed, unchecked, and unverified observations remain
+last-known evidence only.
+
+The shared provider-platform entitlement, quota, health, shadow, and aggregate
+20 EUR/USD-equivalent budget bridge remains intentionally deferred until that
+branch reaches staging. Symbol-level reassessment is complete for the recorded
+Tier 0 ledger entries and remains open for the rest of the 82 fallback
+identities. The 30-day production shadow gate is a post-integration acceptance
+step, not a claim for this branch.
+
+Final focused checks passed (617 backend tests; ETF API contract; 8 frontend
+tests; type-check; build; Ruff; workstream validator). The current-tree local
+Docker gate passed through workstream/dependency/migration/lint, then suffered
+a branch-scoped PostgreSQL termination after 1,465 backend tests passed; 262
+later tests errored on the dead server. This is retained as external runtime
+evidence, while the earlier green local gate and exact-SHA CI receipts remain
+the broader successful validation evidence. The operational checkpoint records
+this distinction and the next action is to wait for provider-platform staging
+before opening the shared bridge context.
+
+## Symbol-level audit and canary checkpoint — 2026-09-04
+
+Commit `92474686545bb87eccafc7249ae0c675a4a57816` adds the symbol-scoped
+`symbol_audit` response object and the runtime Tier 0 findings for DXJ, NTSX,
+MINT, BOND, GEME, and the F/m U.S. Benchmark Series. It deliberately leaves
+all other fallback symbols at `identity_level_only`/`unknown` unless their
+evidence is symbol-specific, while terminal inactive/non-publisher identities
+may be `not_applicable`. The frontend now displays each next source-review
+action.
+
+The bounded canary service now has direct tests for deduplication, successful
+recovery/latency, failure classes, circuit opening, open-circuit no-fetch, and
+missing-profile behavior. AC12 is complete for the ETF-local canary and
+persistence contract. AC11 remains partial pending the rest of the fallback
+symbols' free-first investigations; AC10 remains dependent on the provider
+platform reaching staging; AC14 remains a post-integration/deployment shadow
+gate. Expanded focused validation passed 624 backend tests, the ETF API
+contract, 8 frontend tests, type-check, and build.
+
+## Capability identity-boundary hardening and full-gate checkpoint — 2026-09-04
+
+The symbol-audit evaluator now binds Tier 0 evidence to the profile's assigned
+provider identity. Mismatches return an explicit Tier 0 `unknown` outcome with
+`profile_provider_identity_mismatch` evidence and reconciliation guidance;
+approved aliases preserve the F/m `us_benchmark_series` to
+`fm_investments` publisher relationship. This prevents route evidence for one
+issuer from being presented for a symbol assigned to another issuer.
+
+The focused capability/canary suite passed 18 tests, Ruff passed, and
+`git diff --check` passed. The full Docker-backed gate built and started the
+branch-scoped stack successfully, then completed 153 Playwright tests with 106
+skips before one unrelated `F8x-library` Python Library lifecycle test failed
+because `.code-library-tool:visible` did not appear at
+`frontend/tests/e2e/flows.spec.ts:4520`. Cleanup completed successfully and no
+ETF assertion failed. The gate is retained as failed external/unrelated
+evidence, not claimed as green.
+
+AC10 remains gated on provider-platform staging, AC11 remains partial beyond
+the completed Tier 0 symbol evidence, and AC14 remains post-integration and
+post-deployment. The operational checkpoint should record this exact result
+and preserve the clean branch boundary.
+
+## Symbol-audit current-use gate and finalized Docker validation — 2026-09-04
+
+Capability evaluation now applies symbol-level audit evidence after snapshot
+freshness and identity checks. Tier 0 and identity-level fallback records with
+non-current outcomes (`unknown`, `unavailable`, `stale`, `degraded`, or
+`not_applicable`) cannot mark a complete snapshot usable for current analysis;
+only an explicitly current symbol audit can unlock that path. A ledger/runtime
+consistency assertion covers all fifteen Tier 0 symbols and the reconciled F/m
+adapter alias.
+
+Finalized focused validation passed 629 ETF backend tests, the ETF refresh/API
+contract, 8 focused frontend tests, Vue type-check, production build, Ruff,
+format, diff, and workstream validation. The required Docker gate passed
+dependency, migration, lint, backend coverage, frontend coverage (924 tests),
+visual policy, build, compose, provider-probe, stack-health, and
+research-runner stages. Functional Playwright completed 153 passed and 106
+skipped, with one unrelated `F8r-breadth-narrow` setup failure at
+`frontend/tests/e2e/flows.spec.ts:3153` because the Market Breadth tool window
+did not appear. Teardown completed cleanly; no ETF assertion failed. Preserve
+this as narrowly evidenced external/unrelated E2E failure rather than claiming
+the full gate green.
+
+AC10 remains gated on provider-platform staging, AC11 remains open for
+non-Tier-0 fallback symbols, and AC14 remains post-integration/deployment.
+
+## Tier 0 shadow-gate history and acceptance runbook — 2026-09-04
+
+The canary state now stores a bounded 90-entry `canary_history` containing the
+route, capability, source, transport, identity, symbol-audit,
+composition/freshness, row/completeness/schema, latency, failure, circuit, and
+recovery evidence needed for later shadow analysis. Circuit-open observations
+are retained as explicit checks. The new
+`evaluate_tier0_shadow_gate` function evaluates a rolling 30-day UTC window and
+requires at least 95% current/usable eligible checks, no two consecutive missed
+freshness deadlines per symbol, and no silent identity/schema/completeness
+violations. The dedicated operational runbook is
+`docs/etf-holdings-shadow-gate.md`.
+
+Focused capability/refresh validation passed 24 tests, Ruff, and diff check.
+This is preparatory AC14 implementation only; it does not claim production
+shadow evidence or human closure. AC10 remains dependent on provider-platform
+staging and AC11 remains open beyond Tier 0.
+
+## Current Docker gate checkpoint — 2026-09-04
+
+The required full Docker-backed validation was rerun after the bounded canary
+history and shadow-gate evaluator changes and completed successfully. Backend
+coverage passed 1,742 tests with 81.04% total coverage and 86 warnings;
+frontend unit coverage passed 924 tests across 108 files. Dependency,
+migration, lint, visual policy, production build, compose contract, provider
+probes, healthy branch-scoped stack, and research-runner sandbox/resource
+checks all passed. Functional Playwright passed 154 tests with 106 skips, and
+the complete visual suite passed 104 tests. Teardown removed all branch-scoped
+resources cleanly, and no ETF or application assertion failed.
+
+This current local gate is green. It does not close the protected
+staging/master-only exhaustive integration check, nor does it provide the
+production observations required by AC14. AC10 remains gated on the shared
+provider-platform branch reaching staging; AC11 remains open for non-Tier-0
+symbol evidence; and AC14 remains post-integration/deployment with human
+closure authorization pending.
+
+## Shadow-gate coverage hardening — 2026-09-04
+
+The Tier 0 shadow evaluator now fails explicitly when any eligible symbol has
+no non-missing-profile observation in the rolling 30-day window. This prevents
+an absent canary stream from being silently excluded from the aggregate
+success-rate calculation. The machine-readable response exposes
+`missing_symbols`, and the operational runbook now treats that condition as a
+coverage failure.
+
+Focused capability/refresh validation passed 25 tests, the complete
+deterministic ETF backend matrix passed 634 tests, and Ruff, formatting,
+diff-check, and workstream validation passed. This is preparatory AC14 work
+only; AC10 remains gated on provider-platform staging, AC11 remains open for
+non-Tier-0 symbols, and production shadow evidence plus human closure are
+still required.
+
+## Current Docker gate checkpoint — 2026-09-04 (post-coverage hardening)
+
+The required full Docker-backed validation was rerun after the
+missing-symbol shadow-gate coverage hardening and completed successfully.
+Backend coverage passed 1,743 tests with 81.04% total coverage and 86 warnings;
+frontend unit coverage passed 924 tests across 108 files. Dependency,
+migration, lint, visual policy, production build, compose contract, provider
+probes, healthy branch-scoped stack, and research-runner sandbox/resource
+checks all passed. Functional Playwright passed 154 tests with 106 skips, and
+the complete visual suite passed 104 tests. Teardown removed all branch-scoped
+resources cleanly, with no ETF or application assertion failure.
+
+This current local gate is green. It does not close the protected
+staging/master-only exhaustive integration check or provide the production
+observations required by AC14. AC10 remains gated on the shared
+provider-platform branch reaching staging; AC11 remains open for non-Tier-0
+symbol evidence; and AC14 remains post-integration/deployment with human
+closure authorization pending.
+
+## Tier-1 ranked fallback symbol-audit cohort — 2026-09-04
+
+This implementation slice binds the first ranked non-Tier-0 fallback symbols to
+explicit runtime outcomes and the durable provider audit ledger. The 15-symbol
+cohort is TALV/TABD, ADFI, GAUD/GAID, UDIV/UDEF/GEDG, QVOY, ACVF, MDST, and
+SPDV/BDIV/TRFM/PFLD. Runtime responses now include dated evidence references;
+exact provider identity is required, provider mismatches remain unknown, and
+unavailable/not-applicable/unknown outcomes are excluded from current-analysis
+usability. ADFI is recorded as inactive/closed pending successor confirmation;
+ACVF is recorded as a portfolio-publisher identity mismatch; the other cohort
+routes remain unavailable because issuer access is blocked. No SEC fallback is
+promoted by this work.
+
+The YAML `symbol_audit_ledger`, runtime map, response schema, frontend type,
+unit tests, and provider-universe/shadow-gate documentation were updated
+together. The ledger-parity test prevents drift between durable evidence and
+runtime capability. The bounded cohort is not a claim that all 82 fallback-only
+providers are supported; all symbols outside the explicit ledger remain subject
+to the existing identity-level unknown behavior until individually evidenced.
+
+Validation checkpoint: the fresh full Docker-backed gate passed backend 1,747
+tests (81.04% total coverage, 86 warnings), frontend unit 924 tests across 108
+files, functional Playwright 154 passed/106 documented skips, and visual
+Playwright 104 passed. Dependency, migration, lint, visual policy, build,
+compose, provider probes, stack health, and research-runner isolation passed;
+branch-scoped teardown removed all resources and four images. AC10 remains
+dependent on provider-platform staging, AC11 remains open for the remaining
+non-Tier-0 symbols, and AC14 remains a post-integration/deployment production
+shadow gate requiring human closure authorization.
+
+## Follow-on ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked non-Tier-0 fallback slice is now bound to explicit runtime and
+durable-ledger outcomes. It covers ALFA/ALFS/ALFD/ALFV (AlphaClone), SMCP
+(AlphaMark), AAAA (Amplius), NDOW (Anydrus), AMID/ABIG/ALIL (Argent), and ATTR
+(Arin). AlphaClone and AlphaMark symbols are `not_applicable` pending
+liquidation/successor confirmation. AAAA, AMID, ABIG, ALIL, and ATTR are
+`unavailable` because issuer routes are Cloudflare-blocked. NDOW is
+`unavailable` because the public artifact is non-executable (placeholder dates,
+empty holdings/download). Every record retains its dated issuer evidence and
+the exact next re-test or successor action; none can be treated as
+current-analysis usable or promoted through SEC fallback.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, response schema,
+documentation, and parity tests are updated together. The first and follow-on
+cohorts now cover 26 explicit non-Tier-0 symbols; the remaining fallback
+symbols remain identity-level `unknown` until individually investigated. The
+provider platform is still a separate staging dependency for AC10, and AC14
+still requires production shadow observations and human closure authorization.
+
+Validation for this follow-on slice reached the full Docker-backed gate. All
+pre-browser stages passed, including backend coverage (1,750 passed; 81.05%
+total coverage; 86 warnings), frontend unit coverage (924 passed across 108
+files), lint, format, build, compose, provider probes, healthy branch-scoped
+stack, and research-runner isolation. Functional Playwright passed 153 tests
+with 106 documented skips, then failed only the unrelated existing F8u
+workstation drag/drop case at `frontend/tests/e2e/flows.spec.ts:4386`; no ETF
+assertion failed and visual Playwright did not run. The exact F8u case passed on
+an isolated retry against the same stack, so the full gate is retained as a
+narrow external/unrelated failure rather than claimed green. Teardown removed
+all branch-scoped resources successfully. AC10 remains dependent on
+provider-platform staging, AC11 remains open for the remaining symbols, and
+AC14 remains a post-integration/deployment production shadow gate.
+
+## Third ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds the next relevance-ranked fallback symbols to explicit runtime
+and durable-ledger outcomes. It covers AVOS (Avos Global Equities) and
+BGGG/BGIA/BGEG/BGUS (Baillie Gifford). AVOS remains `unavailable` because the
+issuer's browser-facing holdings page is blocked to backend-equivalent access
+with HTTP 403. The four Baillie Gifford symbols remain `unavailable` with a
+`non_executable_public_source` state because the official spreadsheet only
+contains top-ten holdings and omits complete constituents and stable
+identifiers. Dated evidence references and bounded remediation actions are
+retained for every symbol; no route is promoted as current support.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, response schema,
+documentation, and parity tests are updated together. The three ranked cohorts
+now cover 31 explicit non-Tier-0 symbols; remaining symbols stay identity-level
+`unknown` until individually investigated. AC10 remains dependent on
+provider-platform staging, and AC14 still requires production shadow
+observations and human closure authorization.
+
+## Fourth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds CHRG (Elements), USSE (the misattributed Emirate of Abu Dhabi
+identity), and AIEQ/AWAY/BDRY/BWET (the historical ETF Managers Group identity)
+to explicit `not_applicable` outcomes. CHRG's official liquidation evidence and
+the absence of a current successor route make it inactive; SEC and CI SBH
+evidence show that USSE belongs to the separately tracked Segall Bryant &
+Hamill/CI SBH publisher; and Amplify's acquisition evidence shows that ETFMG's
+funds moved to successor sponsors. No duplicate provider route is promoted, and
+the actual successor identities remain subject to their own evidence.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The four ranked cohorts now cover 37 explicit
+non-Tier-0 symbols; remaining symbols stay identity-level `unknown` until
+individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
+
+## Fifth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds the historical FCF Advisors symbols ABFL/ABLG/ABLD/ABOT/ABLS/
+ABXB, active First Manhattan symbols FMCX/FMCE, FormulaFolios symbols
+FFHG/FFSG/FFTG/FFTI, and abbreviated FPA symbols FPAG/FPAS/FPAA to explicit
+outcomes. FCF Advisors, FormulaFolios, and FPA are `not_applicable` successor
+or alias identities with current ownership resolved elsewhere. First Manhattan
+is `unavailable` because its official disclosures are periodic and no complete
+executable current holdings artifact is available. No duplicate native route or
+SEC-derived current support is introduced.
+
+The runtime map, YAML `symbol_audit_ledger`, documentation, and parity tests are
+updated together. The five ranked cohorts now cover 52 explicit non-Tier-0
+symbols; remaining symbols stay identity-level `unknown` until individually
+investigated. AC10 remains dependent on provider-platform staging, and AC14
+still requires production shadow observations and human closure authorization.
+
+## Sixth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds FEGE/FEOE/USFE/FEMD (GC Ferry Parent), GENT/GEND/GENM/GENW
+(Genter Capital), AQLG (Highland Capital), QYLD/HSPX/DAX (Horizons), and
+HOMZ/RIET (Hoya) to explicit symbol-level outcomes. Parent, alias, and successor
+identities are `not_applicable` because current holdings ownership is already
+represented by First Eagle, McIvy, Global X, or Pettee. Highland AQLG remains
+`unavailable` because the issuer CSV omits provider-published ticker mapping;
+SEC or third-party CUSIP reconstruction is not promoted.
+
+The runtime map, YAML `symbol_audit_ledger`, documentation, and parity tests are
+updated together. The six ranked cohorts now cover 66 explicit non-Tier-0
+symbols; remaining symbols stay identity-level `unknown` until individually
+investigated. AC10 remains dependent on provider-platform staging, and AC14
+still requires production shadow observations and human closure authorization.
+
+## Seventh ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds FFTY/BOUT (M2 Financial), SASS (M.D. Sass),
+SIXH/SIXL/SIXA/SIXS/SXQG (Madison Avenue/6 Meridian), and MAVF (Matrix
+Advisors) to explicit symbol-level outcomes. M2 Financial and Madison Avenue
+are `not_applicable` because they are adviser/sub-adviser identities and the
+complete holdings routes are owned by the existing CapForce and Exchange
+Traded Concepts publishers. SASS remains `unavailable` because its official
+page contains placeholder holdings values without an executable current
+portfolio artifact. MAVF remains `unavailable` because its complete official
+table is blocked by Cloudflare for backend-equivalent access. No SEC or indexed
+content is promoted as current support.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The seven ranked cohorts now cover 75
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
+
+## Eighth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds STGF and OUNZ (Merk) and WIZ/SNUG/BOB/DUDE (Merlyn.AI) to
+explicit symbol-level outcomes. All six are `not_applicable`: STGF was
+liquidated in December 2023, OUNZ is the current VanEck Merk Gold Trust
+relationship, and the four Merlyn.AI series were liquidated in 2022–2023.
+Historical liquidation evidence and successor ownership remain visible, but
+no stale basket or successor route is promoted under the fallback identities.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The eight ranked cohorts now cover 81
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
+
+## Ninth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds DRMY/GLDN/NUKX/WEPN/SLVX/GIAX/BHDG/BLOX/NGHT/FIAX/XCSH
+(Nicholas Wealth), NSIV/NSIG/QTPI (North Square), and WAGN (Pabrai) to
+explicit symbol-level outcomes. Nicholas Wealth is `unavailable` with an
+`issuer_route_access_blocked` state because its current XFUNDS pages are
+Cloudflare-blocked to backend-equivalent access. North Square and Pabrai are
+`unavailable` with `non_executable_public_source` because their public
+disclosures are quarterly or periodic and do not expose executable current
+baskets. SEC identity evidence is retained without promoting filings as
+current constituent data.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The nine ranked cohorts now cover 96
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
+
+## Tenth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds CLOX/CLOZ (Panagram), PRCS/PRVS (Parnassus), STBF (Performance
+Trust), TCTL (Premise Capital), PFRX/SYNB/PGRO/PHYD/PBDC/PCRB/PLDR/PFUT/PULT/
+PEMX/PVAL/PPIE/PPEM/PGRI (Putnam), and PZIV/PZLV (Pzena) to explicit outcomes.
+Panagram is `not_applicable` after the Eldridge successor rename. Parnassus and
+Pzena remain `unavailable` while their advertised routes are blocked;
+Performance Trust and Putnam remain `unavailable` because accessible reports
+are stale or periodic; and Premise remains `unavailable` while its issuer
+domain is unreachable. No SEC reconstruction is promoted as current data.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The ten ranked cohorts now cover 117
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
+
+## Eleventh ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds RFDI/RFEM (RiverFront sub-advised by First Trust), ROCI
+(liquidated ROC Investments), AMEI/AMGR/AMEM/AMSU (Saturna), EMEM/EMSC
+(Sophus), and GOLY/HNDL/MPLY/ROMO (Strategy Shares) to explicit outcomes.
+RiverFront and ROCI are `not_applicable` because ownership belongs to First
+Trust or the product was liquidated. Saturna and Sophus remain `unavailable`
+while issuer routes are blocked, and Strategy Shares remains `unavailable`
+because only top-ten or periodic disclosures are public. No SEC-derived
+current basket is promoted.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The eleven ranked cohorts now cover 130
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
+
+## Twelfth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds GOP/NANC (Subversive), SEMG (Suncoast), TCV (Towle), and COPY
+(Tweedy Browne) to explicit outcomes. Subversive, Suncoast, and Towle remain
+`unavailable` with issuer-access-blocked routes; Tweedy Browne remains
+`unavailable` because its public artifact is stale and has no current dated
+basket. No blocked or stale page is promoted as current support.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The twelve ranked cohorts now cover 135
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
+
+## Thirteenth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This final ranked symbol-bearing slice binds RMME/BEGS/RSEE/RTRE/RDFI/RTAI
+(Rareview), ODTE/VAIE/XSPC/CGPT/COOL (VegaShares), RTOO/AIS/AMMO/QUSA/OMAH/
+ACKY/DRKY (VistaShares), MCRT (Wellesley), WRTH (Worth Charting), YOKE, FUNL
+(EPWA), and PRAE/PRMN (PlanRock) to explicit symbol-level outcomes. Rareview,
+VegaShares, VistaShares, EPWA, and PlanRock remain `unavailable` because their
+public artifacts are stale, top-ten-only, unresolved, or non-executable.
+Wellesley is `not_applicable` as an adviser identity; Worth Charting and Yoke
+remain `issuer_access_blocked`. No stale, blocked, or unresolved artifact is
+promoted as current support.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The thirteen ranked cohorts now cover 160
+explicit non-Tier-0 symbols. Remaining fallback identities without
+representative symbols retain provider-level terminal or non-publisher
+dispositions. AC10 remains dependent on provider-platform staging, and AC14
+still requires production shadow observations and human closure authorization.
+
+## Live issuer-edge checkpoint — 2026-09-05
+
+The refreshed opt-in live provider matrix initially exposed two issuer-specific
+variants: Nomura `FRWD` and Delaware/Macquarie successor `LRGG` returned HTTP
+200 product pages whose daily holdings tables were empty. The issuer-declared
+XLSX export POST was also rejected with HTTP 403 for both routes. This is an
+issuer-edge access/data response, not a parser regression or permission to
+weaken strict identity/completeness checks. The live contract now records
+exact `(adapter, symbol, message)` evidence-bearing skips for those two cases;
+the adapters remain unchanged and no response is promoted as current support.
+
+Focused checks skipped exactly the two reproduced cases. The complete opt-in
+matrix then passed 498 cases with 8 narrow skips, and the default live contract
+passed 2 tests with 504 network cases skipped. The deterministic ETF matrix
+remained 686 passed with Ruff, formatting, diff, and workstream validation
+green. The provider-platform branch remains separate and not staged, so AC10
+is still deferred; this checkpoint changes only the ETF branch's live evidence
+contract.
+
+## Tier-0 priority route validation — 2026-09-05
+
+Commit `78d085ae` adds strict, symbol-scoped current-route evidence for the
+next highest-priority Tier-0 tranche. The F/m `fm_investments` route passed a
+bounded canary for all ten approved U.S. Benchmark Series products
+(TBIL/XBIL/OBIL/UTWO/UTRE/UFIV/USVN/UTEN/UTWY/UTHY), with issuer API data
+dated 2026-09-04 and two or three complete rows per product. The adapter
+preserves issuer provenance, route identity, composition date, and cash
+semantics; a live test covers every symbol.
+
+Pacific Asset Management's official GEME page now has a dedicated strict
+holdings-table route. The current page exposed 66 complete rows dated
+2026-09-04, including security ticker, SEDOL, quantity, market value, weight,
+and a USD cash row. GEME has focused deterministic and live coverage and is
+marked current at symbol level. The mixed `pacific_investments` provider
+remains fallback-only because PIMCO MINT/BOND still lack a complete executable
+public artifact; no provider-level native promotion was made.
+
+The refreshed full opt-in matrix passed 508 cases with 9 narrow skips; the
+focused F/m and GEME live checks passed independently. The default live
+contract passed 2 tests with 515 network cases skipped. The deterministic ETF
+matrix passed 688 tests. Ruff, repository formatting, diff-check, and
+workstream validation were green. DXJ/NTSX remain issuer-edge blocked and
+MINT/BOND remain unresolved, so AC11 is open; shared provider-platform staging
+is still required before AC10, and AC14 remains a post-integration shadow
+gate.
+
+## PIMCO anonymous route-inventory recheck — 2026-09-06
+
+The public PIMCO fund-detail JavaScript bundle was inspected for declared
+holdings/statistics routes. Anonymous bounded requests for both MINT
+(`72201R833`) and BOND (`72201R775`) returned HTTP 401 for
+`topTenHoldings`, `breakouts`, `topTenHoldings/export`, `allocation`,
+`allocation/last12month`, `regional`, `sector-allocation`, `asset-and-leverage`,
+`trade-data`, and `overview-metadata`. No complete unauthenticated holdings
+export was found or activated; the mixed Pacific/PIMCO provider remains
+fallback-only and MINT/BOND remain unavailable. Evidence ref:
+`live:pimco-fund-detail-route-inventory-2026-09-06-unauthorized`.
+
+## Complete fallback capability-boundary regression — 2026-09-06
+
+The capability suite now exercises every one of the 80 current fallback
+identities with a synthetic, unreviewed symbol and a complete stored snapshot.
+All remain non-current (`unknown` or `not_applicable`) and unusable for current
+analysis; only explicit symbol-level evidence can override the provider-level
+fallback boundary. The focused capability suite passes 90 tests, and no
+provider classification or source outcome changed.
+
+## Tier-0 free-first route re-test — 2026-09-05
+
+The next bounded source review kept the four unresolved Tier-0 symbols
+explicitly non-current. WisdomTree's current DXJ and NTSX product pages are
+browser-visible and expose dated top-ten holdings, but backend-equivalent
+requests still return Cloudflare 403 challenge content. The pages therefore
+remain useful audit evidence but are not an executable complete route for the
+application; no browser-only or SEC reconstruction was promoted.
+
+PIMCO's official MINT and BOND materials declare daily holdings disclosure,
+but the public product detail surface did not expose a complete downloadable
+basket. PIMCO's declared fund-detail API was tested with the public CUSIPs
+(`72201R833` for MINT and `72201R775` for BOND); bounded `topTenHoldings` and
+`fund-info` requests returned HTTP 401 Unauthorized. These responses establish
+an authentication boundary, not current constituent support. MINT/BOND remain
+`no_complete_executable_public_artifact`, and the mixed Pacific/PIMCO provider
+remains fallback-only.
+
+The runtime symbol audit, YAML ledger, unit parity coverage, and durable
+handoff now carry the dated 2026-09-05 WisdomTree/PIMCO evidence and retain the
+free-first rule. Any licensed/vendor route remains deferred behind the shared
+provider-platform entitlement and aggregate 20 EUR/USD-equivalent budget gate.
+
+## Capability health-read hardening — 2026-09-05
+
+Implementation checkpoint `dd64543c2372e0139e4eed89444753d9015a9506` closes
+the corresponding read-side resilience gap. `evaluate_capability` now parses
+the persisted `consecutive_failures` value through a bounded helper, preserving
+the existing failure-state fallback while treating malformed, negative, or
+non-numeric metadata as a safe diagnostic value instead of raising during API
+capability evaluation. This keeps user-visible degradation and monitoring
+responses available even when legacy adapter JSON is damaged.
+
+The focused capability/refresh suites pass 86 tests and the complete
+deterministic ETF unit matrix passes 715 tests; Ruff, formatting, and
+diff-check are green. No source tier, provider count, entitlement, paid
+activation, or Tier-0 disposition changed. Shared provider-platform staging,
+the four unresolved Tier-0 routes, and AC14 remain open.
+
+## Shadow-gate symbol-key normalization — 2026-09-05
+
+Implementation checkpoint `ef165913df1f02be0a9a1ff3e486eaed557f7e0b` hardens
+the Tier 0 shadow evaluator's telemetry boundary. Observation-map keys are now
+normalized and merged case-insensitively before coverage evaluation, so valid
+lowercase or mixed-case symbol telemetry cannot be misclassified as missing
+coverage. Observation eligibility, source-tier rules, freshness thresholds, and
+silent-violation checks are unchanged.
+
+The focused capability suite passes 79 tests and the complete deterministic ETF
+unit matrix passes 716 tests; Ruff, formatting, and diff-check are green. No
+provider, source tier, entitlement, paid activation, or Tier-0 disposition
+changed. Shared provider-platform staging and the post-integration AC14 gate
+remain open.
+
+## Malformed adapter-health metadata hardening — 2026-09-05
+
+Implementation checkpoint `62d5057fb6a2dc9ec37d36df2236b28b94c69a88` hardens
+the ETF refresh/canary state boundary. Persisted adapter `extra_data` is now
+normalized to a dictionary before health bookkeeping, and malformed, negative,
+or non-numeric `consecutive_failures` values are treated as a safe zero rather
+than aborting a canary or refresh-state update. The same bounded reader is used
+by circuit, recovery, probe, skip, success, and failure paths, preserving the
+existing source/capability rules while making legacy JSON corruption observable
+through the next recorded failure instead of a task crash.
+
+Focused refresh coverage passes 8 tests; the complete deterministic ETF unit
+matrix passes 714 tests; Ruff, formatting, and diff-check are green. No source
+tier, provider count, entitlement, paid activation, or Tier-0 disposition
+changed. Shared provider-platform staging and the four unresolved Tier-0
+routes remain open gates.
+## Implementation checkpoint — Anydrus NDOW native route — 2026-09-05
+
+Anydrus' official product page and application bundle now expose a verified
+page-declared FilePoint route. The bounded dated fallback search found the
+2026-09-03 JSON artifact with exactly 84 declared and parsed NDOW constituents.
+The provider-specific adapter validates issuer identity, declared primary and
+dated fallback routes, fund ticker, composition date, and full row count; its
+deterministic fixture and opt-in live route test pass. This promotion reduces
+the current code-derived split to 496 registered / 415 native-live-backed / 81
+fallback-only providers. Keep the 16-day dated search and route canary bounded;
+implementation checkpoint `93a488ea8da77f7acf056e52f695787c69243f17`; do not
+infer current support if the issuer route drifts or the completeness
+contract fails.
+
+## Current-SHA integration-gate receipt — 2026-09-05
+
+The post-promotion `make validate-integration` run passed the current branch's
+workstream, dependency, migration, lint, formatting, type, backend coverage,
+frontend coverage, build, compose, provider-probe policy, stack-health,
+research-runner isolation, and visual stages. Backend coverage was 1,853
+passed at 81.19%; frontend coverage was 945 passed at 82.06%. Functional E2E
+reported 153 passed and 106 documented skips, with one unrelated existing
+`F8j-conflict` recovery-copy footer assertion failing transiently. A fresh
+branch-scoped stack retry of that exact test passed 1/1, and scoped teardown
+removed all containers, volumes, and images. No ETF assertion failed; the
+transient browser observation remains distinct from the green deterministic and
+opt-in ETF receipts.
+
+## Exact-SHA GitHub Actions validation — 2026-09-05
+
+GitHub Actions run `33992545311` completed successfully for feature tip
+`97b1c9dfe2b5351193b2100cad69fce9194162c2`. Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and Playwright E2E all passed. The
+staging/master-only Exhaustive Integration Gate was skipped as designed for a
+feature branch. This closes the exact-SHA CI evidence item for the current
+implementation tip without changing provider classifications or source
+eligibility. The provider-platform staging dependency, AC10, unresolved
+DXJ/NTSX/MINT/BOND current-support outcomes, and post-integration AC14 shadow
+gate remain open.
+
+## Exact-SHA GitHub Actions receipt for pushed documentation checkpoint — 2026-09-05
+
+GitHub Actions run `33993815315` completed successfully for pushed feature tip
+`d0d992179ac5c1b5a96dd907940712703933ffe1`. Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and Playwright E2E all passed. The
+staging/master-only Exhaustive Integration Gate was skipped as designed for a
+feature branch. This validates the pushed tip without changing provider
+classifications or source eligibility. The provider-platform staging
+dependency, AC10, unresolved DXJ/NTSX/MINT/BOND current-support outcomes, and
+post-integration AC14 shadow gate remain open.
+
+## Fresh first-party Tier-0 source recheck — 2026-09-05
+
+The current official WisdomTree DXJ and NTSX pages are browser-readable with
+dated holdings sections, but each provides only a ten-row preview plus
+`Remaining Portfolio` and a `View all holdings` control. No complete download
+was exposed by the rendered page, and this does not overcome the repository
+transport's Cloudflare challenge. DXJ and NTSX remain unavailable.
+
+The current official PIMCO document URLs used for the daily-disclosure audit
+returned HTTP 404 in the read-only recheck. This is route-drift evidence, not
+a holdings artifact; the authenticated fund-detail API remains the only
+declared route found and MINT/BOND remain unavailable. Runtime capability refs
+and provider-audit refs were updated in lockstep, the capability suite passed
+87 tests, and no paid or provider-platform integration was activated.
+
+## WisdomTree HTTP/1.1 transport promotion — 2026-09-06
+
+A bounded fresh probe confirmed an issuer-edge split: the repository's Python
+`httpx` sequence receives HTTP 403 Cloudflare challenge HTML, while an explicit
+HTTP/1.1 `curl` retry against the same official WisdomTree product/API routes
+returns HTTP 200 complete JSON. The strict adapter validated 430 DXJ rows and
+508 NTSX rows, all dated 2026-09-04, including symbol/entity identity, exact
+route host/path, complete payload shape, and freshness. Transport provenance is
+recorded as `curl_http1_1_after_issuer_challenge`; no credential or paid source
+was activated.
+
+DXJ and NTSX are therefore current/native-promoted canaries. The fallback split
+is now 496 registered / 416 native-live-backed / 80 fallback-only. MINT and
+BOND remain unavailable because PIMCO still has no complete executable public
+artifact. The WisdomTree route must remain bounded and freshness-aware, with
+re-audit on transport/schema drift and no SEC fallback when the strict curl
+route succeeds. Deterministic and bounded live tests cover the transport retry;
+the shared provider-platform dependency, AC10, and post-integration AC14 remain
+open.
+
+## Amplius AAAA effective-date recheck — 2026-09-06
+
+The bounded Amplius adapter probe returned HTTP 200 with 45 complete AAAA
+holdings rows, but every row still reports the future effective date
+`2026-09-08`. The current-date freshness boundary therefore continues to reject
+the artifact for current analysis; no native promotion or source-classification
+change was made.
+
+The focused capability and adapter suites passed 669 tests after the durable
+ledger parity correction; Ruff, workstream validation, and diff-check passed.
+
+## Putnam-to-Franklin successor recheck — 2026-09-06
+
+The representative public GraphQL probe found no PFRX holdings, a 2025-10-31
+SYNB snapshot, and a 2026-07-31 PGRI snapshot. The route remains executable but
+not current; no successor-native promotion or SEC fallback promotion was made.
+
+## Pzena public holdings application recheck — 2026-09-07
+
+The official Pzena pages and FundPress manager are reachable, but only an
+application shell was exposed; no complete anonymous holdings artifact was
+found. PZIV/PZLV remain issuer-access-blocked and no native promotion was made.
+
+The full 14-symbol sweep confirmed that every mapped Putnam symbol is either
+empty or stale; the family-wide fallback disposition remains unchanged.
+
+## Aegon/Transamerica representative-route recheck — 2026-09-07
+
+The official TALV route returned a 212-byte Incapsula challenge shell (HTTP
+200), TABD returned HTTP 404 with Incapsula markers, and the catalogue route
+returned an access-control shell. This is not an executable holdings artifact;
+TALV/TABD remain unavailable and issuer-access-blocked. Re-open only when an
+issuer-supported backend-readable complete holdings route is exposed.
+
+## Guinness Atkinson representative-route recheck — 2026-09-07
+
+The official Fund Resources route returned HTTP 403 Cloudflare challenge
+content, with no complete executable holdings artifact. GAUD/GAID remain
+unavailable and issuer-access-blocked; re-open only when a complete,
+backend-readable issuer route is exposed.
+
+## Manulife representative-route recheck — 2026-09-07
+
+The official Manulife ETF catalogue returned HTTP 403 Access Denied, with no
+complete executable holdings artifact for UDIV, UDEF, or GEDG. The symbols
+remain unavailable and issuer-access-blocked; re-open only when a complete,
+backend-readable U.S. ETF route is exposed.
+
+## Q3/QVOY representative-route recheck — 2026-09-07
+
+The official QVOY page and declared holdings-download route both returned HTTP
+503 site-owner access-limited content. No complete executable artifact was
+retrieved; QVOY remains unavailable and issuer-access-blocked. Re-open only
+after the issuer route returns complete rows and bounded live proof.
+
+## Ridgeline/ACVF identity recheck — 2026-09-07
+
+The official ACVF route returned HTTP 403 again. Ridgeline remains an adviser
+identity while ACV owns the holdings publisher route; preserve the existing
+ACV mapping and do not create a duplicate Ridgeline adapter.
+
+## Westwood/MDST representative-route recheck — 2026-09-07
+
+The official MDST page and declared CSV route both returned HTTP 403 Cloudflare
+HTML again, with no complete executable artifact. MDST remains unavailable and
+issuer-access-blocked; re-open only when the complete route is reachable.
+
+## Argent HTML holdings recheck — 2026-09-07
+
+The three first-party Argent pages returned complete HTML tables with effective
+date `2026-09-08`, future-dated relative to the observation. Keep AMID, ABIG,
+and ALIL unavailable until freshness and identity checks pass; do not promote
+the route solely because the page is reachable.
+
+## Advisors Asset Management representative-route recheck — 2026-09-07
+
+Fresh symbol-scoped probes returned HTTP 403 for SPDV and empty-server replies
+for BDIV, TRFM, and PFLD. No complete executable export was retrieved; all
+four remain unavailable and issuer-access-blocked.
+
+## Arin ATTR HTML holdings recheck — 2026-09-07
+
+The official ATTR route redirected to the Arin homepage and exposed a complete
+HTML holdings table with effective date `2026-09-08`, future to the observation.
+Keep ATTR unavailable until freshness and identity checks pass; do not promote
+the route solely because it is reachable.
+
+## Avos AVOS HTML holdings recheck — 2026-09-07
+
+The official AVOS page returned a complete HTML table with effective date
+`2026-09-08`, future to the observation. Keep AVOS unavailable until freshness
+and identity checks pass; do not promote the route solely because it is
+reachable.
+
+## Baillie Gifford top-holdings route recheck — 2026-09-07
+
+The four official routes returned dated XLSX top-ten files, not complete
+constituent artifacts: each file contained ten names and weights and omitted
+tickers and identifiers. Keep BGGG, BGIA, BGEG, and BGUS unavailable until a
+complete issuer export is available.
+
+## First Manhattan route recheck — 2026-09-07
+
+Fresh bounded retrieval reached the official First Manhattan catalogue and both
+FMCX/FMCE product routes with HTTP 200 HTML, but the responses contained
+access-denied/CAPTCHA challenge markers. The declared download route returned a
+prospectus PDF rather than a holdings export. No complete current executable
+artifact was retrieved, so FMCX/FMCE remain unavailable under the existing
+`non_executable_public_source` disposition; no SEC reconstruction, native
+promotion, or paid activation was made.
+
+## Highland Capital AQLG route recheck — 2026-09-07
+
+Fresh retrieval returned the official AQLG page and its linked 130-row CSV.
+The page identifies AQLG and reports holdings as of `2026-08-25`; the CSV
+contains names, CUSIPs, quantities, and weights but leaves every `Ticker` field
+blank. The artifact remains materially complete but cannot satisfy canonical
+symbol mapping without an issuer-declared mapping, so AQLG remains unavailable
+under `non_executable_public_source`; no SEC reconstruction or promotion was
+made.
+
+## Matrix MAVF route recheck — 2026-09-07
+
+The official Matrix page is now reachable and exposes a complete 27-row MAVF
+HTML table with ticker, name, CUSIP, shares, market value, and weight columns.
+However, the page does not declare a holdings as-of date. The route therefore
+remains unavailable under `non_executable_public_source`; current-support
+promotion requires explicit freshness semantics and bounded parser evidence.
+
+## Nicholas Wealth XFUNDS route recheck — 2026-09-07
+
+Fresh bounded retrieval reached the NGHT, WEPN, and FIAX product pages with
+HTTP 200 HTML, but no executable holdings table or downloadable artifact was
+exposed. The pages contain holdings/download UI markers while the
+backend-equivalent response remains an access-controlled or dynamic shell;
+Nicholas Wealth remains `issuer_access_blocked` and no SEC reconstruction or
+promotion was made.
+
+## Parnassus PRCS/PRVS route recheck — 2026-09-07
+
+Both official daily-holdings routes returned HTTP 200 HTML shells that load a
+React CSV application, but no holdings rows, stable download URL, or current
+date was embedded in the backend-retrievable document. PRCS/PRVS remain
+`issuer_access_blocked`; no SEC reconstruction or promotion was made.
+
+## Saturna Amana route recheck — 2026-09-07
+
+All three official Amana ETF routes returned HTTP 403 Cloudflare challenge
+HTML. No complete current holdings artifact was exposed; AMEI, AMGR, and AMEM
+remain `issuer_access_blocked` and no promotion was made.
+
+## Amplius AAAA effective-date recheck — 2026-09-07
+
+The bounded application-equivalent request again returned HTTP 200 with 45
+complete AAAA holdings rows. Every row still reports effective date
+`2026-09-08`, future-dated relative to the observation, so the freshness
+boundary correctly keeps AAAA unavailable and Amplius fallback-only. No native
+promotion, SEC reconstruction, paid activation, or parser classification
+change was made.
+
+## Azimut provider-catalogue recheck — 2026-09-07
+
+The official Azimut catalogue remained reachable but exposed general fund
+research rather than a U.S. ETF holdings publisher. The Azfund catalogue could
+not be validated because its certificate does not match `www.azfund.com`, and
+the public StockAnalysis Azimut provider endpoint returned HTTP 404. Azimut
+therefore remains a provider-level non-publisher with explicit SEC fallback
+eligibility; no symbol route or native promotion was invented.
+
+## M.D. Sass SASS holdings CSV recheck — 2026-09-07
+
+The issuer-declared SASS CSV returned HTTP 200 with 23 holdings rows plus
+header, complete ticker/CUSIP/name/quantity/weight fields, and effective date
+`2026-09-08`. The route is now proven as a complete identity-bound artifact,
+but remains unavailable for current analysis because the snapshot is
+future-dated. A strict provider-specific parser and deterministic fixture now
+cover the CSV; bounded live validation against a non-future snapshot remains
+required before native promotion.
+
+The bounded opt-in live route test passed against the official CSV, confirming
+transport, schema, identity, and parser behavior without relaxing the freshness
+boundary.
+
+## Machine-readable vendor eligibility boundary — 2026-09-07
+
+The branch-owned `vendor_source_candidates` ledger now makes the free-first
+cost and activation boundary machine-checkable for seven researched sources.
+Each candidate records target coverage, access and pricing model, published
+minimum/monthly cost where known, freshness, quota, terms, evidence refs,
+budget disposition, activation status, and next action. Every candidate is
+explicitly not authorized and not current-support eligible until the shared
+provider-platform entitlement, quota, health, and aggregate 20 EUR/USD-
+equivalent budget contracts are available and a human separately approves
+activation. The ledger is governance evidence only; it is not a provider
+runtime or an implicit fallback.
+
+The focused ledger regression preserves ETF Holdings API as a potentially
+low-cost candidate whose PIMCO coverage is unverified, rejects StockFit's
+`$39/month` ETF plan as over the budget boundary, and retains MarketXLS,
+PortfoliosLab, Finnhub, SecuritiesDB, and DealCharts as unqualified,
+terms-limited, stale, or coverage-incomplete research candidates. MINT and
+BOND remain unavailable for current analysis.
+
+## Exact-SHA CI after vendor eligibility governance — 2026-09-07
+
+GitHub Actions run `34154962957` passed for exact tip
+`3f7c1116f8da3f71b1f823feb38a89b5a11e2367`. Backend Tests, including
+Docker-backed integration, Frontend Unit Tests, Branch-declared Tests, and
+Playwright E2E all passed. The protected staging/master-only Exhaustive
+Integration Gate was skipped as designed for this feature branch. CI emitted
+only the existing non-blocking Node.js 20 action deprecation annotations.
+Provider-platform staging, AC10, unresolved MINT/BOND, and AC14 remain open.
+
+## ETFMG successor-route reconciliation — 2026-10-02
+
+The prior fourth-ranked symbol cohort conservatively recorded AIEQ, AWAY, BDRY,
+and BWET only under historical `etf_managers_group` and therefore returned
+`not_applicable`. A bounded current recheck proved that this was incomplete:
+Amplify's official product pages identify all four active U.S.-listed funds, and
+the existing native Amplify multi-account CSV returned complete, symbol-scoped
+rows dated 2026-10-02 (AIEQ 164, AWAY 30, BDRY 11, BWET 8). The strict adapter
+already had deterministic parser/filter coverage and its bounded live route
+contract now covers all four symbols in addition to BLOK.
+
+The runtime and YAML symbol ledgers now mark these four symbols `current` under
+`amplify` with `successor_issuer_route` evidence. A controlled historical
+identity bridge keeps an `etf_managers_group` profile explicitly
+`not_applicable`, preserving the acquisition/disposition evidence and avoiding
+duplicate ETFMG ownership. No SEC reconstruction, paid source, or generic
+fallback promotion was introduced. Provider counts remain 496 registered,
+421 native/live-backed, and 75 fallback-only because this is a symbol-level
+successor reconciliation against an already-native adapter.
+
+## Additional low-cost source and PIMCO review — 2026-10-04
+
+FundFacts API was added to the machine-readable vendor ledger and rejected for
+current production eligibility under the existing budget rule. Its published
+Free allowance is only 15 monthly lookups and its Free/US$9.99 Starter terms
+are personal/evaluation use; commercial in-product use starts at Pro,
+US$49/month, above the aggregate US$20-equivalent ceiling. Public issuer pages
+do not prove exact DXJ/NTSX/MINT/BOND coverage, and the API's own terms disclaim
+accuracy, completeness, and timeliness warranties. No account, key, or request
+was made.
+
+A current PIMCO first-party recheck still identifies MINT and BOND as active
+products, with AUM of US$17.526B and US$8.590B as of 2026-08-31. The most recent
+reviewed official factsheets are dated 2026-03-31; neither the catalogue pages
+nor those factsheets establish a complete, executable current holdings basket.
+MINT/BOND therefore remain unavailable and Pacific's separate GEME evidence
+does not promote the mixed provider identity. The audit dates, source refs,
+candidate budget disposition, targeted regression, handoff, and provider
+universe documentation were synchronized. AC11's symbol outcomes remain
+truthful; no current-support promotion or activation occurred.
+
+The source-research implementation changeset was committed and pushed as
+`767c5fa2598f539c3366b849e9e2d80a2d2fbf7b` to
+`feat/etf-holdings-constituents`. The focused audit-governance, Tier-0
+runtime/ledger-parity, and current-workstream-narrative tests passed together
+(3 passed, 589 deselected); Ruff, all 30 workstream validations, and
+`git diff --check` passed. A direct post-push `git ls-remote` lookup was
+unavailable because GitHub DNS failed, but the push completed successfully and
+the local remote-tracking ref matched the implementation commit. The separate
+operational receipt must record that commit and remain branch-local.
+
+## Tier-0 source availability recheck — 2026-10-05
+
+The 2026-10-05 first-party WisdomTree DXJ and NTSX pages show holdings dated
+2026-10-01 but only ten named rows plus `Remaining Portfolio`, so they do not
+prove complete holdings. The two bounded application canaries were skipped
+because the host could not resolve `www.wisdomtree.com`; that DNS result is
+neither route success nor a new issuer failure. Keep both symbols degraded
+under the last confirmed 2026-10-04 issuer-challenge evidence and retry when
+DNS works.
+
+PIMCO's current ETF suite lists MINT and BOND and current NAV/market-price
+context. Official fund sheets assert daily complete-holdings disclosure, but
+the reviewed sheets are dated 2026-03-31 and are not an executable current
+artifact. Fresh anonymous calls to the MINT and BOND `topTenHoldings` routes
+returned HTTP 401 JSON. Because a published disclosure policy is not the same
+as an executable route, keep both unavailable; do not infer support from the
+top-ten response, the delayed sheets, creation baskets, or SEC records.
+
+The Tier-0 capability map and `provider-audit.yaml` now agree on investigated
+date, evidence references, outcomes, and next action. No provider registration,
+native/fallback count, vendor entitlement, or paid activation changed. The full
+ETF capability/adapter unit suites pass (691 tests), the selected Tier-0
+runtime/ledger/narrative checks pass (3 tests), Ruff passes, and both changed
+Python files satisfy Ruff formatting. The full-stack profile is currently
+blocked by permission denied on `/var/run/docker.sock`. The escalation request
+to check the Docker-backed gate was not executed because automatic approval
+review was at capacity; that review was not a safety rejection, and its
+approval must not be bypassed. Exact-SHA hosted CI and the local full gate
+therefore remain open for this changeset.
+
+## TALV/TABD free-first source recheck — 2026-10-05
+
+The next ranked Tier-1 pair, TALV/TABD, was rechecked against Transamerica's
+first-party Fund Center and official SEC documents. The prospectus says daily
+portfolio holdings are available through the Fund Center; the current browser
+retrieval resolves to an Incapsula challenge with no holdings artifact. The
+semiannual report supplies full schedules only as of `2026-03-31`, so those
+rows are historical and must not be presented as current. Both symbols remain
+unavailable and the Aegon provider remains issuer-access-blocked. No SEC,
+third-party, or paid data was promoted. The runtime map, symbol audit ledger,
+provider attempt history, docs, and regression test now share the 2026-10-05
+evidence and unchanged outcomes.
+
+## GAUD/GAID liquidation reconciliation — 2026-10-05
+
+The current official SEC semiannual report states that GAUD and GAID had zero
+portfolio holdings pending liquidation distribution and both liquidated on
+`2026-06-30`; Guinness Atkinson's current website also lists them among ETFs
+approved for liquidation. The explicit Tier-1 symbol audits therefore move
+from unavailable/issuer-route-blocked to not-applicable/inactive-or-successor.
+Historical Q1 holdings files and SEC liquidation schedules remain non-current
+evidence and are not promoted. The Guinness recognition-only provider remains
+fallback-only, provider-count totals do not change, and the runtime status
+distribution is now 7 access-blocked / 54 discovery / 3 non-executable / 8
+non-publisher / 3 inactive (75 total). A parameterized regression covers both
+tickers; the provider ledger, runtime, docs, and source attempt history retain
+the same dated evidence and terminal disposition.
+
+Evidence refs: `web:guinness-atkinson-gaud-gaid-liquidation-sec-2026-10-05` and
+`web:guinness-atkinson-our-funds-liquidation-notice-2026-10-05`.
+
+## Manulife UDIV/UDEF/GEDG free-first source recheck — 2026-10-05
+
+The current official Manulife catalogue confirms that UDIV, UDEF, and GEDG are
+current ETF products. The reviewed UDIV unhedged-units and UDEF USD-units
+factsheets both disclose `2026-07-31` holdings dates and report 111 and 173
+positions respectively, but list only ten named holdings; these cannot satisfy
+complete-constituent support. The last application-equivalent catalogue request
+remains HTTP 403 and no complete executable GEDG artifact was found. The three
+symbols stay unavailable with no provider or native-count change. The runtime
+map, explicit Tier-1 symbol records, provider attempt history, documentation,
+and parameterized regression now share the dated evidence and unchanged
+outcomes; no SEC, third-party, or paid source was promoted.
+
+Evidence refs: `web:manulife-current-etf-catalogue-2026-10-05` and
+`web:manulife-udiv-udef-latest-product-factsheet-top-ten-2026-10-05`.
+
+## QVOY complete-page evidence, route still unverified — 2026-10-05
+
+The Q3 official product page now renders the full 14-position QVOY table dated
+`2026-10-01`, including identifiers and cash/sweep/receivable rows, and links a
+declared CSV download. However, the browser connector timed out fetching the
+CSV, the last application-equivalent request on `2026-10-01` returned HTTP 503,
+and this worker's current bounded direct page/download probes fail temporary
+DNS resolution. This is not a new provider failure, but it is also not live
+route success. Keep QVOY unavailable until the exact issuer artifact can be
+fetched by the application and pass identity/date/schema/parser/live checks;
+do not reconstruct a current basket from SEC filings or use indexed HTML as a
+substitute for executable retrieval.
+
+Evidence refs: `web:q3-qvoy-official-etf-page-2026-10-05-complete-html`,
+`web:q3-qvoy-official-csv-download-timeout-2026-10-05`, and
+`live:q3-qvoy-worker-dns-failure-2026-10-05`.
+
+## Westwood MDST current-route recheck — 2026-10-05
+
+The official Westwood product page was re-read today. It confirms 23 total
+holdings and renders ten named holdings dated `2026-10-01`; it also declares a
+CSV download. The displayed top ten and total count are not a complete
+constituent artifact. A bounded application-equivalent GET to the exact declared
+CSV URL returned HTTP 403 `text/html` (5,570 bytes), not CSV. This confirms the
+issuer route remains inaccessible to the application client, so MDST remains
+`unavailable` and Westwood remains `issuer_access_blocked` with no adapter or
+SEC-derived promotion. Updated the runtime symbol outcome, provider ledger,
+provider-universe documentation, and a deterministic assertion in one audit
+slice. Evidence refs: `web:westwood-mdst-official-product-page-2026-10-05` and
+`live:westwood-mdst-current-holdings-csv-2026-10-05-403`.
+
+## AAM SPDV/BDIV/TRFM/PFLD current-route recheck — 2026-10-05
+
+Current indexed first-party SPDV and TRFM pages show top-holdings slices dated
+`2026-09-25` and `2026-09-28` with an Export to Excel affordance; the complete
+export itself was not captured. Bounded application-equivalent GETs to the
+official SPDV, BDIV, TRFM, and PFLD detail routes returned empty server replies
+for SPDV/BDIV/PFLD and HTTP 403 `text/html` for TRFM. None supplies an
+executable complete holdings artifact from the application boundary.
+
+All four symbol outcomes remain `unavailable` and AAM remains
+`issuer_access_blocked`; no provider route, SEC reconstruction, or paid source
+was promoted. Updated the grouped runtime symbol audit, each Tier-1 ledger
+entry, the provider attempt history, public provider-universe record, and a
+deterministic assertion. Evidence refs: `web:aam-spdv-indexed-top-holdings-2026-10-05`,
+`web:aam-trfm-indexed-top-holdings-2026-10-05`, and the four
+`live:aam-*-route-2026-10-05-*` transport observations.
+
+## Eventide ESUM exact-SHA CI failure and route repair — 2026-10-05
+
+Exact push run `37315769814` for `c2c1ad785f09322bd99e81ab8e13c27b241a670d`
+completed with Backend Tests, Frontend Unit Tests, and hosted Playwright
+passing. Branch-declared Tests failed only the Eventide ESUM case after 512
+passed and 25 classified skips: `Eventide holdings CSV did not expose holdings
+rows for ESUM`. The protected Exhaustive Integration Gate was skipped by
+design on the feature branch.
+
+The current first-party ESUM page states that a full holdings list is available
+as both PDF and CSV, dated `2026-09-30`, with 197 positions; its visible download
+link resolves to the issuer-hosted `/assets/.../ESUM_etfHoldingsCsv.csv` URL.
+The existing adapter resolved the generic `/etfs` index, discovered only a
+Contentful-hosted asset, and did not recognize Eventide's current `Holding`
+column as a row name. The repair points default requests to the symbol-specific
+`/etfs/{symbol_lower}` product page, recognizes and prioritizes same-host
+`/assets/` CSV links while retaining the allow-listed Contentful fallback, and
+adds `holding` as a generic header alias. The fixture mirrors the official CSV
+schema with date, CUSIP, weight, market value, and cash rows; it does not
+loosen row completeness or identity checks.
+
+Verification after the repair: two focused Eventide unit cases pass; the full
+ETF adapter and capability unit suites pass `699/699`; Ruff check, Ruff format
+check, and `git diff --check` pass. The local opt-in ESUM route probe skipped on
+temporary DNS resolution failure, so executable live support has not yet been
+confirmed from this worker. Publish the repair and require the next exact-SHA
+hosted branch matrix to pass the live Eventide case before calling it repaired
+operationally. Evidence refs: `web:eventide-esum-product-holdings-2026-10-05`,
+`web:eventide-esum-csv-download-link-2026-10-05`, and
+`ci:37315769814-eventide-esum-empty-parser`.
+
+## Arin ATTR native route and VistaShares hosted identity failures — 2026-10-05
+
+### Arin ATTR
+
+The official `https://arinetfs.com/` page now returns the product identity and
+full holdings table in its HTML. A bounded direct GET returned HTTP 200, and the
+production ETF Architect parser extracted 26 rows with effective date
+`2026-10-05`; rounded row weights sum to `100.01%`. The page's legal disclosure
+identifies Empowered Funds/ETF Architect as adviser and Arin Risk Advisors as
+sub-adviser, so source provenance and provider audit text make that distinction
+explicit.
+
+`ArinHoldingsAdapter` is registered only for ATTR, inherits the reviewed
+ETF-Architect HTML transport, validates the exact fund title and holdings
+section, requires the effective date and complete ticker/name/shares/weight/
+market-value fields, enforces a conservative 20-row completeness floor (the
+observed page has 26 rows and the live test uses the same floor), converts
+issuer market value in millions to USD, and classifies options/funds/cash
+without passing those rows off as common-equity symbols. Unsupported symbols
+remain non-native unless SEC fallback is present.
+Runtime capability, registry config, provider ledger, deterministic fixture,
+and the opt-in live matrix now agree. Focused Arin unit and sixth-provider
+cohort tests pass. The local app-level live test skipped on DNS failure, so the
+promotion still requires exact-SHA hosted live evidence; the direct HTTP fetch
+and production parser result are recorded separately from that test.
+
+### VistaShares
+
+Exact push run `37320874525` for SHA `79d83a28fd44ea24a2f745790d0e9e260d861042`
+passed backend and frontend unit jobs but failed seven VistaShares live cases
+after receiving HTTP 200 product-page bodies that omitted the requested symbol.
+Each failure occurred before the holdings CSV fetch. The response payloads were
+not retained by the workflow, so this does not identify whether the cause was
+a bot challenge, transport variance, or actual issuer page drift. Current
+official RTOO and QUSA pages still expose fund identity, holding count, dated
+top-ten information, and a Download All Holdings control; that browser view is
+not complete application-route proof.
+
+The adapter makes one bounded retry to the same allow-listed product URL via
+`requests` if `httpx` errors or the returned page fails strict identity,
+account-form, or declared-count validation. The requests retry is transport
+resilience only: full CSV rows must still match account and date, meet declared
+position count, and pass existing completeness and derivative rules. A
+recognized WAF response is narrowly classified as external access failure;
+unrecognized no-identity content remains a hard test failure. New unit tests
+cover the retry and skip boundary without permitting a generic parser bypass.
+
+### Validation and release state
+
+The focused Arin/VistaShares/registry checks passed 9 selected tests; 8 live
+cases were skipped by default network gating. A separate opt-in Arin run
+skipped due to local DNS failure. The previous exact-SHA workflow's hosted
+Playwright job was still in progress at checkpoint; its protected exhaustive
+integration job was skipped by branch design. The next push must validate the
+alternate VistaShares transport, all seven identity-bound full CSV routes, and
+the Arin live route. Provider totals are 496 registered / 422 native-live-
+backed / 74 fallback-only. No staging integration, purchase, deployment, or
+cross-worktree action is authorized or performed here.
+
+### Follow-up diagnosis after exact-SHA CI — 2026-10-05
+
+Run `37320874525` is complete: backend, frontend-unit, and hosted Playwright
+jobs passed; the branch-declared live matrix failed only the seven VistaShares
+cases before CSV retrieval because each returned product-page body lacked its
+requested ticker. The bodies were not retained, so challenge versus route or
+transport drift is unresolved. VistaShares now makes one same-URL `requests`
+retry without weakening identity, declared-count, account, date, or
+completeness rules.
+
+The Arin adapter's non-ATTR path previously reported an SEC-backed probe as
+ready while rejecting the corresponding fetch. That mismatch is fixed: an
+unsupported symbol with SEC identifiers now uses the explicit SEC filing
+fallback and preserves its SEC provenance. The ATTR runtime, provider audit,
+and symbol ledger now all agree on a dated current issuer route. Runtime totals
+are 496 registered / 422 native / 74 fallback. The canonical deterministic ETF
+adapter/capability/refresh/task suite passed 732 tests. Ruff check and
+format-check passed, as did the default live contracts (4 passed, 536
+opt-in network cases skipped). The bounded eight-route local live run
+was interrupted after over five minutes without completion, so it remains
+inconclusive. Docker readiness passed via the approved elevated boundary, but
+the local browser gate is deferred while another worktree's Compose stack is
+active. No Docker resources or other worktree were changed.
+
+## Published implementation checkpoint — 2026-10-05
+
+Implementation SHA `61265673611bc7afef4ca5af9d34ccae57bb2bfa` is pushed to
+`origin/feat-etf-holdings-constituents`. Its exact-SHA push run
+`37328831048` completed: Backend Tests, Frontend Unit Tests, and hosted
+Playwright passed; Branch-declared Tests failed only the Arin ATTR access
+challenge, and the protected integration gate was skipped by feature-branch
+design. Local deterministic, default-live, Ruff, formatter,
+workstream-validator, and narrative-invariant outcomes are recorded in the
+handoff. The local full Docker gate is deferred while the other worktree's
+Compose stack remains active at 2.7 GiB available RAM; do not touch that stack.
+
+Next validation: refresh session and workstream plan-hash parity, run default
+live contracts and workstream invariants, commit and push this worktree-only
+changeset, inspect exact-SHA CI, then resume the Docker browser gate after the
+other stack exits. AC10 and AC14 remain as described in the acceptance plan.
+
+### 2026-10-05 follow-up: Arin ATTR hosted access challenge
+
+The exact-SHA provider matrix on implementation SHA
+`61265673611bc7afef4ca5af9d34ccae57bb2bfa` found one new external boundary:
+the ETF Architect page for Arin ATTR returned its challenge after both adapter
+transports. This follows earlier dated evidence that the public page itself
+contains a complete, identity-bound holdings table, but the application-style
+route has not yet passed end to end. The local opt-in probe was DNS-skipped.
+Accordingly, the live test records only the exact Arin/ATTR challenge as an
+external skip; this is not a live pass and does not assert current application
+reachability. Identity, date, row-count, and row-completeness failures remain
+hard failures. The rerun on the next exact SHA must confirm this precise
+classification and keep every unrelated case green.
+
+### 2026-10-05 follow-up: transient Kovitz FilePoint timeout
+
+Exact-SHA run `37332486447` accepted the narrow Arin/ATTR challenge skip, but
+the broad live matrix then failed once on a Kovitz EQTY FilePoint
+`httpx.ReadTimeout` (521 passed, 19 skipped, 1 failed). Backend, frontend, and
+hosted Playwright passed; overall CI failed only the Kovitz matrix case. The
+local bounded replay hit temporary DNS failure. This same isolated timeout was documented
+on 2026-10-02 and passed immediate isolated/full reruns, supporting transient
+transport failure rather than a parser regression. The Kovitz live test now
+uses the established external-transport classifier only around its fetch; its
+strict JSON, route, date, CUSIP, and row-count checks are unchanged and cannot
+be skipped by the handler. The rerun on the next exact SHA must still show all
+content-validating cases green; a skip remains an outage record, not a route
+pass.
+
+The repair is published as `9f746e25b4137fe3c7337a87d73becfa0969e202`. Its
+always-on live-contract regression confirms a transport timeout is classified
+as external while incomplete Kovitz JSON remains outside that classification;
+the actual live test catches only transport exception types around the fetch,
+leaving response/content assertions uncaught. The bounded local EQTY retry
+skipped on temporary DNS failure, not a route pass. The default live module
+passes 6 contract checks with 536 opt-in network cases skipped; the complete
+deterministic ETF suite passes 749 tests, Ruff/format/diff checks pass. Exact
+push-triggered CI run `37336513293` is still in progress; inspect its Branch-
+declared Tests, Backend Tests, and Frontend Unit Tests before recording AC7.
+The Branch-declared Tests job subsequently passed: the opt-in matrix reported
+511 passed and 31 skipped in 568.77 seconds. Backend and Frontend Unit Tests
+also passed, while hosted Playwright was still running. Because the command
+did not request `-rs`, the job log omits per-case skip reasons; in particular,
+it does not establish whether the Kovitz EQTY live case passed or skipped. The
+workstream command now adds `-rs` to the opt-in matrix so the next exact-SHA
+run will retain those reasons. Do not infer a Kovitz route pass from the
+aggregate job success.
+
+Exact-SHA run `37336513293` has now completed successfully, including hosted
+Playwright; the protected integration gate was skipped as expected for this
+feature-branch push. The live matrix was 511 passed / 31 skipped. Since its
+command used `-q` without `-rs`, the logs cannot attribute the skips to
+specific providers. The workstream command was updated to emit reasons on the
+next exact SHA; verify all of them before closing the matrix evidence. The
+local Docker-backed browser gate remains deferred until the unrelated
+six-service stack exits and a read-only resource preflight confirms safety.
+
+### 2026-10-05 follow-up: diagnostic skip audit and Redwood classifier scope
+
+Exact-SHA run `37340283972` on `d2e163c46bad2a9e58affe5b32461c8b783fbaa8`
+ran the live matrix with `-rs`: 525 passed, 17 skipped in 810.16 seconds.
+Kovitz EQTY was not skipped; its FilePoint fetch, JSON parsing, route identity,
+composition date, CUSIP, and row-count checks passed. The remaining skip
+reasons were retained individually in the branch handoff. Backend Tests,
+Frontend Unit Tests, and Branch-declared Tests passed; hosted Playwright was
+still running and the protected integration gate was skipped by design.
+
+Review found the generic `empty payload` marker in
+`_is_external_live_access_failure` could incorrectly turn another provider's
+malformed/incomplete artifact into a successful test skip. The only observed
+empty-payload case is Redwood's exact issuer outage message. The marker has
+been narrowed to that exact message, and an always-on regression proves
+generic provider empty-payload errors are not external skips. The network-off
+live-contract module passed 7 checks, and Ruff, format-check, workstream
+validation, and the narrative-count invariant passed locally. The exact-SHA
+rerun for this tightening remains pending; this test guard does not alter
+adapter behavior or classify an unavailable route as a live success.
+
+### Hedgeye HECA route-drift repair — 2026-10-05
+
+Exact-SHA CI run `37343409378` on implementation SHA
+`69dc6d34b462a5ac15766caf61377b815949eee0` passed Backend Tests, Frontend Unit
+Tests, and hosted Playwright but failed Branch-declared Tests only on the live
+Hedgeye HECA case. Its first-party product page no longer provided the complete
+embedded payload expected by the adapter. This was treated as provider-route
+drift, not skipped as an external access failure.
+
+The 2026-10-05 source recheck found an official page-declared all-funds CSV.
+The captured artifact parsed into 17 HECA rows at composition date 2026-10-05.
+The adapter now follows only the expected HTTPS host/path, validates that
+allowlist again after redirects, scopes by the requested account and latest
+non-future date, and fails closed for schema or incomplete-row changes. SCM
+Edge's HEFT adapter uses the same parser but retains its own provenance.
+Regression coverage includes valid mapping, cash, unrelated/future rows,
+schema failure, redirect rejection, and SCM Edge metadata.
+
+Local verification: the focused Hedgeye/SCM selection passed 7 tests; the full
+ETF adapter/capability unit suites passed 707; the actual downloaded issuer CSV
+parsed to 17 HECA rows; Ruff, formatting, and diff-check passed. The bounded
+opt-in HECA test was skipped on temporary DNS failure and is not live-route
+acceptance evidence. The source changeset was committed and pushed as
+`2ba6aa60064fb151d63b4c7924c1aa2e616c4494` to the exact authorized
+`feat/etf-holdings-constituents` branch; GitHub API confirmed this branch tip.
+Provider counts and native/fallback disposition are unchanged. At the latest
+check, exact-SHA run `37347676334` is in progress: Frontend Unit Tests passed;
+Backend Tests integration and Branch-declared Tests are still running.
+
+Operational incident: the first push command omitted the slash in the branch
+name and advanced the separate remote ref `feat-etf-holdings-constituents` to
+the same `2ba6aa6` commit. The correct slash branch was then pushed and
+verified. The alias ref is outside this workstream's authorization; it has not
+been rewritten or deleted and requires human direction before any cleanup.
+
+### Vident successful-shell recovery and exact-SHA validation — 2026-10-05
+
+The exact hosted matrix at `434b1d3` exposed a new VUSE failure: the issuer URL
+returned HTTP 2xx but not the verified holdings page. Commit `b70b729` adds a
+single alternate-transport retry for that successful-but-unverified shell,
+while preserving all the original issuer/ticker/table/date/completeness gates.
+Deterministic regressions cover a recoverable shell and a retry that must still
+fail closed.
+
+Exact-SHA Actions run `37351561573` on
+`b70b729b7b4cf33db75b73c79b0892fd1b3cd4bc` passed: backend 1,520 unit and 379
+integration tests, frontend unit tests, all branch-declared checks, 609
+deterministic ETF adapter tests, default live 7 passed / 536 skipped, opt-in
+live 525 passed / 18 provider-specific skips, and hosted Playwright 151 passed /
+109 skipped. VUSE and HECA both passed their live cases. Ruff, format-check,
+frontend type-check, 17 ETF view/panel tests, and production build passed. The
+feature-branch Exhaustive Integration Gate was skipped by design.
+
+AC7/AC8 are not complete: the required local Docker full-integration gate is
+deferred while six services from another worktree plus Stremio remain active
+and only about 3 GiB RAM is available. No cross-worktree resource may be stopped
+from this branch. Keep this goal active until a safe gate window and the final
+durable review checkpoint. AC10 remains dependent on provider-platform staging;
+AC14 remains the later 30-day observation.

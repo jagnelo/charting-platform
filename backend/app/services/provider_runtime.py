@@ -301,6 +301,7 @@ class ProviderExecutionResult:
     health: ProviderHealthState
     result: Any
     response_payloads: tuple[Any, ...] = ()
+    request_log_id: int | None = None
 
 
 def provider_entitlement_admission(
@@ -2167,6 +2168,12 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
         await db.execute(select(ProviderPolicy, DataSource).join(DataSource))
     ).all()
     for policy, data_source in existing_policies:
+        if policy.capability == ProviderCapability.ETF_HOLDINGS:
+            # ETF publisher rows are resolved only when the ETF-owned bridge
+            # supplies the exact adapter instance. They are deliberately not
+            # part of the generic Provider registry, so its ordinary stale
+            # capability sweep must not erase reviewed ETF policy rows.
+            continue
         if policy.capability.value not in set(
             list_provider_capabilities(data_source.name)
             if data_source.name in supported_provider_names()
@@ -2446,6 +2453,7 @@ async def resolve_provider_chain(
     operation_cost_overrides: dict[str, int] | None = None,
     adjusted: bool | None = None,
     history_start: HistoryStartSpec | None = None,
+    etf_holdings_adapters: dict[str, Any] | None = None,
 ) -> list[ResolvedProvider]:
     await seed_provider_runtime(db)
     if not settings.PROVIDER_ROUTING_ENABLED:
@@ -2513,6 +2521,21 @@ async def resolve_provider_chain(
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
+        etf_adapter = (etf_holdings_adapters or {}).get(data_source.name)
+        uses_etf_adapter = capability == ProviderCapability.ETF_HOLDINGS
+        if uses_etf_adapter and (
+            etf_adapter is None
+            or str(getattr(etf_adapter, "source_provider", "")).strip().lower()
+            != data_source.name.strip().lower()
+            or not callable(getattr(etf_adapter, "fetch_latest", None))
+            or not callable(getattr(etf_adapter, "fetch_for_date", None))
+        ):
+            # ETF adapters are intentionally supplied only by the ETF-owned
+            # transport bridge. A policy row alone never makes a publisher
+            # resolvable, and generic providers are not treated as issuers.
+            continue
+        if not uses_etf_adapter and etf_adapter is not None:
+            continue
         account_usage_probe = (
             capability == ProviderCapability.ACCOUNT_USAGE and operation == "fetch_account_usage"
         )
@@ -2600,13 +2623,23 @@ async def resolve_provider_chain(
         # Policies may outlive a provider capability after a configuration or
         # adapter change. Never let a stale row invoke a method the provider
         # does not implement (for example Alpaca has discovery, not search).
-        try:
-            provider = get_provider(data_source.name)
-        except KeyError:
-            continue
-        if capability.value not in list_provider_capabilities(data_source.name):
-            continue
-        if instrument_routing is not None and not provider_supports_instrument(
+        if uses_etf_adapter:
+            provider = etf_adapter
+        else:
+            try:
+                provider = get_provider(data_source.name)
+            except KeyError:
+                continue
+            if capability.value not in list_provider_capabilities(data_source.name):
+                continue
+        if uses_etf_adapter and instrument_routing is not None:
+            instrument_kinds = {
+                str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+                for value in instrument_routing
+            }
+            if not instrument_kinds.intersection({"etf", "exchange_traded_fund"}):
+                continue
+        elif instrument_routing is not None and not provider_supports_instrument(
             data_source.name,
             asset_class=instrument_routing[0],
             instrument_type=instrument_routing[1],
@@ -2750,6 +2783,8 @@ async def execute_provider_call(
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,
     capture_response_payloads: bool = True,
+    etf_holdings_adapters: dict[str, Any] | None = None,
+    request_log_id_callback: Callable[[int], None] | None = None,
 ) -> ProviderExecutionResult:
     if inspect.iscoroutinefunction(invoke):
         raise TypeError(
@@ -2764,6 +2799,7 @@ async def execute_provider_call(
         operation_cost_overrides=operation_cost_overrides,
         adjusted=adjusted,
         history_start=history_start,
+        etf_holdings_adapters=etf_holdings_adapters,
     )
     if provider_name is not None:
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]
@@ -2929,6 +2965,8 @@ async def execute_provider_call(
             )
             db.add(log_row)
             await db.flush()
+            if request_log_id_callback is not None:
+                request_log_id_callback(log_row.id)
         except BaseException:
             settle_provider_contract(
                 reservations,
@@ -3050,6 +3088,7 @@ async def execute_provider_call(
                 health=resolved.health,
                 result=result,
                 response_payloads=tuple(measurement.response_payloads),
+                request_log_id=log_row.id,
             )
         except Exception as exc:
             log_row.http_requests = measurement.http_requests

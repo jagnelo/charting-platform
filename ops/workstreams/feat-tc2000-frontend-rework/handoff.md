@@ -1,5 +1,79 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-21: accepted Provider+ETF merge reconciliation
+
+The exact accepted green staging release `628c1634f4894403339687586adee74d45637d51`
+is merged in this TC worktree but not yet committed: first-parent `HEAD` is
+`e365d042451734647649fe40778d16a097a2b920`, and `MERGE_HEAD` is the exact
+released SHA. Preserve this index/worktree state. The canonical release receipt
+and frozen import manifest are tracked in the TC workstream; all imported
+Provider/ETF objects remain pinned, with only the separately approved TC
+adaptations excluded from immutable-byte comparison.
+
+Corrected focused-evidence chronology from the original session's native command
+history: exec-fead0c69 selected12 tests,1 failed/11 passed; later
+exec-7c2ddeec selected13,2 failed/11 passed; the **latest**
+exec-1b7a6078-0b22-4b25-b2da-76d96d8a4dd7 completed exit0 with13 passed,
+35 deselected,2 warnings in23.19s. Retain both earlier red runs as historical;
+do not describe either as the latest result. This bounded focused slice is not
+exact-source CI or the full local profile.
+
+The focused PIT behavior now filters eligible snapshots by both composition
+date and `known_at`, and retains separate controlled-fixture exclusion coverage.
+The initial empty-symbol fixture used display-form holding labels; the released
+resolver requires canonical security/equity tokens and retained those rows
+unresolved. The correction fixes that fixture contract, but the earlier red
+slice remains historical and the focused green is only bounded evidence.
+
+The no-DDL Alembic upgrade reached head `e9c23a7b1d40` on the exact generated
+database. Subsequent test-fixture teardown exposed a naming mismatch, not an
+upgrade failure: ORM `Watchlist.screener_id` declares
+`fk_watchlist_screener_id`, while historical migration
+`e1f2a3b4c5d6_phase2_synthetic_instruments_screener_alerts_managed_watchlists.py`
+adds the FK without an explicit name. Do not rewrite/stamp/reparent migration
+history; preserve the mismatch diagnosis for any separate schema/test-harness
+decision. Exact generated DB `tc_etf628c_20261021_1100z` was dropped and
+independently verified absent; assigned services and retained data were left
+untouched.
+
+Stack-free checks now pass: scope self-tests34/34; actual guard460 changed paths,
+including373 byte/mode-verified immutable imports and6 exact Provider
+adaptations; workstream validation; exact receipt/manifest digests; JSON/JSONL
+parsing; `git diff --check` for index and worktree; and Alembic reports only
+head `e9c23a7b1d40`. The earlier scope failure was limited to two exact TC-owned
+test paths missing from `owned_paths`; adding those exact entries made the
+guard pass without broadening shared exceptions. Next: review/stage the complete
+owned merge delta, commit/push this meaningful reconciliation once, and observe
+exact-source CI. Strategy owns the DB slot; obtain Root sequencing before
+another DB test. Prepare the required full local profile/resource plan, but do
+not launch browser, Compose, or full backend work until Root releases capacity.
+TCP3 overall, TCP4, TCP5, full roadmap and official `REF-HELP-V25` remain open.
+
+## Deferred full local profile plan — requires Root slot release
+
+Run only against the clean pushed reconciliation commit created from this
+merge; resolve the exact SHA from `git rev-parse HEAD` and the matching origin
+ref after publication. Use one fresh unique Compose project derived from that
+SHA, an explicit empty/safe fixture env file, no published host ports, and an
+internal-only application network. Seed only that project's generated test DB;
+keep provider routing/refresh and live-provider/ETF flags disabled and all
+provider, issuer and OneSignal credentials blank. Include the complete current
+service set (backend, frontend, PostgreSQL, Redis, worker and research-runner)
+and the pinned Playwright `1.62.1-noble` runner; verify every required image and
+health check before browser execution. Build serially only after fresh capacity
+check and Root releases the slot; retain at least1GiB host headroom. Do not use
+the assigned six services, four volumes, retained databases, or listener15190.
+
+Run the unchanged full functional profile first, then all104 visual cases in
+the same exact-source isolated environment: one worker, zero retries, no host
+DejaVu mount, original references and0.005 tolerance. Preserve all first
+failures and raw artifacts; no snapshot refresh, mask, skip or timeout change.
+If source/runtime validation needs another attempt, stop for coordinator
+sequencing rather than duplicate the fixture. After terminal evidence, verify
+and clean only resources carrying the exact temporary Compose project label;
+recheck all retained-resource IDs before and after. This plan grants no current
+launch authorization and does not close TCP3/4/5 or official V25 parity.
+
 ## Current status — 2026-10-20 22:03Z: Provider merge published; exact CI blocked at ETF collection boundary
 
 The TC-owned normal merge of released green staging

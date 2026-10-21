@@ -39,7 +39,13 @@
               <small>{{ profile.latest_composition_date || 'No date' }}</small>
             </span>
             <span>{{ profile.name }}</span>
-            <em>{{ profile.resolved_count }} ready · {{ profile.unresolved_count }} review</em>
+            <em>
+              <span
+                class="capability-pill"
+                :class="capabilityClass(profile.holdings_capability)"
+              >{{ capabilityLabel(profile.holdings_capability) }}</span>
+              · {{ profile.resolved_count }} ready · {{ profile.unresolved_count }} review
+            </em>
           </button>
         </template>
       </div>
@@ -59,10 +65,56 @@
             <span>{{ page.snapshot.source_provider }}</span>
             <span>{{ page.snapshot.source_quality }}</span>
             <span>{{ page.total }} rows</span>
+            <span
+              class="capability-pill"
+              :class="capabilityClass(selectedCapability)"
+            >{{ capabilityLabel(selectedCapability) }}</span>
           </div>
         </div>
 
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
+
+        <div
+          v-if="selectedCapability?.last_canary_at"
+          class="capability-health"
+          data-testid="etf-view-capability-health"
+        >
+          <span>
+            Canary {{ canaryStatusLabel(selectedCapability.last_canary_status) }} ·
+            {{ formatDateTime(selectedCapability.last_canary_at) }}
+          </span>
+          <span v-if="selectedCapability.last_canary_latency_ms != null">
+            {{ selectedCapability.last_canary_latency_ms }} ms
+          </span>
+          <span>Failures {{ selectedCapability.consecutive_failures }}</span>
+          <span v-if="selectedCapability.last_canary_recovered">Recovered</span>
+          <span v-if="selectedCapability.circuit_state">
+            Circuit {{ selectedCapability.circuit_state }}
+          </span>
+          <span v-if="selectedCapability.circuit_open_until">
+            until {{ formatDateTime(selectedCapability.circuit_open_until) }}
+          </span>
+        </div>
+
+        <div
+          v-if="selectedCapability && !selectedCapability.usable_for_current_analysis"
+          class="notice notice--capability"
+          :class="capabilityClass(selectedCapability)"
+          role="status"
+        >
+          <strong>Current holdings are not verified.</strong>
+          {{ selectedCapability.reason }}
+          <span v-if="selectedCapability.composition_date">
+            Last composition: {{ selectedCapability.composition_date }}.
+          </span>
+          <span v-if="selectedCapability.failure_class" class="capability-failure-class">
+            Last check classification: {{ capabilityFailureLabel(selectedCapability.failure_class) }}.
+          </span>
+          <span v-if="selectedCapability.symbol_audit?.next_action" class="capability-next-action">
+            Next source-review action: {{ selectedCapability.symbol_audit.next_action }}
+          </span>
+          Historical snapshots remain available, but this data must not be treated as current.
+        </div>
 
         <div v-if="selectedProfile" class="toolbar">
           <label>
@@ -100,7 +152,6 @@
                 v-for="option in snapshotOptions"
                 :key="option.snapshot_id"
                 :value="String(option.snapshot_id)"
-                :title="snapshotOptionMetadata(option)"
               >
                 {{ option.composition_date }}
               </option>
@@ -347,18 +398,13 @@
                 <strong>{{ series.symbol }}</strong>
                 <span>{{ series.name }}</span>
               </div>
-              <div
-                class="evolution-track"
-                role="img"
-                :aria-label="evolutionTrackLabel(series)"
-              >
+              <div class="evolution-track" aria-hidden="true">
                 <span
                   v-for="point in series.points"
                   :key="`${series.key}:${point.snapshot_id}`"
                   class="evolution-dot"
                   :class="evolutionDotClass(series, point.weight)"
                   :style="{ left: `${evolutionDotOffset(series, point.weight)}%` }"
-                  :title="evolutionPointMetadata(point)"
                 />
               </div>
               <div class="evolution-row__meta">
@@ -548,10 +594,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '@/components/common/SearchBar.vue'
 import { api } from '@/lib/api'
+import { formatSourceFailureClass } from '@/lib/workstation/sourceCapability'
 import type {
   ETFHolding,
   ETFHoldingsSnapshot,
@@ -565,8 +612,8 @@ import type {
   ETFHoldingsTransition,
   ETFHoldingsTransitionTimeline,
   ETFHoldingsWeightEvolution,
-  ETFHoldingsWeightEvolutionPoint,
   ETFHoldingsWeightEvolutionSeries,
+  ETFHoldingsCapability,
   ETFProfile,
 } from '@/types'
 
@@ -592,6 +639,7 @@ interface ETFProfileBootstrapResponse {
   }
   refresh_attempted: boolean
   refresh_succeeded: boolean
+  capability?: ETFHoldingsCapability | null
   message?: string | null
 }
 
@@ -624,6 +672,30 @@ const loadingProfiles = ref(false)
 const loadingOverlap = ref(false)
 const loadError = ref('')
 
+const selectedCapability = computed(() => selectedProfile.value?.holdings_capability ?? null)
+
+function capabilityLabel(capability: ETFHoldingsCapability | null | undefined): string {
+  if (!capability) return 'Capability not checked'
+  return capability.availability.replace(/_/g, ' ')
+}
+
+function capabilityClass(capability: ETFHoldingsCapability | null | undefined): string {
+  return `capability--${capability?.availability || 'unknown'}`
+}
+
+function capabilityFailureLabel(failureClass: string | null | undefined): string {
+  return formatSourceFailureClass(failureClass)
+}
+
+function canaryStatusLabel(status: string | null | undefined): string {
+  return String(status || 'unknown').replace(/_/g, ' ')
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—'
+  return new Date(value).toLocaleString()
+}
+
 const pageEnd = computed(() => {
   if (!page.value) return 0
   return Math.min(page.value.total, page.value.offset + page.value.holdings.length)
@@ -634,16 +706,6 @@ let holdingsLoadSeq = 0
 let diffLoadSeq = 0
 let evolutionLoadSeq = 0
 let transitionLoadSeq = 0
-let lifecycleGeneration = 0
-let profileSelectionGeneration = 0
-
-function isCurrentLifecycle(generation: number) {
-  return generation === lifecycleGeneration
-}
-
-function isCurrentSelection(generation: number) {
-  return generation === profileSelectionGeneration
-}
 
 const compareOptions = computed(() =>
   snapshotOptions.value.filter(option => String(option.snapshot_id) !== selectedSnapshotId.value)
@@ -660,24 +722,7 @@ const canCompareOverlapFamily = computed(() =>
   )
 )
 
-function snapshotOptionMetadata(option: ETFHoldingsDate): string {
-  const details = [
-    option.as_of_date ? `as of ${option.as_of_date}` : null,
-    option.published_at ? `published ${option.published_at}` : null,
-    option.source_provider ? `provider ${option.source_provider}` : null,
-    option.source_identifier ? `source ${option.source_identifier}` : null,
-    option.cadence ? `cadence ${option.cadence}` : null,
-    option.parser_version ? `parser ${option.parser_version}` : null,
-  ].filter(Boolean)
-  const timing = Object.entries(option.timing_provenance ?? {})
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
-  if (timing.length) details.push(`timing ${timing.join(', ')}`)
-  return details.join(' · ') || 'Disclosure metadata not reported'
-}
-
 async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst = !selectedProfile.value) {
-  const generation = lifecycleGeneration
   const seq = ++profileLoadSeq
   loadingProfiles.value = true
   loadError.value = ''
@@ -686,19 +731,19 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
       q: search || undefined,
     })
     const normalized = Array.isArray(loaded) ? loaded : []
-    if (!isCurrentLifecycle(generation) || seq !== profileLoadSeq) return
+    if (seq !== profileLoadSeq) return
     profiles.value = normalized
     if (autoSelectFirst && !selectedProfile.value && normalized.length) {
-      await selectProfile(normalized[0], generation)
+      await selectProfile(normalized[0])
     }
     return normalized
   } catch (error) {
-    if (!isCurrentLifecycle(generation) || seq !== profileLoadSeq) return
+    if (seq !== profileLoadSeq) return
     loadError.value = error instanceof Error ? error.message : 'Could not load ETF profiles.'
     profiles.value = []
     return []
   } finally {
-    if (isCurrentLifecycle(generation) && seq === profileLoadSeq) loadingProfiles.value = false
+    if (seq === profileLoadSeq) loadingProfiles.value = false
   }
 }
 
@@ -717,10 +762,8 @@ function resetWorkspaceSelection() {
 }
 
 async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult) {
-  const generation = lifecycleGeneration
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) return
-  const selection = ++profileSelectionGeneration
   profileSearch.value = normalized
   loadError.value = ''
 
@@ -731,17 +774,14 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
         name: result?.name || undefined,
       },
     )
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
 
     await loadProfiles('', false)
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     const matchedProfile = profiles.value.find(
       profile => profile.id === bootstrap.profile.id || profile.symbol.toUpperCase() === normalized,
     ) ?? bootstrap.profile
 
     if (bootstrap.latest_snapshot || matchedProfile.latest_snapshot_id != null) {
-      await selectProfile(matchedProfile, generation, selection)
-      if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+      await selectProfile(matchedProfile)
       if (bootstrap.message && !bootstrap.refresh_succeeded) {
         loadError.value = bootstrap.message
       }
@@ -755,18 +795,12 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
     loadError.value = bootstrap.message
       || `No ETF holdings snapshot is stored yet for ${normalized}.`
   } catch (error) {
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     resetWorkspaceSelection()
     loadError.value = error instanceof Error ? error.message : `Could not prepare ETF holdings for ${normalized}.`
   }
 }
 
-async function selectProfile(
-  profile: ETFProfile,
-  generation = lifecycleGeneration,
-  selection = ++profileSelectionGeneration,
-) {
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+async function selectProfile(profile: ETFProfile) {
   if (profile.latest_snapshot_id == null) {
     try {
       const bootstrap = await api.post<ETFProfileBootstrapResponse>(
@@ -775,7 +809,6 @@ async function selectProfile(
           name: profile.name || undefined,
         },
       )
-      if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
       const bootstrappedProfile = bootstrap.profile
       const index = profiles.value.findIndex(item => item.id === bootstrappedProfile.id)
       if (index >= 0) {
@@ -797,7 +830,6 @@ async function selectProfile(
         return
       }
     } catch (error) {
-      if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
       loadError.value = error instanceof Error
         ? error.message
         : `Could not prepare ETF holdings for ${profile.symbol}.`
@@ -815,44 +847,31 @@ async function selectProfile(
   overlapIssuer.value = profile.issuer || ''
   overlapFundFamily.value = profile.fund_family || ''
   overlapQuery.value = ''
-  await loadSnapshotOptions(generation, selection)
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
-  await loadHoldings(generation, selection)
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
-  await loadDiff(generation, selection)
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
-  await loadWeightEvolution(generation, selection)
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
-  await loadTransitionTimeline(generation, selection)
+  await loadSnapshotOptions()
+  await loadHoldings()
+  await loadDiff()
+  await loadWeightEvolution()
+  await loadTransitionTimeline()
 }
 
 async function reloadHoldings() {
-  const selection = profileSelectionGeneration
   offset.value = 0
-  await loadHoldings(lifecycleGeneration, selection)
+  await loadHoldings()
 }
 
 async function reloadForSnapshotChange() {
-  const generation = lifecycleGeneration
-  const selection = profileSelectionGeneration
   offset.value = 0
-  await loadHoldings(generation, selection)
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+  await loadHoldings()
   if (!compareOptions.value.some(option => String(option.snapshot_id) === compareSnapshotId.value)) {
     compareSnapshotId.value = compareOptions.value[0] ? String(compareOptions.value[0].snapshot_id) : ''
   }
-  await loadDiff(generation, selection)
+  await loadDiff()
 }
 
-async function loadSnapshotOptions(
-  generation = lifecycleGeneration,
-  selection = profileSelectionGeneration,
-) {
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+async function loadSnapshotOptions() {
   const profile = selectedProfile.value
   if (!profile) return
   const loaded = await api.get<ETFHoldingsDate[]>(`/etf-holdings/${encodeURIComponent(profile.symbol)}/dates`)
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
   snapshotOptions.value = loaded
   if (!loaded.length) {
     selectedSnapshotId.value = ''
@@ -872,11 +891,7 @@ async function loadSnapshotOptions(
   }
 }
 
-async function loadHoldings(
-  generation = lifecycleGeneration,
-  selection = profileSelectionGeneration,
-) {
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+async function loadHoldings() {
   const profile = selectedProfile.value
   if (!profile) return
   if (!selectedSnapshotId.value) {
@@ -895,23 +910,18 @@ async function loadHoldings(
       limit: limit.value,
       offset: offset.value,
     })
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== holdingsLoadSeq) return
+    if (seq !== holdingsLoadSeq) return
     page.value = loaded
     selectedHolding.value = loaded.holdings[0] ?? null
   } catch (error) {
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== holdingsLoadSeq) return
+    if (seq !== holdingsLoadSeq) return
     page.value = null
     selectedHolding.value = null
     loadError.value = error instanceof Error ? error.message : 'Could not load holdings.'
   }
 }
 
-async function loadDiff(
-  generationOrEvent: number | Event = lifecycleGeneration,
-  selection = profileSelectionGeneration,
-) {
-  const generation = typeof generationOrEvent === 'number' ? generationOrEvent : lifecycleGeneration
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+async function loadDiff() {
   const profile = selectedProfile.value
   if (!profile || !selectedSnapshotId.value || !compareSnapshotId.value) {
     diff.value = null
@@ -923,19 +933,15 @@ async function loadDiff(
       left_snapshot_id: compareSnapshotId.value,
       right_snapshot_id: selectedSnapshotId.value,
     })
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== diffLoadSeq) return
+    if (seq !== diffLoadSeq) return
     diff.value = loaded
   } catch {
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== diffLoadSeq) return
+    if (seq !== diffLoadSeq) return
     diff.value = null
   }
 }
 
-async function loadWeightEvolution(
-  generation = lifecycleGeneration,
-  selection = profileSelectionGeneration,
-) {
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+async function loadWeightEvolution() {
   const profile = selectedProfile.value
   if (!profile) {
     weightEvolution.value = null
@@ -947,19 +953,15 @@ async function loadWeightEvolution(
       `/etf-holdings/${encodeURIComponent(profile.symbol)}/weight-evolution`,
       { limit: 8 },
     )
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== evolutionLoadSeq) return
+    if (seq !== evolutionLoadSeq) return
     weightEvolution.value = loaded
   } catch {
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== evolutionLoadSeq) return
+    if (seq !== evolutionLoadSeq) return
     weightEvolution.value = null
   }
 }
 
-async function loadTransitionTimeline(
-  generation = lifecycleGeneration,
-  selection = profileSelectionGeneration,
-) {
-  if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
+async function loadTransitionTimeline() {
   const profile = selectedProfile.value
   if (!profile) {
     transitionTimeline.value = null
@@ -971,17 +973,15 @@ async function loadTransitionTimeline(
       `/etf-holdings/${encodeURIComponent(profile.symbol)}/transitions`,
       { limit: 8 },
     )
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== transitionLoadSeq) return
+    if (seq !== transitionLoadSeq) return
     transitionTimeline.value = loaded
   } catch {
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection) || seq !== transitionLoadSeq) return
+    if (seq !== transitionLoadSeq) return
     transitionTimeline.value = null
   }
 }
 
 async function loadOverlapSummary() {
-  const generation = lifecycleGeneration
-  const selection = profileSelectionGeneration
   const profile = selectedProfile.value
   if (!profile || !selectedOverlapSymbols.value.length) {
     overlapSummary.value = null
@@ -1003,21 +1003,17 @@ async function loadOverlapSummary() {
         metric: 'jaccard',
       }),
     ])
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     overlapSummary.value = summary
     overlapMatrix.value = matrix
   } catch {
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     overlapSummary.value = null
     overlapMatrix.value = null
   } finally {
-    if (isCurrentLifecycle(generation) && isCurrentSelection(selection)) loadingOverlap.value = false
+    loadingOverlap.value = false
   }
 }
 
 async function loadOverlapFamilyMatrix() {
-  const generation = lifecycleGeneration
-  const selection = profileSelectionGeneration
   const profile = selectedProfile.value
   if (!profile || !canCompareOverlapFamily.value) {
     overlapMatrix.value = null
@@ -1025,9 +1021,8 @@ async function loadOverlapFamilyMatrix() {
   }
   loadingOverlap.value = true
   try {
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     overlapSummary.value = null
-    const loaded = await api.post<ETFHoldingsOverlapMatrix>(
+    overlapMatrix.value = await api.post<ETFHoldingsOverlapMatrix>(
       '/etf-holdings/overlap-matrix',
       {
         etf_symbols: [profile.symbol],
@@ -1041,25 +1036,12 @@ async function loadOverlapFamilyMatrix() {
         limit: overlapFamilyLimit.value,
       },
     )
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
-    overlapMatrix.value = loaded
   } catch {
-    if (!isCurrentLifecycle(generation) || !isCurrentSelection(selection)) return
     overlapMatrix.value = null
   } finally {
-    if (isCurrentLifecycle(generation)) loadingOverlap.value = false
+    loadingOverlap.value = false
   }
 }
-
-onUnmounted(() => {
-  lifecycleGeneration += 1
-  profileSelectionGeneration += 1
-  profileLoadSeq += 1
-  holdingsLoadSeq += 1
-  diffLoadSeq += 1
-  evolutionLoadSeq += 1
-  transitionLoadSeq += 1
-})
 
 async function nextPage() {
   if (!page.value?.has_next) return
@@ -1086,30 +1068,6 @@ function formatSignedWeight(value: number | string | null | undefined) {
   if (value == null || value === '') return '—'
   const n = numeric(value) * 100
   return `${n > 0 ? '+' : ''}${n.toFixed(2)}%`
-}
-
-function evolutionPointMetadata(point: ETFHoldingsWeightEvolutionPoint) {
-  const timing = Object.entries(point.timing_provenance ?? {})
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
-  return [
-    point.composition_date,
-    `weight ${formatWeight(point.weight)}`,
-    point.as_of_date ? `as of ${point.as_of_date}` : null,
-    point.known_at ? `known ${point.known_at}` : null,
-    point.published_at ? `published ${point.published_at}` : null,
-    point.source_provider ? `provider ${point.source_provider}` : null,
-    point.source_identifier ? `source ${point.source_identifier}` : null,
-    point.cadence ? `cadence ${point.cadence}` : null,
-    point.parser_version ? `parser ${point.parser_version}` : null,
-    timing.length ? `timing ${timing.join(', ')}` : null,
-    point.provenance ? `provenance ${point.provenance}` : null,
-  ].filter(Boolean).join(' · ')
-}
-
-function evolutionTrackLabel(series: ETFHoldingsWeightEvolutionSeries) {
-  const points = series.points.map(evolutionPointMetadata).join('; ')
-  return `${series.symbol} weight history: ${points || 'no disclosed points'}`
 }
 
 function formatPercentValue(value: number | string | null | undefined) {
@@ -1175,6 +1133,11 @@ function statusClass(row: ETFHolding) {
 }
 
 function openableSymbol(row: ETFHolding) {
+  if (!selectedCapability.value?.identity_verified
+    || selectedCapability.value.availability !== 'current'
+    || !selectedCapability.value.usable_for_current_analysis) {
+    return ''
+  }
   if (!isTradableHolding(row)) return ''
   const constituent = isSyntheticHoldingSymbol(row.constituent_symbol) ? '' : row.constituent_symbol
   return constituent || row.reported_symbol || ''
@@ -1344,6 +1307,18 @@ onMounted(loadProfiles)
   font-style: normal;
   font-size: 10px;
 }
+.capability-pill {
+  border: 1px solid #3a3a3a;
+  border-radius: 999px;
+  padding: 2px 6px;
+  text-transform: capitalize;
+}
+.capability--current { color: #8fe3a1; border-color: #2b6b3a; }
+.capability--degraded { color: #f0cb7a; border-color: #806326; }
+.capability--stale,
+.capability--unavailable { color: #ff9d9d; border-color: #693333; }
+.capability--not_applicable,
+.capability--unknown { color: #b5b5b5; border-color: #4a4a4a; }
 .holdings-main {
   min-width: 0;
   min-height: 0;
@@ -2062,6 +2037,41 @@ button.holding-row:hover,
   color: #ff9d9d;
   background: #1b0f0f;
   padding: 10px 12px;
+}
+.notice--capability {
+  border: 1px solid #806326;
+  border-radius: 8px;
+  color: #ddc58d;
+  background: #1b160d;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+.notice--capability strong {
+  color: #f0d493;
+  margin-right: 4px;
+}
+.notice--capability.capability--unavailable,
+.notice--capability.capability--stale {
+  border-color: #693333;
+  color: #ffb2b2;
+  background: #1b0f0f;
+}
+.notice--capability .capability-next-action {
+  display: block;
+  color: #b9c6d8;
+}
+.notice--capability .capability-failure-class {
+  display: block;
+  color: #f0c66a;
+}
+.capability-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: #8f98a5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  line-height: 1.4;
 }
 .empty-state {
   border: 1px dashed #292929;

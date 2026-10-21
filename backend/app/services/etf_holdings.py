@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from collections import defaultdict
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
@@ -13,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.lib.time_utils import wire_datetime
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
@@ -27,7 +25,6 @@ from app.providers import (
     ensure_data_source,
     get_default_metadata_provider,
     get_identifier_providers,
-    get_search_provider_chain,
 )
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
 from app.schemas.etf_holdings import (
@@ -61,77 +58,53 @@ from app.services.etf_holdings_adapters import (
     get_holdings_adapter,
     infer_adapter_key,
 )
+from app.services.etf_holdings_capability import evaluate_capability
 from app.services.instrument_mastering import (
     ingest_provider_profile,
     register_identifier,
     store_profile_snapshot,
 )
-from app.services.provider_observations import store_search_snapshot
 
 ETF_HOLDINGS_INTERNAL_PROVIDER = "etf_holdings_internal"
-
-# Completeness is source-quality evidence, not merely a parser label.  Keep the
-# ordering explicit so an idempotent re-ingest can promote a snapshot when a
-# later observation provides stronger evidence without allowing a transient
-# partial/unknown retry to downgrade an already-promotable snapshot.
-HOLDINGS_COMPLETENESS_RANK = {
-    "unknown": 0,
-    "partial": 1,
-    "filing_reconstructed": 2,
-    "complete": 3,
-}
-
-
-def normalize_holdings_completeness_status(value: str | None) -> str:
-    """Return one of the canonical persisted completeness states."""
-
-    normalized = str(value or "unknown").strip().casefold()
-    return normalized if normalized in HOLDINGS_COMPLETENESS_RANK else "unknown"
-
-
-def merge_holdings_completeness_status(
-    existing: str | None,
-    incoming: str | None,
-) -> str:
-    """Keep the strongest completeness evidence seen for one snapshot."""
-
-    existing_status = normalize_holdings_completeness_status(existing)
-    incoming_status = normalize_holdings_completeness_status(incoming)
-    if HOLDINGS_COMPLETENESS_RANK[incoming_status] > HOLDINGS_COMPLETENESS_RANK[existing_status]:
-        return incoming_status
-    return existing_status
-
-
-# Issuer feeds do not share one spelling for ordinary equity holdings. Keep
-# the persisted raw label for auditability, but normalize eligibility checks at
-# the read/queue boundary (for example, Invesco reports ``common stock`` while
-# SPDR reports ``equity``).
-EQUITY_HOLDING_TYPES = frozenset(
-    {
-        "equity",
-        "stock",
-        "common_stock",
-        "real_estate_investment_trust",
-    }
-)
-EQUITY_HOLDING_TYPE_VALUES = tuple(
-    sorted(EQUITY_HOLDING_TYPES | {"common stock", "real estate investment trust"})
-)
-
-
-def normalize_holding_type(value: str | None) -> str:
-    """Normalize issuer holding-type labels without changing their audit value."""
-
-    text = str(value or "").strip().casefold()
-    return "_".join(part for part in re.split(r"[^a-z0-9]+", text) if part)
-
-
-def is_equity_holding_type(value: str | None) -> bool:
-    return normalize_holding_type(value) in EQUITY_HOLDING_TYPES
 
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _ensure_holdings_dates_are_not_future(
+    composition_date: date | None,
+    as_of_date: date | None,
+    *,
+    today: date | None = None,
+    published_at: datetime | None = None,
+    now: datetime | None = None,
+) -> None:
+    """Reject holdings metadata that cannot describe an already known snapshot.
+
+    This is the lowest shared ingestion boundary.  Refresh adapters also call
+    it before fetching persistence, but keeping the check here protects manual,
+    SEC, fixture, and other ingestion paths from storing future evidence that
+    would make current-analysis freshness optimistic.
+    """
+
+    reference_now = now or _now()
+    reference_date = today or reference_now.date()
+    for label, value in (("composition", composition_date), ("as-of", as_of_date)):
+        if value is not None and value > reference_date:
+            raise ValueError(
+                f"Issuer holdings route returned a future {label} date "
+                f"({value.isoformat()} > {reference_date.isoformat()})."
+            )
+    if published_at is not None:
+        normalized_published_at = (
+            published_at if published_at.tzinfo is not None else published_at.replace(tzinfo=UTC)
+        )
+        if normalized_published_at > reference_now:
+            raise ValueError(
+                "Issuer holdings route returned a future published-at timestamp "
+                f"({normalized_published_at.isoformat()} > {reference_now.isoformat()})."
+            )
 
 
 def _visible_snapshot_conditions() -> list[Any]:
@@ -154,56 +127,111 @@ def _apply_snapshot_visibility(statement):
     return statement.where(*_visible_snapshot_conditions())
 
 
-def _snapshot_revision_key(snapshot: ETFHoldingsSnapshot) -> tuple[datetime, int]:
-    """Order revisions so one effective composition date has one canonical view."""
-
-    known_at = snapshot.known_at or _date_end(snapshot.composition_date)
-    if known_at.tzinfo is None:
-        known_at = known_at.replace(tzinfo=UTC)
-    else:
-        known_at = known_at.astimezone(UTC)
-    return known_at, snapshot.id
-
-
-def _snapshot_legal_metadata(snapshot: ETFHoldingsSnapshot) -> dict[str, Any]:
-    extra_data = snapshot.extra_data if isinstance(snapshot.extra_data, dict) else {}
-    legal_metadata = extra_data.get("legal_metadata")
-    return legal_metadata if isinstance(legal_metadata, dict) else {}
-
-
-def _snapshot_cadence(snapshot: ETFHoldingsSnapshot) -> str | None:
-    cadence = _snapshot_legal_metadata(snapshot).get("cadence")
-    return str(cadence) if cadence is not None else None
-
-
-def _snapshot_timing_provenance(snapshot: ETFHoldingsSnapshot) -> dict[str, str]:
-    timing = _snapshot_legal_metadata(snapshot).get("timing_provenance")
-    if not isinstance(timing, dict):
-        return {}
-    return {str(key): str(value) for key, value in timing.items() if value is not None}
-
-
-def _collapse_snapshot_revisions(
-    snapshots: list[ETFHoldingsSnapshot],
-) -> list[ETFHoldingsSnapshot]:
-    """Collapse source revisions by composition date for rebalance timelines.
-
-    A revised issuer disclosure is a new auditable snapshot, but it is not a
-    separate rebalance boundary. Timeline consumers should compare the latest
-    known revision for each effective composition date.
-    """
-
-    latest_by_date: dict[date, ETFHoldingsSnapshot] = {}
-    for snapshot in snapshots:
-        current = latest_by_date.get(snapshot.composition_date)
-        if current is None or _snapshot_revision_key(snapshot) > _snapshot_revision_key(current):
-            latest_by_date[snapshot.composition_date] = snapshot
-    return sorted(latest_by_date.values(), key=lambda item: (item.composition_date, item.id))
-
-
 def _hash_payload(payload: Any) -> str:
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _payload_schema_shape(value: Any) -> Any:
+    """Return a value-free structural shape suitable for drift detection."""
+
+    if isinstance(value, dict):
+        return {
+            "object": {str(key): _payload_schema_shape(item) for key, item in sorted(value.items())}
+        }
+    if isinstance(value, list):
+        return {"array": _payload_schema_shape(value[0]) if value else None}
+    if value is None:
+        return "null"
+    return type(value).__name__
+
+
+def _schema_fingerprint(
+    *,
+    raw_payload_text: str | None = None,
+    raw_payload_json: dict | None = None,
+) -> str | None:
+    if raw_payload_json is not None:
+        return _hash_payload(_payload_schema_shape(raw_payload_json))
+    if raw_payload_text:
+        first_line = next(
+            (line.strip() for line in raw_payload_text.splitlines() if line.strip()), ""
+        )
+        if not first_line:
+            return None
+        delimiter = next(
+            (candidate for candidate in (",", "\t", "|", ";") if candidate in first_line), None
+        )
+        header = (
+            [part.strip().lower() for part in first_line.split(delimiter)]
+            if delimiter
+            else [first_line.lower()]
+        )
+        return _hash_payload({"text_header": header})
+    return None
+
+
+def _capability_source_tier(
+    *,
+    provenance: str,
+    source_provider: str,
+    legal_metadata: dict[str, Any] | None = None,
+) -> str:
+    legal_metadata = legal_metadata or {}
+    explicit = str(legal_metadata.get("source_tier") or "").strip().lower()
+    if explicit in {
+        "issuer_native",
+        "successor_native",
+        "licensed_vendor",
+        "sec_filing",
+        "none",
+    }:
+        return explicit
+    text = " ".join(
+        str(value or "").lower()
+        for value in (
+            provenance,
+            source_provider,
+            legal_metadata.get("route_resolution"),
+            legal_metadata.get("issuer_route_fallback"),
+        )
+    )
+    if "sec" in text or "filing" in text:
+        return "sec_filing"
+    if legal_metadata.get("successor_publisher") or legal_metadata.get("publisher_relationship"):
+        return "successor_native"
+    entitlement_status = (
+        str(
+            legal_metadata.get("entitlement_status")
+            or legal_metadata.get("entitlement_class")
+            or legal_metadata.get("data_entitlement")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+    if legal_metadata.get("licensed_vendor") is True or entitlement_status in {
+        "licensed",
+        "licensed_vendor",
+        "entitled",
+    }:
+        return "licensed_vendor"
+    if any(token in text for token in ("issuer", "native", "self_snapshotted")):
+        return "issuer_native"
+    return "none"
+
+
+def _capability_transport_kind(*, source_url: str | None, legal_metadata: dict[str, Any]) -> str:
+    source_format = str(legal_metadata.get("source_format") or "").lower()
+    if source_format in {"csv", "xls", "xlsx", "pdf", "zip"}:
+        return "file_export"
+    if source_format in {"json", "api"}:
+        return "structured_api"
+    if source_format in {"html", "javascript_embedded_html_rows", "pipe_delimited_text"}:
+        return "web_page"
+    if str(source_url or "").lower().startswith(("http://", "https://")):
+        return "structured_or_page"
+    return "stored_artifact"
 
 
 def _date_start(value: date) -> datetime:
@@ -260,17 +288,6 @@ def _normalize_holding_currency(value: str | None) -> str | None:
 def _is_placeholder_symbol(symbol: str | None) -> bool:
     normalized = _normalize_symbol(symbol)
     return bool(normalized and normalized.startswith("HOLDING-"))
-
-
-def is_placeholder_symbol(symbol: str | None) -> bool:
-    """Return whether a symbol is an internal unresolved-holding placeholder.
-
-    Placeholder instruments preserve issuer rows while identifier enrichment is
-    pending.  They are useful for reconciliation, but are not canonical market
-    data instruments and must not be queued or counted as analysis-ready.
-    """
-
-    return _is_placeholder_symbol(symbol)
 
 
 def _identifier_type(name: str) -> InstrumentIdentifierType | None:
@@ -340,29 +357,6 @@ def _names_look_compatible(reported_name: str | None, provider_name: str | None)
     return left_text in right_text or right_text in left_text
 
 
-def _name_search_match_score(reported_name: str | None, provider_name: str | None) -> int:
-    """Return a conservative score for a provider name-search candidate.
-
-    Name search is only a bridge to a real provider profile; it is not an identity
-    assertion by itself.  Requiring one token set to contain the other avoids
-    promoting a loosely related issuer while still accepting harmless legal-name
-    suffix differences such as ``Inc``/``PLC``.
-    """
-
-    left = _normalized_name_tokens(reported_name)
-    right = _normalized_name_tokens(provider_name)
-    if not left or not right:
-        return 0
-    if left == right:
-        return 3
-    if left <= right or right <= left:
-        return 2
-    overlap = left & right
-    if overlap and (len(overlap) / len(left) >= 0.75 or len(overlap) / len(right) >= 0.75):
-        return 1
-    return 0
-
-
 async def _find_instrument_for_identifier_records(
     db: AsyncSession,
     identifiers: list[IdentifierRecord],
@@ -413,60 +407,6 @@ def _constituent_quote_type_allowed(profile: InstrumentProfile | None) -> bool:
     return (profile.quote_type or "EQUITY").upper() in {"EQUITY", "ETF", "MUTUALFUND", "INDEX"}
 
 
-# OpenFIGI may resolve a US ISIN to a foreign listing when the issuer has
-# several venues (for example, AZNN/MM instead of the US ADR AZN).  The
-# configured price-history providers use US symbols for this workstation's
-# US benchmark families.  Keep the exchange check deliberately narrow and
-# apply it only when the holding itself carries an explicit US ISIN; foreign
-# holdings and profiles without exchange evidence retain the prior behaviour.
-_US_LISTING_CODES = frozenset(
-    {
-        "US",
-        "UN",
-        "UW",
-        "UA",
-        "UF",
-        "UP",
-        "UR",
-        "UQ",
-        "UC",
-        "UV",
-        "UM",
-        "UY",
-        "NYSE",
-        "NASDAQ",
-        "XNAS",
-        "XNYS",
-        "ARCX",
-        "BATS",
-        "BAT",
-    }
-)
-
-
-def _profile_has_us_listing(profile: InstrumentProfile) -> bool:
-    exchanges = [profile.exchange, *(listing.exchange_code for listing in profile.listings)]
-    normalized = {
-        str(exchange or "").strip().upper() for exchange in exchanges if str(exchange or "").strip()
-    }
-    if not normalized:
-        return True
-    return bool(normalized & _US_LISTING_CODES)
-
-
-def _profile_matches_holding(row: CanonicalHoldingRow, profile: InstrumentProfile | None) -> bool:
-    """Apply conservative identity checks before promoting a holding row."""
-
-    if not _constituent_quote_type_allowed(profile) or profile is None:
-        return False
-    if not _names_look_compatible(row.name, profile.name):
-        return False
-    us_isin = _normalize_holding_identifier_value(row.isin)
-    if us_isin and us_isin.startswith("US") and not _profile_has_us_listing(profile):
-        return False
-    return True
-
-
 async def _provider_enriched_constituent_instrument(
     db: AsyncSession,
     row: CanonicalHoldingRow,
@@ -477,7 +417,6 @@ async def _provider_enriched_constituent_instrument(
     if settings.APP_ENV == "test":
         return None, None, None
 
-    identifier_profile_rejected = False
     for provider in get_identifier_providers():
         resolve_profile = getattr(provider, "resolve_instrument_profile", None)
         if not callable(resolve_profile):
@@ -492,8 +431,9 @@ async def _provider_enriched_constituent_instrument(
             continue
         if profile is None:
             continue
-        if not _profile_matches_holding(row, profile):
-            identifier_profile_rejected = True
+        if not _constituent_quote_type_allowed(profile):
+            continue
+        if not _names_look_compatible(row.name, profile.name):
             continue
 
         instrument = existing_instrument
@@ -536,171 +476,9 @@ async def _provider_enriched_constituent_instrument(
             "Matched through stable identifier profile enrichment.",
         )
 
-    # SEC N-PORT holdings frequently carry a CUSIP/ISIN and issuer name but no
-    # ticker. Once stable-identifier mappings are exhausted, use the bounded,
-    # configured search chain as a conservative symbol bridge. Search results
-    # are merged only for this maintenance row; they are never exposed as an
-    # interactive workstation lookup or treated as sufficient identity evidence.
-    # A unique best name match must still hydrate a full metadata profile before
-    # the placeholder can be promoted. This keeps the operation auditable and
-    # prevents arbitrary symbol guessing or ambiguous cross-listed promotion.
-    if row.name and (not _normalize_symbol(row.symbol) or identifier_profile_rejected):
-        search_results = []
-        search_result_providers: dict[str, list[object]] = {}
-        try:
-            search_providers = get_search_provider_chain()
-        except Exception:
-            search_providers = []
-        for search_provider in search_providers:
-            try:
-                provider_results = search_provider.search_instruments(row.name, limit=8) or []
-                search_results.extend(provider_results)
-                for provider_result in provider_results:
-                    provider_symbol = _normalize_symbol(getattr(provider_result, "symbol", None))
-                    if provider_symbol:
-                        search_result_providers.setdefault(provider_symbol, []).append(
-                            search_provider
-                        )
-                # Preserve each successful bounded observation so maintenance
-                # decisions remain auditable after the provider call has
-                # completed. Providers supplied by focused tests or local
-                # adapters may not be registered descriptors; those results
-                # still participate in this row's decision, but are not
-                # persisted as if they were a canonical provider source.
-                provider_name = str(getattr(search_provider, "name", "") or "").strip()
-                if provider_name:
-                    try:
-                        data_source = await ensure_data_source(db, provider_name)
-                        await store_search_snapshot(
-                            db,
-                            data_source_id=data_source.id,
-                            query=row.name,
-                            results=provider_results,
-                        )
-                    except Exception:
-                        # Observation persistence must not turn a valid
-                        # maintenance result into a failed reconciliation.
-                        # The provider result remains bounded and is still
-                        # evaluated in-memory for this row.
-                        pass
-            except Exception:
-                # Provider outages are row-local maintenance failures. Continue
-                # through the reviewed chain and leave the row unresolved when
-                # no provider supplies auditable identity evidence.
-                continue
-
-        scored_candidates: dict[str, tuple[int, str]] = {}
-        for result in search_results or []:
-            candidate_symbol = _normalize_symbol(getattr(result, "symbol", None))
-            candidate_name = str(getattr(result, "name", "") or "").strip()
-            if not candidate_symbol or _is_placeholder_symbol(candidate_symbol):
-                continue
-            score = _name_search_match_score(row.name, candidate_name)
-            # A single high-overlap score is still too weak for identity
-            # promotion: it can describe a related product or business line.
-            # Require exact token equality or containment, then use the full
-            # metadata profile as the second identity check below.
-            if score < 2:
-                continue
-            previous = scored_candidates.get(candidate_symbol)
-            if previous is None or score > previous[0]:
-                scored_candidates[candidate_symbol] = (score, candidate_name)
-
-        if scored_candidates:
-            highest_score = max(score for score, _name in scored_candidates.values())
-            best_symbols = sorted(
-                symbol
-                for symbol, (score, _name) in scored_candidates.items()
-                if score == highest_score
-            )
-            # A tied name match is not enough to decide between listings or
-            # similarly named issuers. Leave the placeholder for a stronger
-            # identifier source rather than silently selecting one.
-            if len(best_symbols) == 1:
-                candidate_symbol = best_symbols[0]
-                profile = None
-                # Prefer the metadata capability of the provider that returned
-                # the candidate. This keeps a public identity/search provider
-                # (for example SEC EDGAR) self-contained when the deployment's
-                # default metadata provider is unavailable or unentitled.
-                # The provider-backed profile remains subject to the same full
-                # name, quote-type, and canonical-symbol checks below.
-                metadata_providers = search_result_providers.get(candidate_symbol, [])
-                for metadata_provider in metadata_providers:
-                    get_profile = getattr(metadata_provider, "get_instrument_profile", None)
-                    if not callable(get_profile):
-                        continue
-                    try:
-                        candidate_profile = get_profile(candidate_symbol)
-                    except Exception:
-                        candidate_profile = None
-                    if (
-                        candidate_profile is not None
-                        and candidate_profile.canonical_symbol
-                        and not _is_placeholder_symbol(candidate_profile.canonical_symbol)
-                        and _profile_matches_holding(row, candidate_profile)
-                    ):
-                        profile = candidate_profile
-                        break
-                if profile is None:
-                    try:
-                        profile = get_default_metadata_provider().get_instrument_profile(
-                            candidate_symbol
-                        )
-                    except Exception:
-                        profile = None
-                if (
-                    profile is not None
-                    and profile.canonical_symbol
-                    and not _is_placeholder_symbol(profile.canonical_symbol)
-                    and _profile_matches_holding(row, profile)
-                ):
-                    instrument = existing_instrument
-                    if instrument is None:
-                        instrument = await _find_instrument_for_identifier_records(
-                            db, profile.identifiers
-                        )
-                    if instrument is None:
-                        instrument = await _load_instrument_by_symbol_or_id(
-                            db, profile.canonical_symbol
-                        )
-                    instrument = await ingest_provider_profile(db, profile, instrument=instrument)
-                    for identifier_type, value in [
-                        ("isin", row.isin),
-                        ("cusip", row.cusip),
-                        ("sedol", row.sedol),
-                    ]:
-                        normalized_value = _normalize_holding_identifier_value(value)
-                        if normalized_value:
-                            await register_identifier(
-                                db,
-                                instrument,
-                                ETF_HOLDINGS_INTERNAL_PROVIDER,
-                                IdentifierRecord(
-                                    identifier_type=identifier_type,
-                                    identifier_value=normalized_value,
-                                    is_primary=identifier_type == "isin",
-                                    source=source_provider,
-                                ),
-                            )
-                    return (
-                        instrument,
-                        Decimal("0.8600"),
-                        "Matched through unique provider-backed name search.",
-                    )
-
     symbol = _normalize_symbol(row.symbol)
     if not symbol:
-        return (
-            None,
-            None,
-            (
-                "Stable-identifier profile rejected by holding identity checks; "
-                "no canonical profile was promoted."
-                if identifier_profile_rejected
-                else None
-            ),
-        )
+        return None, None, None
 
     extra_identifiers: list[IdentifierRecord] = []
     for provider in get_identifier_providers():
@@ -818,7 +596,7 @@ async def _enrich_existing_constituent_classification(
     if detail is None:
         detail = EquityDetail(instrument_id=instrument.id)
         db.add(detail)
-    observed_at = wire_datetime(_now()) or ""
+    observed_at = _now().isoformat()
     classification_system = profile.extra.get("classification_system") or "provider_native"
     detail.industry = industry
     field_provenance = {
@@ -874,6 +652,16 @@ async def get_etf_profile_for_instrument(db: AsyncSession, instrument_id: int) -
             .where(ETFProfile.instrument_id == instrument_id)
         )
     ).scalar_one_or_none()
+
+
+async def get_etf_profile_for_symbol(db: AsyncSession, symbol: str) -> ETFProfile | None:
+    """Read an existing ETF profile by symbol without creating catalog rows."""
+
+    normalized_symbol = str(symbol or "").strip().upper()
+    instrument = await _load_instrument_by_symbol_or_id(db, normalized_symbol)
+    if instrument is None:
+        return None
+    return await get_etf_profile_for_instrument(db, instrument.id)
 
 
 async def ensure_etf_profile(
@@ -976,7 +764,7 @@ async def ensure_lightweight_etf_instrument(
         ],
         raw_payload={"source": ETF_HOLDINGS_INTERNAL_PROVIDER},
     )
-    instrument = await ingest_provider_profile(db, profile)
+    instrument = await ingest_provider_profile(db, profile, allow_external_identifier=False)
     instrument.instrument_type_id = instrument_type_id
     return instrument
 
@@ -1050,10 +838,31 @@ async def _resolve_or_create_constituent(
     source_provider: str,
     allow_provider_enrichment: bool = True,
 ) -> tuple[Instrument | None, Decimal | None, str | None]:
-    if normalize_holding_type(row.row_type) != "security" or not is_equity_holding_type(
-        row.holding_type
-    ):
+    holding_type = str(row.holding_type or "").strip().lower()
+    if row.row_type != "security" or holding_type in {"cash", "currency", "collateral"}:
         return None, None, None
+
+    # This resolver only creates Equity/Stock identities. Letting any other
+    # declared asset kind continue through identifier or ticker lookup can bind
+    # it to an unrelated equity; the fallback can also materialize a synthetic
+    # Equity/Stock. Keep unsupported or unknown kinds in holdings lineage until
+    # a resolver can prove their own canonical instrument type.
+    if holding_type not in {"equity", "stock", "common_stock", "preferred_stock"}:
+        if holding_type in {"future", "futures"}:
+            note = (
+                "Future holding retained without constituent resolution; "
+                "equity-only identity matching is unsafe."
+            )
+        else:
+            note = (
+                f"{holding_type or 'Unknown'} holding retained without constituent resolution; "
+                "a typed non-equity identity resolver is required."
+            )
+        return (
+            None,
+            None,
+            note,
+        )
 
     for identifier_type, value in [
         ("isin", row.isin),
@@ -1097,8 +906,6 @@ async def _resolve_or_create_constituent(
                         promoted_confidence or Decimal("0.9500"),
                         promoted_note or f"Matched by {identifier_type.upper()}.",
                     )
-                if promoted_note:
-                    return found, Decimal("0.5000"), promoted_note
             return found, Decimal("0.9500"), f"Matched by {identifier_type.upper()}."
 
     symbol = _normalize_symbol(row.symbol)
@@ -1133,11 +940,8 @@ async def _resolve_or_create_constituent(
                         promoted_confidence or Decimal("0.8000"),
                         promoted_note or "Matched by canonical symbol.",
                     )
-                if promoted_note:
-                    return found, Decimal("0.5000"), promoted_note
             return found, Decimal("0.8000"), "Matched by canonical symbol."
 
-    unresolved_note = None
     if allow_provider_enrichment:
         (
             enriched_instrument,
@@ -1150,7 +954,6 @@ async def _resolve_or_create_constituent(
         )
         if enriched_instrument is not None:
             return enriched_instrument, enriched_confidence, enriched_note
-        unresolved_note = enriched_note
 
     if not symbol and not row.name:
         return None, None, "No symbol/name/identifier was available to resolve this holding."
@@ -1172,7 +975,7 @@ async def _resolve_or_create_constituent(
             field_provenance={
                 "name": {
                     "source": source_provider,
-                    "fetched_at": wire_datetime(_now()) or "",
+                    "fetched_at": _now().isoformat(),
                     "note": "Lightweight instrument materialized from ETF holdings.",
                 }
             },
@@ -1212,7 +1015,7 @@ async def _resolve_or_create_constituent(
             except Exception:
                 continue
 
-    return instrument, Decimal("0.5000"), unresolved_note
+    return instrument, Decimal("0.5000"), None
 
 
 async def _reconcile_existing_snapshot_rows(
@@ -1315,11 +1118,16 @@ async def ingest_holdings_snapshot(
     raw_payload_text: str | None = None,
     raw_payload_json: dict | None = None,
     legal_metadata: dict | None = None,
-    timing_provenance: dict[str, str] | None = None,
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
 ) -> ETFHoldingsSnapshot:
-    completeness_status = normalize_holdings_completeness_status(completeness_status)
+    now = _now()
+    _ensure_holdings_dates_are_not_future(
+        composition_date,
+        as_of_date,
+        published_at=published_at,
+        now=now,
+    )
     profile = await ensure_etf_profile(db, etf_instrument, legal_metadata=legal_metadata)
     canonical_rows = [
         row
@@ -1343,15 +1151,26 @@ async def ingest_holdings_snapshot(
         )
         for row in rows
     ]
-    now = _now()
-    persisted_legal_metadata = dict(legal_metadata or {})
-    if timing_provenance:
-        persisted_legal_metadata["timing_provenance"] = {
-            str(key): str(value) for key, value in timing_provenance.items()
-        }
     known_at = known_at or published_at or _date_end(composition_date)
     data_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
     snapshot_hash = _snapshot_hash(canonical_rows)
+    legal_metadata = dict(legal_metadata or {})
+    capability_metadata = {
+        "source_tier": _capability_source_tier(
+            provenance=provenance,
+            source_provider=source_provider,
+            legal_metadata=legal_metadata,
+        ),
+        "transport_kind": _capability_transport_kind(
+            source_url=source_url,
+            legal_metadata=legal_metadata,
+        ),
+        "expected_cadence": legal_metadata.get("expected_cadence"),
+        "schema_fingerprint": _schema_fingerprint(
+            raw_payload_text=raw_payload_text,
+            raw_payload_json=raw_payload_json,
+        ),
+    }
 
     raw_artifact: ETFHoldingsRawArtifact | None = None
     if raw_payload_text is not None or raw_payload_json is not None:
@@ -1382,7 +1201,7 @@ async def ingest_holdings_snapshot(
                 parser_version=parser_version,
                 payload_text=raw_payload_text,
                 payload_json=raw_payload_json,
-                legal_metadata=persisted_legal_metadata or None,
+                legal_metadata=legal_metadata,
             )
             db.add(raw_artifact)
             await db.flush()
@@ -1405,39 +1224,13 @@ async def ingest_holdings_snapshot(
         )
     ).scalar_one_or_none()
     if existing is not None:
-        reconciled = await _reconcile_existing_snapshot_rows(
+        return await _reconcile_existing_snapshot_rows(
             db,
             snapshot=existing,
             canonical_rows=canonical_rows,
             source_provider=source_provider,
             allow_provider_enrichment=allow_provider_enrichment,
         )
-        # The snapshot hash identifies row content, not source quality. A
-        # later re-fetch can therefore carry stronger completeness evidence
-        # while resolving to the same content-addressed snapshot. Promote that
-        # evidence in place so readiness does not remain stale; weaker retries
-        # never erase a previously promotable state.
-        reconciled.completeness_status = merge_holdings_completeness_status(
-            reconciled.completeness_status,
-            completeness_status,
-        )
-        await _record_adapter_success(
-            db,
-            profile=profile,
-            data_source_id=data_source.id,
-            adapter_key=profile.adapter_key or source_provider,
-            source_url=source_url,
-            source_identifier=source_identifier,
-            parser_version=parser_version,
-            row_count=len(canonical_rows),
-            resolved_count=reconciled.resolved_count,
-            unresolved_count=reconciled.unresolved_count,
-            composition_date=composition_date,
-            published_at=published_at,
-            completeness_status=reconciled.completeness_status,
-        )
-        await db.flush()
-        return reconciled
 
     snapshot = ETFHoldingsSnapshot(
         etf_profile_id=profile.id,
@@ -1460,9 +1253,10 @@ async def ingest_holdings_snapshot(
         parser_version=parser_version,
         snapshot_hash=snapshot_hash,
         notes=notes,
-        extra_data=(
-            {"legal_metadata": persisted_legal_metadata} if persisted_legal_metadata else None
-        ),
+        extra_data={
+            "legal_metadata": legal_metadata,
+            **{key: value for key, value in capability_metadata.items() if value is not None},
+        },
     )
     db.add(snapshot)
     await db.flush()
@@ -1524,6 +1318,7 @@ async def ingest_holdings_snapshot(
         composition_date=composition_date,
         published_at=published_at,
         completeness_status=completeness_status,
+        observation_metadata=snapshot.extra_data,
     )
     await db.flush()
     await db.refresh(snapshot)
@@ -1531,9 +1326,7 @@ async def ingest_holdings_snapshot(
 
 
 def _holding_needs_reconcile(row: ETFHolding) -> bool:
-    if normalize_holding_type(row.row_type) != "security" or not is_equity_holding_type(
-        row.holding_type
-    ):
+    if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
         return False
     if not row.is_resolved or row.constituent_instrument is None:
         return True
@@ -1584,33 +1377,34 @@ async def reconcile_snapshot_constituents(
     resolved = 0
     unresolved = 0
     source_provider = snapshot.source_provider or ETF_HOLDINGS_INTERNAL_PROVIDER
-    enrichment_attempts = 0
+    classification_attempts = 0
 
     for row in snapshot.rows:
         row.cusip = _normalize_holding_identifier_value(row.cusip)
         row.isin = _normalize_holding_identifier_value(row.isin)
         row.sedol = _normalize_holding_identifier_value(row.sedol)
         needs_reconcile = _holding_needs_reconcile(row)
-        if needs_reconcile and enrichment_attempts >= max_classification_enrichment:
+        missing_classification = bool(
+            row.constituent_instrument is not None
+            and (
+                row.constituent_instrument.equity_detail is None
+                or not row.constituent_instrument.equity_detail.industry
+            )
+        )
+        if missing_classification and classification_attempts >= max_classification_enrichment:
             # Keep this snapshot usable and honest. A later scheduled pass can
             # continue the bounded enrichment without making an interactive
-            # bootstrap fan out across hundreds of SEC submissions. The cap
-            # applies to every resolver attempt, including rows whose source
-            # did not expose a constituent instrument at all.
+            # bootstrap fan out across hundreds of SEC submissions.
             needs_reconcile = False
         if needs_reconcile:
-            enrichment_attempts += 1
+            if missing_classification:
+                classification_attempts += 1
             instrument, confidence, note = await _resolve_or_create_constituent(
                 db,
                 _holding_to_canonical_row(row),
                 source_provider=source_provider,
             )
             row.constituent_instrument_id = instrument.id if instrument is not None else None
-            # Keep the eagerly loaded relationship in sync with the foreign-key
-            # update. The bounded maintenance summary and subsequent rows rely
-            # on the in-memory object to report canonical promotion and
-            # classification counts accurately before the next DB refresh.
-            row.constituent_instrument = instrument
             row.is_resolved = instrument is not None
             row.resolution_confidence = confidence
             row.resolution_note = note
@@ -1623,11 +1417,7 @@ async def reconcile_snapshot_constituents(
     snapshot.resolved_count = resolved
     snapshot.unresolved_count = unresolved
     await db.flush()
-    # Keep the eagerly loaded ``rows``/constituent relationships attached to
-    # this async-session instance.  Refreshing the parent here expires that
-    # collection; the next access would attempt an implicit lazy load and
-    # raise ``MissingGreenlet`` in the bounded classification maintenance job.
-    # The scalar counters above are already synchronized by the flush.
+    await db.refresh(snapshot)
     return snapshot
 
 
@@ -1646,6 +1436,7 @@ async def _record_adapter_success(
     composition_date: date,
     published_at: datetime | None,
     completeness_status: str,
+    observation_metadata: dict[str, Any] | None = None,
 ) -> None:
     state = (
         await db.execute(
@@ -1672,6 +1463,21 @@ async def _record_adapter_success(
     state.composition_date = composition_date
     state.published_at = published_at
     state.completeness_status = completeness_status
+    snapshot_metadata = observation_metadata or {}
+    state.extra_data = {
+        **(state.extra_data or {}),
+        **{
+            key: snapshot_metadata.get(key)
+            for key in (
+                "source_tier",
+                "transport_kind",
+                "expected_cadence",
+                "schema_fingerprint",
+            )
+            if snapshot_metadata.get(key) is not None
+        },
+        "consecutive_failures": 0,
+    }
 
 
 async def list_etfs_with_holdings(db: AsyncSession, q: str | None = None) -> list[ETFProfileOut]:
@@ -1689,7 +1495,19 @@ async def list_etfs_with_holdings(db: AsyncSession, q: str | None = None) -> lis
 
 async def profile_to_out(db: AsyncSession, profile: ETFProfile) -> ETFProfileOut:
     latest = await get_latest_snapshot(db, profile.instrument_id, include_holdings=False)
+    state = (
+        await db.execute(
+            select(ETFHoldingsAdapterState)
+            .where(ETFHoldingsAdapterState.etf_profile_id == profile.id)
+            .order_by(
+                ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                ETFHoldingsAdapterState.id.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
     instrument = profile.instrument or await db.get(Instrument, profile.instrument_id)
+    capability = evaluate_capability(profile, latest, state).as_dict()
     return ETFProfileOut(
         id=profile.id,
         instrument_id=profile.instrument_id,
@@ -1712,7 +1530,55 @@ async def profile_to_out(db: AsyncSession, profile: ETFProfile) -> ETFProfileOut
         latest_snapshot_id=latest.id if latest else None,
         resolved_count=latest.resolved_count if latest else 0,
         unresolved_count=latest.unresolved_count if latest else 0,
+        holdings_capability=capability,
     )
+
+
+async def holdings_capability_for_profile(
+    db: AsyncSession,
+    profile: ETFProfile,
+    *,
+    snapshot: ETFHoldingsSnapshotOut | None = None,
+) -> dict[str, Any]:
+    """Return operational capability without contacting an external source."""
+
+    latest = snapshot or await get_latest_snapshot(
+        db,
+        profile.instrument_id,
+        include_holdings=False,
+        include_controlled_fixture=False,
+    )
+    state = (
+        await db.execute(
+            select(ETFHoldingsAdapterState)
+            .where(ETFHoldingsAdapterState.etf_profile_id == profile.id)
+            .order_by(
+                ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                ETFHoldingsAdapterState.id.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    return evaluate_capability(profile, latest, state).as_dict()
+
+
+async def holdings_capability_for_symbol(db: AsyncSession, symbol: str) -> dict[str, Any]:
+    """Evaluate a symbol's capability without hydrating an unknown catalog entry."""
+
+    normalized_symbol = str(symbol or "").strip().upper()
+    instrument = await _load_instrument_by_symbol_or_id(db, normalized_symbol)
+    if instrument is None:
+        transient_instrument = Instrument(symbol=normalized_symbol, name=normalized_symbol)
+        return evaluate_capability(
+            ETFProfile(instrument=transient_instrument),
+            None,
+            None,
+        ).as_dict()
+
+    profile = await get_etf_profile_for_instrument(db, instrument.id)
+    if profile is None:
+        return evaluate_capability(ETFProfile(instrument=instrument), None, None).as_dict()
+    return await holdings_capability_for_profile(db, profile)
 
 
 async def get_latest_snapshot(
@@ -2335,7 +2201,7 @@ async def get_holdings_transition_timeline(
         stmt = stmt.where(ETFHoldingsSnapshot.composition_date >= start_date)
     if end_date is not None:
         stmt = stmt.where(ETFHoldingsSnapshot.composition_date <= end_date)
-    snapshots = _collapse_snapshot_revisions((await db.execute(stmt)).scalars().all())
+    snapshots = (await db.execute(stmt)).scalars().all()
     if len(snapshots) < 2:
         return ETFHoldingsTransitionTimelineOut(
             etf_symbol=instrument.symbol,
@@ -2713,28 +2579,21 @@ async def list_available_dates(
         .scalars()
         .all()
     )
-    dates: list[ETFHoldingsDateOut] = []
-    for row in rows:
-        dates.append(
-            ETFHoldingsDateOut(
-                snapshot_id=row.id,
-                composition_date=row.composition_date,
-                as_of_date=row.as_of_date,
-                known_at=row.known_at,
-                published_at=row.published_at,
-                cadence=_snapshot_cadence(row),
-                parser_version=row.parser_version,
-                timing_provenance=_snapshot_timing_provenance(row),
-                provenance=row.provenance,
-                source_provider=row.source_provider,
-                source_identifier=row.source_identifier,
-                row_count=row.row_count,
-                resolved_count=row.resolved_count,
-                unresolved_count=row.unresolved_count,
-                source_quality=row.source_quality,
-            )
+    return [
+        ETFHoldingsDateOut(
+            snapshot_id=row.id,
+            composition_date=row.composition_date,
+            as_of_date=row.as_of_date,
+            known_at=row.known_at,
+            provenance=row.provenance,
+            source_provider=row.source_provider,
+            row_count=row.row_count,
+            resolved_count=row.resolved_count,
+            unresolved_count=row.unresolved_count,
+            source_quality=row.source_quality,
         )
-    return dates
+        for row in rows
+    ]
 
 
 async def get_nearest_snapshot(
@@ -2845,14 +2704,9 @@ async def get_constituent_timeline(
             .order_by(ETFHoldingsSnapshot.composition_date.asc())
         )
     ).all()
-    latest_by_date: dict[date, tuple[ETFHolding, ETFHoldingsSnapshot]] = {}
-    for row, snapshot in rows:
-        current = latest_by_date.get(snapshot.composition_date)
-        if current is None or _snapshot_revision_key(snapshot) > _snapshot_revision_key(current[1]):
-            latest_by_date[snapshot.composition_date] = (row, snapshot)
     points: list[ETFConstituentTimelinePoint] = []
     previous_weight: Decimal | None = None
-    for row, snapshot in sorted(latest_by_date.values(), key=lambda item: item[1].composition_date):
+    for row, snapshot in rows:
         weight_delta = None
         if row.weight is not None and previous_weight is not None:
             weight_delta = row.weight - previous_weight
@@ -2862,16 +2716,11 @@ async def get_constituent_timeline(
                 composition_date=snapshot.composition_date,
                 as_of_date=snapshot.as_of_date,
                 known_at=snapshot.known_at,
-                published_at=snapshot.published_at,
                 weight=row.weight,
                 weight_delta_from_previous=weight_delta,
                 shares=row.shares,
                 market_value=row.market_value,
                 source_provider=snapshot.source_provider,
-                source_identifier=snapshot.source_identifier,
-                cadence=_snapshot_cadence(snapshot),
-                parser_version=snapshot.parser_version,
-                timing_provenance=_snapshot_timing_provenance(snapshot),
                 provenance=snapshot.provenance,
             )
         )
@@ -2907,7 +2756,7 @@ async def get_weight_evolution(
         stmt = stmt.where(ETFHoldingsSnapshot.composition_date >= start_date)
     if end_date is not None:
         stmt = stmt.where(ETFHoldingsSnapshot.composition_date <= end_date)
-    snapshots = _collapse_snapshot_revisions((await db.execute(stmt)).scalars().all())
+    snapshots = (await db.execute(stmt)).scalars().all()
     if not snapshots:
         return ETFHoldingsWeightEvolutionOut(
             etf_symbol=instrument.symbol,
@@ -2928,18 +2777,9 @@ async def get_weight_evolution(
                 ETFHoldingsWeightEvolutionPointOut(
                     snapshot_id=snapshot.id,
                     composition_date=snapshot.composition_date,
-                    as_of_date=snapshot.as_of_date,
-                    known_at=snapshot.known_at,
-                    published_at=snapshot.published_at,
                     weight=row.weight,
                     shares=row.shares,
                     market_value=row.market_value,
-                    source_provider=snapshot.source_provider,
-                    source_identifier=snapshot.source_identifier,
-                    cadence=_snapshot_cadence(snapshot),
-                    parser_version=snapshot.parser_version,
-                    timing_provenance=_snapshot_timing_provenance(snapshot),
-                    provenance=snapshot.provenance,
                 )
             )
 

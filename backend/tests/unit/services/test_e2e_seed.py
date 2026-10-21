@@ -5,8 +5,8 @@ from app.services.e2e_seed import (
     _E2E_HOLDINGS,
     _E2E_INDUSTRIES,
     _E2E_MARKET_NAMES,
-    seed_e2e_large_universe,
 )
+from app.services.tc_e2e_seed import seed_e2e_large_universe
 from app.services.top_down_taxonomy import (
     BENCHMARK_FAMILY_REGISTRY,
     benchmark_family_proxy_symbols,

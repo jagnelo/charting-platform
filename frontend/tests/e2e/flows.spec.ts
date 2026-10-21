@@ -2274,6 +2274,7 @@ test.describe('TC2000 workstation', () => {
     await expect.poll(() => recoveryCopyCreated).toBe(true)
     await expect(page.locator('.workstation__footer')).toContainText(/recovery/i, { timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('local changes were preserved', { timeout: 15_000 })
+    expect(conflictPending).toBe(false)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -2740,6 +2741,15 @@ test.describe('TC2000 workstation', () => {
     // pointer interaction handlers. Do not send the one cross-window cursor
     // event until the source chart reports that initialization is complete.
     await expect(popupChart.locator('.chart-root')).toHaveAttribute('aria-busy', 'false', { timeout: 20_000 })
+    // Pop-out hydration can recreate an initially visible uPlot while loading
+    // settles. Re-resolve its drawable geometry after the tool has mounted.
+    const popupGeometry: { box: { x: number; y: number; width: number; height: number } | null } = { box: null }
+    await expect.poll(async () => {
+      const loading = await popupChart.locator('.tool-state').count()
+      popupGeometry.box = await popupChart.locator('.uplot').boundingBox()
+      return loading === 0 && popupGeometry.box !== null
+        && popupGeometry.box.width > 0 && popupGeometry.box.height > 0
+    }, { timeout: 20_000 }).toBe(true)
     const popupReadoutDate = popupChart.locator('.ohlcv-info .tt-date')
     await expect(popupReadoutDate).toBeVisible()
     const sourceDateBefore = (await popupReadoutDate.textContent())?.trim()
@@ -2788,6 +2798,8 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('combobox', { name: 'Linked timeframe' }).selectOption('W1')
     await expect(popupTool.locator('.tool-window__timeframe')).toHaveValue('W1', { timeout: 15_000 })
 
+    // Linking assertions above must succeed while the popup is live. Cleanup
+    // can race with its browser close event, as in the adjacent crosshair test.
     await closePopupWhenOpen(popup)
     await expect.poll(() => context.pages().length).toBe(1)
     await browserDiagnostics.expectNoCriticalIssues()

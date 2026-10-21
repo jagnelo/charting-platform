@@ -1,0 +1,15 @@
+{
+  "state": "green",
+  "created_at": "2026-10-21T10:37:32.088090+00:00",
+  "starting_staging_sha": "0f424665049e9b6f4464e1f228cebd263c755ad9",
+  "staging_sha": "628c1634f4894403339687586adee74d45637d51",
+  "sources": [
+    {
+      "branch": "fix/staging-browser-egress",
+      "sha": "6765f37eac10f956b3d5322421613d9709cba838"
+    }
+  ],
+  "github_run": "https://github.com/jagnelo/charting-platform/actions/runs/39575596904",
+  "reconciled_interrupted_watch": true,
+  "previous_watch_failure": "GitHub CI is not green for exact staging commit 628c1634f4894403339687586adee74d45637d51: https://github.com/jagnelo/charting-platform/actions/runs/39575596904 attempts=[{'attempt': 1, 'url': 'https://github.com/jagnelo/charting-platform/actions/runs/39575596904', 'status': 'in_progress', 'conclusion': None}]"
+}

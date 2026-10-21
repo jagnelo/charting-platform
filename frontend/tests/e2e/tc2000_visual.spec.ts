@@ -356,8 +356,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       try {
         await popoutTool.locator('button[title="Close"]').click()
       } catch (error) {
-        // The ordinary Close action destroys this page before Chromium may
-        // acknowledge click completion. A still-open popup is a real failure.
+        // The ordinary Close action can destroy this page before Chromium
+        // acknowledges click completion. A still-open popup is a real failure.
         if (!popup.isClosed()) throw error
       }
       await closed
@@ -802,6 +802,10 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ versions: [{ id: 777 }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+        return
+      }
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(runningRun) })
     })
@@ -815,7 +819,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await new Promise(() => undefined)
     })
     await page.goto('/chart')
-    await expect(page.locator('.workstation')).toBeVisible()
+    await waitForShellReady(page)
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const study = page.locator('.study-lab-tool')
@@ -829,6 +833,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.locator('.study-lab-tool__run-status--running')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('running 12/100')
     await expect(study.getByRole('button', { name: 'Cancel study run', exact: true })).toBeVisible()
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
     await expect(page).toHaveScreenshot('study-lab-running-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -958,19 +964,18 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ versions: [{ id: 779 }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+        return
+      }
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(failedRun) })
-    })
-    await page.route(url => url.pathname.endsWith('/api/v1/research/runs'), async route => {
-      if (route.request().method() !== 'GET') return route.fallback()
-      await new Promise<void>(() => {})
     })
     await page.route(/\/api\/v1\/research\/runs\/780$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(failedRun) })
     })
     await page.goto('/chart')
-    await expect(page.locator('.workstation')).toBeVisible()
-    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await waitForShellReady(page)
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const study = page.locator('.study-lab-tool')
     await expect(study).toBeVisible({ timeout: 10_000 })

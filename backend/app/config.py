@@ -181,6 +181,14 @@ class Settings(BaseSettings):
     TOKENIZED_EVENT_REFRESH_MAX_PAGES: int = 1
     TOKENIZED_EVENT_REFRESH_PAGE_SIZE: int = 100
     ETF_HOLDINGS_REFRESH_ENABLED: bool = False
+    ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED: bool = False
+    ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS: str = (
+        "DXJ,NTSX,MINT,BOND,GEME,TBIL,XBIL,OBIL,UTWO,UTRE,UFIV,USVN,UTEN,UTWY,UTHY"
+    )
+    ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS: int = 20
+    ETF_HOLDINGS_CAPABILITY_CANARY_TIMEOUT_SECONDS: float = 60.0
+    ETF_HOLDINGS_CAPABILITY_CANARY_FAILURE_THRESHOLD: int = 3
+    ETF_HOLDINGS_CAPABILITY_CANARY_COOLDOWN_SECONDS: int = 3600
     ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED: bool = False
     ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES: int = 50
     ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE: int = 32
@@ -283,6 +291,10 @@ class Settings(BaseSettings):
         "ondo_global_markets",
     ]
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
+        # No issuer is routable by default. ETF publishers are added only
+        # after source/account/terms/quota evidence has been reviewed and a
+        # concrete per-operation policy has been configured.
+        "etf_holdings": [],
         # Provider-native usage surfaces are selected by the same exact
         # capability/quota gates as data reads. These adapters remain opt-in
         # at the worker level; this list only makes them resolvable when an

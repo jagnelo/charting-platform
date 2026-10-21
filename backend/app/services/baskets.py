@@ -1,12 +1,17 @@
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.basket import Basket, BasketMember, BasketSnapshot, BasketSnapshotMember
-from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.schemas.basket import (
@@ -17,12 +22,7 @@ from app.schemas.basket import (
     BasketSnapshotOut,
     BasketUpdateRequest,
 )
-from app.services.etf_holdings import (
-    is_equity_holding_type,
-    is_placeholder_symbol,
-    normalize_holding_type,
-)
-from app.services.ohlcv_coverage import _as_utc
+from app.services.etf_holdings_capability import ETFHoldingsCapability, evaluate_capability
 
 VALID_USER_WEIGHTING_SCHEMES = {"equal", "custom"}
 WEIGHT_TOLERANCE = Decimal("0.0001")
@@ -34,6 +34,14 @@ class BasketValidationError(ValueError):
 
 class BasketReadOnlyError(PermissionError):
     """Raised when a caller tries to mutate a read-only/system basket."""
+
+
+class ETFHoldingsCurrentDataUnavailable(ValueError):
+    """Raised when current analysis requests a non-current ETF holdings snapshot."""
+
+    def __init__(self, capability: ETFHoldingsCapability):
+        self.capability = capability
+        super().__init__(capability.reason)
 
 
 async def create_basket(
@@ -149,8 +157,9 @@ async def materialize_etf_holdings_basket(
     *,
     snapshot_id: int | None = None,
     snapshot_date: date | None = None,
+    allow_non_current: bool = False,
 ) -> Basket | None:
-    """Create or update a read-only system basket from a resolved ETF holdings snapshot."""
+    """Create/update a basket, requiring current capability unless historical is explicit."""
 
     snapshot, etf_instrument = await _load_etf_snapshot(
         db,
@@ -160,6 +169,24 @@ async def materialize_etf_holdings_basket(
     )
     if snapshot is None or etf_instrument is None:
         return None
+
+    if not allow_non_current and snapshot_id is None and snapshot_date is None:
+        state = (
+            await db.execute(
+                select(ETFHoldingsAdapterState)
+                .where(ETFHoldingsAdapterState.etf_profile_id == snapshot.etf_profile_id)
+                .order_by(
+                    ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                    ETFHoldingsAdapterState.id.desc(),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        profile = await db.get(ETFProfile, snapshot.etf_profile_id)
+        if profile is not None:
+            capability = evaluate_capability(profile, snapshot, state)
+            if not capability.usable_for_current_analysis:
+                raise ETFHoldingsCurrentDataUnavailable(capability)
 
     existing = (
         await db.execute(
@@ -205,14 +232,7 @@ async def materialize_etf_holdings_basket(
     seen_instruments: set[int] = set()
     position = 0
     for row in snapshot.rows:
-        if (
-            normalize_holding_type(row.row_type) != "security"
-            or not is_equity_holding_type(row.holding_type)
-            or not row.is_resolved
-            or row.constituent_instrument_id is None
-            or row.constituent_instrument is None
-            or is_placeholder_symbol(row.constituent_instrument.symbol)
-        ):
+        if row.row_type != "security" or row.constituent_instrument_id is None:
             continue
         if row.constituent_instrument_id in seen_instruments:
             continue
@@ -278,8 +298,6 @@ async def get_basket_synthetic_ohlcv(
     sum of each member's cumulative return from its own starting close.
     """
 
-    start = _as_utc(start) if start is not None else None
-    end = _as_utc(end) if end is not None else None
     basket = await get_basket(db, basket_id, user_id)
     if basket is None:
         raise BasketValidationError("Basket not found.")
@@ -717,11 +735,23 @@ async def _load_etf_snapshot(
     if snapshot_id is not None:
         stmt = stmt.where(ETFHoldingsSnapshot.id == snapshot_id)
     elif snapshot_date is not None:
-        stmt = stmt.where(ETFHoldingsSnapshot.composition_date <= snapshot_date)
+        # A correction may describe an older composition while only becoming
+        # known later. Match the ETF point-in-time readers: preserve legacy
+        # snapshots without a known_at value, but never leak a dated correction
+        # into an analysis before it was known.
+        date_end = datetime.combine(snapshot_date, datetime.max.time(), tzinfo=UTC)
+        stmt = stmt.where(
+            ETFHoldingsSnapshot.composition_date <= snapshot_date,
+            or_(
+                ETFHoldingsSnapshot.known_at.is_(None),
+                ETFHoldingsSnapshot.known_at <= date_end,
+            ),
+        )
     snapshot = (
         await db.execute(
             stmt.order_by(
                 ETFHoldingsSnapshot.composition_date.desc(),
+                ETFHoldingsSnapshot.known_at.desc().nullslast(),
                 ETFHoldingsSnapshot.id.desc(),
             ).limit(1)
         )

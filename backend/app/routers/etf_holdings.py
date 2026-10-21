@@ -24,6 +24,8 @@ from app.schemas.etf_holdings import (
     ETFHoldingsAdapterProbeOut,
     ETFHoldingsAdapterStateOut,
     ETFHoldingsBackfillJobOut,
+    ETFHoldingsCanaryHistoryOut,
+    ETFHoldingsCapabilityOut,
     ETFHoldingsCoverageRequest,
     ETFHoldingsCoverageSummary,
     ETFHoldingsCSVIngestRequest,
@@ -44,6 +46,7 @@ from app.schemas.etf_holdings import (
     ETFHoldingsSECBulkBackfillSummary,
     ETFHoldingsSECIngestRequest,
     ETFHoldingsSECLegacyIngestRequest,
+    ETFHoldingsShadowGateOut,
     ETFHoldingsSnapshotOut,
     ETFHoldingsTransitionTimelineOut,
     ETFHoldingsWeightEvolutionOut,
@@ -59,11 +62,12 @@ from app.schemas.etf_holdings_history import (
     BenchmarkFamilyHoldingsRefreshRunOut,
     BenchmarkFamilyHoldingsRefreshRunRequest,
 )
-from app.services.baskets import basket_to_out, materialize_etf_holdings_basket
-from app.services.benchmark_family_history import (
-    history_end_iso,
-    plan_benchmark_family_history_refresh,
+from app.services.baskets import (
+    ETFHoldingsCurrentDataUnavailable,
+    basket_to_out,
+    materialize_etf_holdings_basket,
 )
+from app.services.benchmark_family_history import plan_benchmark_family_history_refresh
 from app.services.benchmark_family_holdings_runs import plan_benchmark_family_holdings_refresh
 from app.services.etf_holdings import (
     coverage_summary,
@@ -71,6 +75,7 @@ from app.services.etf_holdings import (
     ensure_lightweight_etf_instrument,
     get_constituent_timeline,
     get_etf_profile_for_instrument,
+    get_etf_profile_for_symbol,
     get_holdings_diff,
     get_holdings_overlap_matrix,
     get_holdings_overlap_summary,
@@ -80,6 +85,7 @@ from app.services.etf_holdings import (
     get_nearest_snapshot,
     get_unresolved_holdings,
     get_weight_evolution,
+    holdings_capability_for_symbol,
     ingest_holdings_snapshot,
     list_available_dates,
     list_etfs_with_holdings,
@@ -90,6 +96,13 @@ from app.services.etf_holdings_adapters import (
     get_holdings_adapter,
     holdings_adapter_catalog,
     parse_holdings_csv,
+)
+from app.services.etf_holdings_capability import (
+    current_analysis_error_detail,
+    evaluate_tier0_shadow_gate,
+    load_canary_history_for_symbol,
+    load_tier0_shadow_observations,
+    tier0_symbols,
 )
 from app.services.etf_holdings_edgar import (
     backfill_all_sec_legacy_holdings,
@@ -121,6 +134,16 @@ def _benchmark_family_holdings_run_output(
     run: BenchmarkFamilyHoldingsRefreshRun,
 ) -> BenchmarkFamilyHoldingsRefreshRunOut:
     return BenchmarkFamilyHoldingsRefreshRunOut.model_validate(run)
+
+
+async def _ingest_snapshot_or_400(db: AsyncSession, **kwargs):
+    """Map shared ingestion validation failures to an administrative 400."""
+
+    try:
+        return await ingest_holdings_snapshot(db, **kwargs)
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 async def _get_own_benchmark_family_holdings_run(
@@ -285,7 +308,6 @@ async def queue_benchmark_family_history_refresh(
 
     queued = 0
     already_queued = 0
-    queue_errors: list[dict[str, object]] = []
     queue_unavailable = False
     try:
         redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
@@ -293,25 +315,15 @@ async def queue_benchmark_family_history_refresh(
             for instrument_id in plan["instrument_ids"]:
                 job_args = ["task_bulk_fetch_instrument", instrument_id, plan["timeframes"]]
                 if plan["as_of"] is not None:
-                    job_args.extend([None, history_end_iso(plan["as_of"])])
-                try:
-                    job = await redis.enqueue_job(
-                        *job_args,
-                        _job_id=canonical_history_job_id(
-                            instrument_id,
-                            plan["timeframes"],
-                            plan["as_of"],
-                        ),
-                    )
-                except Exception as exc:  # noqa: BLE001 - retain per-member queue evidence.
-                    queue_errors.append(
-                        {
-                            "status": "queue_error",
-                            "instrument_id": int(instrument_id),
-                            "error": str(exc)[:500] or "Canonical history queue failed.",
-                        }
-                    )
-                    continue
+                    job_args.extend([None, plan["as_of"].isoformat()])
+                job = await redis.enqueue_job(
+                    *job_args,
+                    _job_id=canonical_history_job_id(
+                        instrument_id,
+                        plan["timeframes"],
+                        plan["as_of"],
+                    ),
+                )
                 if job is None:
                     already_queued += 1
                 else:
@@ -337,8 +349,6 @@ async def queue_benchmark_family_history_refresh(
             },
             queued=queued,
             already_queued=already_queued,
-            queue_errors=queue_errors,
-            queue_error_count=len(queue_errors),
             queue_unavailable=True,
             message=(f"History queue unavailable after {queued + already_queued} jobs: {exc}"),
         )
@@ -360,16 +370,8 @@ async def queue_benchmark_family_history_refresh(
         },
         queued=queued,
         already_queued=already_queued,
-        queue_errors=queue_errors,
-        queue_error_count=len(queue_errors),
         queue_unavailable=queue_unavailable,
-        message=(
-            f"History queue had {len(queue_errors)} member enqueue failure(s)."
-            if queue_errors
-            else "Selection was bounded by max_instruments."
-            if plan["limited"]
-            else None
-        ),
+        message=("Selection was bounded by max_instruments." if plan["limited"] else None),
     )
 
 
@@ -515,6 +517,7 @@ async def bootstrap_holdings_profile(
         ),
         refresh_attempted=result.refresh_attempted,
         refresh_succeeded=result.refresh_succeeded,
+        capability=profile.holdings_capability,
         message=result.message,
     )
 
@@ -524,6 +527,50 @@ async def holdings_adapter_catalog_endpoint(
     current_user: User = Depends(require_admin),
 ):
     return holdings_adapter_catalog()
+
+
+@router.get("/shadow-gate", response_model=ETFHoldingsShadowGateOut)
+async def tier0_shadow_gate(
+    as_of: date | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Evaluate the persisted Tier 0 canary window without triggering fetches."""
+
+    observations = await load_tier0_shadow_observations(db, eligible_symbols=tier0_symbols())
+    return evaluate_tier0_shadow_gate(
+        observations,
+        now=as_of,
+        eligible_symbols=tier0_symbols(),
+    )
+
+
+@router.get("/{symbol}/capability", response_model=ETFHoldingsCapabilityOut)
+async def holdings_capability(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return truthful current holdings capability without triggering a fetch."""
+
+    return await holdings_capability_for_symbol(db, symbol)
+
+
+@router.get("/{symbol}/canary-history", response_model=ETFHoldingsCanaryHistoryOut)
+async def holdings_canary_history(
+    symbol: str,
+    limit: int = Query(90, ge=1, le=90),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Inspect bounded persisted canary evidence without triggering a fetch."""
+
+    normalized_symbol = symbol.strip().upper()
+    observations = await load_canary_history_for_symbol(db, normalized_symbol, limit=limit)
+    return ETFHoldingsCanaryHistoryOut(
+        symbol=normalized_symbol,
+        observations=[dict(observation) for observation in observations],
+    )
 
 
 @router.get("/{symbol_or_id}/latest", response_model=ETFHoldingsSnapshotOut)
@@ -546,12 +593,20 @@ async def materialized_holdings_basket(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    basket = await materialize_etf_holdings_basket(
-        db,
-        symbol_or_id,
-        snapshot_id=snapshot_id,
-        snapshot_date=date_,
-    )
+    try:
+        basket = await materialize_etf_holdings_basket(
+            db,
+            symbol_or_id,
+            snapshot_id=snapshot_id,
+            snapshot_date=date_,
+            allow_non_current=snapshot_id is not None or date_ is not None,
+        )
+    except ETFHoldingsCurrentDataUnavailable as exc:
+        capability = exc.capability
+        raise HTTPException(
+            status_code=409,
+            detail=current_analysis_error_detail(capability),
+        ) from exc
     if basket is None:
         raise HTTPException(404, "ETF holdings basket could not be materialized")
     await db.commit()
@@ -873,8 +928,9 @@ async def holdings_adapter_state(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    instrument = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    profile = await ensure_etf_profile(db, instrument)
+    profile = await get_etf_profile_for_symbol(db, symbol)
+    if profile is None:
+        return []
     states = (
         (
             await db.execute(
@@ -961,7 +1017,7 @@ async def ingest_holdings_rows(
     current_user: User = Depends(require_admin),
 ):
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    await ingest_holdings_snapshot(
+    await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,
         rows=body.rows,
@@ -996,7 +1052,7 @@ async def ingest_holdings_csv(
 ):
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
     rows = parse_holdings_csv(body.raw_csv)
-    await ingest_holdings_snapshot(
+    await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,
         rows=rows,
@@ -1039,7 +1095,7 @@ async def ingest_sec_nport_holdings(
         raise HTTPException(400, "SEC filing XML did not contain parseable holdings rows.")
 
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    await ingest_holdings_snapshot(
+    await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,
         rows=rows,
@@ -1086,7 +1142,7 @@ async def ingest_sec_legacy_holdings(
         raise HTTPException(400, "Legacy SEC filing XML did not contain parseable holdings rows.")
 
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    await ingest_holdings_snapshot(
+    await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,
         rows=rows,
@@ -1169,8 +1225,7 @@ async def list_etf_backfill_jobs(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    profile = await get_etf_profile_for_instrument(db, etf.id)
+    profile = await get_etf_profile_for_symbol(db, symbol)
     if profile is None:
         return []
     return await list_sec_nport_backfill_jobs(db, profile=profile, limit=limit)

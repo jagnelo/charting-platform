@@ -122,6 +122,16 @@ def test_representative_operations_cover_probeable_capabilities():
             assert operation
 
 
+def test_etf_holdings_capability_has_diagnostic_shape_but_no_default_route(monkeypatch):
+    capability = ProviderCapability.ETF_HOLDINGS
+    monkeypatch.setitem(settings.PROVIDER_CHAIN_SEEDS, "etf_holdings", [])
+
+    assert capability.value == "etf_holdings"
+    assert representative_operation(capability) == "fetch_etf_holdings_latest"
+    assert representative_request(capability) == {"symbol": "SPY", "as_of_date": None}
+    assert settings.PROVIDER_CHAIN_SEEDS[capability.value] == []
+
+
 def test_availability_configuration_uses_operation_aware_registry(monkeypatch):
     source = SimpleNamespace(name="marketstack")
     entitlement = SimpleNamespace()

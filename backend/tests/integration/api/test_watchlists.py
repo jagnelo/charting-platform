@@ -2054,7 +2054,7 @@ class TestWatchlistsCrud:
         assert source["symbol"] == "MDY"
         assert source["member_count"] == 1
         assert source["provenance"]["derived"] is True
-        assert source["provenance"]["availability"] == "available"
+        assert source["provenance"]["availability"] == "unknown"
         assert source["provenance"]["membership_semantics"] == (
             "derived_equal_weight_point_in_time_membership"
         )
@@ -2210,7 +2210,7 @@ class TestWatchlistsCrud:
         assert set(expected_sources) <= set(listed_by_id)
         assert all(listed_by_id[source_id]["locked"] for source_id in expected_sources)
         assert all(
-            listed_by_id[source_id]["provenance"]["availability"] == "available"
+            listed_by_id[source_id]["provenance"]["availability"] == "unknown"
             for source_id in expected_sources
         )
 
@@ -2607,7 +2607,7 @@ class TestWatchlistsCrud:
         assert source["locked"] is True
         assert source["can_edit_membership"] is False
         assert source["member_count"] == 1
-        assert source["provenance"]["availability"] == "available"
+        assert source["provenance"]["availability"] == "unknown"
         assert source["provenance"]["adapter_key"] == "controlled_fixture"
         assert source["provenance"]["adapter_status"] == "failure"
         assert Decimal(str(source["provenance"]["adapter_confidence"])) == Decimal("0.92")
@@ -2616,6 +2616,69 @@ class TestWatchlistsCrud:
         assert source["provenance"]["snapshot_row_count"] == 2
         assert source["provenance"]["snapshot_resolved_count"] == 2
         assert source["provenance"]["snapshot_unresolved_count"] == 0
+        assert "failure_class" in source["provenance"]
+        assert "capability_reason" in source["provenance"]
+        assert "usable_for_current_analysis" in source["provenance"]
+        resolved = client.get(
+            f"/api/v1/watchlists/sources/{source_id}",
+            headers=auth_headers,
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert resolved.json()["exclusions"][0]["reason"] == "holdings_snapshot_not_current"
+        assert "failure_class" in resolved.json()["exclusions"][0]
+        current_market_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": source_id,
+                "period": "1D",
+                "area_metric": "weight",
+                "color_metric": "return",
+            },
+        )
+        assert current_market_map.status_code == 409, current_market_map.text
+        assert current_market_map.json()["detail"] == {
+            "code": "etf_holdings_not_current",
+            "availability": "unknown",
+            "source_tier": "issuer_native",
+            "usable_for_current_analysis": False,
+            "displayable_last_known": True,
+            "identity_verified": False,
+            "adapter_key": "controlled_fixture",
+            "source_provider": "controlled_fixture",
+            "transport_kind": "stored_artifact",
+            "snapshot_id": snapshot.id,
+            "snapshot_hash": "watchlist-etf-source-fixture",
+            "composition_date": "2024-01-01",
+            "published_at": None,
+            "known_at": "2024-01-01T00:00:00Z",
+            "freshness_deadline": "2024-01-08",
+            "last_checked_at": None,
+            "last_success_at": None,
+            "last_failure_at": None,
+            "completeness_status": "complete",
+            "row_count": 1,
+            "resolved_count": 1,
+            "unresolved_count": 0,
+            "failure_class": None,
+            "reason": "The latest holdings artifact has not passed explicit ETF identity verification.",
+        }
+        current_breadth = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {
+                    "kind": "watchlist",
+                    "key": source_id,
+                    "point_in_time": True,
+                },
+                "condition": {"kind": "above_moving_average", "params": {"period": 20}},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert current_breadth.status_code == 409, current_breadth.text
+        assert current_breadth.json()["detail"] == current_market_map.json()["detail"]
         empty_source = next(
             item
             for item in descriptor.json()

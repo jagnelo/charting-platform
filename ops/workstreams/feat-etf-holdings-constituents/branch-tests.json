@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "branch": "feat/etf-holdings-constituents",
+  "plan_tests": [
+    "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov",
+    "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov",
+    "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov",
+    "RUN_LIVE_ETF_HOLDINGS_TESTS=0 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov",
+    "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py",
+    "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents",
+    "npm --prefix frontend run type-check",
+    "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts",
+    "npm --prefix frontend run build"
+  ],
+  "commands": [
+    {
+      "id": "full-backend-suite",
+      "command": "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov && uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov && uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov",
+      "covers": [1, 2, 3]
+    },
+    {
+      "id": "offline-live-contracts",
+      "command": "RUN_LIVE_ETF_HOLDINGS_TESTS=0 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov",
+      "covers": [4]
+    },
+    {
+      "id": "adapter-lint",
+      "command": "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py",
+      "covers": [5]
+    },
+    {
+      "id": "workstream-validation",
+      "command": "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents",
+      "covers": [6]
+    },
+    {
+      "id": "frontend-type-check",
+      "command": "npm --prefix frontend run type-check",
+      "covers": [7]
+    },
+    {
+      "id": "frontend-unit",
+      "command": "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts",
+      "covers": [8]
+    },
+    {
+      "id": "frontend-build",
+      "command": "npm --prefix frontend run build",
+      "covers": [9]
+    }
+  ],
+  "ci_covered_commands": {
+    "full-backend-suite": "Backend Tests"
+  },
+  "external_gates": []
+}

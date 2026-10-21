@@ -1,6 +1,7 @@
 import logging
 
 from app.config import settings
+from app.services.etf_holdings_capability import tier0_symbols
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,67 @@ async def refresh_etf_holdings_task(ctx: dict) -> dict:
 
     async with AsyncSessionLocal() as db:
         summary = await refresh_all_known_etf_holdings(db)
+        await db.commit()
+        return summary
+
+
+async def etf_holdings_capability_canary_task(ctx: dict) -> dict:
+    """Run the disabled-by-default, bounded Tier 0 ETF route canary sweep."""
+
+    if not getattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", False):
+        logger.info("ETF holdings capability canary disabled; skipping")
+        return {"skipped": True, "reason": "capability canary disabled"}
+
+    from app.database import AsyncSessionLocal
+    from app.services.etf_holdings_refresh import run_etf_holdings_capability_canaries
+
+    symbols = [
+        value.strip().upper()
+        for value in str(settings.ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS).split(",")
+        if value.strip()
+    ]
+    if not symbols or len(symbols) != len(set(symbols)):
+        message = (
+            "ETF holdings capability canary configuration must contain at least one "
+            "unique symbol"
+        )
+        logger.error(message)
+        return {
+            "skipped": True,
+            "reason": "invalid canary configuration",
+            "configuration_error": message,
+            "requested": len(symbols),
+            "max_symbols": settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
+        }
+    canonical_symbols = set(tier0_symbols())
+    max_symbols = settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS
+    if max_symbols < len(symbols):
+        configured_scope = (
+            "canonical Tier-0 set"
+            if canonical_symbols.issubset(symbols)
+            else "configured symbol list"
+        )
+        message = (
+            "ETF holdings capability canary configuration would truncate the "
+            f"{configured_scope} ({len(symbols)} symbols)"
+        )
+        logger.error(message)
+        return {
+            "skipped": True,
+            "reason": "invalid canary configuration",
+            "configuration_error": message,
+            "requested": len(symbols),
+            "max_symbols": max_symbols,
+        }
+    async with AsyncSessionLocal() as db:
+        summary = await run_etf_holdings_capability_canaries(
+            db,
+            symbols=symbols,
+            max_symbols=settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
+            timeout_seconds=settings.ETF_HOLDINGS_CAPABILITY_CANARY_TIMEOUT_SECONDS,
+            failure_threshold=settings.ETF_HOLDINGS_CAPABILITY_CANARY_FAILURE_THRESHOLD,
+            cooldown_seconds=settings.ETF_HOLDINGS_CAPABILITY_CANARY_COOLDOWN_SECONDS,
+        )
         await db.commit()
         return summary
 
@@ -62,7 +124,6 @@ async def reconcile_etf_holdings_classifications_task(ctx: dict) -> dict:
             db,
             max_profiles=settings.ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES,
             max_enrichments_per_profile=settings.ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE,
-            max_snapshots_per_profile=settings.ETF_HOLDINGS_CLASSIFICATION_MAX_SNAPSHOTS_PER_PROFILE,
         )
         await db.commit()
         return summary
@@ -100,30 +161,16 @@ async def refresh_benchmark_family_holdings_task(ctx: dict) -> dict:
         }
 
     queued = already_queued = 0
-    queue_errors: list[dict[str, str]] = []
     for requested_date in requested_dates:
         for family_key in family_keys:
-            try:
-                job = await redis.enqueue_job(
-                    "task_refresh_scheduled_benchmark_family_holdings_unit",
-                    family_key,
-                    requested_date.isoformat(),
-                    roles,
-                    _job_id=(
-                        f"benchmark-family-scheduled:{family_key}:{requested_date.isoformat()}"
-                    ),
-                    _expires=86_400,
-                )
-            except Exception as exc:  # noqa: BLE001 - retain bounded per-root evidence.
-                queue_errors.append(
-                    {
-                        "status": "queue_error",
-                        "family_key": family_key,
-                        "requested_date": requested_date.isoformat(),
-                        "error": str(exc) or "Benchmark family unit queue failed.",
-                    }
-                )
-                continue
+            job = await redis.enqueue_job(
+                "task_refresh_scheduled_benchmark_family_holdings_unit",
+                family_key,
+                requested_date.isoformat(),
+                roles,
+                _job_id=(f"benchmark-family-scheduled:{family_key}:{requested_date.isoformat()}"),
+                _expires=86_400,
+            )
             if job is None:
                 already_queued += 1
             else:
@@ -134,66 +181,5 @@ async def refresh_benchmark_family_holdings_task(ctx: dict) -> dict:
         "roles": roles,
         "queued": queued,
         "already_queued": already_queued,
-        "queue_errors": queue_errors,
-        "queue_error_count": len(queue_errors),
         "queue_unavailable": False,
     }
-
-
-async def backfill_benchmark_family_member_history_task(ctx: dict) -> dict:
-    """Queue member bars for existing canonical family snapshots.
-
-    This complements the dated holdings refresh task: snapshots already stored
-    before a deployment still need bounded D1/W1/MN hydration, and the work must
-    remain outside interactive reads.
-    """
-
-    if not getattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED", False):
-        logger.info("Benchmark family member-history backfill disabled; skipping")
-        return {"skipped": True, "reason": "benchmark family member-history backfill disabled"}
-
-    from app.database import AsyncSessionLocal
-    from app.services.benchmark_family_history import (
-        history_end_for_date,
-        plan_benchmark_family_snapshot_history_refresh,
-        queue_snapshot_member_history,
-    )
-
-    redis = ctx.get("redis")
-    async with AsyncSessionLocal() as db:
-        plan = await plan_benchmark_family_snapshot_history_refresh(
-            db,
-            max_snapshots=settings.BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS,
-        )
-        queued = already_queued = 0
-        unresolved = queue_error_count = 0
-        queue_errors: list[dict] = []
-        snapshot_results: list[dict] = []
-        for item in plan["snapshots"]:
-            summary = await queue_snapshot_member_history(
-                db,
-                redis,
-                [int(item["snapshot_id"])],
-                max_instruments=settings.BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT,
-                end=history_end_for_date(item["composition_date"]),
-            )
-            queued += int(summary.get("queued", 0))
-            already_queued += int(summary.get("already_queued", 0))
-            unresolved += int(summary.get("unresolved_count", 0))
-            queue_error_count += int(summary.get("queue_error_count", 0))
-            queue_errors.extend(summary.get("queue_errors", []))
-            snapshot_results.append({**item, **summary})
-        return {
-            **{key: plan[key] for key in ("family_keys", "roles", "max_snapshots", "limited")},
-            "available_snapshot_count": plan.get("available_snapshot_count", 0),
-            "selected_snapshot_count": plan["selected_snapshot_count"],
-            "undated_snapshot_count": plan.get("undated_snapshot_count", 0),
-            "continuity_by_symbol": plan.get("continuity_by_symbol", {}),
-            "queued": queued,
-            "already_queued": already_queued,
-            "unresolved_count": unresolved,
-            "queue_errors": queue_errors,
-            "queue_error_count": queue_error_count,
-            "queue_unavailable": redis is None,
-            "snapshot_results": snapshot_results,
-        }

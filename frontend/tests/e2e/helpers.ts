@@ -8,6 +8,14 @@ const USER  = process.env.TEST_USER ?? 'e2euser'
 const EMAIL = process.env.TEST_EMAIL ?? 'e2e@example.com'
 const PASS  = process.env.TEST_PASS  ?? 'E2ePassword123!'
 
+// ETF current-analysis endpoints deliberately return a structured 409 when
+// the latest holdings snapshot is stale, unverified, or otherwise unusable
+// for current analysis. The UI renders that capability state as a supported
+// degradation; keep this allow-list limited to routes whose contracts can
+// produce that response. Do not treat arbitrary 409s (workspace/watchlist
+// conflicts, malformed requests, or admin refresh conflicts) as expected.
+const EXPECTED_CURRENT_ANALYSIS_CONFLICT_PATH = /^\/api\/v1\/(?:analysis\/(?:benchmark-families\/[^/]+\/breadth(?:\/history)?|breadth(?:\/history)?|etf\/[^/]+\/(?:industries\/snapshot|constituents\/snapshot))|market-groups\/etf\/[^/]+\/industries|etf-holdings\/[^/]+\/basket)$/
+
 export { expect }
 
 async function ensureUserExists(
@@ -67,6 +75,11 @@ class BrowserDiagnostics {
   // duplicate/conflict path. The store keeps the failed canonical ID visible
   // for retry, while Chromium reports the handled 409 as a console error.
   expectedWatchlistConflictResponses = 0
+  // Current ETF analysis is intentionally unavailable when the capability
+  // contract rejects a stale/unverified snapshot. Chromium still reports the
+  // handled 409 as a console error, so classify only the allow-listed API
+  // routes above.
+  expectedCurrentAnalysisConflictResponses = 0
 
   allowExpectedWatchlistConflictResponses(count = 1) {
     this.expectedWatchlistConflictResponses += count
@@ -99,9 +112,16 @@ class BrowserDiagnostics {
       this.requestFailures.push(`${req.method()} ${req.url()} :: ${errorText}`)
     })
     page.on('response', (response) => {
-      if (response.status() === 409 && /^\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname)) {
-        this.expectedWorkspaceConflictResponses += 1
-        return
+      if (response.status() === 409) {
+        const path = new URL(response.url()).pathname
+        if (/^\/api\/v1\/workspaces\/\d+\/snapshot$/.test(path)) {
+          this.expectedWorkspaceConflictResponses += 1
+          return
+        }
+        if (EXPECTED_CURRENT_ANALYSIS_CONFLICT_PATH.test(path)) {
+          this.expectedCurrentAnalysisConflictResponses += 1
+          return
+        }
       }
       if (response.status() !== 404) return
       const path = new URL(response.url()).pathname
@@ -184,6 +204,7 @@ class BrowserDiagnostics {
     let expectedExpressionResolution400s = this.expectedExpressionResolution400s
     let expectedWorkspaceConflictResponses = this.expectedWorkspaceConflictResponses
     let expectedWatchlistConflictResponses = this.expectedWatchlistConflictResponses
+    let expectedCurrentAnalysisConflictResponses = this.expectedCurrentAnalysisConflictResponses
     let expectedWatchlistLoadErrors = this.expectedWatchlistLoadErrors
     return this.consoleErrors.filter(error => {
       if (error === 'Failed to load resource: the server responded with a status of 404 (Not Found)'
@@ -203,6 +224,11 @@ class BrowserDiagnostics {
       if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
         && expectedWatchlistConflictResponses > 0) {
         expectedWatchlistConflictResponses -= 1
+        return false
+      }
+      if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
+        && expectedCurrentAnalysisConflictResponses > 0) {
+        expectedCurrentAnalysisConflictResponses -= 1
         return false
       }
       if (error === 'Failed to load resource: the server responded with a status of 401 (Unauthorized)'

@@ -3,9 +3,9 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+latest_staging_parent_sha: 628c1634f4894403339687586adee74d45637d51
 latest_staging_merge_sha: enclosing_merge_commit
-dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; consume only after their work reaches staging."
+dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; coordinator released exact combined Provider+ETF staging628c1634f4894403339687586adee74d45637d51 for TC-owned consumer reconciliation."
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
   and, on 2026-09-15, explicitly approved a scope replan so this branch consumes
@@ -30,25 +30,22 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Provider-only reconciliation is committed and pushed in TC merge
-  669b49804205411245f46463db5bcfa41860248b, whose second parent is the exact
-  accepted green staging release9b230ba4c97126a2937667138c6eb2a0aa297baf.
-  Exact-source CI39504855454 is terminal red: Backend Tests failed during
-  collection in16 modules because deferred ETF-owned code imports
-  get_search_provider_chain, which the accepted Provider package does not expose;
-  Frontend Unit passed, while Branch-declared, Playwright and Exhaustive were
-  skipped after the backend failure. The additive TC OHLCV lineage and
-  event-factor adaptations use existing migration columns. Alpaca parsing keeps
-  only the exact legacy explicit adjustment_factor/adjustmentFactor keys;
-  endpoint emission is unverified, absent values stay unknown, and no factor is
-  inferred. The provider-neutral synthetic persistence fixture is not Massive
-  evidence. Massive documents historical_adjustment_factor for dividend and
-  split rows, but the accepted Massive parser does not normalize it and this
-  Alpaca-only compatibility slice does not change that behavior. Bounded
-  watchlist-history test collection remains blocked at the deferred ETF-owned
-  get_search_provider_chain import. ETF reconciliation is still required for
-  TCP3 overall; TCP4, TCP5, full roadmap and official REF-HELP-V25 remain open.
-  No whole-checkpoint acceptance or staging integration is inferred.
+  The exact accepted Provider+ETF staging628c1634f4894403339687586adee74d45637d51
+  remains merged into the TC worktree but uncommitted: HEAD is the first parent
+  e365d042451734647649fe40778d16a097a2b920 and MERGE_HEAD is the released SHA.
+  The authoritative latest selected API/unit slice is13/13 passed in23.19s
+  (exec-1b7a6078-0b22-4b25-b2da-76d96d8a4dd7); the earlier 12-case run with
+  1 failure and subsequent13-case run with2 failures remain historical and are
+  not deleted. The focused slice does not equal
+  exact-source CI or full-profile acceptance. Alembic upgrade reached the
+  no-DDL merge head e9c23a7b1d40 on the exact synthetic database; ORM
+  create_all/drop_all teardown then exposed the historical Watchlist FK-name
+  mismatch, not an upgrade failure. The generated database was dropped and
+  independently verified absent. Scope/import, exact byte/receipt, graph,
+  graph, workstream, scope, structured-data and diff checks pass; only the
+  reviewed merge commit/push and exact-source CI remain. Strategy owns the
+  current DB slot; no further DB test until coordinator sequencing. TCP3 overall, TCP4,
+  TCP5, full roadmap and official REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -521,8 +518,8 @@ integration_checkpoint:
   coordinator_guidance: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
   downstream_consumers: [human-workstation-testing, strategy-lab-v2]
   required_contracts: [provider-coverage-preflight, etf-provenance-freshness, immutable-code-study-outputs, chart-template-interactions]
-  source_freeze: "No accepted/frozen TC source identified at adoption; recheck coordinator receipt before source advances or staging merge."
-  continuation: "After all four checkpoints pass staging CI and coordinator releases source freeze, merge common synchronized green staging into this same branch, validate and continue roadmap_goal."
+  source_freeze: "No TC product source is frozen. Coordinator released exact synchronized green Provider+ETF staging628c1634f4894403339687586adee74d45637d51 for this TC-owned consumer reconciliation only; the coordinator retains staging integration and checkpoint acceptance."
+  continuation: "Reconcile the actual released Provider+ETF contracts in this TC branch, preserve the full TCP3 acceptance criterion, then complete combined validation and exact-source CI; TCP4/TCP5 and coordinator checkpoint acceptance remain open."
   original_criteria_disposition:
     AC1: {status: partial, owner: TC, delivered: scope guard, remainder: revalidate checkpoint paths, continuation_test: scope guard and ownership ledger}
     AC2: {status: partial, owner: TC, delivered: existing read consumers, remainder: staged provider contract reconciliation, continuation_test: real preflight and coverage success/unavailable tests}
@@ -577,6 +574,7 @@ owned_paths:
   - frontend/playwright.config.ts
   - backend/app/routers/analysis.py
   - backend/alembic/versions/a7c91e03d54b_add_user_favorites.py
+  - backend/alembic/versions/e9c23a7b1d40_merge_tc_favorites_and_etf_capability_heads.py
   - backend/app/models/favorite_instrument.py
   - backend/app/routers/favorites.py
   - backend/app/schemas/favorites.py
@@ -600,12 +598,16 @@ owned_paths:
   - backend/app/services/breadth.py
   - backend/app/services/research_jobs.py
   - backend/app/services/strategy_lab.py
+  - backend/app/services/etf_consumer_types.py
+  - backend/app/services/tc_e2e_seed.py
   - backend/app/services/strategy_lab_nautilus.py
   - backend/tests/unit/services/test_top_down_taxonomy.py
   - backend/tests/unit/services/test_benchmark_family_coverage.py
   - backend/tests/unit/services/test_benchmark_family_history.py
   - backend/tests/unit/services/test_benchmark_family_holdings_runs.py
   - backend/tests/unit/services/test_tc_provider_lineage_adaptations.py
+  - backend/tests/unit/services/test_e2e_seed.py
+  - backend/tests/unit/services/test_etf_consumer_types.py
   - backend/tests/unit/services/test_market_map.py
   - backend/tests/unit/services/test_breadth.py
   - backend/tests/unit/services/test_workstation_bootstrap.py
@@ -778,13 +780,13 @@ shared_path_exceptions:
   - path: tests/workflow/test_staging_workflow.py
     reason: Shared staging workflow regression tests carried by the released 0145 common-repair merge; coordinator-owned test infrastructure.
 dependencies:
-  - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); accepted green release 9b230ba4c97126a2937667138c6eb2a0aa297baf is in staging and Provider-only consumer reconciliation is active."
-  - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); currently waits on provider-platform staging integration."
+  - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); accepted green release9b230ba4c97126a2937667138c6eb2a0aa297baf is included in synchronized staging628c1634f4894403339687586adee74d45637d51 and Provider consumer reconciliation is retained."
+  - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); accepted green source c2c232596cf848d83c20e5f2b9f5c502ddd01808 is included in synchronized staging628c1634f4894403339687586adee74d45637d51; TC-owned consumer reconciliation is active, while TCP3 overall remains open until consumer validation completes."
   - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/9b230ba4c97126a2937667138c6eb2a0aa297baf.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/628c1634f4894403339687586adee74d45637d51.yaml
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
     source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -844,6 +846,9 @@ approved_frozen_upstream_snapshots:
   - source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/9b230ba4c97126a2937667138c6eb2a0aa297baf.json
     receipt_sha256: ded0df600ca37803dfbe61eadcf36b8b31ea8ed22e3f5c3b2cf4765eb18484f6
+  - source_sha: 628c1634f4894403339687586adee74d45637d51
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/628c1634f4894403339687586adee74d45637d51.json
+    receipt_sha256: a70713a499032714740fc332b295a1644500e25d3c6d03a40729ed6c701146bc
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
@@ -941,9 +946,9 @@ progress:
   completed: [TCP1, TCP2]
   total: 5
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
-  current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_ONLY_RECONCILIATION_ACTIVE_ETF_GATED;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
+  current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_RECONCILIATION_DELIVERED_ETF_CONSUMER_RECONCILIATION_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
-    Preserve exact-source CI39504855454 as red and do not retry its unchanged collection failure. Wait for the separately accepted green ETF staging release and a new explicit snapshot/manifest approval before ETF consumer reconciliation. Resolve the collection boundary only through that authorized ETF consumer reconciliation; do not restore ETF-owned get_search_provider_chain in Provider or merge unaccepted ETF code. No heavy local suite, runtime fixture, migration execution, live HTTP, or assigned-service action is in scope now.
+    Complete the exact-byte frozen-import and migration-graph checks, rerun scope/workstream/structured-data/diff validation, then commit and push the meaningful 628c reconciliation once and observe its exact-source CI. The latest focused slice is13/13 passed, but is not full-profile or checkpoint acceptance. Do not run another DB test until Root sequences the request against Strategy. Prepare the full local profile/resource plan only; no browser/Compose/full suite while Strategy owns the slot. TCP3 overall, TCP4, TCP5, full roadmap, and official REF-HELP-V25 remain open.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1000,24 +1005,46 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    The released Provider consumer merge is at 669b49804205411245f46463db5bcfa41860248b
-    and was pushed with local/origin parity. Exact-source CI39504855454 is
-    terminal red: Backend unit collection has16 errors at the deferred ETF-owned
-    get_search_provider_chain import; Frontend Unit passed and Branch-declared,
-    Playwright and Exhaustive were skipped. Focused parser/lineage/event/
-    adjustment/derived-timeframe tests passed70/70, OHLCV storage passed7/7,
-    Ruff and scope/workstream/diff checks passed. The watchlist-history test
-    selection still cannot collect because deferred ETF-owned code imports
-    get_search_provider_chain, which accepted Provider does not expose. No
-    database migration, full backend suite, browser, or live HTTP was run. ETF
-    green release and a new coordinator-approved import snapshot remain required
-    before ETF reconciliation; TCP3 overall, TCP4/TCP5, full roadmap, and
-    official REF-HELP-V25 remain open.
+    TC is reconciling the coordinator-released green Provider+ETF staging source
+    628c1634f4894403339687586adee74d45637d51 as the second parent of the current
+    uncommitted merge (first parent e365d042451734647649fe40778d16a097a2b920).
+    The release receipt is tracked at
+    ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/628c1634f4894403339687586adee74d45637d51.json
+    and exact import bytes are pinned in the 628 manifest. The prior Provider-only
+    source 669b498 and exact red CI39504855454 remain historical and unchanged.
+    Current reconciliation preserves the released ETF capability/currentness
+    contract, TC PIT known_at filtering, and source-owned Study/CodeVersion
+    behavior. A no-DDL Alembic merge revision joins existing TC Favorites head
+    a7c91e03d54b and released ETF capability head d1e7f2a9c4b6; no database was
+    touched. Bounded validation and exact-source CI are still pending. TCP3 overall,
+    TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
 current_checkpoint_status: >-
-  Current boundary (2026-10-20T22:03Z): TCP1 and TCP2 remain narrowly accepted
-  only as previously recorded. The TC-owned Provider-only backmerge of exact
-  released staging9b230ba4c97126a2937667138c6eb2a0aa297baf is committed as
-  669b49804205411245f46463db5bcfa41860248b (first parent7a3aa2d87f43c0cc69a758750da14eae08e75f6b; second parent exact9b230) and pushed with local/origin parity. Exact Actions run39504855454 attempt1 is terminal red: Backend unit job failed at collection in16 modules on deferred ETF-owned get_search_provider_chain; Frontend Unit passed; Branch-declared, Playwright and Exhaustive were skipped. The six explicit TC compatibility adaptations remain narrowly identified in the manifest; no migration was added. Alpaca support is limited to the two legacy explicit keys and is not native endpoint evidence. The synthetic persistence fixture is provider-neutral. Massive docs name historical_adjustment_factor, but the accepted parser does not normalize it and this slice does not adapt Massive. Focused70/70, OHLCV storage7/7, scope self-test34/34, actual scope guard402 changed paths/329 immutable imports/6 adaptations, workstream, structured-data and diff checks pass. Watchlist-history collection remains blocked before assertions by ETF-owned get_search_provider_chain. Do not restore that ETF API in Provider or import unreleased ETF code. ETF consumer reconciliation, TCP3 overall, TCP4, TCP5, full roadmap and official REF-HELP-V25 remain open.
+  Current boundary (2026-10-21): TCP1 and TCP2 remain narrowly accepted only as
+  previously recorded. The TC-owned normal merge of coordinator-released green
+  Provider+ETF staging628c1634f4894403339687586adee74d45637d51 is in progress
+  with first parent e365d042451734647649fe40778d16a097a2b920 and exact release
+  MERGE_HEAD628c1634f4894403339687586adee74d45637d51. The canonical receipt is
+  tracked with SHA-256 a70713a499032714740fc332b295a1644500e25d3c6d03a40729ed6c701146bc;
+  frozen imported paths are byte/mode-pinned in the exact 628 manifest, while six
+  narrowly approved 9b230 Provider contract adaptations remain separately bound.
+  The stale get_search_provider_chain consumer is reconciled to the released
+  identifier/metadata interfaces; current ETF consumers fail closed for stale or
+  unavailable data and PIT Strategy reads additionally enforce known_at. A
+  no-DDL migration merge joins existing TC Favorites and released ETF capability
+  heads without rewriting either history. The authoritative latest focused
+  selected-test result is13/13 passed,35 deselected,23.19s (exec-1b7a6078-
+  0b22-4b25-b2da-76d96d8a4dd7); the prior 12-case run with1 failure and
+  subsequent13-case run with2 failures are retained as historical evidence.
+  This does not establish exact-source CI or full-profile
+  acceptance. The no-DDL Alembic upgrade reached e9c23a7b1d40 on the exact
+  generated DB. Teardown exposed an ORM-vs-historical-migration Watchlist FK
+  name mismatch: ORM names fk_watchlist_screener_id while the old migration
+  creates an unnamed FK; upgrade itself succeeded. Exact generated DB is
+  dropped and independently absent. The 628 frozen-import actual-index/worktree
+  checks, canonical receipt verification, one-head graph, workstream/scope and
+  diff checks pass. Reviewed merge publication and exact-source CI remain.
+  Strategy owns the DB slot; request sequencing from Root before another DB test. TCP3 overall, TCP4, TCP5, full
+  roadmap, and official REF-HELP-V25 remain open.
 
   Historical boundary (2026-10-20T21:00Z): TCP1 and TCP2 remain narrowly accepted
   only as recorded. Provider-only TCP3 reconciliation is authorized against

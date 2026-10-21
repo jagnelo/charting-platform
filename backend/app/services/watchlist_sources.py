@@ -6,26 +6,29 @@ import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
-from app.config import settings
-from app.lib.time_utils import wire_datetime
 from app.models.asset_class import InstrumentType
-from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.instrument import Instrument
 from app.models.user import User
 from app.models.watchlist import Watchlist
 from app.models.workstation import MarketGroup, WorkspaceLibraryItem
 from app.schemas.watchlist import WatchlistSourceRead
-from app.services.etf_holdings import (
-    is_equity_holding_type,
-    is_placeholder_symbol,
-    normalize_holding_type,
+from app.services.etf_holdings_capability import (
+    evaluate_capability,
+    load_latest_adapter_state,
+    wire_datetime,
 )
 
 PENDING_SOURCE_AVAILABILITIES = frozenset(
@@ -36,18 +39,84 @@ PENDING_SOURCE_AVAILABILITIES = frozenset(
         "membership_not_loaded",
     }
 )
+NON_CURRENT_SOURCE_AVAILABILITIES = frozenset({"unavailable", "stale", "degraded", "unknown"})
 
 
-def _as_utc(value: datetime) -> datetime:
-    """Normalize historical source cutoffs and persisted timestamps to UTC."""
+class CurrentAnalysisSourceError(ValueError):
+    """Raised when a current-analysis consumer selects a non-current ETF source."""
 
-    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
-    return normalized.astimezone(UTC)
+    def __init__(self, detail: dict[str, object]):
+        self.detail = detail
+        super().__init__(str(detail.get("code", "etf_holdings_not_current")))
+
+
+def current_analysis_source_error_detail(
+    descriptor: WatchlistSourceRead,
+    *,
+    historical: bool = False,
+) -> dict[str, object] | None:
+    """Return the stable rejection detail for a non-current ETF-proxy source.
+
+    Ordinary personal/watchlist sources do not carry ETF capability state and
+    remain governed by their existing membership contract.  ETF holdings and
+    benchmark-family proxy descriptors, however, must not be presented as a
+    current analysis universe unless the capability explicitly says so.  An
+    explicit historical request bypasses this current-only gate; pending
+    sources remain resolvable so hydration can make progress.
+    """
+
+    if historical:
+        return None
+    provenance = descriptor.provenance or {}
+    is_etf_proxy = descriptor.source_kind == "etf_holdings" or provenance.get(
+        "membership_semantics"
+    ) in {
+        "etf_proxy_holdings",
+        "derived_equal_weight_point_in_time_membership",
+    }
+    if not is_etf_proxy:
+        return None
+
+    availability = str(provenance.get("availability") or "")
+    usable = provenance.get("usable_for_current_analysis")
+    if usable is not False and availability not in NON_CURRENT_SOURCE_AVAILABILITIES:
+        return None
+
+    return {
+        "code": "etf_holdings_not_current",
+        "availability": availability or "unknown",
+        "source_tier": provenance.get("source_tier") or "none",
+        "usable_for_current_analysis": False,
+        "displayable_last_known": provenance.get("displayable_last_known", False),
+        "identity_verified": provenance.get("identity_verified"),
+        "adapter_key": provenance.get("adapter_key"),
+        "source_provider": provenance.get("source_provider"),
+        "transport_kind": provenance.get("transport_kind"),
+        "snapshot_id": provenance.get("snapshot_id"),
+        "snapshot_hash": provenance.get("snapshot_hash"),
+        "composition_date": provenance.get("composition_date"),
+        "published_at": wire_datetime(provenance.get("snapshot_published_at")),
+        "known_at": wire_datetime(provenance.get("known_at")),
+        "freshness_deadline": provenance.get("freshness_deadline"),
+        "last_checked_at": wire_datetime(provenance.get("last_checked_at")),
+        "last_success_at": wire_datetime(provenance.get("last_success_at")),
+        "last_failure_at": wire_datetime(provenance.get("last_failure_at")),
+        "completeness_status": provenance.get("completeness_status"),
+        "row_count": provenance.get("snapshot_row_count"),
+        "resolved_count": provenance.get("snapshot_resolved_count"),
+        "unresolved_count": provenance.get("snapshot_unresolved_count"),
+        "failure_class": provenance.get("failure_class"),
+        "reason": provenance.get("capability_reason")
+        or "ETF holdings are not current for analysis.",
+    }
 
 
 def _holdings_snapshot_availability(
     profile: ETFProfile | None,
     snapshot: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None = None,
+    *,
+    as_of: datetime | None = None,
 ) -> str:
     """Return a source lifecycle state without treating unresolved rows as ready."""
 
@@ -55,17 +124,13 @@ def _holdings_snapshot_availability(
         return "profile_not_loaded"
     if snapshot is None:
         return "holdings_snapshot_not_loaded"
-    # Source-list queries eagerly load snapshot rows.  Once row detail is
-    # present, the raw provider counter is only audit evidence: a positive
-    # ``resolved_count`` must not make a cash/non-equity-only or placeholder
-    # materialization look publishable.  Metadata-only legacy snapshots retain
-    # the counter fallback because no row-level eligibility can be evaluated.
-    canonical_member_count = _snapshot_canonical_member_count(snapshot)
-    if canonical_member_count is not None:
-        return "available" if canonical_member_count > 0 else "holdings_snapshot_unresolved"
     if int(getattr(snapshot, "resolved_count", 0) or 0) <= 0:
         return "holdings_snapshot_unresolved"
-    return "available"
+    if as_of is not None:
+        return "available"
+    if state is None:
+        return "unknown"
+    return evaluate_capability(profile, snapshot, state).availability
 
 
 @dataclass(frozen=True)
@@ -86,53 +151,8 @@ class ResolvedWatchlistSource:
     exclusions: tuple[dict, ...] = ()
 
 
-def _canonical_member_descriptor(
-    descriptor: WatchlistSourceRead,
-    *,
-    member_count: int,
-    placeholder_member_count: int,
-) -> WatchlistSourceRead:
-    """Align a locked holdings descriptor with publishable canonical members."""
-
-    provenance = {
-        **(descriptor.provenance or {}),
-        "canonical_member_count": member_count,
-        "placeholder_member_count": placeholder_member_count,
-    }
-    if member_count == 0 and descriptor.member_count:
-        provenance["availability"] = "holdings_snapshot_unresolved"
-    return descriptor.model_copy(
-        update={
-            "member_count": member_count,
-            "provenance": provenance,
-        }
-    )
-
-
-def _snapshot_canonical_member_count(snapshot: ETFHoldingsSnapshot | None) -> int | None:
-    """Count publishable canonical IDs when the snapshot rows are eagerly loaded."""
-
-    if snapshot is None:
-        return None
-    rows = snapshot.__dict__.get("rows")
-    if rows is None:
-        return None
-    return len(
-        {
-            holding.constituent_instrument_id
-            for holding in rows
-            if normalize_holding_type(holding.row_type) == "security"
-            and is_equity_holding_type(holding.holding_type)
-            and holding.is_resolved
-            and holding.constituent_instrument_id is not None
-            and holding.constituent_instrument is not None
-            and not is_placeholder_symbol(holding.constituent_instrument.symbol)
-        }
-    )
-
-
 def _version(prefix: str, identifier: object, effective_at: datetime | None = None) -> str:
-    return f"{prefix}:{identifier}:{wire_datetime(effective_at) or 'current'}"
+    return f"{prefix}:{identifier}:{effective_at.isoformat() if effective_at else 'current'}"
 
 
 def _membership_digest(items: list[object] | tuple[object, ...]) -> str:
@@ -146,10 +166,26 @@ def _membership_digest(items: list[object] | tuple[object, ...]) -> str:
             "relationship_type": getattr(item, "relationship_type", None),
             "source": getattr(item, "source", None),
             "verification_state": getattr(item, "verification_state", None),
-            "added_at": (wire_datetime(getattr(item, "added_at", None))),
-            "left_screener_at": (wire_datetime(getattr(item, "left_screener_at", None))),
-            "effective_at": (wire_datetime(getattr(item, "effective_at", None))),
-            "known_at": (wire_datetime(getattr(item, "known_at", None))),
+            "added_at": (
+                getattr(item, "added_at", None).isoformat()
+                if getattr(item, "added_at", None) is not None
+                else None
+            ),
+            "left_screener_at": (
+                getattr(item, "left_screener_at", None).isoformat()
+                if getattr(item, "left_screener_at", None) is not None
+                else None
+            ),
+            "effective_at": (
+                getattr(item, "effective_at", None).isoformat()
+                if getattr(item, "effective_at", None) is not None
+                else None
+            ),
+            "known_at": (
+                getattr(item, "known_at", None).isoformat()
+                if getattr(item, "known_at", None) is not None
+                else None
+            ),
         }
         for item in sorted(
             items,
@@ -175,32 +211,26 @@ def _watchlist_item_active_at(item: object, as_of: datetime | None) -> bool:
 
     if as_of is None:
         return True
-    evaluation_at = _as_utc(as_of)
     added_at = getattr(item, "added_at", None)
     left_at = getattr(item, "left_screener_at", None)
-    return bool(
-        added_at is not None
-        and _as_utc(added_at) <= evaluation_at
-        and (left_at is None or _as_utc(left_at) > evaluation_at)
-    )
+    return bool(added_at is not None and added_at <= as_of and (left_at is None or left_at > as_of))
 
 
 def _watchlist_item_as_of_exclusion(item: object, as_of: datetime | None) -> dict | None:
     if as_of is None or _watchlist_item_active_at(item, as_of):
         return None
-    evaluation_at = _as_utc(as_of)
     added_at = getattr(item, "added_at", None)
-    if added_at is not None and _as_utc(added_at) > evaluation_at:
+    if added_at is not None and added_at > as_of:
         return {
             "instrument_id": getattr(item, "instrument_id", None),
             "reason": "membership_not_known_at_as_of",
         }
     left_at = getattr(item, "left_screener_at", None)
-    if left_at is not None and _as_utc(left_at) <= evaluation_at:
+    if left_at is not None and left_at <= as_of:
         return {
             "instrument_id": getattr(item, "instrument_id", None),
             "reason": "membership_not_active_at_as_of",
-            "left_screener_at": wire_datetime(left_at),
+            "left_screener_at": left_at.isoformat(),
         }
     return {
         "instrument_id": getattr(item, "instrument_id", None),
@@ -239,7 +269,7 @@ def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
         stable_key=group.stable_key,
         membership_version=(
             f"market-group:{group.stable_key}:"
-            f"{wire_datetime(group.effective_at) or 'current'}:{membership_digest}"
+            f"{group.effective_at.isoformat() if group.effective_at else 'current'}:{membership_digest}"
         ),
         member_count=len(group.members),
         source=group.source,
@@ -255,17 +285,17 @@ def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
 def _holdings_route_provenance(
     profile: ETFProfile | None,
     snapshot: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None = None,
+    *,
+    as_of: datetime | None = None,
 ) -> dict[str, object | None]:
     """Expose cached holdings route and quality evidence without probing providers."""
 
-    legal_metadata = {}
-    if snapshot is not None and isinstance(snapshot.extra_data, dict):
-        candidate = snapshot.extra_data.get("legal_metadata")
-        if isinstance(candidate, dict):
-            legal_metadata = candidate
-    timing_provenance = legal_metadata.get("timing_provenance")
-    if not isinstance(timing_provenance, dict):
-        timing_provenance = {}
+    capability = (
+        evaluate_capability(profile, snapshot, state)
+        if profile is not None and snapshot is not None and as_of is None
+        else None
+    )
 
     return {
         "adapter_key": profile.adapter_key if profile is not None else None,
@@ -288,38 +318,59 @@ def _holdings_route_provenance(
             else None
         ),
         "snapshot_published_at": (
-            wire_datetime(snapshot.published_at)
-            if snapshot is not None and snapshot.published_at is not None
+            wire_datetime(snapshot.published_at) if snapshot is not None else None
+        ),
+        "snapshot_id": snapshot.id if snapshot is not None else None,
+        "snapshot_hash": snapshot.snapshot_hash if snapshot is not None else None,
+        "known_at": wire_datetime(snapshot.known_at) if snapshot is not None else None,
+        "availability": (
+            capability.availability
+            if capability is not None and state is not None
+            else _holdings_snapshot_availability(profile, snapshot, state, as_of=as_of)
+        ),
+        "source_tier": capability.source_tier if capability is not None else None,
+        "identity_verified": capability.identity_verified if capability is not None else None,
+        "displayable_last_known": (
+            capability.displayable_last_known if capability is not None else snapshot is not None
+        ),
+        "source_provider": capability.source_provider if capability is not None else None,
+        "transport_kind": capability.transport_kind if capability is not None else None,
+        "composition_date": (
+            capability.composition_date.isoformat()
+            if capability is not None and capability.composition_date is not None
             else None
         ),
-        "snapshot_cadence": legal_metadata.get("cadence"),
-        "snapshot_parser_version": snapshot.parser_version if snapshot is not None else None,
-        "snapshot_source_identifier": (
-            snapshot.source_identifier if snapshot is not None else None
+        "freshness_deadline": (
+            capability.freshness_deadline.isoformat()
+            if capability is not None and capability.freshness_deadline is not None
+            else None
         ),
-        "snapshot_timing_provenance": timing_provenance,
+        "last_checked_at": (
+            wire_datetime(capability.last_checked_at) if capability is not None else None
+        ),
+        "last_success_at": (
+            wire_datetime(capability.last_success_at) if capability is not None else None
+        ),
+        "last_failure_at": (
+            wire_datetime(capability.last_failure_at) if capability is not None else None
+        ),
+        "completeness_status": capability.completeness_status if capability is not None else None,
+        "row_count": capability.row_count if capability is not None else None,
+        "resolved_count": capability.resolved_count if capability is not None else None,
+        "unresolved_count": capability.unresolved_count if capability is not None else None,
+        "failure_class": capability.failure_class if capability is not None else None,
+        "capability_reason": capability.reason if capability is not None else None,
+        "usable_for_current_analysis": (
+            capability.usable_for_current_analysis
+            if capability is not None and state is not None
+            else None
+        ),
     }
 
 
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 _EXPLICIT_LIBRARY_KIND = "explicit_watchlist"
 _MAX_EXPLICIT_MEMBERS = 500
-
-
-def _snapshot_visibility_conditions() -> list[object]:
-    """Keep controlled browser holdings isolated from canonical source reads."""
-
-    if settings.E2E_SEED_MARKET_DATA:
-        return [
-            ETFHoldingsSnapshot.provenance == "controlled_fixture",
-            ETFHoldingsSnapshot.source_provider == "e2e_reference",
-        ]
-    return [
-        or_(
-            ETFHoldingsSnapshot.provenance != "controlled_fixture",
-            ETFHoldingsSnapshot.source_provider != "e2e_reference",
-        )
-    ]
 
 
 def _benchmark_family_role_selection(
@@ -360,6 +411,8 @@ def _benchmark_family_role_descriptor(
     profile: ETFProfile | None = None,
     instrument: Instrument | None = None,
     snapshot: ETFHoldingsSnapshot | None = None,
+    state: ETFHoldingsAdapterState | None = None,
+    as_of: datetime | None = None,
 ) -> WatchlistSourceRead:
     declared_mappings = (group.provenance or {}).get("proxy_mappings")
     declared = declared_mappings.get(role) if isinstance(declared_mappings, Mapping) else None
@@ -373,7 +426,9 @@ def _benchmark_family_role_descriptor(
         "growth": "Growth",
     }.get(role, role.replace("_", " ").title())
     availability = (
-        "unavailable" if selected is None else _holdings_snapshot_availability(profile, snapshot)
+        "unavailable"
+        if selected is None
+        else _holdings_snapshot_availability(profile, snapshot, state, as_of=as_of)
     )
     if derived:
         membership_semantics = "derived_equal_weight_point_in_time_membership"
@@ -384,7 +439,6 @@ def _benchmark_family_role_descriptor(
         source = snapshot.source_provider if snapshot is not None else group.source
         mapping_state = declared.get("verification_state")
     mapping_label = declared.get("label") or (selected.get("label") if selected else None)
-    canonical_member_count = _snapshot_canonical_member_count(snapshot)
     snapshot_key = (
         snapshot.snapshot_hash or str(snapshot.id) if snapshot is not None else "unavailable"
     )
@@ -411,11 +465,7 @@ def _benchmark_family_role_descriptor(
         membership_version=membership_version,
         # The source catalog advertises resolvable canonical members, not raw
         # provider rows. Raw and unresolved counts remain in provenance.
-        member_count=(
-            canonical_member_count
-            if canonical_member_count is not None
-            else (snapshot.resolved_count if snapshot is not None else 0)
-        ),
+        member_count=(snapshot.resolved_count if snapshot is not None else 0),
         source=source,
         provenance={
             "family_key": group.stable_key,
@@ -434,7 +484,7 @@ def _benchmark_family_role_descriptor(
             "completeness_status": snapshot.completeness_status
             if snapshot is not None
             else "not_loaded",
-            **_holdings_route_provenance(profile, snapshot),
+            **_holdings_route_provenance(profile, snapshot, state, as_of=as_of),
         },
         effective_at=(
             datetime.combine(composition, datetime.min.time())
@@ -450,9 +500,11 @@ def _etf_descriptor(
     profile: ETFProfile | None,
     instrument: Instrument,
     snapshot: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None = None,
+    *,
+    as_of: datetime | None = None,
 ) -> WatchlistSourceRead:
     composition = snapshot.composition_date if snapshot else None
-    canonical_member_count = _snapshot_canonical_member_count(snapshot)
     return WatchlistSourceRead(
         source_id=f"etf-holdings:{instrument.symbol}",
         source_kind="etf_holdings",
@@ -468,22 +520,19 @@ def _etf_descriptor(
         ),
         # Keep the picker count aligned with the members that the resolver can
         # actually publish; raw provider rows remain provenance evidence.
-        member_count=(
-            canonical_member_count
-            if canonical_member_count is not None
-            else (snapshot.resolved_count if snapshot else 0)
-        ),
+        member_count=(snapshot.resolved_count if snapshot else 0),
         source=snapshot.source_provider
         if snapshot
         else (profile.adapter_key if profile else "canonical_etf_pending"),
         provenance={
             "membership_semantics": "etf_proxy_holdings",
-            "availability": _holdings_snapshot_availability(profile, snapshot),
+            "availability": _holdings_snapshot_availability(profile, snapshot, state, as_of=as_of),
             "profile_id": profile.id if profile is not None else None,
             "snapshot_id": snapshot.id if snapshot else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot else None,
+            "known_at": wire_datetime(snapshot.known_at) if snapshot is not None else None,
             "completeness_status": snapshot.completeness_status if snapshot else "not_loaded",
-            **_holdings_route_provenance(profile, snapshot),
+            **_holdings_route_provenance(profile, snapshot, state, as_of=as_of),
         },
         effective_at=datetime.combine(composition, datetime.min.time()) if composition else None,
         known_at=snapshot.known_at if snapshot else None,
@@ -647,25 +696,16 @@ def _saved_explicit_known_at_exclusions(
     if as_of is None:
         return ()
     known_at = item.updated_at or item.created_at
-    if known_at is not None and _as_utc(known_at) <= _as_utc(as_of):
+    if known_at is not None and known_at <= as_of:
         return ()
     return tuple(
         {
             "instrument_id": instrument_id,
             "reason": "membership_not_known_at_as_of",
-            "known_at": wire_datetime(known_at),
+            "known_at": known_at.isoformat() if known_at is not None else None,
         }
         for instrument_id in instrument_ids
     )
-
-
-def _combo_definition_as_of_exclusion(combo: WorkspaceLibraryItem) -> dict:
-    """Explain why a combo definition is unavailable before its persisted version."""
-
-    return {
-        "reason": "combo_definition_not_known_at_as_of",
-        "known_at": wire_datetime(combo.updated_at),
-    }
 
 
 def _explicit_descriptor(instrument_ids: list[int]) -> WatchlistSourceRead:
@@ -854,22 +894,18 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         .scalars()
         .all()
     )
-    ranked_snapshots = (
-        select(
-            ETFHoldingsSnapshot.id.label("snapshot_id"),
-            func.row_number()
-            .over(
-                partition_by=ETFHoldingsSnapshot.etf_profile_id,
-                order_by=(
-                    ETFHoldingsSnapshot.composition_date.desc(),
-                    ETFHoldingsSnapshot.id.desc(),
-                ),
-            )
-            .label("row_number"),
+    ranked_snapshots = select(
+        ETFHoldingsSnapshot.id.label("snapshot_id"),
+        func.row_number()
+        .over(
+            partition_by=ETFHoldingsSnapshot.etf_profile_id,
+            order_by=(
+                ETFHoldingsSnapshot.composition_date.desc(),
+                ETFHoldingsSnapshot.id.desc(),
+            ),
         )
-        .where(*_snapshot_visibility_conditions())
-        .subquery()
-    )
+        .label("row_number"),
+    ).subquery()
     snapshots = (
         (
             await db.execute(
@@ -879,17 +915,27 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
                     ranked_snapshots.c.snapshot_id == ETFHoldingsSnapshot.id,
                 )
                 .where(ranked_snapshots.c.row_number == 1)
-                .options(
-                    selectinload(ETFHoldingsSnapshot.rows).selectinload(
-                        ETFHolding.constituent_instrument
-                    )
-                )
             )
         )
         .scalars()
         .all()
     )
     latest = {snapshot.etf_profile_id: snapshot for snapshot in snapshots}
+    adapter_states = (
+        (
+            await db.execute(
+                select(ETFHoldingsAdapterState).order_by(
+                    ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                    ETFHoldingsAdapterState.id.desc(),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    latest_states: dict[int, ETFHoldingsAdapterState] = {}
+    for state in adapter_states:
+        latest_states.setdefault(state.etf_profile_id, state)
 
     combo_items = (
         (
@@ -920,7 +966,12 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         instrument.symbol.upper(): (profile, instrument) for profile, instrument in profiles
     }
     etf_sources = [
-        _etf_descriptor(profile, instrument, latest.get(profile.id))
+        _etf_descriptor(
+            profile,
+            instrument,
+            latest.get(profile.id),
+            latest_states.get(profile.id),
+        )
         for profile, instrument in profiles
     ]
     profiled_symbols = {instrument.symbol.upper() for _profile, instrument in profiles}
@@ -975,6 +1026,9 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
                     profile=selected_profile,
                     instrument=selected_instrument,
                     snapshot=latest.get(selected_profile.id)
+                    if selected_profile is not None
+                    else None,
+                    state=latest_states.get(selected_profile.id)
                     if selected_profile is not None
                     else None,
                 )
@@ -1150,11 +1204,16 @@ async def resolve_watchlist_source(
         selected_ids = _combo_member_ids(watchlists, payload)
         selected_at_as_of = _combo_member_ids(watchlists, payload, as_of=as_of)
         as_of_exclusions: list[dict] = []
-        if as_of is not None and _as_utc(combo.updated_at) > _as_utc(as_of):
+        if as_of is not None and combo.updated_at > as_of:
             return ResolvedWatchlistSource(
                 descriptor=_combo_descriptor(combo, 0, dependency_versions),
                 members=(),
-                exclusions=(_combo_definition_as_of_exclusion(combo),),
+                exclusions=(
+                    {
+                        "reason": "combo_definition_not_known_at_as_of",
+                        "known_at": combo.updated_at.isoformat(),
+                    },
+                ),
             )
         if as_of is not None:
             for instrument_id in sorted(set(selected_ids) - set(selected_at_as_of)):
@@ -1242,16 +1301,15 @@ async def resolve_watchlist_source(
                 exclusions=({"reason": "etf_profile_not_found", "symbol": proxy_symbol},),
             )
         profile, instrument = row
+        state = await load_latest_adapter_state(db, profile.id)
         statement = select(ETFHoldingsSnapshot).where(
-            ETFHoldingsSnapshot.etf_profile_id == profile.id,
-            *_snapshot_visibility_conditions(),
+            ETFHoldingsSnapshot.etf_profile_id == profile.id
         )
         if as_of is not None:
-            evaluation_at = _as_utc(as_of)
             statement = statement.where(
-                ETFHoldingsSnapshot.composition_date <= evaluation_at.date(),
+                ETFHoldingsSnapshot.composition_date <= as_of.date(),
                 ETFHoldingsSnapshot.known_at.is_not(None),
-                ETFHoldingsSnapshot.known_at <= evaluation_at,
+                ETFHoldingsSnapshot.known_at <= as_of,
             )
         snapshot = (
             await db.execute(
@@ -1263,7 +1321,13 @@ async def resolve_watchlist_source(
             )
         ).scalar_one_or_none()
         descriptor = _benchmark_family_role_descriptor(
-            group, role, profile=profile, instrument=instrument, snapshot=snapshot
+            group,
+            role,
+            profile=profile,
+            instrument=instrument,
+            snapshot=snapshot,
+            state=state,
+            as_of=as_of,
         )
         if snapshot is None:
             return ResolvedWatchlistSource(
@@ -1280,11 +1344,33 @@ async def resolve_watchlist_source(
                     },
                 ),
             )
+        if int(getattr(snapshot, "resolved_count", 0) or 0) <= 0:
+            return ResolvedWatchlistSource(
+                descriptor=descriptor,
+                members=(),
+                exclusions=(),
+            )
+        if as_of is None:
+            capability = evaluate_capability(profile, snapshot, state)
+            if not capability.usable_for_current_analysis:
+                return ResolvedWatchlistSource(
+                    descriptor=descriptor,
+                    members=(),
+                    exclusions=(
+                        {
+                            "reason": "holdings_snapshot_not_current",
+                            "availability": capability.availability,
+                            "source_tier": capability.source_tier,
+                            "failure_class": capability.failure_class,
+                            "detail": capability.reason,
+                            "symbol": proxy_symbol,
+                        },
+                    ),
+                )
         rows = (
             (
                 await db.execute(
                     select(ETFHolding)
-                    .options(selectinload(ETFHolding.constituent_instrument))
                     .where(ETFHolding.snapshot_id == snapshot.id)
                     .order_by(ETFHolding.position)
                 )
@@ -1292,70 +1378,39 @@ async def resolve_watchlist_source(
             .scalars()
             .all()
         )
-        # A disclosed snapshot may contain more than one issuer row that
-        # resolves to the same canonical instrument (for example, duplicate
-        # share-class rows or a corrected duplicate disclosure).  The
-        # WatchlistSource contract is one canonical member stream, so derived
-        # equal weights must use unique instrument IDs and native ETF weights
-        # must be aggregated rather than repeated.
-        valid_instrument_ids = {
-            holding.constituent_instrument_id
+        valid_rows = [
+            holding
             for holding in rows
-            if normalize_holding_type(holding.row_type) == "security"
-            and is_equity_holding_type(holding.holding_type)
+            if holding.row_type == "security"
+            and holding.holding_type in {"equity", "stock", "common_stock"}
             and holding.is_resolved
             and holding.constituent_instrument_id is not None
-            and holding.constituent_instrument is not None
-            and not is_placeholder_symbol(holding.constituent_instrument.symbol)
-        }
-        equal_weight = 1.0 / len(valid_instrument_ids) if derived and valid_instrument_ids else None
-        native_weights: dict[int, float | None] = {}
-        for holding in rows:
-            if holding.constituent_instrument_id not in valid_instrument_ids:
-                continue
-            value = float(holding.weight) if holding.weight is not None else None
-            if holding.constituent_instrument_id not in native_weights:
-                native_weights[holding.constituent_instrument_id] = value
-            elif value is not None:
-                prior = native_weights[holding.constituent_instrument_id]
-                native_weights[holding.constituent_instrument_id] = (
-                    value if prior is None else prior + value
-                )
+        ]
+        equal_weight = 1.0 / len(valid_rows) if derived and valid_rows else None
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
-        placeholder_ids: set[int] = set()
-        seen_member_ids: set[int] = set()
         for holding in rows:
-            holding_type = normalize_holding_type(holding.holding_type)
-            row_type = normalize_holding_type(holding.row_type)
+            holding_type = str(holding.holding_type or "").casefold()
+            row_type = str(holding.row_type or "").casefold()
             if row_type == "cash" or holding_type in {"cash", "currency", "collateral"}:
                 exclusions.append({"holding_id": holding.id, "reason": "cash_holding"})
                 continue
             if holding_type in {"derivative", "derivatives", "option", "future", "swap"}:
                 exclusions.append({"holding_id": holding.id, "reason": "derivative_holding"})
                 continue
-            if row_type != "security" or not is_equity_holding_type(holding.holding_type):
+            if row_type != "security" or holding_type not in {"equity", "stock", "common_stock"}:
                 exclusions.append({"holding_id": holding.id, "reason": "non_equity_holding"})
                 continue
             if not holding.is_resolved or holding.constituent_instrument_id is None:
                 exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
                 continue
-            if holding.constituent_instrument is None or is_placeholder_symbol(
-                holding.constituent_instrument.symbol
-            ):
-                placeholder_ids.add(holding.constituent_instrument_id)
-                exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
-                continue
-            if holding.constituent_instrument_id in seen_member_ids:
-                continue
-            seen_member_ids.add(holding.constituent_instrument_id)
             members.append(
                 ResolvedWatchlistMember(
                     instrument_id=holding.constituent_instrument_id,
                     position=holding.position,
                     weight=equal_weight
                     if derived
-                    else native_weights.get(holding.constituent_instrument_id),
+                    else (float(holding.weight) if holding.weight is not None else None),
                     relationship_type="derived_equal_weight_constituent"
                     if derived
                     else "etf_proxy_constituent",
@@ -1365,11 +1420,7 @@ async def resolve_watchlist_source(
                 )
             )
         return ResolvedWatchlistSource(
-            descriptor=_canonical_member_descriptor(
-                descriptor,
-                member_count=len(members),
-                placeholder_member_count=len(placeholder_ids),
-            ),
+            descriptor=descriptor,
             members=tuple(members),
             exclusions=tuple(exclusions),
         )
@@ -1387,13 +1438,12 @@ async def resolve_watchlist_source(
             raise LookupError("market_group_source_not_found")
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
-        evaluation_at = _as_utc(as_of) if as_of is not None else None
         for item in group.members:
-            if evaluation_at is not None and (
+            if as_of is not None and (
                 item.effective_at is None
                 or item.known_at is None
-                or _as_utc(item.effective_at) > evaluation_at
-                or _as_utc(item.known_at) > evaluation_at
+                or item.effective_at > as_of
+                or item.known_at > as_of
             ):
                 exclusions.append(
                     {"instrument_id": item.instrument_id, "reason": "membership_not_known_at_as_of"}
@@ -1446,16 +1496,15 @@ async def resolve_watchlist_source(
                 exclusions=({"reason": "etf_profile_not_loaded", "symbol": symbol},),
             )
         profile, instrument = row
+        state = await load_latest_adapter_state(db, profile.id)
         statement = select(ETFHoldingsSnapshot).where(
-            ETFHoldingsSnapshot.etf_profile_id == profile.id,
-            *_snapshot_visibility_conditions(),
+            ETFHoldingsSnapshot.etf_profile_id == profile.id
         )
         if as_of is not None:
-            evaluation_at = _as_utc(as_of)
             statement = statement.where(
-                ETFHoldingsSnapshot.composition_date <= evaluation_at.date(),
+                ETFHoldingsSnapshot.composition_date <= as_of.date(),
                 ETFHoldingsSnapshot.known_at.is_not(None),
-                ETFHoldingsSnapshot.known_at <= evaluation_at,
+                ETFHoldingsSnapshot.known_at <= as_of,
             )
         snapshot = (
             await db.execute(
@@ -1468,7 +1517,7 @@ async def resolve_watchlist_source(
         ).scalar_one_or_none()
         if snapshot is None:
             return ResolvedWatchlistSource(
-                descriptor=_etf_descriptor(profile, instrument, None),
+                descriptor=_etf_descriptor(profile, instrument, None, state, as_of=as_of),
                 members=(),
                 exclusions=(
                     {
@@ -1478,11 +1527,34 @@ async def resolve_watchlist_source(
                     },
                 ),
             )
+        descriptor = _etf_descriptor(profile, instrument, snapshot, state, as_of=as_of)
+        if int(getattr(snapshot, "resolved_count", 0) or 0) <= 0:
+            return ResolvedWatchlistSource(
+                descriptor=descriptor,
+                members=(),
+                exclusions=(),
+            )
+        if as_of is None:
+            capability = evaluate_capability(profile, snapshot, state)
+            if not capability.usable_for_current_analysis:
+                return ResolvedWatchlistSource(
+                    descriptor=descriptor,
+                    members=(),
+                    exclusions=(
+                        {
+                            "reason": "holdings_snapshot_not_current",
+                            "availability": capability.availability,
+                            "source_tier": capability.source_tier,
+                            "failure_class": capability.failure_class,
+                            "detail": capability.reason,
+                            "symbol": symbol,
+                        },
+                    ),
+                )
         rows = (
             (
                 await db.execute(
                     select(ETFHolding)
-                    .options(selectinload(ETFHolding.constituent_instrument))
                     .where(ETFHolding.snapshot_id == snapshot.id)
                     .order_by(ETFHolding.position)
                 )
@@ -1492,55 +1564,26 @@ async def resolve_watchlist_source(
         )
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
-        placeholder_ids: set[int] = set()
-        native_weights: dict[int, float | None] = {}
         for holding in rows:
-            if (
-                normalize_holding_type(holding.row_type) != "security"
-                or not is_equity_holding_type(holding.holding_type)
-                or not holding.is_resolved
-                or holding.constituent_instrument_id is None
-                or holding.constituent_instrument is None
-                or is_placeholder_symbol(holding.constituent_instrument.symbol)
-            ):
-                continue
-            value = float(holding.weight) if holding.weight is not None else None
-            instrument_id = holding.constituent_instrument_id
-            if instrument_id not in native_weights:
-                native_weights[instrument_id] = value
-            elif value is not None:
-                prior = native_weights[instrument_id]
-                native_weights[instrument_id] = value if prior is None else prior + value
-        seen_member_ids: set[int] = set()
-        for holding in rows:
-            holding_type = normalize_holding_type(holding.holding_type)
-            row_type = normalize_holding_type(holding.row_type)
+            holding_type = str(holding.holding_type or "").casefold()
+            row_type = str(holding.row_type or "").casefold()
             if row_type == "cash" or holding_type in {"cash", "currency", "collateral"}:
                 exclusions.append({"holding_id": holding.id, "reason": "cash_holding"})
                 continue
             if holding_type in {"derivative", "derivatives", "option", "future", "swap"}:
                 exclusions.append({"holding_id": holding.id, "reason": "derivative_holding"})
                 continue
-            if row_type != "security" or not is_equity_holding_type(holding.holding_type):
+            if row_type != "security" or holding_type not in {"equity", "stock", "common_stock"}:
                 exclusions.append({"holding_id": holding.id, "reason": "non_equity_holding"})
                 continue
             if not holding.is_resolved or holding.constituent_instrument_id is None:
                 exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
                 continue
-            if holding.constituent_instrument is None or is_placeholder_symbol(
-                holding.constituent_instrument.symbol
-            ):
-                placeholder_ids.add(holding.constituent_instrument_id)
-                exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
-                continue
-            if holding.constituent_instrument_id in seen_member_ids:
-                continue
-            seen_member_ids.add(holding.constituent_instrument_id)
             members.append(
                 ResolvedWatchlistMember(
                     instrument_id=holding.constituent_instrument_id,
                     position=holding.position,
-                    weight=native_weights.get(holding.constituent_instrument_id),
+                    weight=float(holding.weight) if holding.weight is not None else None,
                     relationship_type="etf_proxy_constituent",
                     source=snapshot.source_provider,
                     effective_at=datetime.combine(snapshot.composition_date, datetime.min.time()),
@@ -1548,11 +1591,7 @@ async def resolve_watchlist_source(
                 )
             )
         return ResolvedWatchlistSource(
-            descriptor=_canonical_member_descriptor(
-                _etf_descriptor(profile, instrument, snapshot),
-                member_count=len(members),
-                placeholder_member_count=len(placeholder_ids),
-            ),
+            descriptor=descriptor,
             members=tuple(members),
             exclusions=tuple(exclusions),
         )

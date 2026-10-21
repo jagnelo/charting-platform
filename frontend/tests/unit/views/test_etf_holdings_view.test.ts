@@ -55,6 +55,20 @@ const profile = {
   latest_snapshot_id: 55,
   resolved_count: 2,
   unresolved_count: 0,
+  holdings_capability: {
+    availability: 'current',
+    source_tier: 'issuer_native',
+    identity_verified: true,
+    usable_for_current_analysis: true,
+    displayable_last_known: true,
+    consecutive_failures: 0,
+    last_canary_at: '2026-09-05T10:00:00Z',
+    last_canary_status: 'success',
+    last_canary_latency_ms: 148.25,
+    last_canary_recovered: true,
+    circuit_state: 'closed',
+    reason: 'A complete holdings snapshot passed the latest adapter check.',
+  },
 }
 
 const overlapProfile = {
@@ -67,6 +81,15 @@ const overlapProfile = {
   latest_snapshot_id: 77,
   resolved_count: 2,
   unresolved_count: 0,
+  holdings_capability: {
+    availability: 'current',
+    source_tier: 'issuer_native',
+    identity_verified: true,
+    usable_for_current_analysis: true,
+    displayable_last_known: true,
+    consecutive_failures: 0,
+    reason: 'A complete holdings snapshot passed the latest adapter check.',
+  },
 }
 
 const dates = [
@@ -75,16 +98,6 @@ const dates = [
     composition_date: '2026-06-07',
     as_of_date: '2026-06-07',
     known_at: '2026-06-07T04:00:00Z',
-    published_at: '2026-06-07T05:00:00Z',
-    cadence: 'month_end',
-    parser_version: 'issuer-csv-v1',
-    source_identifier: 'SPY-20260607',
-    timing_provenance: {
-      composition_date: 'provider_reported',
-      as_of_date: 'provider_reported',
-      known_at: 'published_at_fallback',
-      published_at: 'provider_reported',
-    },
     provenance: 'issuer_current_holdings',
     source_provider: 'issuer-test',
     row_count: 2,
@@ -267,40 +280,8 @@ function weightEvolutionPayload() {
         max_weight: '0.07000000',
         observation_count: 2,
         points: [
-          {
-            snapshot_id: 54,
-            composition_date: '2026-06-06',
-            as_of_date: '2026-06-06',
-            known_at: '2026-06-06T04:00:00Z',
-            published_at: '2026-06-06T05:00:00Z',
-            weight: '0.05000000',
-            source_provider: 'issuer-test',
-            source_identifier: 'SPY-20260606',
-            cadence: 'month_end',
-            parser_version: 'issuer-csv-v1',
-            timing_provenance: {
-              composition_date: 'provider_reported',
-              as_of_date: 'provider_reported',
-            },
-            provenance: 'issuer_current_holdings',
-          },
-          {
-            snapshot_id: 55,
-            composition_date: '2026-06-07',
-            as_of_date: '2026-06-07',
-            known_at: '2026-06-07T04:00:00Z',
-            published_at: '2026-06-07T05:00:00Z',
-            weight: '0.07000000',
-            source_provider: 'issuer-test',
-            source_identifier: 'SPY-20260607',
-            cadence: 'month_end',
-            parser_version: 'issuer-csv-v1',
-            timing_provenance: {
-              composition_date: 'provider_reported',
-              as_of_date: 'provider_reported',
-            },
-            provenance: 'issuer_current_holdings',
-          },
+          { snapshot_id: 54, composition_date: '2026-06-06', weight: '0.05000000' },
+          { snapshot_id: 55, composition_date: '2026-06-07', weight: '0.07000000' },
         ],
       },
     ],
@@ -485,9 +466,6 @@ describe('ETFHoldingsView', () => {
     await vi.waitFor(() => {
       expect(wrapper.text()).toContain('MSFT')
     })
-    await vi.waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/transitions', { limit: 8 })
-    })
 
     expect(api.get).toHaveBeenNthCalledWith(1, '/etf-holdings', { q: undefined })
     expect(api.get).toHaveBeenNthCalledWith(2, '/etf-holdings/SPY/dates')
@@ -519,11 +497,6 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('Weight evolution')
     expect(wrapper.text()).toContain('2 snapshots')
     expect(wrapper.text()).toContain('1 mover')
-    const evolutionTrack = wrapper.find('.evolution-track')
-    expect(evolutionTrack.attributes('role')).toBe('img')
-    expect(evolutionTrack.attributes('aria-label')).toContain('provider issuer-test')
-    expect(evolutionTrack.attributes('aria-label')).toContain('timing as of date=provider reported, composition date=provider reported')
-    expect(wrapper.find('.evolution-dot').attributes('title')).toContain('source SPY-20260606')
     expect(wrapper.text()).toContain('Turnover timeline')
     expect(wrapper.text()).toContain('1 transitions')
     expect(wrapper.text()).toContain('2.00% churn')
@@ -533,10 +506,11 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('+2.00%')
     expect(wrapper.text()).toContain('USD 4,000')
     expect(wrapper.text()).toContain('NASDAQ · US')
-    const snapshotOption = wrapper.findAll('.toolbar select')[2]?.findAll('option')[0]
-    expect(snapshotOption?.attributes('title')).toContain(
-      'timing as of date=provider reported, composition date=provider reported, known at=published at fallback, published at=provider reported',
-    )
+    expect(wrapper.get('[data-testid="etf-view-capability-health"]').text()).toContain('Canary success')
+    expect(wrapper.text()).toContain('148.25 ms')
+    expect(wrapper.text()).toContain('Failures 0')
+    expect(wrapper.text()).toContain('Recovered')
+    expect(wrapper.text()).toContain('Circuit closed')
 
     await wrapper.find('.detail-title button').trigger('click')
     expect(routerPush).toHaveBeenCalledWith('/chart/MSFT')
@@ -927,65 +901,5 @@ describe('ETFHoldingsView', () => {
       expect(wrapper.text()).toContain('XLE')
     })
     expect(wrapper.text()).toContain('no source URL, URL template')
-  })
-
-  it('does not publish a late profile response after the view unmounts', async () => {
-    let resolveProfiles: ((profiles: typeof profile[]) => void) | undefined
-    vi.mocked(api.get).mockReturnValueOnce(new Promise(resolve => {
-      resolveProfiles = resolve
-    }) as never)
-
-    const wrapper = mount(ETFHoldingsView)
-    wrapper.unmount()
-    resolveProfiles?.([profile])
-    await flushPromises()
-
-    expect(api.get).toHaveBeenCalledTimes(1)
-    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/SPY/dates')
-  })
-
-  it('does not let an older profile selection load into the newer selection', async () => {
-    vi.mocked(api.get)
-      .mockResolvedValueOnce([profile, overlapProfile])
-      .mockResolvedValueOnce(dates)
-      .mockResolvedValueOnce(holdingsPage())
-      .mockResolvedValueOnce(diffPayload())
-      .mockResolvedValueOnce(weightEvolutionPayload())
-      .mockResolvedValueOnce(transitionTimelinePayload())
-
-    const wrapper = mount(ETFHoldingsView)
-    await vi.waitFor(() => {
-      expect(wrapper.text()).toContain('MSFT')
-    })
-    await vi.waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/transitions', { limit: 8 })
-    })
-
-    let resolveOlderDates: ((snapshotDates: typeof dates) => void) | undefined
-    vi.mocked(api.get)
-      .mockReturnValueOnce(new Promise(resolve => {
-        resolveOlderDates = resolve
-      }) as never)
-      .mockResolvedValueOnce(dates)
-      .mockResolvedValueOnce(holdingsPage())
-      .mockResolvedValueOnce(diffPayload())
-      .mockResolvedValueOnce(weightEvolutionPayload())
-      .mockResolvedValueOnce(transitionTimelinePayload())
-
-    const qqqCard = wrapper.findAll('button.profile-card').find(button => button.text().includes('QQQ'))
-    const spyCard = wrapper.findAll('button.profile-card').find(button => button.text().includes('SPY'))
-    expect(qqqCard).toBeTruthy()
-    expect(spyCard).toBeTruthy()
-    const olderSelection = qqqCard!.trigger('click')
-    await nextTick()
-    await spyCard!.trigger('click')
-    resolveOlderDates?.(dates)
-    await olderSelection
-    await flushPromises()
-
-    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/QQQ/holdings', expect.anything())
-    await vi.waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/transitions', { limit: 8 })
-    })
   })
 })

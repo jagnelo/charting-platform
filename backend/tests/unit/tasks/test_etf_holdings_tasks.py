@@ -3,7 +3,10 @@ from __future__ import annotations
 import asyncio
 from datetime import date
 
+import pytest
+
 from app.config import settings
+from app.services.etf_holdings_capability import tier0_symbols
 from app.services.top_down_taxonomy import benchmark_family_proxy_symbols
 from app.tasks import etf_holdings_tasks
 
@@ -52,45 +55,6 @@ def test_benchmark_family_dated_refresh_is_explicitly_disabled_by_default(monkey
     assert result == {"skipped": True, "reason": "benchmark family refresh disabled"}
 
 
-def test_etf_classification_refresh_passes_snapshot_cap(monkeypatch):
-    class Session:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *_args):
-            return None
-
-        async def commit(self):
-            return None
-
-    calls: list[dict] = []
-
-    async def fake_reconcile(_db, **kwargs):
-        calls.append(kwargs)
-        return {"processed": 0, "enriched": 0, "remaining": 0}
-
-    monkeypatch.setattr(settings, "ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED", True)
-    monkeypatch.setattr(settings, "ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES", 3)
-    monkeypatch.setattr(settings, "ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE", 9)
-    monkeypatch.setattr(settings, "ETF_HOLDINGS_CLASSIFICATION_MAX_SNAPSHOTS_PER_PROFILE", 4)
-    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
-    monkeypatch.setattr(
-        "app.services.etf_holdings_refresh.reconcile_all_etf_holdings_classifications",
-        fake_reconcile,
-    )
-
-    result = asyncio.run(etf_holdings_tasks.reconcile_etf_holdings_classifications_task({}))
-
-    assert result == {"processed": 0, "enriched": 0, "remaining": 0}
-    assert calls == [
-        {
-            "max_profiles": 3,
-            "max_enrichments_per_profile": 9,
-            "max_snapshots_per_profile": 4,
-        }
-    ]
-
-
 def test_benchmark_family_dated_refresh_fans_out_idempotent_units(monkeypatch):
     calls: list[tuple[str, tuple[object, ...], dict]] = []
 
@@ -118,52 +82,80 @@ def test_benchmark_family_dated_refresh_fans_out_idempotent_units(monkeypatch):
     assert all(call[2]["_expires"] == 86_400 for call in calls)
 
 
-def test_benchmark_family_dated_refresh_retains_per_root_queue_failures(monkeypatch):
-    calls: list[tuple[str, tuple[object, ...], dict]] = []
+def test_etf_capability_canary_is_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", False)
 
-    class Redis:
-        async def enqueue_job(self, function, *args, **kwargs):
-            calls.append((function, args, kwargs))
-            if args[0] == "sp500":
-                raise RuntimeError("redis queue unavailable for sp500")
-            return object()
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
 
-    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED", True)
-    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES", 1)
-    monkeypatch.setattr(
-        "app.services.benchmark_family_holdings_runs.completed_month_end_dates",
-        lambda *, count: [date(2026, 7, 31)],
-    )
+    assert result == {"skipped": True, "reason": "capability canary disabled"}
 
-    result = asyncio.run(
-        etf_holdings_tasks.refresh_benchmark_family_holdings_task({"redis": Redis()})
-    )
 
-    assert result["queue_error_count"] == 1
-    assert result["queue_errors"] == [
-        {
-            "status": "queue_error",
-            "family_key": "sp500",
-            "requested_date": "2026-07-31",
-            "error": "redis queue unavailable for sp500",
-        }
+def test_default_capability_canary_covers_each_canonical_tier0_symbol_once():
+    configured = [
+        value.strip().upper()
+        for value in str(settings.ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS).split(",")
+        if value.strip()
     ]
-    assert result["queued"] == len(result["family_keys"]) - 1
-    assert len(calls) == len(result["family_keys"])
+
+    assert configured
+    assert len(configured) == len(set(configured))
+    assert set(configured) == set(tier0_symbols())
+    assert len(configured) == len(tier0_symbols())
+    assert settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS >= len(tier0_symbols())
 
 
-def test_benchmark_family_member_history_backfill_is_disabled_by_default(monkeypatch):
-    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED", False)
+def test_etf_capability_canary_rejects_truncated_canonical_tier0_configuration(monkeypatch):
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", True)
+    monkeypatch.setattr(
+        settings, "ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS", ",".join(tier0_symbols())
+    )
+    monkeypatch.setattr(
+        settings,
+        "ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS",
+        len(tier0_symbols()) - 1,
+    )
 
-    result = asyncio.run(etf_holdings_tasks.backfill_benchmark_family_member_history_task({}))
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
 
-    assert result == {
-        "skipped": True,
-        "reason": "benchmark family member-history backfill disabled",
-    }
+    assert result["skipped"] is True
+    assert result["reason"] == "invalid canary configuration"
+    assert result["requested"] == len(tier0_symbols())
+    assert result["max_symbols"] == len(tier0_symbols()) - 1
 
 
-def test_benchmark_family_member_history_backfill_queues_existing_snapshots(monkeypatch):
+def test_etf_capability_canary_rejects_truncated_custom_configuration(monkeypatch):
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", True)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS", "DXJ,NTSX")
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS", 1)
+
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
+
+    assert result["skipped"] is True
+    assert result["reason"] == "invalid canary configuration"
+    assert result["requested"] == 2
+    assert result["max_symbols"] == 1
+    assert "configured symbol list" in result["configuration_error"]
+
+
+@pytest.mark.parametrize(
+    ("configured_symbols", "expected_requested"),
+    [("", 0), ("DXJ,DXJ", 2)],
+)
+def test_etf_capability_canary_rejects_empty_or_duplicate_configuration(
+    monkeypatch, configured_symbols, expected_requested
+):
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", True)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS", configured_symbols)
+
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
+
+    assert result["skipped"] is True
+    assert result["reason"] == "invalid canary configuration"
+    assert result["requested"] == expected_requested
+    assert "unique symbol" in result["configuration_error"]
+
+
+def test_etf_capability_canary_passes_bounded_configuration(monkeypatch):
     class Session:
         async def __aenter__(self):
             return self
@@ -171,72 +163,35 @@ def test_benchmark_family_member_history_backfill_queues_existing_snapshots(monk
         async def __aexit__(self, *_args):
             return None
 
-    queued: list[tuple[int, str]] = []
+        async def commit(self):
+            return None
 
-    async def fake_plan(_db, **kwargs):
-        assert kwargs["max_snapshots"] == 2
-        return {
-            "family_keys": ["sp500"],
-            "roles": ["cap_weight", "equal_weight", "value", "growth"],
-            "max_snapshots": 2,
-            "limited": True,
-            "available_snapshot_count": 3,
-            "selected_snapshot_count": 2,
-            "undated_snapshot_count": 1,
-            "continuity_by_symbol": {
-                "SPY": {
-                    "status": "gapped",
-                    "gap_count": 1,
-                }
-            },
-            "snapshots": [
-                {"snapshot_id": 10, "composition_date": date(2026, 7, 31)},
-                {"snapshot_id": 11, "composition_date": date(2026, 6, 30)},
-            ],
-        }
+    calls: list[dict] = []
 
-    async def fake_queue(_db, _redis, snapshot_ids, *, max_instruments, end):
-        assert max_instruments == 5000
-        queued.append((snapshot_ids[0], end.isoformat()))
-        return {
-            "queued": 2,
-            "already_queued": 1,
-            "unresolved_count": 3,
-            "queue_error_count": 0,
-            "queue_errors": [],
-        }
+    async def fake_canary(_db, **kwargs):
+        calls.append(kwargs)
+        return {"checked": 1}
 
-    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED", True)
-    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS", 2)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", True)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS", "DXJ, NTSX")
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS", 2)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_TIMEOUT_SECONDS", 45.0)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_FAILURE_THRESHOLD", 3)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_COOLDOWN_SECONDS", 600)
     monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
     monkeypatch.setattr(
-        "app.services.benchmark_family_history.plan_benchmark_family_snapshot_history_refresh",
-        fake_plan,
-    )
-    monkeypatch.setattr(
-        "app.services.benchmark_family_history.queue_snapshot_member_history",
-        fake_queue,
+        "app.services.etf_holdings_refresh.run_etf_holdings_capability_canaries", fake_canary
     )
 
-    result = asyncio.run(
-        etf_holdings_tasks.backfill_benchmark_family_member_history_task({"redis": object()})
-    )
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
 
-    assert result["selected_snapshot_count"] == 2
-    assert result["available_snapshot_count"] == 3
-    assert result["undated_snapshot_count"] == 1
-    assert result["continuity_by_symbol"] == {
-        "SPY": {
-            "status": "gapped",
-            "gap_count": 1,
+    assert result == {"checked": 1}
+    assert calls == [
+        {
+            "symbols": ["DXJ", "NTSX"],
+            "max_symbols": 2,
+            "timeout_seconds": 45.0,
+            "failure_threshold": 3,
+            "cooldown_seconds": 600,
         }
-    }
-    assert result["queued"] == 4
-    assert result["already_queued"] == 2
-    assert result["unresolved_count"] == 6
-    assert [item["snapshot_id"] for item in result["snapshot_results"]] == [10, 11]
-    assert [item["queued"] for item in result["snapshot_results"]] == [2, 2]
-    assert queued == [
-        (10, "2026-07-31T23:59:59.999999+00:00"),
-        (11, "2026-06-30T23:59:59.999999+00:00"),
     ]

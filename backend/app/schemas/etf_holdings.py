@@ -1,9 +1,85 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.lib.time_utils import wire_datetime
+
+class ETFHoldingsSymbolAuditOut(BaseModel):
+    """Symbol-level source investigation, separate from provider identity."""
+
+    tier: int
+    outcome: str
+    evidence_state: str
+    provider_identity: str | None = None
+    investigated_at: date | None = None
+    next_action: str
+    evidence_refs: list[str] = Field(default_factory=list)
+
+
+class ETFHoldingsCapabilityOut(BaseModel):
+    """Current, per-symbol holdings capability; separate from immutable snapshots."""
+
+    availability: str
+    source_tier: str
+    identity_verified: bool
+    usable_for_current_analysis: bool
+    displayable_last_known: bool
+    adapter_key: str | None = None
+    source_provider: str | None = None
+    transport_kind: str | None = None
+    expected_cadence: str | None = None
+    composition_date: date | None = None
+    published_at: datetime | None = None
+    last_checked_at: datetime | None = None
+    last_success_at: datetime | None = None
+    last_failure_at: datetime | None = None
+    last_canary_at: datetime | None = None
+    last_canary_status: str | None = None
+    last_canary_latency_ms: float | None = None
+    last_canary_recovered: bool | None = None
+    circuit_state: str | None = None
+    circuit_open_until: datetime | None = None
+    freshness_deadline: date | None = None
+    row_count: int | None = None
+    resolved_count: int | None = None
+    unresolved_count: int | None = None
+    completeness_status: str | None = None
+    failure_reason: str | None = None
+    failure_class: str | None = None
+    consecutive_failures: int = 0
+    schema_fingerprint: str | None = None
+    reason: str
+    symbol_audit: ETFHoldingsSymbolAuditOut
+
+
+class ETFHoldingsShadowGateOut(BaseModel):
+    """Machine-readable Tier 0 shadow-gate result for operational review."""
+
+    status: str
+    window_start: date
+    window_end: date
+    window_days: int
+    eligible_symbols: list[str]
+    observed_symbols: list[str]
+    missing_symbols: list[str]
+    eligible_checks: int
+    passing_checks: int
+    success_rate: float
+    minimum_success_rate: float
+    max_consecutive_missed_freshness_deadlines: int
+    max_allowed_consecutive_missed_freshness_deadlines: int
+    silent_violation_count: int
+    silent_violations: list[dict[str, Any]]
+    failure_reasons: list[str]
+    missed_freshness_by_symbol: dict[str, int]
+
+
+class ETFHoldingsCanaryHistoryOut(BaseModel):
+    """Bounded persisted canary evidence for one ETF symbol."""
+
+    symbol: str
+    observations: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ETFProfileOut(BaseModel):
@@ -30,6 +106,7 @@ class ETFProfileOut(BaseModel):
     latest_snapshot_id: int | None = None
     resolved_count: int = 0
     unresolved_count: int = 0
+    holdings_capability: ETFHoldingsCapabilityOut | None = None
 
 
 class ETFProfileUpdateRequest(BaseModel):
@@ -53,6 +130,7 @@ class ETFProfileBootstrapOut(BaseModel):
     profile: ETFProfileOut
     latest_snapshot: "ETFHoldingsSnapshotOut | None" = None
     probe: "ETFHoldingsAdapterProbeOut"
+    capability: ETFHoldingsCapabilityOut | None = None
     refresh_attempted: bool = False
     refresh_succeeded: bool = False
     message: str | None = None
@@ -115,10 +193,6 @@ class ETFHoldingsAdapterStateOut(BaseModel):
     rate_limit_state: str | None = None
     extra_data: dict | None = None
 
-    @field_serializer("last_success_at", "last_failure_at", "last_checked_at", "published_at")
-    def serialize_timestamps(self, value: datetime | None) -> str | None:
-        return wire_datetime(value)
-
 
 class ETFHoldingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -176,10 +250,6 @@ class ETFHoldingsSnapshotOut(BaseModel):
     notes: str | None = None
     extra_data: dict | None = None
     holdings: list[ETFHoldingOut] = Field(default_factory=list)
-
-    @field_serializer("known_at", "published_at")
-    def serialize_timestamps(self, value: datetime | None) -> str | None:
-        return wire_datetime(value)
 
 
 class ETFHoldingsPageOut(BaseModel):
@@ -352,21 +422,12 @@ class ETFHoldingsDateOut(BaseModel):
     composition_date: date
     as_of_date: date | None = None
     known_at: datetime | None = None
-    published_at: datetime | None = None
-    cadence: str | None = None
-    parser_version: str | None = None
-    timing_provenance: dict[str, str] = Field(default_factory=dict)
     provenance: str
     source_provider: str
-    source_identifier: str | None = None
     row_count: int
     resolved_count: int
     unresolved_count: int
     source_quality: str
-
-    @field_serializer("known_at", "published_at")
-    def serialize_timestamps(self, value: datetime | None) -> str | None:
-        return wire_datetime(value)
 
 
 class ETFUnresolvedHoldingOut(BaseModel):
@@ -387,42 +448,20 @@ class ETFConstituentTimelinePoint(BaseModel):
     composition_date: date
     as_of_date: date | None = None
     known_at: datetime | None = None
-    published_at: datetime | None = None
     weight: Decimal | None = None
     weight_delta_from_previous: Decimal | None = None
     shares: Decimal | None = None
     market_value: Decimal | None = None
     source_provider: str
-    source_identifier: str | None = None
-    cadence: str | None = None
-    parser_version: str | None = None
-    timing_provenance: dict[str, str] = Field(default_factory=dict)
     provenance: str
-
-    @field_serializer("known_at", "published_at")
-    def serialize_timestamps(self, value: datetime | None) -> str | None:
-        return wire_datetime(value)
 
 
 class ETFHoldingsWeightEvolutionPointOut(BaseModel):
     snapshot_id: int
     composition_date: date
-    as_of_date: date | None = None
-    known_at: datetime | None = None
-    published_at: datetime | None = None
     weight: Decimal | None = None
     shares: Decimal | None = None
     market_value: Decimal | None = None
-    source_provider: str
-    source_identifier: str | None = None
-    cadence: str | None = None
-    parser_version: str | None = None
-    timing_provenance: dict[str, str] = Field(default_factory=dict)
-    provenance: str
-
-    @field_serializer("known_at", "published_at")
-    def serialize_timestamps(self, value: datetime | None) -> str | None:
-        return wire_datetime(value)
 
 
 class ETFHoldingsWeightEvolutionSeriesOut(BaseModel):
@@ -548,10 +587,6 @@ class BenchmarkFamilyHoldingsDatedRefreshLegOut(BaseModel):
     status: str
     snapshot_id: int | None = None
     composition_date: date | None = None
-    history_route_status: str = "not_reported"
-    history_route_provider: str | None = None
-    history_route_policy: str | None = None
-    history_route_source_url: str | None = None
     message: str | None = None
 
 
@@ -708,10 +743,6 @@ class ETFHoldingsBackfillFilingOut(BaseModel):
     ingested_at: datetime | None = None
     extra_data: dict | None = None
 
-    @field_serializer("acceptance_datetime", "ingested_at")
-    def serialize_timestamps(self, value: datetime | None) -> str | None:
-        return wire_datetime(value)
-
 
 class ETFHoldingsBackfillJobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -735,7 +766,3 @@ class ETFHoldingsBackfillJobOut(BaseModel):
     summary: dict | None = None
     extra_data: dict | None = None
     filings: list[ETFHoldingsBackfillFilingOut] = Field(default_factory=list)
-
-    @field_serializer("started_at", "completed_at")
-    def serialize_timestamps(self, value: datetime | None) -> str | None:
-        return wire_datetime(value)

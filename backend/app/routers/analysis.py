@@ -147,15 +147,20 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
-from app.services.etf_holdings import (
+from app.services.etf_consumer_types import (
     is_equity_holding_type,
     is_placeholder_symbol,
     normalize_holding_type,
 )
 from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
-from app.services.indicators import INDICATOR_REGISTRY, OHLCVSeries, get_latest_value
+from app.services.etf_holdings_capability import (
+    current_analysis_error_detail,
+    evaluate_capability,
+    load_latest_adapter_state,
+)
 from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.indicators import (
+    INDICATOR_REGISTRY,
     OHLCVSeries,
     get_latest_value,
     required_bars_for_indicator,
@@ -180,7 +185,11 @@ from app.services.watchlist_history import (
     adjustment_provenance_for_lineage,
     state_factor_evidence,
 )
-from app.services.watchlist_sources import resolve_watchlist_source
+from app.services.watchlist_sources import (
+    CurrentAnalysisSourceError,
+    current_analysis_source_error_detail,
+    resolve_watchlist_source,
+)
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -192,6 +201,31 @@ _FAMILY_MEMBER_BAR_REQUIREMENTS = {
     Timeframe.MN: 24,
 }
 _USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
+
+
+async def _current_etf_capability(
+    db: AsyncSession,
+    profile: ETFProfile,
+    snapshot: ETFHoldingsSnapshot,
+):
+    state = await load_latest_adapter_state(db, profile.id)
+    return evaluate_capability(profile, snapshot, state)
+
+
+async def _require_current_etf_snapshot(
+    db: AsyncSession,
+    profile: ETFProfile,
+    snapshot: ETFHoldingsSnapshot,
+    *,
+    as_of: datetime | None,
+):
+    """Reject non-current holdings unless the caller selected an explicit date."""
+
+    capability = await _current_etf_capability(db, profile, snapshot)
+    if as_of is None and not capability.usable_for_current_analysis:
+        raise HTTPException(409, detail=current_analysis_error_detail(capability))
+    return capability
+
 
 _HOLDING_EXCLUSION_MESSAGES = {
     "cash_holding": "Cash, collateral, or currency exposure is excluded from equity analysis.",
@@ -762,6 +796,8 @@ async def market_map(
     """
     try:
         return await build_market_map(db, current_user.id, body)
+    except CurrentAnalysisSourceError as exc:
+        raise HTTPException(409, detail=exc.detail) from exc
     except ValueError as exc:
         code = str(exc)
         if code == "invalid_timeframe":
@@ -3087,6 +3123,7 @@ async def etf_constituent_snapshot(
         raise HTTPException(
             404, detail={"code": "etf_holdings_snapshot_not_found", "symbol": etf.symbol}
         )
+    await _require_current_etf_snapshot(db, profile, snapshot, as_of=as_of)
     # Preserve the full disclosure universe for denominator and exclusion
     # reporting.  Filtering before this point made cash, derivatives, and
     # unresolved rows disappear from the constituent response, which could
@@ -4771,15 +4808,31 @@ async def benchmark_family_coverage(
                 canonical_snapshot_usable[row.id] = bool(eligible_ids) or (
                     not row.rows and row.resolved_count > 0
                 )
+            latest_capability = (
+                await _current_etf_capability(db, profile, snapshot_rows[0])
+                if snapshot_rows
+                else None
+            )
+            current_snapshot_usable = as_of is not None or bool(
+                latest_capability and latest_capability.usable_for_current_analysis
+            )
+            has_resolved_snapshot = any(snapshot.resolved_count > 0 for snapshot in snapshots)
             resolved_snapshots = [
                 snapshot
                 for snapshot in snapshots
                 if canonical_snapshot_usable.get(snapshot.snapshot_id, False)
+                and current_snapshot_usable
             ]
             selected_snapshot = next(
-                (row for row in snapshot_rows if canonical_snapshot_usable.get(row.id, False)),
+                (
+                    row
+                    for row in snapshot_rows
+                    if canonical_snapshot_usable.get(row.id, False)
+                ),
                 None,
             )
+            if not current_snapshot_usable:
+                selected_snapshot = None
             source = sources.get(selected_snapshot.data_source_id) if selected_snapshot else None
             if selected_snapshot is not None:
                 entitlement_source = (
@@ -4817,11 +4870,24 @@ async def benchmark_family_coverage(
                 "available"
                 if resolved_snapshots
                 else "holdings_snapshot_unresolved"
-                if snapshots
+                if snapshots and not has_resolved_snapshot
+                else "non_current"
+                if snapshots and not current_snapshot_usable
                 else "no_snapshot"
             )
             if resolved_snapshots:
                 covered_roles += 1
+            elif snapshots and has_resolved_snapshot and not current_snapshot_usable:
+                exclusions.append(
+                    AnalysisWarning(
+                        code="family_role_holdings_not_current",
+                        message=(
+                            f"The latest {family_key} {role} holdings snapshot is not safe "
+                            "for current analysis; select an explicit historical as_of."
+                        ),
+                        instrument_id=instrument.id,
+                    )
+                )
             elif snapshots:
                 exclusions.append(
                     AnalysisWarning(
@@ -5319,10 +5385,19 @@ async def benchmark_family_overview(
         else []
     )
     holdings_by_instrument: dict[int, ETFHoldingsSnapshot] = {}
+    holdings_current_by_instrument: dict[int, bool] = {}
     for snapshot in holdings_snapshots:
         instrument_id = snapshot.etf_profile.instrument_id if snapshot.etf_profile else None
         if instrument_id is not None and instrument_id not in holdings_by_instrument:
             holdings_by_instrument[instrument_id] = snapshot
+            capability = (
+                await _current_etf_capability(db, snapshot.etf_profile, snapshot)
+                if snapshot.etf_profile
+                else None
+            )
+            holdings_current_by_instrument[instrument_id] = as_of is not None or bool(
+                capability and capability.usable_for_current_analysis
+            )
     selected_members = _group_members_at(group, as_of)
     cap_mapping = proxy_mappings.get("cap_weight")
     cap_symbol = (
@@ -5388,6 +5463,11 @@ async def benchmark_family_overview(
         symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
         instrument = instruments.get(symbol) if symbol else None
         holdings_snapshot = holdings_by_instrument.get(instrument.id) if instrument else None
+        holdings_current = (
+            holdings_current_by_instrument.get(instrument.id, False)
+            if instrument is not None
+            else False
+        )
         mappings.append(
             BenchmarkFamilyMappingOut(
                 role=role,
@@ -5398,7 +5478,7 @@ async def benchmark_family_overview(
                 instrument_id=instrument.id if instrument else None,
                 available=instrument is not None,
                 holdings_snapshot_id=holdings_snapshot.id if holdings_snapshot else None,
-                holdings_available=holdings_snapshot is not None,
+                holdings_available=holdings_snapshot is not None and holdings_current,
                 holdings_composition_date=(
                     holdings_snapshot.composition_date if holdings_snapshot else None
                 ),
@@ -7703,6 +7783,12 @@ async def _resolve_benchmark_family_breadth_universe(
                 source_id,
                 as_of=definition.as_of if definition.universe.point_in_time else None,
             )
+            source_error = current_analysis_source_error_detail(
+                resolved.descriptor,
+                historical=definition.universe.point_in_time and definition.as_of is not None,
+            )
+            if source_error is not None:
+                raise HTTPException(409, detail=source_error)
             if not resolved.members:
                 if any(
                     str(item.get("reason", "")).startswith("holdings_snapshot")
@@ -7826,6 +7912,12 @@ async def _resolve_benchmark_family_breadth_universe(
                 "symbol": proxy_symbol,
             },
         )
+    await _require_current_etf_snapshot(
+        db,
+        profile,
+        snapshot,
+        as_of=definition.as_of if definition.universe.point_in_time else None,
+    )
     members: list[BreadthMember] = []
     member_ids: list[int] = []
     warnings: list[AnalysisWarning] = []
@@ -7921,6 +8013,13 @@ async def _resolve_user_watchlist_breadth_universe(
         raise HTTPException(404, detail={"code": str(exc), "source_id": source_id}) from exc
     except ValueError as exc:
         raise HTTPException(422, detail={"code": str(exc), "source_id": source_id}) from exc
+
+    source_error = current_analysis_source_error_detail(
+        resolved.descriptor,
+        historical=definition.universe.point_in_time and definition.as_of is not None,
+    )
+    if source_error is not None:
+        raise HTTPException(409, detail=source_error)
 
     instrument_ids = list(dict.fromkeys(member.instrument_id for member in resolved.members))
     instruments = (
@@ -8072,6 +8171,12 @@ async def _resolve_generic_breadth_universe(
                 404, detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol}
             )
         seen_member_ids: set[int] = set()
+        await _require_current_etf_snapshot(
+            db,
+            profile,
+            snapshot,
+            as_of=definition.as_of if definition.universe.point_in_time else None,
+        )
         for holding in snapshot.rows:
             if (
                 not holding.is_resolved
@@ -10180,6 +10285,12 @@ async def evaluate_generic_breadth(
                 detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol},
             )
         seen_member_ids: set[int] = set()
+        await _require_current_etf_snapshot(
+            db,
+            profile,
+            snapshot,
+            as_of=definition.as_of if definition.universe.point_in_time else None,
+        )
         for holding in snapshot.rows:
             if (
                 not holding.is_resolved
