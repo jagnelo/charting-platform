@@ -1,0 +1,110 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "text": "Canonical browser commands use the host-access relay with normal outbound DNS, one worker and zero retries, leaving backend and worker provider egress denied."
+    },
+    {
+      "id": "AC2",
+      "text": "Only verified hosted protected-branch root checkouts can use scoped cleanup; ordinary incorrect paths, feature sessions and mismatched CI identity remain rejected."
+    },
+    {
+      "id": "AC3",
+      "text": "Focused workflow regressions and a complete source-qualified full-stack functional/visual matrix pass with exact retained-resource cleanup evidence."
+    },
+    {
+      "id": "AC4",
+      "text": "Prepare the clean repair checkpoint and source-qualified evidence with exact branch HEAD capture; mandatory final-published-HEAD branch CI and resulting staging EIG remain external coordinator acceptance/release gates, never implied by packet preparation."
+    }
+  ],
+  "active_session_id": "40d0a916-6760-4366-aeeb-6fe5a3229761",
+  "branch": "fix/staging-browser-egress",
+  "claim": {
+    "branch": "fix/staging-browser-egress",
+    "host": "m920q",
+    "session_id": "40d0a916-6760-4366-aeeb-6fe5a3229761",
+    "started_at": "2026-10-21T07:07:46.612316+00:00",
+    "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-browser-egress",
+    "worktree_id": "fix-staging-browser-egress-1a92e9dadf"
+  },
+  "dirty_paths": [
+    "ops/workstreams/fix-staging-browser-egress/handoff.md",
+    "ops/workstreams/fix-staging-browser-egress/plan.yaml",
+    "ops/workstreams/fix-staging-browser-egress/session.json",
+    "ops/workstreams/fix-staging-browser-egress/validation.jsonl"
+  ],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-staging-browser-egress-1a92e9da",
+      "charting-stack-fix-staging-browser-egress-1a92e9da"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-staging-browser-egress-1a92e9dadf"
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/staging-browser-egress: Repair the exact degraded staging browser-network and hosted cleanup-path defects without weakening validation or provider isolation.. Acceptance criteria: AC1: Canonical browser commands use the host-access relay with normal outbound DNS, one worker and zero retries, leaving backend and worker provider egress denied.; AC2: Only verified hosted protected-branch root checkouts can use scoped cleanup; ordinary incorrect paths, feature sessions and mismatched CI identity remain rejected.; AC3: Focused workflow regressions and a complete source-qualified full-stack functional/visual matrix pass with exact retained-resource cleanup evidence.; AC4: Prepare the clean repair checkpoint and source-qualified evidence with exact branch HEAD capture; mandatory final-published-HEAD branch CI and resulting staging EIG remain external coordinator acceptance/release gates, never implied by packet preparation.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-21T07:11:06.660056+00:00",
+  "goal_request": {
+    "objective": "Advance fix/staging-browser-egress: Repair the exact degraded staging browser-network and hosted cleanup-path defects without weakening validation or provider isolation.. Acceptance criteria: AC1: Canonical browser commands use the host-access relay with normal outbound DNS, one worker and zero retries, leaving backend and worker provider egress denied.; AC2: Only verified hosted protected-branch root checkouts can use scoped cleanup; ordinary incorrect paths, feature sessions and mismatched CI identity remain rejected.; AC3: Focused workflow regressions and a complete source-qualified full-stack functional/visual matrix pass with exact retained-resource cleanup evidence.; AC4: Publish clean exact source with mandatory branch CI green for coordinator-owned remediation integration and exact staging EIG; do not claim staging release on branch CI alone.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "Existing coordinator-native goal is platform-blocked by serverOverloaded; current same-thread turn supervises this scoped repair. No duplicate goal, accounting reset or false active state.",
+  "head": "cea8bca280f5bd9ea681eb9a184e4d938031609e",
+  "implementation_sha": "2d380106eead76f7e8c2fd381707692c110b3392",
+  "last_human_progress_update": "2026-10-21T08:34:40.910933+00:00",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "continue implementation from the branch workstream",
+  "parent_branch": "staging",
+  "plan_hash": "3db0e6f088c5282aeecdf20dd3e85fed7b1c149954268e33dc79260fb9d2051b",
+  "planning_required": true,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [
+      "AC1",
+      "AC2",
+      "AC3",
+      "AC4"
+    ],
+    "current_blocker": "none",
+    "current_phase": "checkpoint prepared; final exact branch CI and staging release pending",
+    "next_action": "Publish final records once, verify all exact-source branch CI, then coordinator guarded remediation integration and resulting exact staging EIG; no new fixtures or live requests.",
+    "total": 4,
+    "updated_at": "2026-10-21T08:34:40.910914+00:00"
+  },
+  "remote": "da15aaf72920133a20357afab9439d549d1b8c88",
+  "remote_sha": "da15aaf72920133a20357afab9439d549d1b8c88",
+  "remote_synchronized": false,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "40d0a916-6760-4366-aeeb-6fe5a3229761",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-browser-egress/ops/workstreams/fix-staging-browser-egress",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-browser-egress/ops/workstreams/fix-staging-browser-egress/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-browser-egress/ops/workstreams/fix-staging-browser-egress/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-browser-egress/ops/workstreams/fix-staging-browser-egress/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-staging-browser-egress/ops/workstreams/fix-staging-browser-egress/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-staging-browser-egress",
+  "worktree_id": "fix-staging-browser-egress-1a92e9dadf"
+}

@@ -183,6 +183,10 @@ def test_invalid_manifest_is_rejected(tmp_path, manifest_values, error):
 def test_runner_executes_local_commands_but_never_claims_external_gate_passed(
     tmp_path, monkeypatch, capsys
 ):
+    # Exercise local execution, independent of the outer branch-CI coverage flag.
+    # Explicit GitHub coverage/rejection cases below retain their own settings.
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.delenv("BRANCH_TESTS_CI_COVERED_COMMANDS", raising=False)
     plan = make_plan(tmp_path)
     make_manifest(plan)
     calls: list[list[str]] = []
