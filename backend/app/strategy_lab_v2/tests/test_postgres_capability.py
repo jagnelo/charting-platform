@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
@@ -171,6 +172,30 @@ async def test_capability_adapter_registers_replays_and_scopes_summaries() -> No
 
 
 @pytest.mark.asyncio
+async def test_legacy_pre_etf_summary_fingerprint_and_json_rows_still_load() -> None:
+    session = FakeSession()
+    adapter = PostgresCapabilityAdapter(lambda: session)
+    summary = _summary()
+    # Golden produced by the pre-ETF 1ee42b69 CapabilitySummary field payload.
+    assert (
+        summary.fingerprint
+        == "sha256:7fc609eee912c4353afd9401c695a2e325196e8b0db31d9e3dc776836e47cc73"
+    )
+    await adapter.ensure(principal="owner-a", summary=summary)
+    row = session.summaries[("owner-a", summary.report_fingerprint, summary.binding_fingerprint)]
+    # Before ETF lineage, degradations_json was a bare JSON list.
+    row["degradations_json"] = json.dumps([])
+
+    loaded = await adapter.load(
+        principal="owner-a",
+        report_fingerprint=summary.report_fingerprint,
+        binding_fingerprint=summary.binding_fingerprint,
+    )
+
+    assert loaded == summary
+
+
+@pytest.mark.asyncio
 async def test_capability_adapter_conflicts_on_changed_projection_identity() -> None:
     session = FakeSession()
     adapter = PostgresCapabilityAdapter(lambda: session)
@@ -193,6 +218,7 @@ async def test_capability_adapter_persists_and_rehydrates_etf_membership_referen
         input_lineage_fingerprints=(reference.content_digest,),
         etf_memberships=(reference,),
     )
+    assert summary.fingerprint != _summary().fingerprint
 
     await adapter.ensure(principal="owner-a", summary=summary)
     loaded = await adapter.load(

@@ -659,13 +659,13 @@ class DataSnapshot:
     def fingerprint(self) -> str:
         """Address data and execution capability, excluding receipt metadata."""
 
-        return content_digest(
-            {
-                "capability_contract_digest": self.preflight_report.fingerprint,
-                "series": self.series,
-                "etf_memberships": self.etf_memberships,
-            }
-        )
+        payload: dict[str, Any] = {
+            "capability_contract_digest": self.preflight_report.fingerprint,
+            "series": self.series,
+        }
+        if self.etf_memberships:
+            payload["etf_memberships"] = self.etf_memberships
+        return content_digest(payload)
 
 
 @dataclass(frozen=True, slots=True)

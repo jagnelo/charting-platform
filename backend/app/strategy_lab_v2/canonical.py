@@ -106,6 +106,36 @@ def content_digest(value: Any) -> str:
     return f"sha256:{digest}"
 
 
+def content_digest_dataclass_projection(value: Any, field_names: tuple[str, ...]) -> str:
+    """Hash a dataclass with an explicitly frozen historical field projection.
+
+    This is for version-compatible identity checks when optional dataclass
+    fields are added: the encoded dataclass type and selected field names stay
+    identical to the earlier canonical payload, while values use the normal
+    canonical encoding.
+    """
+
+    if not dataclasses.is_dataclass(value) or isinstance(value, type):
+        raise TypeError("value must be a dataclass instance")
+    available = {item.name for item in dataclasses.fields(value) if not item.name.startswith("_")}
+    if len(field_names) != len(set(field_names)) or not set(field_names) <= available:
+        raise ValueError("dataclass projection contains duplicate or unknown fields")
+    projected = [
+        "dataclass",
+        f"{type(value).__module__}.{type(value).__qualname__}",
+        [[name, _canonical_value(getattr(value, name))] for name in field_names],
+    ]
+    encoded = json.dumps(
+        projected,
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+    return f"sha256:{digest}"
+
+
 def freeze_json(value: Any) -> Any:
     """Validate JSON-shaped input and recursively freeze mappings and sequences."""
 

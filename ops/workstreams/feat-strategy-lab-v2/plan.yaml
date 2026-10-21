@@ -5,18 +5,17 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: strategy-etf-pit-preflight-api-denial-and-restart-validation
+    name: strategy-etf-preexisting-fingerprint-compatibility
     status: in_progress
-    source_commit: 932ca0bd11e8c3515eb36973cbc0dff8bfbcfbd1
+    source_commit: 74c0be661dd88467f79055419c2f8e5cbd0992d6
     intent: >-
-      Persist exact ETF membership references and content digests in immutable
-      DataSnapshot/Experiment fingerprints, round-trip the refs through existing
-      resource and capability persistence, and revalidate the pinned snapshot
-      digest before worker hydration on restart. Before Provider/execution
-      preflight, reject duplicate selectors, foreign ETF evidence, late/missing
-      known_at, and empty/duplicate constituents; expose frozen reference and
-      digest through the registered capability API. Preserve all Provider/ETF
-      point-in-time/coverage checks. Reconcile TC2000 immutable Study/Code
+      Preserve pre-ETF DataSnapshot and CapabilitySummary canonical fingerprints
+      whenever no ETF lineage is present, so persisted experiment pins and legacy
+      summary_fingerprint rows remain readable. Keep non-empty ETF references
+      bound in the immutable input fingerprint and summary projection. Retain the
+      separate committed preflight denial/API round-trip tests and published
+      restart digest verification. Do not rewrite existing persisted pins or
+      historical rows. Reconcile TC2000 immutable Study/Code
       consumers only after its accepted green staging release. Recompute final
       Alembic heads after TC; preserve every history/data set with an additive
       no-DDL merge revision, then complete combined acceptance only after all

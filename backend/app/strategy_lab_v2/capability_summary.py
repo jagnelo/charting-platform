@@ -5,7 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.canonical import (
+    content_digest,
+    content_digest_dataclass_projection,
+    require_sha256_digest,
+)
 from app.strategy_lab_v2.capabilities import Degradation, PreflightClass, PreflightReport
 from app.strategy_lab_v2.contracts import ETFMembershipReference
 from app.strategy_lab_v2.execution_capabilities import ExecutionCapabilityPreflight
@@ -87,6 +91,22 @@ class CapabilitySummary:
 
     @property
     def fingerprint(self) -> str:
+        if not self.etf_memberships and not self.input_lineage_fingerprints:
+            return content_digest_dataclass_projection(
+                self,
+                (
+                    "report_fingerprint",
+                    "binding_fingerprint",
+                    "decision",
+                    "data_gaps",
+                    "execution_gaps",
+                    "degradations",
+                    "ranking_eligible",
+                    "executable",
+                    "authoritative",
+                    "can_publish_authoritative_results",
+                ),
+            )
         return content_digest(self)
 
 

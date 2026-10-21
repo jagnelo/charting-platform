@@ -29,6 +29,7 @@ from app.strategy_lab_v2.contracts import (
     CarryInMode,
     DataSeriesManifest,
     DataSnapshot,
+    ETFMembershipReference,
     EvaluationWindow,
     EventGranularity,
     ExperimentDefinition,
@@ -1113,11 +1114,32 @@ def test_portfolio_snapshot_and_artifact_manifests_are_versioned_and_content_add
         datetime(2024, 1, 2, tzinfo=UTC),
     )
     assert snapshot.fingerprint == snapshot_copy.fingerprint
+    # Golden from the exact pre-ETF canonical payload at 1ee42b69:
+    # ETF-membership receipt fields must not change legacy experiment pins.
+    assert (
+        snapshot.fingerprint
+        == "sha256:3d447b549896bc978ca47a95434999273ad1d85c3af2200821ef5eb9f705ad15"
+    )
     assert snapshot.fingerprint == content_digest(
         {
             "capability_contract_digest": snapshot.capability_contract_digest,
             "series": snapshot.series,
         }
+    )
+    frozen_membership = ETFMembershipReference(
+        "US:ETF:SPY",
+        datetime(2021, 6, 1, tzinfo=UTC),
+        41,
+        content_digest("frozen-membership-v1"),
+    )
+    etf_snapshot = replace(snapshot, etf_memberships=(frozen_membership,))
+    assert etf_snapshot.fingerprint != snapshot.fingerprint
+    assert (
+        replace(
+            etf_snapshot,
+            etf_memberships=(replace(frozen_membership, content_digest=content_digest("v2")),),
+        ).fingerprint
+        != etf_snapshot.fingerprint
     )
 
     with pytest.raises(ValueError, match="does not cover preflight requirement"):
