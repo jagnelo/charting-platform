@@ -15825,10 +15825,50 @@ focused five-module MyPy, Ruff/format, and workstream validation passed.
 Root review identified one remaining test-quality refinement: the nonempty
 nested-manifest inequality should clone the same baseline `manifest.strategy`
 and add only `selected_study_artifact`, rather than use a differently shaped
-strategy object. This is explicitly pending a later safe focused-validation
-slot; the pytest slot is closed now and no test/source edit was made for it.
+strategy object. At that prior boundary, the pytest slot was closed; the
+test-definition correction is now included in the bounded compatibility
+context below, with focused validation still pending.
 Production selected references remain unconditionally denied until a released
 TC owner-scoped verifier is wired. Actual TC resolver/API consumption, final
 Alembic graph, combined PostgreSQL/application, exact-source CI, Exhaustive,
 and `full_stack_browser` remain open. The broader feature checkpoint remains
 `in_progress`, unaccepted, and retains all 18 roadmap criteria.
+
+### Explicit-null owner-graph compatibility repair — 2026-10-21
+
+The next exact-source run, CI `39633844512` on source
+`3b317f8dcbdd7430744225f9286e0490dd148ba0`, is preserved red: Backend Unit had
+4,963 passed, one declared skip, and one failure in
+`test_persisted_owner_graph_composes_exact_authoritative_rc6_worker_request`
+(reported at line 595 on that source).
+The persisted owner graph uses `dataclasses.asdict`, which serializes the newly
+optional `selected_study_artifact` field as explicit `null`; `_normalize_strategy`
+rejected it despite no artifact claim. Treat explicit null exactly as absence,
+preserving the no-reference canonical identity. Do not weaken rejection or
+validation for any non-null malformed/unverified reference; API and production
+hydration continue to deny non-null references without the unreleased TC
+owner-scoped resolver.
+
+The current named source context is
+`strategy-v2-null-study-reference-compatibility`, based on published tip
+`3b317f8dcbdd7430744225f9286e0490dd148ba0`. The normalizer's explicit-null
+rejection was removed. A pure regression takes the legacy no-reference
+`StrategyVersion` values into the persisted owner-graph dataclass shape,
+serializes that record through `asdict`, normalizes/rehydrates it, and asserts
+the literal pre-change StrategyVersion golden. The nested SDK identity test now
+clones the same baseline `manifest.strategy` with `dataclasses.replace` and adds
+only the immutable reference, isolating the intended fingerprint change.
+The granted micro-slot launched one isolated process only after confirming
+2,345,916 KiB available. The three assigned nodes passed `3/3` in 1.55s: the
+unchanged authoritative RC6 owner-graph worker-request case, explicit-null
+asdict roundtrip against the literal pre-change StrategyVersion golden, and
+same-baseline nested SDK/package identity binding. `RUN_LIVE_PROVIDER_TESTS=0`
+and `RUN_LIVE_ETF_HOLDINGS_TESTS=0`; FINRA credential/source variables were
+blank in that subprocess, existing private quota state and `HOME` were unchanged.
+Ruff check and format passed after formatting the test file, and `git diff
+--check` passed. No MyPy, full suite, DB/Docker/provider/native/browser/TC
+operation ran. The repair is published as exact tested source
+`fc0cd9fed5e793bb879087f9b96561477e628cf7`; root owns its hosted CI. Earlier
+red run `39633844512` remains preserved and was not rerun. Keep all production
+unverified-reference denial, actual TC release/resolver, final migration graph,
+combined PostgreSQL/application, Exhaustive, and `full_stack_browser` gates open.
