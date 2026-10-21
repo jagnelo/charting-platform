@@ -5,73 +5,26 @@ goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the com
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   active_changeset:
-    name: strategy-worker-etf-reader-optional-port
+    name: strategy-interim-accepted-etf-migration-head-merge
     status: in_progress
-    source_commit: ef7681df46cf5ff0d96b76e88d564ec1a8de2494
+    source_commit: b9906150a67165f554c0d02a6e72a877fda0135a
     intent: >-
-      Preserve legacy owner-scoped terminal callback/replay flows when the host
-      has no SQL session_factory, while composing the local ETF membership
-      reader when a callable production session factory is available. ETF-bearing
-      snapshots must still fail closed at hydration if the reader is absent;
-      no terminal receipt, owner, replay, or no-second-dispatch assertion may
-      be weakened. Keep the independently validated PostgreSQL PIT test and all
-      pre-ETF fingerprint compatibility. Reconcile TC2000 immutable Study/Code
-      consumers only after its accepted green staging release. Recompute final
-      Alembic heads after TC without stamp, reparent, skip, or premature merge.
-      Preserve every migration history and dataset with an additive no-DDL
-      merge revision, then complete combined acceptance only after all required
-      gates.
+      Merge only the actual accepted ETF revision d1e7f2a9c4b6 and the
+      Strategy-owned slv2_0009 head with a unique additive no-DDL Strategy
+      revision, preserving both parent histories and the single-head invariant.
+      TC2000 remains unreleased: do not import its source or claim the graph is
+      final. After its accepted green staging release, recompute real heads and
+      add a further no-DDL merge only if the graph requires it. Preserve all
+      ETF PIT, callback/replay, immutable-input, legacy fingerprint and full
+      roadmap requirements; no database migration, stamp, reparent, reset or
+      data change is authorized here.
     owned_paths:
-      - backend/alembic/env.py
-      - backend/alembic/versions/*strategy_lab*.py
-      - backend/alembic/versions/*forward_dispatch_checkpoint.py
-      - backend/app/strategy_lab_v2/migration_compatibility.py
+      - backend/alembic/versions/slv2_0010_merge_accepted_etf_and_strategy_heads.py
       - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
-      - backend/app/strategy_lab_v2/provider_series_contract.py
-      - backend/app/strategy_lab_v2/tests/test_provider_series_contract.py
-      - backend/app/strategy_lab_v2/provider_preflight.py
-      - backend/app/strategy_lab_v2/etf_pit.py
-      - backend/app/strategy_lab_v2/canonical.py
-      - backend/app/strategy_lab_v2/contracts.py
-      - backend/app/strategy_lab_v2/capability_preparation.py
-      - backend/app/strategy_lab_v2/capability_summary.py
-      - backend/app/strategy_lab_v2/resource_domains.py
-      - backend/app/strategy_lab_v2/postgres_capability.py
-      - backend/app/strategy_lab_v2/trial_hydration.py
-      - backend/app/strategy_lab_v2/persistence.py
-      - backend/app/strategy_lab_v2/search_preparation_composition.py
-      - backend/app/strategy_lab_v2/worker_callbacks.py
-      - backend/app/strategy_lab_v2/tests/test_provider_preflight.py
-      - backend/app/strategy_lab_v2/tests/test_etf_pit.py
-      - backend/app/strategy_lab_v2/tests/test_capability_preparation.py
-      - backend/app/strategy_lab_v2/tests/test_resource_domains.py
-      - backend/app/strategy_lab_v2/tests/test_postgres_capability.py
-      - backend/app/strategy_lab_v2/tests/test_core.py
-      - backend/app/strategy_lab_v2/tests/test_api_router.py
-      - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
-      - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
-      - backend/app/strategy_lab_v2/tests/test_capability_consumer_api.py
-      - backend/tests/integration/strategy_lab_v2/test_etf_pit_postgres.py
-      - backend/app/strategy_lab_v2/worker_callbacks.py
-      - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py
-      - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
-      - backend/app/strategy_lab_v2/tests/test_persistence.py
-      - backend/alembic/versions/slv2_0009_merge_provider_strategy_heads.py
-      - backend/tests/unit/strategy_lab_v2/test_schema_migration.py
-      - backend/tests/integration/strategy_lab_v2/test_forward_dispatch_admission_migration_postgres.py
-      - backend/tests/unit/test_research_runner_deployment.py
-      - .github/workflows/ci.yml
-      - Makefile
-      - docker-compose.yml
-      - scripts/backend_coverage.py
-      - tests/workflow/test_backend_coverage.py
-      - frontend/src/components/workstation/WorkstationToolContent.vue
-      - frontend/src/stores/workspace.ts
-      - frontend/tests/e2e/flows.spec.ts
-      - frontend/tests/e2e/tc2000_visual.spec.ts
-      - frontend/tests/unit/stores/test_workspace_store.test.ts
-      - ops/workstreams/feat-strategy-lab-v2/
+      - ops/workstreams/feat-strategy-lab-v2/migration-compatibility.md
+      - ops/workstreams/feat-strategy-lab-v2/plan.yaml
+      - ops/workstreams/feat-strategy-lab-v2/handoff.md
+      - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
   post_release_reconciliation_map: ops/workstreams/feat-strategy-lab-v2/post-release-reconciliation.md
   current_coordination_boundary:
     staging_sha: 628c1634f4894403339687586adee74d45637d51
@@ -450,55 +403,37 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2]
   total: 5
-  current_phase: provider-host-composition
+  current_phase: interim-accepted-etf-migration-graph
   current_blocker: >-
-    Provider staging 9b230ba4c97126a2937667138c6eb2a0aa297baf is accepted and
-    released. Branch-owned Provider local reader, capability preflight checks,
-    actual consumer tests, and additive slv2_0009 merge revision are implemented
-    at 790223f3aad553e4dacd2efffb13cdece4e50f28. The current owned context adds
-    `provider_capability_host.build_provider_capability_preflight` to the actual
-    `search_dispatch_rpc.build_api_bindings` factory. It admits only the explicit
-    equity/market/cash tuple established by the runtime adapter probe and the
-    Provider reader's canonical regular-session daily XNYS OHLCV contract; every
-    other scope configuration remains unavailable. Exact pinned Nautilus RC
-    evidence is required and validated by the existing backtest binding builder.
-    This is capability-preflight evidence, not proof of a native execution run;
-    frozen-series decoding remains separately required for execution. The
-    current subcontext also forwards blank-by-default scope and evidence pins
-    through Compose and mounts the same operator evidence directory read-only
-    into backend and preparation only; backtest worker remains unexposed. The
-    preparation runtime-profile contract rejects an image digest that differs
-    from the evidence release pin. Compose's resolved default and configured
-    scope/pin wiring has been verified stack-free. Exact CI 39501877296 is not
-    green: backend and frontend succeeded, declared mypy failed (151 errors),
-    and E2E was still in progress at the coordinator report. Current host source
-    2b8551f9 is pushed with exact CI 39505922437 in progress. The separately
-    scoped typing compatibility changes now pass the unchanged declared Mypy
-    command locally and focused tests; those files remain uncommitted pending
-    coherent context closure. Preserve all earlier migration and exit-152
-    receipts and await exact-source evidence for each pushed source.
-    Preserve earlier red CI 39498341861 for 812cac68 and historical unproven
-    54fa13e1/38820638540 exit 152. ETF PIT membership and TC immutable
-    CodeVersion/Study remain gated on accepted green releases. Fresh/upgrade and
-    combined PostgreSQL/application, coordinated exhaustive, terminal exact CI,
-    and local full_stack_browser gates remain open.
+    Exact Backend Unit CI 39594216381 on Strategy source b9906150 reports
+    4,955 passed, one declared skip, and only the interim migration-head failure:
+    actual accepted ETF head d1e7f2a9c4b6 plus Strategy slv2_0009. The terminal
+    callback replay failure from the prior CI was repaired and is verified by
+    that full unit job. This context adds the unique no-DDL Strategy revision
+    slv2_0010 with both actual heads as parents and strengthens the graph test to
+    require that exact single head and ancestry. No DB was migrated or changed.
+    TC2000 has not been accepted into staging: this is interim ETF graph
+    alignment only. Recompute actual heads after exact accepted TC staging and
+    add a further no-DDL merge only if required. Preserve prior CI failures and
+    the callback, owner/replay, PIT, immutable fingerprint, ORM metadata and
+    migration-history guarantees. Combined PostgreSQL/application, final TC
+    graph, exact new-source CI, Exhaustive and full_stack_browser gates remain
+    open; full roadmap/checkpoint remains in_progress and not accepted.
   next_action: >-
-    Close the separate annotation-only typing context with its exact-source
-    validation and workstream receipt, preserving the published host commit and
-    all historical red evidence. The host's exact CI 39505922437 remains pending
-    at the latest observation. Preserve unavailable behavior for missing,
-    partial, malformed, or wrong-build evidence and every scope except the
-    proven equity/market/cash backtest tuple. Continue ETF PIT and TC immutable
-    CodeVersion/Study reconciliation only after their accepted green releases,
-    then complete combined PostgreSQL/application, exhaustive, exact CI and
-    full_stack_browser gates before checkpoint review.
-    Keep ETF point-in-time membership and TC2000 immutable CodeVersion/Study
-    consumers explicitly gated on their later accepted green staging releases;
-    preserve owner, known-at,
+    Focused-validate and publish only the additive interim slv2_0010 merge,
+    exact single-head/ancestry regression, and this workstream receipt. Inspect
+    its exact-source hosted CI once. Do not run a local database/container or
+    heavy profile while TC owns that lane. After actual TC green staging release,
+    merge only that exact released baseline into this branch, recompute the real
+    migration heads and add another additive no-DDL merge only if needed; then
+    continue the TC immutable CodeVersion/Study consumer and all combined gates.
+    Preserve the full roadmap and checkpoint status in_progress. Keep ETF
+    point-in-time membership and TC2000 immutable CodeVersion/Study consumers
+    gated on their accepted green releases; preserve owner, known-at,
     source/output and worker terminal causality assertions. Reconcile additive
-    migrations only from those actual staged heads, then run the combined
+    migrations only from actual staged heads, then run the combined
     PostgreSQL/application, exhaustive, local full_stack_browser and exact-source
-    CI gates. Keep the full roadmap and checkpoint status in_progress.
+    CI gates.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

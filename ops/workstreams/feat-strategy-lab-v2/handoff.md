@@ -15723,3 +15723,35 @@ separate source context; exact post-fix CI and the full local/combined/PostgreSQ
 full_stack_browser, Exhaustive, TC consumer and final migration gates remain
 open. Checkpoint stays `in_progress` and the formal session goal remains
 unavailable.
+
+### Interim accepted-ETF migration-head reconciliation — 2026-10-21
+
+The coordinator supplied terminal exact-source Backend Unit result for
+`b9906150a67165f554c0d02a6e72a877fda0135a` / workflow `39594216381`:
+4,955 passed, one declared skip, and one failure only—the actual two-head graph
+(`d1e7f2a9c4b6` accepted ETF plus Strategy `slv2_0009`). The callback
+replay/persistence regression from the older `8f9a8288` run was fixed and passes
+in this full unit run; that historical red remains preserved. No local DB or
+schema was inspected or altered.
+
+Added Strategy-owned revision `slv2_0010` with exact parents
+`("d1e7f2a9c4b6", "slv2_0009")`. It is a no-DDL graph join only. The graph test
+now requires exactly `slv2_0010` as the interim single head, unique revision
+IDs, both parent edges, ETF and Strategy shared ancestry, and the original
+Strategy chain. It does not accept multiple heads or rewrite either history.
+This is not final migration reconciliation: TC2000 is not accepted through
+staging. After its exact green release, recompute the graph and add another
+Strategy-owned no-DDL merge only if actual heads require it.
+
+Focused migration compatibility and runtime ORM metadata regressions passed
+21/21; Alembic reports `slv2_0010` as its only head with both expected parent
+edges; the declared Mypy command passed 443 source files. Ruff, formatting,
+workstream validation (43 records), JSON parse and diff checks passed. The first
+workstream-validator invocation outside the backend UV environment lacked
+PyYAML; the same validator then passed with the backend UV-managed interpreter.
+No database/container, Compose, browser, full suite, provider call/quota,
+staging/sibling write, or unsafe operation ran. This bounded source context is
+ready for its normal commit/push and exact-source CI; the next CI, combined
+PostgreSQL/application, final TC graph/consumer, Exhaustive and full
+`full_stack_browser` gates remain open. Full roadmap and checkpoint stay
+`in_progress`, not accepted; formal goal remains unavailable.

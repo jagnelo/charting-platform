@@ -24,10 +24,23 @@ scripts in Git for audit. Existing applied IDs are never treated as aliases
 for the new IDs. No `stamp`, version UPDATE, reset, drop or replay against an
 existing Strategy schema is performed by this repair.
 
-After upstream integration, reconcile the actual combined Alembic heads and add
-a reviewed merge revision if needed. Do not reparent an already applied Strategy
-or upstream revision to force a single head; no speculative merge revision is
-created before the real staging graph is available.
+## Interim accepted-ETF graph alignment
+
+The accepted Provider+ETF staging release makes the actual current graph
+available for an interim reconciliation. At Strategy source `b9906150`,
+Alembic reports exactly two heads: accepted ETF `d1e7f2a9c4b6` (parent
+`b6e9a42d1c73`) and Strategy `slv2_0009` (parents `b6e9a42d1c73` and
+`slv2_0008`). Strategy adds `slv2_0010` as a no-DDL merge revision with those
+two heads as parents. The migration graph regression requires exactly
+`slv2_0010` as the interim single head and asserts both parent edges and shared
+ancestry; it does not admit multiple heads or rewrite either revision.
+
+This is not the final combined graph. TC2000 is not yet an accepted staged
+dependency. After its exact green release, merge only that released source,
+recompute ScriptDirectory heads and identifier uniqueness, and add another
+Strategy-owned no-DDL merge only if the actual resulting graph requires one.
+No migration is run against any database in this source-only context. Existing
+revision rows, schema, data, and both histories remain untouched.
 
 ## Database compatibility before any upgrade
 
