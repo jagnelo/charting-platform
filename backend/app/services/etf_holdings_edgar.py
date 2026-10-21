@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from typing import Any
 
-import httpx
+import httpx as _httpx
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,7 +17,23 @@ from app.models.etf_holdings import (
 )
 from app.models.instrument import Instrument
 from app.services.etf_holdings import ingest_holdings_snapshot
+from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
+
+
+class _HeldSECHTTPXNamespace:
+    """SEC transport awaits its own reviewed shared-runtime binding."""
+
+    def AsyncClient(self, *_args, **_kwargs):
+        raise ETFHoldingsRouteHeldError(
+            "SEC holdings requests require a dedicated reviewed ETF_HOLDINGS binding"
+        )
+
+    def __getattr__(self, name):
+        return getattr(_httpx, name)
+
+
+httpx = _HeldSECHTTPXNamespace()
 
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 SEC_SUBMISSIONS_FILE_URL = "https://data.sec.gov/submissions/{file_name}"

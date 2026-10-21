@@ -284,6 +284,31 @@ def test_normal_integration_gate_is_architecture_neutral() -> None:
     assert not (ROOT / "scripts" / "validate-arm64-images.py").exists()
 
 
+def test_pinned_browser_uses_egress_bridge_and_strict_acceptance() -> None:
+    makefile = text("Makefile")
+    runner = next(
+        line for line in makefile.splitlines() if line.startswith("PLAYWRIGHT_DOCKER =")
+    )
+    assert '--network "$${STACK_COMPOSE_PROJECT}_host-access"' in runner
+    assert "-e STACK_URL=http://host-port-relay" in runner
+    assert "--memory $(PLAYWRIGHT_DOCKER_MEMORY)" in runner
+    assert "--cpus $(PLAYWRIGHT_DOCKER_CPUS)" in runner
+    assert "_charting" not in runner
+    assert "--network host" not in runner
+    assert "/usr/share/fonts" not in runner
+    functional = makefile.split("test-e2e:\n", 1)[1].split("test-e2e-headed:", 1)[0]
+    visual = makefile.split("stage=e2e-visual;", 1)[1].split("; \\\n", 1)[0]
+    assert "npx playwright test --retries=0" in functional
+    assert "tc2000_visual.spec.ts --retries=0" in visual
+    compose = yaml.safe_load(text("docker-compose.e2e.yml"))
+    assert compose["networks"]["charting"]["internal"] is True
+    assert compose["networks"]["host-access"]["driver"] == "bridge"
+    for service in ("backend", "worker"):
+        environment = compose["services"][service]["environment"]
+        assert environment["PROVIDER_ROUTING_ENABLED"] == "false"
+        assert environment["HTTPS_PROXY"] == "http://provider-egress-deny:3128"
+
+
 def test_staging_helper_never_creates_local_integration_candidates() -> None:
     helper = text("scripts/staging.py")
     assert 'AI / "worktrees" / "staging"' in helper
@@ -709,8 +734,9 @@ def test_rpi_preflight_checks_configured_remote_architecture(
     assert f"does not match {platform}" in captured[0]
     assert "required_name in SECRET_KEY POSTGRES_PASSWORD CORS_ORIGINS" in captured[0]
     assert "missing or empty deployment setting" in captured[0]
-    assert "grep -Eq \"^$required_name=.+$\" \"$env_file\"" in captured[0]
+    assert 'grep -Eq "^$required_name=.+$" "$env_file"' in captured[0]
     assert "PROVIDER_QUOTA_LEDGER_DATABASE_URL must be PostgreSQL" in captured[0]
-    assert "ensure_provider_quota_coordinator(require_persistent_coordinator=True)" in text(
-        "scripts/rpi.py"
+    assert (
+        "ensure_provider_quota_coordinator(require_persistent_coordinator=True)"
+        in text("scripts/rpi.py")
     )

@@ -74,7 +74,16 @@ describe('ETFHoldingsPanel', () => {
   })
 
   it('renders latest holdings and emits selected constituent symbols', async () => {
-    vi.mocked(api.get).mockResolvedValue(snapshot)
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(snapshot)
+      .mockResolvedValueOnce({
+        availability: 'current',
+        source_tier: 'issuer_native',
+        usable_for_current_analysis: true,
+        displayable_last_known: true,
+        consecutive_failures: 0,
+        reason: 'A complete holdings snapshot passed the latest adapter check.',
+      })
     const wrapper = mount(ETFHoldingsPanel, {
       props: { symbol: 'SPY' },
     })
@@ -115,5 +124,113 @@ describe('ETFHoldingsPanel', () => {
     })
 
     expect(wrapper.html()).toBe('<!--v-if-->')
+  })
+
+  it('shows last-known holdings without advertising current usability when capability is degraded', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(snapshot)
+      .mockResolvedValueOnce({
+        availability: 'degraded',
+        source_tier: 'sec_filing',
+        usable_for_current_analysis: false,
+        displayable_last_known: true,
+        composition_date: snapshot.composition_date,
+        consecutive_failures: 1,
+        reason: 'Holdings are reconstructed from SEC filings and are not issuer-current support.',
+      })
+
+    const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'SPY' } })
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('degraded')
+      expect(wrapper.text()).toContain('not issuer-current support')
+    })
+
+    expect(wrapper.emitted('availability')?.at(-1)).toEqual([false])
+    expect(wrapper.text()).toContain('A last-known snapshot may be displayed')
+  })
+
+  it.each(['stale', 'unavailable', 'not_applicable', 'unknown'])(
+    'keeps a %s no-snapshot capability visible and provider-attributed',
+    async availability => {
+      vi.mocked(api.get)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          availability,
+          source_provider: 'wisdomtree',
+          source_tier: 'none',
+          usable_for_current_analysis: false,
+          displayable_last_known: false,
+          consecutive_failures: 1,
+          reason: `${availability} route evidence`,
+        })
+
+      const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'DXJ' } })
+
+      await vi.waitFor(() => {
+        expect(wrapper.text()).toContain(availability.replace('_', ' '))
+      })
+
+      expect(wrapper.text()).toContain('wisdomtree')
+      expect(wrapper.text()).toContain(`${availability} route evidence`)
+      expect(wrapper.text()).toContain('No current holdings snapshot is available')
+      expect(wrapper.emitted('availability')?.at(-1)).toEqual([false])
+    },
+  )
+
+  it.each([
+    ['issuer_access_blocked', 'issuer access blocked'],
+    ['authentication_required', 'authentication required'],
+    ['access_denied', 'access denied'],
+    ['quota_rate_limited', 'quota/rate limited'],
+  ])('shows the human-readable %s classification in the degradation notice', async (failureClass, label) => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        availability: 'unavailable',
+        source_provider: 'wisdomtree',
+        source_tier: 'none',
+        usable_for_current_analysis: false,
+        displayable_last_known: false,
+        consecutive_failures: 1,
+        failure_class: failureClass,
+        reason: 'The issuer route is not available to the current public transport.',
+      })
+
+    const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'DXJ' } })
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain(`Last check classification: ${label}`)
+    })
+  })
+
+  it('shows persisted canary diagnostics alongside capability state', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        availability: 'unavailable',
+        source_provider: 'wisdomtree',
+        source_tier: 'none',
+        usable_for_current_analysis: false,
+        displayable_last_known: false,
+        consecutive_failures: 3,
+        last_canary_at: '2026-09-05T10:00:00Z',
+        last_canary_status: 'failure',
+        last_canary_latency_ms: 412.5,
+        last_canary_recovered: false,
+        circuit_state: 'open',
+        circuit_open_until: '2026-09-05T10:05:00Z',
+        reason: 'route evidence',
+      })
+
+    const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'DXJ' } })
+
+    await vi.waitFor(() => {
+      expect(wrapper.get('[data-testid="etf-capability-health"]').text()).toContain('Canary failure')
+    })
+    expect(wrapper.text()).toContain('412.5 ms')
+    expect(wrapper.text()).toContain('Failures 3')
+    expect(wrapper.text()).toContain('Circuit open')
+    expect(wrapper.text()).toContain('until')
   })
 })

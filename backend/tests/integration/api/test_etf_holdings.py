@@ -8,6 +8,31 @@ from xml.sax.saxutils import escape
 import httpx
 import pytest
 
+_CURRENT_ERROR_LINEAGE_FIELDS = (
+    "displayable_last_known",
+    "identity_verified",
+    "adapter_key",
+    "source_provider",
+    "transport_kind",
+    "composition_date",
+    "published_at",
+    "freshness_deadline",
+    "last_checked_at",
+    "last_success_at",
+    "last_failure_at",
+    "completeness_status",
+    "row_count",
+    "resolved_count",
+    "unresolved_count",
+)
+
+
+def _expected_current_error(base: dict, capability: dict) -> dict:
+    return {
+        **base,
+        **{field: capability[field] for field in _CURRENT_ERROR_LINEAGE_FIELDS},
+    }
+
 
 def _xlsx_workbook(rows: list[list[str]]) -> bytes:
     def cell_ref(column_index: int, row_index: int) -> str:
@@ -45,6 +70,7 @@ def disable_live_constituent_enrichment(monkeypatch):
 
 
 def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_headers, monkeypatch):
+    composition_date = datetime.now(UTC).date()
     raw_csv = "\n".join(
         [
             "Fund Ticker,Fund Name,Ticker,Name,Weight (%),Shares,Market Value,Currency",
@@ -86,7 +112,7 @@ def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_header
             "issuer": "ARK Invest",
             "provider_aliases": {
                 "expected_fund_symbol": "ARKK",
-                "holdings_composition_date": "2026-06-03",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -96,16 +122,207 @@ def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_header
 
     refresh = client.post("/api/v1/etf-holdings/refresh", headers=admin_headers)
     assert refresh.status_code == 200
-    assert refresh.json()["refreshed"] == 1
+    assert refresh.json()["refreshed"] == 1, refresh.text
     assert refresh.json()["failed"] == 0
 
     latest = client.get("/api/v1/etf-holdings/ARKK/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-03"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["provenance"] == "issuer_self_snapshotted_holdings"
     assert body["source_provider"] == "ark"
     assert body["row_count"] == 2
+
+    capability = client.get("/api/v1/etf-holdings/ARKK/capability", headers=auth_headers)
+    assert capability.status_code == 200
+    capability_body = capability.json()
+    assert capability_body["availability"] == "degraded"
+    assert capability_body["source_tier"] == "issuer_native"
+    assert capability_body["identity_verified"] is True
+    assert capability_body["usable_for_current_analysis"] is False
+    assert capability_body["displayable_last_known"] is True
+    assert capability_body["failure_class"] is None
+    assert "incomplete" in capability_body["reason"]
+    assert capability_body["expected_cadence"] == "unspecified"
+    assert capability_body["transport_kind"] == "file_export"
+    assert capability_body["schema_fingerprint"]
+    assert capability_body["symbol_audit"]["tier"] == 2
+    assert capability_body["symbol_audit"]["outcome"] == "unknown"
+    assert capability_body["symbol_audit"]["evidence_state"] == "no_symbol_audit_record"
+
+
+def test_admin_shadow_gate_reports_missing_tier0_observations(client, admin_headers):
+    response = client.get(
+        "/api/v1/etf-holdings/shadow-gate",
+        headers=admin_headers,
+        params={"as_of": "2026-09-05"},
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["status"] == "fail"
+    assert payload["window_start"] == "2026-08-07"
+    assert payload["window_end"] == "2026-09-05"
+    assert payload["eligible_checks"] == 0
+    assert payload["passing_checks"] == 0
+    assert payload["success_rate"] == 0.0
+    assert payload["missing_symbols"] == payload["eligible_symbols"]
+    assert any(
+        reason.startswith("no eligible Tier 0 observations")
+        for reason in payload["failure_reasons"]
+    )
+
+
+def test_admin_shadow_gate_loads_persisted_tier0_observation(client, admin_headers, db):
+    from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
+    from app.models.instrument import Instrument
+
+    profile_response = client.patch(
+        "/api/v1/etf-holdings/DXJ/profile",
+        json={
+            "issuer": "WisdomTree",
+            "provider_aliases": {"holdings_adapter": "wisdomtree"},
+        },
+        headers=admin_headers,
+    )
+    assert profile_response.status_code == 200, profile_response.text
+    profile = (
+        db.query(ETFProfile)
+        .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+        .filter(Instrument.symbol == "DXJ")
+        .one()
+    )
+    db.add(
+        ETFHoldingsAdapterState(
+            etf_profile_id=profile.id,
+            adapter_key="wisdomtree",
+            status="failure",
+            last_checked_at=datetime(2026, 9, 5, 12, tzinfo=UTC),
+            extra_data={
+                "canary_history": [
+                    {
+                        "observed_at": "2026-09-05T12:00:00+00:00",
+                        "status": "failure",
+                        "availability": "unavailable",
+                        "completeness_status": "unknown",
+                        "source_tier": "issuer_native",
+                        "identity_verified": False,
+                        "usable_for_current_analysis": False,
+                        "freshness_deadline": "2026-09-05",
+                        "symbol_audit_outcome": "unavailable",
+                    }
+                ]
+            },
+        )
+    )
+    db.flush()
+
+    response = client.get(
+        "/api/v1/etf-holdings/shadow-gate",
+        headers=admin_headers,
+        params={"as_of": "2026-09-05"},
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["observed_symbols"] == ["DXJ"]
+    assert "DXJ" not in payload["missing_symbols"]
+    assert payload["eligible_checks"] == 1
+    assert payload["passing_checks"] == 0
+    assert payload["success_rate"] == 0.0
+
+
+def test_admin_can_inspect_bounded_canary_history_without_hydrating_unknown_symbol(
+    client, admin_headers, db
+):
+    from app.models.instrument import Instrument
+
+    assert db.query(Instrument).filter_by(symbol="DXJ").count() == 0
+
+    response = client.get(
+        "/api/v1/etf-holdings/DXJ/canary-history",
+        headers=admin_headers,
+        params={"limit": 2},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"symbol": "DXJ", "observations": []}
+    assert db.query(Instrument).filter_by(symbol="DXJ").count() == 0
+
+
+def test_admin_can_read_bounded_persisted_canary_history_for_existing_symbol(
+    client, admin_headers, db
+):
+    from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
+    from app.models.instrument import Instrument
+
+    profile_response = client.patch(
+        "/api/v1/etf-holdings/ARKK/profile",
+        json={
+            "issuer": "ARK Invest",
+            "provider_aliases": {"holdings_adapter": "ark"},
+        },
+        headers=admin_headers,
+    )
+    assert profile_response.status_code == 200, profile_response.text
+    profile = (
+        db.query(ETFProfile)
+        .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+        .filter(Instrument.symbol == "ARKK")
+        .one()
+    )
+    db.add(
+        ETFHoldingsAdapterState(
+            etf_profile_id=profile.id,
+            adapter_key="ark",
+            status="success",
+            last_checked_at=datetime(2026, 9, 5, 12, tzinfo=UTC),
+            extra_data={
+                "canary_history": [{"sequence": index, "status": "success"} for index in range(4)]
+            },
+        )
+    )
+    db.flush()
+
+    response = client.get(
+        "/api/v1/etf-holdings/ARKK/canary-history",
+        headers=admin_headers,
+        params={"limit": 2},
+    )
+
+    assert response.status_code == 200, response.text
+    assert [item["sequence"] for item in response.json()["observations"]] == [2, 3]
+
+
+def test_capability_read_does_not_hydrate_unknown_symbol(client, auth_headers, db):
+    from app.models.instrument import Instrument
+
+    assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
+
+    response = client.get("/api/v1/etf-holdings/ZZZ/capability", headers=auth_headers)
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["availability"] == "unknown"
+    assert body["usable_for_current_analysis"] is False
+    assert body["symbol_audit"]["outcome"] == "unknown"
+    assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/api/v1/etf-holdings/ZZZ/adapter-state", "/api/v1/etf-holdings/ZZZ/backfills"],
+)
+def test_admin_inspection_lists_do_not_hydrate_unknown_symbol(path, client, admin_headers, db):
+    from app.models.instrument import Instrument
+
+    assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
+
+    response = client.get(path, headers=admin_headers)
+
+    assert response.status_code == 200, response.text
+    assert response.json() == []
+    assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
 
 
 def test_admin_family_history_refresh_queues_deduplicated_local_members(
@@ -1263,6 +1480,7 @@ def test_overlap_matrix_can_expand_etf_family_from_profile_metadata(
 def test_admin_can_refresh_spdr_provider_xlsx_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     raw_workbook = _xlsx_workbook(
         [
             ["Fund Ticker", "XLY"],
@@ -1310,7 +1528,7 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
         json={
             "issuer": "State Street",
             "provider_aliases": {
-                "holdings_composition_date": "2026-06-06",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -1325,7 +1543,7 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
     latest = client.get("/api/v1/etf-holdings/XLY/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-06"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["source_provider"] == "spdr"
     assert body["parser_version"] == "spdr-xlsx-v1"
     assert body["row_count"] == 2
@@ -1340,6 +1558,7 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
 def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     product_url = "https://issuer.example/funds/spy"
     holdings_url = "https://issuer.example/spdr-daily-holdings.zip"
     product_html = f'<a href="{holdings_url}">Download holdings</a>'
@@ -1396,7 +1615,7 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
             "issuer": "State Street",
             "provider_aliases": {
                 "product_url": product_url,
-                "holdings_composition_date": "2026-06-06",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -1412,7 +1631,7 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     latest = client.get("/api/v1/etf-holdings/SPY/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-06"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["source_provider"] == "spdr"
     assert body["parser_version"] == "spdr-zip-v1"
     assert body["row_count"] == 2
@@ -1426,7 +1645,23 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     assert validation["matched"][0]["value"] == "SPY"
 
 
-def test_refresh_failure_records_rate_limit_adapter_state(client, admin_headers, monkeypatch):
+def test_refresh_failure_records_rate_limit_adapter_state(
+    client, admin_headers, auth_headers, monkeypatch
+):
+    # This sync TestClient fixture deliberately uses a sync Connection adapter.
+    # Durable rejected-body retention is covered against the real async runtime
+    # in test_etf_holdings_provider_bridge_runtime; keep this API test focused on
+    # the persisted adapter classification and prove it receives the real cause.
+    retained_failures = []
+
+    async def capture_rejected_failure(*args, **kwargs):
+        retained_failures.append(kwargs["failure"])
+        return None
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._retain_rejected_fetch_artifact",
+        capture_rejected_failure,
+    )
     request = httpx.Request("GET", "https://issuer.example/rate-holdings.csv")
     response = httpx.Response(429, request=request)
     calls = {"count": 0}
@@ -1497,8 +1732,15 @@ def test_refresh_failure_records_rate_limit_adapter_state(client, admin_headers,
     assert body[0]["adapter_key"] == "ark"
     assert body[0]["status"] == "failure"
     assert body[0]["rate_limit_state"] == "http_429"
+    assert body[0]["extra_data"]["last_failure_class"] == "quota_rate_limited"
     assert "Too Many Requests" in body[0]["failure_reason"]
     assert body[0]["last_failure_at"] is not None
+    assert len(retained_failures) == 1
+    assert isinstance(retained_failures[0], httpx.HTTPStatusError)
+
+    capability = client.get("/api/v1/etf-holdings/ARKK/capability", headers=auth_headers)
+    assert capability.status_code == 200
+    assert capability.json()["failure_class"] == "quota_rate_limited"
 
     retry = client.post("/api/v1/etf-holdings/refresh", headers=admin_headers)
     assert retry.status_code == 200
@@ -1520,6 +1762,16 @@ def test_refresh_failure_records_rate_limit_adapter_state(client, admin_headers,
 def test_refresh_failure_records_malformed_holdings_adapter_state(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    retained_failures = []
+
+    async def capture_rejected_failure(*args, **kwargs):
+        retained_failures.append(kwargs["failure"])
+        return None
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._retain_rejected_fetch_artifact",
+        capture_rejected_failure,
+    )
     raw_csv = "\n".join(
         [
             "This file is a marketing disclaimer,not a holdings table",
@@ -1580,11 +1832,14 @@ def test_refresh_failure_records_malformed_holdings_adapter_state(
     assert body[0]["status"] == "failure"
     assert body[0]["rate_limit_state"] is None
     assert "no parseable rows" in body[0]["failure_reason"].lower()
+    assert len(retained_failures) == 1
+    assert isinstance(retained_failures[0], ValueError)
 
 
 def test_admin_can_refresh_issuer_adapter_route_without_direct_holdings_url(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     raw_csv = "\n".join(
         [
             "Fund Name,Ticker,Name,Weight (%),Shares,Market Value,Currency",
@@ -1625,7 +1880,7 @@ def test_admin_can_refresh_issuer_adapter_route_without_direct_holdings_url(
             "provider_aliases": {
                 "holdings_file_name": "ARK_INNOVATION_ETF_ARKK_HOLDINGS",
                 "expected_fund_name": "ARK Innovation ETF",
-                "holdings_composition_date": "2026-06-04",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -1646,7 +1901,7 @@ def test_admin_can_refresh_issuer_adapter_route_without_direct_holdings_url(
     latest = client.get("/api/v1/etf-holdings/ARKK/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-04"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["source_provider"] == "ark"
     assert body["source_url"] == requested_urls[0]
     assert body["parser_version"] == "ark-csv-v1"
@@ -2001,6 +2256,7 @@ def test_admin_can_probe_ready_ishares_product_id_route(client, admin_headers):
 def test_admin_can_refresh_ishares_product_id_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     payload = {
         "componentsByNameMap": {
             "holdings": {
@@ -2025,7 +2281,7 @@ def test_admin_can_refresh_ishares_product_id_route(
                                     "Information Technology",
                                 ]
                             },
-                            "asOfDate": {"value": "20260606"},
+                            "asOfDate": {"value": composition_date.strftime("%Y%m%d")},
                             "fundTicker": {"value": ["IVV", "IVV"]},
                             "fundName": {
                                 "value": [
@@ -2076,7 +2332,7 @@ def test_admin_can_refresh_ishares_product_id_route(
             "issuer": "iShares",
             "provider_aliases": {
                 "issuer_product_id": "239726",
-                "holdings_composition_date": "2026-06-06",
+                "holdings_composition_date": composition_date.isoformat(),
                 "expected_fund_symbol": "IVV",
             },
         },
@@ -2097,7 +2353,7 @@ def test_admin_can_refresh_ishares_product_id_route(
     latest = client.get("/api/v1/etf-holdings/IVV/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-06"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["source_provider"] == "ishares"
     assert body["source_url"] == requested_urls[0]
     assert body["parser_version"] == "ishares-json-v1"
@@ -2539,6 +2795,7 @@ def test_admin_all_family_refresh_rejects_unknown_scope_and_oversized_range(clie
 def test_issuer_adapter_can_discover_holdings_file_from_product_page(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     product_url = "https://issuer.example/funds/qqq"
     holdings_url = "https://issuer.example/downloads/qqq-holdings.csv"
     product_html = """
@@ -2596,7 +2853,7 @@ def test_issuer_adapter_can_discover_holdings_file_from_product_page(
             "provider_aliases": {
                 "product_url": product_url,
                 "expected_fund_symbol": "QQQ",
-                "holdings_composition_date": "2026-06-05",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -2623,6 +2880,7 @@ def test_issuer_adapter_can_discover_holdings_file_from_product_page(
 def test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     product_url = "https://issuer.example/funds/spy"
     holdings_url = "https://issuer.example/api/portfolio/spy-holdings.xlsx?download=1"
     product_html = f"""
@@ -2685,7 +2943,7 @@ def test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute
             "provider_aliases": {
                 "product_url": product_url,
                 "expected_fund_symbol": "SPY",
-                "holdings_composition_date": "2026-06-05",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -2713,6 +2971,7 @@ def test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute
 def test_issuer_adapter_discovers_holdings_from_inferred_product_page_template(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     product_url = "https://www.schwabassetmanagement.com/products/schd"
     holdings_url = "/resource/schd-portfolio-holdings.csv"
     product_html = f"""
@@ -2768,7 +3027,7 @@ def test_issuer_adapter_discovers_holdings_from_inferred_product_page_template(
             "issuer": "Schwab Asset Management",
             "provider_aliases": {
                 "expected_fund_symbol": "SCHD",
-                "holdings_composition_date": "2026-06-04",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -2806,6 +3065,7 @@ def test_issuer_adapter_discovers_holdings_from_inferred_product_page_template(
 def test_issuer_adapter_refresh_infers_artifact_identity_from_fund_columns(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     raw_csv = "\n".join(
         [
             "Fund Ticker,Fund Name,Ticker,Name,Weight (%),Shares,Market Value,Currency",
@@ -2843,7 +3103,7 @@ def test_issuer_adapter_refresh_infers_artifact_identity_from_fund_columns(
             "issuer": "ARK Invest",
             "provider_aliases": {
                 "holdings_file_name": "ARK_AUTONOMOUS_TECH_ARKQ_HOLDINGS",
-                "holdings_composition_date": "2026-06-05",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -3176,12 +3436,20 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
     admin_headers,
     auth_headers,
 ):
+    current_composition_date = date.today() - timedelta(days=1)
     ingest = client.post(
         "/api/v1/etf-holdings/DIA/ingest",
         json={
-            "composition_date": "2026-05-31",
+            "composition_date": current_composition_date.isoformat(),
             "provenance": "issuer_current_holdings",
             "source_provider": "issuer-test",
+            "legal_metadata": {
+                "expected_cadence": "quarterly",
+                "artifact_identity_validation": {
+                    "status": "matched",
+                    "matched": [{"value": "DIA"}],
+                },
+            },
             "rows": [
                 {
                     "symbol": "AAPL",
@@ -3207,6 +3475,12 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
         headers=admin_headers,
     )
     assert ingest.status_code == 200
+    profile = client.patch(
+        "/api/v1/etf-holdings/DIA/profile",
+        json={"provider_aliases": {"holdings_adapter": "spdr"}},
+        headers=admin_headers,
+    )
+    assert profile.status_code == 200
 
     materialized = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
     assert materialized.status_code == 200
@@ -3214,7 +3488,7 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
     assert basket["source_type"] == "etf_holdings"
     assert basket["is_system_managed"] is True
     assert basket["is_read_only"] is True
-    assert basket["composition_date"] == "2026-05-31"
+    assert basket["composition_date"] == current_composition_date.isoformat()
     assert basket["metadata"]["etf_symbol"] == "DIA"
     assert [member["symbol"] for member in basket["members"]] == ["AAPL", "MSFT"]
     assert basket["members"][0]["weight"] == "0.04000000"
@@ -3226,6 +3500,75 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
     read = client.get(f"/api/v1/baskets/{basket['id']}", headers=auth_headers)
     assert read.status_code == 200
     assert read.json()["source_snapshot_id"] == basket["source_snapshot_id"]
+
+
+def test_ingestion_rejects_future_snapshot_metadata_as_a_client_error(client, admin_headers):
+    response = client.post(
+        "/api/v1/etf-holdings/FUTURE/ingest",
+        json={
+            "composition_date": (date.today() + timedelta(days=1)).isoformat(),
+            "source_provider": "issuer-test",
+            "rows": [{"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.04"}],
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "future composition date" in response.json()["detail"]
+
+
+def test_etf_holdings_basket_rejects_non_current_without_historical_selection(
+    client, admin_headers, auth_headers
+):
+    ingest = client.post(
+        "/api/v1/etf-holdings/DIA/ingest",
+        json={
+            "composition_date": "2026-05-31",
+            "provenance": "sec_filing",
+            "source_provider": "sec",
+            "source_quality": "sec_filing",
+            "completeness_status": "complete",
+            "rows": [
+                {
+                    "symbol": "AAPL",
+                    "name": "Apple Inc.",
+                    "weight": "0.04",
+                    "shares": "100",
+                }
+            ],
+        },
+        headers=admin_headers,
+    )
+    assert ingest.status_code == 200
+    profile = client.patch(
+        "/api/v1/etf-holdings/DIA/profile",
+        json={"provider_aliases": {"holdings_adapter": "spdr"}},
+        headers=admin_headers,
+    )
+    assert profile.status_code == 200
+
+    current = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
+    assert current.status_code == 409
+    capability = client.get("/api/v1/etf-holdings/DIA/capability", headers=auth_headers)
+    assert capability.status_code == 200
+    assert current.json()["detail"] == _expected_current_error(
+        {
+            "code": "etf_holdings_not_current",
+            "availability": "degraded",
+            "source_tier": "sec_filing",
+            "usable_for_current_analysis": False,
+            "failure_class": None,
+            "reason": "Holdings are reconstructed from SEC filings and are not issuer-current support.",
+        },
+        capability.json(),
+    )
+
+    historical = client.get(
+        "/api/v1/etf-holdings/DIA/basket?date=2026-05-31",
+        headers=auth_headers,
+    )
+    assert historical.status_code == 200
+    assert historical.json()["composition_date"] == "2026-05-31"
 
 
 def test_csv_ingestion_normalizes_common_issuer_columns(client, admin_headers, auth_headers):
@@ -3934,7 +4277,7 @@ def test_coverage_summary_reports_missing_partial_and_full_ranges(
     client.post(
         "/api/v1/etf-holdings/IWV/ingest",
         json={
-            "composition_date": "2026-12-31",
+            "composition_date": (date.today() - timedelta(days=1)).isoformat(),
             "source_provider": "issuer-test",
             "rows": [{"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.01"}],
         },

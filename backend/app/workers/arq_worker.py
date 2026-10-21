@@ -413,6 +413,12 @@ async def scheduled_etf_holdings_refresh(ctx: dict):
     return await refresh_etf_holdings_task(ctx)
 
 
+async def scheduled_etf_holdings_capability_canary(ctx: dict):
+    from app.tasks.etf_holdings_tasks import etf_holdings_capability_canary_task
+
+    return await etf_holdings_capability_canary_task(ctx)
+
+
 async def scheduled_etf_holdings_sec_backfill(ctx: dict):
     from app.tasks.etf_holdings_tasks import backfill_sec_nport_holdings_task
 
@@ -612,6 +618,7 @@ class WorkerSettings:
         scheduled_daily_history_refresh,
         scheduled_refresh_queue_process,
         scheduled_etf_holdings_refresh,
+        scheduled_etf_holdings_capability_canary,
         scheduled_etf_holdings_sec_backfill,
         scheduled_etf_holdings_classification_refresh,
         scheduled_benchmark_family_holdings_refresh,
@@ -636,6 +643,7 @@ class WorkerSettings:
             cron(scheduled_daily_history_refresh, hour=5, minute=0),
             cron(scheduled_refresh_queue_process, minute={0, 15, 30, 45}),
             cron(scheduled_etf_holdings_refresh, weekday=6, hour=5, minute=0),
+            cron(scheduled_etf_holdings_capability_canary, weekday=6, hour=5, minute=30),
             cron(scheduled_etf_holdings_sec_backfill, weekday=6, hour=6, minute=0),
             cron(scheduled_etf_holdings_classification_refresh, weekday=6, hour=7, minute=0),
             cron(scheduled_benchmark_family_holdings_refresh, weekday=6, hour=8, minute=0),
@@ -655,6 +663,7 @@ class WorkerSettings:
             settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
             or settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED
             or settings.ETF_HOLDINGS_REFRESH_ENABLED
+            or settings.ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED
             or settings.ETF_HOLDINGS_SEC_BACKFILL_ENABLED
             or settings.ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED
             or settings.BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED

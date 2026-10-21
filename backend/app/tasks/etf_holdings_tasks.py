@@ -1,6 +1,7 @@
 import logging
 
 from app.config import settings
+from app.services.etf_holdings_capability import tier0_symbols
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,67 @@ async def refresh_etf_holdings_task(ctx: dict) -> dict:
 
     async with AsyncSessionLocal() as db:
         summary = await refresh_all_known_etf_holdings(db)
+        await db.commit()
+        return summary
+
+
+async def etf_holdings_capability_canary_task(ctx: dict) -> dict:
+    """Run the disabled-by-default, bounded Tier 0 ETF route canary sweep."""
+
+    if not getattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", False):
+        logger.info("ETF holdings capability canary disabled; skipping")
+        return {"skipped": True, "reason": "capability canary disabled"}
+
+    from app.database import AsyncSessionLocal
+    from app.services.etf_holdings_refresh import run_etf_holdings_capability_canaries
+
+    symbols = [
+        value.strip().upper()
+        for value in str(settings.ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS).split(",")
+        if value.strip()
+    ]
+    if not symbols or len(symbols) != len(set(symbols)):
+        message = (
+            "ETF holdings capability canary configuration must contain at least one "
+            "unique symbol"
+        )
+        logger.error(message)
+        return {
+            "skipped": True,
+            "reason": "invalid canary configuration",
+            "configuration_error": message,
+            "requested": len(symbols),
+            "max_symbols": settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
+        }
+    canonical_symbols = set(tier0_symbols())
+    max_symbols = settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS
+    if max_symbols < len(symbols):
+        configured_scope = (
+            "canonical Tier-0 set"
+            if canonical_symbols.issubset(symbols)
+            else "configured symbol list"
+        )
+        message = (
+            "ETF holdings capability canary configuration would truncate the "
+            f"{configured_scope} ({len(symbols)} symbols)"
+        )
+        logger.error(message)
+        return {
+            "skipped": True,
+            "reason": "invalid canary configuration",
+            "configuration_error": message,
+            "requested": len(symbols),
+            "max_symbols": max_symbols,
+        }
+    async with AsyncSessionLocal() as db:
+        summary = await run_etf_holdings_capability_canaries(
+            db,
+            symbols=symbols,
+            max_symbols=settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
+            timeout_seconds=settings.ETF_HOLDINGS_CAPABILITY_CANARY_TIMEOUT_SECONDS,
+            failure_threshold=settings.ETF_HOLDINGS_CAPABILITY_CANARY_FAILURE_THRESHOLD,
+            cooldown_seconds=settings.ETF_HOLDINGS_CAPABILITY_CANARY_COOLDOWN_SECONDS,
+        )
         await db.commit()
         return summary
 

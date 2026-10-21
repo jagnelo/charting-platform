@@ -6,13 +6,15 @@ import zipfile
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
+from pathlib import Path
 from types import SimpleNamespace
 from xml.sax.saxutils import escape
 
 import httpx
 import pytest
-import requests
+import yaml
 
+from app.config import settings
 from app.services.etf_holdings_adapters import (
     ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS,
     ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS,
@@ -58,6 +60,11 @@ from app.services.etf_holdings_adapters import (
     parse_html_holdings_table_by_id,
     parse_xlsx_table,
     registered_adapter_keys,
+    requests,
+)
+from app.services.etf_holdings_capability import (
+    _NON_TIER_0_SYMBOL_AUDITS,
+    _TIER_0_SYMBOL_AUDITS,
 )
 
 
@@ -304,10 +311,20 @@ async def test_sofi_fetch_preserves_periodic_archive_provenance(monkeypatch):
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
             content=b"%PDF-fake",
             content_type="application/pdf",
             url=adapter.HOLDINGS_URL,
-        )
+        ),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
@@ -1303,6 +1320,461 @@ async def test_optimize_adapter_verifies_optz_page_and_parses_issuer_xls(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_river1_adapter_verifies_rver_page_and_parses_issuer_xls(monkeypatch):
+    adapter = get_holdings_adapter("river1")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>RVER The Trenchless Fund ETF</h1>"
+                '<a href="/download-holdings-usbanks.php?fund=rver">Download full holdings</a>'
+                "<p>Data as of 09/01/2026</p>"
+            ),
+            content_type="text/html",
+            url="https://river1.us/rver",
+        ),
+        FakeResponse(
+            content=b"legacy-workbook",
+            content_type="application/vnd.ms-excel",
+            url="https://river1.us/download-holdings-usbanks.php?fund=rver",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.parse_holdings_xls",
+        lambda _content: (
+            [
+                CanonicalHoldingRow(
+                    symbol="HPE",
+                    name="Hewlett Packard Enterprise Co",
+                    cusip="42824C109",
+                    weight=Decimal("0.0858"),
+                    shares=Decimal("261606"),
+                    market_value=Decimal("13666297.44"),
+                )
+            ],
+            [["% Of Net Assets", "Name", "Ticker", "CUSIP", "Shares Held", "Market Value"]],
+        ),
+    )
+
+    result = await adapter.fetch_latest(symbol="RVER")
+
+    assert [row.symbol for row in result.rows] == ["HPE"]
+    assert result.legal_metadata["source_provider"] == "river1_asset_management"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "river1_product_page_verified_fund_scoped_full_holdings_xls"
+    )
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://river1.us/rver",
+        "https://river1.us/download-holdings-usbanks.php?fund=rver",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_robo_global_adapter_parses_nuxt_holdings(monkeypatch):
+    adapter = get_holdings_adapter("robo_global")
+    assert adapter is not None
+    payload = [
+        None,
+        "roboglobaletfs-robo-HoldingsComponent-1",
+        "09/01/2026",
+        [5],
+        {"componentId": 1, "date": 2, "finData": 3},
+        {
+            "ticker": 6,
+            "description": 7,
+            "quantity": 8,
+            "market_value": 9,
+            "percent_of_nav": 10,
+            "figi": 11,
+        },
+        "AUTO NO",
+        "AUTOSTORE HOLDINGS LTD.",
+        22983541,
+        "39751581.87",
+        "0.0196",
+        "BBG0130YK031",
+    ]
+    page = (
+        '<div data-preview-route="robo"></div>'
+        '<script type="application/json" id="__NUXT_DATA__">'
+        f"{json.dumps(payload)}"
+        "</script>"
+        "<h1>ROBO Global Robotics & Automation ETF (ROBO)</h1>"
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=adapter.PRODUCT_PAGE_URLS["ROBO"])
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ROBO")
+
+    assert [row.symbol for row in result.rows] == ["AUTO"]
+    assert result.rows[0].extra_data["source_ticker"] == "AUTO NO"
+    assert result.legal_metadata["source_provider"] == "robo_global_etfs"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "robo_global_product_page_nuxt_complete_holdings_component"
+    )
+
+
+@pytest.mark.asyncio
+async def test_rockefeller_adapter_fetches_fund_scoped_daily_csv(monkeypatch):
+    adapter = get_holdings_adapter("rockefeller_capital")
+    assert adapter is not None
+    product_url, holdings_url = adapter._PRODUCTS["RSMC"]
+    holdings_csv = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits",
+            "09/03/2026,RSMC,HASI,41068X100,HA Sustainable Infrastructure Capital Inc,762326,39.83,30363444.58,3.97%,764067825.0,27050000,2705.0",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>Rockefeller U.S. Small-Mid Cap ETF (RSMC)</h1>"
+            '<a href="/wp-content/uploads/data/TidalFG_Holdings_RSMC.csv">Download</a></html>',
+            url=product_url,
+        ),
+        FakeResponse(text=holdings_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="RSMC")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert result.rows[0].symbol == "HASI"
+    assert result.legal_metadata["source_provider"] == "rockefeller_etfs"
+    assert result.legal_metadata["route_resolution"] == "rockefeller_issuer_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
+
+
+@pytest.mark.asyncio
+async def test_saba_capital_adapter_parses_cefs_nuxt_holdings(monkeypatch):
+    adapter = get_holdings_adapter("saba_capital")
+    assert adapter is not None
+    payload = [
+        None,
+        "sabaetf-temp-holdings-1",
+        "09/01/2026",
+        [5],
+        {"componentId": 1, "date": 2, "finData": 3},
+        {
+            "figi": 6,
+            "ticker": 7,
+            "quantity": 8,
+            "description": 9,
+            "market_value": 10,
+            "percent_of_nav": 11,
+        },
+        "ECAT",
+        "ECAT",
+        1647143,
+        "BlackRock ESG Capital Allocation Term Trust",
+        "25744845",
+        "0.0586",
+    ]
+    page = (
+        '<div data-preview-route="cefs"></div>'
+        '<script type="application/json" id="__NUXT_DATA__">'
+        f"{json.dumps(payload)}"
+        "</script>"
+        "<h1>SABA Opportunistically Hedged Closed-End Funds ETF (CEFS)</h1>"
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=adapter.PRODUCT_PAGE_URLS["CEFS"])
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CEFS")
+
+    assert [row.symbol for row in result.rows] == ["ECAT"]
+    assert result.rows[0].shares == Decimal("1647143")
+    assert result.rows[0].market_value == Decimal("25744845")
+    assert result.rows[0].weight == Decimal("0.0586")
+    assert result.legal_metadata["source_provider"] == "saba_etf"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "saba_capital_product_page_nuxt_complete_holdings_component"
+    )
+
+
+@pytest.mark.asyncio
+async def test_sammons_enterprises_adapter_fetches_declared_beacon_csv(monkeypatch):
+    adapter = get_holdings_adapter("sammons_enterprises")
+    assert adapter is not None
+    product_url, holdings_url = adapter._FUNDS["BSR"]
+    page = "<h1>Beacon Unified Catalyst ETF (BSR)</h1>" f'<a href="{holdings_url}">Holdings CSV</a>'
+    holdings_csv = "\n".join(
+        [
+            "Beacon Unified Catalyst ETF",
+            "Fund Holdings Data as of 09/01/2026",
+            "Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %",
+            "VANGUARD ENERGY ETF,92204A306,VDE US,11.70%,182.64,20904,3818534,11.70%",
+            "VANGUARD HEALTH CARE ETF,92204A504,VHT US,9.73%,321.47,9872,3174736,9.73%",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=product_url),
+        FakeResponse(text=holdings_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BSR")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert [row.symbol for row in result.rows] == ["VDE", "VHT"]
+    assert result.rows[0].weight == Decimal("0.1170")
+    assert result.legal_metadata["source_provider"] == "beacon_investing_funds"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "beacon_product_page_declared_complete_holdings_csv"
+    )
+
+
+def test_sammons_enterprises_does_not_advertise_liquidated_btr_route():
+    adapter = get_holdings_adapter("sammons_enterprises")
+    assert adapter is not None
+
+    probe = adapter.probe(symbol="BTR", name="Beacon Tactical Risk ETF", identifiers={})
+
+    assert probe.status == "unsupported_symbol"
+    assert probe.source_url is None
+    assert "limited to BSR and BTA" in probe.reason
+
+
+@pytest.mark.asyncio
+async def test_sapient_adapter_parses_current_html_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("sapient")
+    assert adapter is not None
+    page = """
+    <h1>Sapient Quality Select ETF (SQS)</h1>
+    <h2>Fund Holdings</h2>
+    <table id="table_12"><thead><tr>
+      <th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th>
+      <th>PRICE</th><th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th>
+    </tr></thead><tbody>
+      <tr><td>NVDA</td><td>NVIDIA Corp</td><td>67066G104</td><td>618465</td><td>199.40</td><td>123.43</td><td>9.08</td><td>09/03/2026</td></tr>
+      <tr><td>GOOGL</td><td>Alphabet Inc</td><td>02079K305</td><td>306235</td><td>384.90</td><td>117.84</td><td>8.67</td><td>09/03/2026</td></tr>
+    </tbody></table>
+    """
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=adapter.PRODUCT_PAGE_URL)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SQS")
+
+    assert [row.symbol for row in result.rows] == ["NVDA", "GOOGL"]
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.0908")
+    assert result.legal_metadata["source_provider"] == "sapient_quality_select"
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
+    assert result.legal_metadata["route_resolution"] == (
+        "sapient_official_product_page_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
+async def test_smi_funds_adapter_parses_current_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("smi_funds")
+    assert adapter is not None
+    page = """
+    <h1>3FourteenSMI: Real Asset Allocation ETF (RAA)</h1>
+    <h2>Holdings</h2><p>As of 09/01/2026</p>
+    <table><thead><tr>
+      <th>Description</th><th>Ticker</th><th>Weight (%)**</th><th>Market Value ($)</th>
+      <th>FIGI</th><th>Shares Held</th>
+    </tr></thead><tbody>
+      <tr><td>BNY MELLON US LARGE CAP CORE E</td><td>BKLC</td><td>14.94</td><td>91713300</td><td>BBG00RYR67P4</td><td>1884780</td></tr>
+      <tr><td>INVESCO OPTIMUM YIELD DIVERS</td><td>PDBC</td><td>7.16</td><td>43975600</td><td>N/A</td><td>2308430</td></tr>
+    </tbody></table>
+    """
+    product_url = adapter.PRODUCT_PAGE_URLS["RAA"]
+    FakeAsyncClient.queue = [FakeResponse(text=page, content_type="text/html", url=product_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="RAA")
+
+    assert [row.symbol for row in result.rows] == ["BKLC", "PDBC"]
+    assert result.rows[0].weight == Decimal("0.1494")
+    assert result.rows[0].shares == Decimal("1884780")
+    assert result.legal_metadata["source_provider"] == "smi_funds"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "smi_funds_official_product_page_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
+async def test_srh_adapter_parses_current_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("srh")
+    assert adapter is not None
+    page = """
+    <h1>SRH U.S. Quality GARP ETF (SRHQ)</h1>
+    <p>As of 09/01/2026</p>
+    <table><thead><tr>
+      <th>Security</th><th>Ticker</th><th>Security ID</th>
+      <th>Number of Shares</th><th>Market Value</th><th>Weight</th>
+    </tr></thead><tbody>
+      <tr><td>Humacyte, Inc.</td><td>HUMA</td><td>444-28-7421</td>
+      <td>125000</td><td>$1,250,000</td><td>2.43%</td></tr>
+      <tr><td>Qualys, Inc.</td><td>QLYS</td><td>74758T303</td>
+      <td>50000</td><td>$6,000,000</td><td>1.17%</td></tr>
+    </tbody></table>
+    """
+    product_url = adapter.PRODUCT_PAGE_URLS["SRHQ"]
+    FakeAsyncClient.queue = [FakeResponse(text=page, content_type="text/html", url=product_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SRHQ")
+
+    assert [row.symbol for row in result.rows] == ["HUMA", "QLYS"]
+    assert result.rows[0].cusip == "444-28-7421"
+    assert result.rows[0].weight == Decimal("0.0243")
+    assert result.rows[0].shares == Decimal("125000")
+    assert result.legal_metadata["source_provider"] == "srh_funds"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "srh_official_product_page_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
+async def test_stance_adapter_parses_current_hennessy_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("stance")
+    assert adapter is not None
+    page = """
+    <h1>Hennessy Sustainable ETF</h1>
+    <h2>### Total Holdings: 48</h2><p>as of 9/2/26</p>
+    <table><thead><tr>
+      <th>Name</th><th>Ticker</th><th>CUSIP</th><th>Shares</th>
+      <th>Market Value</th><th>% of Net Assets</th>
+    </tr></thead><tbody>
+      <tr><td>HP Inc</td><td>HPQ</td><td>40434L105</td><td>123,924</td>
+      <td>$3,881,299.68</td><td>4.3%</td></tr>
+      <tr><td>McKesson Corp</td><td>MCK</td><td>58155Q103</td><td>3,775</td>
+      <td>$3,423,056.75</td><td>3.8%</td></tr>
+    </tbody></table>
+    """
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=adapter.PRODUCT_PAGE_URL)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="STNC")
+
+    assert [row.symbol for row in result.rows] == ["HPQ", "MCK"]
+    assert result.rows[0].cusip == "40434L105"
+    assert result.rows[0].weight == Decimal("0.043")
+    assert result.rows[0].shares == Decimal("123924")
+    assert result.legal_metadata["source_provider"] == "hennessy_stance"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["route_resolution"] == (
+        "stance_hennessy_official_product_page_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
+async def test_stratified_adapter_parses_nuxt_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("stratified")
+    assert adapter is not None
+    payload = [
+        None,
+        {"componentId": 2, "finData": 3, "date": 4},
+        "stratified-sspy-HoldingsComponent-1",
+        [5, 6],
+        "09/02/2026",
+        {
+            "ticker": 7,
+            "description": 8,
+            "quantity": 9,
+            "market_value": 10,
+            "percent_of_nav": 11,
+            "figi": 12,
+        },
+        {
+            "ticker": 13,
+            "description": 14,
+            "quantity": 15,
+            "market_value": 16,
+            "percent_of_nav": 17,
+            "figi": 18,
+        },
+        "MSFT",
+        "Microsoft Corp",
+        100,
+        "50000.00",
+        "1.25%",
+        "BBG000BPH459",
+        "CASH",
+        "CASH & OTHER",
+        1,
+        "1.00",
+        "0.01%",
+        "BBG0013HGBT3",
+    ]
+    page = '<script type="application/json" id="__NUXT_DATA__">' + json.dumps(payload) + "</script>"
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page, content_type="text/html", url="https://www.stratifiedfunds.com/sspy"
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SSPY")
+
+    assert [row.symbol for row in result.rows] == ["MSFT", None]
+    assert result.rows[0].weight == Decimal("0.0125")
+    assert result.rows[0].shares == Decimal("100")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["route_resolution"] == (
+        "stratified_official_fund_page_nuxt_complete_holdings_component"
+    )
+
+
+@pytest.mark.asyncio
+async def test_trimtabs_adapter_resolves_abacus_successor_csv(monkeypatch):
+    adapter = get_holdings_adapter("trimtabs")
+    assert adapter is not None
+    page = (
+        "<html><h1>Abacus FCF Leaders ETF (ABFL)</h1>"
+        '<a href="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABFL_allHoldings.csv">'
+        "DOWNLOAD FULL HOLDINGS</a></html>"
+    )
+    holdings = (
+        "Ticker,CUSIP,Security Description,Shares,Market Value,% of Net Assets\n"
+        'AAPL,037833100,Apple Inc,100,"$10,000",5.00%\n'
+        'CASH,,Cash & Other,1,"$100",0.05%\n'
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url="https://abacusfcf.com/abfl/"),
+        FakeResponse(
+            text=holdings,
+            content_type="text/csv",
+            url="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABFL_allHoldings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TTAC")
+
+    assert [row.symbol for row in result.rows] == ["AAPL", None]
+    assert result.rows[0].weight == Decimal("0.05")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "abacus_fcf"
+    assert result.legal_metadata["canonical_symbol"] == "ABFL"
+    assert result.legal_metadata["route_resolution"] == (
+        "abacus_fcf_official_product_page_declared_complete_holdings_csv"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -1400,6 +1872,125 @@ async def test_akre_adapter_parses_filepoint_daily_holdings_without_inventing_lo
     assert result.rows[2].weight == Decimal("-0.0012")
     assert result.legal_metadata["route_resolution"] == "issuer_filepoint_daily_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
+@pytest.mark.asyncio
+async def test_m_d_sass_adapter_parses_complete_current_issuer_csv(monkeypatch):
+    adapter = get_holdings_adapter("m_d_sass")
+    assert adapter is not None
+    assert type(adapter).__name__ == "MDSassHoldingsAdapter"
+    assert (
+        adapter.probe(symbol="SASS", name="M.D. Sass Concentrated Value ETF", identifiers={}).status
+        == "ready"
+    )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,MoneyMarketFlag",
+                    "09/08/2026,SASS,ADI,032654105,Analog Devices Inc,10056,362.25,3642786,4.67%,77987725.20,",
+                    "09/08/2026,SASS,AMZN,023135106,Amazon.com Inc,21410,258.51,5534699.10,7.10%,77987725.20,",
+                    "09/08/2026,SASS,Cash&Other,Cash&Other,Cash & Other,89133.68,1,89133.68,0.11%,77987725.20,Y",
+                    "09/08/2026,OTHER,MSFT,594918104,Microsoft Corp,10,1,10,1%,10,",
+                ]
+            ),
+            url=adapter.HOLDINGS_URL,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SASS")
+
+    assert FakeAsyncClient.requested[0][0] == adapter.HOLDINGS_URL
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "ADI"
+    assert result.rows[0].cusip == "032654105"
+    assert result.rows[0].weight == Decimal("0.0467")
+    assert result.rows[-1].symbol is None
+    assert result.rows[-1].holding_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "md_sass_issuer_declared_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-08"
+
+
+@pytest.mark.asyncio
+async def test_baillie_gifford_adapter_parses_complete_daily_workbook(monkeypatch):
+    adapter = get_holdings_adapter("baillie_gifford")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BaillieGiffordHoldingsAdapter"
+    assert (
+        adapter.probe(
+            symbol="BGGG", name="Baillie Gifford Long Term Global Growth ETF", identifiers={}
+        ).status
+        == "ready"
+    )
+
+    workbook = _xlsx_workbook_sheets(
+        [
+            [
+                [
+                    "Baillie Gifford Long Term Global Growth ETF - October 1, 2026",
+                    "Holding Name",
+                    "Fund %",
+                ]
+            ],
+            [
+                [
+                    "Baillie Gifford Long Term Global Growth ETF - October 1, 2026",
+                    "CUSIP",
+                    "Ticker",
+                    "Instrument Name",
+                    "Quantity",
+                    "Weight",
+                    "Currency",
+                ],
+                ["1", "67066G104", "NVDA US", "NVIDIA CORP USD 0.001", "100,928", "8.10", "USD"],
+                [
+                    "2",
+                    "",
+                    "2330 TT",
+                    "TAIWAN SEMICONDUCTOR MANUF TWD 10.0",
+                    "266,480",
+                    "6.39",
+                    "TWD",
+                ],
+                ["3", "", "", "Euro", "8,391", "0.00", "EUR"],
+                *[
+                    [
+                        str(index),
+                        "",
+                        f"{index} LN",
+                        f"Foreign Holding {index}",
+                        "100",
+                        "1.00",
+                        "GBP",
+                    ]
+                    for index in range(4, 12)
+                ],
+            ],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url="https://www.bailliegifford.com/api/top-holdings/?fundId=61715",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BGGG")
+
+    assert len(result.rows) == 11
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.0810")
+    assert result.rows[1].symbol == "2330 TT"
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-10-01"
+    assert result.legal_metadata["route_resolution"] == "baillie_gifford_fund_id_workbook"
 
 
 @pytest.mark.asyncio
@@ -2266,6 +2857,16 @@ async def test_regan_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
         "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
     )
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        to_thread_calls.append((func, args, kwargs))
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
     requests_seen = []
     to_thread_calls = []
 
@@ -3066,6 +3667,163 @@ async def test_cygnet_adapter_retries_transient_holdings_csv_timeout(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_elm_adapter_reuses_declared_full_holdings_csv_with_elm_provenance(monkeypatch):
+    adapter = get_holdings_adapter("elm")
+    assert adapter is not None
+    product_url = "https://www.elmfunds.com/elm-market-navigator-etf"
+    holdings_url = "https://docs.google.com/spreadsheets/export?id=example&exportFormat=csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>Elm Market Navigator ETF (ELM)</h1>"
+                '<a href="https://docs.google.com/spreadsheets/export?id=example&amp;exportFormat=csv">'
+                "Download FULL Holdings CSV</a>"
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+                    "09/01/2026,ELM,VBIL,922040845,Vanguard 0-3 Month Treasury Bill ETF,2060988,75.50,155604594,26.17%,594610380",
+                    "09/01/2026,ELM,FGXXX,31846V336,First American Government Obligations Fund,100000,100,100000,0.02%,594610380",
+                    "09/01/2026,OTHER,AAA,123456789,Sibling Fund Position,1,1,1,100%,1",
+                ]
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ELM")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "VBIL"
+    assert result.rows[0].source_row_id == "elm-ELM-1"
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "elm_partners_management"
+    assert result.legal_metadata["adapter_key"] == "elm"
+    assert result.legal_metadata["snapshot_provenance"] == "elm_issuer_native_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+
+@pytest.mark.asyncio
+async def test_esoterica_adapter_parses_wugi_slice_from_filepoint_aggregate_csv(monkeypatch):
+    adapter = get_holdings_adapter("esoterica")
+    assert adapter is not None
+    assert type(adapter).__name__ == "EsotericaHoldingsAdapter"
+    assert "esoterica" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["esoterica"].live_tested_default_route is True
+
+    ready = adapter.probe(symbol="WUGI", name="AXS Esoterica NextG Economy ETF", identifiers={})
+    unsupported = adapter.probe(symbol="NXTE", name="", identifiers={})
+    assert ready.status == "ready"
+    assert ready.source_url == adapter.PRODUCT_PAGE_URL
+    assert unsupported.status == "needs_issuer_route"
+
+    holdings_url = adapter.DAILY_HOLDINGS_TEMPLATE.format(report_date="20260901")
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "ETF Ticker,Date,ISIN,CUSIP,SEDOL,Ticker,Description,Security Type,Market Value,Maturity Date,Shares,Security Price,Asset Currency,Shares Outstanding,Total Net Assets,Market Value Weight",
+                    "WUGI,9/1/2026,US8740391003,874039100,2113382,TSM,TAIWAN SEMICONDUCTOR-SP ADR,COMMON STOCK,2554380,,6170,414,USD,375754,30602408.32,8.35%",
+                    "WUGI,9/1/2026,,,,CASHEUR,CASHEUR,CASH,159.35,,137.42,,EUR,375754,30602408.32,0.00%",
+                    "WUGI,9/1/2026,,,,,NET OTHER ASSETS,OTHER,-75988.26,,-75988.26,,USD,375754,30602408.32,-0.25%",
+                    "NXTE,9/1/2026,US8740391003,874039100,2113382,TSM,TAIWAN SEMICONDUCTOR-SP ADR,COMMON STOCK,5796000,,14000,414,USD,1100000,52084969.84,11.13%",
+                ]
+            ),
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_for_date(symbol="WUGI", requested_date=date(2026, 9, 1))
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "TSM"
+    assert result.rows[0].weight == Decimal("0.0835")
+    assert result.rows[0].isin == "US8740391003"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[2].name == "NET OTHER ASSETS"
+    assert result.legal_metadata["source_provider"] == "esoterica_capital"
+    assert result.legal_metadata["adapter_key"] == "esoterica"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "esoterica_wugi_filepoint_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["freshness_semantics"] == "issuer_disclosed_holdings_date"
+
+
+@pytest.mark.asyncio
+async def test_even_herd_adapter_fetches_declared_complete_ehls_csv(monkeypatch):
+    adapter = get_holdings_adapter("even_herd")
+    assert adapter is not None
+    assert type(adapter).__name__ == "EvenHerdHoldingsAdapter"
+    assert "even_herd" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["even_herd"].live_tested_default_route is True
+
+    ready = adapter.probe(symbol="EHLS", name="Even Herd Long/Short ETF", identifiers={})
+    unsupported = adapter.probe(symbol="OTHER", name="", identifiers={})
+    assert ready.status == "ready"
+    assert ready.source_url == adapter.PRODUCT_PAGE_URL
+    assert unsupported.status == "needs_issuer_route"
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>EVEN HERD LONG/SHORT ETF (EHLS)</h1>"
+                '<a href="https://evenherd-wix.s3.us-east-2.amazonaws.com/holdings.csv">'
+                "Download Holdings CSV</a>"
+            ),
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+                    "09/02/2026,EHLS,FGXXX,31846V336,First American Government Obligations Fund 12/01/2031,12195814.13,100.0,12195814.13,21.05%,57936542.0,2290000,229.0,Y",
+                    "09/02/2026,EHLS,Cash&Other,Cash&Other,Cash & Other,2159338.46,1.0,2159338.46,3.73%,57936542.0,2290000,229.0,Y",
+                    "09/02/2026,EHLS,GH,40131M109,Guardant Health Inc,7046.0,164.41,1158432.86,2.00%,57936542.0,2290000,229.0,",
+                    "09/02/2026,EHLS,KMX,488360107,Kemper Corp,-1000.0,50.0,-50000.0,-0.09%,57936542.0,2290000,229.0,",
+                    "09/02/2026,OTHER,AAA,123456789,Other Fund,1,1,1,100%,1,1,1,",
+                ]
+            ),
+            url=adapter.HOLDINGS_URL,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="EHLS")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.HOLDINGS_URL,
+    ]
+    assert len(result.rows) == 4
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[2].symbol == "GH"
+    assert result.rows[3].shares == Decimal("-1000.0")
+    assert result.rows[3].weight == Decimal("-0.0009")
+    assert result.legal_metadata["source_provider"] == "even_herd"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "even_herd_ehls_issuer_native_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
 async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_holdings(monkeypatch):
     adapter = get_holdings_adapter("indexperts")
     assert adapter is not None
@@ -3263,7 +4021,11 @@ async def test_hwcap_adapter_follows_official_monthly_holdings_pdf_and_keeps_cas
             )
         return FakeResponse(content=b"mock-pdf", content_type="application/pdf", url=holdings_url)
 
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
     monkeypatch.setattr(
         "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
     )
@@ -3554,6 +4316,60 @@ async def test_praxis_adapter_fetches_its_verified_symbol_scoped_daily_csv(monke
     assert result.rows[0].weight == Decimal("0.5")
     assert result.legal_metadata["composition_date"] == "2026-07-16"
     assert result.legal_metadata["route_resolution"] == "praxis_verified_symbol_daily_holdings_csv"
+
+
+@pytest.mark.asyncio
+async def test_everence_adapter_reuses_praxis_routes_with_parent_provenance(monkeypatch):
+    adapter = get_holdings_adapter("everence")
+    assert adapter is not None
+    assert type(adapter).__name__ == "EverenceHoldingsAdapter"
+    assert "everence" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["everence"].live_tested_default_route is True
+
+    for symbol in ("PRXG", "PRXV", "PRXI"):
+        probe = adapter.probe(symbol=symbol, name="", identifiers={})
+        assert probe.status == "ready"
+        assert probe.source_url == adapter._PRODUCT_PAGE_URLS[symbol]
+
+    unsupported = adapter.probe(symbol="OTHER", name="", identifiers={})
+    assert unsupported.status == "needs_issuer_route"
+
+    holdings_url = "https://azr1webprodcdnst.blob.core.windows.net/praxisetf/PRXI_Holdings.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,MoneyMarketFlag",
+                    "09/02/2026,PRXI,ASML NA,B929F46,ASML Holding NV,97,1435.4,161454.83,3.14%,",
+                    "09/02/2026,PRXI,FGXXX,31846V336,First American Government Obligations Fund,101588.56,100,101588.56,1.98%,Y",
+                    "09/02/2026,OTHER,MSFT,594918104,Wrong fund,1,1,1,100%,",
+                ]
+            ),
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="PRXI")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ASML"
+    assert result.rows[0].exchange == "NA"
+    assert result.rows[0].sedol == "B929F46"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[0].source_row_id == "everence-PRXI-1"
+    assert result.legal_metadata["source_provider"] == "praxis_investment_management"
+    assert result.legal_metadata["adapter_key"] == "everence"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "praxis_everence_native_daily_holdings_csv"
+    )
+    assert result.legal_metadata["route_resolution"] == (
+        "everence_praxis_product_page_declared_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
 
 
 @pytest.mark.asyncio
@@ -4265,6 +5081,10 @@ async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkey
                 '{"SecurityName":"Cash & Other","StockTicker":"Cash&Other","CUSIP":"Cash&Other",'
                 '"Shares":50,"MarketValue":50,"Weightings":"0.05%","MoneyMarketFlag":"Y",'
                 '"Account":"HECA"}]},"account":"HECA","title":"2026-07-11-HECA"'
+                '"date":"2099-12-31","holdings":{"data":['
+                '{"SecurityName":"Future Fund","StockTicker":"FUTR","CUSIP":"123456789",'
+                '"Shares":1,"MarketValue":1,"Weightings":"1.00%","MoneyMarketFlag":"",'
+                '"Account":"HECA"}]},"account":"HECA","title":"2099-12-31-HECA"'
                 '"date":"2026-07-12","holdings":{"data":['
                 '{"SecurityName":"Other Fund","StockTicker":"OTHER","CUSIP":"000000000",'
                 '"Shares":1,"MarketValue":1,"Weightings":"1.00%","MoneyMarketFlag":"",'
@@ -4288,6 +5108,132 @@ async def test_hedgeye_adapter_selects_the_latest_requested_fund_snapshot(monkey
     assert result.rows[0].weight == Decimal("0.03")
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_hedgeye_adapter_uses_product_page_declared_all_funds_csv(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+
+    product_url = "https://www.hedgeyeam.com/heca"
+    holdings_url = "https://hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv"
+    product_page = (
+        '<div class="fund-ticker">HECA US Equity</div>'
+        f'<a href="{holdings_url}">Holdings - All ETFs</a>'
+    )
+    csv_payload = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,"
+            "Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+            "07/10/2026,HECA,AAPL,037833100,Apple Inc,10,200,2000,2.00%,100000,1000,1,",
+            "07/11/2026,HECA,MSFT,594918104,Microsoft Corp,12,250,3000,3.00%,100000,1000,1,",
+            "07/11/2026,HECA,Cash&Other,Cash&Other,Cash & Other,50,1,50,0.05%,100000,1000,1,Y",
+            "12/31/2099,HECA,FUTR,123456789,Future Fund,1,1,1,1.00%,100000,1000,1,",
+            "07/12/2026,HGRO,OTHER,594918104,Other account row,1,1,1,1.00%,100000,1000,1,",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=product_page,
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text=csv_payload,
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HECA")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert result.legal_metadata["source_format"] == "csv"
+    assert result.legal_metadata["route_resolution"] == (
+        "hedgeye_product_page_linked_all_funds_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-07-11"
+    assert result.legal_metadata["product_page_url"] == product_url
+    assert result.source_url == holdings_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "MSFT"
+    assert result.rows[0].cusip == "594918104"
+    assert result.rows[0].weight == Decimal("0.03")
+    assert result.rows[0].market_value == Decimal("3000")
+    assert result.rows[0].extra_data["Account"] == "HECA"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_hedgeye_declared_csv_schema_errors_fail_closed(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+
+    product_url = "https://www.hedgeyeam.com/heca"
+    holdings_url = "https://hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv"
+    product_page = (
+        '<div class="fund-ticker">HECA US Equity</div>'
+        f'<a href="{holdings_url}">Holdings - All ETFs</a>'
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html", url=product_url),
+        FakeResponse(
+            text="Date,Account,StockTicker\n07/11/2026,HECA,MSFT\n",
+            content_type="text/csv",
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="missing required columns"):
+        await adapter.fetch_latest(symbol="HECA")
+
+
+@pytest.mark.asyncio
+async def test_hedgeye_linked_csv_redirects_fail_closed(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+
+    product_url = "https://www.hedgeyeam.com/heca"
+    holdings_url = "https://hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv"
+    product_page = (
+        '<div class="fund-ticker">HECA US Equity</div>'
+        f'<a href="{holdings_url}">Holdings - All ETFs</a>'
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html", url=product_url),
+        FakeResponse(
+            text="Date,Account,StockTicker\n07/11/2026,HECA,MSFT\n",
+            content_type="text/csv",
+            url="https://untrusted.example/ETF_Holdings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="redirected to an unsupported URL"):
+        await adapter.fetch_latest(symbol="HECA")
+
+
+@pytest.mark.asyncio
+async def test_hedgeye_adapter_rejects_future_only_holdings_snapshot(monkeypatch):
+    adapter = get_holdings_adapter("hedgeye")
+    assert adapter is not None
+    future_page = (
+        '<script>"date":"2099-12-31","holdings":{"data":['
+        '{"SecurityName":"Future Fund","StockTicker":"FUTR","CUSIP":"123456789",'
+        '"Shares":1,"MarketValue":1,"Weightings":"1.00%","MoneyMarketFlag":"",'
+        '"Account":"HECA"}]},"account":"HECA"</script>'
+    )
+    FakeAsyncClient.queue = [FakeResponse(text=future_page)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="complete daily holdings rows for HECA"):
+        await adapter.fetch_latest(symbol="HECA")
 
 
 @pytest.mark.asyncio
@@ -4339,6 +5285,56 @@ async def test_scm_edge_adapter_uses_own_hedgeye_product_page_route(monkeypatch)
     assert result.rows[0].weight == Decimal("0.03")
     assert result.rows[0].extra_data["source"] == (
         "scm_edge_hedgeye_product_page_daily_holdings_payload"
+    )
+    assert result.rows[1].row_type == "cash"
+
+
+@pytest.mark.asyncio
+async def test_scm_edge_adapter_uses_linked_hedgeye_all_funds_csv(monkeypatch):
+    adapter = get_holdings_adapter("scm_edge")
+    assert adapter is not None
+
+    product_url = "https://www.hedgeyeam.com/heft"
+    holdings_url = "https://hedgeye.s3.us-east-1.amazonaws.com/ham/ETF_Holdings.csv"
+    product_page = (
+        '<div class="fund-ticker">HEFT US Equity</div>'
+        f'<a href="{holdings_url}">Holdings - All ETFs</a>'
+    )
+    csv_payload = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,"
+            "Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+            "07/11/2026,HEFT,NVDA,67066G104,NVIDIA Corp,12,250,3000,3.00%,100000,1000,1,",
+            "07/11/2026,HEFT,Cash&Other,Cash&Other,Cash & Other,50,1,50,0.05%,100000,1000,1,Y",
+            "07/12/2026,HECA,OTHER,000000000,Other account row,1,1,1,1.00%,100000,1000,1,",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html", url=product_url),
+        FakeResponse(text=csv_payload, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="HEFT")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert result.legal_metadata["adapter_key"] == "scm_edge"
+    assert result.legal_metadata["source_provider"] == "scm_edge_hedgeye"
+    assert result.legal_metadata["route_resolution"] == (
+        "scm_edge_hedgeye_product_page_linked_all_funds_csv"
+    )
+    assert result.legal_metadata["source_format"] == "csv"
+    assert result.legal_metadata["composition_date"] == "2026-07-11"
+    assert result.legal_metadata["issuer_relationship"] == (
+        "S.C.M. Edge issuer / Hedgeye public product-page publisher"
+    )
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.03")
+    assert result.rows[0].extra_data["source"] == (
+        "scm_edge_hedgeye_product_page_linked_all_funds_csv"
     )
     assert result.rows[1].row_type == "cash"
 
@@ -5366,6 +6362,79 @@ async def test_21shares_adapter_fetches_product_details_constituents(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_falconx_adapter_reuses_current_21shares_routes_with_parent_provenance(monkeypatch):
+    adapter = get_holdings_adapter("falconx")
+    assert adapter is not None
+    probe = adapter.probe(symbol="TCAN", name="", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://www.21shares.com/en-us/products-us/tcan"
+    assert probe.issuer_product_id == "TCAN"
+    unknown_probe = adapter.probe(symbol="UNKNOWN", name="", identifiers={})
+    assert unknown_probe.status == "needs_issuer_route"
+
+    payload = {
+        "success": True,
+        "data": {
+            "ticker": "TCAN",
+            "product_name": "21shares Canton Network ETF",
+            "currency": {"short_name": "USD"},
+            "valuation_date": "2026-09-01",
+            "constituents": [
+                {
+                    "name": "Canton Coin",
+                    "ticker": "XCNUSD",
+                    "weight": 0.5,
+                    "quantity": 100,
+                    "price": 0.1,
+                    "market_value": 10,
+                    "cusip": None,
+                },
+                {
+                    "name": "21shares Canton Network ETP",
+                    "ticker": "CANTN NA",
+                    "weight": 0.5,
+                    "quantity": 1,
+                    "price": 10,
+                    "market_value": 10,
+                    "cusip": None,
+                },
+            ],
+        },
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://api.primary.21shares.com/api/product_details/TCAN",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TCAN")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://api.primary.21shares.com/api/product_details/TCAN"
+    )
+    assert [row.symbol for row in result.rows] == ["XCNUSD", "CANTN NA"]
+    assert result.rows[0].holding_type == "crypto"
+    assert result.rows[1].holding_type == "security"
+    assert result.legal_metadata["adapter_key"] == "falconx"
+    assert result.legal_metadata["source_provider"] == "21shares"
+    assert result.legal_metadata["publisher"] == "21shares"
+    assert result.legal_metadata["parent_issuer"] == "falconx"
+    assert result.legal_metadata["issuer_relationship"] == (
+        "FalconX parent identity / independently managed 21Shares ETF publisher"
+    )
+    assert result.legal_metadata["route_resolution"] == (
+        "falconx_21shares_public_product_details_api"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "falconx_21shares_native_current_holdings_api"
+    )
+
+
+@pytest.mark.asyncio
 async def test_amun_adapter_is_limited_to_verified_21shares_products(monkeypatch):
     adapter = get_holdings_adapter("amun")
     assert adapter is not None
@@ -5848,6 +6917,11 @@ async def test_warren_adapter_fetches_wcap_from_official_page_declared_fund_api(
         "https://www.warcap.com/wp-content/themes/warcap/assets/wcap/js/data.js?version=6.10.26",
         "https://www.ncfunds.com/etf/load.php?f=456",
     ]
+    assert FakeAsyncClient.requested[0][1]["headers"]["User-Agent"] == (
+        settings.ETF_HOLDINGS_HTTP_USER_AGENT
+    )
+    assert "Cache-Control" not in FakeAsyncClient.requested[0][1]["headers"]
+    assert "Upgrade-Insecure-Requests" not in FakeAsyncClient.requested[0][1]["headers"]
     assert FakeAsyncClient.requested[3][1]["headers"]["Referer"] == "https://www.warcap.com/wcap/"
     assert result.legal_metadata["composition_date"] == "2026-07-24"
     assert result.legal_metadata["source_provider"] == "warren_capital"
@@ -6078,6 +7152,186 @@ async def test_bmo_adapter_fetches_microsectors_big_banks_index_components(monke
 
     with pytest.raises(ValueError, match="BNKU/BNKD"):
         await adapter.fetch_latest(symbol="BULZ")
+
+
+@pytest.mark.asyncio
+async def test_max_adapter_fetches_jetu_index_constituents(monkeypatch):
+    adapter = get_holdings_adapter("max")
+    assert adapter is not None
+
+    page_html = """
+    <html><head><title>JETU | MAX ETNs</title></head>
+    <body>
+      <h1>MAX™ Airlines 3X Leveraged ETNs</h1>
+      <h2>Index Constituents Weights</h2>
+      <ul class="section-product__info-container index-weights">
+        <li class="section-product__info-item">
+          <h4>RTX CORPORATION </h4><p id="updateValue1">9.20 %</p>
+        </li>
+        <li class="section-product__info-item">
+          <h4>BOEING CO/THE </h4><p id="updateValue2">9.04 %</p>
+        </li>
+      </ul>
+      <div class="section-product__exposures-date"><p>as of September 2, 2026</p></div>
+    </body></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url="https://www.maxetns.com/product/JETU.P/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="JETU")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.maxetns.com/product/JETU.P/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].name == "RTX CORPORATION"
+    assert result.rows[0].weight == Decimal("0.092")
+    assert result.rows[0].holding_type == "equity"
+    assert result.legal_metadata["source_provider"] == "max_etns"
+    assert result.legal_metadata["route_resolution"] == "max_etns_public_index_components"
+    assert result.legal_metadata["disclosure_type"] == "etn_index_components"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="",
+            content_type="text/html",
+            url="https://www.maxetns.com/product/JETU.P/",
+        )
+    ]
+    with pytest.raises(ValueError, match="did not verify JETU identity"):
+        await adapter.fetch_latest(symbol="JETU")
+
+    assert adapter.probe(symbol="SPYU", name="", identifiers={}).status == "needs_issuer_route"
+    with pytest.raises(ValueError, match="CARD/CARU/JETD/JETU"):
+        await adapter.fetch_latest(symbol="SPYU")
+
+
+@pytest.mark.asyncio
+async def test_mcelhenny_sheffield_adapter_fetches_msmr_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("mcelhenny_sheffield")
+    assert adapter is not None
+
+    page_html = """
+    <html><head><title>MSMR | McElhenny Sheffield Managed Risk ETF</title></head>
+    <body>
+      <h1>McElhenny Sheffield Managed Risk ETF (MSMR)</h1>
+      <p>Current as of 08/31/2026</p>
+      <table>
+        <thead><tr>
+          <th>Stock Ticker</th><th>Cusip</th><th>Security Desc</th><th>Shares</th>
+          <th>Price</th><th>Market Value</th><th>Weightings</th><th>Effective Date</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>QQQ</td><td>46090E103</td><td>Invesco QQQ Trust</td><td>100</td>
+              <td>500.00</td><td>50000.00</td><td>20.15%</td><td>09/01/2026</td></tr>
+          <tr><td>CASH&Other</td><td>CASH&Other</td><td>Cash &amp; Other</td><td></td>
+              <td>1.00</td><td>46780.00</td><td>18.84%</td><td>09/01/2026</td></tr>
+        </tbody>
+      </table>
+    </body></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url="https://mscmfunds.com/msmr-etf/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MSMR")
+
+    assert FakeAsyncClient.requested[0][0] == "https://mscmfunds.com/msmr-etf/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "QQQ"
+    assert result.rows[0].cusip == "46090E103"
+    assert result.rows[0].weight == Decimal("0.2015")
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].cusip is None
+    assert result.rows[1].currency == "USD"
+    assert result.legal_metadata["source_provider"] == "mcelhenny_sheffield"
+    assert result.legal_metadata["route_resolution"] == (
+        "mcelhenny_sheffield_product_page_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["page_as_of_date"] == "2026-08-31"
+
+    future_page = page_html.replace("08/31/2026", "12/30/2099").replace("09/01/2026", "12/31/2099")
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=future_page,
+            content_type="text/html",
+            url="https://mscmfunds.com/msmr-etf/",
+        )
+    ]
+    with pytest.raises(ValueError, match="holdings date is in the future"):
+        await adapter.fetch_latest(symbol="MSMR")
+
+    with pytest.raises(ValueError, match="MSMR only"):
+        await adapter.fetch_latest(symbol="OTHER")
+
+
+@pytest.mark.asyncio
+async def test_measured_risk_portfolios_adapter_fetches_daily_snth_and_sntq_csvs(monkeypatch):
+    adapter = get_holdings_adapter("measured_risk_portfolios")
+    assert adapter is not None
+
+    csv_template = """Date,Account,StockTicker,CUSIP,Security,Shares,Price,Market Value,Weight,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+09/03/2026,{account},91282CNL1,91282CNL1,United States Treasury Note/Bond 3.75%,1000,99.66,99660,18.31%,1000000,1000,1,
+09/03/2026,{account},Cash&Other,Cash&Other,Cash & Other,100,1.00,100,14.09%,1000000,1000,1,Y
+09/03/2026,{account},4SPY  270617C00735000,4SPY  270617C00735000,SPY 06/17/2027 735 C,10,76.11,761.10,8.89%,1000000,1000,1,
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=csv_template.format(account="SNTH"),
+            content_type="text/csv",
+            url="https://synthequityfunds.com/wp-content/uploads/2026/07/snth_holdings_full.csv",
+        ),
+        FakeResponse(
+            text=csv_template.format(account="SNTQ"),
+            content_type="text/csv",
+            url="https://synthequityfunds.com/wp-json/mrp/v4/sntq-holdings-csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    snth = await adapter.fetch_latest(symbol="SNTH")
+    sntq = await adapter.fetch_latest(symbol="SNTQ")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://synthequityfunds.com/wp-content/uploads/2026/07/snth_holdings_full.csv",
+        "https://synthequityfunds.com/wp-json/mrp/v4/sntq-holdings-csv",
+    ]
+    assert len(snth.rows) == len(sntq.rows) == 3
+    assert snth.legal_metadata["composition_date"] == "2026-09-03"
+    assert snth.rows[0].holding_type == "fixed_income"
+    assert snth.rows[0].weight == Decimal("0.1831")
+    assert snth.rows[1].row_type == "cash"
+    assert snth.rows[1].currency == "USD"
+    assert snth.rows[2].holding_type == "option"
+    assert snth.rows[2].symbol is None
+    assert snth.rows[2].cusip is None
+    assert sntq.legal_metadata["route_resolution"] == (
+        "measured_risk_portfolios_product_page_declared_daily_holdings_csv"
+    )
+
+    assert adapter.probe(symbol="OTHER", name="", identifiers={}).status == "needs_issuer_route"
+    assert adapter.probe(symbol="OTHER", name="", identifiers={"sec_cik": "1587551"}).status == (
+        "ready"
+    )
+    with pytest.raises(ValueError, match="SNTH and SNTQ only"):
+        await adapter.fetch_latest(symbol="OTHER")
 
 
 @pytest.mark.asyncio
@@ -7062,6 +8316,21 @@ async def test_vanguard_adapter_fetches_public_json_api(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_vanguard_adapter_fails_closed_on_non_json_holding_type(monkeypatch):
+    adapter = get_holdings_adapter("vanguard")
+    assert adapter is not None
+
+    FakeAsyncClient.queue = [FakeResponse(text="", content_type="text/html")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(
+        ValueError,
+        match=r"Vanguard VOO stock holdings endpoint returned non-JSON content",
+    ):
+        await adapter.fetch_latest(symbol="VOO")
+
+
+@pytest.mark.asyncio
 async def test_wellington_adapter_uses_verified_vanguard_publisher_route(monkeypatch):
     adapter = get_holdings_adapter("wellington")
     assert adapter is not None
@@ -7124,6 +8393,42 @@ async def test_wellington_adapter_uses_verified_vanguard_publisher_route(monkeyp
     assert result.legal_metadata["route_resolution"] == (
         "vanguard_publisher_pcf_json_for_wellington_managed_etf"
     )
+
+
+@pytest.mark.asyncio
+async def test_wellington_adapter_fails_closed_on_non_json_vanguard_holding_type(monkeypatch):
+    adapter = get_holdings_adapter("wellington")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<script id="fundProfileData" type="application/json">'
+                '{"fundProfile":{"fundId":"V055","ticker":"VUSV",'
+                '"longName":"Vanguard Wellington U.S. Value Active ETF"}}'
+                "</script>"
+            ),
+            content_type="text/html",
+        ),
+        *[
+            FakeResponse(text='{"size":0,"fund":{}}', content_type="application/json")
+            for _ in range(6)
+        ],
+        FakeResponse(text="", content_type="text/html"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(
+        ValueError,
+        match=r"Vanguard V055 money-market holdings endpoint returned non-JSON content",
+    ):
+        await adapter.fetch_latest(symbol="VUSV")
+
+    assert FakeAsyncClient.requested[-1][0].endswith(
+        "V055/portfolio-holding/money-market.json?start=1&count=20000"
+    )
+    assert not any("/pcf.json" in url for url, _ in FakeAsyncClient.requested)
 
 
 @pytest.mark.asyncio
@@ -8099,6 +9404,70 @@ async def test_true_shares_adapter_discovers_google_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_true_shares_adapter_uses_current_public_fund_api_when_csv_link_is_absent(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("true_shares")
+    assert adapter is not None
+
+    api_payload = {
+        "mode": "live",
+        "fund": {"ticker": "ONEH", "name": "TrueShares Equity Hedge ETF"},
+        "holdings": [
+            {
+                "ticker": "ONEH",
+                "as_of_date": "2026-10-01",
+                "security_name": "TREASURY BILL B 09/02/27",
+                "security_ticker": "912797WA1",
+                "security_id": "912797WA1",
+                "weight": 51.93,
+                "market_value": 1000,
+                "quantity": 10,
+                "currency": "USD",
+            },
+            {
+                "ticker": "ONEH",
+                "as_of_date": "2026-10-01",
+                "security_name": "PAYB RCXTESHT SHALLOW HEDGE",
+                "security_ticker": "RCXTESHT",
+                "security_id": "RCXTESHT",
+                "weight": 0,
+                "market_value": -100,
+                "quantity": -100,
+                "currency": "USD",
+            },
+        ],
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><body><h1>ONEH</h1><div data-navstar-ticker='ONEH'></div></body></html>",
+            content_type="text/html",
+            url="https://www.true-shares.com/etf/oneh",
+        ),
+        FakeResponse(
+            text=json.dumps(api_payload),
+            content_type="application/json",
+            url=adapter.PUBLIC_FUND_API_URL,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ONEH", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://www.true-shares.com/etf/oneh",
+        adapter.PUBLIC_FUND_API_URL,
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("0.5193")
+    assert result.rows[1].holding_type == "derivative"
+    assert result.legal_metadata["route_resolution"] == "issuer_public_fund_api_holdings_json"
+    assert result.legal_metadata["composition_date"] == "2026-10-01"
+
+
+@pytest.mark.asyncio
 async def test_truemark_adapter_verifies_product_page_before_parsing_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("truemark")
     assert adapter is not None
@@ -8433,6 +9802,53 @@ async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_pacific_investments_adapter_parses_complete_geme_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("pacific_investments")
+    assert adapter is not None
+
+    holdings_rows = "".join(
+        f"<tr><td>Issuer {index}</td><td>SYM{index} US</td><td>SED{index:04d}</td>"
+        f"<td>{index * 100}</td><td>{index * 1000}</td><td>{index / 100:.2f}%</td></tr>"
+        for index in range(1, 20)
+    )
+    holdings_rows += (
+        "<tr><td>USD - United States Dollar</td><td>USD</td><td></td>"
+        "<td>1000</td><td>1000</td><td>1.00%</td></tr>"
+    )
+    page = (
+        "<html><body><h1>GEME</h1><p>CUSIP 900934506</p>"
+        "<p>Data displayed as of Sep 04, 2026</p>"
+        "<table><tr><th>Security Name</th><th>Security Ticker</th><th>SEDOL</th>"
+        "<th>Quantity</th><th>Market Value (base)</th><th>Weight</th></tr>"
+        f"{holdings_rows}</table></body></html>"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page,
+            content_type="text/html",
+            url="https://www.pacificam.co.uk/geme-etf/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GEME")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.pacificam.co.uk/geme-etf/"
+    assert len(result.rows) == 20
+    assert result.rows[0].symbol == "SYM1 US"
+    assert result.rows[0].market_value == Decimal("1000")
+    assert result.rows[-1].row_type == "cash"
+    assert result.rows[-1].symbol is None
+    assert result.rows[-1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "pacific_asset_management"
+    assert result.legal_metadata["route_resolution"] == (
+        "pacific_asset_management_geme_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-04"
+
+
+@pytest.mark.asyncio
 async def test_1251_capital_adapter_uses_owned_fm_investments_holdings_api(monkeypatch):
     adapter = get_holdings_adapter("1251_capital")
     assert adapter is not None
@@ -8645,7 +10061,9 @@ async def test_baron_adapter_discovers_latest_holdings_csv(monkeypatch):
 
     result = await adapter.fetch_latest(symbol="RONB", identifiers={})
 
-    assert FakeAsyncClient.requested[0][0] == "https://www.baroncapitalgroup.com/"
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://www.baroncapitalgroup.com/product-detail/baron-first-principles-etf-ronb"
+    )
     assert FakeAsyncClient.requested[1][0] == (
         "https://live-baron-capital-cms.pantheonsite.io/sites/default/files/"
         "etf-downloads/RONB-HOLDINGS-20260625-0.csv"
@@ -8890,6 +10308,72 @@ async def test_inverdale_adapter_accepts_only_mgmt_and_classifies_issuer_portfol
         "issuer_declared_mgmt_filepoint_holdings_json"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-20"
+
+
+def test_ballast_provider_alias_uses_verified_inverdale_route():
+    adapter = get_holdings_adapter("ballast")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BallastHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["ballast"].live_tested_default_route is True
+    probe = adapter.probe(symbol="MGMT", name="Ballast Small/Mid Cap ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://filepoint.live/ballast_getholdings_cached4.php"
+    assert "Ballast" in (probe.reason or "")
+
+
+@pytest.mark.asyncio
+async def test_bancreek_adapter_parses_issuer_nuxt_holdings_component(monkeypatch):
+    adapter = get_holdings_adapter("bancreek")
+    assert adapter is not None
+    product_page_url = "https://www.bancreeketfs.com/bcus"
+    payload = [
+        {
+            "componentId": "bancreeketfs-bcus-holdings-1",
+            "date": "07/23/2026",
+            "finData": [1, 2],
+        },
+        {
+            "ticker": "AMRX",
+            "description": "AMNEAL PHARMACEUTICALS INC",
+            "figi": "BBG00462PGG0",
+            "quantity": 349859,
+            "market_value": "6,286,966.23",
+            "percent_of_nav": "4.04%",
+        },
+        {
+            "ticker": "CASH & OTHER",
+            "description": "CASH & OTHER",
+            "quantity": 261741,
+            "market_value": "261,741.24",
+            "percent_of_nav": "0.17%",
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>BCUS Bancreek U.S. Large Cap ETF</h1>"
+                '<script type="application/json" data-nuxt-data="nuxt-app" '
+                'data-ssr="true" id="__NUXT_DATA__">'
+                f"{json.dumps(payload)}</script></html>"
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BCUS")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_page_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AMRX"
+    assert result.rows[0].weight == Decimal("0.0404")
+    assert result.rows[0].extra_data["figi"] == "BBG00462PGG0"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["adapter_key"] == "bancreek"
+    assert result.legal_metadata["composition_date"] == "2026-07-23"
 
 
 @pytest.mark.asyncio
@@ -9489,6 +10973,133 @@ async def test_etf_architect_adapter_parses_alpha_architect_holdings_table(monke
 
 
 @pytest.mark.asyncio
+async def test_arin_adapter_parses_identity_bound_effective_dated_holdings(monkeypatch):
+    adapter = get_holdings_adapter("arin")
+    assert adapter is not None
+
+    additional_rows = "\n".join(
+        f"<tr><td>TEST{index}</td><td>Fixture Security {index}</td><td></td>"
+        "<td>0</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>"
+        for index in range(1, 18)
+    )
+    fixture = f"""
+    <html><h1>ATTR</h1><h2>Arin Tactical Tail Risk ETF</h2>
+    <section id="fund-holdings">
+      <table><thead><tr><th>Effective Date</th></tr></thead>
+        <tbody><tr><td>10/05/2026</td></tr></tbody></table>
+      <table><thead><tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>
+        <th>Price (Local)</th><th>Market Value ($mm)</th><th>% of Net Assets</th></tr></thead>
+        <tbody>
+          <tr><td>CAOS</td><td>Alpha Architect Tail Risk ETF</td><td>02072L516</td>
+            <td>387,146</td><td>90.64</td><td>35.09</td><td>30.41</td></tr>
+          <tr><td>2SPY 261218C00010010</td><td>SPY 12/18/2026 10.01 C</td><td></td>
+            <td>73</td><td>757.84</td><td>5.53</td><td>4.79</td></tr>
+          <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>
+            <td>-38,387</td><td>1.00</td><td>-0.04</td><td>-0.03</td></tr>
+          {additional_rows}
+        </tbody>
+      </table>
+    </section></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=fixture,
+            content_type="text/html",
+            url="https://arinetfs.com/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    probe = adapter.probe(symbol="ATTR", name="Arin Tactical Tail Risk ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://arinetfs.com/"
+
+    result = await adapter.fetch_latest(symbol="ATTR", source_url=probe.source_url)
+
+    assert FakeAsyncClient.requested[0][0] == "https://arinetfs.com/"
+    assert len(result.rows) == 20
+    assert result.rows[0].symbol == "CAOS"
+    assert result.rows[0].cusip == "02072L516"
+    assert result.rows[0].weight == Decimal("0.3041")
+    assert result.rows[0].market_value == Decimal("35090000")
+    assert result.rows[1].row_type == "other"
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].extra_data["Ticker"] == "2SPY 261218C00010010"
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.legal_metadata["source_provider"] == "etf_architect"
+    assert result.legal_metadata["adapter_key"] == "arin"
+    assert result.legal_metadata["composition_date"] == "2026-10-05"
+
+
+def test_arin_adapter_fails_closed_for_unverified_symbols_routes_and_identity():
+    adapter = get_holdings_adapter("arin")
+    assert adapter is not None
+
+    assert adapter.probe(symbol="OTHER", name="", identifiers={}).status == "needs_issuer_route"
+    with pytest.raises(ValueError, match="supports ATTR only"):
+        import asyncio
+
+        asyncio.run(adapter.fetch_latest(symbol="OTHER"))
+    with pytest.raises(ValueError, match="official Arin/ETF Architect page"):
+        import asyncio
+
+        asyncio.run(adapter.fetch_latest(symbol="ATTR", source_url="https://example.com/"))
+    with pytest.raises(ValueError, match="identity did not match ATTR"):
+        adapter._parse_product_page("<html><h1>Different ETF</h1></html>")
+    with pytest.raises(ValueError, match="below the verified 20-row completeness floor"):
+        adapter._parse_product_page(
+            """
+            <html><h1>ATTR</h1><h2>Arin Tactical Tail Risk ETF</h2>
+            <section id="fund-holdings">
+              <table><tr><th>Effective Date</th></tr><tr><td>10/05/2026</td></tr></table>
+              <table><thead><tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>
+                <th>Price (Local)</th><th>Market Value ($mm)</th><th>% of Net Assets</th>
+              </tr></thead><tbody><tr><td>CAOS</td><td>Alpha Architect Tail Risk ETF</td>
+                <td>02072L516</td><td>387,146</td><td>90.64</td><td>35.09</td><td>30.41</td>
+              </tr></tbody></table>
+            </section></html>
+            """
+        )
+
+
+@pytest.mark.asyncio
+async def test_arin_adapter_routes_unverified_symbols_to_explicit_sec_fallback(monkeypatch):
+    adapter = get_holdings_adapter("arin")
+    assert adapter is not None
+    sec_result = HoldingsFetchResult(
+        source_url="https://www.sec.gov/Archives/edgar/data/",
+        source_identifier="OTHER",
+        rows=[],
+        raw_text="<informationTable />",
+        raw_json=None,
+        legal_metadata={"source_provider": "sec", "route_resolution": "sec_edgar_filing_fallback"},
+    )
+    calls = []
+
+    async def fake_sec_fallback(**kwargs):
+        calls.append(kwargs)
+        return sec_result
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+    identifiers = {"sec_cik": "1234"}
+    probe = adapter.probe(symbol="OTHER", name="", identifiers=identifiers)
+
+    result = await adapter.fetch_latest(
+        symbol="OTHER",
+        source_url=probe.source_url,
+        identifiers=identifiers,
+    )
+
+    assert probe.status == "ready"
+    assert probe.source_url == "https://data.sec.gov/submissions/CIK0000001234.json"
+    assert result is sec_result
+    assert calls == [{"symbol": "OTHER", "issuer_product_id": None, "identifiers": identifiers}]
+
+
+@pytest.mark.asyncio
 async def test_etf_architect_adapter_retries_issuer_page_with_requests_after_httpx_403(monkeypatch):
     adapter = get_holdings_adapter("etf_architect")
     assert adapter is not None
@@ -9527,6 +11138,49 @@ async def test_etf_architect_adapter_retries_issuer_page_with_requests_after_htt
     assert requests_called == ["https://funds.alphaarchitect.com/qval/"]
     assert result.rows[0].symbol == "ADT"
     assert result.rows[0].weight == Decimal("0.0214")
+
+
+@pytest.mark.asyncio
+async def test_etf_architect_empty_requests_body_after_httpx_403_is_explicit_access_challenge(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("etf_architect")
+    assert adapter is not None
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.queue = [
+        ForbiddenResponse(
+            text="<html>Cloudflare Ray ID: challenge-platform</html>",
+            content_type="text/html",
+            url="https://funds.alphaarchitect.com/qval/",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    requests_calls: list[str] = []
+
+    def empty_success(url, **_kwargs):
+        requests_calls.append(url)
+        return FakeResponse(text="", content_type="text/html", url=url)
+
+    async def no_sleep(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", empty_success)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", no_sleep)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
+    with pytest.raises(ValueError, match="issuer access challenge persisted"):
+        await adapter.fetch_latest(symbol="QVAL", identifiers={})
+
+    assert requests_calls == ["https://funds.alphaarchitect.com/qval/"] * 3
 
 
 @pytest.mark.asyncio
@@ -9585,7 +11239,6 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
         "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
     )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
-
     result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
 
     assert requests_called == [
@@ -11724,6 +13377,15 @@ async def test_zacks_adapter_falls_back_to_requests_after_async_timeouts(monkeyp
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
     requests_seen = []
     to_thread_calls = []
 
@@ -11771,6 +13433,15 @@ async def test_zacks_adapter_falls_back_to_requests_after_remote_disconnect(monk
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
     requests_seen = []
 
     def fake_requests_get(url, **kwargs):
@@ -11807,6 +13478,15 @@ async def test_zacks_adapter_falls_back_to_requests_after_remote_disconnect(monk
 async def test_zacks_adapter_retries_requests_fallback_timeout(monkeypatch):
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
+
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     requests_seen = []
     to_thread_calls = []
@@ -11855,6 +13535,15 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
     requests_seen = []
     to_thread_calls = []
 
@@ -11901,6 +13590,15 @@ async def test_zacks_adapter_retries_requests_fallback_connection_error(monkeypa
 async def test_zacks_adapter_reports_backend_disconnect_after_retry_exhaustion(monkeypatch):
     adapter = get_holdings_adapter("zacks")
     assert adapter is not None
+
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     requests_seen = []
     to_thread_calls = []
@@ -12073,7 +13771,8 @@ async def test_logan_adapter_verifies_bundle_declared_filepoint_csv(monkeypatch)
     page_html = """
     <html>
       <body>
-        <p>Logan Capital Broad Innovative Growth ETF (LCLG)</p>
+        <p>Logan Capital Management, Inc.</p>
+        <p>Logan Large Cap Growth ETF (LCLG)</p>
         <a class="button" id="csvdownload" href="#">Download Holdings</a>
         <table><tbody id="full-holdings"></tbody></table>
       </body>
@@ -12133,6 +13832,24 @@ async def test_logan_adapter_verifies_bundle_declared_filepoint_csv(monkeypatch)
         "logan_filepoint_static_bundle_declared_holdings_csv"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-27"
+
+
+def test_logan_adapter_accepts_current_ticker_identity_shell():
+    adapter = get_holdings_adapter("logan")
+    assert adapter is not None
+
+    current_page_shell = """
+    <html>
+      <body>
+        <p>Logan Capital Exchange-Traded Funds</p>
+        <div id="funds" data-ticker="LCLG"></div>
+        <a id="csvdownload">Download Holdings</a>
+        <table><tbody id="full-holdings"></tbody></table>
+      </body>
+    </html>
+    """
+
+    assert adapter._is_verified_product_page(current_page_shell)
 
 
 @pytest.mark.asyncio
@@ -12335,6 +14052,15 @@ async def test_donoghue_forlines_requests_fallback_retries_transient_read_timeou
 ):
     adapter = get_holdings_adapter("donoghue_forlines")
     assert adapter is not None
+
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
 
     page_html = """
     <html>
@@ -12799,6 +14525,84 @@ async def test_vident_product_page_adapter_parses_holdings_table(monkeypatch, ad
 
 
 @pytest.mark.asyncio
+async def test_vident_retries_unverified_success_page_with_requests(monkeypatch):
+    adapter = get_holdings_adapter("mm_vam")
+    assert adapter is not None
+    product_url = adapter.FUND_PAGES["VUSE"]
+    rows = [
+        ["Name", "Ticker", "CUSIP or Other Identifier", "Weight", "Shares"],
+        *[
+            [f"Example Company {index}", f"EX{index}", f"12345678{index}", "1.00%", "1000"]
+            for index in range(10)
+        ],
+    ]
+    table_html = "".join(
+        "<tr>" + "".join(f"<td>{value}</td>" for value in row) + "</tr>" for row in rows
+    )
+    verified_html = (
+        "<html><body><h1>VUSE Vident ETF Holdings</h1>As of 06/30/2026"
+        f"<table>{table_html}</table></body></html>"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><body>VUSE product page shell without holdings</body></html>",
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    requests_calls: list[str] = []
+
+    def fake_get(url, **kwargs):
+        requests_calls.append(url)
+        assert kwargs["allow_redirects"] is True
+        return FakeResponse(text=verified_html, content_type="text/html", url=product_url)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    result = await adapter.fetch_latest(symbol="VUSE")
+
+    assert FakeAsyncClient.requested[0][0] == product_url
+    assert requests_calls == [product_url]
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol == "EX0"
+    assert result.legal_metadata["composition_date"] == "2026-06-30"
+
+
+@pytest.mark.asyncio
+async def test_vident_still_rejects_unverified_page_after_requests_retry(monkeypatch):
+    adapter = get_holdings_adapter("mm_vam")
+    assert adapter is not None
+    product_url = adapter.FUND_PAGES["VUSE"]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><body>VUSE product page shell without holdings</body></html>",
+            content_type="text/html",
+            url=product_url,
+        )
+    ]
+    requests_calls: list[str] = []
+
+    def fake_get(url, **_kwargs):
+        requests_calls.append(url)
+        return FakeResponse(
+            text="<html><body>VUSE still has no declared holdings table</body></html>",
+            content_type="text/html",
+            url=product_url,
+        )
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+
+    with pytest.raises(ValueError, match="did not declare the verified VUSE holdings table"):
+        await adapter.fetch_latest(symbol="VUSE")
+
+    assert requests_calls == [product_url]
+
+
+@pytest.mark.asyncio
 async def test_focus_financial_adapter_parses_kovitz_and_longview_native_routes(monkeypatch):
     adapter = get_holdings_adapter("focus_financial")
     assert adapter is not None
@@ -12968,6 +14772,145 @@ async def test_focus_financial_adapter_parses_kovitz_and_longview_native_routes(
 
 
 @pytest.mark.asyncio
+async def test_focus_financial_longview_parses_revised_table_headers(monkeypatch):
+    adapter = get_holdings_adapter("focus_financial")
+    assert adapter is not None
+
+    source_rows = [
+        [
+            "Stock Ticker",
+            "Security Name",
+            "CUSIP",
+            "Shares",
+            "Price",
+            "Mkt Value",
+            "Net Assets",
+            "Date",
+            "Account",
+            "Weightings",
+            "SharesOutstanding",
+            "CreationUnits",
+            "MoneyMarketFlag",
+        ],
+        [
+            "A",
+            "Agilent Technologies Inc",
+            "00846U101",
+            "599",
+            "166.68",
+            "99841.32",
+            "680640344",
+            "10/02/2026",
+            "EBI",
+            "5.24",
+            "10346830",
+            "413",
+            "",
+        ],
+        [
+            "Cash&Other",
+            "Cash & Other",
+            "Cash&Other",
+            "-150584.20",
+            "1.00",
+            "-150584.20",
+            "680640344",
+            "10/02/2026",
+            "EBI",
+            "-0.02",
+            "10346830",
+            "413",
+            "Y",
+        ],
+    ]
+    for index in range(99):
+        source_rows.append(
+            [
+                f"LV{index}",
+                f"Longview Example Co {index}",
+                f"7654321{index % 10}A",
+                "10",
+                "20",
+                "200",
+                "680640344",
+                "10/02/2026",
+                "EBI",
+                "0.01",
+                "10346830",
+                "413",
+                "",
+            ]
+        )
+    source_rows.append(
+        [
+            "LVIG",
+            "Longview Advantage Fixed Income ETF",
+            "000000000",
+            "1",
+            "20",
+            "20",
+            "100",
+            "10/02/2026",
+            "LVIG",
+            "20.00",
+            "5",
+            "0",
+            "",
+        ]
+    )
+    table = "".join(
+        "<tr>" + "".join(f"<td>{escape(value)}</td>" for value in row) + "</tr>"
+        for row in source_rows
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f"<html><body><table>{table}</table></body></html>",
+            content_type="text/html",
+            url="https://longviewresearchpartners.com/ebi/fund-data/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="EBI")
+
+    assert FakeAsyncClient.requested[0][0] == "https://longviewresearchpartners.com/ebi/fund-data/"
+    assert len(result.rows) == 101
+    agilent = next(row for row in result.rows if row.symbol == "A")
+    assert agilent.cusip == "00846U101"
+    assert agilent.weight == Decimal("0.0524")
+    cash = next(row for row in result.rows if row.row_type == "cash")
+    assert cash.weight == Decimal("-0.0002")
+    assert cash.market_value == Decimal("-150584.20")
+    assert all(row.symbol != "LVIG" for row in result.rows)
+    assert result.legal_metadata["composition_date"] == "2026-10-02"
+
+
+@pytest.mark.asyncio
+async def test_focus_financial_longview_reports_cloudflare_access_challenge(monkeypatch):
+    adapter = get_holdings_adapter("focus_financial")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><head><title>Attention Required! | Cloudflare</title></head>"
+                "<body><div id='cf-challenge-running'>Just a moment...</div></body></html>"
+            ),
+            content_type="text/html",
+            url="https://longviewresearchpartners.com/ebi/fund-data/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(
+        ValueError, match="Longview EBI fund-data page returned an issuer access challenge"
+    ):
+        await adapter.fetch_latest(symbol="EBI")
+
+
+@pytest.mark.asyncio
 async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
     adapter = get_holdings_adapter("focus_financial")
     assert adapter is not None
@@ -13039,7 +14982,6 @@ async def test_focus_financial_longview_retries_requests_timeout(monkeypatch):
         "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
     )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
-
     result = await adapter.fetch_latest(symbol="EBI")
 
     assert len(FakeAsyncClient.requested) == 2
@@ -13170,14 +15112,17 @@ async def test_albert_mason_adapter_parses_filepoint_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv(monkeypatch):
-    adapter = get_holdings_adapter("graff")
+@pytest.mark.parametrize("adapter_key", ["graff", "pathfinder"])
+async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv(
+    monkeypatch, adapter_key
+):
+    adapter = get_holdings_adapter(adapter_key)
     assert adapter is not None
 
     product_page = """
         <html><body>
         <h1>Pathfinder Disciplined US Equity</h1>
-        <script src="assets/js/app.js?version=4"></script>
+        <script src="assets/js/app.js?version=5"></script>
         </body></html>
     """
     app_script = 'const holdings = "./assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv";'
@@ -13271,7 +15216,7 @@ async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv
         FakeResponse(
             text=app_script,
             content_type="application/javascript",
-            url="https://pathfinderetfs.com/assets/js/app.js?version=4",
+            url="https://pathfinderetfs.com/assets/js/app.js?version=5",
         ),
         FakeResponse(
             text=raw_csv,
@@ -13285,7 +15230,7 @@ async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv
 
     assert [request[0] for request in FakeAsyncClient.requested] == [
         "https://pathfinderetfs.com/pfde",
-        "https://pathfinderetfs.com/assets/js/app.js?version=4",
+        "https://pathfinderetfs.com/assets/js/app.js?version=5",
         "https://pathfinderetfs.com/assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv",
     ]
     assert len(result.rows) == 63
@@ -13299,7 +15244,51 @@ async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv
     assert result.rows[2].symbol is None
     assert result.legal_metadata["composition_date"] == "2026-07-27"
     assert result.legal_metadata["route_resolution"] == (
-        "graff_pathfinder_product_bundle_filepoint_complete_holdings_csv"
+        "pathfinder_product_bundle_filepoint_complete_holdings_csv"
+        if adapter_key == "pathfinder"
+        else "graff_pathfinder_product_bundle_filepoint_complete_holdings_csv"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("symbol", ["PBOG", "PBEU", "PBPH"])
+async def test_portfolio_building_block_adapter_fetches_declared_holdings_csv(monkeypatch, symbol):
+    adapter = get_holdings_adapter("portfolio_building_block")
+    assert adapter is not None
+    product_url = f"https://portfoliobuildingblocketfs.com/{symbol.lower()}/"
+    product_page = (
+        f"<html><body><h1>{symbol}</h1><span>Download All Holdings</span>"
+        "?download_holdings_csv=1</body></html>"
+    )
+    header = "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding"
+    rows = [
+        f"09/02/2026,{symbol},AAPL,037833100,Apple Inc,100,200,20000,1.00%,2000000,10000"
+        for _ in range(12)
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html", url=product_url),
+        FakeResponse(
+            text="\n".join([header, *rows]),
+            content_type="text/csv",
+            url=f"{product_url}?download_holdings_csv=1",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol=symbol)
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        product_url,
+        f"{product_url}?download_holdings_csv=1",
+    ]
+    assert len(result.rows) == 12
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.legal_metadata["source_provider"] == "portfolio_building_block"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["route_resolution"] == (
+        "portfolio_building_block_product_page_query_holdings_csv"
     )
 
 
@@ -13756,6 +15745,72 @@ async def test_artemis_adapter_verifies_ars_product_page_and_parses_complete_hol
 
 
 @pytest.mark.asyncio
+async def test_ars_provider_alias_uses_verified_ars_product_page_route(monkeypatch):
+    adapter = get_holdings_adapter("ars")
+    assert adapter is not None
+    product_page_url = "https://arsinvestetfs.com/acep/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>ARS Core Equity Portfolio ETF</h1><h2>Fund Holdings</h2>"
+                "<table><tr><th>Ticker</th><th>Name</th><th>CUSIP</th>"
+                "<th>Shares</th><th>Price</th><th>Market Value ($mm)</th>"
+                "<th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>"
+                "<tr><td>NVDA</td><td>NVIDIA Corp</td><td>67066G104</td>"
+                "<td>22,795</td><td>203.28</td><td>4.63</td><td>16.41</td>"
+                "<td>07/20/2026</td></tr></table>"
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ACEP")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_page_url]
+    assert result.rows[0].symbol == "NVDA"
+    assert result.legal_metadata["adapter_key"] == "ars"
+    assert result.legal_metadata["source_provider"] == "ars_investment_partners"
+
+
+@pytest.mark.asyncio
+async def test_avory_adapter_parses_complete_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("avory")
+    assert adapter is not None
+    product_page_url = "https://avoryfunds.com/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>Avory Foundational ETF</h1><h2>FUND HOLDINGS</h2>"
+                "<table><tr><th>TICKER</th><th>NAME</th><th>CUSIP</th>"
+                "<th>SHARES</th><th>PRICE</th><th>Market Value ($mm)</th>"
+                "<th>% of NET ASSETS</th><th>EFFECTIVE_DATE</th></tr>"
+                "<tr><td>OMCL</td><td>Omnicell Inc</td><td>68213N109</td>"
+                "<td>87.011</td><td>34,51</td><td>3,00</td><td>4.42</td>"
+                "<td>09/02/2026</td></tr></table>"
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AVRY")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_page_url]
+    assert result.rows[0].symbol == "OMCL"
+    assert result.rows[0].weight == Decimal("0.0442")
+    assert result.legal_metadata["adapter_key"] == "avory"
+    assert result.legal_metadata["source_provider"] == "avory"
+    assert result.legal_metadata["route_resolution"] == (
+        "avory_product_page_embedded_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
 async def test_x_square_adapter_verifies_product_page_and_parses_declared_complete_holdings_api(
     monkeypatch,
 ):
@@ -14043,6 +16098,615 @@ Receivables/Payables, RECPAY, RECPAY, -0.020553590700, 1.000000000000, -10378.36
     assert result.legal_metadata["source_provider"] == "brookmont"
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_all_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-07-02"
+
+
+@pytest.mark.asyncio
+async def test_brookstone_adapter_fetches_symbol_scoped_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("brookstone")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BrookstoneHoldingsAdapter"
+    assert "brookstone" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["brookstone"].live_tested_default_route is True
+    assert (
+        adapter.probe(symbol="BAMD", name="Brookstone Dividend Stock ETF", identifiers={}).status
+        == "ready"
+    )
+    assert (
+        adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status
+        == "needs_issuer_route"
+    )
+
+    page_url = "https://www.brookstoneam.com/brookstone-dividend-stock-etf"
+    csv_url = (
+        "https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/1480_all_holdings.csv"
+    )
+    page_html = f'<h1>BAMD</h1><a href="{csv_url}">Download All Holdings (.CSV)</a>'
+    raw_csv = """Brookstone Dividend Stock ETF
+Fund Holdings Data as of 09/01/2026
+Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %
+BBH SWEEP VEHICLE, BBHETFMM, 9BBH, 1.486144310200, 100.000000000000, 1463025.2100000, 1463025.21, 1.486177386500
+GARMIN LTD, H2906T109, GRMN US, 0.462043761500, 275.170000000000, 1653.0000000, 454856.01, 0.462054045000
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html", url=page_url),
+        FakeResponse(text=raw_csv, url=csv_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BAMD", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [page_url, csv_url]
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[1].symbol == "GRMN"
+    assert result.rows[1].exchange == "US"
+    assert result.rows[1].cusip == "H2906T109"
+    assert result.rows[1].weight == Decimal("0.00462054045")
+    assert result.legal_metadata["source_provider"] == "brookstone_asset_management"
+    assert result.legal_metadata["issuer"] == "Brookstone Asset Management"
+    assert result.legal_metadata["route_resolution"] == (
+        "brookstone_product_page_linked_complete_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+    with pytest.raises(ValueError, match="official product page"):
+        await adapter.fetch_latest(
+            symbol="BAMD",
+            source_url="https://example.invalid/not-brookstone.csv",
+        )
+
+
+@pytest.mark.asyncio
+async def test_bufferlabs_adapter_parses_complete_current_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("bufferlabs")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BufferLabsHoldingsAdapter"
+    assert "bufferlabs" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
+    assert (
+        adapter.probe(
+            symbol="BFLB", name="BufferLABS US Equity Dynamic Buffer ETF", identifiers={}
+        ).status
+        == "ready"
+    )
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_url = "https://bflbetf.com/"
+    page_html = """
+    <h1>BufferLABS US Equity Dynamic Buffer ETF (BFLB)</h1>
+    <h2>FUND HOLDINGS</h2><p>BFLB Fund Holdings</p>
+    <table>
+      <tr><th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th>
+          <th>Market Value ($mm)</th><th>% of NET ASSETS</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>FGXXX</td><td>First American Government Obligations Fund 12/01/2031</td>
+          <td>31846V336</td><td>79.804,15</td><td>100,00</td><td>0,08</td><td>0.12</td><td>09/02/2026</td></tr>
+      <tr><td>4SPY 270115C00007690</td><td>SPY 01/15/2027 7.69 C</td><td></td>
+          <td>856,00</td><td>750,26</td><td>64,22</td><td>98.55</td><td>09/02/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>
+          <td>-38.797,27</td><td>1,00</td><td>-0,04</td><td>-0.06</td><td>09/02/2026</td></tr>
+    </table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=page_html, content_type="text/html", url=page_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BFLB")
+
+    assert FakeAsyncClient.requested[0][0] == page_url
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].shares == Decimal("79804.15")
+    assert result.rows[0].market_value == Decimal("0.08")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].row_type == "other"
+    assert result.rows[1].shares == Decimal("856.00")
+    assert result.rows[1].market_value == Decimal("64.22")
+    assert result.rows[1].weight == Decimal("0.9855")
+    assert result.rows[2].symbol is None
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "bufferlabs"
+    assert result.legal_metadata["route_resolution"] == (
+        "bufferlabs_public_complete_current_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="verified official fund page"):
+        await adapter.fetch_latest(symbol="BFLB", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
+async def test_bushido_adapter_parses_complete_current_holdings_tables(monkeypatch):
+    adapter = get_holdings_adapter("bushido")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BushidoHoldingsAdapter"
+    assert "bushido" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
+    assert (
+        adapter.probe(symbol="SMRI", name="Bushido Capital US Equity ETF", identifiers={}).status
+        == "ready"
+    )
+    assert (
+        adapter.probe(
+            symbol="RNIN", name="Bushido Capital US SMID Cap Equity ETF", identifiers={}
+        ).status
+        == "ready"
+    )
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_template = """
+    <h1>{identity}</h1><h2>FUND HOLDINGS</h2>
+    <table>
+      <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+          <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>FGXXX</td><td>First American Government Obligations Fund 12/01/2031</td>
+          <td>31846V336</td><td>1,183,357</td><td>100.00</td><td>1.18</td><td>0.16</td><td>09/02/2026</td></tr>
+      <tr><td>ADBE</td><td>Adobe Inc</td><td>00724F101</td><td>60,358</td>
+          <td>286.08</td><td>17.27</td><td>2.40</td><td>09/02/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td>28,622</td>
+          <td>1.00</td><td>0.03</td><td>0.00</td><td>09/02/2026</td></tr>
+    </table>
+    """
+    for symbol, page_url, identity in (
+        ("SMRI", "https://bushidoetf.com/smri/", "Bushido Capital US Equity ETF (SMRI)"),
+        ("RNIN", "https://bushidoetf.com/rnin/", "Bushido Capital US SMID Cap Equity ETF (RNIN)"),
+    ):
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [
+            FakeResponse(
+                text=page_template.format(identity=identity),
+                content_type="text/html",
+                url=page_url,
+            )
+        ]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert FakeAsyncClient.requested[0][0] == page_url
+        assert len(result.rows) == 3
+        assert result.rows[0].symbol is None
+        assert result.rows[0].holding_type == "cash"
+        assert result.rows[0].row_type == "cash"
+        assert result.rows[1].symbol == "ADBE"
+        assert result.rows[1].shares == Decimal("60358")
+        assert result.rows[1].market_value == Decimal("17.27")
+        assert result.rows[1].weight == Decimal("0.024")
+        assert result.rows[2].symbol is None
+        assert result.rows[2].holding_type == "cash"
+        assert result.legal_metadata["source_provider"] == "bushido"
+        assert result.legal_metadata["route_resolution"] == (
+            "bushido_public_complete_current_holdings_table"
+        )
+        assert result.legal_metadata["product_page_url"] == page_url
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="SMRI", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
+async def test_amplius_adapter_parses_complete_current_table(monkeypatch):
+    adapter = get_holdings_adapter("amplius")
+    assert adapter is not None
+    assert type(adapter).__name__ == "AmpliusHoldingsAdapter"
+    assert "amplius" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["amplius"].live_tested_default_route is True
+    assert (
+        adapter.probe(
+            symbol="AAAA", name="Amplius Aggressive Asset Allocation ETF", identifiers={}
+        ).status
+        == "ready"
+    )
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_url = "https://www.ampliusetfs.com/"
+    page_html = """
+    <h1>Amplius Aggressive Asset Allocation ETF (AAAA)</h1><h2>Fund Holdings</h2>
+    <table>
+      <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+          <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>AMD</td><td>Advanced Micro Devices Inc</td><td>007903107</td>
+          <td>6,010</td><td>477.57</td><td>2.87</td><td>1.00</td><td>09/08/2026</td></tr>
+      <tr><td>QQQ</td><td>Invesco QQQ Trust Series 1</td><td>46090E103</td>
+          <td>33,137</td><td>718.96</td><td>23.82</td><td>8.32</td><td>09/08/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>
+          <td>1,000</td><td>1.00</td><td>0.01</td><td>0.00</td><td>09/08/2026</td></tr>
+    </table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=page_html, content_type="text/html", url=page_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AAAA")
+
+    assert FakeAsyncClient.requested[0][0] == page_url
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "AMD"
+    assert result.rows[0].market_value == Decimal("2870000")
+    assert result.rows[0].weight == Decimal("0.01")
+    assert result.rows[1].symbol == "QQQ"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "amplius"
+    assert result.legal_metadata["route_resolution"] == (
+        "amplius_public_complete_current_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-08"
+    assert result.raw_json["market_value_unit"] == "millions_usd"
+
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="AAAA", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
+async def test_argent_adapter_parses_current_symbol_scoped_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("argent")
+    assert adapter is not None
+    assert type(adapter).__name__ == "ArgentHoldingsAdapter"
+    assert "argent" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["argent"].live_tested_default_route is True
+
+    page_url = "https://argentetfs.com/amid/"
+    page_html = """
+    <h1>Argent Mid Cap ETF (AMID)</h1><h2>Fund Holdings</h2>
+    <table>
+      <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+          <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>ADI</td><td>Analog Devices Inc</td><td>032654105</td>
+          <td>1000</td><td>385.23</td><td>0.39</td><td>5.12</td><td>09/24/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>
+          <td>100</td><td>1.00</td><td>0.01</td><td>0.59</td><td>09/24/2026</td></tr>
+    </table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=page_html, content_type="text/html", url=page_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AMID")
+
+    assert FakeAsyncClient.requested[0][0] == page_url
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ADI"
+    assert result.rows[0].market_value == Decimal("390000")
+    assert result.rows[0].weight == Decimal("0.0512")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["source_provider"] == "argent"
+    assert result.legal_metadata["route_resolution"] == (
+        "argent_public_complete_current_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-24"
+
+
+@pytest.mark.asyncio
+async def test_vistashares_adapter_parses_declared_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("vistashares")
+    assert adapter is not None
+    assert type(adapter).__name__ == "VistaSharesHoldingsAdapter"
+    assert "vistashares" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["vistashares"].live_tested_default_route is True
+
+    page_url = "https://www.vistashares.com/etf/qusa/"
+    csv_url = "https://www.vistashares.com/csv/top-holdings/?etf=QUSA"
+    page_html = """
+    <h1>VistaShares QUSA ETF (QUSA)</h1>
+    <table><tr><td>Number of Holdings</td><td>2</td></tr></table>
+    <form method="GET" action="https://www.vistashares.com/csv/top-holdings">
+      <input type="hidden" name="etf" value="QUSA">
+    </form>
+    """
+    csv_text = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+09/24/2026,QUSA,MSFT,594918104,Microsoft Corp,100,500.00,50000,0.6000,8333333,100000,1,
+09/24/2026,QUSA,LRCX  261002C00285000,,Lam Research call option,1,10.00,1000,-0.0120,8333333,100000,1,
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html", url=page_url),
+        FakeResponse(text=csv_text, content_type="text/csv", url=csv_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="QUSA")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [page_url, csv_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "MSFT"
+    assert result.rows[0].weight == Decimal("0.6000")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "derivative"
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].extra_data["source_ticker"] == "LRCX  261002C00285000"
+    assert result.legal_metadata["source_provider"] == "vistashares"
+    assert result.legal_metadata["route_resolution"] == (
+        "vistashares_product_page_declared_complete_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-24"
+    assert result.raw_json["declared_holdings_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_vistashares_adapter_rejects_incomplete_and_cross_account_csv(monkeypatch):
+    adapter = get_holdings_adapter("vistashares")
+    assert adapter is not None
+    page_url = "https://www.vistashares.com/etf/qusa/"
+    csv_url = "https://www.vistashares.com/csv/top-holdings/?etf=QUSA"
+    page_template = """
+    <h1>VistaShares QUSA ETF (QUSA)</h1>
+    <table><tr><td>Number of Holdings</td><td>{count}</td></tr></table>
+    <form method="GET" action="https://www.vistashares.com/csv/top-holdings">
+      <input type="hidden" name="etf" value="QUSA">
+    </form>
+    """
+    csv_template = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+09/24/2026,{account},MSFT,594918104,Microsoft Corp,100,500.00,50000,0.6000,8333333,100000,1,
+"""
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_template.format(count=2), content_type="text/html", url=page_url),
+        FakeResponse(text=csv_template.format(account="QUSA"), url=csv_url),
+    ]
+    with pytest.raises(ValueError, match="returned 1 rows; the product page declares 2"):
+        await adapter.fetch_latest(symbol="QUSA")
+
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_template.format(count=1), content_type="text/html", url=page_url),
+        FakeResponse(text=csv_template.format(account="AIS"), url=csv_url),
+    ]
+    with pytest.raises(ValueError, match="contained account AIS"):
+        await adapter.fetch_latest(symbol="QUSA")
+
+    future_csv = csv_template.format(account="QUSA").replace("09/24/2026", "12/31/2099")
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_template.format(count=1), content_type="text/html", url=page_url),
+        FakeResponse(text=future_csv, content_type="text/csv", url=csv_url),
+    ]
+    with pytest.raises(ValueError, match="holdings date is in the future"):
+        await adapter.fetch_latest(symbol="QUSA")
+
+
+@pytest.mark.asyncio
+async def test_vistashares_product_page_retries_non_page_http_200_once(monkeypatch):
+    adapter = get_holdings_adapter("vistashares")
+    assert adapter is not None
+    page_url = "https://www.vistashares.com/etf/qusa/"
+    csv_url = "https://www.vistashares.com/csv/top-holdings/?etf=QUSA"
+    page_html = """
+    <h1>VistaShares QUSA ETF (QUSA)</h1>
+    <table><tr><td>Number of Holdings</td><td>1</td></tr></table>
+    <form method="GET" action="https://www.vistashares.com/csv/top-holdings">
+      <input type="hidden" name="etf" value="QUSA">
+    </form>
+    """
+    csv_text = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+09/24/2026,QUSA,MSFT,594918104,Microsoft Corp,100,500.00,50000,0.6000,8333333,100000,1,
+"""
+    retry_calls = []
+
+    def fake_requests_get(url, **kwargs):
+        retry_calls.append((url, kwargs))
+        return FakeResponse(text=page_html, content_type="text/html", url=page_url)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><title>Just a moment...</title><div id='cf-chl-widget'></div></html>",
+            content_type="text/html",
+            url=page_url,
+        ),
+        FakeResponse(text=csv_text, content_type="text/csv", url=csv_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+
+    result = await adapter.fetch_latest(symbol="QUSA")
+
+    assert FakeAsyncClient.requested[0][0] == page_url
+    assert [call[0] for call in retry_calls] == [page_url]
+    assert retry_calls[0][1]["allow_redirects"] is True
+    assert FakeAsyncClient.requested[-1][0] == csv_url
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "MSFT"
+    assert result.legal_metadata["composition_date"] == "2026-09-24"
+
+
+async def test_capforce_adapter_parses_complete_current_holdings_tables(monkeypatch):
+    adapter = get_holdings_adapter("capforce")
+    assert adapter is not None
+    assert type(adapter).__name__ == "CapForceHoldingsAdapter"
+    assert "capforce" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["capforce"].live_tested_default_route is True
+    assert adapter.probe(symbol="FFTY", name="CapForce IBD 50 ETF", identifiers={}).status == (
+        "ready"
+    )
+    assert (
+        adapter.probe(
+            symbol="BOUT", name="CapForce IBD Breakout Opportunities ETF", identifiers={}
+        ).status
+        == "ready"
+    )
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_template = """
+    <h1>{identity}</h1><div data-module-root="cf-holdings-table" data-ticker="{symbol}">
+      <div class="cfht__asof">As of 9/2/2026</div><h2>Holdings</h2>
+      <table>
+        <tr><th>Name</th><th>Ticker</th><th>Sector</th><th>Weight</th></tr>
+        <tr><td>Adobe Inc</td><td>ADBE</td><td>Technology</td><td>2.40%</td></tr>
+        <tr><td>Cash &amp; Other</td><td>CASH&amp;OTHER</td><td></td><td>0.37%</td></tr>
+        <tr><td>First American Treasury Obligations Fund 01/01/2040</td><td>FXFXX</td><td></td><td>0.28%</td></tr>
+      </table>
+    </div>
+    """
+    for symbol, page_url, identity in (
+        (
+            "FFTY",
+            "https://www.capforceetf.com/ffty/details",
+            "CapForce IBD® 50 ETF",
+        ),
+        (
+            "BOUT",
+            "https://www.capforceetf.com/bout/details",
+            "CapForce IBD® Breakout Opportunities ETF",
+        ),
+    ):
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [
+            FakeResponse(
+                text=page_template.format(identity=identity, symbol=symbol),
+                content_type="text/html",
+                url=page_url,
+            )
+        ]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert FakeAsyncClient.requested[0][0] == page_url
+        assert len(result.rows) == 3
+        assert result.rows[0].symbol == "ADBE"
+        assert result.rows[0].weight == Decimal("0.024")
+        assert result.rows[1].symbol is None
+        assert result.rows[1].row_type == "cash"
+        assert result.rows[2].symbol is None
+        assert result.rows[2].holding_type == "cash"
+        assert result.legal_metadata["source_provider"] == "capforce"
+        assert result.legal_metadata["route_resolution"] == (
+            "capforce_public_complete_current_holdings_table"
+        )
+        assert result.legal_metadata["product_page_url"] == page_url
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="FFTY", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
+async def test_castellan_adapter_parses_complete_current_holdings_tables(monkeypatch):
+    adapter = get_holdings_adapter("castellan")
+    assert adapter is not None
+    assert type(adapter).__name__ == "CastellanHoldingsAdapter"
+    assert "castellan" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["castellan"].live_tested_default_route is True
+    assert adapter.probe(
+        symbol="CTEF", name="Castellan Targeted Equity ETF", identifiers={}
+    ).status == ("ready")
+    assert adapter.probe(
+        symbol="CTIF", name="Castellan Targeted Income ETF", identifiers={}
+    ).status == ("ready")
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_template = """
+    <h1>{identity}</h1><h2>Fund Holdings</h2>
+    <table>
+      <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+          <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>AMG</td><td>Affiliated Managers Group Inc</td><td>008252108</td>
+          <td>76,472</td><td>360.75</td><td>27.59</td><td>4.32</td><td>09/02/2026</td></tr>
+      <tr><td>FGXXX</td><td>First American Government Obligations Fund 12/01/2031</td>
+          <td>31846V336</td><td>26,925,570</td><td>100.00</td><td>26.93</td><td>4.22</td><td>09/02/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td>308,629</td>
+          <td>1.00</td><td>0.31</td><td>0.05</td><td>09/02/2026</td></tr>
+    </table>
+    """
+    for symbol, page_url, identity in (
+        ("CTEF", "https://castellanetf.com/ctef/", "Castellan Targeted Equity ETF (CTEF)"),
+        ("CTIF", "https://castellanetf.com/ctif/", "Castellan Targeted Income ETF (CTIF)"),
+    ):
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [
+            FakeResponse(
+                text=page_template.format(identity=identity),
+                content_type="text/html",
+                url=page_url,
+            )
+        ]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert FakeAsyncClient.requested[0][0] == page_url
+        assert len(result.rows) == 3
+        assert result.rows[0].symbol == "AMG"
+        assert result.rows[0].weight == Decimal("0.0432")
+        assert result.rows[1].symbol is None
+        assert result.rows[1].holding_type == "cash"
+        assert result.rows[2].symbol is None
+        assert result.rows[2].row_type == "cash"
+        assert result.legal_metadata["source_provider"] == "castellan"
+        assert result.legal_metadata["route_resolution"] == (
+            "castellan_public_complete_current_holdings_table"
+        )
+        assert result.legal_metadata["product_page_url"] == page_url
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="CTEF", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
+async def test_conductor_adapter_parses_page_declared_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("conductor_fund")
+    assert adapter is not None
+    assert type(adapter).__name__ == "ConductorFundHoldingsAdapter"
+    assert "conductor_fund" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["conductor_fund"].live_tested_default_route is True
+    assert (
+        adapter.probe(symbol="CGV", name="Conductor Global Equity Value ETF", identifiers={}).status
+        == "ready"
+    )
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_url = "https://conductoretfs.com/global-equity-etf/"
+    holdings_url = (
+        "https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532"
+    )
+    page_html = (
+        "<h1>Conductor Global Equity Value ETF</h1><h2>Holdings</h2>"
+        f'<a class="dwnld-hlds" href="{holdings_url}">Download All Holdings (.CSV)</a>'
+    )
+    raw_csv = """Conductor Global Equity Value ETF\nFund Holdings Data as of 09/01/2026\nName, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %\nAUSTRALIAN DOLLAR, AUD, AUD, 0.000000010600, 1.399700000000, 0.0200000, 0.01, 0.000000010600\nBBH SWEEP VEHICLE, BBHETFMM, 9BBH, 2.894351632300, 100.000000000000, 3905188.9200000, 3905188.92, 2.894493529900\nDHT HOLDINGS INC, Y2065G121, DHT US, 1.466631544100, 19.690000000000, 100500.0000000, 1978845.00, 1.466703446700\nReceivables/Payables, RECPAY, RECPAY, 0.897069738900, 1.000000000000, 1210366.6900000, 1210366.69, 0.897113718400\n"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html", url=page_url),
+        FakeResponse(text=raw_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CGV")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [page_url, holdings_url]
+    assert len(result.rows) == 4
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[2].symbol == "DHT US"
+    assert result.rows[2].weight == Decimal("0.014666315441")
+    assert result.rows[3].symbol is None
+    assert result.rows[3].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "conductor_fund"
+    assert result.legal_metadata["route_resolution"] == (
+        "conductor_product_page_declared_complete_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+    with pytest.raises(ValueError, match="official product page or its declared CSV"):
+        await adapter.fetch_latest(symbol="CGV", source_url="https://example.invalid/holdings.csv")
 
 
 @pytest.mark.asyncio
@@ -14382,6 +17046,46 @@ async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     assert result.legal_metadata["source_format"] == "html"
     assert result.legal_metadata["route_resolution"] == "issuer_wordpress_api_holdings_table"
     assert result.legal_metadata["composition_date"] == "2026-06-25"
+
+
+@pytest.mark.asyncio
+async def test_opus_capital_management_adapter_fetches_oscv_holdings(monkeypatch):
+    adapter = get_holdings_adapter("opus_capital_management")
+    assert adapter is not None
+
+    html = """
+    <span class="currentdate">Current as of 09/01/2026</span>
+    <table class="custom_tables fund_holdings_table">
+      <tr><th>Stock Ticker</th><th>Cusip</th><th>Security Desc</th><th>Shares</th>
+      <th>Price</th><th>Market Value</th><th>Weightings</th><th>Effective Date</th></tr>
+      <tr><td>AGX</td><td>04010E109</td><td>Argan Inc</td><td>7,962.00</td>
+      <td>404.75</td><td>3,222,619.50</td><td>0.49%</td><td>09/02/2026</td></tr>
+    </table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps([{"content": {"rendered": html}}]), content_type="application/json"
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="OSCV")
+
+    assert FakeAsyncClient.requested[0][0] == "https://aptusetfs.com/wp-json/wp/v2/pages?slug=oscv"
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "AGX"
+    assert result.rows[0].cusip == "04010E109"
+    assert result.rows[0].weight == Decimal("0.0049")
+    assert result.rows[0].shares == Decimal("7962.00")
+    assert result.legal_metadata["source_provider"] == "opus_capital_management"
+    assert result.legal_metadata["publisher"] == "Opus Capital Management"
+    assert result.legal_metadata["route_resolution"] == (
+        "opus_capital_management_aptus_product_page_holdings_table"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "opus_capital_management_native_current_holdings_table"
+    )
 
 
 @pytest.mark.asyncio
@@ -15030,6 +17734,71 @@ async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_quadratic_adapter_parses_verified_kraneshares_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("quadratic")
+    assert adapter is not None
+    holdings_csv = "\n".join(
+        [
+            '"IVOL Holdings","As of 2026-09-02","Holdings Are Subject To Change"',
+            'Rank,"Company Name","% of Net Assets",Ticker,Identifier,"Shares Held","Market Value($)"',
+            '1,"SCHWAB U.S. TIPS ETF",76.07,SCHP,US8085248701,"7,728,177","199,541,530"',
+            '2,"Cash",15.64,–,–,"41,011,551","41,011,551"',
+        ]
+    )
+
+    def fake_get(url, **kwargs):
+        response = FakeResponse(text=holdings_csv, content_type="text/csv")
+        response.url = url
+        return response
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    result = await adapter.fetch_latest(
+        symbol="IVOL",
+        source_url="https://kraneshares.com/csv/09_02_2026_ivol_holdings.csv",
+    )
+
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "SCHP"
+    assert result.rows[0].weight == Decimal("0.7607")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "quadratic"
+    assert result.legal_metadata["publisher"] == "kraneshares"
+    assert result.legal_metadata["route_resolution"] == ("quadratic_kraneshares_dated_csv_lookback")
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
+async def test_return_stacked_adapter_fetches_issuer_daily_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("return_stacked")
+    assert adapter is not None
+    product_url = "https://www.returnstackedetfs.com/rsst-return-stacked-us-stocks-managed-futures/"
+    holdings_url = "https://www.returnstackedetfs.com/rsst/holdings"
+    holdings_csv = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits",
+            "09/02/2026,RSST,SPYM,78464A854,State Street SPDR Portfolio S&P 500 ETF,100,89.65,8965,74.07%,12000,1000,1",
+            "09/02/2026,RSST,Cash&Other,Cash&Other,Cash & Other,1000,1,1000,8.33%,12000,1000,1",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="<html><h1>RSST</h1></html>", url=product_url),
+        FakeResponse(text=holdings_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="RSST")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "SPYM"
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "return_stacked_etfs"
+    assert result.legal_metadata["route_resolution"] == "return_stacked_issuer_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
 async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeypatch):
     adapter = get_holdings_adapter("cicc")
     assert adapter is not None
@@ -15457,6 +18226,77 @@ async def test_federated_hermes_adapter_fetches_daily_holdings_table(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_federated_hermes_adapter_fetches_current_etf_daily_holdings_api(monkeypatch):
+    adapter = get_holdings_adapter("federated_hermes")
+    assert adapter is not None
+
+    page_data = json.dumps([{"ticker": "FTRB", "legacyProductId": "18031"}])
+    product_page = '<script id="page-data" type="application/json">' f"{page_data}</script>"
+    api_payload = {
+        "Holdings": [
+            {
+                "fundId": "22Y2",
+                "ticker": "91282CME8",
+                "name": "US TREASURY N/B",
+                "securityType": "Bond",
+                "sharesNumberOfContracts": 10000,
+                "marketValue": 995000,
+                "marketValueWeight": 0.0168,
+                "CUSIP": "91282CME8",
+                "ISIN": "US91282CME89",
+                "SEDOL": "BS82CME",
+                "posDate": "2026-09-03",
+            },
+            {
+                "fundId": "22Y2",
+                "ticker": None,
+                "name": "USD CASH",
+                "securityType": "Cash",
+                "sharesNumberOfContracts": 1,
+                "marketValue": 1000,
+                "marketValueWeight": 0.0001,
+                "CUSIP": None,
+                "ISIN": None,
+                "SEDOL": None,
+                "posDate": "2026-09-03",
+            },
+        ]
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="<html>ETF listing</html>", content_type="text/html"),
+        FakeResponse(
+            text=product_page,
+            content_type="text/html",
+            url="https://www.federatedhermes.com/funds/exchange-traded-funds/total-return-bond-etf",
+        ),
+        FakeResponse(
+            text=json.dumps(api_payload),
+            content_type="application/json",
+            url=adapter.current_holdings_api_url + "?productId=18031",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FTRB", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.etf_listing_url,
+        adapter.product_pages["ftrb"],
+        adapter.current_holdings_api_url,
+    ]
+    assert FakeAsyncClient.requested[2][1]["params"] == {"productId": "18031"}
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "91282CME8"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("0.0168")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["route_resolution"] == ("federated_hermes_etf_daily_holdings_api")
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
+
+
+@pytest.mark.asyncio
 async def test_dimensional_adapter_discovers_product_page_and_fetches_full_holdings_csv(
     monkeypatch,
 ):
@@ -15549,6 +18389,101 @@ async def test_dimensional_adapter_discovers_product_page_and_fetches_full_holdi
     assert result.rows[1].holding_type == "fixed_income"
     assert result.legal_metadata["route_resolution"] == "dimensional_public_fund_details_api"
     assert result.legal_metadata["composition_date"] == "2026-07-06"
+    assert result.legal_metadata["expected_cadence"] == "daily"
+
+
+@pytest.mark.asyncio
+async def test_dimensional_adapter_uses_bounded_dated_csv_when_api_omits_download_url(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("dimensional")
+    assert adapter is not None
+
+    MockDate.today_value = date(2026, 10, 4)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    product_url = "https://www.dimensional.com/us-en/funds/dfac/us-core-equity-2-etf"
+    sitemap_xml = f"<urlset><url><loc>{product_url}</loc></url></urlset>"
+    product_page = """
+    <html>
+      <script>
+        var servicesApiBaseUrl = "https://etf.dimensional.com/public";
+        var portfolioNumber = 350;
+      </script>
+    </html>
+    """
+    holdings_csv = "\n".join(
+        [
+            "date,etf_ticker,ticker,description,weight,market_value,identifier,isin,sedol,shares,coupon_rate,maturity_date,principal",
+            "2026-10-01,DFAC,AAPL US,APPLE INC.,0.0725,3456.78,037833100,US0378331005,2046251,10,0.0,,3456.78",
+            "2026-10-01,DFAC,TREASURY,US TREASURY BILL,0.0125,1000.00,912797AB1,US912797AB12,BKT1234,1000,4.5,2026-12-31,1000.00",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=sitemap_xml, content_type="application/xml"),
+        FakeResponse(text='{"status":"success"}', content_type="application/json"),
+        FakeResponse(
+            text='{"status":"success","action":"reload"}', content_type="application/json"
+        ),
+        FakeResponse(text=product_page, content_type="text/html"),
+        FakeResponse(
+            text='{"data":{"asOfDate":{"value":"2026-10-01"}}}', content_type="application/json"
+        ),
+        FakeResponse(
+            text="<Error>not found</Error>", content_type="application/xml", status_code=404
+        ),
+        FakeResponse(
+            text="<Error>not found</Error>", content_type="application/xml", status_code=404
+        ),
+        FakeResponse(
+            text="<Error>not found</Error>", content_type="application/xml", status_code=404
+        ),
+        FakeResponse(text=holdings_csv, content_type="application/octet-stream"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DFAC", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested[-4:]] == [
+        "https://tools-blob.dimensional.com/etf/20261004/DFAC.csv",
+        "https://tools-blob.dimensional.com/etf/20261003/DFAC.csv",
+        "https://tools-blob.dimensional.com/etf/20261002/DFAC.csv",
+        "https://tools-blob.dimensional.com/etf/20261001/DFAC.csv",
+    ]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.legal_metadata["route_resolution"] == (
+        "dimensional_public_date_scoped_holdings_csv"
+    )
+    assert result.legal_metadata["source_access"] == ("issuer_public_date_scoped_full_holdings_csv")
+    assert result.legal_metadata["expected_cadence"] == "daily"
+    assert result.legal_metadata["composition_date"] == "2026-10-01"
+    assert result.source_url == FakeAsyncClient.requested[-1][0]
+
+
+@pytest.mark.asyncio
+async def test_dimensional_dated_csv_fallback_rejects_wrong_symbol_or_date(monkeypatch):
+    adapter = get_holdings_adapter("dimensional")
+    assert adapter is not None
+
+    MockDate.today_value = date(2026, 10, 4)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    holdings_csv = "\n".join(
+        [
+            "date,etf_ticker,ticker,description,weight",
+            "2026-10-03,DFAU,AAPL US,APPLE INC.,0.0725",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=holdings_csv, content_type="text/csv")]
+
+    with pytest.raises(ValueError, match="did not match DFAC and 2026-10-04"):
+        await adapter._fetch_latest_date_scoped_csv(
+            FakeAsyncClient(),
+            symbol="DFAC",
+            referer="https://www.dimensional.com/us-en/funds/dfac/us-core-equity-2-etf",
+        )
 
 
 @pytest.mark.asyncio
@@ -15639,7 +18574,7 @@ async def test_fidelity_adapter_fetches_complete_creation_basket(monkeypatch):
 
     holdings_html = """
     <html><body>
-      <h3 class="num-results">Basket Holdings: 3
+      <h3 class="num-results">Basket Holdings: 4
         <span class="timestamp">AS OF 05/31/2026</span>
       </h3>
       <table class="results-table sortable">
@@ -15648,6 +18583,7 @@ async def test_fidelity_adapter_fetches_complete_creation_basket(monkeypatch):
           <tr><td>NVDA</td><td>NVIDIA Corp</td><td>14.69</td></tr>
           <tr><td>AAPL</td><td>Apple Inc</td><td>10.12</td></tr>
           <tr><td></td><td>Cash</td><td>0.20</td></tr>
+          <tr><td></td><td>Pending constituent</td><td>0.00</td></tr>
         </tbody>
       </table>
     </body></html>
@@ -15678,8 +18614,10 @@ async def test_fidelity_adapter_fetches_complete_creation_basket(monkeypatch):
     assert result.rows[2].symbol is None
     assert result.rows[2].row_type == "cash"
     assert result.rows[2].holding_type == "cash"
+    assert result.rows[3].name == "Pending constituent"
+    assert result.rows[3].weight == Decimal("0.0000")
     assert result.legal_metadata["composition_date"] == "2026-05-31"
-    assert result.legal_metadata["declared_basket_holding_count"] == 3
+    assert result.legal_metadata["declared_basket_holding_count"] == 4
     assert result.legal_metadata["portfolio_semantics"] == "daily_creation_redemption_basket"
     assert result.legal_metadata["route_resolution"] == (
         "fidelity_research_complete_basket_holdings"
@@ -16177,7 +19115,7 @@ async def test_beacon_adapter_validates_bsr_page_and_normalizes_holdings_weights
     product_page_html = """
     <html><body>
       <h1>Beacon Unified Catalyst ETF</h1><p>FUND TICKER BSR</p>
-      <a href="https://beaconinvestingfunds.com/wp-content/uploads/ultimus-holdings/UnifiedCatalystHoldings.csv">
+      <a href="https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/unified-catalyst-holdings.csv">
         Holdings CSV
       </a>
     </body></html>
@@ -16194,7 +19132,7 @@ Receivables/Payables, RECPAY, RECPAY, -0.100000000000, 1, -35696, -35696, -0.100
         FakeResponse(
             text=product_page_html,
             content_type="text/html",
-            url="https://beaconinvestingfunds.com/beacon-unified-catalyst/",
+            url="https://beaconinvestingfunds.com/funds/unified-catalyst",
         ),
         FakeResponse(text=raw_csv, content_type="text/csv", url=adapter._routes["BSR"][2]),
     ]
@@ -16216,40 +19154,35 @@ Receivables/Payables, RECPAY, RECPAY, -0.100000000000, 1, -35696, -35696, -0.100
     )
 
 
-@pytest.mark.asyncio
-async def test_beacon_adapter_supports_the_tactical_risk_product_route(monkeypatch):
+def test_beacon_adapter_does_not_advertise_liquidated_tactical_risk_route():
     adapter = get_holdings_adapter("beacon_capital")
     assert adapter is not None
 
-    product_page_html = """
-    <html><body>
-      <h1>Beacon Tactical Risk ETF</h1><p>FUND TICKER BTR</p>
-      <a href="https://beaconinvestingfunds.com/wp-content/uploads/ultimus-holdings/TacticalHoldings.csv">
-        Holdings CSV
-      </a>
-    </body></html>
-    """
-    raw_csv = """Beacon Tactical Risk ETF
-Fund Holdings Data as of 07/20/2026
-Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %
-VANGUARD REAL ES, 922908553, VNQ US, 8.452668732000, 99.48, 27962, 2781659.76, 8.452897197000
-"""
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
-            text=product_page_html,
-            content_type="text/html",
-            url="https://beaconinvestingfunds.com/beacon-tactical-risk/",
-        ),
-        FakeResponse(text=raw_csv, content_type="text/csv", url=adapter._routes["BTR"][2]),
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    probe = adapter.probe(symbol="BTR", name="Beacon Tactical Risk ETF", identifiers={})
 
-    result = await adapter.fetch_latest(symbol="BTR", identifiers={})
+    assert probe.status == "needs_issuer_route"
+    assert probe.source_url is None
 
-    assert result.rows[0].symbol == "VNQ"
-    assert result.rows[0].weight == Decimal("0.08452668732")
-    assert result.legal_metadata["composition_date"] == "2026-07-20"
+
+def test_beacon_adapter_accepts_current_bsr_product_name_alias():
+    adapter = get_holdings_adapter("beacon_capital")
+    assert adapter is not None
+    _, product_page_url, holdings_csv_url = adapter._routes["BSR"]
+
+    adapter._validate_product_page(
+        """
+        <html><title>Unified Catalyst | Beacon Investing Funds</title>
+        <p class="eyebrow">BSR</p><h1>Unified Catalyst</h1>
+        <p>The Beacon Unified Catalyst Fund seeks long-term growth.</p>
+        <a href="https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/unified-catalyst-holdings.csv">Holdings CSV</a>
+        </html>
+        """,
+        symbol="BSR",
+        expected_fund_name="Beacon Unified Catalyst ETF",
+        holdings_csv_url=holdings_csv_url,
+        fund_name_aliases=adapter._fund_name_aliases["BSR"],
+    )
+    assert product_page_url.endswith("/unified-catalyst")
 
 
 @pytest.mark.asyncio
@@ -17681,7 +20614,7 @@ async def test_abacus_global_adapter_follows_issuer_page_linked_daily_csv(monkey
 
     raw_html = """
     <h1>Abacus FCF International Leaders ETF (ABLG)</h1>
-    <h3>Top 10 Holdings <span>(as of 07/10/2026)</span></h3>
+    <h3>Top 10 Holdings <span>AS OF 7/10/2026</span></h3>
     <a href="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABLG_allHoldings.csv">
       DOWNLOAD FULL HOLDINGS
     </a>
@@ -18031,6 +20964,981 @@ def test_tidal_adapter_parses_verified_sponsor_fund_scoped_holdings_csv():
     assert rows[1].symbol is None
     assert rows[1].holding_type == "cash"
     assert composition_date == date(2026, 7, 17)
+
+
+@pytest.mark.asyncio
+async def test_logiq_adapter_fetches_official_lco_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("logiq")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "LogiqHoldingsAdapter"
+    probe = adapter.probe(symbol="LCO", name="LOGIQ Contrarian Opportunities ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == (
+        "https://logiqetf.com/wp-content/uploads/data/TidalFG_Holdings_LCO.csv"
+    )
+
+    with pytest.raises(ValueError, match="official declared holdings CSV"):
+        await adapter.fetch_latest(symbol="LCO", source_url="https://example.invalid/holdings.csv")
+
+    page_url = "https://logiqetf.com/"
+    holdings_url = "https://logiqetf.com/wp-content/uploads/data/TidalFG_Holdings_LCO.csv"
+    page_text = (
+        "<html><h1>LOGIQ Contrarian Opportunities ETF (LCO)</h1>"
+        '<script>var holdingsUrl = "https://logiqetf.com/?twm_download=holdings&ticker=LCO&nonce=test"; '
+        f'var csvUrl = "{holdings_url}";</script></html>'
+    )
+    csv_rows = [
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding",
+        *(
+            f"09/02/2026,LCO,TKR{index},03783310{index},Security {index},10,100,1000,1.25%,80000,1000"
+            for index in range(20)
+        ),
+        "09/02/2026,LCO,,CASH,CASH,100,1,100,0.125%,80000,1000",
+        "09/02/2026,LCO,,EUR,EURO,-63,0.86,-72.82,-0.0001%,80000,1000",
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_text, content_type="text/html", url=page_url),
+        FakeResponse(text="\n".join(csv_rows), url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LCO")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [page_url, holdings_url]
+    assert len(result.rows) == 22
+    assert result.rows[0].symbol == "TKR0"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].weight == Decimal("0.0125")
+    assert result.rows[-2].row_type == "cash"
+    assert result.rows[-2].symbol is None
+    assert result.rows[-1].row_type == "cash"
+    assert result.rows[-1].currency == "EUR"
+    assert result.legal_metadata["source_provider"] == "logiq_capital_partners"
+    assert result.legal_metadata["publisher"] == "logiq_etf"
+    assert result.legal_metadata["route_resolution"] == (
+        "logiq_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == "logiq_native_current_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.raw_json["source_format"] == (
+        "issuer_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+
+@pytest.mark.asyncio
+async def test_long_pond_adapter_fetches_official_lpre_cms_holdings(monkeypatch):
+    adapter = get_holdings_adapter("long_pond")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "LongPondHoldingsAdapter"
+    probe = adapter.probe(symbol="LPRE", name="Long Pond Real Estate Select ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == adapter.PRODUCT_PAGE_URL
+
+    with pytest.raises(ValueError, match="verified LPRE product page or CMS route"):
+        await adapter.fetch_latest(
+            symbol="LPRE", source_url="https://example.invalid/holdings.json"
+        )
+
+    source_rows = [
+        {
+            "figi": f"BBG000000{index:03d}",
+            "ticker": f"SYM{index}",
+            "quantity": str(index * 100),
+            "description": f"Company {index}",
+            "market_value": f"{index * 100000:,}.00",
+            "percent_of_nav": "1.25%",
+        }
+        for index in range(1, 21)
+    ]
+    page_html = (
+        "<html><h1>LPRE Fund Summary | Long Pond Real Estate Select ETF</h1>"
+        "<section>Holdings as of 09/01/2026</section></html>"
+    )
+    cms_payload = {
+        "data": [
+            {
+                "pageId": "longpond-lpre",
+                "routeName": "lpre",
+                "holdingsComponents": [
+                    {
+                        "componentId": adapter._COMPONENT_ID,
+                        "date": "09/01/2026",
+                        "tableMapping": [{"columnTitle": list(adapter._REQUIRED_COLUMNS)}],
+                        "finData": source_rows,
+                    }
+                ],
+            }
+        ],
+        "meta": {},
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text=json.dumps(cms_payload),
+            content_type="application/json",
+            url=adapter.CMS_API_URL,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LPRE")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.CMS_API_URL,
+    ]
+    assert len(result.rows) == 20
+    assert result.rows[0].symbol == "SYM1"
+    assert result.rows[0].extra_data["figi"] == "BBG000000001"
+    assert result.rows[0].shares == Decimal("100")
+    assert result.rows[0].market_value == Decimal("100000.00")
+    assert result.rows[0].weight == Decimal("0.0125")
+    assert result.legal_metadata["source_provider"] == "long_pond_capital"
+    assert result.legal_metadata["publisher"] == "Long Pond Capital"
+    assert result.legal_metadata["parent_issuer"] == "Exchange Traded Concepts"
+    assert result.legal_metadata["route_resolution"] == ("long_pond_product_page_cms_holdings_json")
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "long_pond_native_current_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.raw_json["source_format"] == "issuer_product_page_cms_holdings_json"
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+
+@pytest.mark.asyncio
+async def test_lsv_adapter_fetches_official_lsvd_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("lsv")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "LsvHoldingsAdapter"
+    probe = adapter.probe(symbol="LSVD", name="LSV Disciplined Value ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == adapter.PRODUCT_PAGE_URL
+
+    with pytest.raises(ValueError, match="verified LSVD product page or CSV route"):
+        await adapter.fetch_latest(symbol="LSVD", source_url="https://example.invalid/holdings.csv")
+
+    csv_rows = [
+        "Name,Ticker,ISIN,Number of Shares,Market Value,% of NAV",
+        "FIRST AMERICAN TREASURY OBLIGATIONS FUND,,US31846V3289,239284.83,239284.83,    0.04",
+        *(
+            f"Company {index},SYM{index},US0000000{index:03d},{index * 100},{index * 100000}.00,    1.25"
+            for index in range(1, 21)
+        ),
+        "Cash,,,309070.78,309070.78,    0.05",
+    ]
+    page_html = (
+        "<html><h1>LSV Disciplined Value ETF</h1><p>Ticker : LSVD</p>"
+        "<h2>Top 10 Holdings</h2>"
+        "<table><tr><td>As of:</td><td> 09/01/2026</td></tr></table>"
+        f'<a href="{adapter.HOLDINGS_URL}">All Fund Holdings CSV Download</a></html>'
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text="\n".join(csv_rows),
+            content_type="text/csv",
+            url=adapter.HOLDINGS_URL,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LSVD")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.HOLDINGS_URL,
+    ]
+    assert len(result.rows) == 22
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].isin == "US31846V3289"
+    assert result.rows[1].symbol == "SYM1"
+    assert result.rows[1].shares == Decimal("100")
+    assert result.rows[1].market_value == Decimal("100000.00")
+    assert result.rows[1].weight == Decimal("0.0125")
+    assert result.rows[-1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "lsv_asset_management"
+    assert result.legal_metadata["publisher"] == "LSV Asset Management"
+    assert result.legal_metadata["route_resolution"] == ("lsv_product_page_declared_holdings_csv")
+    assert result.legal_metadata["snapshot_provenance"] == "lsv_native_current_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.raw_json["source_format"] == "issuer_product_page_declared_holdings_csv"
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+
+@pytest.mark.asyncio
+async def test_fitzgerald_adapter_discovers_and_parses_nicholas_wealth_csv(monkeypatch):
+    adapter = get_holdings_adapter("fitzgerald")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "FitzgeraldHoldingsAdapter"
+    probe = adapter.probe(symbol="FITZ", name="Fitz-Gerald Must Have Portfolio ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://nicholasx.com/fitz/"
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official Nicholas Wealth domain"):
+        await adapter.fetch_latest(symbol="FITZ", source_url="https://example.invalid/holdings.csv")
+
+    holdings_url = "https://nicholasx.com/?twm_download=holdings&ticker=FITZ&nonce=testnonce"
+    page_text = (
+        "<h1>FITZ - XFUNDS by Nicholas Wealth</h1>"
+        '<script>var holdingsUrl = "https:\\/\\/nicholasx.com\\/?twm_download=holdings'
+        '\\u0026ticker=FITZ\\u0026nonce=testnonce";</script>'
+    )
+    csv_text = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets",
+            *(
+                f"09/02/2026,FITZ,TKR{index},037833100,Security {index},10,100,1000,{index}%,10000"
+                for index in range(1, 11)
+            ),
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_text, content_type="text/html", url="https://nicholasx.com/fitz/"),
+        FakeResponse(text=csv_text, url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FITZ")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://nicholasx.com/fitz/",
+        holdings_url,
+    ]
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol == "TKR1"
+    assert result.rows[0].weight == Decimal("0.01")
+    assert result.legal_metadata["source_provider"] == "nicholas_wealth"
+    assert result.legal_metadata["publisher"] == "nicholas_wealth"
+    assert result.legal_metadata["parent_issuer"] == "nicholas_wealth"
+    assert result.legal_metadata["route_resolution"] == (
+        "nicholas_wealth_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == "fitzgerald_native_current_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    option_rows, _ = adapter._parse_holdings_csv(
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings\n"
+        "09/02/2026,FIZY,LMT   260904P00562500,LMT   260904P00562500,LMT US 09/04/26 P562.5,-6,20.1,-12060,-0.12%\n",
+        symbol="FIZY",
+    )
+    assert option_rows[0].symbol is None
+    assert option_rows[0].holding_type == "derivative"
+
+
+@pytest.mark.asyncio
+async def test_norris_perne_french_adapter_fetches_declared_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("norris_perne_french")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "NorrisPerneFrenchHoldingsAdapter"
+    assert (
+        adapter.probe(symbol="NPFE", name="NPF Core Equity ETF", identifiers={}).status == "ready"
+    )
+    assert adapter.probe(symbol="OTHER", name="", identifiers={}).status == "needs_issuer_route"
+
+    payload = {
+        "success": True,
+        "data": {
+            "asOfDate": "09/03/2026",
+            "holdings": [
+                {
+                    "name": f"Security {index}",
+                    "hTicker": f"TKR{index}",
+                    "cusip": "037833100",
+                    "sharesPar": "1,000",
+                    "marketValue": "$10,000.00",
+                    "weight": "1.00%",
+                }
+                for index in range(1, 11)
+            ],
+        },
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<h1>NPF Core Equity ETF (NPFE)</h1>",
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text=json.dumps(payload), content_type="application/json", url=adapter.HOLDINGS_API_URL
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NPFE")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.HOLDINGS_API_URL,
+    ]
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol == "TKR1"
+    assert result.rows[0].shares == Decimal("1000")
+    assert result.rows[0].market_value == Decimal("10000.00")
+    assert result.rows[0].weight == Decimal("0.01")
+    assert result.legal_metadata["route_resolution"] == (
+        "norris_perne_french_product_page_declared_holdings_json"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "norris_perne_french_native_current_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
+
+
+@pytest.mark.asyncio
+async def test_framework_adapter_fetches_declared_gsr_beso_holdings_api(monkeypatch):
+    adapter = get_holdings_adapter("framework_digital_advisors")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "FrameworkDigitalAdvisorsHoldingsAdapter"
+    probe = adapter.probe(symbol="BESO", name="GSR Crypto Core3 ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://gsretps.io/etf/beso"
+    assert adapter.probe(symbol="DATZ", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official product domain"):
+        await adapter.fetch_latest(symbol="BESO", source_url="https://example.invalid/beso")
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><title>BESO | GSR Crypto Core3</title>"
+                "HOLDINGS_CONFIG API_BASE_URL gsr-transformer.gsr.io TICKER BESO</html>"
+            ),
+            content_type="text/html",
+            url="https://gsretps.io/etf/beso",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "updateAt": "2026-09-01T00:00:00.000Z",
+                    "productInformation": {
+                        "fundName": "GSR Crypto Core3 ETF",
+                        "fundTicker": "BESO",
+                    },
+                }
+            ),
+            content_type="application/json",
+            url="https://gsr-transformer.gsr.io/etf/BESO/details",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "name": "Bitwise Solana Staking ETF",
+                        "ticker": "BSOL",
+                        "cusip": "091948109",
+                        "shares": 154919,
+                        "weight": 19.68,
+                        "price": 13.71,
+                        "marketValue": 2123939.49,
+                    },
+                    {
+                        "name": "Cash & Other",
+                        "ticker": "Cash&Other",
+                        "cusip": "Cash&Other",
+                        "shares": -5458,
+                        "weight": -0.05,
+                        "price": 1,
+                        "marketValue": -5458.74,
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url="https://gsr-transformer.gsr.io/etf/BESO/holdings",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BESO")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://gsretps.io/etf/beso",
+        "https://gsr-transformer.gsr.io/etf/BESO/details",
+        "https://gsr-transformer.gsr.io/etf/BESO/holdings",
+    ]
+    assert result.rows[0].symbol == "BSOL"
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[0].weight == Decimal("0.1968")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "gsr_etps"
+    assert result.legal_metadata["route_resolution"] == (
+        "framework_gsr_public_product_declared_holdings_api"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "framework_gsr_native_current_holdings_api"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["parent_issuer"] == "framework_digital_advisors"
+
+
+@pytest.mark.asyncio
+async def test_freedom_adapter_fetches_complete_frdm_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("freedom")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "FreedomHoldingsAdapter"
+    probe = adapter.probe(symbol="FRDM", name="Freedom 100 Emerging Markets ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://freedometfs.com/frdm/"
+    assert adapter.probe(symbol="OTHER", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="verified FRDM product page"):
+        await adapter.fetch_latest(symbol="FRDM", source_url="https://example.invalid/frdm")
+
+    holdings_rows = "".join(
+        (
+            "<tr><td>NVDA</td><td>NVIDIA Corp</td><td>67066G104</td><td></td>"
+            "<td>100</td><td>203.28</td><td>4.63</td><td>16.41</td></tr>"
+            if index == 1
+            else "<tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td></td>"
+            "<td>100</td><td>1.00</td><td>0.10</td><td>0.10</td></tr>"
+            if index == 10
+            else f"<tr><td>TKR{index}</td><td>Security {index}</td><td>037833100</td><td></td>"
+            f"<td>{index}</td><td>10.00</td><td>0.01</td><td>0.01</td></tr>"
+        )
+        for index in range(1, 11)
+    )
+    page_html = (
+        "<html><h2>FRDM | Freedom 100 Emerging Markets ETF</h2>"
+        "<table><thead><tr><th>Effective Date</th></tr></thead>"
+        "<tbody><tr><td>September 2, 2026</td></tr></tbody></table>"
+        "<h3>Fund Holdings</h3><table><thead><tr>"
+        "<th>Ticker</th><th>Name</th><th>CUSIP</th><th>SEDOL</th><th>Shares</th>"
+        "<th>Price</th><th>Market Value ($mm)</th><th>% of Net Assets</th>"
+        f"</tr></thead><tbody>{holdings_rows}</tbody></table></html>"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url="https://freedometfs.com/frdm/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FRDM")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://freedometfs.com/frdm/"
+    ]
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.1641")
+    assert result.rows[0].market_value == Decimal("4630000")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[-1].symbol is None
+    assert result.rows[-1].row_type == "cash"
+    assert result.rows[-1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "freedom_etfs"
+    assert result.legal_metadata["route_resolution"] == (
+        "freedom_product_page_embedded_complete_holdings_table"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == ("freedom_native_current_holdings_table")
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["parent_issuer"] == "freedom"
+
+
+@pytest.mark.asyncio
+async def test_fundstrat_adapter_fetches_complete_granny_shots_holdings_pages(monkeypatch):
+    adapter = get_holdings_adapter("fundstrat")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "FundstratHoldingsAdapter"
+    probe = adapter.probe(
+        symbol="GRNY", name="Fundstrat Granny Shots US Large Cap ETF", identifiers={}
+    )
+    assert probe.status == "ready"
+    assert probe.source_url.endswith("/grny-holdings/")
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="verified full holdings page"):
+        await adapter.fetch_latest(symbol="GRNY", source_url="https://example.invalid/grny")
+
+    products = {
+        "GRNY": (
+            "Fundstrat Granny Shots US Large Cap ETF",
+            "grny-holdings",
+            "AAPL",
+            "Stock",
+        ),
+        "GRNJ": (
+            "Fundstrat Granny Shots US Small- & Mid-Cap ETF",
+            "grnj-holdings",
+            "PATH",
+            "Stock",
+        ),
+        "GRNI": (
+            "Fundstrat Granny Shots US Large Cap & Income ETF",
+            "grni-holdings",
+            "AAPL 260918C00320000",
+            "Option",
+        ),
+    }
+    for symbol, (fund_name, page_slug, ticker, source_type) in products.items():
+        holdings_rows = "".join(
+            (
+                f"<tr><td>{ticker}</td><td>037833100</td><td>Apple Inc.</td><td>Technology</td>"
+                f"<td>10%</td><td>100</td><td>$1,000</td><td>$10</td><td>{source_type}</td></tr>"
+                if index == 1
+                else f"<tr><td>TKR{index}</td><td>037833100</td><td>Security {index}</td><td>Technology</td>"
+                f"<td>10%</td><td>{index}</td><td>$1,000</td><td>$10</td><td>Stock</td></tr>"
+            )
+            for index in range(1, 11)
+        )
+        page_html = (
+            f"<html><h1>{symbol} Holdings</h1><h2>{fund_name}</h2>"
+            "<p>Holdings as of September 2, 2026</p>"
+            "<table><thead><tr><th>Ticker</th><th>CUSIP</th><th>Name</th><th>Sector</th>"
+            "<th>Weight</th><th>Shares</th><th>Market Value</th><th>Last Price</th><th>Type</th>"
+            f"</tr></thead><tbody>{holdings_rows}</tbody></table></html>"
+        )
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [
+            FakeResponse(
+                text=page_html,
+                content_type="text/html",
+                url=f"https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/{page_slug}/",
+            )
+        ]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert len(result.rows) == 10
+        assert result.rows[0].weight == Decimal("0.10")
+        assert result.rows[0].market_value == Decimal("1000")
+        assert result.rows[0].currency == "USD"
+        assert result.rows[0].holding_type == ("derivative" if symbol == "GRNI" else "equity")
+        if symbol == "GRNI":
+            assert result.rows[0].symbol is None
+        else:
+            assert result.rows[0].symbol == ticker
+        assert result.legal_metadata["source_provider"] == "fundstrat_capital"
+        assert result.legal_metadata["route_resolution"] == (
+            "fundstrat_granny_shots_complete_holdings_page"
+        )
+        assert result.legal_metadata["snapshot_provenance"] == (
+            "fundstrat_native_current_holdings_table"
+        )
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+        assert result.legal_metadata["parent_issuer"] == "fundstrat"
+
+
+@pytest.mark.asyncio
+async def test_gotham_adapter_fetches_symbol_scoped_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("gotham")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "GothamHoldingsAdapter"
+    probe = adapter.probe(symbol="GSPY", name="The Gotham Enhanced 500 ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url.endswith("/gspy/DownloadHoldings")
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="verified product DownloadHoldings route"):
+        await adapter.fetch_latest(symbol="GSPY", source_url="https://example.invalid/gspy.csv")
+
+    for symbol in ("GSPY", "GVLU", "SHRT"):
+        rows = []
+        for index in range(1, 11):
+            ticker = "Cash&Other" if symbol == "SHRT" and index == 1 else f"TKR{index}"
+            name = "Cash & Other" if ticker == "Cash&Other" else f"Security {index}"
+            cusip = "Cash&Other" if ticker == "Cash&Other" else "037833100"
+            shares = "(100)" if symbol == "SHRT" and index == 2 else str(index)
+            market_value = "($10.00)" if symbol == "SHRT" and index == 2 else "$10.00"
+            if symbol == "SHRT" and index == 2:
+                ticker = "037833100-TRS-05/14/31-S"
+                name = "APPLE INC"
+                cusip = ticker
+            rows.append(f"09/02/2026,10.00%,{name},{ticker},{cusip},{shares},{market_value}")
+        csv_text = (
+            "As Of Date,Percentage of Net Assets,Name,Ticker,CUSIP,Shares Held,Market Value\n"
+            + "\n".join(rows)
+            + "\n"
+        )
+        holdings_url = adapter._PRODUCTS[symbol][0]
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [FakeResponse(text=csv_text, url=holdings_url)]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert len(result.rows) == 10
+        assert result.rows[0].weight == Decimal("0.10")
+        assert result.rows[0].market_value == Decimal("10.00")
+        assert result.rows[0].currency == "USD"
+        if symbol == "SHRT":
+            assert result.rows[0].row_type == "cash"
+            assert result.rows[1].holding_type == "derivative"
+            assert result.rows[1].symbol is None
+            assert result.rows[1].cusip == "037833100-TRS-05/14/31-S"
+            assert result.rows[1].shares == Decimal("-100")
+        else:
+            assert result.rows[0].symbol == "TKR1"
+        assert result.legal_metadata["source_provider"] == "gotham_asset_management"
+        assert result.legal_metadata["publisher"] == "gotham_etfs"
+        assert result.legal_metadata["parent_issuer"] == "gotham_asset_management"
+        assert result.legal_metadata["route_resolution"] == ("gotham_product_download_holdings_csv")
+        assert result.legal_metadata["snapshot_provenance"] == (
+            "gotham_native_current_holdings_csv"
+        )
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
+async def test_hexis_adapter_fetches_filepoint_declared_nico_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("hexis")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "HexisHoldingsAdapter"
+    probe = adapter.probe(
+        symbol="NICO", name="Hexis Active Nicotine Engagement ETF", identifiers={}
+    )
+    assert probe.status == "ready"
+    assert probe.source_url == adapter.FILEPOINT_PAGE_URL
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official NICO/FilePoint route"):
+        await adapter.fetch_latest(symbol="NICO", source_url="https://example.invalid/nico.csv")
+
+    rows = [
+        "09/02/2026,NICO,PM,718172109,Philip Morris International Inc,1211,187.15,226638.65,12.84%,1765253,70000,7,",
+        "09/02/2026,NICO,033780 KS,6175076,KT&G Corp,308,174900,39313.41,2.23%,1765253,70000,7,",
+        "09/02/2026,NICO,02209S103-TRS-06/07/27-L-CANT,02209S103-TRS-06/07/27-L-CANT,ALTRIA GROUP INC.-SWAP-CANT-L,1456,69.57,101293.92,5.74%,1765253,70000,7,",
+        "09/02/2026,NICO,FXFXX,31846V328,First American Treasury Obligations Fund 01/01/2040,679699.57,100,679699.57,38.50%,1765253,70000,7,Y",
+        "09/02/2026,NICO,Cash&Other,Cash&Other,Cash & Other,-632625.58,1,-632625.58,-35.84%,1765253,70000,7,Y",
+    ] + [
+        f"09/02/2026,NICO,TKR{index},037833100,Security {index},{index},10,10,0.01%,1765253,70000,7,"
+        for index in range(1, 7)
+    ]
+    csv_text = (
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,"
+        "NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag\n" + "\n".join(rows) + "\n"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='<html><td>NICO</td><a id="holdingscsv">Download Holdings</a></html>',
+            content_type="text/html",
+            url=adapter.FILEPOINT_PAGE_URL,
+        ),
+        FakeResponse(
+            text=f"const holdings = '{adapter.HOLDINGS_FILENAME}';",
+            content_type="application/javascript",
+            url=adapter.APPLICATION_SCRIPT_URL,
+        ),
+        FakeResponse(text=csv_text, url=adapter.HOLDINGS_URL),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NICO")
+
+    assert [url for url, _ in FakeAsyncClient.requested] == [
+        adapter.FILEPOINT_PAGE_URL,
+        adapter.APPLICATION_SCRIPT_URL,
+        adapter.HOLDINGS_URL,
+    ]
+    assert len(result.rows) == 11
+    assert result.rows[0].symbol == "PM"
+    assert result.rows[0].weight == Decimal("0.1284")
+    assert result.rows[1].symbol == "033780"
+    assert result.rows[1].exchange == "KS"
+    assert result.rows[2].holding_type == "derivative"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].cusip == "02209S103-TRS-06/07/27-L-CANT"
+    assert result.rows[3].holding_type == "fund"
+    assert result.rows[4].row_type == "cash"
+    assert result.rows[4].shares == Decimal("-632625.58")
+    assert result.legal_metadata["source_provider"] == "hexis_capital_management"
+    assert result.legal_metadata["publisher"] == "hexis_capital_management"
+    assert result.legal_metadata["parent_issuer"] == "hexis_capital_management"
+    assert result.legal_metadata["route_resolution"] == (
+        "hexis_filepoint_app_declared_daily_holdings_csv"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == "hexis_native_current_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
+async def test_hilton_adapter_fetches_account_scoped_all_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("hilton")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "HiltonHoldingsAdapter"
+    assert "hilton" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["hilton"].live_tested_default_route is True
+
+    probe = adapter.probe(symbol="SMCO", name="Hilton Small-MidCap Opportunity ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == adapter.PRODUCT_PAGES["SMCO"]
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official ETF/FilePoint route"):
+        await adapter.fetch_latest(symbol="SMCO", source_url="https://example.invalid/holdings.csv")
+
+    header = (
+        "TradeDate,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,"
+        "NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag,RowNum,MarketTicker"
+    )
+    smco_rows = [
+        "9/2/2026 12:00:00 AM,SMCO,AAPL,037833100,Apple Inc,100,200,20000,1.25,1600000,80000,8,,1,SMCO",
+        "9/2/2026 12:00:00 AM,SMCO,MSFT,594918104,Microsoft Corp,90,300,27000,1.69,1600000,80000,8,,2,SMCO",
+        "9/2/2026 12:00:00 AM,SMCO,FGXXX,31846V336,First American Government Obligations Fund,5000,1,5000,0.31,1600000,80000,8,Y,3,SMCO",
+        "9/2/2026 12:00:00 AM,SMCO,Cash&Other,Cash&Other,Cash & Other,1000,1,1000,0.06,1600000,80000,8,Y,4,SMCO",
+    ] + [
+        f"9/2/2026 12:00:00 AM,SMCO,TKR{index},037833100,Security {index},10,10,100,0.01,1600000,80000,8,,{index + 4},SMCO"
+        for index in range(1, 9)
+    ]
+    hbdc_rows = [
+        "9/2/2026 12:00:00 AM,HBDC,912797SU2,912797SU2,United States Treasury Note,100,99,9900,0.90,1100000,50000,5,,1,HBDC",
+        "9/2/2026 12:00:00 AM,HBDC,FGXXX,31846V336,First American Government Obligations Fund,1000,1,1000,0.09,1100000,50000,5,Y,2,HBDC",
+        "9/2/2026 12:00:00 AM,HBDC,Cash&Other,Cash&Other,Cash & Other,500,1,500,0.05,1100000,50000,5,Y,3,HBDC",
+    ]
+    csv_text = header + "\n" + "\n".join(smco_rows + hbdc_rows) + "\n"
+
+    product_url = adapter.PRODUCT_PAGES["SMCO"]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=("<html><h1>Hilton Small-MidCap Opportunity ETF (SMCO)</h1>"),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text=(
+                "<html><h1>SMCO All Holdings</h1>"
+                "<script>fetch('https://hiltonetfjson.com/etf/AllHoldings.csv')</script></html>"
+            ),
+            content_type="text/html",
+            url=adapter.HOLDINGS_PAGES["SMCO"],
+        ),
+        FakeResponse(text=csv_text, url=adapter.HOLDINGS_URL),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SMCO")
+
+    assert [url for url, _ in FakeAsyncClient.requested] == [
+        product_url,
+        adapter.HOLDINGS_PAGES["SMCO"],
+        adapter.HOLDINGS_URL,
+    ]
+    assert len(result.rows) == len(smco_rows)
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].weight == Decimal("0.0125")
+    assert result.rows[2].holding_type == "fund"
+    assert result.rows[3].row_type == "cash"
+    assert result.rows[3].symbol is None
+    assert result.legal_metadata["source_provider"] == "hilton_capital_management"
+    assert result.legal_metadata["publisher"] == "hilton_etfs"
+    assert result.legal_metadata["parent_issuer"] == "hilton_capital_management"
+    assert result.legal_metadata["route_resolution"] == (
+        "hilton_product_page_declared_all_holdings_csv"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == "hilton_native_all_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
+async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("beehive")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "BeeHiveHoldingsAdapter"
+    probe = adapter.probe(symbol="BEEX", name="The BeeHive ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == (
+        "https://tier1-assets.tidalfinancialgroup.com/funds/documents/beex/beex_holdings.csv"
+    )
+
+    with pytest.raises(ValueError, match="official declared holdings CSV"):
+        await adapter.fetch_latest(
+            symbol="BEEX",
+            source_url="https://example.invalid/holdings.csv",
+        )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>The BeeHive ETF (BEEX)</h1></html>",
+            content_type="text/html",
+            url="https://thebeehiveetf.com/",
+        ),
+        FakeResponse(
+            text=(
+                "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets\n"
+                "09/02/2026,BEEX,AMZN,023135106,Amazon.com Inc,52800,254.92,13459776.0,6.70%,201023097.38\n"
+                "09/02/2026,BEEX,Cash&Other,Cash&Other,Cash & Other,-25041,1,-25040.89,-0.01%,201023097.38\n"
+            ),
+            url="https://tier1-assets.tidalfinancialgroup.com/funds/documents/beex/beex_holdings.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BEEX")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://thebeehiveetf.com/",
+        "https://tier1-assets.tidalfinancialgroup.com/funds/documents/beex/beex_holdings.csv",
+    ]
+    assert result.rows[0].symbol == "AMZN"
+    assert result.rows[0].weight == Decimal("0.0670")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "beehive"
+    assert result.legal_metadata["route_resolution"] == (
+        "beehive_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.raw_json["source_format"] == (
+        "issuer_product_page_declared_tidal_daily_holdings_csv"
+    )
+
+
+@pytest.mark.asyncio
+async def test_blueprint_adapter_fetches_and_classifies_official_tfpn_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("blueprint")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "BlueprintHoldingsAdapter"
+    product_page_url = (
+        "https://blueprintip.com/systematic-investing-strategies/exchange-traded-funds/"
+        "next-generation-liquid-alt-blueprint-chesapeake-multi-asset-trend-etf/"
+    )
+    holdings_url = (
+        "https://blueprintip.com/wp-content/fund_files/files/wp-content/fund_files/files/"
+        "BlueprintInvWeb.40T2.T2_ETF_Holdings.csv"
+    )
+    probe = adapter.probe(
+        symbol="TFPN", name="Blueprint Chesapeake Multi-Asset Trend ETF", identifiers={}
+    )
+    assert probe.status == "ready"
+    assert probe.source_url == holdings_url
+
+    with pytest.raises(ValueError, match="official declared holdings CSV"):
+        await adapter.fetch_latest(symbol="TFPN", source_url="https://example.invalid/holdings.csv")
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>Blueprint Chesapeake Multi-Asset Trend ETF (TFPN)</h1></html>",
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text=(
+                "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets\n"
+                "09/02/2026,TFPN,AAPL,037833100,Apple Inc,8206,325.13,2668016.78,1.66%,161133440.00\n"
+                "09/02/2026,TFPN,ADU6 Curncy,ADU6 CURNCY,AUDUSD Crncy Fut Sep26,101,71.46,7217460.00,4.48%,161133440.00\n"
+                "09/02/2026,TFPN,912797SU2,912797SU2,United States Treasury Bill 11/27/2026,3000000,99.10,2973160.83,1.85%,161133440.00\n"
+                "09/02/2026,TFPN,Cash&Other,Cash&Other,Cash & Other,12594959.51,1,12594959.51,7.82%,161133440.00\n"
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TFPN")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        product_page_url,
+        holdings_url,
+    ]
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].weight == Decimal("0.0166")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[2].holding_type == "fixed_income"
+    assert result.rows[3].symbol is None
+    assert result.rows[3].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "blueprint_investment_partners"
+    assert result.legal_metadata["route_resolution"] == (
+        "blueprint_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.raw_json["source_format"] == (
+        "issuer_product_page_declared_tidal_daily_holdings_csv"
+    )
+
+
+@pytest.mark.asyncio
+async def test_bridgeway_adapter_fetches_complete_issuer_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("bridgeway")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "BridgewayHoldingsAdapter"
+    assert "bridgeway" not in FALLBACK_ISSUER_AUDITS
+
+    product_page_url = "https://bridgewayetfs.com/bblu/"
+    probe = adapter.probe(symbol="BBLU", name="EA Bridgeway Blue Chip ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == product_page_url
+
+    unsupported = adapter.probe(symbol="NOT_BRIDGEWAY", name="", identifiers={})
+    assert unsupported.status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official ETF product page"):
+        await adapter.fetch_latest(
+            symbol="BBLU",
+            source_url="https://example.invalid/holdings.html",
+        )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>EA Bridgeway Blue Chip ETF</h1>"
+                "<table id='table_9'><thead><tr>"
+                "<th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>"
+                "<th>Price</th><th>Market Value ($mm)</th>"
+                "<th>% of Net Assets</th><th>EFFECTIVE_DATE</th>"
+                "</tr></thead><tbody>"
+                "<tr><td>ABBV</td><td>AbbVie Inc</td><td>00287Y109</td>"
+                "<td>43,444</td><td>259.99</td><td>11.30</td><td>2.44</td>"
+                "<td>09/02/2026</td></tr>"
+                "<tr><td>FGXXX</td><td>First American Government Obligations Fund</td>"
+                "<td>31846V336</td><td>791,330</td><td>100.00</td><td>0.79</td>"
+                "<td>0.17</td><td>09/02/2026</td></tr>"
+                "<tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>"
+                "<td>456,567</td><td>1.00</td><td>0.46</td><td>0.10</td>"
+                "<td>09/02/2026</td></tr>"
+                "</tbody></table></html>"
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BBLU")
+
+    assert FakeAsyncClient.requested[0][0] == product_page_url
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "ABBV"
+    assert result.rows[0].market_value == Decimal("11300000.00")
+    assert result.rows[0].weight == Decimal("0.0244")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "bridgeway_etfs"
+    assert result.legal_metadata["route_resolution"] == (
+        "bridgeway_issuer_product_page_complete_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.raw_json["row_count"] == 3
 
 
 def test_colliers_harrison_street_adapter_discovers_and_parses_nfrx_holdings_csv():
@@ -19207,7 +23115,7 @@ async def test_thor_adapter_parses_current_embedded_holdings_page(monkeypatch):
 async def test_pictet_adapter_uses_public_fund_allocation_api(monkeypatch):
     adapter = get_holdings_adapter("pictet")
     assert adapter is not None
-    product_page_url = "https://etf.am.pictet.com/pqus/"
+    product_page_url = "https://am.pictet.com/us/en/advisors/pqus"
     payload = {
         "clientCode": "PQUS",
         "allocations": [
@@ -19276,6 +23184,66 @@ async def test_pictet_adapter_uses_public_fund_allocation_api(monkeypatch):
     assert cash_row.row_type == "cash"
     assert result.legal_metadata["composition_date"] == "2026-07-17"
     assert result.legal_metadata["route_resolution"] == "pictet_public_kurtosys_fund_allocations"
+
+
+@pytest.mark.asyncio
+async def test_pictet_adapter_reports_aws_waf_challenge_as_temporary_access_block(monkeypatch):
+    adapter = get_holdings_adapter("pictet")
+    assert adapter is not None
+    payload = {
+        "data": {
+            "clientCode": "PQUS",
+            "allocations": [
+                {
+                    "code": "fund_holdings",
+                    "values": [
+                        {
+                            "as_at_date": "2026-09-02",
+                            "security_name": "Apple Inc.",
+                            "security_ticker": "AAPL",
+                            "cusip": "037833100",
+                            "weight": 1.0,
+                        }
+                    ],
+                }
+            ],
+        }
+    }
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<script>window.awsWafCookieDomainList=['etf.am.pictet.com'];"
+                "AwsWafIntegration.getToken()</script>"
+            ),
+            content_type="text/html",
+            status_code=202,
+            url="https://am.pictet.com/us/en/advisors/pqus",
+        ),
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url=adapter.holdings_api_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="PQUS")
+
+    assert result.rows[0].symbol == "AAPL"
+    assert result.legal_metadata["product_page_access"] == "aws_waf_challenge"
+
+
+@pytest.mark.asyncio
+async def test_redwood_adapter_reports_empty_holdings_download_as_temporary_access_block(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("redwood")
+    assert adapter is not None
+    FakeAsyncClient.queue = [FakeResponse(text="", content_type="text/csv")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="empty payload"):
+        await adapter.fetch_latest(symbol="LSAT")
 
 
 @pytest.mark.asyncio
@@ -19692,7 +23660,7 @@ async def test_eighth_wonder_adapter_parses_the_full_fundsmith_etft_component(mo
         FakeResponse(
             text=(
                 "<h1>Fundsmith Equity ETF</h1><p>NYSE Arca: ETFT</p>"
-                '<top-ten-holdings-table subtitle="as of Jul 17, 2026" '
+                '<top-ten-holdings-table subtitle="as of Sept 17, 2026" '
                 f':holdings="{encoded_payload}"></top-ten-holdings-table>'
             ),
             content_type="text/html",
@@ -19715,7 +23683,7 @@ async def test_eighth_wonder_adapter_parses_the_full_fundsmith_etft_component(mo
     assert result.legal_metadata["route_resolution"] == (
         "fundsmith_public_etft_complete_holdings_component"
     )
-    assert result.legal_metadata["composition_date"] == "2026-07-17"
+    assert result.legal_metadata["composition_date"] == "2026-09-17"
 
 
 @pytest.mark.asyncio
@@ -19948,7 +23916,7 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert type(wedbush).__name__ == "WedbushHoldingsAdapter"
     assert (
         wedbush.resolve_source_url(symbol="TGLR")
-        == "https://wedbushfunds.com/latest-sod-holdings-tglr/"
+        == "https://wedbushfunds.com/assets/feeds/feeds.php?fund=TGLR"
     )
 
     sei = get_holdings_adapter("sei")
@@ -20028,6 +23996,71 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert rsp["issuer"] == "Invesco"
     assert rsp["provider_aliases"]["holdings_adapter"] == "invesco"
     assert rsp["provider_aliases"]["cusip"] == "46137V357"
+    bflb = known_etf_route_metadata("BFLB")
+    assert bflb == {
+        "issuer": "BufferLABS",
+        "provider_aliases": {
+            "holdings_adapter": "bufferlabs",
+            "issuer_product_url": "https://bflbetf.com/",
+            "sec_cik": "0001592900",
+        },
+    }
+    assert known_etf_route_metadata("SMRI") == {
+        "issuer": "Bushido Capital",
+        "provider_aliases": {
+            "holdings_adapter": "bushido",
+            "issuer_product_url": "https://bushidoetf.com/smri/",
+            "sec_cik": "0001592900",
+        },
+    }
+    assert known_etf_route_metadata("RNIN") == {
+        "issuer": "Bushido Capital",
+        "provider_aliases": {
+            "holdings_adapter": "bushido",
+            "issuer_product_url": "https://bushidoetf.com/rnin/",
+            "sec_cik": "0001592900",
+        },
+    }
+    assert known_etf_route_metadata("FFTY") == {
+        "issuer": "CapForce",
+        "provider_aliases": {
+            "holdings_adapter": "capforce",
+            "issuer_product_url": "https://www.capforceetf.com/ffty/details",
+            "sec_cik": "0002104659",
+        },
+    }
+    assert known_etf_route_metadata("BOUT") == {
+        "issuer": "CapForce",
+        "provider_aliases": {
+            "holdings_adapter": "capforce",
+            "issuer_product_url": "https://www.capforceetf.com/bout/details",
+            "sec_cik": "0002104659",
+        },
+    }
+    assert known_etf_route_metadata("CTEF") == {
+        "issuer": "Castellan",
+        "provider_aliases": {
+            "holdings_adapter": "castellan",
+            "issuer_product_url": "https://castellanetf.com/ctef/",
+            "sec_cik": "0001592900",
+        },
+    }
+    assert known_etf_route_metadata("CTIF") == {
+        "issuer": "Castellan",
+        "provider_aliases": {
+            "holdings_adapter": "castellan",
+            "issuer_product_url": "https://castellanetf.com/ctif/",
+            "sec_cik": "0001592900",
+        },
+    }
+    assert known_etf_route_metadata("CGV") == {
+        "issuer": "Conductor Fund",
+        "provider_aliases": {
+            "holdings_adapter": "conductor_fund",
+            "issuer_product_url": "https://conductoretfs.com/global-equity-etf/",
+            "sec_cik": "0001592900",
+        },
+    }
     invesco = holdings_adapter_catalog()
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
@@ -20085,6 +24118,10 @@ def test_holdings_adapter_catalog_exposes_expanded_recognition_set():
     assert adapters["academy"]["live_tested_default_route"] is True
     assert adapters["academy"]["source_provider"] == "academy_etfs"
     assert "issuer_native_live_route" in adapters["academy"]["support_route_types"]
+    assert ISSUER_ADAPTER_CONFIGS["academy"].url_templates == (
+        "https://tier1-assets.tidalfinancialgroup.com/funds/documents/"
+        "{symbol_lower}/{symbol_lower}_holdings.csv",
+    )
     assert adapters["impact_shares"]["live_tested_default_route"] is True
     assert adapters["impact_shares"]["source_provider"] == "impact_shares"
     assert "issuer_native_live_route" in adapters["impact_shares"]["support_route_types"]
@@ -20337,11 +24374,136 @@ def test_etf_com_brand_reconciliation_batch_is_registered_and_audited():
 
 def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
     expected = set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"emqq", "oshares"}
+    promoted_native = {
+        "emqq",
+        "oshares",
+        "esoterica",
+        "knowledge_leaders",
+        "saba_capital",
+        "trimtabs",
+    }
+    terminal_dispositions = {"alphaclone", "alphamark_advisors", "riverfront"}
+    fallback_expected = expected - promoted_native - terminal_dispositions
+
+    assert expected
+    assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
+    assert expected.issubset(set(registered_adapter_keys()))
+    assert fallback_expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    assert promoted_native.isdisjoint(set(FALLBACK_ISSUER_AUDITS))
+    for adapter_key in fallback_expected:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        assert audit.status == "needs_first_party_route_discovery"
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        if adapter_key == "amplius":
+            assert type(adapter).__name__ == "AmpliusHoldingsAdapter"
+        else:
+            assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in terminal_dispositions:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        expected_status = (
+            "inactive_or_successor_disposition"
+            if adapter_key in {"alphaclone", "alphamark_advisors"}
+            else "provider_not_a_portfolio_publisher"
+        )
+        assert audit.status == expected_status
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in promoted_native:
+        assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is True
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+
+
+def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
+    expected = set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS)
+    promoted_native = {
+        "guggenheim",
+        "bancreek",
+        "argent",
+        "falconx",
+        "framework_digital_advisors",
+        "freedom",
+        "fundstrat",
+        "mig_capital",
+        "milliman",
+        "moonvest",
+        "sammons_enterprises",
+        "nestyield",
+        "norris_perne_french",
+        "m_d_sass",
+    }
+    terminal_dispositions = {"amg_national"}
+    fallback_expected = expected - promoted_native - terminal_dispositions
+
+    assert expected
+    assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
+    assert expected.issubset(set(registered_adapter_keys()))
+    assert fallback_expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    assert promoted_native.isdisjoint(set(FALLBACK_ISSUER_AUDITS))
+    for adapter_key in fallback_expected:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        assert audit.status == "needs_first_party_route_discovery"
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        if adapter_key == "m_d_sass":
+            assert type(adapter).__name__ == "MDSassHoldingsAdapter"
+        else:
+            assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in terminal_dispositions:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        assert audit.status == "provider_not_a_portfolio_publisher"
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in promoted_native:
+        assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is True
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+
+
+def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
+    expected = set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS) - {
+        "everence",
+        "hexis",
+        "measured_risk_portfolios",
+        "milliman",
+        "moonvest",
+        "nestyield",
+        "baillie_gifford",
+    }
+
+    assert expected
+    assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS))
+    assert expected.issubset(set(registered_adapter_keys()))
+    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    for adapter_key in expected:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        assert audit.status == "needs_first_party_route_discovery"
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        if adapter_key == "amplius":
+            assert type(adapter).__name__ == "AmpliusHoldingsAdapter"
+        else:
+            assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+
+
+def test_etfdb_issuer_league_exhaustion_batch_is_registered_and_audited():
+    expected = set(ETFDB_ISSUER_LEAGUE_EXHAUSTION_ISSUER_HINTS)
+    promoted_native = {"mig_capital"}
     fallback_expected = expected - promoted_native
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS))
+    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS))
     assert expected.issubset(set(registered_adapter_keys()))
     assert fallback_expected.issubset(set(FALLBACK_ISSUER_AUDITS))
     assert promoted_native.isdisjoint(set(FALLBACK_ISSUER_AUDITS))
@@ -20356,57 +24518,6 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
-
-
-def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
-    expected = set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS)
-
-    assert expected
-    assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
-    assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
-    assert expected.issubset(set(registered_adapter_keys()))
-    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
-    for adapter_key in expected:
-        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
-        assert audit.status == "needs_first_party_route_discovery"
-        adapter = get_holdings_adapter(adapter_key)
-        assert adapter is not None
-        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
-
-
-def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
-    expected = set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS)
-
-    assert expected
-    assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
-    assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
-    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS))
-    assert expected.issubset(set(registered_adapter_keys()))
-    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
-    for adapter_key in expected:
-        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
-        assert audit.status == "needs_first_party_route_discovery"
-        adapter = get_holdings_adapter(adapter_key)
-        assert adapter is not None
-        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
-
-
-def test_etfdb_issuer_league_exhaustion_batch_is_registered_and_audited():
-    expected = set(ETFDB_ISSUER_LEAGUE_EXHAUSTION_ISSUER_HINTS)
-
-    assert expected
-    assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
-    assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
-    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS))
-    assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS))
-    assert expected.issubset(set(registered_adapter_keys()))
-    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
-    for adapter_key in expected:
-        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
-        assert audit.status == "needs_first_party_route_discovery"
-        adapter = get_holdings_adapter(adapter_key)
-        assert adapter is not None
-        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
 
 
 def test_etfdb_issuer_league_alias_dispositions_resolve_existing_adapters():
@@ -20434,8 +24545,11 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
         "ershares",
         "kovitz",
         "mfs",
+        "portfolio_building_block",
         "range",
+        "sapient",
         "strategas",
+        "vistashares",
     }
     fallback_expected = expected - promoted_native
 
@@ -20461,6 +24575,8 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
         assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     assert ISSUER_ADAPTER_CONFIGS["range"].live_tested_default_route is True
     assert type(get_holdings_adapter("range")).__name__ == "RangeHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["sapient"].live_tested_default_route is True
+    assert type(get_holdings_adapter("sapient")).__name__ == "SapientHoldingsAdapter"
     for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
@@ -20470,8 +24586,21 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
 
 
 def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS)
+    # ARS was reconciled to the existing ARS product-page adapter; the other
+    # continuation identities remain explicit fallback-only records.
+    expected = set(STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS) - {
+        "ars",
+        "avory",
+        "bushido",
+        "castellan",
+        "cresalta",
+        "jlens",
+        "lsv",
+        "max",
+    }
     expected -= {"fairlead"}
+    expected -= {"opus_capital_management"}
+    expected -= {"pathfinder"}
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -20488,13 +24617,42 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    assert "ars" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["ars"].live_tested_default_route is True
+    assert type(get_holdings_adapter("ars")).__name__ == "ArtemisHoldingsAdapter"
+    assert "avory" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["avory"].live_tested_default_route is True
+    assert type(get_holdings_adapter("avory")).__name__ == "AvoryHoldingsAdapter"
+    assert "bushido" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
+    assert type(get_holdings_adapter("bushido")).__name__ == "BushidoHoldingsAdapter"
+    assert "castellan" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["castellan"].live_tested_default_route is True
+    assert type(get_holdings_adapter("castellan")).__name__ == "CastellanHoldingsAdapter"
+    assert "cresalta" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["cresalta"].live_tested_default_route is True
+    assert type(get_holdings_adapter("cresalta")).__name__ == "CresAltaHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["fairlead"].live_tested_default_route is True
     assert type(get_holdings_adapter("fairlead")).__name__ == "CaryStreetHoldingsAdapter"
     assert "fairlead" not in FALLBACK_ISSUER_AUDITS
+    assert "jlens" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["jlens"].live_tested_default_route is True
+    assert type(get_holdings_adapter("jlens")).__name__ == "JLensHoldingsAdapter"
+    assert "max" not in FALLBACK_ISSUER_AUDITS
+    assert "sammons_enterprises" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["max"].live_tested_default_route is True
+    assert type(get_holdings_adapter("max")).__name__ == "MaxHoldingsAdapter"
 
 
 def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS)
+    expected = set(STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS) - {
+        "cresalta",
+        "hilton",
+        "mcelhenny_sheffield",
+        "militia",
+        "pathfinder",
+        "smi_funds",
+    }
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -20512,10 +24670,31 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    assert "hilton" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["hilton"].live_tested_default_route is True
+    assert type(get_holdings_adapter("hilton")).__name__ == "HiltonHoldingsAdapter"
+    assert "mcelhenny_sheffield" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["mcelhenny_sheffield"].live_tested_default_route is True
+    assert type(get_holdings_adapter("mcelhenny_sheffield")).__name__ == (
+        "McElhennySheffieldHoldingsAdapter"
+    )
+    assert "militia" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["militia"].live_tested_default_route is True
+    assert type(get_holdings_adapter("militia")).__name__ == "MilitiaHoldingsAdapter"
+    assert "smi_funds" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["smi_funds"].live_tested_default_route is True
+    assert type(get_holdings_adapter("smi_funds")).__name__ == "SmiFundsHoldingsAdapter"
 
 
 def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS)
+    expected = set(STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS) - {
+        "beehive",
+        "brookstone",
+        "elm",
+        "amplius",
+        "nestyield",
+        "srh",
+    }
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -20533,11 +24712,29 @@ def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audit
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
-        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+        if adapter_key == "amplius":
+            assert type(adapter).__name__ == "AmpliusHoldingsAdapter"
+        else:
+            assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    assert "srh" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["srh"].live_tested_default_route is True
+    assert type(get_holdings_adapter("srh")).__name__ == "SrhHoldingsAdapter"
 
 
 def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_FOURTH_CONTINUATION_ISSUER_HINTS) - {"impact_shares"}
+    expected = set(STOCKANALYSIS_PROVIDER_FOURTH_CONTINUATION_ISSUER_HINTS) - {
+        "impact_shares",
+        "ballast",
+        "blueprint",
+        "bridgeway",
+        "jlens",
+        "long_pond",
+        "lsv",
+        "mcelhenny_sheffield",
+        "river1",
+        "stratified",
+        "stance",
+    }
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -20560,6 +24757,21 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
     assert "impact_shares" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["impact_shares"].live_tested_default_route is True
     assert type(get_holdings_adapter("impact_shares")).__name__ == "ImpactSharesHoldingsAdapter"
+    assert "jlens" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["jlens"].live_tested_default_route is True
+    assert type(get_holdings_adapter("jlens")).__name__ == "JLensHoldingsAdapter"
+    assert "long_pond" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["long_pond"].live_tested_default_route is True
+    assert type(get_holdings_adapter("long_pond")).__name__ == "LongPondHoldingsAdapter"
+    assert "lsv" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["lsv"].live_tested_default_route is True
+    assert type(get_holdings_adapter("lsv")).__name__ == "LsvHoldingsAdapter"
+    assert "stance" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["stance"].live_tested_default_route is True
+    assert type(get_holdings_adapter("stance")).__name__ == "StanceHoldingsAdapter"
+    assert "stratified" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["stratified"].live_tested_default_route is True
+    assert type(get_holdings_adapter("stratified")).__name__ == "StratifiedHoldingsAdapter"
 
 
 def test_redwood_has_a_verified_native_route_after_live_probe():
@@ -20594,13 +24806,29 @@ def test_anfield_remains_explicitly_audited_fallback_only_after_route_404():
 def test_westwood_remains_explicitly_audited_fallback_only_after_official_route_403():
     """Do not promote search-indexed Westwood tables without an executable issuer artifact."""
     audit = FALLBACK_ISSUER_AUDITS["westwood"]
+    mdst = _NON_TIER_0_SYMBOL_AUDITS["MDST"]
 
     assert audit.status == "issuer_access_blocked"
     assert "issuer-owned" in audit.next_action
+    assert mdst.investigated_at == date(2026, 10, 5)
+    assert mdst.outcome == "unavailable"
+    assert "live:westwood-mdst-current-holdings-csv-2026-10-05-403" in mdst.evidence_refs
     assert ISSUER_ADAPTER_CONFIGS["westwood"].live_tested_default_route is False
     assert type(get_holdings_adapter("westwood")).__name__ == (
         "WestwoodAuditedFallbackHoldingsAdapter"
     )
+
+
+def test_aam_symbol_routes_remain_unavailable_without_complete_executable_exports():
+    """Indexed top-holdings snippets do not prove current application support."""
+    evidence_ref = "live:aam-trfm-route-2026-10-05-403"
+
+    for symbol in ("SPDV", "BDIV", "TRFM", "PFLD"):
+        audit = _NON_TIER_0_SYMBOL_AUDITS[symbol]
+        assert audit.investigated_at == date(2026, 10, 5)
+        assert audit.outcome == "unavailable"
+        assert evidence_ref in audit.evidence_refs
+        assert "complete symbol-bound export" in audit.next_action
 
 
 def test_all_issuer_access_blocked_adapters_remain_non_native():
@@ -20625,6 +24853,7 @@ def test_stockanalysis_provider_fifth_continuation_batch_is_registered_and_audit
         "altshares",
         "keating",
         "truth_social",
+        "conductor_fund",
     }
 
     assert expected
@@ -20650,14 +24879,34 @@ def test_stockanalysis_provider_fifth_continuation_batch_is_registered_and_audit
     assert "altshares" not in FALLBACK_ISSUER_AUDITS
     assert "truth_social" not in FALLBACK_ISSUER_AUDITS
     assert "keating" not in FALLBACK_ISSUER_AUDITS
+    assert "conductor_fund" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["academy"].live_tested_default_route is True
     assert ISSUER_ADAPTER_CONFIGS["altshares"].live_tested_default_route is True
     assert ISSUER_ADAPTER_CONFIGS["truth_social"].live_tested_default_route is True
     assert ISSUER_ADAPTER_CONFIGS["keating"].live_tested_default_route is True
+    assert ISSUER_ADAPTER_CONFIGS["conductor_fund"].live_tested_default_route is True
+    assert type(get_holdings_adapter("conductor_fund")).__name__ == "ConductorFundHoldingsAdapter"
 
 
 def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_SIXTH_CONTINUATION_ISSUER_HINTS)
+    expected = set(STOCKANALYSIS_PROVIDER_SIXTH_CONTINUATION_ISSUER_HINTS) - {
+        "avory",
+        "bufferlabs",
+        "bushido",
+        "capforce",
+        "castellan",
+        "even_herd",
+        "everence",
+        "fitzgerald",
+        "logiq",
+        "max",
+        "moonvest",
+        "sammons_enterprises",
+        "anydrus",
+    }
+
+    native_promotions = {"arin"}
+    expected -= native_promotions
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -20679,6 +24928,40 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in native_promotions:
+        assert adapter_key not in FALLBACK_ISSUER_AUDITS
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert type(adapter).__name__ == "ArinHoldingsAdapter"
+        assert adapter.config.live_tested_default_route is True
+        assert adapter.source_provider == "etf_architect"
+    assert "avory" not in FALLBACK_ISSUER_AUDITS
+    assert "bufferlabs" not in FALLBACK_ISSUER_AUDITS
+    assert "bushido" not in FALLBACK_ISSUER_AUDITS
+    assert "capforce" not in FALLBACK_ISSUER_AUDITS
+    assert "castellan" not in FALLBACK_ISSUER_AUDITS
+    assert "even_herd" not in FALLBACK_ISSUER_AUDITS
+    assert "everence" not in FALLBACK_ISSUER_AUDITS
+    assert "fitzgerald" not in FALLBACK_ISSUER_AUDITS
+    assert "max" not in FALLBACK_ISSUER_AUDITS
+    assert "sammons_enterprises" not in FALLBACK_ISSUER_AUDITS
+    assert "arin" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["max"].live_tested_default_route is True
+    assert type(get_holdings_adapter("max")).__name__ == "MaxHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
+    assert type(get_holdings_adapter("bufferlabs")).__name__ == "BufferLabsHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
+    assert type(get_holdings_adapter("bushido")).__name__ == "BushidoHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["capforce"].live_tested_default_route is True
+    assert type(get_holdings_adapter("capforce")).__name__ == "CapForceHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["castellan"].live_tested_default_route is True
+    assert type(get_holdings_adapter("castellan")).__name__ == "CastellanHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["even_herd"].live_tested_default_route is True
+    assert type(get_holdings_adapter("even_herd")).__name__ == "EvenHerdHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["everence"].live_tested_default_route is True
+    assert type(get_holdings_adapter("everence")).__name__ == "EverenceHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["fitzgerald"].live_tested_default_route is True
+    assert type(get_holdings_adapter("fitzgerald")).__name__ == "FitzgeraldHoldingsAdapter"
 
 
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
@@ -20713,6 +24996,17 @@ def test_us_etf_promoter_universe_status_tracks_broad_market_target():
 
 def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
     for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():
+        if adapter_key in {
+            "milliman",
+            "m_d_sass",
+            "nestyield",
+            "river1",
+            "trimtabs",
+            "vistashares",
+        }:
+            # Milliman is intentionally symbol-scoped to its two verified
+            # product pages and must not claim a route for an arbitrary symbol.
+            continue
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
 
@@ -22069,6 +26363,429 @@ async def test_mitsubishi_ufj_adapter_parses_only_mjsc_product_page_holdings(mon
 
 
 @pytest.mark.asyncio
+async def test_six_meridian_adapter_parses_nuxt_equity_option_and_cash_rows(monkeypatch):
+    adapter = get_holdings_adapter("meridian")
+    assert adapter is not None
+    assert type(adapter).__name__ == "SixMeridianHoldingsAdapter"
+
+    payload = [
+        None,
+        {
+            "componentId": 2,
+            "date": 3,
+            "finData": 4,
+        },
+        "sixmeridianetfs-sixh-HoldingsComponent-1",
+        "09/01/2026",
+        [5, 6, 7],
+        {
+            "figi": 8,
+            "ticker": 9,
+            "quantity": 10,
+            "description": 11,
+            "market_value": 12,
+            "percent_of_nav": 13,
+        },
+        {
+            "figi": 14,
+            "ticker": 15,
+            "quantity": 16,
+            "description": 17,
+            "market_value": 18,
+            "percent_of_nav": 19,
+        },
+        {
+            "figi": 20,
+            "ticker": 21,
+            "quantity": 22,
+            "description": 23,
+            "market_value": 24,
+            "percent_of_nav": 25,
+        },
+        "BBG000B9XRY4",
+        "AAPL",
+        100,
+        "APPLE INC",
+        "10,000.00",
+        "5.00%",
+        "BBG01XC0HWP6",
+        "SPX 10/16/26 C7750",
+        -857,
+        "SPX US 10/16/26 C7750",
+        "-8,077.00",
+        "-1.22%",
+        "BBG0013HGBT3",
+        "Cash-USD",
+        68100,
+        "CASH & OTHER",
+        "68,100.18",
+        "0.11%",
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>6 Meridian Hedged Equity – Index Option ETF</h1>"
+                '<div data-preview-route="sixh" '
+                'data-preview-component-id="sixmeridianetfs-sixh-HoldingsComponent-1"></div>'
+                '<script type="application/json" data-nuxt-data="nuxt-app" '
+                'id="__NUXT_DATA__">'
+                f"{json.dumps(payload)}"
+                "</script></html>"
+            ),
+            content_type="text/html",
+            url="https://www.6meridianfunds.com/sixh",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SIXH")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.6meridianfunds.com/sixh"
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].weight == Decimal("0.05")
+    assert result.rows[0].extra_data["figi"] == "BBG000B9XRY4"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "derivative"
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].extra_data["source_ticker"] == "SPX 10/16/26 C7750"
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.legal_metadata["source_provider"] == "six_meridian_etfs"
+    assert result.legal_metadata["route_resolution"] == (
+        "six_meridian_product_page_nuxt_complete_holdings_component"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+    assert adapter.probe(symbol="SXQG", name="", identifiers={}).source_url.endswith("/sxqg")
+    assert adapter.resolve_source_url(symbol="SIXH", source_url="https://evil.example/sixh") is None
+    with pytest.raises(ValueError, match="no verified native holdings route"):
+        await adapter.fetch_latest(symbol="NOT_SIXH")
+
+
+@pytest.mark.asyncio
+async def test_mig_capital_adapter_parses_migo_nuxt_holdings(monkeypatch):
+    adapter = get_holdings_adapter("mig_capital")
+    assert adapter is not None
+    assert type(adapter).__name__ == "MigCapitalHoldingsAdapter"
+
+    payload = [
+        None,
+        {
+            "componentId": 2,
+            "date": 3,
+            "finData": 4,
+        },
+        "migocap-home-HoldingsComponent-1",
+        "09/01/2026",
+        [5, 6, 7],
+        {
+            "figi": 8,
+            "ticker": 9,
+            "quantity": 10,
+            "description": 11,
+            "market_value": 12,
+            "percent_of_nav": 13,
+        },
+        {
+            "figi": 14,
+            "ticker": 15,
+            "quantity": 16,
+            "description": 17,
+            "market_value": 18,
+            "percent_of_nav": 19,
+        },
+        {
+            "figi": 20,
+            "ticker": 21,
+            "quantity": 22,
+            "description": 23,
+            "market_value": 24,
+            "percent_of_nav": 25,
+        },
+        "BBG00KHY5S69",
+        "AVGO",
+        80320,
+        "BROADCOM INC",
+        "29,692,697.60",
+        "3.94%",
+        "BBG0015VYNT4",
+        "VOO",
+        209308,
+        "VANGUARD S&P 500 ETF",
+        "146,574,206.24",
+        "19.46%",
+        "BBG0013HGBT3",
+        "Cash-USD",
+        39063,
+        "CASH & OTHER",
+        "39,063.23",
+        "0.01%",
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><title>MIGO ETF | MIG Core ETF</title>"
+                '<div data-preview-route="home" '
+                'data-preview-component-id="migocap-home-HoldingsComponent-1"></div>'
+                '<script type="application/json" data-nuxt-data="nuxt-app" '
+                'id="__NUXT_DATA__">'
+                f"{json.dumps(payload)}"
+                "</script></html>"
+            ),
+            content_type="text/html",
+            url="https://www.migcapitaletf.com/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MIGO")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.migcapitaletf.com/"
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "AVGO"
+    assert result.rows[0].weight == Decimal("0.0394")
+    assert result.rows[0].extra_data["figi"] == "BBG00KHY5S69"
+    assert result.rows[1].symbol == "VOO"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.rows[2].extra_data["source_ticker"] == "Cash-USD"
+    assert result.legal_metadata["source_provider"] == "mig_capital"
+    assert result.legal_metadata["route_resolution"] == (
+        "mig_capital_product_page_nuxt_complete_holdings_component"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+    assert adapter.probe(symbol="MIGO", name="", identifiers={}).source_url == (
+        "https://www.migcapitaletf.com/"
+    )
+    assert adapter.resolve_source_url(symbol="MIGO", source_url="https://evil.example/") is None
+    assert (
+        adapter.resolve_source_url(symbol="MIGO", source_url="https://www.migcapitaletf.com/?x=1")
+        is None
+    )
+    with pytest.raises(ValueError, match="no verified native holdings route"):
+        await adapter.fetch_latest(symbol="NOT_MIGO")
+
+
+@pytest.mark.asyncio
+async def test_militia_adapter_parses_orr_wpdatatable_holdings(monkeypatch):
+    adapter = get_holdings_adapter("militia")
+    assert adapter is not None
+    assert type(adapter).__name__ == "MilitiaHoldingsAdapter"
+
+    page = """
+    <html><h1>ORR - Militia Long/Short Equity ETF</h1><h2>Fund Holdings</h2>
+    <table id="table_11"><thead><tr>
+      <th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+      <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th>
+    </tr></thead><tbody>
+      <tr><td>GOOG</td><td>Alphabet Inc</td><td>02079K107</td><td>41,535</td><td>333.78</td><td>13.86</td><td>3.95</td><td>09/03/2026</td></tr>
+      <tr><td>FGXXX</td><td>First American Government Obligations Fund 12/01/2031</td><td>31846V336</td><td>3,839,413</td><td>100.00</td><td>3.84</td><td>1.09</td><td>09/03/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td>99,709,347</td><td>1.00</td><td>99.71</td><td>28.42</td><td>09/03/2026</td></tr>
+    </tbody></table></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url="https://militiaetf.com/")
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ORR")
+
+    assert FakeAsyncClient.requested[0][0] == "https://militiaetf.com/"
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "GOOG"
+    assert result.rows[0].weight == Decimal("0.0395")
+    assert result.rows[0].market_value == Decimal("13860000")
+    assert result.rows[1].symbol == "FGXXX"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.rows[2].market_value == Decimal("99710000")
+    assert result.legal_metadata["source_provider"] == "militia"
+    assert result.legal_metadata["route_resolution"] == (
+        "militia_official_product_page_wpdatatable_complete_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
+
+    assert adapter.probe(symbol="ORR", name="", identifiers={}).source_url == (
+        "https://militiaetf.com/"
+    )
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="ORR", source_url="https://evil.example/")
+    with pytest.raises(ValueError, match="No verified Militia current-holdings route"):
+        await adapter.fetch_latest(symbol="NOT_ORR")
+
+
+@pytest.mark.asyncio
+async def test_milliman_adapter_parses_product_declared_mhip_csv(monkeypatch):
+    adapter = get_holdings_adapter("milliman")
+    assert adapter is not None
+    assert type(adapter).__name__ == "MillimanHoldingsAdapter"
+
+    page = """
+    <html><h1>MHIP</h1><h2>Milliman Healthcare Inflation Plus ETF</h2>
+    <a href="https://mfassets.millimanfunds.com/MHIP_Holdings_20260820.csv">View All Holdings</a>
+    </html>
+    """
+    csv_text = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+8/21/2026,MHIP,4GLD  261119C00351760,4GLD  261119C00351760,4GLD US 11/19/26 C351.76 FLX,4.00000000,69.331500,27732.60,0.02,1057060.00,50000,2.000000000000,False
+8/21/2026,MHIP,912797UZ8,912797UZ8,United States Treasury Bill 11/19/2026,156000.00000000,99.073125,154554.08,0.14,1057060.00,50000,2.000000000000,False
+8/21/2026,MHIP,XFIV,09789C838,BondBloxx Bloomberg Five Year Target Duration US Treasury ETF,2482.00000000,48.170000,119557.94,0.11,1057060.00,50000,2.000000000000,False
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page, content_type="text/html", url="https://millimanfunds.com/etfs/mhip"
+        ),
+        FakeResponse(
+            text=csv_text,
+            content_type="text/csv",
+            url="https://mfassets.millimanfunds.com/MHIP_Holdings_20260820.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MHIP")
+
+    assert [url for url, _ in FakeAsyncClient.requested] == [
+        "https://millimanfunds.com/etfs/mhip",
+        "https://mfassets.millimanfunds.com/MHIP_Holdings_20260820.csv",
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "derivative"
+    assert result.rows[0].shares == Decimal("4.00000000")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "fixed_income"
+    assert result.rows[1].market_value == Decimal("154554.08")
+    assert result.rows[2].symbol == "XFIV"
+    assert result.rows[2].holding_type == "fund"
+    assert result.legal_metadata["source_provider"] == "milliman"
+    assert result.legal_metadata["route_resolution"] == (
+        "milliman_product_page_declared_dated_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-08-21"
+    assert result.legal_metadata["holdings_url"].endswith("MHIP_Holdings_20260820.csv")
+
+    assert adapter.probe(symbol="MHIG", name="", identifiers={}).source_url.endswith("/mhig")
+    with pytest.raises(ValueError, match="No verified Milliman current-holdings route"):
+        await adapter.fetch_latest(symbol="OTHER")
+
+
+@pytest.mark.asyncio
+async def test_milliman_adapter_resolves_next_data_dated_csv_when_shell_omits_link(monkeypatch):
+    adapter = get_holdings_adapter("milliman")
+    next_data = json.dumps(
+        {
+            "props": {
+                "pageProps": {
+                    "top10HoldingsDate": "9/1/2026",
+                    "numberOfHoldings": 86,
+                    "top10Holdings": [{"Account": "MHIP", "StockTicker": "AAPL"}],
+                }
+            }
+        }
+    )
+    csv_text = (
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,"
+        "SharesOutstanding,CreationUnits,MoneyMarketFlag\n"
+        "9/2/2026,MHIP,AAPL,037833100,Apple Inc,10,200,2000,0.01,200000,1000,1,False\n"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<html><script id="__NEXT_DATA__" type="application/json">{next_data}</script></html>',
+            content_type="text/html",
+            url="https://millimanfunds.com/etfs/mhip",
+        ),
+        FakeResponse(
+            text=csv_text,
+            content_type="text/csv",
+            url="https://mfassets.millimanfunds.com/MHIP_Holdings_20260901.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MHIP")
+
+    assert [url for url, _ in FakeAsyncClient.requested] == [
+        "https://millimanfunds.com/etfs/mhip",
+        "https://mfassets.millimanfunds.com/MHIP_Holdings_20260901.csv",
+    ]
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "AAPL"
+    assert result.legal_metadata["holdings_url"].endswith("MHIP_Holdings_20260901.csv")
+
+
+@pytest.mark.asyncio
+async def test_moonvest_adapter_parses_mnvt_wpdatatable_holdings(monkeypatch):
+    adapter = get_holdings_adapter("moonvest")
+    assert adapter is not None
+    page = """
+    <html><h1>Moonvest ETF</h1><div>MNVT</div><h2>Fund Holdings</h2>
+    <table><tr><th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th>
+    <th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th></tr>
+    <tr><td>RCAT</td><td>Red Cat Holdings Inc</td><td>75644T100</td><td>436468</td><td>8.32</td><td>3.63</td><td>4.82</td><td>09/03/2026</td></tr>
+    <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td>-2177</td><td>1.00</td><td>0.00</td><td>0.00</td><td>09/03/2026</td></tr>
+    </table></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url="https://mnvt-etf.com/"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MNVT")
+
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "RCAT"
+    assert result.rows[0].market_value == Decimal("3630000")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].shares == Decimal("-2177")
+    assert result.legal_metadata["route_resolution"] == (
+        "moonvest_official_product_page_wpdatatable_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
+async def test_nestyield_adapter_parses_eggq_wpdatatable_holdings(monkeypatch):
+    adapter = get_holdings_adapter("nestyield")
+    assert adapter is not None
+    page = """
+    <html><h1>NestYield Visionary ETF</h1><div>EGGQ</div>
+    <table><tr><th>Date</th><th>Account</th><th>StockTicker</th><th>SecurityName</th><th>CUSIP</th>
+    <th>Shares</th><th>Price</th><th>MarketValue</th><th>Weightings</th></tr>
+    <tr><td>09/01/2026</td><td>EGGQ</td><td>FGXXX</td><td>First American Government Obligations Fund</td><td>31846V336</td><td>100</td><td>100</td><td>10000</td><td>1.0</td></tr>
+    <tr><td>09/01/2026</td><td>EGGQ</td><td>CASH&amp;OTHER</td><td>Cash &amp; Other</td><td></td><td>-10</td><td>1</td><td>-10</td><td>-0.01</td></tr>
+    </table></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url="https://nestyield.com/eggq/")
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="EGGQ")
+
+    assert len(result.rows) == 2
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[0].market_value == Decimal("10000")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].shares == Decimal("-10")
+    assert result.legal_metadata["route_resolution"] == (
+        "nestyield_official_product_page_wpdatatable_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
 async def test_mcivy_adapter_parses_only_identity_verified_genter_holdings(monkeypatch):
     adapter = get_holdings_adapter("mcivy")
     assert adapter is not None
@@ -22342,6 +27059,153 @@ async def test_pettee_adapter_parses_only_homz_linked_complete_holdings_workbook
 
 
 @pytest.mark.asyncio
+async def test_jlens_adapter_parses_complete_tov_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("jlens")
+    assert adapter is not None
+
+    holdings_rows = "".join(
+        "<tr>"
+        f"<td>SYM{index}</td><td>Company {index}</td>"
+        f"<td>{index:09d}</td><td></td><td>{index * 10}</td>"
+        f"<td>10.00</td><td>1.25</td><td>0.50</td>"
+        "</tr>"
+        for index in range(1, 101)
+    )
+    raw_html = f"""
+        <html>
+          <h1>JLens 500 Jewish Advocacy U.S. ETF (TOV)</h1>
+          <h2>Fund Holdings</h2>
+          <table>
+            <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>SEDOL</th>
+              <th>Shares</th><th>Price</th><th>Market Value ($mm)</th>
+              <th>% of Net Assets</th></tr>
+            {holdings_rows}
+          </table>
+          <table>
+            <tr><td>1</td><td>Fund Data &amp; Pricing</td><td></td></tr>
+            <tr><td>9</td><td>As of Date</td><td>2026-09-02</td></tr>
+          </table>
+        </html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://investjewishly.org/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TOV")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == ["https://investjewishly.org/"]
+    assert len(result.rows) == 100
+    assert result.rows[0].symbol == "SYM1"
+    assert result.rows[0].cusip == "000000001"
+    assert result.rows[0].weight == Decimal("0.005")
+    assert result.rows[0].market_value == Decimal("1250000.00")
+    assert result.legal_metadata["publisher"] == "JLens"
+    assert result.legal_metadata["parent_issuer"] == "Empowered Funds"
+    assert result.legal_metadata["fund_data_as_of_date"] == "2026-09-02"
+    assert result.legal_metadata["route_resolution"] == (
+        "jlens_product_page_embedded_complete_holdings_table"
+    )
+
+    with pytest.raises(ValueError, match="supports TOV only"):
+        await adapter.fetch_latest(symbol="UNRELATED")
+
+
+@pytest.mark.asyncio
+async def test_knowledge_leaders_adapter_fetches_dated_kno_filepoint_csv(monkeypatch):
+    adapter = get_holdings_adapter("knowledge_leaders")
+    assert adapter is not None
+
+    header = (
+        "ETF Ticker,Date,ISIN,CUSIP,SEDOL,Ticker,Description,Security Type,"
+        "Market Value,Maturity Date,Shares,Security Price,Asset Currency,"
+        "Shares Outstanding,Total Net Assets,Market Value Weight"
+    )
+    equity_rows = "\n".join(
+        ",".join(
+            [
+                "KNO",
+                "9/2/2026",
+                f"US0000000{index:03d}",
+                f"{index:09d}",
+                f"B{index:06d}",
+                f"SYM{index}",
+                f"Company {index}",
+                "COMMON STOCK",
+                "1250000.00",
+                "",
+                "100",
+                "12500.00",
+                "USD",
+                "675001",
+                "43148024.45",
+                "11.81%",
+            ]
+        )
+        for index in range(1, 51)
+    )
+    raw_csv = (
+        f"{header}\n{equity_rows}\n"
+        "KNO,9/2/2026,,, ,CASHUSD,CASH,CASH,100.00,,100,1.00,USD,675001,43148024.45,0.00%\n"
+        "KNO,9/2/2026,,,,,NET OTHER ASSETS,OTHER,-5.00,,,-,USD,675001,43148024.45,0.00%\n"
+    ).replace(", ,", ",,")
+
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return date(2026, 9, 3)
+
+    product_html = (
+        "<html>AXS Knowledge Leaders ETF KNO "
+        '<iframe src="https://axsetf.filepoint.live/v2/kno/nav"></iframe></html>'
+    )
+    filepoint_html = '<html><section class="fund-page" data-id="KNO"></section></html>'
+    today_url = "https://axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.20260903.csv"
+    previous_url = "https://axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.20260902.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_html, content_type="text/html", url=adapter.PRODUCT_PAGE_URL),
+        FakeResponse(text=filepoint_html, content_type="text/html", url=adapter.FILEPOINT_PAGE_URL),
+        FakeResponse(text="not found", status_code=404, url=today_url),
+        FakeResponse(text=raw_csv, content_type="text/csv", url=previous_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", FixedDate)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="KNO")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.FILEPOINT_PAGE_URL,
+        today_url,
+        previous_url,
+    ]
+    assert len(result.rows) == 52
+    assert result.rows[0].symbol == "SYM1"
+    assert result.rows[0].cusip == "000000001"
+    assert result.rows[0].weight == Decimal("0.1181")
+    assert result.rows[0].market_value == Decimal("1250000.00")
+    assert result.rows[-2].row_type == "cash"
+    assert result.rows[-2].holding_type == "cash"
+    assert result.rows[-1].row_type == "other"
+    assert result.rows[-1].holding_type == "other"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["publisher"] == "AXS Investments"
+    assert result.legal_metadata["parent_issuer"] == "Knowledge Leaders Capital"
+    assert result.legal_metadata["route_resolution"] == (
+        "axs_knowledge_leaders_filepoint_dated_holdings_csv"
+    )
+
+    with pytest.raises(ValueError, match="supports KNO only"):
+        await adapter.fetch_latest(symbol="UNRELATED")
+
+
+@pytest.mark.asyncio
 async def test_sound_capital_adapter_parses_only_rver_linked_holdings_workbook(monkeypatch):
     adapter = get_holdings_adapter("sound_capital")
     assert adapter is not None
@@ -22566,6 +27430,117 @@ async def test_belpointe_plgi_adapter_discovers_filepoint_payload_and_parses_hol
         "plgi_product_page_declared_filepoint_holdings_json"
     )
     assert result.legal_metadata["composition_date"] == "2026-07-23"
+
+
+@pytest.mark.asyncio
+async def test_anydrus_ndow_adapter_discovers_dated_filepoint_payload(monkeypatch):
+    adapter = get_holdings_adapter("anydrus")
+    assert adapter is not None
+    assert type(adapter).__name__ == "AnydrusHoldingsAdapter"
+
+    payload = {
+        "response": {"status_description": "Success", "status_code": 0},
+        "data": {
+            "2026-09-02": [
+                {
+                    "fund_ticker": "NDOW",
+                    "fund_description": "Anydrus Advantage ETF",
+                    "number_of_holdings_in_etf": 3,
+                    "constituents": [
+                        {
+                            "etf_ticker": "NDOW",
+                            "constituent_ticker": "SCHO",
+                            "constituent_description": "Schwab Short-Term U.S. Treasury ETF",
+                            "constituent_weight": 0.0476,
+                            "constituent_market_value": 123456.78,
+                            "constituent_cusip": "808524870",
+                            "shares_held_of_constituent": 1200,
+                        },
+                        {
+                            "etf_ticker": "NDOW",
+                            "constituent_ticker": "",
+                            "constituent_description": "CASH AND CASH EQUIVALENTS",
+                            "constituent_weight": 0.0078,
+                            "constituent_market_value": 541245.0,
+                            "shares_held_of_constituent": 541245.0,
+                        },
+                        {
+                            "etf_ticker": "NDOW",
+                            "constituent_ticker": "MCK",
+                            "constituent_description": "McKesson Corporation",
+                            "constituent_weight": 0.0312,
+                            "constituent_market_value": 98765.43,
+                            "constituent_cusip": "58155Q103",
+                            "constituent_isin": "US58155Q1031",
+                            "shares_held_of_constituent": 100,
+                        },
+                    ],
+                }
+            ]
+        },
+    }
+
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return date(2026, 9, 5)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html>Anydrus Advantage ETF NDOW "
+                '<button id="downloadHoldingsBtn">Download All</button></html>'
+            ),
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text=(
+                'const endpoint = "https://filepoint.live/anydrus_getdata_cached3.php"; '
+                'const fallback = "https://filepoint.live/anydrus_" + date + "_data.json";'
+            ),
+            content_type="application/javascript",
+            url=adapter.APP_JS_URL,
+        ),
+        FakeResponse(
+            text="not found",
+            status_code=404,
+            url="https://filepoint.live/anydrus_2026-09-05_data.json",
+        ),
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://filepoint.live/anydrus_2026-09-04_data.json",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", FixedDate)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NDOW")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.APP_JS_URL,
+        "https://filepoint.live/anydrus_2026-09-05_data.json",
+        "https://filepoint.live/anydrus_2026-09-04_data.json",
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "SCHO"
+    assert result.rows[0].weight == Decimal("0.0476")
+    assert result.rows[0].market_value == Decimal("123456.78")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[2].isin == "US58155Q1031"
+    assert result.raw_json["declared_holdings_count"] == 3
+    assert result.legal_metadata["source_provider"] == "anydrus"
+    assert result.legal_metadata["route_resolution"] == (
+        "anydrus_product_page_declared_filepoint_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="official NDOW product page"):
+        await adapter.fetch_latest(symbol="NDOW", source_url="https://example.com/ndow")
 
 
 @pytest.mark.asyncio
@@ -22834,7 +27809,7 @@ async def test_eventide_adapter_discovers_contentful_holdings_csv(monkeypatch):
                 f'<script>{{"etfHoldingsCsv":{{"url":"{csv_url}"}}}}</script>'
             ),
             content_type="text/html",
-            url="https://www.eventideinvestments.com/etfs",
+            url="https://www.eventideinvestments.com/etfs/esum",
         ),
         FakeResponse(
             text="\n".join(
@@ -22857,7 +27832,7 @@ async def test_eventide_adapter_discovers_contentful_holdings_csv(monkeypatch):
 
     result = await adapter.fetch_latest(symbol="ESUM")
 
-    assert FakeAsyncClient.requested[0][0] == "https://www.eventideinvestments.com/etfs"
+    assert FakeAsyncClient.requested[0][0] == "https://www.eventideinvestments.com/etfs/esum"
     assert FakeAsyncClient.requested[1][0] == csv_url
     assert len(result.rows) == 3
     assert result.rows[0].symbol == "NVDA"
@@ -22875,6 +27850,65 @@ async def test_eventide_adapter_discovers_contentful_holdings_csv(monkeypatch):
     )
     assert result.legal_metadata["composition_date"] == "2026-06-26"
     assert result.legal_metadata["product_name"] == "Eventide US Market ETF"
+
+
+@pytest.mark.asyncio
+async def test_eventide_adapter_discovers_current_first_party_csv_download(monkeypatch):
+    adapter = get_holdings_adapter("eventide")
+    assert adapter is not None
+
+    csv_url = (
+        "https://www.eventideinvestments.com/assets/4IYE4vPqDpYNlrGE3NHg7r/"
+        "ESUM_etfHoldingsCsv.csv"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<a href="//assets.ctfassets.net/tiol9r5yvqqu/60EaH1oFwn5cSTkB0g5KSV/'
+                '07376e153b4b7ebc75d13adabccddb05/ESIM_etfHoldingsCsv.csv">other</a>'
+                '<a href="/assets/4IYE4vPqDpYNlrGE3NHg7r/ESUM_etfHoldingsCsv.csv">CSV</a>'
+            ),
+            content_type="text/html",
+            url="https://www.eventideinvestments.com/etfs/esum",
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    'Product,"Eventide US Market ETF"',
+                    "Ticker,ESUM",
+                    '"As-of Date",2026-09-30',
+                    ",",
+                    "Ticker,Holding,CUSIP,Market Value ($),Weight",
+                    'NVDA,"NVIDIA CORP",67066G104,"$15,461,097.62",7.92%',
+                    'AVGO,"BROADCOM INC.",11135F101,"$4,932,814.74",2.53%',
+                    ',"CASH AND CASH EQUIVALENTS",,"$75,000.00",0.04%',
+                ]
+            ),
+            content_type="text/csv",
+            url=csv_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ESUM")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://www.eventideinvestments.com/etfs/esum",
+        csv_url,
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].name == "NVIDIA CORP"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].market_value == Decimal("15461097.62")
+    assert result.rows[0].weight == Decimal("0.0792")
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].symbol is None
+    assert (
+        result.legal_metadata["route_resolution"] == "issuer_product_page_first_party_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-30"
 
 
 @pytest.mark.asyncio
@@ -23305,9 +28339,16 @@ async def test_main_management_adapter_uses_its_scoped_secondary_transport_after
             raise requests.exceptions.ReadTimeout("publisher stalled")
         return FakeResponse(text=csv_payload, content_type="text/csv", url=url)
 
+    async def skip_retry_delay(_seconds):
+        return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     TimeoutClient.requested = []
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", TimeoutClient)
     monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fallback_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_retry_delay)
     monkeypatch.setattr(
         "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
     )
@@ -23335,8 +28376,11 @@ async def test_procure_adapter_discovers_current_holdings_csv_from_product_page(
     FakeAsyncClient.queue = [
         FakeResponse(
             text=(
-                '<a href="https://procureetfs.com/wp-content/uploads/2026/06/'
-                'UFO-JP-Holdings-Jun-12-2026.csv">Download All Holdings (.xls)</a>'
+                '<div class="ufo-tables-links">'
+                '<a href="https://procureetfs.com/wp-content/uploads/2026/10/'
+                'UFO-JP-Holdings-Oct-07-2026.csv">Download All Holdings (.xls)</a>'
+                '</div><footer><a href="https://procureetfs.com/wp-content/uploads/2026/09/'
+                'UFO-JP-Holdings-Oct-07-2026.csv">here</a></footer>'
             ),
             content_type="text/html",
         ),
@@ -23344,9 +28388,9 @@ async def test_procure_adapter_discovers_current_holdings_csv_from_product_page(
             text="\n".join(
                 [
                     "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
-                    "06/12/2026,UFO,RKLB,773121108,Rocket Lab Corp,617581,114.78,70885947.18,6.40%,1107289600,19625000,785,",
-                    "06/12/2026,UFO,MDA CN,BMZ0WL3,MDA Space Ltd,1363203,57.05,55481170.79,5.01%,1107289600,19625000,785,",
-                    "06/12/2026,UFO,USD,,US DOLLAR,1000,1,1000,0.01%,1107289600,19625000,785,1",
+                    "10/07/2026,UFO,RKLB,773121108,Rocket Lab Corp,617581,114.78,70885947.18,6.40%,1107289600,19625000,785,",
+                    "10/07/2026,UFO,MDA CN,BMZ0WL3,MDA Space Ltd,1363203,57.05,55481170.79,5.01%,1107289600,19625000,785,",
+                    "10/07/2026,UFO,USD,,US DOLLAR,1000,1,1000,0.01%,1107289600,19625000,785,1",
                 ]
             ),
             content_type="text/csv",
@@ -23358,7 +28402,7 @@ async def test_procure_adapter_discovers_current_holdings_csv_from_product_page(
 
     assert FakeAsyncClient.requested[0][0] == "https://procureetfs.com/ufo/"
     assert FakeAsyncClient.requested[1][0] == (
-        "https://procureetfs.com/wp-content/uploads/2026/06/" "UFO-JP-Holdings-Jun-12-2026.csv"
+        "https://procureetfs.com/wp-content/uploads/2026/10/" "UFO-JP-Holdings-Oct-07-2026.csv"
     )
     assert FakeAsyncClient.requested[1][1]["headers"]["Referer"] == "https://procureetfs.com/"
     assert len(result.rows) == 3
@@ -23374,7 +28418,32 @@ async def test_procure_adapter_discovers_current_holdings_csv_from_product_page(
     assert result.rows[2].row_type == "cash"
     assert result.rows[2].symbol is None
     assert result.legal_metadata["route_resolution"] == "issuer_product_page_discovery"
-    assert result.legal_metadata["composition_date"] == "2026-06-12"
+    assert result.legal_metadata["composition_date"] == "2026-10-07"
+
+
+@pytest.mark.asyncio
+async def test_procure_adapter_does_not_fall_back_to_stale_footer_link(monkeypatch):
+    adapter = get_holdings_adapter("procuream")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<div class="ufo-tables-links"><span>No current file</span></div>'
+                '<footer><a href="https://procureetfs.com/wp-content/uploads/2026/09/'
+                'UFO-JP-Holdings-Oct-07-2026.csv">here</a></footer>'
+            ),
+            content_type="text/html",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="needs issuer route metadata"):
+        await adapter.fetch_latest(symbol="UFO")
+
+    assert len(FakeAsyncClient.requested) == 1
+    assert FakeAsyncClient.requested[0][0] == "https://procureetfs.com/ufo/"
 
 
 @pytest.mark.asyncio
@@ -23541,14 +28610,14 @@ async def test_world_gold_council_adapter_parses_gold_archive_workbook(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_inspire_adapter_fetches_quarterly_holdings_json(monkeypatch):
+async def test_inspire_adapter_fetches_current_etfeng_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("inspire")
     assert adapter is not None
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         FakeResponse(
-            text="""[
+            text="""{"holdings": [
               {
                 "as_of_date": "2026-02-27T00:00:00Z",
                 "country": "US",
@@ -23586,20 +28655,17 @@ async def test_inspire_adapter_fetches_quarterly_holdings_json(monkeypatch):
                 "ticker": "OTHER",
                 "weight": 0.5
               }
-            ]""",
+            ]}""",
             content_type="application/json",
         )
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
-    result = await adapter.fetch_latest(
-        symbol="BIBL",
-        identifiers={"holdings_date": "20260228"},
-    )
+    result = await adapter.fetch_latest(symbol="BIBL")
 
     assert FakeAsyncClient.requested[0][0] == (
-        "https://data.etflogic.io/prod?apikey=263752e3-765e-4dab-aa89-ab3d6a49d7dc"
-        "&function=holdings&format=json&ticker=BIBL&date=20260228"
+        "https://api.etfeng.com/inspire/inspire?apikey=d4747610-f863-4755-9ec2-65990d0793ac"
+        "&ticker=BIBL&format=json"
     )
     assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == ("https://www.inspireetf.com/")
     assert len(result.rows) == 2
@@ -23613,10 +28679,8 @@ async def test_inspire_adapter_fetches_quarterly_holdings_json(monkeypatch):
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "fixed_income"
     assert result.rows[1].cusip == "133131BB7"
-    assert result.legal_metadata["route_resolution"] == (
-        "issuer_page_public_quarterly_holdings_api"
-    )
-    assert result.legal_metadata["source_frequency"] == "quarterly"
+    assert result.legal_metadata["route_resolution"] == "issuer_page_declared_etfeng_holdings_api"
+    assert result.legal_metadata["source_frequency"] == "daily_or_provider_reported"
     assert result.legal_metadata["composition_date"] == "2026-02-27"
 
 
@@ -24193,7 +29257,7 @@ async def test_acsi_funds_official_daily_csv_route_is_native_and_symbol_scoped(m
     FakeAsyncClient.queue = [
         FakeResponse(
             text=csv_text,
-            url="https://acsietf.com/wp-content/uploads/files/TidalETF_Services.40ZZ.VA_Holdings_.csv",
+            url="https://tier1-assets.tidalfinancialgroup.com/funds/documents/acsi/acsi_holdings.csv",
         )
     ]
     FakeAsyncClient.requested = []
@@ -24201,7 +29265,9 @@ async def test_acsi_funds_official_daily_csv_route_is_native_and_symbol_scoped(m
 
     result = await adapter.fetch_latest(symbol="ACSI")
 
-    assert FakeAsyncClient.requested[0][0].startswith("https://acsietf.com/")
+    assert FakeAsyncClient.requested[0][0].startswith(
+        "https://tier1-assets.tidalfinancialgroup.com/"
+    )
     assert result.rows[0].symbol == "AAPL"
     assert result.rows[0].weight == Decimal("0.0712")
     assert result.rows[1].row_type == "cash"
@@ -24455,3 +29521,672 @@ async def test_alerian_rejects_empty_or_mismatched_payload(monkeypatch):
     ]
     with pytest.raises(ValueError, match="identity did not match"):
         await adapter.fetch_latest(symbol="AMLP")
+
+
+@pytest.mark.asyncio
+async def test_guggenheim_holdings_route_parses_complete_issuer_table(monkeypatch):
+    adapter = get_holdings_adapter("guggenheim")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>GCSH Guggenheim Ultra Short Income ETF</h1>"
+                "<h2>Fund Holdings</h2><p>as of 8/31/26</p>"
+                "<table><tr><th>Security Name</th><th>Ticker</th>"
+                "<th>CUSIP</th><th>SEDOL</th><th>Quantity</th>"
+                "<th>% of Net Assets</th></tr>"
+                "<tr><td>Vanguard S&amp;P 500 ETF</td><td>VOO</td>"
+                "<td>922908363</td><td>BF2GMJ3</td><td>10000</td><td>4.84%</td></tr>"
+                "<tr><td>Cash</td><td></td><td></td><td></td><td></td><td>0.12%</td></tr>"
+                "</table></html>"
+            ),
+            url="https://portal.guggenheiminvestments.com/etf/fund/gcsh/holdings",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GCSH")
+
+    assert FakeAsyncClient.requested[0][0].endswith("/etf/fund/gcsh/holdings")
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "VOO"
+    assert result.rows[0].cusip == "922908363"
+    assert result.rows[0].sedol == "BF2GMJ3"
+    assert result.rows[0].shares == Decimal("10000")
+    assert result.rows[0].weight == Decimal("0.0484")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata == {
+        "source_access": "issuer_public_complete_etf_holdings_html_table",
+        "source_provider": "guggenheim_investments",
+        "adapter_key": "guggenheim",
+        "source_format": "html",
+        "route_resolution": "guggenheim_issuer_holdings_table",
+        "composition_date": "2026-08-31",
+        "as_of_date": "2026-08-31",
+        "terms_note": ISSUER_ADAPTER_CONFIGS["guggenheim"].terms_note,
+    }
+
+
+@pytest.mark.asyncio
+async def test_wisdomtree_public_fund_holdings_api_is_symbol_scoped_and_dated(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    probe = adapter.probe(symbol="DXJ", name="", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://www.wisdomtree.com/api/fund-holdings/1000549"
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "dt": "2026-09-04T00:00:00.000Z",
+                        "wtClassID": 1000549,
+                        "fundTicker": "DXJ",
+                        "assetGroup": "EQ",
+                        "securityTicker": "8306 JT",
+                        "securityName": "Mitsubishi UFJ Financial Group",
+                        "shares": 1234,
+                        "marketValueBase": 987654.32,
+                        "wgt": 0.0425,
+                        "figi": "BBG000BPH459",
+                        "sectorName": "Financials",
+                    },
+                    {
+                        "dt": "2026-09-04T00:00:00.000Z",
+                        "wtClassID": 1000549,
+                        "fundTicker": "DXJ",
+                        "assetGroup": "CASH",
+                        "securityTicker": "",
+                        "securityName": "Cash",
+                        "shares": 0,
+                        "marketValueBase": 1000,
+                        "wgt": 0.0001,
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url="https://www.wisdomtree.com/api/fund-holdings/1000549",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DXJ")
+
+    assert FakeAsyncClient.requested[0][0].endswith("/us/products/equity/dxj")
+    assert FakeAsyncClient.requested[1][0].endswith("/api/fund-holdings/1000549")
+    assert result.legal_metadata["route_resolution"] == ("wisdomtree_public_fund_holdings_api")
+    assert result.legal_metadata["transport"] == "httpx"
+    assert result.legal_metadata["composition_date"] == "2026-09-04"
+    assert result.rows[0].symbol == "8306 JT"
+    assert result.rows[0].extra_data["figi"] == "BBG000BPH459"
+    assert result.rows[0].weight == Decimal("0.0425")
+    assert result.rows[0].extra_data["sectorName"] == "Financials"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+
+
+@pytest.mark.asyncio
+async def test_wisdomtree_cloudflare_challenge_retries_official_route_with_curl_http11(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html>Cloudflare Ray ID: challenge-platform</html>",
+            content_type="text/html",
+            status_code=403,
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    curl_queue = [
+        FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "dt": "2026-09-04T00:00:00.000Z",
+                        "wtClassID": 1000549,
+                        "fundTicker": "DXJ",
+                        "assetGroup": "EQ",
+                        "securityTicker": "8306 JT",
+                        "securityName": "Mitsubishi UFJ Financial Group",
+                        "shares": 1234,
+                        "marketValueBase": 987654.32,
+                        "wgt": 0.0425,
+                    }
+                ]
+            ),
+            content_type="application/json",
+            url="https://www.wisdomtree.com/api/fund-holdings/1000549",
+        ),
+    ]
+
+    def fake_curl(*_args, **_kwargs):
+        return curl_queue.pop(0)
+
+    monkeypatch.setattr(adapter, "_curl_get", fake_curl)
+
+    async def fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
+
+    result = await adapter.fetch_latest(symbol="DXJ")
+
+    assert result.rows[0].symbol == "8306 JT"
+    assert result.legal_metadata["transport"] == "curl_http1_1_after_issuer_challenge"
+    assert result.legal_metadata["composition_date"] == "2026-09-04"
+
+
+@pytest.mark.asyncio
+async def test_wisdomtree_public_fund_holdings_api_rejects_identity_drift(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "dt": "2026-09-04",
+                        "wtClassID": 1001798,
+                        "fundTicker": "NTSX",
+                        "assetGroup": "EQ",
+                        "securityName": "Wrong fund",
+                    }
+                ]
+            ),
+            content_type="application/json",
+            url="https://www.wisdomtree.com/api/fund-holdings/1000549",
+        ),
+    ]
+    with pytest.raises(ValueError, match="not scoped to requested fund"):
+        await adapter.fetch_latest(symbol="DXJ")
+
+
+@pytest.mark.asyncio
+async def test_wisdomtree_route_failure_uses_explicit_sec_fallback_with_provenance(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    request = httpx.Request("GET", "https://www.wisdomtree.com/us/products/equity/dxj")
+    blocked = httpx.HTTPStatusError(
+        "Client error '403 Forbidden'",
+        request=request,
+        response=httpx.Response(403, request=request),
+    )
+    FakeAsyncClient.queue = [blocked]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    fallback = HoldingsFetchResult(
+        rows=[CanonicalHoldingRow(symbol="8306 JT", name="Mitsubishi UFJ Financial Group")],
+        source_url="https://www.sec.gov/Archives/edgar/data/example.xml",
+        legal_metadata={"source_access": "sec_filing", "source_provider": "sec"},
+    )
+
+    async def fake_sec_fallback(**_kwargs):
+        return fallback
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+
+    result = await adapter.fetch_latest(symbol="DXJ", identifiers={"sec_cik": "0000036405"})
+
+    assert result is fallback
+    assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+    assert "403" in result.legal_metadata["issuer_route_failure"]
+
+
+@pytest.mark.asyncio
+async def test_wisdomtree_cloudflare_challenge_is_explicitly_issuer_blocked(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html>Cloudflare Ray ID: challenge-platform</html>",
+            content_type="text/html",
+            status_code=403,
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    def unavailable_curl(*_args, **_kwargs):
+        raise requests.RequestException("curl disabled in deterministic unit test")
+
+    monkeypatch.setattr(adapter, "_curl_get", unavailable_curl)
+
+    with pytest.raises(ValueError, match="issuer access challenge"):
+        await adapter.fetch_latest(symbol="DXJ")
+
+
+@pytest.mark.asyncio
+async def test_guggenheim_holdings_route_rejects_wrong_fund_or_missing_table(monkeypatch):
+    adapter = get_holdings_adapter("guggenheim")
+    assert adapter is not None
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>Guggenheim Ultra Short Income ETF</h1></html>",
+            url="https://portal.guggenheiminvestments.com/etf/fund/voo/holdings",
+        )
+    ]
+    with pytest.raises(ValueError, match="did not match requested ETF"):
+        await adapter.fetch_latest(symbol="VOO")
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>GCSH Guggenheim Ultra Short Income ETF</h1></html>",
+            url="https://portal.guggenheiminvestments.com/etf/fund/gcsh/holdings",
+        )
+    ]
+    with pytest.raises(ValueError, match="no complete rows"):
+        await adapter.fetch_latest(symbol="GCSH")
+
+    with pytest.raises(ValueError, match="symbol-scoped issuer route"):
+        await adapter.fetch_latest(
+            symbol="GCSH",
+            source_url="https://example.invalid/etf/fund/gcsh/holdings",
+        )
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>GCSH Guggenheim Ultra Short Income ETF</h1></html>",
+            url="https://example.invalid/etf/fund/gcsh/holdings",
+        )
+    ]
+    with pytest.raises(ValueError, match="left the issuer domain"):
+        await adapter.fetch_latest(symbol="GCSH")
+
+
+@pytest.mark.asyncio
+async def test_cresalta_adapter_parses_complete_current_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("cresalta")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>Small &amp; Mid Cap ETF</h1>"
+                "<p>Complete Holdings</p>"
+                "<span>As of September 2, 2026</span>"
+                "<table><tr><th>Name</th><th>CUSIP</th><th>Shares / Par</th>"
+                "<th>Weight</th><th>Market Value</th></tr>"
+                "<tr><td>MSILF Government Portfolio</td><td>61747C707</td>"
+                "<td>9222229</td><td>9.67%</td><td>$9222229.45</td></tr>"
+                "<tr><td>Dynatrace Inc</td><td>268150109</td><td>59458</td>"
+                "<td>3.29%</td><td>$3142949.88</td></tr></table></html>"
+            ),
+            url="https://cresalta.com/full-holdings/?ticker=cvsm",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CVSM")
+
+    assert FakeAsyncClient.requested[0][0].endswith("ticker=cvsm")
+    assert len(result.rows) == 2
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].cusip == "268150109"
+    assert result.rows[1].shares == Decimal("59458")
+    assert result.rows[1].weight == Decimal("0.0329")
+    assert result.legal_metadata["route_resolution"] == (
+        "cresalta_public_complete_current_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+def test_provider_audit_ledger_matches_code_derived_fallback_universe():
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    ledger = yaml.safe_load(ledger_path.read_text())
+    records = ledger["providers"]
+    fallback_keys = set(FALLBACK_ISSUER_AUDITS)
+    record_keys = [record["adapter_key"] for record in records]
+
+    assert ledger["baseline_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
+    assert ledger["baseline_fallback_count"] == 140
+    assert ledger["baseline_native_count"] == 356
+    assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
+    assert ledger["current_native_count"] == 422
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 74
+    assert len(records) == 140
+    assert len(record_keys) == len(set(record_keys))
+    native_promoted = {
+        record["adapter_key"] for record in records if record["disposition"] == "native_promoted"
+    }
+    assert native_promoted == {
+        "arin",
+        "baillie_gifford",
+        "ars",
+        "avory",
+        "anydrus",
+        "ballast",
+        "bancreek",
+        "beehive",
+        "blueprint",
+        "bridgeway",
+        "bufferlabs",
+        "bushido",
+        "capforce",
+        "castellan",
+        "conductor_fund",
+        "cresalta",
+        "brookstone",
+        "guggenheim",
+        "elm",
+        "esoterica",
+        "even_herd",
+        "everence",
+        "falconx",
+        "fitzgerald",
+        "framework_digital_advisors",
+        "freedom",
+        "fundstrat",
+        "gotham",
+        "hexis",
+        "hilton",
+        "jlens",
+        "knowledge_leaders",
+        "logiq",
+        "long_pond",
+        "lsv",
+        "amplius",
+        "argent",
+        "m_d_sass",
+        "max",
+        "mcelhenny_sheffield",
+        "measured_risk_portfolios",
+        "meridian",
+        "mig_capital",
+        "militia",
+        "milliman",
+        "moonvest",
+        "nestyield",
+        "norris_perne_french",
+        "opus_capital_management",
+        "pathfinder",
+        "portfolio_building_block",
+        "quadratic",
+        "return_stacked",
+        "river1",
+        "robo_global",
+        "rockefeller_capital",
+        "saba_capital",
+        "sammons_enterprises",
+        "sapient",
+        "smi_funds",
+        "srh",
+        "stance",
+        "stratified",
+        "trimtabs",
+        "wisdomtree",
+        "vistashares",
+    }
+    assert set(record_keys) == fallback_keys | native_promoted
+    assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
+
+    allowed_statuses = {
+        "issuer_access_blocked",
+        "inactive_or_successor_disposition",
+        "needs_first_party_route_discovery",
+        "non_executable_public_source",
+        "provider_not_a_portfolio_publisher",
+    }
+    for record in records:
+        key = record["adapter_key"]
+        config = ISSUER_ADAPTER_CONFIGS[key]
+        assert record["source_access_declared"] == config.source_access
+        if key in fallback_keys:
+            audit = FALLBACK_ISSUER_AUDITS[key]
+            # starting_status is the historical queue disposition; the runtime
+            # audit status may now be a dated terminal/successor outcome after
+            # a later first-party investigation.
+            assert record["starting_status"] in allowed_statuses
+            assert audit.status in allowed_statuses
+            assert record["current_status"] in allowed_statuses
+            assert record["disposition"] in allowed_statuses
+            assert record["current_status"] == record["disposition"]
+            assert date.fromisoformat(str(record["last_checked"])) >= audit.last_checked
+            assert record["evidence_refs"][:2] == [
+                f"runtime:FALLBACK_ISSUER_AUDITS.{key}",
+                f"runtime:ISSUER_ADAPTER_CONFIGS.{key}",
+            ]
+            assert any(
+                attempt.get("evidence_ref")
+                and not str(attempt["evidence_ref"]).startswith("runtime:")
+                and attempt.get("source") != "code-derived fallback audit manifest"
+                for attempt in record["attempt_history"]
+            )
+        else:
+            assert key in native_promoted
+            assert record["starting_status"] in allowed_statuses
+            assert record["current_status"] == "native_promoted"
+            assert record["disposition"] == "native_promoted"
+            assert record["route_complete"] is True
+            assert record["symbol_mapping_proven"] is True
+            assert record["current_holdings_proven"] is True
+            assert record["first_party_domains"]
+            assert ISSUER_ADAPTER_CONFIGS[key].live_tested_default_route is True
+        assert key.casefold() in record["disposition_reason"].casefold()
+        assert key.casefold() in record["next_action"].casefold()
+        assert record["attempt_history"]
+        attempt_dates = [
+            date.fromisoformat(str(attempt["date"]))
+            for attempt in record["attempt_history"]
+            if attempt.get("date")
+        ]
+        assert attempt_dates
+        assert date.fromisoformat(str(record["last_checked"])) >= max(attempt_dates)
+
+
+def test_vendor_source_candidates_are_cost_and_activation_governed():
+    """Research candidates cannot silently become an entitled current source."""
+
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    ledger = yaml.safe_load(ledger_path.read_text())
+    candidates = ledger["vendor_source_candidates"]
+    rows = candidates["candidates"]
+
+    assert candidates["aggregate_monthly_budget_units"] == 20
+    assert candidates["currency_basis"] == "EUR/USD-equivalent units"
+    assert candidates["activation_authorized"] is False
+    assert rows
+    assert len({row["key"] for row in rows}) == len(rows)
+
+    required_fields = {
+        "key",
+        "display_name",
+        "target_symbols",
+        "access_model",
+        "pricing_model",
+        "coverage_evidence",
+        "freshness_evidence",
+        "quota_evidence",
+        "terms_evidence",
+        "budget_disposition",
+        "activation_status",
+        "current_support_eligible",
+        "evidence_refs",
+        "next_action",
+    }
+    for row in rows:
+        assert required_fields <= row.keys()
+        assert row["target_symbols"]
+        assert row["activation_status"] == "not_authorized"
+        assert row["current_support_eligible"] is False
+        assert row["evidence_refs"]
+        assert row["next_action"]
+        for field in ("published_minimum_activation_usd", "published_monthly_cost_usd"):
+            value = row.get(field)
+            assert value is None or (isinstance(value, int | float) and value >= 0)
+
+    stockfit = next(row for row in rows if row["key"] == "stockfit")
+    assert stockfit["published_monthly_cost_usd"] == 39
+    assert stockfit["budget_disposition"] == "over_aggregate_budget"
+
+    low_cost = next(row for row in rows if row["key"] == "etf_holdings_api")
+    assert low_cost["published_minimum_activation_usd"] == 10
+    assert low_cost["budget_disposition"] == "pending_coverage_and_entitlement"
+
+    fundfacts = next(row for row in rows if row["key"] == "fundfacts_api")
+    assert fundfacts["published_minimum_activation_usd"] == 0
+    assert fundfacts["published_monthly_cost_usd"] == 49
+    assert fundfacts["budget_disposition"] == "over_aggregate_budget"
+    assert "personal use" in fundfacts["quota_evidence"]
+    assert "commercial use" in fundfacts["terms_evidence"]
+
+
+def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
+    """Current durable summaries must not drift from code-derived coverage."""
+    workstream_root = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+    )
+    provider_universe = (
+        Path(__file__).resolve().parents[4] / "docs" / "etf-provider-universe.md"
+    ).read_text()
+    ledger = yaml.safe_load((workstream_root / "provider-audit.yaml").read_text())
+    plan = yaml.safe_load((workstream_root / "plan.yaml").read_text())
+    session = json.loads((workstream_root / "session.json").read_text())
+    handoff = (workstream_root / "handoff.md").read_text()
+
+    fallback_count = len(FALLBACK_ISSUER_AUDITS)
+    tier_zero_count = len(_TIER_0_SYMBOL_AUDITS)
+    tier_one_count = len(_NON_TIER_0_SYMBOL_AUDITS)
+
+    assert ledger["current_fallback_count"] == fallback_count
+    runtime_status_counts = {
+        status: sum(audit.status == status for audit in FALLBACK_ISSUER_AUDITS.values())
+        for status in {
+            "issuer_access_blocked",
+            "needs_first_party_route_discovery",
+            "non_executable_public_source",
+            "provider_not_a_portfolio_publisher",
+        }
+    }
+    for status, count in runtime_status_counts.items():
+        assert f"- `{status}`: `{count}`" in provider_universe
+    assert len(ledger["symbol_priority_ledger"]["symbols"]) == tier_zero_count
+    assert len(ledger["symbol_audit_ledger"]["symbols"]) == tier_one_count
+
+    expected_tier_counts = f"{tier_zero_count} Tier-0 and {tier_one_count} Tier-1"
+    assert expected_tier_counts in plan["current_blocker"]
+    assert expected_tier_counts in session["progress"]["current_blocker"]
+    assert f"Both now contain {tier_zero_count} Tier-0 and {tier_one_count} Tier-1" in handoff
+
+
+def test_symbolless_fallback_identities_remain_explicitly_non_current():
+    """Provider-level identities must not become silent ETF support gaps."""
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    records = yaml.safe_load(ledger_path.read_text())["providers"]
+    symbolless = [record for record in records if not record["representative_symbols"]]
+
+    assert len(symbolless) == 19
+    allowed_dispositions = {
+        "inactive_or_successor_disposition",
+        "non_executable_public_source",
+        "provider_not_a_portfolio_publisher",
+    }
+    for record in symbolless:
+        assert record["disposition"] in allowed_dispositions
+        assert record["current_status"] == record["disposition"]
+        assert record["route_complete"] is False
+        assert record["symbol_mapping_proven"] is False
+        assert record["current_holdings_proven"] is False
+        assert record["next_action"]
+
+
+def test_symbol_priority_ledger_matches_runtime_tier_zero_audits():
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    ledger = yaml.safe_load(ledger_path.read_text())
+    rows = ledger["symbol_priority_ledger"]["symbols"]
+
+    assert {row["symbol"] for row in rows} == set(_TIER_0_SYMBOL_AUDITS)
+    for row in rows:
+        audit = _TIER_0_SYMBOL_AUDITS[row["symbol"]]
+        assert row["tier"] == audit.tier
+        assert row["provider_identity"] == audit.provider_identity
+        assert row["current_outcome"] == audit.outcome
+        assert row["evidence_state"] == audit.evidence_state
+        assert (
+            date.fromisoformat(str(row.get("investigated_at", "2026-09-04")))
+            == audit.investigated_at
+        )
+        assert tuple(row["evidence_refs"]) == audit.evidence_refs
+        assert row["next_action"]
+
+
+def test_symbol_audit_ledger_matches_runtime_ranked_fallback_cohort():
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    ledger = yaml.safe_load(ledger_path.read_text())
+    rows = ledger["symbol_audit_ledger"]["symbols"]
+
+    assert {row["symbol"] for row in rows} == set(_NON_TIER_0_SYMBOL_AUDITS)
+    assert all(row["tier"] == 1 for row in rows)
+    for row in rows:
+        audit = _NON_TIER_0_SYMBOL_AUDITS[row["symbol"]]
+        assert row["provider_identity"] == audit.provider_identity
+        assert row["current_outcome"] == audit.outcome
+        assert row["evidence_state"] == audit.evidence_state
+        assert date.fromisoformat(str(row["investigated_at"])) == audit.investigated_at
+        assert tuple(row["evidence_refs"]) == audit.evidence_refs
+        assert row["next_action"] == audit.next_action
+
+
+def test_north_square_q3_recheck_keeps_symbols_unavailable_without_complete_downloads():
+    """Quarterly characteristics and on-request lists are not executable holdings."""
+    for symbol in ("NSIV", "NSIG", "QTPI"):
+        audit = _NON_TIER_0_SYMBOL_AUDITS[symbol]
+        assert audit.outcome == "unavailable"
+        assert audit.evidence_state == "non_executable_public_source"
+        assert audit.investigated_at == date(2026, 10, 4)
+        assert "web:north-square-filepoint-etf-reports-no-q3-2026-10-04" in (audit.evidence_refs)

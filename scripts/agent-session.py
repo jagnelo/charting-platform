@@ -114,7 +114,24 @@ def worktree_records() -> list[dict[str, str]]:
     return records
 
 
-def branch_and_path(*, allow_protected: bool = False) -> tuple[str, Path]:
+def hosted_cleanup_checkout(path: Path, branch: str) -> bool:
+    """Recognize an exact protected push checkout, never an implementation path."""
+    return (
+        branch in {"master", "staging"}
+        and os.environ.get("GITHUB_ACTIONS") == "true"
+        and os.environ.get("CI") in {"true", "1"}
+        and os.environ.get("GITHUB_EVENT_NAME") == "push"
+        and os.environ.get("GITHUB_REF") == f"refs/heads/{branch}"
+        and bool(os.environ.get("GITHUB_WORKSPACE"))
+        and Path(os.environ["GITHUB_WORKSPACE"]).resolve() == path
+        and common_root() == path
+        and os.environ.get("GITHUB_SHA") == git("rev-parse", "HEAD", cwd=path)
+    )
+
+
+def branch_and_path(
+    *, allow_protected: bool = False, allow_hosted_cleanup: bool = False
+) -> tuple[str, Path]:
     path = root()
     branch = git("branch", "--show-current", cwd=path)
     if not branch:
@@ -128,7 +145,11 @@ def branch_and_path(*, allow_protected: bool = False) -> tuple[str, Path]:
     ):
         raise SystemExit(f"unsupported work branch: {branch}")
     expected = (common_root() / ".ai" / "worktrees" / slug(branch)).resolve()
-    if path != expected:
+    if path != expected and not (
+        allow_hosted_cleanup
+        and allow_protected
+        and hosted_cleanup_checkout(path, branch)
+    ):
         raise SystemExit(
             f"assigned worktree mismatch: expected {expected}, found {path}"
         )
@@ -676,6 +697,7 @@ def external_service_path(path: str) -> bool:
 
     provider_service_modules = {
         "backend/app/services/bulk_fetch.py",
+        "backend/app/services/etf_holdings_provider_bridge.py",
         "backend/app/services/instrument_mastering.py",
         "backend/app/services/instrument_sync.py",
         "backend/app/services/market_data_persistence.py",
@@ -1430,7 +1452,7 @@ def release_volume(volume: str, confirm: str) -> None:
 
 
 def cleanup() -> dict[str, Any]:
-    branch, path = branch_and_path(allow_protected=True)
+    branch, path = branch_and_path(allow_protected=True, allow_hosted_cleanup=True)
     identifier = worktree_id(path, branch)
     projects = project_names(branch)
     if shutil.which("docker") is None:

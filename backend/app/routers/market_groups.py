@@ -24,6 +24,11 @@ from app.schemas.workstation import (
     InstrumentReferenceOut,
     MarketGroupOut,
 )
+from app.services.etf_holdings_capability import (
+    current_analysis_error_detail,
+    evaluate_capability,
+    load_latest_adapter_state,
+)
 from app.services.top_down_taxonomy import (
     industry_proxy_candidates,
     seed_top_down_taxonomy,
@@ -191,6 +196,11 @@ async def etf_industry_composition(
         raise HTTPException(
             404, detail={"code": "etf_holdings_snapshot_not_found", "symbol": instrument.symbol}
         )
+    if as_of is None:
+        state = await load_latest_adapter_state(db, profile.id)
+        capability = evaluate_capability(profile, snapshot, state)
+        if not capability.usable_for_current_analysis:
+            raise HTTPException(409, detail=current_analysis_error_detail(capability))
 
     rows = (
         await db.execute(
@@ -340,6 +350,12 @@ async def etf_industry_proxies(
         if snapshot is None:
             exclusions.append(f"candidate_no_point_in_time_holdings:{candidate}")
             continue
+        if as_of is None:
+            state = await load_latest_adapter_state(db, profile.id)
+            capability = evaluate_capability(profile, snapshot, state)
+            if not capability.usable_for_current_analysis:
+                exclusions.append(f"candidate_holdings_not_current:{candidate}")
+                continue
         classifications = (
             await db.execute(
                 select(

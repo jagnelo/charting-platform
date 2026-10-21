@@ -39,7 +39,13 @@
               <small>{{ profile.latest_composition_date || 'No date' }}</small>
             </span>
             <span>{{ profile.name }}</span>
-            <em>{{ profile.resolved_count }} ready · {{ profile.unresolved_count }} review</em>
+            <em>
+              <span
+                class="capability-pill"
+                :class="capabilityClass(profile.holdings_capability)"
+              >{{ capabilityLabel(profile.holdings_capability) }}</span>
+              · {{ profile.resolved_count }} ready · {{ profile.unresolved_count }} review
+            </em>
           </button>
         </template>
       </div>
@@ -59,10 +65,56 @@
             <span>{{ page.snapshot.source_provider }}</span>
             <span>{{ page.snapshot.source_quality }}</span>
             <span>{{ page.total }} rows</span>
+            <span
+              class="capability-pill"
+              :class="capabilityClass(selectedCapability)"
+            >{{ capabilityLabel(selectedCapability) }}</span>
           </div>
         </div>
 
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
+
+        <div
+          v-if="selectedCapability?.last_canary_at"
+          class="capability-health"
+          data-testid="etf-view-capability-health"
+        >
+          <span>
+            Canary {{ canaryStatusLabel(selectedCapability.last_canary_status) }} ·
+            {{ formatDateTime(selectedCapability.last_canary_at) }}
+          </span>
+          <span v-if="selectedCapability.last_canary_latency_ms != null">
+            {{ selectedCapability.last_canary_latency_ms }} ms
+          </span>
+          <span>Failures {{ selectedCapability.consecutive_failures }}</span>
+          <span v-if="selectedCapability.last_canary_recovered">Recovered</span>
+          <span v-if="selectedCapability.circuit_state">
+            Circuit {{ selectedCapability.circuit_state }}
+          </span>
+          <span v-if="selectedCapability.circuit_open_until">
+            until {{ formatDateTime(selectedCapability.circuit_open_until) }}
+          </span>
+        </div>
+
+        <div
+          v-if="selectedCapability && !selectedCapability.usable_for_current_analysis"
+          class="notice notice--capability"
+          :class="capabilityClass(selectedCapability)"
+          role="status"
+        >
+          <strong>Current holdings are not verified.</strong>
+          {{ selectedCapability.reason }}
+          <span v-if="selectedCapability.composition_date">
+            Last composition: {{ selectedCapability.composition_date }}.
+          </span>
+          <span v-if="selectedCapability.failure_class" class="capability-failure-class">
+            Last check classification: {{ capabilityFailureLabel(selectedCapability.failure_class) }}.
+          </span>
+          <span v-if="selectedCapability.symbol_audit?.next_action" class="capability-next-action">
+            Next source-review action: {{ selectedCapability.symbol_audit.next_action }}
+          </span>
+          Historical snapshots remain available, but this data must not be treated as current.
+        </div>
 
         <div v-if="selectedProfile" class="toolbar">
           <label>
@@ -546,6 +598,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '@/components/common/SearchBar.vue'
 import { api } from '@/lib/api'
+import { formatSourceFailureClass } from '@/lib/workstation/sourceCapability'
 import type {
   ETFHolding,
   ETFHoldingsSnapshot,
@@ -560,6 +613,7 @@ import type {
   ETFHoldingsTransitionTimeline,
   ETFHoldingsWeightEvolution,
   ETFHoldingsWeightEvolutionSeries,
+  ETFHoldingsCapability,
   ETFProfile,
 } from '@/types'
 
@@ -585,6 +639,7 @@ interface ETFProfileBootstrapResponse {
   }
   refresh_attempted: boolean
   refresh_succeeded: boolean
+  capability?: ETFHoldingsCapability | null
   message?: string | null
 }
 
@@ -616,6 +671,30 @@ const overlapFamilyLimit = ref(25)
 const loadingProfiles = ref(false)
 const loadingOverlap = ref(false)
 const loadError = ref('')
+
+const selectedCapability = computed(() => selectedProfile.value?.holdings_capability ?? null)
+
+function capabilityLabel(capability: ETFHoldingsCapability | null | undefined): string {
+  if (!capability) return 'Capability not checked'
+  return capability.availability.replace(/_/g, ' ')
+}
+
+function capabilityClass(capability: ETFHoldingsCapability | null | undefined): string {
+  return `capability--${capability?.availability || 'unknown'}`
+}
+
+function capabilityFailureLabel(failureClass: string | null | undefined): string {
+  return formatSourceFailureClass(failureClass)
+}
+
+function canaryStatusLabel(status: string | null | undefined): string {
+  return String(status || 'unknown').replace(/_/g, ' ')
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—'
+  return new Date(value).toLocaleString()
+}
 
 const pageEnd = computed(() => {
   if (!page.value) return 0
@@ -1054,6 +1133,11 @@ function statusClass(row: ETFHolding) {
 }
 
 function openableSymbol(row: ETFHolding) {
+  if (!selectedCapability.value?.identity_verified
+    || selectedCapability.value.availability !== 'current'
+    || !selectedCapability.value.usable_for_current_analysis) {
+    return ''
+  }
   if (!isTradableHolding(row)) return ''
   const constituent = isSyntheticHoldingSymbol(row.constituent_symbol) ? '' : row.constituent_symbol
   return constituent || row.reported_symbol || ''
@@ -1223,6 +1307,18 @@ onMounted(loadProfiles)
   font-style: normal;
   font-size: 10px;
 }
+.capability-pill {
+  border: 1px solid #3a3a3a;
+  border-radius: 999px;
+  padding: 2px 6px;
+  text-transform: capitalize;
+}
+.capability--current { color: #8fe3a1; border-color: #2b6b3a; }
+.capability--degraded { color: #f0cb7a; border-color: #806326; }
+.capability--stale,
+.capability--unavailable { color: #ff9d9d; border-color: #693333; }
+.capability--not_applicable,
+.capability--unknown { color: #b5b5b5; border-color: #4a4a4a; }
 .holdings-main {
   min-width: 0;
   min-height: 0;
@@ -1941,6 +2037,41 @@ button.holding-row:hover,
   color: #ff9d9d;
   background: #1b0f0f;
   padding: 10px 12px;
+}
+.notice--capability {
+  border: 1px solid #806326;
+  border-radius: 8px;
+  color: #ddc58d;
+  background: #1b160d;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+.notice--capability strong {
+  color: #f0d493;
+  margin-right: 4px;
+}
+.notice--capability.capability--unavailable,
+.notice--capability.capability--stale {
+  border-color: #693333;
+  color: #ffb2b2;
+  background: #1b0f0f;
+}
+.notice--capability .capability-next-action {
+  display: block;
+  color: #b9c6d8;
+}
+.notice--capability .capability-failure-class {
+  display: block;
+  color: #f0c66a;
+}
+.capability-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: #8f98a5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  line-height: 1.4;
 }
 .empty-state {
   border: 1px dashed #292929;

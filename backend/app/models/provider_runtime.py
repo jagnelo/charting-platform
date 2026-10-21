@@ -45,6 +45,7 @@ class ProviderCapability(str, enum.Enum):
     TOKENIZED_ASSETS = "tokenized_assets"
     TOKENIZED_HISTORICAL_PRICES = "tokenized_historical_prices"
     TOKENIZED_CORPORATE_ACTIONS = "tokenized_corporate_actions"
+    ETF_HOLDINGS = "etf_holdings"
 
 
 class ProviderPolicy(Base, TimestampMixin):

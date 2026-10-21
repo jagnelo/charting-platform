@@ -98,6 +98,11 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
         ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: {
             "symbol": "AAPL",
         },
+        # This is a shape for diagnostics only. An ETF holdings capability
+        # probe must still pass the same reviewed issuer policy and shared
+        # request admission as an ordinary fetch; the empty default provider
+        # chain means it cannot trigger issuer traffic by itself.
+        ProviderCapability.ETF_HOLDINGS: {"symbol": "SPY", "as_of_date": None},
     }
     return dict(values[capability])
 
@@ -147,6 +152,7 @@ def representative_operation(
         ProviderCapability.TOKENIZED_ASSETS: "discover_tokenized_assets",
         ProviderCapability.TOKENIZED_HISTORICAL_PRICES: "fetch_tokenized_historical_prices",
         ProviderCapability.TOKENIZED_CORPORATE_ACTIONS: "fetch_tokenized_corporate_actions",
+        ProviderCapability.ETF_HOLDINGS: "fetch_etf_holdings_latest",
     }.get(capability)
 
 

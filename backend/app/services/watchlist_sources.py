@@ -14,12 +14,22 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
 from app.models.asset_class import InstrumentType
-from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.instrument import Instrument
 from app.models.user import User
 from app.models.watchlist import Watchlist
 from app.models.workstation import MarketGroup, WorkspaceLibraryItem
 from app.schemas.watchlist import WatchlistSourceRead
+from app.services.etf_holdings_capability import (
+    evaluate_capability,
+    load_latest_adapter_state,
+    wire_datetime,
+)
 
 PENDING_SOURCE_AVAILABILITIES = frozenset(
     {
@@ -29,11 +39,84 @@ PENDING_SOURCE_AVAILABILITIES = frozenset(
         "membership_not_loaded",
     }
 )
+NON_CURRENT_SOURCE_AVAILABILITIES = frozenset({"unavailable", "stale", "degraded", "unknown"})
+
+
+class CurrentAnalysisSourceError(ValueError):
+    """Raised when a current-analysis consumer selects a non-current ETF source."""
+
+    def __init__(self, detail: dict[str, object]):
+        self.detail = detail
+        super().__init__(str(detail.get("code", "etf_holdings_not_current")))
+
+
+def current_analysis_source_error_detail(
+    descriptor: WatchlistSourceRead,
+    *,
+    historical: bool = False,
+) -> dict[str, object] | None:
+    """Return the stable rejection detail for a non-current ETF-proxy source.
+
+    Ordinary personal/watchlist sources do not carry ETF capability state and
+    remain governed by their existing membership contract.  ETF holdings and
+    benchmark-family proxy descriptors, however, must not be presented as a
+    current analysis universe unless the capability explicitly says so.  An
+    explicit historical request bypasses this current-only gate; pending
+    sources remain resolvable so hydration can make progress.
+    """
+
+    if historical:
+        return None
+    provenance = descriptor.provenance or {}
+    is_etf_proxy = descriptor.source_kind == "etf_holdings" or provenance.get(
+        "membership_semantics"
+    ) in {
+        "etf_proxy_holdings",
+        "derived_equal_weight_point_in_time_membership",
+    }
+    if not is_etf_proxy:
+        return None
+
+    availability = str(provenance.get("availability") or "")
+    usable = provenance.get("usable_for_current_analysis")
+    if usable is not False and availability not in NON_CURRENT_SOURCE_AVAILABILITIES:
+        return None
+
+    return {
+        "code": "etf_holdings_not_current",
+        "availability": availability or "unknown",
+        "source_tier": provenance.get("source_tier") or "none",
+        "usable_for_current_analysis": False,
+        "displayable_last_known": provenance.get("displayable_last_known", False),
+        "identity_verified": provenance.get("identity_verified"),
+        "adapter_key": provenance.get("adapter_key"),
+        "source_provider": provenance.get("source_provider"),
+        "transport_kind": provenance.get("transport_kind"),
+        "snapshot_id": provenance.get("snapshot_id"),
+        "snapshot_hash": provenance.get("snapshot_hash"),
+        "composition_date": provenance.get("composition_date"),
+        "published_at": wire_datetime(provenance.get("snapshot_published_at")),
+        "known_at": wire_datetime(provenance.get("known_at")),
+        "freshness_deadline": provenance.get("freshness_deadline"),
+        "last_checked_at": wire_datetime(provenance.get("last_checked_at")),
+        "last_success_at": wire_datetime(provenance.get("last_success_at")),
+        "last_failure_at": wire_datetime(provenance.get("last_failure_at")),
+        "completeness_status": provenance.get("completeness_status"),
+        "row_count": provenance.get("snapshot_row_count"),
+        "resolved_count": provenance.get("snapshot_resolved_count"),
+        "unresolved_count": provenance.get("snapshot_unresolved_count"),
+        "failure_class": provenance.get("failure_class"),
+        "reason": provenance.get("capability_reason")
+        or "ETF holdings are not current for analysis.",
+    }
 
 
 def _holdings_snapshot_availability(
     profile: ETFProfile | None,
     snapshot: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None = None,
+    *,
+    as_of: datetime | None = None,
 ) -> str:
     """Return a source lifecycle state without treating unresolved rows as ready."""
 
@@ -43,7 +126,11 @@ def _holdings_snapshot_availability(
         return "holdings_snapshot_not_loaded"
     if int(getattr(snapshot, "resolved_count", 0) or 0) <= 0:
         return "holdings_snapshot_unresolved"
-    return "available"
+    if as_of is not None:
+        return "available"
+    if state is None:
+        return "unknown"
+    return evaluate_capability(profile, snapshot, state).availability
 
 
 @dataclass(frozen=True)
@@ -198,8 +285,17 @@ def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
 def _holdings_route_provenance(
     profile: ETFProfile | None,
     snapshot: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None = None,
+    *,
+    as_of: datetime | None = None,
 ) -> dict[str, object | None]:
     """Expose cached holdings route and quality evidence without probing providers."""
+
+    capability = (
+        evaluate_capability(profile, snapshot, state)
+        if profile is not None and snapshot is not None and as_of is None
+        else None
+    )
 
     return {
         "adapter_key": profile.adapter_key if profile is not None else None,
@@ -222,8 +318,51 @@ def _holdings_route_provenance(
             else None
         ),
         "snapshot_published_at": (
-            snapshot.published_at.isoformat()
-            if snapshot is not None and snapshot.published_at is not None
+            wire_datetime(snapshot.published_at) if snapshot is not None else None
+        ),
+        "snapshot_id": snapshot.id if snapshot is not None else None,
+        "snapshot_hash": snapshot.snapshot_hash if snapshot is not None else None,
+        "known_at": wire_datetime(snapshot.known_at) if snapshot is not None else None,
+        "availability": (
+            capability.availability
+            if capability is not None and state is not None
+            else _holdings_snapshot_availability(profile, snapshot, state, as_of=as_of)
+        ),
+        "source_tier": capability.source_tier if capability is not None else None,
+        "identity_verified": capability.identity_verified if capability is not None else None,
+        "displayable_last_known": (
+            capability.displayable_last_known if capability is not None else snapshot is not None
+        ),
+        "source_provider": capability.source_provider if capability is not None else None,
+        "transport_kind": capability.transport_kind if capability is not None else None,
+        "composition_date": (
+            capability.composition_date.isoformat()
+            if capability is not None and capability.composition_date is not None
+            else None
+        ),
+        "freshness_deadline": (
+            capability.freshness_deadline.isoformat()
+            if capability is not None and capability.freshness_deadline is not None
+            else None
+        ),
+        "last_checked_at": (
+            wire_datetime(capability.last_checked_at) if capability is not None else None
+        ),
+        "last_success_at": (
+            wire_datetime(capability.last_success_at) if capability is not None else None
+        ),
+        "last_failure_at": (
+            wire_datetime(capability.last_failure_at) if capability is not None else None
+        ),
+        "completeness_status": capability.completeness_status if capability is not None else None,
+        "row_count": capability.row_count if capability is not None else None,
+        "resolved_count": capability.resolved_count if capability is not None else None,
+        "unresolved_count": capability.unresolved_count if capability is not None else None,
+        "failure_class": capability.failure_class if capability is not None else None,
+        "capability_reason": capability.reason if capability is not None else None,
+        "usable_for_current_analysis": (
+            capability.usable_for_current_analysis
+            if capability is not None and state is not None
             else None
         ),
     }
@@ -272,6 +411,8 @@ def _benchmark_family_role_descriptor(
     profile: ETFProfile | None = None,
     instrument: Instrument | None = None,
     snapshot: ETFHoldingsSnapshot | None = None,
+    state: ETFHoldingsAdapterState | None = None,
+    as_of: datetime | None = None,
 ) -> WatchlistSourceRead:
     declared_mappings = (group.provenance or {}).get("proxy_mappings")
     declared = declared_mappings.get(role) if isinstance(declared_mappings, Mapping) else None
@@ -285,7 +426,9 @@ def _benchmark_family_role_descriptor(
         "growth": "Growth",
     }.get(role, role.replace("_", " ").title())
     availability = (
-        "unavailable" if selected is None else _holdings_snapshot_availability(profile, snapshot)
+        "unavailable"
+        if selected is None
+        else _holdings_snapshot_availability(profile, snapshot, state, as_of=as_of)
     )
     if derived:
         membership_semantics = "derived_equal_weight_point_in_time_membership"
@@ -341,7 +484,7 @@ def _benchmark_family_role_descriptor(
             "completeness_status": snapshot.completeness_status
             if snapshot is not None
             else "not_loaded",
-            **_holdings_route_provenance(profile, snapshot),
+            **_holdings_route_provenance(profile, snapshot, state, as_of=as_of),
         },
         effective_at=(
             datetime.combine(composition, datetime.min.time())
@@ -357,6 +500,9 @@ def _etf_descriptor(
     profile: ETFProfile | None,
     instrument: Instrument,
     snapshot: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None = None,
+    *,
+    as_of: datetime | None = None,
 ) -> WatchlistSourceRead:
     composition = snapshot.composition_date if snapshot else None
     return WatchlistSourceRead(
@@ -380,12 +526,13 @@ def _etf_descriptor(
         else (profile.adapter_key if profile else "canonical_etf_pending"),
         provenance={
             "membership_semantics": "etf_proxy_holdings",
-            "availability": _holdings_snapshot_availability(profile, snapshot),
+            "availability": _holdings_snapshot_availability(profile, snapshot, state, as_of=as_of),
             "profile_id": profile.id if profile is not None else None,
             "snapshot_id": snapshot.id if snapshot else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot else None,
+            "known_at": wire_datetime(snapshot.known_at) if snapshot is not None else None,
             "completeness_status": snapshot.completeness_status if snapshot else "not_loaded",
-            **_holdings_route_provenance(profile, snapshot),
+            **_holdings_route_provenance(profile, snapshot, state, as_of=as_of),
         },
         effective_at=datetime.combine(composition, datetime.min.time()) if composition else None,
         known_at=snapshot.known_at if snapshot else None,
@@ -774,6 +921,21 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         .all()
     )
     latest = {snapshot.etf_profile_id: snapshot for snapshot in snapshots}
+    adapter_states = (
+        (
+            await db.execute(
+                select(ETFHoldingsAdapterState).order_by(
+                    ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                    ETFHoldingsAdapterState.id.desc(),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    latest_states: dict[int, ETFHoldingsAdapterState] = {}
+    for state in adapter_states:
+        latest_states.setdefault(state.etf_profile_id, state)
 
     combo_items = (
         (
@@ -804,7 +966,12 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         instrument.symbol.upper(): (profile, instrument) for profile, instrument in profiles
     }
     etf_sources = [
-        _etf_descriptor(profile, instrument, latest.get(profile.id))
+        _etf_descriptor(
+            profile,
+            instrument,
+            latest.get(profile.id),
+            latest_states.get(profile.id),
+        )
         for profile, instrument in profiles
     ]
     profiled_symbols = {instrument.symbol.upper() for _profile, instrument in profiles}
@@ -859,6 +1026,9 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
                     profile=selected_profile,
                     instrument=selected_instrument,
                     snapshot=latest.get(selected_profile.id)
+                    if selected_profile is not None
+                    else None,
+                    state=latest_states.get(selected_profile.id)
                     if selected_profile is not None
                     else None,
                 )
@@ -1131,6 +1301,7 @@ async def resolve_watchlist_source(
                 exclusions=({"reason": "etf_profile_not_found", "symbol": proxy_symbol},),
             )
         profile, instrument = row
+        state = await load_latest_adapter_state(db, profile.id)
         statement = select(ETFHoldingsSnapshot).where(
             ETFHoldingsSnapshot.etf_profile_id == profile.id
         )
@@ -1150,7 +1321,13 @@ async def resolve_watchlist_source(
             )
         ).scalar_one_or_none()
         descriptor = _benchmark_family_role_descriptor(
-            group, role, profile=profile, instrument=instrument, snapshot=snapshot
+            group,
+            role,
+            profile=profile,
+            instrument=instrument,
+            snapshot=snapshot,
+            state=state,
+            as_of=as_of,
         )
         if snapshot is None:
             return ResolvedWatchlistSource(
@@ -1167,6 +1344,29 @@ async def resolve_watchlist_source(
                     },
                 ),
             )
+        if int(getattr(snapshot, "resolved_count", 0) or 0) <= 0:
+            return ResolvedWatchlistSource(
+                descriptor=descriptor,
+                members=(),
+                exclusions=(),
+            )
+        if as_of is None:
+            capability = evaluate_capability(profile, snapshot, state)
+            if not capability.usable_for_current_analysis:
+                return ResolvedWatchlistSource(
+                    descriptor=descriptor,
+                    members=(),
+                    exclusions=(
+                        {
+                            "reason": "holdings_snapshot_not_current",
+                            "availability": capability.availability,
+                            "source_tier": capability.source_tier,
+                            "failure_class": capability.failure_class,
+                            "detail": capability.reason,
+                            "symbol": proxy_symbol,
+                        },
+                    ),
+                )
         rows = (
             (
                 await db.execute(
@@ -1296,6 +1496,7 @@ async def resolve_watchlist_source(
                 exclusions=({"reason": "etf_profile_not_loaded", "symbol": symbol},),
             )
         profile, instrument = row
+        state = await load_latest_adapter_state(db, profile.id)
         statement = select(ETFHoldingsSnapshot).where(
             ETFHoldingsSnapshot.etf_profile_id == profile.id
         )
@@ -1316,7 +1517,7 @@ async def resolve_watchlist_source(
         ).scalar_one_or_none()
         if snapshot is None:
             return ResolvedWatchlistSource(
-                descriptor=_etf_descriptor(profile, instrument, None),
+                descriptor=_etf_descriptor(profile, instrument, None, state, as_of=as_of),
                 members=(),
                 exclusions=(
                     {
@@ -1326,6 +1527,30 @@ async def resolve_watchlist_source(
                     },
                 ),
             )
+        descriptor = _etf_descriptor(profile, instrument, snapshot, state, as_of=as_of)
+        if int(getattr(snapshot, "resolved_count", 0) or 0) <= 0:
+            return ResolvedWatchlistSource(
+                descriptor=descriptor,
+                members=(),
+                exclusions=(),
+            )
+        if as_of is None:
+            capability = evaluate_capability(profile, snapshot, state)
+            if not capability.usable_for_current_analysis:
+                return ResolvedWatchlistSource(
+                    descriptor=descriptor,
+                    members=(),
+                    exclusions=(
+                        {
+                            "reason": "holdings_snapshot_not_current",
+                            "availability": capability.availability,
+                            "source_tier": capability.source_tier,
+                            "failure_class": capability.failure_class,
+                            "detail": capability.reason,
+                            "symbol": symbol,
+                        },
+                    ),
+                )
         rows = (
             (
                 await db.execute(
@@ -1366,7 +1591,7 @@ async def resolve_watchlist_source(
                 )
             )
         return ResolvedWatchlistSource(
-            descriptor=_etf_descriptor(profile, instrument, snapshot),
+            descriptor=descriptor,
             members=tuple(members),
             exclusions=tuple(exclusions),
         )
