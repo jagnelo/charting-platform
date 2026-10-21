@@ -18,7 +18,7 @@ from uuid import uuid4
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import selectinload
@@ -68,19 +68,63 @@ from app.services.provider_runtime import (
     ProviderNoDataError,
     policy_allows_account_usage_bootstrap,
     provider_checkpoint_operation_hold_reason,
+    seed_provider_runtime,
 )
+
+
+class _ProviderDB:
+    """Session factory and owned schema URL for committed Provider tests."""
+
+    def __init__(self, session_factory, url):
+        self._session_factory = session_factory
+        self.url = url
+
+    def __call__(self):
+        return self._session_factory()
 
 
 @pytest_asyncio.fixture
 async def provider_db(db_engine):
-    """Open a real async PostgreSQL session over the integration fixture DB."""
+    """Use a per-test schema for commits outside the shared rollback fixture."""
 
-    async_url = db_engine.url.set(drivername="postgresql+asyncpg")
-    engine = create_async_engine(async_url, pool_pre_ping=True)
+    from app.database import Base
+
+    schema = f"etf_provider_runtime_{uuid4().hex}"
+    with db_engine.begin() as connection:
+        connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+    schema_url = db_engine.url.set(
+        query={**dict(db_engine.url.query), "options": f"-csearch_path={schema}"}
+    )
+    async_url = schema_url.set(
+        drivername="postgresql+asyncpg",
+        query={key: value for key, value in schema_url.query.items() if key != "options"},
+    )
+    engine = create_async_engine(
+        async_url,
+        pool_pre_ping=True,
+        connect_args={"server_settings": {"search_path": schema}},
+    )
+    quota_url = schema_url.render_as_string(hide_password=False)
+    quota_engine = None
     try:
-        yield async_sessionmaker(engine, expire_on_commit=False)
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
+        session_factory = async_sessionmaker(engine, expire_on_commit=False)
+        async with session_factory() as session:
+            assert await session.scalar(text("SELECT current_schema()")) == schema
+        quota_engine = quota_coordinator._engine_for(quota_url)
+        with quota_engine.connect() as connection:
+            assert connection.execute(text("SELECT current_schema()")).scalar_one() == schema
+        yield _ProviderDB(
+            session_factory,
+            schema_url,
+        )
     finally:
         await engine.dispose()
+        if quota_engine is not None:
+            quota_engine.dispose()
+        with db_engine.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
 
 
 class _TransportRunner:
@@ -473,7 +517,7 @@ async def _assert_one_settled_attempt(
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_each_redirect_hop_uses_real_shared_admission_and_durable_settlement(
-    db_engine, provider_db, monkeypatch, redis_url
+    provider_db, monkeypatch, redis_url
 ):
     """A redirect is two real Provider calls, ledger rows, and settlements."""
 
@@ -488,7 +532,7 @@ async def test_each_redirect_hop_uses_real_shared_admission_and_durable_settleme
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db,
@@ -570,14 +614,14 @@ async def test_each_redirect_hop_uses_real_shared_admission_and_durable_settleme
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_real_adapter_params_are_admitted_as_effective_url_and_not_replayed_on_redirect(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """Real adapter query params and redirects retain exact per-log URL binding."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     initial_url = "https://publisher.example/start?seed=base"
     redirect_url = "https://cdn.publisher.example/holdings.csv?download=latest"
@@ -653,15 +697,13 @@ async def test_real_adapter_params_are_admitted_as_effective_url_and_not_replaye
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_unknown_held_and_exhausted_routes_never_start_transport(
-    db_engine, provider_db, monkeypatch
-):
+async def test_unknown_held_and_exhausted_routes_never_start_transport(provider_db, monkeypatch):
     """Unknown/held routes and durable quota exhaustion are pre-transport."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db, monkeypatch, limit=2, with_profile=True
@@ -838,14 +880,14 @@ async def test_unknown_held_and_exhausted_routes_never_start_transport(
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_real_adapter_refresh_retains_rejected_stale_payload_and_keeps_last_known(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """A valid transport with stale content is evidence, not a current snapshot."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db, monkeypatch, limit=5, with_profile=True
@@ -930,14 +972,14 @@ async def test_real_adapter_refresh_retains_rejected_stale_payload_and_keeps_las
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_http_error_is_failed_shared_attempt_and_raw_body_is_retained(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """HTTPX 4xx must fail Provider transport health and retain its response."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db,
@@ -997,14 +1039,14 @@ async def test_http_error_is_failed_shared_attempt_and_raw_body_is_retained(
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_timeout_preserves_uncertain_reservation_and_failed_attempt_lineage(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """A transport timeout leaves a durable failed request record, not a leak."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db, monkeypatch, limit=3, with_profile=True
@@ -1069,14 +1111,14 @@ async def test_timeout_preserves_uncertain_reservation_and_failed_attempt_lineag
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_parser_rejection_keeps_transport_success_but_no_snapshot_and_raw_body(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """Transport success is not content success when no holdings rows parse."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db, monkeypatch, limit=3, with_profile=True
@@ -1113,14 +1155,14 @@ async def test_parser_rejection_keeps_transport_success_but_no_snapshot_and_raw_
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_latest_ingest_database_validation_failure_retains_body_after_rollback(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """A real persistence constraint rejection keeps raw bytes beyond UOW rollback."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db, monkeypatch, limit=3, with_profile=True
@@ -1167,14 +1209,14 @@ async def test_latest_ingest_database_validation_failure_retains_body_after_roll
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_dated_refresh_persists_the_requested_point_in_time_without_relabelling(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """Dated issuer success preserves requested/as-of and composition dates."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     dated_template = "https://publisher.example/archive/{symbol}/{date}.csv"
     case, profile_id = await _create_committed_fixture(
@@ -1229,14 +1271,14 @@ async def test_dated_refresh_persists_the_requested_point_in_time_without_relabe
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_dated_refresh_rejection_retains_identical_body_attempt_links_after_rollback(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """Dedup keeps one raw body while linking every repeated failed date attempt."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db,
@@ -1325,14 +1367,14 @@ async def test_dated_refresh_rejection_retains_identical_body_attempt_links_afte
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_dated_refresh_retains_future_composition_claim_without_snapshot(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """A future-dated response is retained as rejected evidence, never a snapshot."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db,
@@ -1402,15 +1444,13 @@ async def test_dated_refresh_retains_future_composition_claim_without_snapshot(
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_dated_ingest_validation_rejection_retains_raw_response(
-    db_engine, provider_db, monkeypatch
-):
+async def test_dated_ingest_validation_rejection_retains_raw_response(provider_db, monkeypatch):
     """Post-fetch ingest validation failure retains bytes outside caller UOW."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db,
@@ -1473,14 +1513,14 @@ async def test_dated_ingest_validation_rejection_retains_raw_response(
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_dated_database_validation_failure_preserves_original_error_and_raw_body(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """A real dated persistence rejection survives caller rollback and reopen."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db,
@@ -1540,14 +1580,14 @@ async def test_dated_database_validation_failure_preserves_original_error_and_ra
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_dated_cancellation_retains_response_after_real_caller_rollback(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """Cancellation in the dated route leaves raw/request lineage after rollback."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db,
@@ -1613,14 +1653,14 @@ async def test_dated_cancellation_retains_response_after_real_caller_rollback(
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_caller_cancellation_waits_for_shared_attempt_settlement_and_retains_lineage(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """Caller cancellation cannot abandon an admitted executor reservation."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db, monkeypatch, limit=3, with_profile=True
@@ -1677,15 +1717,22 @@ async def test_caller_cancellation_waits_for_shared_attempt_settlement_and_retai
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_concurrent_same_account_calls_cannot_double_spend_after_runtime_restart(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """One durable request unit admits one concurrent caller and survives reopen."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
+    # Match normal application startup: finish canonical registry seeding
+    # before concurrent requests share this fresh test schema. Otherwise both
+    # requests race to insert the same default DataSource rows, obscuring the
+    # quota-admission concurrency contract this test is intended to exercise.
+    async with provider_db() as startup_session:
+        async with startup_session.begin():
+            await seed_provider_runtime(startup_session)
     case, profile_id = await _create_committed_fixture(
         provider_db, monkeypatch, limit=1, with_profile=True
     )
@@ -1710,7 +1757,14 @@ async def test_concurrent_same_account_calls_cannot_double_spend_after_runtime_r
     responses = [item for item in outcomes if isinstance(item, httpx.Response)]
     denied = [item for item in outcomes if isinstance(item, ProviderQuotaAdmissionError)]
     assert len(responses) == 1 and responses[0].status_code == 200
-    assert len(denied) == 1
+    assert len(denied) == 1, [
+        (
+            type(item).__name__,
+            str(getattr(item, "orig", item)),
+            getattr(item, "statement", None),
+        )
+        for item in outcomes
+    ]
     assert runner.calls == [("GET", "https://publisher.example/holdings.csv")]
 
     async with provider_db() as session:
@@ -1803,14 +1857,14 @@ async def _attempt_counts(session: AsyncSession, case) -> tuple[int, int, int]:
     ),
 )
 async def test_real_refresh_denials_have_zero_dispatch_and_unavailable_without_prior_data(
-    denial, db_engine, provider_db, monkeypatch
+    denial, provider_db, monkeypatch
 ):
     """Refresh entry persists truthful unavailability without partial admission."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
     case, profile_id = await _create_committed_fixture(
@@ -1959,14 +2013,14 @@ async def test_real_refresh_denials_have_zero_dispatch_and_unavailable_without_p
 @pytest.mark.asyncio
 @pytest.mark.parametrize("has_prior_snapshot", (False, True))
 async def test_shared_provider_circuit_denial_preserves_truthful_consumer_outcome(
-    has_prior_snapshot, db_engine, provider_db, monkeypatch
+    has_prior_snapshot, provider_db, monkeypatch
 ):
     """An open shared circuit yields degraded last-known or unavailable, never current."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db, monkeypatch, limit=5, with_profile=True
@@ -2042,14 +2096,14 @@ async def test_shared_provider_circuit_denial_preserves_truthful_consumer_outcom
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_other_account_nonzero_commitment_denies_zero_cost_etf_route_under_shared_budget(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """A second account's synthetic cost cannot bypass the shared monthly ceiling."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db, monkeypatch, limit=5, with_profile=True
@@ -2143,14 +2197,14 @@ async def test_other_account_nonzero_commitment_denies_zero_cost_etf_route_under
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_binding(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """Unreviewed discovery/SEC paths cannot borrow an admitted latest operation."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db,
@@ -2239,14 +2293,14 @@ async def test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_bind
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_bootstrap_treats_held_optional_sec_enrichment_separately_from_issuer_route(
-    db_engine, provider_db, monkeypatch
+    provider_db, monkeypatch
 ):
     """A held optional SEC enrichment neither inherits nor blocks issuer fetch."""
 
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
-        db_engine.url.render_as_string(hide_password=False),
+        provider_db.url.render_as_string(hide_password=False),
     )
     case, profile_id = await _create_committed_fixture(
         provider_db,

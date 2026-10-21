@@ -12748,3 +12748,92 @@ reconciliation, required `full_stack_browser`, fresh exact-source CI, the
 complete fourteen-criterion roadmap and later observation gate remain open.
 ETF stays `in_progress/not accepted`; no external HTTP, quota use, acceptance,
 staging/sibling write, deployment, or fixture cleanup occurred.
+
+## Test harness reconciliation and ordered integration evidence — 2026-10-21
+
+The current worktree started at exact synchronized source
+`26f2da86d677e285e1e21d670b51644aba6704bd`. Only two product-adjacent files
+are changed in this context: `backend/tests/integration/api/test_etf_holdings.py`
+and `backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`.
+No production adapter, Provider admission source, market-universe assertion,
+or external/live test was changed.
+
+The API test fixtures that are intended to exercise current holdings now use
+UTC current dates consistently across submitted composition date, fake payload,
+and expected result. This fixes the actual 2026-10-20 UTC freshness mismatch
+observed on a host whose Lisbon local date was already 2026-10-21; it does not
+relax the future-date guard or alter deliberately historical/stale/PIT cases.
+The 429 and malformed-content API tests retain their adapter-state and
+classification assertions and capture the original exception passed to the
+rejected-artifact retention boundary. Durable rejected-body persistence remains
+proved separately by real async PostgreSQL runtime tests; these sync TestClient
+fixtures do not claim to prove that persistence boundary.
+
+The real Provider runtime fixture now allocates a generated per-test schema in
+the existing assigned PostgreSQL service. The asyncpg URL removes the
+psycopg-only `options` parameter and carries the same schema via asyncpg
+`server_settings.search_path`; the canonical synchronous quota engine retains
+its psycopg `options` setting for that same schema. Both connections assert
+`current_schema()` equals the generated name. Teardown disposes both engines
+and drops only the generated schema. The full runtime module then
+passed `31 passed in 287.77s` with explicit assigned DB/Redis/worktree
+environment and MockTransport; after the module, a read-only query found no
+remaining `etf_provider_runtime_*` schemas.
+
+The first fresh-schema run of
+`test_concurrent_same_account_calls_cannot_double_spend_after_runtime_restart`
+also exposed a `DataSource` registry INSERT `IntegrityError` because two
+concurrent callers attempted canonical registry seeding at once in a new
+schema. This is recorded as a cold-initialization observation only. It is not
+a quota denial and does not prove or fix parallel cold-start behavior. The
+checkpoint test is specifically an after-application-startup quota contention
+test: it now explicitly awaits `seed_provider_runtime` before issuing the two
+concurrent requests, matching `backend/app/main.py` lifespan seeding. Its
+original assertions remain: exactly one successful response, one
+`ProviderQuotaAdmissionError`, one physical request/log, and one settled unit.
+The targeted corrected case passed `1 passed in 19.05s`; no Provider producer
+or production admission redesign was added.
+
+One same-process ordered invocation ran API -> runtime -> market-universe ->
+recurring-cost modules with 110 collected tests. It ended `109 passed, 1
+failed in 426.86s`; all 17 cases corresponding to the failures from historical
+CI `39514774818` passed within those 109. The sole failure was an additional
+market-universe diagnostic that derives an asyncpg URL from a psycopg
+`db_engine.url` containing the diagnostic parent's `options` query. asyncpg
+rejected that unsupported query parameter on reconnect. This is a
+fixture-configuration issue, not an ETF/market-universe product defect. The
+temporary test edit made while diagnosing it was fully reverted; no change to
+that unrelated test or assertion remains.
+
+Following coordinator direction, the full 110-case sequence was not replayed
+to erase that recorded configuration result. A second invocation was
+interrupted after `63 passed in 126.46s`; it is partial evidence only, not a
+green or product failure. The one diagnostic case was then run alone against
+the same assigned loopback PostgreSQL service using uniquely owned database
+`etf_market_failure_20261021_01`, with a normal query-free `TEST_DATABASE_URL`
+and the canonical quota URL pointed at that same database. It passed `1 passed
+in 8.26s`. After pytest exited, independent process/connection checks found no
+consumer, and only that exact synthetic database was dropped. A final
+read-only check found neither the disposable database nor generated runtime
+schemas. The assigned PostgreSQL/Redis services and retained volumes were not
+stopped, recreated, or cleaned.
+
+Thus the original 17 historical CI failures are locally green in the recorded
+ordered run, but no clean 110/110 ordered run is claimed. Exact CI
+`39514774818` remains historically red and untouched. The required full local
+backend profile and fresh exact-source CI still provide the whole-suite proof;
+checkpoint acceptance remains open. The 15 Tier-0 and 156 Tier-1 investigations,
+full fourteen-criterion roadmap, MSMR/QQQ and Militia/GOOG unresolved
+quarantines, and all paid/trial/unknown/unsafe route holds remain unchanged.
+
+The final audit-count sentinel passed; the workstream validator accepted its
+record; Ruff check/format, Python syntax compilation, and `git diff --check`
+passed. Next: stage only the two ETF integration test files and the four
+branch-owned workstream files, commit/push, verify the exact remote SHA, and
+inspect only that push's exact-source CI when available. Do not replay the
+110-test sequence solely to replace its recorded diagnostic configuration
+failure. Then prepare the coordinator-reviewed `full_stack_browser` execution
+plan and continue outstanding API/worker/current/PIT and migration/startup
+gates at safe assigned capacity. No issuer/SEC/provider HTTP, quota spend/reset,
+paid/trial activation, staging/sibling write, retained-data cleanup,
+self-acceptance, or deployment is authorized.

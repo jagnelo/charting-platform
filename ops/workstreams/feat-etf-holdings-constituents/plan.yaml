@@ -480,40 +480,38 @@ progress:
   completed:
     - EICP1
   total: 7
-current_phase: shared_runtime_denial_discovery_and_consumer_truth_2026_10_21
+current_phase: ci_harness_fixture_reconciliation_2026_10_21
 current_blocker: >-
-  Both workstream summaries preserve 15 Tier-0 and 156 Tier-1 symbol
-  investigations. Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf
-  remains merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6.
-  Current branch tip 024ad8f065db246a34bc05219fd5cd32188b75ee has historical
-  exact CI 39514774818 terminal red: 17 integration failures and 405 passes;
-  do not rerun or misclassify it. This worktree now contains a distinct,
-  unpublished admission/consumer context. Its bounded shared-runtime module
-  passed all 31 cases against the assigned loopback fixture with MockTransport.
-  A later restricted-sandbox repeat failed before tests because that sandbox
-  could not connect to loopback; root independently verified the original
-  native run exited 0 and the same exact DB/Redis fixture is healthy, so the
-  qualified 31/31 result stands and no repeat is needed. Three canary unit
-  doubles were reconciled to the real instrument identity/read-service shape;
-  the complete bridge/refresh/adapter unit modules now pass 645 tests. Denial
-  coverage includes missing/expired/proposed/trial commitments, disabled
-  policy, exact/wildcard/malformed holds, shared Provider circuit, account-usage
-  bootstrap not admitting ETF holdings, and a separate synthetic shared-budget
-  ceiling case with the ETF's verified-free commitment unchanged. Actual
-  canary/read-service outcomes distinguish persisted prior holdings (degraded,
-  last-known, not current) from no prior holdings (unavailable); canary failure
-  no longer reports unavailable when a visible prior snapshot exists. Issuer
-  discovery, SEC discovery/enrichment, Voya legacy fallback, EDGAR direct access,
-  and SEC bootstrap are held without inheriting an ambient refresh binding;
-  optional held SEC enrichment does not block a separately reviewed issuer
-  route. No external HTTP or quota was used. The separate CI harness/isolation
-  failures from 39514774818 remain the next bounded context after publication;
-  root's harness review must guide the narrow fixture/API corrections, not a
-  blanket async rewrite or destructive shared-data cleanup. Full profile,
-  startup/migration review, broader API/worker/PIT proof, final exact-source CI,
-  full issuer roadmap and 30-day observation remain open. MSMR/QQQ and
-  Militia/GOOG remain unresolved/quarantined; unknown/quota-held/paid/trial/
-  unsafe operations remain disabled. Checkpoint stays in_progress/not accepted.
+  The 15 Tier-0 and 156 Tier-1 investigations remain preserved. Accepted
+  Provider release 9b230ba4c97126a2937667138c6eb2a0aa297baf remains merged in
+  ETF history. Historical exact CI 39514774818 remains terminal red and was
+  not rerun. Its 17 failed integration cases now all pass in local evidence:
+  11 API cases and the related market-universe/provider-concurrency cases were
+  green within the combined ordered run (109 passed); the sole failure in that
+  run was a separate market-universe diagnostic caused by passing a
+  psycopg-only `options` query parameter into asyncpg. That target then passed
+  1/1 against a uniquely created owned database with a normal query-free URL;
+  the exact database was dropped after the test process and connections ended.
+  The second ordered replay was interrupted at 63 passed under the coordinator
+  instruction not to rerun the full 110 only to erase the configuration receipt;
+  it is partial, not a pass. The actual shared-runtime module passed 31/31 in
+  287.77s on the assigned loopback PostgreSQL/Redis fixture. An earlier fresh
+  schema race raised a registry DataSource INSERT IntegrityError before quota
+  admission; this is recorded only as a cold-initialization observation, not a
+  quota denial or a proven/fixed parallel-cold-start contract. The targeted
+  after-startup test now seeds the canonical runtime as application lifespan
+  does and preserves exact assertions: one successful response, one
+  ProviderQuotaAdmissionError, and one settled unit. No producer or production
+  admission redesign was added. The previous full module's 30/1 cold-seed run,
+  first ordered 109/1 options run, and interrupted 63-pass replay remain
+  historical evidence with their exact classifications. The complete
+  bridge/refresh/adapter unit modules, denial/discovery coverage, shared budget,
+  canary/read-service truth, and quarantines remain as previously recorded.
+  MSMR/QQQ and Militia/GOOG remain unresolved/quarantined; unknown,
+  quota-held, paid/trial, and unsafe operations stay disabled. The final local
+  backend profile, full_stack_browser, migration/startup review, fresh
+  exact-source CI, full issuer roadmap and observation gate remain open.
+  Checkpoint stays in_progress/not accepted.
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -1502,21 +1500,21 @@ roadmap_validation_history: >-
   remains active.
 
 next_action: >-
-  Publish the coherent shared-admission/discovery/consumer context after exact
-  focused, narrative, workstream, Ruff/format, syntax and diff checks; preserve
-  historical CI 39514774818 as red and require fresh exact-source CI. Then
-  reconcile the separate confirmed CI harness/isolation failures using the
-  root review at /home/m920q/charting-platform/.ai/staging-attempts/
-  provider-review-etf-ci-harness-20261020.md: reproduce actual positive and
-  429/parser negative API outcomes before changing fixtures, preserve
-  intentional PIT/stale/incomplete assertions, and isolate only this worktree's
-  committing synthetic DB effects in a uniquely generated schema/database with
-  exact owned teardown on the existing PostgreSQL service. Do not blanket
-  rewrite API tests, add production fake/sync-session bypasses, delete shared
-  DataSources, or relax uniqueness/revision assertions. Continue remaining
-  shared admission and consumer API/worker/PIT proof, then migration/startup
-  readiness and the coordinator-assigned full_stack_browser profile. No live
-  issuer/SEC/Provider HTTP, quota use, cost/FX guesses, second ledger, staging
-  writes, deployment, paid/trial activation, or MSMR/Militia quarantine changes.
+  Finish the current coherent test-harness receipt: run the exact audit-count
+  sentinel, workstream/schema/hash validator, Ruff check/format, syntax compile,
+  and diff review; preserve the evidence that all original 17 CI failures pass,
+  the 31-case shared-runtime module passes after explicit application-style
+  startup seeding, and the ordered run's only failure was a diagnostic
+  psycopg-options/asyncpg mismatch. Keep that unrelated test and production code
+  unchanged. Append accurate handoff/validation/session evidence, commit and
+  push the two owned test-file fixture corrections plus their durable records,
+  then inspect only exact-source CI. Do not replay the 110-test ordered run just
+  to replace its recorded configuration failure; the required full local
+  backend profile and fresh exact-source CI remain mandatory. Continue the
+  remaining shared admission, discovery, API/worker/current/PIT, migration and
+  startup contracts after the coherent publication. Preserve historical CI
+  39514774818 as red, the full roadmap, and all current quarantines. No live
+  issuer/SEC/Provider HTTP, quota spend/reset, paid/trial activation, staging or
+  sibling mutation, cleanup of retained data, self-acceptance or deployment.
   Preserve the full fourteen-criterion roadmap and later observation gate;
   stop at ready_for_human_review, never self-accept.

@@ -70,6 +70,7 @@ def disable_live_constituent_enrichment(monkeypatch):
 
 
 def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_headers, monkeypatch):
+    composition_date = datetime.now(UTC).date()
     raw_csv = "\n".join(
         [
             "Fund Ticker,Fund Name,Ticker,Name,Weight (%),Shares,Market Value,Currency",
@@ -111,7 +112,7 @@ def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_header
             "issuer": "ARK Invest",
             "provider_aliases": {
                 "expected_fund_symbol": "ARKK",
-                "holdings_composition_date": "2026-06-03",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -121,13 +122,13 @@ def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_header
 
     refresh = client.post("/api/v1/etf-holdings/refresh", headers=admin_headers)
     assert refresh.status_code == 200
-    assert refresh.json()["refreshed"] == 1
+    assert refresh.json()["refreshed"] == 1, refresh.text
     assert refresh.json()["failed"] == 0
 
     latest = client.get("/api/v1/etf-holdings/ARKK/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-03"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["provenance"] == "issuer_self_snapshotted_holdings"
     assert body["source_provider"] == "ark"
     assert body["row_count"] == 2
@@ -1479,6 +1480,7 @@ def test_overlap_matrix_can_expand_etf_family_from_profile_metadata(
 def test_admin_can_refresh_spdr_provider_xlsx_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     raw_workbook = _xlsx_workbook(
         [
             ["Fund Ticker", "XLY"],
@@ -1526,7 +1528,7 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
         json={
             "issuer": "State Street",
             "provider_aliases": {
-                "holdings_composition_date": "2026-06-06",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -1541,7 +1543,7 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
     latest = client.get("/api/v1/etf-holdings/XLY/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-06"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["source_provider"] == "spdr"
     assert body["parser_version"] == "spdr-xlsx-v1"
     assert body["row_count"] == 2
@@ -1556,6 +1558,7 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
 def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     product_url = "https://issuer.example/funds/spy"
     holdings_url = "https://issuer.example/spdr-daily-holdings.zip"
     product_html = f'<a href="{holdings_url}">Download holdings</a>'
@@ -1612,7 +1615,7 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
             "issuer": "State Street",
             "provider_aliases": {
                 "product_url": product_url,
-                "holdings_composition_date": "2026-06-06",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -1628,7 +1631,7 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     latest = client.get("/api/v1/etf-holdings/SPY/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-06"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["source_provider"] == "spdr"
     assert body["parser_version"] == "spdr-zip-v1"
     assert body["row_count"] == 2
@@ -1645,6 +1648,20 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
 def test_refresh_failure_records_rate_limit_adapter_state(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    # This sync TestClient fixture deliberately uses a sync Connection adapter.
+    # Durable rejected-body retention is covered against the real async runtime
+    # in test_etf_holdings_provider_bridge_runtime; keep this API test focused on
+    # the persisted adapter classification and prove it receives the real cause.
+    retained_failures = []
+
+    async def capture_rejected_failure(*args, **kwargs):
+        retained_failures.append(kwargs["failure"])
+        return None
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._retain_rejected_fetch_artifact",
+        capture_rejected_failure,
+    )
     request = httpx.Request("GET", "https://issuer.example/rate-holdings.csv")
     response = httpx.Response(429, request=request)
     calls = {"count": 0}
@@ -1718,6 +1735,8 @@ def test_refresh_failure_records_rate_limit_adapter_state(
     assert body[0]["extra_data"]["last_failure_class"] == "quota_rate_limited"
     assert "Too Many Requests" in body[0]["failure_reason"]
     assert body[0]["last_failure_at"] is not None
+    assert len(retained_failures) == 1
+    assert isinstance(retained_failures[0], httpx.HTTPStatusError)
 
     capability = client.get("/api/v1/etf-holdings/ARKK/capability", headers=auth_headers)
     assert capability.status_code == 200
@@ -1743,6 +1762,16 @@ def test_refresh_failure_records_rate_limit_adapter_state(
 def test_refresh_failure_records_malformed_holdings_adapter_state(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    retained_failures = []
+
+    async def capture_rejected_failure(*args, **kwargs):
+        retained_failures.append(kwargs["failure"])
+        return None
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._retain_rejected_fetch_artifact",
+        capture_rejected_failure,
+    )
     raw_csv = "\n".join(
         [
             "This file is a marketing disclaimer,not a holdings table",
@@ -1803,11 +1832,14 @@ def test_refresh_failure_records_malformed_holdings_adapter_state(
     assert body[0]["status"] == "failure"
     assert body[0]["rate_limit_state"] is None
     assert "no parseable rows" in body[0]["failure_reason"].lower()
+    assert len(retained_failures) == 1
+    assert isinstance(retained_failures[0], ValueError)
 
 
 def test_admin_can_refresh_issuer_adapter_route_without_direct_holdings_url(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     raw_csv = "\n".join(
         [
             "Fund Name,Ticker,Name,Weight (%),Shares,Market Value,Currency",
@@ -1848,7 +1880,7 @@ def test_admin_can_refresh_issuer_adapter_route_without_direct_holdings_url(
             "provider_aliases": {
                 "holdings_file_name": "ARK_INNOVATION_ETF_ARKK_HOLDINGS",
                 "expected_fund_name": "ARK Innovation ETF",
-                "holdings_composition_date": "2026-06-04",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -1869,7 +1901,7 @@ def test_admin_can_refresh_issuer_adapter_route_without_direct_holdings_url(
     latest = client.get("/api/v1/etf-holdings/ARKK/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-04"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["source_provider"] == "ark"
     assert body["source_url"] == requested_urls[0]
     assert body["parser_version"] == "ark-csv-v1"
@@ -2224,6 +2256,7 @@ def test_admin_can_probe_ready_ishares_product_id_route(client, admin_headers):
 def test_admin_can_refresh_ishares_product_id_route(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     payload = {
         "componentsByNameMap": {
             "holdings": {
@@ -2248,7 +2281,7 @@ def test_admin_can_refresh_ishares_product_id_route(
                                     "Information Technology",
                                 ]
                             },
-                            "asOfDate": {"value": "20260606"},
+                            "asOfDate": {"value": composition_date.strftime("%Y%m%d")},
                             "fundTicker": {"value": ["IVV", "IVV"]},
                             "fundName": {
                                 "value": [
@@ -2299,7 +2332,7 @@ def test_admin_can_refresh_ishares_product_id_route(
             "issuer": "iShares",
             "provider_aliases": {
                 "issuer_product_id": "239726",
-                "holdings_composition_date": "2026-06-06",
+                "holdings_composition_date": composition_date.isoformat(),
                 "expected_fund_symbol": "IVV",
             },
         },
@@ -2320,7 +2353,7 @@ def test_admin_can_refresh_ishares_product_id_route(
     latest = client.get("/api/v1/etf-holdings/IVV/latest", headers=auth_headers)
     assert latest.status_code == 200
     body = latest.json()
-    assert body["composition_date"] == "2026-06-06"
+    assert body["composition_date"] == composition_date.isoformat()
     assert body["source_provider"] == "ishares"
     assert body["source_url"] == requested_urls[0]
     assert body["parser_version"] == "ishares-json-v1"
@@ -2762,6 +2795,7 @@ def test_admin_all_family_refresh_rejects_unknown_scope_and_oversized_range(clie
 def test_issuer_adapter_can_discover_holdings_file_from_product_page(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     product_url = "https://issuer.example/funds/qqq"
     holdings_url = "https://issuer.example/downloads/qqq-holdings.csv"
     product_html = """
@@ -2819,7 +2853,7 @@ def test_issuer_adapter_can_discover_holdings_file_from_product_page(
             "provider_aliases": {
                 "product_url": product_url,
                 "expected_fund_symbol": "QQQ",
-                "holdings_composition_date": "2026-06-05",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -2846,6 +2880,7 @@ def test_issuer_adapter_can_discover_holdings_file_from_product_page(
 def test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     product_url = "https://issuer.example/funds/spy"
     holdings_url = "https://issuer.example/api/portfolio/spy-holdings.xlsx?download=1"
     product_html = f"""
@@ -2908,7 +2943,7 @@ def test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute
             "provider_aliases": {
                 "product_url": product_url,
                 "expected_fund_symbol": "SPY",
-                "holdings_composition_date": "2026-06-05",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -2936,6 +2971,7 @@ def test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute
 def test_issuer_adapter_discovers_holdings_from_inferred_product_page_template(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     product_url = "https://www.schwabassetmanagement.com/products/schd"
     holdings_url = "/resource/schd-portfolio-holdings.csv"
     product_html = f"""
@@ -2991,7 +3027,7 @@ def test_issuer_adapter_discovers_holdings_from_inferred_product_page_template(
             "issuer": "Schwab Asset Management",
             "provider_aliases": {
                 "expected_fund_symbol": "SCHD",
-                "holdings_composition_date": "2026-06-04",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
@@ -3029,6 +3065,7 @@ def test_issuer_adapter_discovers_holdings_from_inferred_product_page_template(
 def test_issuer_adapter_refresh_infers_artifact_identity_from_fund_columns(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    composition_date = datetime.now(UTC).date()
     raw_csv = "\n".join(
         [
             "Fund Ticker,Fund Name,Ticker,Name,Weight (%),Shares,Market Value,Currency",
@@ -3066,7 +3103,7 @@ def test_issuer_adapter_refresh_infers_artifact_identity_from_fund_columns(
             "issuer": "ARK Invest",
             "provider_aliases": {
                 "holdings_file_name": "ARK_AUTONOMOUS_TECH_ARKQ_HOLDINGS",
-                "holdings_composition_date": "2026-06-05",
+                "holdings_composition_date": composition_date.isoformat(),
             },
         },
         headers=admin_headers,
