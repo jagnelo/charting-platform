@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import asdict, replace
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -35,6 +36,19 @@ from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
 
 SOURCE_DIGEST = content_digest("strategy-source")
 ARTIFACT_DIGEST = content_digest("dependency-wheel")
+
+
+@dataclass(frozen=True)
+class _PersistedOwnerGraph:
+    strategy_attributes: dict[str, Any]
+
+
+def _plain_json(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: _plain_json(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_plain_json(item) for item in value]
+    return value
 
 
 def _attributes() -> dict:
@@ -120,6 +134,45 @@ def test_strategy_without_study_reference_keeps_historical_fingerprint_projectio
     assert "selected_study_artifact" not in canonical_json(strategy)
 
 
+def test_explicit_null_asdict_roundtrip_preserves_pre_change_strategy_golden() -> None:
+    manifest = _inputs()["strategy_manifest"]
+    original = manifest.strategy
+    serialized = asdict(
+        _PersistedOwnerGraph(
+            {
+                "strategy_id": original.strategy_id,
+                "version_id": original.version_id,
+                "sdk_version": original.sdk_version,
+                "source_digest": original.source_digest,
+                "dependencies": [
+                    {
+                        "distribution": item.distribution,
+                        "version": item.version,
+                        "artifact_digest": item.artifact_digest,
+                    }
+                    for item in original.dependencies
+                ],
+                "parameter_schema": _plain_json(original.parameter_schema),
+                "default_parameters": _plain_json(original.default_parameters),
+                "selected_study_artifact": None,
+            }
+        )
+    )["strategy_attributes"]
+
+    assert serialized["selected_study_artifact"] is None
+    normalized = normalize_resource_attributes(ApiResourceType.STRATEGY, serialized)
+    restored = rehydrate_resource_contract(ApiResourceType.STRATEGY, normalized.attributes)
+
+    assert isinstance(restored, StrategyVersion)
+    assert restored.selected_study_artifact is None
+    assert "selected_study_artifact" not in normalized.attributes
+    assert (
+        restored.fingerprint
+        == original.fingerprint
+        == ("sha256:b9cd02de1e0b205ea040cf33badba19f39715a2145a8306effb9573c6d2a8ddd")
+    )
+
+
 def test_no_reference_nested_sdk_and_package_identities_match_pre_change_goldens() -> None:
     values = _inputs()
     manifest = values["strategy_manifest"]
@@ -137,12 +190,10 @@ def test_no_reference_nested_sdk_and_package_identities_match_pre_change_goldens
         "sha256:c806796528369f35a386b63a2357e5a420f5122ff25876fa9fe778c12831a884"
     )
 
-    strategy_attributes = _attributes()
-    strategy_attributes["selected_study_artifact"] = _selected_study_artifact()
-    referenced_strategy = normalize_resource_attributes(
-        ApiResourceType.STRATEGY, strategy_attributes
-    ).typed_contract
-    assert isinstance(referenced_strategy, StrategyVersion)
+    referenced_strategy = replace(
+        manifest.strategy,
+        selected_study_artifact=SelectedStudyArtifactReference(**_selected_study_artifact()),
+    )
     referenced_manifest = replace(manifest, strategy=referenced_strategy)
     referenced_package = replace(package, strategy_fingerprint=referenced_strategy.fingerprint)
     assert referenced_manifest.fingerprint != manifest.fingerprint

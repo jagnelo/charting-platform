@@ -268,8 +268,6 @@ def _normalize_strategy(attributes: Mapping[str, Any]) -> ResourceDomainNormaliz
                 dataset_manifest_digest=selected_study_artifact_raw["dataset_manifest_digest"],
                 artifact_content_digest=selected_study_artifact_raw["artifact_content_digest"],
             )
-        elif "selected_study_artifact" in attributes:
-            raise ValueError("strategy selected_study_artifact cannot be null")
         strategy = StrategyVersion(
             strategy_id=attributes["strategy_id"],
             version_id=attributes["version_id"],
