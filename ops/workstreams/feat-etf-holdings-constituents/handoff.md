@@ -12837,3 +12837,287 @@ plan and continue outstanding API/worker/current/PIT and migration/startup
 gates at safe assigned capacity. No issuer/SEC/provider HTTP, quota spend/reset,
 paid/trial activation, staging/sibling write, retained-data cleanup,
 self-acceptance, or deployment is authorized.
+
+## Full `full_stack_browser` profile — prepared for coordinator review only
+
+The harness correction has been published on the ETF branch at candidate
+source `bbf57daf78e649276179d6f4d6c56702991b948d`; an independent
+`git ls-remote` confirmed this is the remote ETF tip and the worktree was clean
+and synchronized immediately after push. This section is a launch plan, not
+launch authorization. The coordinator's slot record is
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-full-profile-slot-20261021.md`.
+Do not start any full-profile build, Compose stack, browser container, or gate
+until root reviews this exact plan and directly resumes the same ETF session.
+No profile or CI result is inferred from the harness publication.
+
+### Candidate, capacity and baseline capture
+
+- Candidate source to validate: `bbf57daf78e649276179d6f4d6c56702991b948d`.
+  At launch, verify local HEAD, `origin/feat/etf-holdings-constituents`, and the
+  coordinator-selected source are identical. No code/test edits may intervene.
+- Recheck active claim `f206bbc5-abbf-473a-a44f-fb5706c81282` and this exact
+  ETF worktree. Confirm no other backend, Compose, Testcontainers, Playwright,
+  build, or browser process/fixture owns the host; one heavy profile at a time.
+- Immediately before any build or cleanup-capable command, record `free -h`,
+  `df -h`, `docker info`, and read-only Docker inventories with full IDs for
+  all current containers, volumes, networks, images, builders, and published
+  ports. Record existing worktree labels and Compose project labels separately.
+  Stop for coordinator review if host memory/disk is unsafe, Docker is not
+  healthy, the full-stack project already exists, or another feature owns a
+  heavy slot. The coordinator's last sample was about 2661 MiB available and
+  49 GB free disk; it is not assumed current or sufficient without recheck.
+- Explicitly preserve the existing ETF DB/Redis slot and retained volumes:
+  project `etf-db-684812f39cd0-20261020`, containers
+  `etf-db-684812f39cd0-20261020-postgres-1` and
+  `etf-db-684812f39cd0-20261020-redis-1`, loopback ports `127.0.0.1:15432`
+  and `127.0.0.1:16379`, volumes
+  `etf-db-684812f39cd0-20261020_postgres_dev_data` and
+  `etf-db-684812f39cd0-20261020_redis_dev_data`. Capture current exact IDs,
+  status, mounts, HostIp and health at launch; these names do not replace the
+  ID snapshot. Never stop, recreate, down, prune, or remove these resources.
+- Runtime allocation read from the existing path-scoped registry:
+  `WORKTREE_ID=feat-etf-holdings-constituents-fdc36fa27a`, stack project
+  `charting-stack-feat-etf-holdings-constituents-fdc36fa2`, dev project
+  `charting-dev-feat-etf-holdings-constituents-fdc36fa2`, and builder
+  `charting-builder-feat-etf-holdings-constituents-fdc36fa2`. Stack ports are
+  `POSTGRES_HOST_PORT=25441`, `REDIS_HOST_PORT=26388`,
+  `BACKEND_HOST_PORT=28009`, `FRONTEND_HOST_PORT=28089` (verify no conflicts at
+  launch). Expected services are `postgres`, `redis`, `backend`, `worker`,
+  `research-runner`, `frontend`, `provider-egress-deny`, and `host-port-relay`;
+  expected network identities are `<stack>_charting` and `<stack>_host-access`.
+  Compose volume names are project-prefixed `postgres_data`, `redis_data`,
+  `research_jobs`, and `research_results`; render `docker compose config` and
+  record exact generated resource names before starting them.
+- Base image identities are `postgres:16-alpine`, `redis:7-alpine`, and
+  `python:3.12-slim` for the deny-proxy and fixed-destination relay. Backend,
+  worker, frontend, and research-runner are built from this candidate source;
+  record resulting image IDs and labels. The pinned browser image is
+  `mcr.microsoft.com/playwright:v1.62.1-noble`; read-only local image inspection
+  currently reports image ID and repo digest
+  `sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`.
+  At launch, verify tag-to-digest and image ID again without pulling. If absent
+  or changed, stop for root review rather than silently fetching a replacement.
+
+### Cleanup protection and generated test data
+
+The normal `make validate-integration` cleanup traps are intentionally broad
+for this host: `test-stack-down` executes `docker compose ... down -v`, then
+`agent-resource-cleanup` removes all containers/images/networks labelled with
+the ETF worktree ID and removes unretained worktree volumes. Because the
+already-assigned DB/Redis slot carries the same worktree ID, an unguarded gate
+would destroy its running containers and may delete its data volumes. Do not
+run the target unguarded and do not rely on volume retention alone; it does not
+preserve the containers.
+
+Before the gate, root must review use of the already-established temporary
+resource-preserving `GNUmakefile` cleanup guard pattern. It is local,
+untracked, and only overrides cleanup behavior; it must not change the tracked
+Makefile, tests, assertions, or runtime. The guard will use the pre-run exact
+ID/name snapshot to clean only containers, volumes, networks, images, and
+build artifacts created by this profile, while preserving every baseline
+resource. The ordinary `test-stack-down` action may remove only the verified
+new project `charting-stack-feat-etf-holdings-constituents-fdc36fa2` and its
+new volumes. The guard remains installed through all nested EXIT/INT/TERM
+traps, including failed or cancelled stages; do not remove it while a parent
+or descendant is active. On completion, independently verify every baseline
+ID/mount/status is unchanged, every newly created owned resource is either
+removed or explicitly reviewed, no unrelated container/volume/image changed,
+and the temporary guard is absent. No global prune, broad stop, retained-data
+cleanup, or old TC/Provider stack reuse is allowed.
+
+All app/browser data will be synthetic E2E seed data in this new project's
+fresh database, Redis, jobs and results volumes. Nothing from the existing
+ETF DB/Redis slot or any retained provider/issuer artifact is mounted or
+copied. Keep the generated report/log files on the host before Compose volume
+cleanup. Preserve the existing snapshot/reference corpus unchanged.
+
+### Provider egress and Playwright boundary
+
+The outer process sets `RUN_LIVE_PROVIDER_TESTS=0` and
+`RUN_LIVE_ETF_HOLDINGS_TESTS=0` explicitly; dotenv must not override these
+values. `scripts/run-live-provider-probes.py` should print its disabled result,
+which is not live-provider acceptance. The normal deterministic mocks and
+shared-runtime positive/negative tests remain enabled. No issuer, SEC, provider
+or quota request is permitted.
+
+The full-stack Compose overlay is the egress boundary: `charting` is an
+internal network; backend and worker have `PROVIDER_ROUTING_ENABLED=false` and
+HTTP(S)/ALL proxy variables pointing to `provider-egress-deny`, whose every
+HTTP method and CONNECT returns 403 while logging only hostname. The only
+service attached to `host-access` is `host-port-relay`; it forwards only to the
+project frontend and backend fixed destinations and receives no provider
+credentials. The Playwright container joins only `<stack>_charting`, uses
+`STACK_URL=http://frontend`, and can reach only the local app network; it has
+no external-provider route. `make test-compose-contract` must verify this
+shape before stack startup. Dependency/image registry access by host-side
+locked installs/builds is separate from runtime market-data egress.
+
+The locked frontend package resolves Playwright/Test at `1.62.1`; use the
+verified Noble image digest above and Chromium preinstalled in that image, not
+host Chromium. At launch capture the output of `fc-match 'DejaVu Sans'` and
+`fc-match 'Liberation Sans'`, the resolved font-file paths, and
+fontconfig/package versions inside the exact pinned image. Do not
+install/change fonts, regenerate snapshots, normalize baselines, change masks,
+or alter visual assertions. All visual references, 0.005 `maxDiffPixelRatio`,
+and zero retries remain exact.
+
+The repository Make target sets `CI=1`, while current Playwright config maps
+that to one retry. The coordinator requires zero browser retries. To satisfy
+both without editing tracked config or tests, root must review a temporary
+`PLAYWRIGHT_DOCKER` launcher override that mirrors the Makefile's existing
+container arguments and appends CLI `--retries=0` to both Playwright commands.
+It must preserve `CI=1` (`forbidOnly` and `failOnFlakyTests` remain active),
+workers=1, the internal stack network, host UID mapping, workspace mount,
+`STACK_URL=http://frontend`, E2E seed flags, and the pinned image digest. If
+the coordinator does not approve this exact override or it cannot be verified
+to apply to both the functional and visual invocations, do not launch the
+profile; do not change Playwright config as a workaround.
+
+Reviewed launcher contract (create only after root approval):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+exec docker run --rm --platform linux/amd64 --userns=host \
+  --user "$(id -u):$(id -g)" \
+  --network "${STACK_COMPOSE_PROJECT}_charting" \
+  -v "$(pwd):/workspace" -w /workspace/frontend \
+  -e STACK_URL=http://frontend -e E2E_SEED_MARKET_DATA \
+  -e RUN_BOARD_VISUAL_PARITY -e PLAYWRIGHT_WORKERS -e CI \
+  mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e \
+  "$@" --retries=0
+```
+
+The make command-line variable `PLAYWRIGHT_DOCKER` would point to this
+temporary launcher, so both existing invocations (`npx playwright test` and
+the strict visual-spec invocation) receive the same zero-retry override. The
+wrapper's final generated argv must be inspected in dry-run form before
+launch; no container is started by that review.
+
+### Sequential component matrix, command and bounds
+
+Use the repository-supported full `make validate-integration` matrix, not a
+focused substitute. Run one process with `INTEGRATION_BRANCH=feat-etf-holdings-constituents`,
+`E2E_SEED_MARKET_DATA=true`, `PLAYWRIGHT_WORKERS=1`, both live flags set to
+`0`, one-thread BLAS variables, and a task-specific UV cache under `/tmp`.
+Proposed exact invocation after the root-reviewed temporary guard and launcher
+exist:
+
+```bash
+set -o pipefail
+ETF_PROFILE_RUN_ID=etf-full-profile-bbf57daf-20261021 \
+timeout --signal=INT --kill-after=30s 14400s env \
+  RUN_LIVE_PROVIDER_TESTS=0 \
+  RUN_LIVE_ETF_HOLDINGS_TESTS=0 \
+  COMPOSE_PARALLEL_LIMIT=1 \
+  E2E_SEED_MARKET_DATA=true \
+  PLAYWRIGHT_WORKERS=1 \
+  UV_CACHE_DIR=/tmp/uv-cache-etf-full-profile-bbf57daf \
+  OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  NUMEXPR_NUM_THREADS=1 PYTEST_ADDOPTS=-vv \
+  make validate-integration \
+    INTEGRATION_BRANCH=feat-etf-holdings-constituents \
+    PLAYWRIGHT_DOCKER=/tmp/etf-full-profile-bbf57daf/playwright-container \
+  2>&1 | tee .ai/validation/etf-full-stack-browser-bbf57daf-20261021.log
+```
+
+Capture stage output to
+`.ai/validation/etf-full-stack-browser-bbf57daf-20261021.log`, preserve the
+exit status (`set -o pipefail` if tee is used), and put an outer hard wall of
+4 hours with SIGINT followed by a 30-second kill grace. Root watches the same
+native process/group and each emitted `stage=` marker. Per-stage stop limits:
+
+| Stage(s), in the Makefile's actual sequential order | Maximum elapsed |
+| --- | ---: |
+| Preflight/resource inventory before the command | 10 min |
+| Branch validator, locked UV sync/export, one migration head, fresh/upgrade migration compatibility, `npm ci`, lint | 25 min |
+| Combined backend unit + integration coverage (`--shard-size 50`, 1 GiB test-process limit, existing 768 MiB/1 CPU research-runner limit, existing coverage floor) | 45 min |
+| Frontend coverage, uPlot contract, visual policy, production build, Compose contract, disabled provider-probe check | 25 min |
+| New stack image build, Compose startup, migrations and health readiness | 30 min |
+| Research-runner sandbox/resource probes | 8 min |
+| Functional Playwright project | 35 min |
+| Strict 4-project visual matrix (104 expected cases) | 35 min |
+| ETF branch-declared safe contracts | 15 min |
+| Guarded exact cleanup and independent baseline verification | 12 min |
+
+The command wall applies to the gate itself; preflight has its own 10-minute
+limit. The component limits are coordinator watch/stop limits aligned to the
+Makefile's printed stage markers; they do not fork or parallelize stages.
+The gate emits, in order: git diff/workstream validation; frozen backend
+dependency lock/export consistency; exactly one Alembic head and fresh/upgrade
+migration compatibility; locked frontend install; lint; combined backend
+coverage; frontend coverage plus renderer/visual policy; frontend build; base
+and E2E Compose contracts; provider-probe disabled check; fresh full-stack
+build/start/health; research-runner sandbox/resource probes; functional E2E;
+strict board-guided visual parity across all configured projects; then ETF
+branch-declared tests (including the safe default live-module contracts with
+network probes held off). No stage may be skipped or replaced after failure.
+If any stage exceeds its bound or fails, preserve output and stop the run once;
+do not replay automatically. No retries/flakes may be represented as green.
+
+Within the backend coverage stage, normal behavior is 50-test unit shards and
+the repository's bounded integration workers. Set
+`RESEARCH_MAX_MEMORY_BYTES=1073741824`; do not alter shard size, coverage
+threshold, assertions, or test selection. Existing Compose research-runner
+limits are 768 MiB and 1 CPU, with its existing per-job limit. E2E/browser
+workers remain one. No parallel full-suite stage or competing local fixture.
+
+Required visual components are the complete functional suite plus the separate
+board-guided `tc2000_visual.spec.ts` execution over all four projects:
+1080p/100%, 1080p/125%, 1440p/100%, and 1440p/125%. Require the strict
+expected case count/results, zero retries, zero flaky passes, original
+references/masks/assertions, and 0.005 pixel tolerance. Record explicit pass,
+skip, and failure totals; any skip or retry remains visible and is not used to
+claim a complete clean visual gate. Preserve `.ai/validation` stdout/stage log,
+`backend/htmlcov` output, frontend coverage, and `frontend/playwright-report`
+plus `frontend/test-results` (including traces/screenshots) before cleanup.
+
+### Review stop
+
+This plan does not authorize launch until root has reviewed (1) the exact
+zero-retry launcher override, (2) the temporary preserving cleanup guard
+against the current resource baseline, (3) image digest/font provenance, and
+(4) current host/fixture capacity. After review, root directly resumes this
+same thread and assigns the slot. No full-profile command, image pull, fixture,
+service cleanup, live traffic, or CI wait happened while preparing this plan.
+The profile, accepted Provider contract, exact-source branch CI, and all
+fourteen product criteria remain distinct gates; the ETF checkpoint is still
+`in_progress/not accepted` and all roadmap/quarantine/observation constraints
+remain intact.
+
+## Full-profile attempts and narrow Ruff-format correction — 2026-10-21
+
+The two prior profile executions are retained as separate evidence. Attempt 1
+ran the pinned candidate `bbf57daf78e649276179d6f4d6c56702991b948d` but stopped
+at frontend dependency installation under the sandbox: npm's esbuild
+`spawnSync` returned EPERM and its default log directory was not writable. It
+is not product-test evidence. Attempt 2 used the authorized host boundary; the
+canonical worktree runtime environment was generated and verified, frozen
+`npm ci` completed, and esbuild `0.21.5` executed. The gate then stopped at
+backend Ruff format-check: `backend/tests/unit/services/test_etf_holdings_resolution.py`
+had three formatter-only differences. Ruff lint passed. No backend coverage,
+frontend tests/build, Compose stack, research-runner, or browser stages ran in
+either attempt. Logs/receipts are preserved under `.ai/validation`; the exact
+native session/process evidence and baseline/residue checks are in those
+receipts. Both attempts ended without a profile stack; the protected baseline
+remained intact and the resource guard found zero residue. No automatic replay
+was performed.
+
+The narrow correction runs the repository Ruff formatter only on
+`backend/tests/unit/services/test_etf_holdings_resolution.py`. Its three
+changes collapse a function signature and two wrapped SQL-expression chains to
+the formatter's required layout; assertions and behavior are unchanged. The
+exact diff was inspected. Verification passed: the required audit-count
+sentinel `test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`
+(1 passed), backend Ruff check, whole-backend Ruff format check (397 files
+already formatted), validation of all 41 workstream records, and
+`git diff --check`.
+
+Next: publish this one-file formatting correction with this evidence, then
+rebind only the candidate SHA and profile run/name values in the temporary
+execution controls. Keep the immutable Docker baseline and both attempt
+receipts/session snapshots unchanged. Recheck the exact new source and host
+baseline, then use only the coordinator-authorized corrected host-boundary
+full-profile attempt. The full matrix, strict zero-retry visuals, all
+historical/provider/issuer holds, and checkpoint `in_progress/not accepted`
+status remain unchanged.

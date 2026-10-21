@@ -537,9 +537,7 @@ async def test_resolver_keeps_non_equity_rows_out_of_equity_ticker_matching(
         "security",
     ],
 )
-async def test_resolver_does_not_bind_non_equity_ticker_to_existing_equity(
-    db, holding_type
-):
+async def test_resolver_does_not_bind_non_equity_ticker_to_existing_equity(db, holding_type):
     async_db = AsyncSessionAdapter(db)
     equity_type_id = await ensure_instrument_type(async_db, "Equity", "Stock")
     existing_equity = Instrument(
@@ -629,9 +627,9 @@ async def test_ingest_persists_non_equity_holding_as_unresolved_without_equity_i
     )
     db.flush()
 
-    holdings = db.execute(
-        select(ETFHolding).where(ETFHolding.snapshot_id == snapshot.id)
-    ).scalars().all()
+    holdings = (
+        db.execute(select(ETFHolding).where(ETFHolding.snapshot_id == snapshot.id)).scalars().all()
+    )
     assert len(holdings) == 1
     assert holdings[0].reported_symbol == "MIXED1"
     assert holdings[0].holding_type == holding_type
@@ -643,8 +641,7 @@ async def test_ingest_persists_non_equity_holding_as_unresolved_without_equity_i
     assert snapshot.resolved_count == 0
     assert snapshot.unresolved_count == 1
     assert (
-        db.execute(select(Instrument).where(Instrument.symbol == "MIXED1"))
-        .scalar_one_or_none()
+        db.execute(select(Instrument).where(Instrument.symbol == "MIXED1")).scalar_one_or_none()
         is None
     )
 
