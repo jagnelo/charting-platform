@@ -58,6 +58,7 @@ from app.services.etf_holdings_adapters import (
     get_holdings_adapter,
     infer_adapter_key,
 )
+from app.services.etf_holdings_capability import evaluate_capability
 from app.services.instrument_mastering import (
     ingest_provider_profile,
     register_identifier,
@@ -69,6 +70,41 @@ ETF_HOLDINGS_INTERNAL_PROVIDER = "etf_holdings_internal"
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _ensure_holdings_dates_are_not_future(
+    composition_date: date | None,
+    as_of_date: date | None,
+    *,
+    today: date | None = None,
+    published_at: datetime | None = None,
+    now: datetime | None = None,
+) -> None:
+    """Reject holdings metadata that cannot describe an already known snapshot.
+
+    This is the lowest shared ingestion boundary.  Refresh adapters also call
+    it before fetching persistence, but keeping the check here protects manual,
+    SEC, fixture, and other ingestion paths from storing future evidence that
+    would make current-analysis freshness optimistic.
+    """
+
+    reference_now = now or _now()
+    reference_date = today or reference_now.date()
+    for label, value in (("composition", composition_date), ("as-of", as_of_date)):
+        if value is not None and value > reference_date:
+            raise ValueError(
+                f"Issuer holdings route returned a future {label} date "
+                f"({value.isoformat()} > {reference_date.isoformat()})."
+            )
+    if published_at is not None:
+        normalized_published_at = (
+            published_at if published_at.tzinfo is not None else published_at.replace(tzinfo=UTC)
+        )
+        if normalized_published_at > reference_now:
+            raise ValueError(
+                "Issuer holdings route returned a future published-at timestamp "
+                f"({normalized_published_at.isoformat()} > {reference_now.isoformat()})."
+            )
 
 
 def _visible_snapshot_conditions() -> list[Any]:
@@ -94,6 +130,108 @@ def _apply_snapshot_visibility(statement):
 def _hash_payload(payload: Any) -> str:
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _payload_schema_shape(value: Any) -> Any:
+    """Return a value-free structural shape suitable for drift detection."""
+
+    if isinstance(value, dict):
+        return {
+            "object": {str(key): _payload_schema_shape(item) for key, item in sorted(value.items())}
+        }
+    if isinstance(value, list):
+        return {"array": _payload_schema_shape(value[0]) if value else None}
+    if value is None:
+        return "null"
+    return type(value).__name__
+
+
+def _schema_fingerprint(
+    *,
+    raw_payload_text: str | None = None,
+    raw_payload_json: dict | None = None,
+) -> str | None:
+    if raw_payload_json is not None:
+        return _hash_payload(_payload_schema_shape(raw_payload_json))
+    if raw_payload_text:
+        first_line = next(
+            (line.strip() for line in raw_payload_text.splitlines() if line.strip()), ""
+        )
+        if not first_line:
+            return None
+        delimiter = next(
+            (candidate for candidate in (",", "\t", "|", ";") if candidate in first_line), None
+        )
+        header = (
+            [part.strip().lower() for part in first_line.split(delimiter)]
+            if delimiter
+            else [first_line.lower()]
+        )
+        return _hash_payload({"text_header": header})
+    return None
+
+
+def _capability_source_tier(
+    *,
+    provenance: str,
+    source_provider: str,
+    legal_metadata: dict[str, Any] | None = None,
+) -> str:
+    legal_metadata = legal_metadata or {}
+    explicit = str(legal_metadata.get("source_tier") or "").strip().lower()
+    if explicit in {
+        "issuer_native",
+        "successor_native",
+        "licensed_vendor",
+        "sec_filing",
+        "none",
+    }:
+        return explicit
+    text = " ".join(
+        str(value or "").lower()
+        for value in (
+            provenance,
+            source_provider,
+            legal_metadata.get("route_resolution"),
+            legal_metadata.get("issuer_route_fallback"),
+        )
+    )
+    if "sec" in text or "filing" in text:
+        return "sec_filing"
+    if legal_metadata.get("successor_publisher") or legal_metadata.get("publisher_relationship"):
+        return "successor_native"
+    entitlement_status = (
+        str(
+            legal_metadata.get("entitlement_status")
+            or legal_metadata.get("entitlement_class")
+            or legal_metadata.get("data_entitlement")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+    if legal_metadata.get("licensed_vendor") is True or entitlement_status in {
+        "licensed",
+        "licensed_vendor",
+        "entitled",
+    }:
+        return "licensed_vendor"
+    if any(token in text for token in ("issuer", "native", "self_snapshotted")):
+        return "issuer_native"
+    return "none"
+
+
+def _capability_transport_kind(*, source_url: str | None, legal_metadata: dict[str, Any]) -> str:
+    source_format = str(legal_metadata.get("source_format") or "").lower()
+    if source_format in {"csv", "xls", "xlsx", "pdf", "zip"}:
+        return "file_export"
+    if source_format in {"json", "api"}:
+        return "structured_api"
+    if source_format in {"html", "javascript_embedded_html_rows", "pipe_delimited_text"}:
+        return "web_page"
+    if str(source_url or "").lower().startswith(("http://", "https://")):
+        return "structured_or_page"
+    return "stored_artifact"
 
 
 def _date_start(value: date) -> datetime:
@@ -516,6 +654,16 @@ async def get_etf_profile_for_instrument(db: AsyncSession, instrument_id: int) -
     ).scalar_one_or_none()
 
 
+async def get_etf_profile_for_symbol(db: AsyncSession, symbol: str) -> ETFProfile | None:
+    """Read an existing ETF profile by symbol without creating catalog rows."""
+
+    normalized_symbol = str(symbol or "").strip().upper()
+    instrument = await _load_instrument_by_symbol_or_id(db, normalized_symbol)
+    if instrument is None:
+        return None
+    return await get_etf_profile_for_instrument(db, instrument.id)
+
+
 async def ensure_etf_profile(
     db: AsyncSession,
     instrument: Instrument,
@@ -616,7 +764,7 @@ async def ensure_lightweight_etf_instrument(
         ],
         raw_payload={"source": ETF_HOLDINGS_INTERNAL_PROVIDER},
     )
-    instrument = await ingest_provider_profile(db, profile)
+    instrument = await ingest_provider_profile(db, profile, allow_external_identifier=False)
     instrument.instrument_type_id = instrument_type_id
     return instrument
 
@@ -690,8 +838,31 @@ async def _resolve_or_create_constituent(
     source_provider: str,
     allow_provider_enrichment: bool = True,
 ) -> tuple[Instrument | None, Decimal | None, str | None]:
-    if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
+    holding_type = str(row.holding_type or "").strip().lower()
+    if row.row_type != "security" or holding_type in {"cash", "currency", "collateral"}:
         return None, None, None
+
+    # This resolver only creates Equity/Stock identities. Letting any other
+    # declared asset kind continue through identifier or ticker lookup can bind
+    # it to an unrelated equity; the fallback can also materialize a synthetic
+    # Equity/Stock. Keep unsupported or unknown kinds in holdings lineage until
+    # a resolver can prove their own canonical instrument type.
+    if holding_type not in {"equity", "stock", "common_stock", "preferred_stock"}:
+        if holding_type in {"future", "futures"}:
+            note = (
+                "Future holding retained without constituent resolution; "
+                "equity-only identity matching is unsafe."
+            )
+        else:
+            note = (
+                f"{holding_type or 'Unknown'} holding retained without constituent resolution; "
+                "a typed non-equity identity resolver is required."
+            )
+        return (
+            None,
+            None,
+            note,
+        )
 
     for identifier_type, value in [
         ("isin", row.isin),
@@ -950,6 +1121,13 @@ async def ingest_holdings_snapshot(
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
 ) -> ETFHoldingsSnapshot:
+    now = _now()
+    _ensure_holdings_dates_are_not_future(
+        composition_date,
+        as_of_date,
+        published_at=published_at,
+        now=now,
+    )
     profile = await ensure_etf_profile(db, etf_instrument, legal_metadata=legal_metadata)
     canonical_rows = [
         row
@@ -973,10 +1151,26 @@ async def ingest_holdings_snapshot(
         )
         for row in rows
     ]
-    now = _now()
     known_at = known_at or published_at or _date_end(composition_date)
     data_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
     snapshot_hash = _snapshot_hash(canonical_rows)
+    legal_metadata = dict(legal_metadata or {})
+    capability_metadata = {
+        "source_tier": _capability_source_tier(
+            provenance=provenance,
+            source_provider=source_provider,
+            legal_metadata=legal_metadata,
+        ),
+        "transport_kind": _capability_transport_kind(
+            source_url=source_url,
+            legal_metadata=legal_metadata,
+        ),
+        "expected_cadence": legal_metadata.get("expected_cadence"),
+        "schema_fingerprint": _schema_fingerprint(
+            raw_payload_text=raw_payload_text,
+            raw_payload_json=raw_payload_json,
+        ),
+    }
 
     raw_artifact: ETFHoldingsRawArtifact | None = None
     if raw_payload_text is not None or raw_payload_json is not None:
@@ -1059,7 +1253,10 @@ async def ingest_holdings_snapshot(
         parser_version=parser_version,
         snapshot_hash=snapshot_hash,
         notes=notes,
-        extra_data={"legal_metadata": legal_metadata} if legal_metadata else None,
+        extra_data={
+            "legal_metadata": legal_metadata,
+            **{key: value for key, value in capability_metadata.items() if value is not None},
+        },
     )
     db.add(snapshot)
     await db.flush()
@@ -1121,6 +1318,7 @@ async def ingest_holdings_snapshot(
         composition_date=composition_date,
         published_at=published_at,
         completeness_status=completeness_status,
+        observation_metadata=snapshot.extra_data,
     )
     await db.flush()
     await db.refresh(snapshot)
@@ -1238,6 +1436,7 @@ async def _record_adapter_success(
     composition_date: date,
     published_at: datetime | None,
     completeness_status: str,
+    observation_metadata: dict[str, Any] | None = None,
 ) -> None:
     state = (
         await db.execute(
@@ -1264,6 +1463,21 @@ async def _record_adapter_success(
     state.composition_date = composition_date
     state.published_at = published_at
     state.completeness_status = completeness_status
+    snapshot_metadata = observation_metadata or {}
+    state.extra_data = {
+        **(state.extra_data or {}),
+        **{
+            key: snapshot_metadata.get(key)
+            for key in (
+                "source_tier",
+                "transport_kind",
+                "expected_cadence",
+                "schema_fingerprint",
+            )
+            if snapshot_metadata.get(key) is not None
+        },
+        "consecutive_failures": 0,
+    }
 
 
 async def list_etfs_with_holdings(db: AsyncSession, q: str | None = None) -> list[ETFProfileOut]:
@@ -1281,7 +1495,19 @@ async def list_etfs_with_holdings(db: AsyncSession, q: str | None = None) -> lis
 
 async def profile_to_out(db: AsyncSession, profile: ETFProfile) -> ETFProfileOut:
     latest = await get_latest_snapshot(db, profile.instrument_id, include_holdings=False)
+    state = (
+        await db.execute(
+            select(ETFHoldingsAdapterState)
+            .where(ETFHoldingsAdapterState.etf_profile_id == profile.id)
+            .order_by(
+                ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                ETFHoldingsAdapterState.id.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
     instrument = profile.instrument or await db.get(Instrument, profile.instrument_id)
+    capability = evaluate_capability(profile, latest, state).as_dict()
     return ETFProfileOut(
         id=profile.id,
         instrument_id=profile.instrument_id,
@@ -1304,7 +1530,55 @@ async def profile_to_out(db: AsyncSession, profile: ETFProfile) -> ETFProfileOut
         latest_snapshot_id=latest.id if latest else None,
         resolved_count=latest.resolved_count if latest else 0,
         unresolved_count=latest.unresolved_count if latest else 0,
+        holdings_capability=capability,
     )
+
+
+async def holdings_capability_for_profile(
+    db: AsyncSession,
+    profile: ETFProfile,
+    *,
+    snapshot: ETFHoldingsSnapshotOut | None = None,
+) -> dict[str, Any]:
+    """Return operational capability without contacting an external source."""
+
+    latest = snapshot or await get_latest_snapshot(
+        db,
+        profile.instrument_id,
+        include_holdings=False,
+        include_controlled_fixture=False,
+    )
+    state = (
+        await db.execute(
+            select(ETFHoldingsAdapterState)
+            .where(ETFHoldingsAdapterState.etf_profile_id == profile.id)
+            .order_by(
+                ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                ETFHoldingsAdapterState.id.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    return evaluate_capability(profile, latest, state).as_dict()
+
+
+async def holdings_capability_for_symbol(db: AsyncSession, symbol: str) -> dict[str, Any]:
+    """Evaluate a symbol's capability without hydrating an unknown catalog entry."""
+
+    normalized_symbol = str(symbol or "").strip().upper()
+    instrument = await _load_instrument_by_symbol_or_id(db, normalized_symbol)
+    if instrument is None:
+        transient_instrument = Instrument(symbol=normalized_symbol, name=normalized_symbol)
+        return evaluate_capability(
+            ETFProfile(instrument=transient_instrument),
+            None,
+            None,
+        ).as_dict()
+
+    profile = await get_etf_profile_for_instrument(db, instrument.id)
+    if profile is None:
+        return evaluate_capability(ETFProfile(instrument=instrument), None, None).as_dict()
+    return await holdings_capability_for_profile(db, profile)
 
 
 async def get_latest_snapshot(

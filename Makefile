@@ -48,6 +48,8 @@ WORKFLOW_PYTHON := uv run --project backend python
 RUNTIME_HELPER := $(WORKFLOW_PYTHON) scripts/worktree-runtime.py
 RUNTIME_ENV_FILE := $(shell $(RUNTIME_HELPER) env-file)
 RUNTIME_ENV = set -a; . "$(RUNTIME_ENV_FILE)"; set +a;
+PLAYWRIGHT_DOCKER_IMAGE ?= mcr.microsoft.com/playwright:v1.62.1-noble
+PLAYWRIGHT_DOCKER = docker run --rm --platform linux/amd64 --userns=host --user "$$(id -u):$$(id -g)" --network "$${STACK_COMPOSE_PROJECT}_charting" -v "$(CURDIR):/workspace" -w /workspace/frontend -e STACK_URL=http://frontend -e E2E_SEED_MARKET_DATA -e RUN_BOARD_VISUAL_PARITY -e PLAYWRIGHT_WORKERS -e CI $(PLAYWRIGHT_DOCKER_IMAGE)
 # Read LOG_LEVEL from the dev env file so uvicorn's --log-level matches it.
 BACKEND_LOG_LEVEL := $(shell grep -E '^LOG_LEVEL=' backend/.env.dev 2>/dev/null | cut -d= -f2 | tr '[:upper:]' '[:lower:]')
 BACKEND_LOG_LEVEL := $(if $(BACKEND_LOG_LEVEL),$(BACKEND_LOG_LEVEL),info)
@@ -223,9 +225,9 @@ test-e2e-install:
 	@echo "▶  Ensuring Playwright Chromium is installed..."
 	cd frontend && npx playwright install chromium
 
-test-e2e: test-e2e-install
-	@echo "▶  E2E tests (Playwright headless — stack must be running on :80)..."
-	$(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} npx playwright test
+test-e2e:
+	@echo "▶  E2E tests (pinned Playwright container — branch stack must be running)..."
+	$(RUNTIME_ENV) E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} RUN_BOARD_VISUAL_PARITY=$${RUN_BOARD_VISUAL_PARITY:-0} PLAYWRIGHT_WORKERS=$${PLAYWRIGHT_WORKERS:-1} CI=1 $(PLAYWRIGHT_DOCKER) npx playwright test
 
 test-e2e-headed: test-e2e-install
 	@echo "▶  E2E tests (Playwright headed)..."
@@ -475,7 +477,7 @@ validate-integration:
 	stage=stack-up; printf '▶ integration gate stage: %s\n' "$$stage"; E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
 	stage=research-runner-probes; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) test-research-runner-probes; \
 	stage=e2e-functional; printf '▶ integration gate stage: %s\n' "$$stage"; E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
-	stage=e2e-visual; printf '▶ integration gate stage: %s\\n' "$$stage"; ($(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts); \
+	stage=e2e-visual; printf '▶ integration gate stage: %s\\n' "$$stage"; ($(RUNTIME_ENV) E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 PLAYWRIGHT_WORKERS=$${PLAYWRIGHT_WORKERS:-1} CI=1 $(PLAYWRIGHT_DOCKER) npx playwright test tests/e2e/tc2000_visual.spec.ts); \
 	if test -n "$(INTEGRATION_BRANCH)"; then stage=branch-tests; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi
 
 # Narrow gate available only when the workstream contains the human-approved

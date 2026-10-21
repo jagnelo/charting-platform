@@ -34,6 +34,13 @@
       <div v-if="activeSource" class="market-map-tool__source-actions" aria-label="Market Map source preferences">
         <span class="market-map-tool__source-kind">{{ sourceKindLabel(activeSource.source_kind) }} · {{ activeSource.member_count ?? '—' }} members</span>
         <span v-if="sourceAvailability(activeSource) === 'pending'" class="market-map-tool__source-state" role="status">Membership pending; this locked source remains followable</span>
+        <span
+          v-if="sourceIsNotCurrent(activeSource)"
+          class="market-map-tool__source-state market-map-tool__source-state--warning"
+          role="status"
+        >
+          Current holdings unavailable{{ activeSource.provenance?.failure_class ? ` · ${formatFailureClass(activeSource.provenance.failure_class)}` : '' }}{{ activeSource.provenance?.capability_reason ? `: ${activeSource.provenance.capability_reason}` : '' }}
+        </span>
         <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
         <button v-if="map && activeSource.can_clone" type="button" :disabled="sourceCloneBusy" :aria-label="`Clone ${activeSource.name} snapshot`" @click="cloneActiveSource">{{ sourceCloneBusy ? 'Cloning…' : 'Clone snapshot' }}</button>
@@ -139,7 +146,7 @@
       </label>
       <span v-if="colorMetric === 'python' && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
       <span v-if="colorMetric === 'python' && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
-      <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim())" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+      <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim()) || (!explicitSymbols.trim() && !!activeSource && !isSourceSelectable(activeSource))" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
           <option value="">Live / cached result</option>
@@ -262,6 +269,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { formatSourceFailureClass as formatFailureClass, sourceAvailability, sourceAvailabilitySuffix, sourceIsNotCurrent } from '@/lib/workstation/sourceCapability'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -396,20 +404,6 @@ const LARGE_MAP_CANVAS_THRESHOLD = 1500
 
 function isSourceSelectable(source: WatchlistSource): boolean {
   return sourceAvailability(source) !== 'unavailable'
-}
-
-function sourceAvailability(source: WatchlistSource): 'available' | 'pending' | 'unavailable' {
-  const availability = source.provenance?.availability
-  if (availability === 'unavailable') return 'unavailable'
-  if (availability === 'profile_not_loaded' || availability === 'holdings_snapshot_not_loaded' || availability === 'holdings_snapshot_unresolved' || availability === 'membership_not_loaded') return 'pending'
-  return 'available'
-}
-
-function sourceAvailabilitySuffix(source: WatchlistSource): string {
-  const availability = sourceAvailability(source)
-  if (availability === 'unavailable') return ' · Unavailable'
-  if (availability === 'pending') return ' · Pending membership'
-  return ''
 }
 
 function sourceKindLabel(kind: WatchlistSourceKind): string {
@@ -1230,6 +1224,13 @@ function exportCsv() {
 
 async function run() {
   if (!componentMounted || (!sourceId.value && !explicitSymbols.value.trim())) return
+  if (!explicitSymbols.value.trim() && sourceId.value) {
+    const selectedSource = sources.value.find(source => source.source_id === sourceId.value)
+    if (selectedSource && !isSourceSelectable(selectedSource)) {
+      error.value = `${selectedSource.name} is not current and cannot be used for Market Map analysis.`
+      return
+    }
+  }
   const generation = ++runGeneration
   loading.value = true
   error.value = ''
@@ -1345,6 +1346,8 @@ onUnmounted(() => {
 .market-map-tool select, .market-map-tool input, .market-map-tool button { border: 1px solid #3c4858; background: #151c25; color: #d4d9e2; border-radius: 2px; padding: 5px 7px; font: inherit; }
 .market-map-tool__source-actions { display: flex; gap: 4px; align-items: end; padding-bottom: 0; }
 .market-map-tool__source-kind { margin-right: auto; color: #80909d; font-size: 10px; }
+.market-map-tool__source-state { color: #f7d87b; font-size: 10px; }
+.market-map-tool__source-state--warning { max-width: 420px; color: #ff9a9a; }
 .market-map-tool__source-actions button { cursor: pointer; min-width: 58px; }
 .market-map-tool__source-actions button[aria-pressed="true"] { border-color: #f7d87b; color: #f7d87b; }
 .market-map-tool__run { background: #2d8cff !important; border-color: #2d8cff !important; color: white !important; cursor: pointer; }

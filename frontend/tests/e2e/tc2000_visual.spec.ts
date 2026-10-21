@@ -330,8 +330,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       try {
         await popoutTool.locator('button[title="Close"]').click()
       } catch (error) {
-        // The ordinary Close action destroys this page before Chromium may
-        // acknowledge click completion. A still-open popup is a real failure.
+        // The ordinary Close action can destroy this page before Chromium
+        // acknowledges click completion. A still-open popup is a real failure.
         if (!popup.isClosed()) throw error
       }
       await closed
@@ -721,6 +721,10 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ versions: [{ id: 777 }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+        return
+      }
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(runningRun) })
     })
@@ -728,7 +732,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(runningRun) })
     })
     await page.goto('/chart')
-    await expect(page.locator('.workstation')).toBeVisible()
+    await waitForShellReady(page)
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const study = page.locator('.study-lab-tool')
@@ -742,6 +746,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await expect(study.locator('.study-lab-tool__run-status--running')).toBeVisible({ timeout: 10_000 })
     await expect(study).toContainText('running 12/100')
     await expect(study.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible()
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
     await expect(page).toHaveScreenshot('study-lab-running-gap.png', {
       animations: 'disabled',
       caret: 'hide',
@@ -842,17 +848,6 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       dataset_manifest: { benchmark_coverage: { status: 'ready' } },
       artifacts: [],
     }
-    // The existing gap-state reference deliberately shows these adjacent
-    // surfaces loading. Hold their reads so backend speed cannot change the
-    // background while the sandbox failure/recovery controls are asserted.
-    await page.route(/\/api\/v1\/market-groups\/us-benchmarks(?:\?.*)?$/, async route => {
-      if (route.request().method() !== 'GET') return route.continue()
-      await new Promise<void>(() => {})
-    })
-    await page.route(/\/api\/v1\/ohlcv\/(?:local\/)?SPY\/[^/?]+(?:\/transformed)?(?:\?.*)?$/, async route => {
-      if (route.request().method() !== 'GET') return route.continue()
-      await new Promise<void>(() => {})
-    })
     await page.route(/\/api\/v1\/code\/validate$/, async route => {
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] }) })
@@ -862,19 +857,18 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ versions: [{ id: 779 }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+        return
+      }
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(failedRun) })
-    })
-    await page.route(url => url.pathname.endsWith('/api/v1/research/runs'), async route => {
-      if (route.request().method() !== 'GET') return route.fallback()
-      await new Promise<void>(() => {})
     })
     await page.route(/\/api\/v1\/research\/runs\/780$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(failedRun) })
     })
     await page.goto('/chart')
-    await expect(page.locator('.workstation')).toBeVisible()
-    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await waitForShellReady(page)
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const study = page.locator('.study-lab-tool')
     await expect(study).toBeVisible({ timeout: 10_000 })
@@ -893,9 +887,13 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await warnings.locator('summary').click()
     await expect(warnings).toContainText('run was terminated')
     await expect(study).toContainText('Rerun snapshot')
-    await expect(page.locator('.workstation__refresh')).toHaveText('Refreshing…')
-    await expect(page.locator('.chart-tool .tool-state')).toHaveText('Loading SPY…')
-    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('Loading reproducible research runs…')
+    // Study navigation mounts a new adjacent chart. The shell's Refresh label
+    // alone can settle before that chart's OHLCV request and first render.
+    // Require positive rendered content as well as absence of its gap state.
+    await expect(page.locator('.chart-tool .uplot')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.chart-tool .tool-state')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+    await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('No persisted studies yet.')
     await expect(page).toHaveScreenshot('study-lab-sandbox-error-gap.png', {
       animations: 'disabled',
       caret: 'hide',
