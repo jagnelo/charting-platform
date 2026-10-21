@@ -1960,7 +1960,16 @@ test.describe('TC2000 workstation', () => {
     await popup.waitForLoadState('domcontentloaded')
     const popupChart = popup.locator('.chart-tool')
     await expect(popupChart.locator('.uplot')).toBeVisible({ timeout: 20_000 })
-    const popupBox = await popupChart.locator('.uplot').boundingBox()
+    // Pop-out hydration can recreate an initially visible uPlot while loading
+    // settles. Wait for the actual drawable box, not a one-shot DOM snapshot.
+    const popupGeometry: { box: { x: number; y: number; width: number; height: number } | null } = { box: null }
+    await expect.poll(async () => {
+      const loading = await popupChart.locator('.tool-state').count()
+      popupGeometry.box = await popupChart.locator('.uplot').boundingBox()
+      return loading === 0 && popupGeometry.box !== null
+        && popupGeometry.box.width > 0 && popupGeometry.box.height > 0
+    }, { timeout: 20_000 }).toBe(true)
+    const popupBox = popupGeometry.box
     expect(popupBox).not.toBeNull()
     await popup.mouse.move(popupBox!.x + popupBox!.width * 0.63, popupBox!.y + popupBox!.height * 0.45)
     await expect.poll(() => targetCursor.evaluate(element => ({ transform: (element as HTMLElement).style.transform, off: element.classList.contains('u-off') })), { timeout: 10_000 }).not.toEqual(before)

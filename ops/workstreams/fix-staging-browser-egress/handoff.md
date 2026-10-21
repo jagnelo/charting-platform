@@ -36,3 +36,30 @@ Initial plan-ready call correctly refused an uncommitted planning checkpoint;
 its sandbox Make runtime preparation also cannot access the existing private
 quota directory. Use the established HOST route for runtime-dependent commands,
 not a private-directory permissions change. Commit planning checkpoint first.
+
+## Current source checkpoint and remaining validation
+
+Plan/preflight are committed and ready; original root thread continues without
+a duplicate native goal. Published da15aaf72920133a20357afab9439d549d1b8c88 contains
+the network, zero-retry/resource bounds and narrowly admitted hosted cleanup.
+All132 workflow tests passed. Hosted da15 backend/FE/E2E green, but its branch
+job exposed inherited CI coverage flags in a synthetic local-runner fixture;
+test-only isolation correction now passes132 under those exact inherited flags.
+
+Actual isolated stack/up and sandbox/resource probes passed. Focus F6 passed.
+First full functional:154pass/106skip/1fail15.9m, zero retries, popup bounding-box
+read raced renderer loading/recreation. Preserve all failure artifacts. Root
+and original TC read-only source/screenshot review support bounded readiness
+synchronization, not a source/oracle/tolerance change. Existing final non-null,
+ordinary mouse movement, linked cursor and close assertions are retained.
+Strict visual subsequently passed104/10413.3m, all4projects, one worker and zero
+retries with unchanged pinned Noble/no-host-font/reference/mask/0.005 inputs.
+
+Commit the real workflow/functional test corrections as a LOCAL source checkpoint
+before the post-fix focused and full functional runs. Do not push it separately.
+Reuse exact-byte-identical strict visual/backend/frontend component evidence
+only with explicit input hashes. After complete post-fix profile and verified
+owned cleanup, prepare the final records-only acceptance packet and push ONCE;
+the final exact branch CI and repaired exact staging EIG remain mandatory.
+AC4 distinguishes packet preparation from these future external gates to avoid
+a self-hash commit loop; neither gate is waived or claimed already green.

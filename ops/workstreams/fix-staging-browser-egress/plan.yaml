@@ -19,12 +19,16 @@ scope:
   - Route the pinned browser through the existing fixed-destination host-access relay so the existing OneSignal SDK can load, while backend and worker remain internal and egress-denied.
   - Permit scoped resource cleanup for an actual hosted staging/master checkout without opening implementation, claims, retained-volume operations or arbitrary local root checkouts.
   - Reconcile the existing provider-calling-service safety classifier with the newly integrated ETF bridge; preserve the existing exhaustive coverage assertion and all provider holds.
+  - Isolate the existing local branch-runner unit fixture from inherited hosted coverage flags; retain explicit CI-coverage and rejection cases unchanged.
+  - Synchronize the existing cross-window cursor test with actual pop-out loading and positive-size plot geometry, retaining every ordinary pointer/cursor/cleanup assertion and existing 20-second readiness limit.
   - Preserve all assertions, references, masks, 0.005 tolerance and datasets; explicitly run canonical functional and visual acceptance with zero retries.
 owned_paths:
   - Makefile
   - scripts/agent-session.py
   - tests/workflow/test_agent_session.py
   - tests/workflow/test_staging_workflow.py
+  - tests/workflow/test_run_branch_tests.py
+  - frontend/tests/e2e/flows.spec.ts
   - ops/workstreams/fix-staging-browser-egress/
 dependencies:
   - Exact degraded staging 0f424665049e9b6f4464e1f228cebd263c755ad9; ETF is not released until repaired exact staging EIG passes.
@@ -36,7 +40,7 @@ acceptance_criteria:
   - id: AC3
     text: Focused workflow regressions and a complete source-qualified full-stack functional/visual matrix pass with exact retained-resource cleanup evidence.
   - id: AC4
-    text: Publish clean exact source with mandatory branch CI green for coordinator-owned remediation integration and exact staging EIG; do not claim staging release on branch CI alone.
+    text: Prepare the clean repair checkpoint and source-qualified evidence with exact branch HEAD capture; mandatory final-published-HEAD branch CI and resulting staging EIG remain external coordinator acceptance/release gates, never implied by packet preparation.
 branch_tests:
   - make test-workflow
 branch_tests_reason: Exercise native runner command contracts and positive/negative hosted cleanup admission, retaining all existing workflow protections.
