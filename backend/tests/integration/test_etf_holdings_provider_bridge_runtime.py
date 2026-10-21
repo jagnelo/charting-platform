@@ -1612,15 +1612,30 @@ async def test_dated_cancellation_retains_response_after_real_caller_rollback(
                         session, profile, requested_date=requested_date
                     )
                 )
-                assert await asyncio.to_thread(runner.started.wait, 3)
-                task.cancel()
-                await asyncio.sleep(0.02)
-                assert not task.done()
-                task.cancel()
-                await asyncio.sleep(0.02)
-                assert not task.done()
-                runner.release.set()
-                await task
+                try:
+                    started = await asyncio.to_thread(runner.started.wait, 30)
+                    if not started and task.done():
+                        # Surface an admission/runtime exception rather than
+                        # disguising it as a slow transport start.
+                        await task
+                    assert started
+                    task.cancel()
+                    await asyncio.sleep(0.02)
+                    assert not task.done()
+                    task.cancel()
+                    await asyncio.sleep(0.02)
+                    assert not task.done()
+                    runner.release.set()
+                    await task
+                finally:
+                    # Never leave the worker blocked if an assertion fails.
+                    runner.release.set()
+                    if not task.done():
+                        task.cancel()
+                        try:
+                            await asyncio.wait_for(task, timeout=10)
+                        except asyncio.CancelledError:
+                            pass
 
     async with provider_db() as reopened:
         row = await _assert_one_settled_attempt(
@@ -1677,17 +1692,32 @@ async def test_caller_cancellation_waits_for_shared_attempt_settlement_and_retai
                 # work. Its Provider request log is independently durable;
                 # cancellation rolls back caller-owned ETF state/artifacts.
                 refresh_task = asyncio.create_task(refresh._refresh_adapter_route(session, profile))
-                assert await asyncio.to_thread(runner.started.wait, 3)
-                refresh_task.cancel()
-                await asyncio.sleep(0.02)
-                assert not refresh_task.done()
-                refresh_task.cancel()
-                await asyncio.sleep(0.02)
-                assert not refresh_task.done()
-                runner.release.set()
-                # Let CancelledError cross session.begin so its real rollback
-                # path runs; catching it inside would commit this UOW.
-                await refresh_task
+                try:
+                    started = await asyncio.to_thread(runner.started.wait, 30)
+                    if not started and refresh_task.done():
+                        # Surface an admission/runtime exception rather than
+                        # disguising it as a slow transport start.
+                        await refresh_task
+                    assert started
+                    refresh_task.cancel()
+                    await asyncio.sleep(0.02)
+                    assert not refresh_task.done()
+                    refresh_task.cancel()
+                    await asyncio.sleep(0.02)
+                    assert not refresh_task.done()
+                    runner.release.set()
+                    # Let CancelledError cross session.begin so its real
+                    # rollback path runs; catching it here would commit this UOW.
+                    await refresh_task
+                finally:
+                    # Never leave the worker blocked if an assertion fails.
+                    runner.release.set()
+                    if not refresh_task.done():
+                        refresh_task.cancel()
+                        try:
+                            await asyncio.wait_for(refresh_task, timeout=10)
+                        except asyncio.CancelledError:
+                            pass
     # Closing the cancelled UOW rolls back ETF artifacts/state, while the
     # independent Provider attempt remains inspectable after reopening.
     async with provider_db() as reopened:

@@ -13121,3 +13121,50 @@ baseline, then use only the coordinator-authorized corrected host-boundary
 full-profile attempt. The full matrix, strict zero-retry visuals, all
 historical/provider/issuer holds, and checkpoint `in_progress/not accepted`
 status remain unchanged.
+
+## Coverage-delayed cancellation test synchronization — 2026-10-21
+
+The attempt-5 full profile remains a preserved timeout at the backend
+coverage stage; it is not a pass. In a bounded reproduction with the exact
+coverage options, the first failure was specifically
+`runner.started.wait(3) == False` in
+`test_dated_cancellation_retains_response_after_real_caller_rollback`, before
+either cancellation assertion ran. The same four-case group passed without
+coverage, while coverage increased the startup delay beyond the old 3-second
+test-only wait. An observation-hook reproduction captured that assertion but
+then encountered its own hook/teardown failure; it is retained as diagnostic
+history, not test evidence. Its exact pytest process and owner-marked temporary
+schema were verified absent/idle and cleaned; no service or preserved dataset
+was changed. No actual admission exception was observed.
+
+The narrow test-only correction changes the two cancellation tests' transport
+startup wait to a finite 30 seconds, surfaces a completed task's original
+exception if startup did not occur, and unconditionally releases the mock
+transport; on assertion/error paths it requests cancellation and awaits the
+test-owned task with a 10-second `asyncio.wait_for` threshold. Because shared
+settlement may defer cancellation completion, this is not a strict 10-second
+wall bound; the outer process timeout remains the hard bound. Repeated
+cancellation, pending-until-settlement, single-attempt/settlement, and caller
+rollback/reopened raw/request lineage assertions remain intact. No production
+code, quota behavior, or policy was changed.
+
+Against the assigned loopback-only ETF PostgreSQL/Redis fixture and unique
+owner-marked parent schema, the four ordered failure/cancellation/concurrency
+cases passed under the exact backend coverage options (4 passed, 64.98s); the
+complete real-runtime module passed under the same coverage options (31
+passed, 349.30s); and the related bridge/refresh unit-contract modules passed
+(34 passed, 10.91s). Ruff format/check, the preserved `15 Tier-0 and 156 Tier-1`
+narrative sentinel, workstream validation, and `git diff --check` passed. These
+are focused local harness/regression results only. The full
+`full_stack_browser` attempt-6 gate and exact-source CI remain required; the
+accepted-Provider migration-compatibility run against base
+`9b230ba4c97126a2937667138c6eb2a0aa297baf` remains a separate sequential
+follow-up. ETF remains `in_progress/not accepted`, with the full roadmap and
+all issuer/operation holds unchanged.
+
+After final review changed the error-path drain from awaiting a shielded task
+to awaiting it directly under `asyncio.wait_for` (so the timeout also requests
+task cancellation), the exact full 31-case coverage module was run again on
+that final test diff: `31 passed, 352.94s`, exit 0. The direct wait does not
+force termination through deferred settlement; do not describe this result as
+proving a hard 10-second cancellation bound.
