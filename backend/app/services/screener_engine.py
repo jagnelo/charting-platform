@@ -973,6 +973,7 @@ async def queue_python_screener_run(
     ).scalar_one_or_none()
     if version is None or version.output_contract != "boolean":
         raise ValueError("Python screener condition version is unavailable or not Boolean")
+    output_adapter = condition.get("output_adapter")
 
     from app.routers.research import _materialize_declared_dataset
 
@@ -997,6 +998,13 @@ async def queue_python_screener_run(
             "screener_id": screener.id,
             "timeframe": screener.timeframe.value,
             "output_contract": "boolean",
+            "output_name": condition.get("output_name"),
+            "output_adapter": output_adapter,
+            "series_target": (
+                condition.get("series_target")
+                if isinstance(condition.get("series_target"), dict)
+                else None
+            ),
             "condition_tree": (
                 condition.get("condition_tree")
                 if isinstance(condition.get("condition_tree"), dict)

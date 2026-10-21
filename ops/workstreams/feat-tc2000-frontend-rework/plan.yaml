@@ -30,21 +30,20 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Exact source4165ec60ae53ab53c4c35d236a24051dfea1c8dc CI39607757349 is
-  terminal red with one wall-clock-sensitive MarketData App reset-window test
-  failure and3416 passes; the prior cached-lineage failure is fixed. The real
-  provider reset-window guard is correct and remains unchanged. The owned test
-  now uses a fixed aware instant and the real quota coordinator's existing now=
-  seam; a negative test rejects a snapshot from the immediately preceding
-  reset window and verifies the ledger status is unchanged. Focused pair2/2,
-  live-usage/quota coordinator/contract/routing tests293/293, Ruff,
-  scope self-tests34/34, actual scope guard (465 changed paths;355 immutable
-  imports;24 exact adaptations), and workstream validation pass. This test path
-  is explicitly bound to accepted G blob6cb1c0cea5d04f94ecf6f7c6b0b34dcf2767176b
-  and omitted from immutable import equality; the guard itself is unchanged.
-  Commit/push and fresh exact-source CI remain. The prepared4165 fixture has not
-  been built or started. TCP3 overall, TCP4/TCP5, full roadmap, and official
-  REF-HELP-V25 remain open.
+  The accepted Provider+ETF staging source628c1634f4894403339687586adee74d45637d51
+  is in committed TC ancestry. The reviewed consumer-preservation repair remains
+  an unpublished working-tree candidate based on d7b19c22. It preserves released
+  producer identity, freshness, admission, and hold behavior while restoring
+  only approved TC semantics. The selected API slice passed13/13 and the six
+  affected service-unit modules passed157/157; the latter includes the final
+  family duplicate-weight regression. The API pass predates only the final
+  independent literal job-key expectation, whose value matches the canonical
+  helper's enum order and UTC-Z output. Exact-source CI and the full new-source
+  profile remain required. The exact generated diagnostic database was dropped
+  only after its test parents ended and zero sessions were verified; a catalog
+  check confirms it is absent. Do not recreate it. TCP3 overall, TCP4/TCP5, full
+  roadmap, and official REF-HELP-V25
+  remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -645,6 +644,7 @@ excluded_paths:
   - backend/app/services/indicators.py
   - backend/app/services/screener_engine.py
   - backend/app/services/watchlist_sources.py
+  - backend/app/services/options_exposure.py
   - backend/app/services/instrument_sync.py
   - backend/app/services/instrument_mastering.py
   - backend/app/services/bulk_fetch.py
@@ -675,6 +675,7 @@ excluded_paths:
   - backend/tests/unit/routers/test_ohlcv_router.py
   - backend/tests/unit/tasks/test_etf_holdings*
   - backend/tests/integration/api/test_etf_holdings.py
+  - backend/tests/integration/api/test_workspaces.py
   - frontend/src/views/ETFHoldingsView.vue
   - frontend/src/components/etf/
   - frontend/tests/unit/components/test_etf_holdings*
@@ -726,7 +727,7 @@ shared_path_exceptions:
     reason: preserve TC Strategy Lab API tests while keeping provider and holdings setup under upstream owners.
   - path: backend/tests/integration/api/test_watchlists.py
     owners: [TC, market-data-provider-platform, etf-holdings-constituents]
-    reason: TC Market Map execution and immutable Python-output lineage tests only; no provider or ETF acquisition coverage.
+    reason: TC Market Map and ETF/family source-read consumer contracts, including current-versus-PIT fixture evidence and raw snapshot counts; no provider or ETF acquisition coverage.
   - path: backend/tests/unit/routers/test_analysis_router.py
     owners: [TC, market-data-provider-platform]
     reason: TC derived-bar cutoff consumer tests plus released Provider freshness-precedence assertions only; no Provider route, source, or acquisition behavior.
@@ -935,21 +936,55 @@ approved_provider_contract_adaptations:
     source_sha: 628c1634f4894403339687586adee74d45637d51
     accepted_blob: ff9e39027421e2ad3c0c245030f7a01d97ccaa2a
     delta: >-
-      Restore strict output-name selection for TC screener predicates and canonical UTC-Z alert-event time.
+      Restore strict output-name selection for TC screener predicates, resolved output-name/adapter/series-target
+      metadata in the immutable runner job, and canonical UTC-Z alert-event time.
     rationale: Preserve the released provider preflight and source guards; ambiguous/invalid outputs remain rejected.
   - path: backend/app/services/watchlist_sources.py
     source_sha: 628c1634f4894403339687586adee74d45637d51
     accepted_blob: 39941d2dd0f23e103e4ffa50585be6f703fcbb2b
     delta: >-
       Restore UTC-normalized PIT comparisons/digests, combo-definition cutoffs, canonical ETF-member
-      eligibility/counts, additive cadence/parser/source/timing provenance, and cached capability
-      lineage evaluation without adapter state. Optional parser/source fields absent from legacy
-      snapshot projections remain None.
+      eligibility/counts, controlled-fixture exclusion before ranked selection and resolver reads,
+      one emitted member per canonical instrument before derived equal weighting, additive
+      cadence/parser/source/timing provenance, and cached capability lineage evaluation without
+      adapter state. Family native weights aggregate only after canonical eligibility and unique-ID
+      derived equal weights retain raw snapshot counts/hash unchanged. Raw snapshot row counts remain
+      unchanged; optional parser/source fields absent from legacy snapshot projections remain None.
     rationale: >-
       Preserve released ETF current/stale/unknown availability and identity decisions. Cached
       lineage remains inspectable without adapter state while current usability stays unknown;
       missing optional legacy metadata is not fabricated. The accepted baseline remains G blob
       39941d2dd0f23e103e4ffa50585be6f703fcbb2b; the staged index must equal the worktree.
+  - path: backend/app/services/etf_holdings.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 9d213d067d61b26937b0783eb673b749d03558fe
+    delta: Normalize holding-classification case and separators only for the existing equity-kind comparison.
+    rationale: >-
+      Accept legacy Security/Common Stock spellings before the unchanged narrow equity allowlist.
+      Preserve raw input labels, row hashes, audit payloads and the exact allowlist; do not restore
+      broad REIT matching or claim Massive factor/classification support.
+  - path: backend/app/services/options_exposure.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: ff577df9d914df517d1c1a795df798d4e0acbc98
+    delta: Use the shared UTC wire serializer for computed_at in both existing exposure response branches.
+    rationale: Keep canonical UTC-Z response formatting without adding ETF-domain coupling or changing options calculations.
+  - path: backend/tests/integration/api/test_etf_holdings.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: b6695b3af0a86bb590f14f105e29ed09efea4e34
+    delta: Preserve the existing +00:00 task argument and independently assert the exact canonical history job key.
+    rationale: Verify enum-ordered D1,W1,MN identity and UTC-Z job bounds without deriving the expected key from production code or changing the queued task payload.
+  - path: backend/tests/integration/api/test_workspaces.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: f2fe5f58fad7e7d09daef68940970bb1d970f9a4
+    delta: >-
+      Preserve canonical UTC-Z assertions and the point-in-time derived equal-weight history length,
+      explicitly excluding the Jan 1 bar not yet known at the Jan 2 membership cutoff.
+    rationale: Retain known_at and eligibility semantics; the 149-point result is not a blanket count waiver.
+  - path: backend/tests/unit/services/test_etf_holdings_resolution.py
+    source_sha: 628c1634f4894403339687586adee74d45637d51
+    accepted_blob: 248e5c3492305cd3d471f2f76bd429da29f14a6c
+    delta: Add parser-to-persistence coverage for legacy Common Stock/Security labels and unsupported kinds.
+    rationale: Assert raw labels and hashes survive both successful resolution and conservative non-equity rejection.
   - path: backend/tests/unit/test_provider_live_usage.py
     source_sha: 628c1634f4894403339687586adee74d45637d51
     accepted_blob: 6cb1c0cea5d04f94ecf6f7c6b0b34dcf2767176b
@@ -1102,14 +1137,15 @@ progress:
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
   current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_RECONCILIATION_DELIVERED_ETF_CONSUMER_RECONCILIATION_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
   next_action: >-
-    Commit and push the exact test-only MarketData App reset-boundary correction. Focused pair2/2,
-    live-usage/quota regressions293/293, Ruff, scope self-tests34/34, actual scope guard (465 changed
-    paths;355 immutable imports;24 exact adaptations), and workstream validation passed. Exact4165
-    CI39607757349 remains terminal red with3,416 passed and one failure from the prior
-    datetime.now(UTC)-5m fixture crossing the13:30UTC reset; preserve that receipt and require fresh
-    exact-source CI. After publication, retarget the never-executed isolated fixture/archive to the
-    new SHA. Root controls bounded build approval; no container/service resource has been created.
-    TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
+    Publish the reviewed Provider+ETF consumer-preservation repair based on d7b19c22; final staged-byte
+    scope/manifest and workstream checks now pass. The six affected service-unit
+    modules passed157/157, including eligible-only native-weight aggregation for benchmark-family
+    duplicate rows, unique-ID derived equal weights, and unchanged raw snapshot lineage. The
+    integration test independently pins the canonical history-job key while retaining the queued
+    +00:00 task argument. The13/13 API slice is earlier evidence; exact-source CI and the full
+    source-qualified local profile remain required. After publication, run the already-approved
+    isolated profile with fresh source identities; do not touch retained services/data or claim
+    TCP3 complete. TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain open.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1178,9 +1214,8 @@ progress:
 current_checkpoint_status: >-
   Current boundary (2026-10-21): TCP1 and TCP2 remain narrowly accepted only as
   previously recorded. The TC-owned normal merge of coordinator-released green
-  Provider+ETF staging628c1634f4894403339687586adee74d45637d51 is in progress
-  with first parent e365d042451734647649fe40778d16a097a2b920 and exact release
-  MERGE_HEAD628c1634f4894403339687586adee74d45637d51. The canonical receipt is
+  Provider+ETF staging628c1634f4894403339687586adee74d45637d51 is committed in
+  the current TC branch ancestry. The canonical receipt is
   tracked with SHA-256 a70713a499032714740fc332b295a1644500e25d3c6d03a40729ed6c701146bc;
   frozen imported paths are byte/mode-pinned in the exact 628 manifest, while six
   narrowly approved 9b230 Provider contract adaptations remain separately bound.
@@ -1192,12 +1227,20 @@ current_checkpoint_status: >-
   selected-test result is13/13 passed,35 deselected,23.19s (exec-1b7a6078-
   0b22-4b25-b2da-76d96d8a4dd7); the prior 12-case run with1 failure and
   subsequent13-case run with2 failures are retained as historical evidence.
-  This does not establish exact-source CI or full-profile
-  acceptance. The no-DDL Alembic upgrade reached e9c23a7b1d40 on the exact
+  The six affected service-unit modules now pass157/157, including family
+  duplicate native-weight aggregation after canonical eligibility, derived
+  equal weighting across unique eligible IDs, and unchanged raw snapshot
+  lineage. The API assertion now independently pins the canonical job-key
+  literal while retaining the original +00:00 task argument; the selected API
+  run predates only that assertion wording. The exact d7b19 CI remains red and
+  must be preserved; exact-source CI and full-profile acceptance are pending.
+  The no-DDL Alembic upgrade reached e9c23a7b1d40 on the exact
   generated DB. Teardown exposed an ORM-vs-historical-migration Watchlist FK
   name mismatch: ORM names fk_watchlist_screener_id while the old migration
-  creates an unnamed FK; upgrade itself succeeded. Exact generated DB is
-  dropped and independently absent. The 628 frozen-import actual-index/worktree
+  creates an unnamed FK; upgrade itself succeeded. A later teardown attempt
+  through the unavailable loopback port did not drop the DB; the coordinator
+  subsequently verified zero sessions, dropped only the exact generated DB,
+  and confirmed it absent in the catalog. Do not recreate it. The 628 frozen-import actual-index/worktree
   checks, canonical receipt verification, one-head graph, workstream/scope and
   diff checks pass. Reviewed merge publication and exact-source CI remain.
   Strategy owns the DB slot; request sequencing from Root before another DB test. TCP3 overall, TCP4, TCP5, full

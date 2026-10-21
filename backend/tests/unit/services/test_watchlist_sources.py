@@ -169,6 +169,61 @@ def test_source_versions_and_membership_digests_are_invariant_to_timestamp_offse
     assert sources._membership_digest([utc_item]) == sources._membership_digest([offset_item])
 
 
+def test_family_canonical_holding_dedup_aggregates_only_eligible_native_weights():
+    eligible_a = SimpleNamespace(
+        id=1,
+        constituent_instrument_id=17,
+        position=1,
+        weight=0.12,
+        row_type="security",
+        holding_type="equity",
+        is_resolved=True,
+        constituent_instrument=SimpleNamespace(symbol="AAA"),
+    )
+    duplicate_a = SimpleNamespace(
+        id=2,
+        constituent_instrument_id=17,
+        position=2,
+        weight=0.08,
+        row_type="security",
+        holding_type="equity",
+        is_resolved=True,
+        constituent_instrument=SimpleNamespace(symbol="AAA"),
+    )
+    eligible_b = SimpleNamespace(
+        id=3,
+        constituent_instrument_id=23,
+        position=3,
+        weight=0.80,
+        row_type="security",
+        holding_type="equity",
+        is_resolved=True,
+        constituent_instrument=SimpleNamespace(symbol="BBB"),
+    )
+    unsupported_duplicate = SimpleNamespace(
+        id=4,
+        constituent_instrument_id=17,
+        position=4,
+        weight=0.50,
+        row_type="security",
+        holding_type="cash",
+        is_resolved=True,
+        constituent_instrument=SimpleNamespace(symbol="AAA"),
+    )
+    snapshot = SimpleNamespace(row_count=4, resolved_count=4, snapshot_hash="raw-snapshot-hash")
+    rows = [eligible_a, duplicate_a, eligible_b, unsupported_duplicate]
+
+    canonical = sources._canonical_holding_rows_with_native_weights(rows)
+
+    assert [(holding.id, weight) for holding, weight in canonical] == [(1, 0.20), (3, 0.80)]
+    assert [1.0 / len(canonical)] * len(canonical) == [0.5, 0.5]
+    assert (snapshot.row_count, snapshot.resolved_count, snapshot.snapshot_hash) == (
+        4,
+        4,
+        "raw-snapshot-hash",
+    )
+
+
 @pytest.mark.asyncio
 async def test_market_group_resolver_normalizes_membership_cutoff():
     item = SimpleNamespace(

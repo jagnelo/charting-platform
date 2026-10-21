@@ -1196,10 +1196,19 @@ class TestStrategyLabAPI:
         client,
         admin_headers,
         auth_headers,
+        db,
         instrument,
         ohlcv_bars,
     ):
-        current_composition_date = date.today() - timedelta(days=1)
+        from datetime import UTC, datetime
+
+        from sqlalchemy import select
+
+        from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
+        from app.models.instrument import Instrument
+
+        checked_at = datetime.now(UTC)
+        current_composition_date = checked_at.date() - timedelta(days=1)
         ingest_res = client.post(
             "/api/v1/etf-holdings/SPY/ingest",
             headers=admin_headers,
@@ -1208,7 +1217,7 @@ class TestStrategyLabAPI:
                 "source_provider": "issuer-test",
                 "provenance": "issuer_current_holdings",
                 "legal_metadata": {
-                    "expected_cadence": "quarterly",
+                    "expected_cadence": "unspecified",
                     "artifact_identity_validation": {
                         "status": "matched",
                         "matched": [{"value": "SPY"}],
@@ -1237,6 +1246,31 @@ class TestStrategyLabAPI:
             json={"provider_aliases": {"holdings_adapter": "spdr"}},
         )
         assert profile_res.status_code == 200
+        profile = db.execute(
+            select(ETFProfile)
+            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+            .where(Instrument.symbol == "SPY")
+        ).scalar_one()
+        db.add(
+            ETFHoldingsAdapterState(
+                etf_profile_id=profile.id,
+                adapter_key="spdr",
+                status="success",
+                last_success_at=checked_at,
+                last_checked_at=checked_at,
+                composition_date=current_composition_date,
+                completeness_status="complete",
+                extra_data={
+                    "source_tier": "issuer_native",
+                    "expected_cadence": "unspecified",
+                    "artifact_identity_validation": {
+                        "status": "matched",
+                        "matched": [{"value": "SPY"}],
+                    },
+                },
+            )
+        )
+        db.flush()
 
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",
@@ -1424,7 +1458,7 @@ class TestStrategyLabAPI:
         """PIT research excludes a canonical correction until its known-at date."""
 
         import asyncio
-        from datetime import UTC, date, datetime
+        from datetime import UTC, datetime
 
         from app.config import settings
         from app.models.ohlcv import OHLCVBar
@@ -1535,9 +1569,7 @@ class TestStrategyLabAPI:
             )
         )
         assert dynamic_universe is not None
-        assert _dynamic_member_ids_for_date(dynamic_universe, date(2024, 1, 31)) == {
-            instrument.id
-        }
+        assert _dynamic_member_ids_for_date(dynamic_universe, date(2024, 1, 31)) == {instrument.id}
         assert _dynamic_member_ids_for_date(dynamic_universe, date(2024, 2, 28)) == {
             instrument_b.id
         }

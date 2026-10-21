@@ -1,5 +1,25 @@
 # feat/tc2000-frontend-rework
 
+## Current status — 2026-10-21: Provider+ETF consumer-preservation repair
+
+Accepted green staging `628c1634f4894403339687586adee74d45637d51` is committed
+in TC ancestry. The reviewed consumer-preservation repair is an unpublished
+working-tree candidate based on `d7b19c22`; exact branch CI and the full
+source-qualified local profile are still required. The six affected service
+unit modules pass 157/157, including eligible-only aggregation of duplicate
+native benchmark-family weights, equal weights over unique eligible IDs, and
+unchanged raw snapshot lineage. The API slice passed 13/13 before its final
+job-key assertion was changed to an independent literal; the expected key was
+verified against the canonical enum-order/UTC-Z implementation, while the
+queued task argument remains `+00:00`. The earlier exact d7b19 red CI remains
+historical and must not be relabeled. The exact generated diagnostic DB was
+dropped only after its test parents ended and zero sessions were independently
+verified; a catalog check confirmed it absent. Do not recreate it or use a
+different DB. Final staged-byte scope/manifest, workstream, JSON, and diff
+checks pass. The next action is publication, then the already-approved new-source full
+profile and exact CI. TCP3 overall, TCP4/TCP5, the full roadmap, and official
+`REF-HELP-V25` remain open.
+
 ## Current status — 2026-10-21: deterministic MarketData App reset-window test
 
 Published source `4165ec60ae53ab53c4c35d236a24051dfea1c8dc` remains the base for

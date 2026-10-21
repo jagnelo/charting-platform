@@ -433,10 +433,6 @@ paths:
   state: present
   mode: '100644'
   blob: 6187e02fd8e5d4ea516a11c006b01e23ed12e930
-- path: backend/app/services/etf_holdings.py
-  state: present
-  mode: '100644'
-  blob: 9d213d067d61b26937b0783eb673b749d03558fe
 - path: backend/app/services/etf_holdings_adapters.py
   state: present
   mode: '100644'
@@ -525,10 +521,6 @@ paths:
   state: present
   mode: '100644'
   blob: df3a96165645ce9f003506e60e5d651a36600e46
-- path: backend/app/services/options_exposure.py
-  state: present
-  mode: '100644'
-  blob: ff577df9d914df517d1c1a795df798d4e0acbc98
 - path: backend/app/services/provider_account_usage.py
   state: present
   mode: '100644'
@@ -617,10 +609,6 @@ paths:
   state: present
   mode: '100644'
   blob: fc2ba629667935df37ceb7ca2a86b1f114a2220b
-- path: backend/tests/integration/api/test_etf_holdings.py
-  state: present
-  mode: '100644'
-  blob: b6695b3af0a86bb590f14f105e29ed09efea4e34
 - path: backend/tests/integration/api/test_instruments_ohlcv.py
   state: present
   mode: '100644'
@@ -637,10 +625,6 @@ paths:
   state: present
   mode: '100644'
   blob: 5b63f354ae44a436e4f8079300138e6739bfaf54
-- path: backend/tests/integration/api/test_workspaces.py
-  state: present
-  mode: '100644'
-  blob: f2fe5f58fad7e7d09daef68940970bb1d970f9a4
 - path: backend/tests/integration/tasks/test_background_tasks.py
   state: present
   mode: '100644'
@@ -897,10 +881,6 @@ paths:
   state: present
   mode: '100644'
   blob: 74a8f2080dec0b155fa5f7785c4ebacf1663e85a
-- path: backend/tests/unit/services/test_etf_holdings_resolution.py
-  state: present
-  mode: '100644'
-  blob: 248e5c3492305cd3d471f2f76bd429da29f14a6c
 - path: backend/tests/unit/services/test_evaluator_preflight.py
   state: present
   mode: '100644'

@@ -114,6 +114,7 @@ class TestWatchlistsCrud:
         resolved = client.get(
             "/api/v1/watchlists/sources/etf-holdings:VISIBILITY-ETF",
             headers=auth_headers,
+            params={"as_of": "2024-02-03T00:00:00Z"},
         )
         assert resolved.status_code == 200, resolved.text
         assert resolved.json()["source"]["composition_date"] == "2024-01-01"
@@ -2657,8 +2658,8 @@ class TestWatchlistsCrud:
             "last_success_at": None,
             "last_failure_at": None,
             "completeness_status": "complete",
-            "row_count": 1,
-            "resolved_count": 1,
+            "row_count": 2,
+            "resolved_count": 2,
             "unresolved_count": 0,
             "failure_class": None,
             "reason": "The latest holdings artifact has not passed explicit ETF identity verification.",
@@ -3861,6 +3862,10 @@ class TestWatchlistsCrud:
     def test_market_map_consumes_isolated_python_breadth_condition_tree(
         self, client, auth_headers, db, user, watchlist, instrument, instrument_b
     ):
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
         from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
         from app.models.watchlist import WatchlistItem
 
@@ -3969,6 +3974,39 @@ class TestWatchlistsCrud:
             )
         )
         db.add(run)
+        observed_at = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+        latest_bar_at = observed_at - timedelta(days=1)
+        for current in (instrument, instrument_b):
+            for offset, close in ((1, Decimal("100")), (0, Decimal("101"))):
+                ts = latest_bar_at - timedelta(days=offset)
+                db.add(
+                    OHLCVBar(
+                        instrument_id=current.id,
+                        timeframe=Timeframe.D1,
+                        ts=ts,
+                        open=close,
+                        high=close + Decimal("1"),
+                        low=close - Decimal("1"),
+                        close=close,
+                        volume=Decimal("1000"),
+                        is_adjusted=True,
+                    )
+                )
+            db.add(
+                InstrumentDatasetState(
+                    instrument_id=current.id,
+                    data_source_id=None,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj",
+                    status=DatasetStatus.FRESH,
+                    coverage_start=latest_bar_at - timedelta(days=1),
+                    coverage_end=latest_bar_at,
+                    observed_at=observed_at,
+                    fetched_at=observed_at,
+                    stale_after=observed_at + timedelta(days=1),
+                    snapshot_hash="controlled-local-breadth-fixture",
+                )
+            )
         db.flush()
 
         response = client.post(

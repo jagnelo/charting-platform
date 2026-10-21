@@ -135,9 +135,9 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "e365d042451734647649fe40778d16a097a2b920",
-  "merge_head": "628c1634f4894403339687586adee74d45637d51",
-  "implementation_sha": "669b49804205411245f46463db5bcfa41860248b",
+  "head": "d7b19c22e52ef0de39adfe7d212440f99c1ea91a",
+  "merge_head": null,
+  "implementation_sha": "d7b19c22e52ef0de39adfe7d212440f99c1ea91a",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -145,26 +145,22 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-21T11:40:15+00:00",
+  "last_checkpoint": "2026-10-21T14:43:49+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
-    "conclusion": "success",
-    "e2e_summary": "191 passed, 110 declared skips, zero retries or flaky markers",
-    "head_sha": "35ee3c0263c5255ecd8d9dafee4cd48c8e46c163",
+    "conclusion": "failure",
+    "e2e_summary": "not used as evidence in this audited backend integration result",
+    "head_sha": "d7b19c22e52ef0de39adfe7d212440f99c1ea91a",
     "jobs": {
-      "backend": "success",
-      "branch_declared": "success",
-      "e2e": "success_191_passed_110_declared_skips_zero_retries_or_flakes",
-      "exhaustive_feature_branch": "skipped_by_branch_policy",
-      "frontend_unit": "success"
+      "backend": "unit_passed; integration_13_failed_446_passed"
     },
-    "run_id": 39432030348,
-    "scope": "Exact product source35ee3c0263c5255ecd8d9dafee4cd48c8e46c163; Backend, Frontend Unit, Branch-declared and E2E succeeded. E2E job118663396931 reports191 passed and110 declared skips with no retries/flaky markers. Exhaustive was skipped by feature-branch policy.",
-    "visuals": "Hosted CI skipped visual cases; separate same-source local pinned-Noble matrix passed104/104 under original0.005 tolerance. Official V25 parity remains required_missing."
+    "run_id": 39610892956,
+    "scope": "Exact d7b19c22 source: Backend unit tests passed; backend integration reported13 failed and446 passed. This red receipt remains historical; no other job outcome is inferred here.",
+    "visuals": "No visual acceptance inferred. New-source full local profile and exact-source CI remain required."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Complete exact628c frozen-import/receipt and migration-graph checks, stack-free scope/workstream/structured-data/diff validation, then commit and push the coherent reconciliation once and observe exact-source CI. Do not start another DB test until Root sequences the request against Strategy. Prepare the required full local profile/resource plan; no browser/Compose/full suite while Strategy owns the slot. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
+  "next_action": "Commit and push the reviewed Provider+ETF consumer-preservation repair based on d7b19c22; final staged-byte scope/manifest, workstream, structured-record, and diff checks pass. Then run the already-approved new-source full profile and exact branch CI. The selected API slice passed13/13 before its final independent literal job-key assertion; the six affected service-unit modules pass157/157 including eligible-only family native-weight aggregation, unique-ID derived equal weights, and unchanged raw snapshot lineage. Preserve exact d7b19 red CI. The exact generated diagnostic DB was safely dropped after zero sessions; do not recreate it. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -194,28 +190,28 @@
       "TCP1",
       "TCP2"
     ],
-    "current_blocker": "The exact accepted Provider+ETF release628c1634f4894403339687586adee74d45637d51 is merged locally but uncommitted (HEAD e365d042451734647649fe40778d16a097a2b920; MERGE_HEAD 628c1634f4894403339687586adee74d45637d51). Latest selected API slice is13/13 passed,35 deselected,23.19s; the prior 12-case run with1 failure and subsequent13-case run with2 failures remain historical. Alembic upgrade reached e9c23a7b1d40; migrated-schema teardown exposed the ORM-vs-historical-unnamed Watchlist FK mismatch, not an upgrade failure. Exact synthetic DB is absent. Finish frozen-import/scope/graph/workstream/diff checks and publish once; Strategy owns DB capacity, so request Root sequencing before another DB test. Exact-source CI and full local profile remain pending.",
+    "current_blocker": "The accepted Provider+ETF release628c1634f4894403339687586adee74d45637d51 is committed in TC ancestry. The consumer-preservation repair remains an unpublished candidate based on d7b19c22. The selected API slice passed13/13 before its final independent literal job-key assertion, and six affected service-unit modules pass157/157 including the duplicate family-weight regression. Exact-source CI and the full source-qualified local profile remain pending. The exact generated diagnostic DB was dropped only after its test parents ended and zero sessions were verified; it is confirmed absent and must not be recreated. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
     "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN",
-    "next_action": "Complete exact628c import/receipt and migration-graph validation, stack-free scope/workstream/structured-data/diff checks, then commit and push the coherent reconciliation once and observe exact-source CI. Do not start another DB test until Root sequences the request against Strategy. Prepare the required full local profile/resource plan; no browser/Compose/full suite while Strategy owns the slot. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
+    "next_action": "Finish final staged-byte guard/workstream checks, publish the reviewed repair, then execute the already-approved new-source full profile and observe exact CI. Preserve all historical red receipts and the coordinator-confirmed generated DB; no unrelated DB or retained service cleanup. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
     "total": 5,
-    "updated_at": "2026-10-21T11:40:15+00:00"
+    "updated_at": "2026-10-21T14:43:49+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "e365d042451734647649fe40778d16a097a2b920",
-    "current_pending_range": "Uncommitted TC merge from first parent e365d042451734647649fe40778d16a097a2b920 with exact released second parent 628c1634f4894403339687586adee74d45637d51; index and working tree contain the consumer reconciliation.",
+    "current_local_head": "d7b19c22e52ef0de39adfe7d212440f99c1ea91a",
+    "current_pending_range": "Reviewed TC-owned Provider+ETF consumer-preservation candidate based on d7b19c22; exact source files and records are staged after diff review and staged-byte scope validation. Commit/push are pending.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "e365d042451734647649fe40778d16a097a2b920",
-    "status": "Local HEAD and origin tracking ref both remain e365d042451734647649fe40778d16a097a2b920; exact staging628c is MERGE_HEAD and the semantic merge remains uncommitted. No candidate commit or push has occurred."
+    "remote_tracking_sha": "d7b19c22e52ef0de39adfe7d212440f99c1ea91a",
+    "status": "Local HEAD and origin tracking ref are d7b19c22e52ef0de39adfe7d212440f99c1ea91a; no merge is active. Reviewed consumer-preservation changes are staged and pass the scope guard; commit/push are the next action."
   },
-  "remote": "e365d042451734647649fe40778d16a097a2b920",
-  "remote_sha": "e365d042451734647649fe40778d16a097a2b920",
+  "remote": "d7b19c22e52ef0de39adfe7d212440f99c1ea91a",
+  "remote_sha": "d7b19c22e52ef0de39adfe7d212440f99c1ea91a",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

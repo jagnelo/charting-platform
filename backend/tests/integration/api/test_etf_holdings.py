@@ -403,7 +403,6 @@ def test_admin_family_history_refresh_queues_deduplicated_local_members(
     assert all(call[0][0] == "task_bulk_fetch_instrument" for call in redis.calls)
     assert all(call[0][2] == ["MN", "W1", "D1"] for call in redis.calls)
 
-    as_of_value = datetime(2024, 1, 2, tzinfo=UTC)
     historical = client.post(
         "/api/v1/etf-holdings/benchmark-families/history-refresh",
         json={"as_of": "2024-01-02T00:00:00Z"},
@@ -418,7 +417,7 @@ def test_admin_family_history_refresh_queues_deduplicated_local_members(
         "2024-01-02T00:00:00+00:00",
     )
     assert redis.calls[-1][1]["_job_id"] == (
-        "watchlist-source-history:20:MN,W1,D1:end=2024-01-02T00:00:00+00:00"
+        "watchlist-source-history:20:D1,W1,MN:end=2024-01-02T00:00:00Z"
     )
 
 

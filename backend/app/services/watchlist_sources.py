@@ -8,11 +8,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
+from app.config import settings
 from app.models.asset_class import InstrumentType
 from app.models.etf_holdings import (
     ETFHolding,
@@ -174,9 +175,7 @@ def _canonical_member_descriptor(
     }
     if member_count == 0 and descriptor.member_count:
         provenance["availability"] = "holdings_snapshot_unresolved"
-    return descriptor.model_copy(
-        update={"member_count": member_count, "provenance": provenance}
-    )
+    return descriptor.model_copy(update={"member_count": member_count, "provenance": provenance})
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -228,6 +227,31 @@ def _canonical_holding_exclusion(holding: ETFHolding) -> str | None:
     ):
         return "unresolved_holding"
     return None
+
+
+def _canonical_holding_rows_with_native_weights(
+    rows: list[ETFHolding],
+) -> list[tuple[ETFHolding, float | None]]:
+    """Deduplicate eligible canonical rows while preserving their native weight totals."""
+
+    ordered_ids: list[int] = []
+    first_rows: dict[int, ETFHolding] = {}
+    native_weights: dict[int, float | None] = {}
+    for holding in rows:
+        if _canonical_holding_exclusion(holding) is not None:
+            continue
+        instrument_id = holding.constituent_instrument_id
+        value = float(holding.weight) if holding.weight is not None else None
+        if instrument_id not in first_rows:
+            ordered_ids.append(instrument_id)
+            first_rows[instrument_id] = holding
+            native_weights[instrument_id] = value
+        elif value is not None:
+            prior = native_weights[instrument_id]
+            native_weights[instrument_id] = value if prior is None else prior + value
+    return [
+        (first_rows[instrument_id], native_weights[instrument_id]) for instrument_id in ordered_ids
+    ]
 
 
 def _version(prefix: str, identifier: object, effective_at: datetime | None = None) -> str:
@@ -463,6 +487,22 @@ def _holdings_route_provenance(
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 _EXPLICIT_LIBRARY_KIND = "explicit_watchlist"
 _MAX_EXPLICIT_MEMBERS = 500
+
+
+def _snapshot_visibility_conditions() -> list[object]:
+    """Keep controlled browser holdings isolated from canonical source reads."""
+
+    if settings.E2E_SEED_MARKET_DATA:
+        return [
+            ETFHoldingsSnapshot.provenance == "controlled_fixture",
+            ETFHoldingsSnapshot.source_provider == "e2e_reference",
+        ]
+    return [
+        or_(
+            ETFHoldingsSnapshot.provenance != "controlled_fixture",
+            ETFHoldingsSnapshot.source_provider != "e2e_reference",
+        )
+    ]
 
 
 def _benchmark_family_role_selection(
@@ -1003,18 +1043,22 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         .scalars()
         .all()
     )
-    ranked_snapshots = select(
-        ETFHoldingsSnapshot.id.label("snapshot_id"),
-        func.row_number()
-        .over(
-            partition_by=ETFHoldingsSnapshot.etf_profile_id,
-            order_by=(
-                ETFHoldingsSnapshot.composition_date.desc(),
-                ETFHoldingsSnapshot.id.desc(),
-            ),
+    ranked_snapshots = (
+        select(
+            ETFHoldingsSnapshot.id.label("snapshot_id"),
+            func.row_number()
+            .over(
+                partition_by=ETFHoldingsSnapshot.etf_profile_id,
+                order_by=(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.id.desc(),
+                ),
+            )
+            .label("row_number"),
         )
-        .label("row_number"),
-    ).subquery()
+        .where(*_snapshot_visibility_conditions())
+        .subquery()
+    )
     snapshots = (
         (
             await db.execute(
@@ -1416,12 +1460,17 @@ async def resolve_watchlist_source(
             )
         profile, instrument = row
         state = await load_latest_adapter_state(db, profile.id)
-        statement = select(ETFHoldingsSnapshot).options(
-            selectinload(ETFHoldingsSnapshot.rows).selectinload(
-                ETFHolding.constituent_instrument
+        statement = (
+            select(ETFHoldingsSnapshot)
+            .options(
+                selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                    ETFHolding.constituent_instrument
+                )
             )
-        ).where(
-            ETFHoldingsSnapshot.etf_profile_id == profile.id
+            .where(
+                ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                *_snapshot_visibility_conditions(),
+            )
         )
         if as_of is not None:
             evaluation_at = _as_utc(as_of)
@@ -1498,11 +1547,7 @@ async def resolve_watchlist_source(
             .scalars()
             .all()
         )
-        valid_rows = [
-            holding
-            for holding in rows
-            if _canonical_holding_exclusion(holding) is None
-        ]
+        valid_rows = _canonical_holding_rows_with_native_weights(rows)
         equal_weight = 1.0 / len(valid_rows) if derived and valid_rows else None
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
@@ -1510,14 +1555,12 @@ async def resolve_watchlist_source(
             exclusion_reason = _canonical_holding_exclusion(holding)
             if exclusion_reason is not None:
                 exclusions.append({"holding_id": holding.id, "reason": exclusion_reason})
-                continue
+        for holding, native_weight in valid_rows:
             members.append(
                 ResolvedWatchlistMember(
                     instrument_id=holding.constituent_instrument_id,
                     position=holding.position,
-                    weight=equal_weight
-                    if derived
-                    else (float(holding.weight) if holding.weight is not None else None),
+                    weight=equal_weight if derived else native_weight,
                     relationship_type="derived_equal_weight_constituent"
                     if derived
                     else "etf_proxy_constituent",
@@ -1614,12 +1657,17 @@ async def resolve_watchlist_source(
             )
         profile, instrument = row
         state = await load_latest_adapter_state(db, profile.id)
-        statement = select(ETFHoldingsSnapshot).options(
-            selectinload(ETFHoldingsSnapshot.rows).selectinload(
-                ETFHolding.constituent_instrument
+        statement = (
+            select(ETFHoldingsSnapshot)
+            .options(
+                selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                    ETFHolding.constituent_instrument
+                )
             )
-        ).where(
-            ETFHoldingsSnapshot.etf_profile_id == profile.id
+            .where(
+                ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                *_snapshot_visibility_conditions(),
+            )
         )
         if as_of is not None:
             evaluation_at = _as_utc(as_of)
@@ -1687,16 +1735,31 @@ async def resolve_watchlist_source(
         )
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
+        seen_member_ids: set[int] = set()
+        native_weights: dict[int, float | None] = {}
+        for holding in rows:
+            if _canonical_holding_exclusion(holding) is not None:
+                continue
+            instrument_id = holding.constituent_instrument_id
+            value = float(holding.weight) if holding.weight is not None else None
+            if instrument_id not in native_weights:
+                native_weights[instrument_id] = value
+            elif value is not None:
+                prior = native_weights[instrument_id]
+                native_weights[instrument_id] = value if prior is None else prior + value
         for holding in rows:
             exclusion_reason = _canonical_holding_exclusion(holding)
             if exclusion_reason is not None:
                 exclusions.append({"holding_id": holding.id, "reason": exclusion_reason})
                 continue
+            if holding.constituent_instrument_id in seen_member_ids:
+                continue
+            seen_member_ids.add(holding.constituent_instrument_id)
             members.append(
                 ResolvedWatchlistMember(
                     instrument_id=holding.constituent_instrument_id,
                     position=holding.position,
-                    weight=float(holding.weight) if holding.weight is not None else None,
+                    weight=native_weights.get(holding.constituent_instrument_id),
                     relationship_type="etf_proxy_constituent",
                     source=snapshot.source_provider,
                     effective_at=datetime.combine(snapshot.composition_date, datetime.min.time()),
