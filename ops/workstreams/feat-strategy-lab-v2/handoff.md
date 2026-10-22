@@ -16752,3 +16752,45 @@ exact-source CI. A corrected actual worker DB/Redis readiness/restart and
 remaining full application/browser/strict-visual, migration, Exhaustive and
 full-checkpoint gates remain required; no full local backend replay, fixture,
 archive, or browser run is authorized in this phase.
+
+## Accepted integration checkpoint closure — 2026-10-22
+
+Root accepted `strategy-lab-v2-integration-1` at tested source
+`197ea15a9a90fbc76089a38fe67013c00a722d91` under the human-delegated decision
+recorded as “Yes—approve that initial scope and handle checkpoint acceptance.”
+The exact acceptance record is
+`/home/m920q/charting-platform/.ai/staging-attempts/strategy-197ea15a-checkpoint-acceptance-20261022.md`.
+This closes only SLICP1–SLICP5 for `ready_for_integration`; the original
+18-criterion roadmap remains open and incomplete. Root alone owns guarded
+canonical staging integration and Exhaustive staging validation.
+
+Exact-source feature CI `39779005214` is green: Backend `119825141281`,
+Frontend `119825140870`, Branch-declared `119835836042`, and E2E Playwright
+`119835836056` succeeded. Exhaustive Integration Gate was skipped by
+feature-branch policy and is not staging evidence. On the tested source, the
+actual registered API and worker DB/Redis readiness/restart passed; the worker
+PID changed `2411067` to `2450019`, with one Redis consumer, pending 0, lag 0,
+and no job/native execution. Functional browser tests passed 195 with two
+existing live-opt-in skips in 20.8 minutes; strict visual passed 104 in 13.4
+minutes. Both had zero retries and unchanged assertions, references,
+tolerances, and masks. Exact owned-resource cleanup passed, all three global
+container/volume/network diffs were empty, and owned resources are absent.
+
+Qualification remains explicit: fresh/previous-release migration compatibility
+passed at B `b96d456`, and reviewed B-to-P Alembic/model/migration inputs are
+equivalent; no separate migration run on P is claimed. Earlier local full
+backend evidence is input-qualified because the wrapper did not capture an
+independent integration pytest exit; the exact-source hosted backend job is
+green. Prior failed/preflight receipts remain intact. Unsupported provider
+routes, live/quota activity, job dispatch, native execution, broker/capital,
+paid/trial activity, and deployment remain disabled or unauthorized. Help V25
+parity remains open. Nautilus authority stays exact-build/scope qualified;
+generic Study output is not native execution proof.
+
+The committed closure record intentionally does not contain its own enclosing
+Git hash. Required literal capture: `integration_capture: exact branch HEAD`.
+The tested implementation SHA above is distinct from the closure-record commit;
+the coordinator's integration receipt captures the exact final branch HEAD.
+After this one closure-record push, resume the full original roadmap in this
+same owner/worktree only when Root releases the integrated source; do not
+self-integrate.

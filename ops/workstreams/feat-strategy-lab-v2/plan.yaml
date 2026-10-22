@@ -19,11 +19,11 @@ integration_checkpoint:
       integration_capture: exact branch HEAD
   active_changeset:
     name: strategy-tc-three-feature-consumer-reconciliation
-    status: in_progress
+    status: complete
     base_source_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
     released_staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
     strategy_merge_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
-    phase: worker_common_alembic_sync_url_repair_pending_exact_ci
+    phase: checkpoint_accepted_ready_for_integration
     reconciled_alembic_head: slv2_0011
     integration_capture: exact branch HEAD
     intent: >-
@@ -52,9 +52,8 @@ integration_checkpoint:
       e415a20bd75a7f75c373fe4219b22117e27990233a1d96799a26e500ff04a2fd, using the cached pinned
       PostgreSQL 16 Alpine image in one capped loopback-only container; the exact ID was removed,
       cleanup_failed=0, and container/state/volume/network baseline diffs are empty. This validates
-      this focused component only. Exact-source CI for the new Strategy commit, fresh/previous-release
-      migration validation, full combined application, full_stack_browser and Exhaustive remain
-      pending.
+      this focused component only. The later accepted exact-source and full local application-profile
+      evidence is recorded under final_checkpoint_acceptance below.
     worker_alembic_url_repair: >-
       The released app runtime attempt found that the common Docker entrypoint invokes Alembic
       before the dedicated worker module and reads generic DATABASE_URL_SYNC. Both opt-in v2
@@ -64,14 +63,47 @@ integration_checkpoint:
       DSN and async DATABASE_URL, and documents the common-entrypoint ordering. Exact complete-line
       Compose assertions are mutation-checked by removing only each generic line in memory; both
       mutants are rejected. The two Compose plus two entrypoint modules pass locally (18/18, 1.37s);
-      Root independently ran them offline without fixtures/cache writes (18/18, 1.45s). This does
-      not establish real worker readiness. Prior local full-backend results are input-qualified to
+      Root independently ran them offline without fixtures/cache writes (18/18, 1.45s). This did
+      not establish real worker readiness at the time. Prior local full-backend results are input-qualified to
       earlier source; the integration wrapper did not capture a separate pytest exit, so do not
       overstate its coverage evidence. The raw first cleanup diff showed the owned opt-in worker
       remaining at that capture; Root later independently verified its absence and current full
-      container/state, volume and network inventories matching baseline. New exact-source CI,
-      corrected actual worker DB/Redis readiness/restart, full app/browser/strict visual, migration,
-      Exhaustive and checkpoint acceptance remain open.
+      container/state, volume and network inventories matching baseline. Subsequent actual
+      default AsyncSessionLocal DB readiness before and after worker restart, Redis consumer state,
+      and PID change passed on the final tested source; no job/native execution ran. See
+      final_checkpoint_acceptance for the full application profile and remaining roadmap boundaries.
+    final_checkpoint_acceptance:
+      decision_source: /home/m920q/charting-platform/.ai/staging-attempts/strategy-197ea15a-checkpoint-acceptance-20261022.md
+      accepted_at: 2026-10-22T13:35:00Z
+      tested_source_sha: 197ea15a9a90fbc76089a38fe67013c00a722d91
+      exact_source_ci:
+        run_id: 39779005214
+        backend_job_id: 119825141281
+        frontend_job_id: 119825140870
+        branch_declared_job_id: 119835836042
+        e2e_playwright_job_id: 119835836056
+        exhaustive_integration_gate: skipped_by_feature_branch_policy
+        conclusion: success
+      local_application_profile:
+        registered_api_and_worker_db_redis_restart: passed
+        functional: 195_passed_2_existing_live_opt_in_skips_20m48s_zero_retries
+        strict_visual: 104_passed_13m24s_zero_retries
+        browser_image: mcr.microsoft.com/playwright:v1.62.1-noble
+        browser_image_digest: sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+        cleanup: exact_owned_resources_absent_all_three_global_diffs_zero_bytes
+      migration_qualification: >-
+        Fresh/previous-release migration compatibility passed at B b96d456; the current B-to-P
+        Alembic/model/migration-compatibility input diff is empty. This is reviewed input equivalence,
+        not a separately launched migration run on P.
+      local_backend_qualification: >-
+        Earlier complete unit/integration/coverage evidence remains input-qualified; the full local
+        integration wrapper did not capture an independent pytest exit. Do not relabel it as a clean
+        full-backend run on P. Exact-source hosted backend CI on P is green.
+      acceptance_boundary: >-
+        Root accepted SLICP1-SLICP5 for ready_for_integration under the human's delegated acceptance.
+        This is not completion of the original 18-criterion roadmap, canonical staging integration,
+        Exhaustive staging proof, production qualification, live/native authority, paid/trial
+        activation or deployment.
     follow_up_source_review:
       status: prepared_for_coordinator_review_not_runtime_validated
       base_source_commit: b96d456cbfe0d043cfe2e1abe266afb6460140b1
@@ -87,8 +119,9 @@ integration_checkpoint:
         a request at/after the transition is counted; missing/nonpositive timing throws. This is a
         plausible harness observation-window repair, not proof of the historical first-attempt CI
         cause. No production visibility/API behavior, assertion, retry, endpoint filter or tolerance
-        changed. The three-case no-browser Vitest regression has now passed once; the actual
-        Playwright F8l browser case remains unrun pending the later full-stack slot.
+        changed. The three-case no-browser Vitest regression passed once; F8l was included in the
+        final 197-case functional run, which completed with 195 passed and two existing live-opt-in
+        skips and no retry/flaky summary.
       provider_reader_paths:
         - backend/tests/integration/strategy_lab_v2/test_provider_local_capability_reader_postgres.py
       provider_reader_scope: >-
@@ -319,7 +352,7 @@ integration_checkpoint:
     consumer/negative-path evidence independently now. The human accepts checkpoints and the central
     coordinator alone integrates into staging.
   coordination_source: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
-  checkpoint_acceptance: pending_coordinator_technical_review_of_exact_eligible_source
+  checkpoint_acceptance: accepted_by_coordinator_for_ready_for_integration
   checkpoint_acceptance_delegation:
     recorded_at: 2026-10-15T22:55Z
     exact_question: >-
@@ -342,7 +375,7 @@ integration_checkpoint:
       clean push/freeze, and canonical staging merge. Preserve the full roadmap.
     source: /home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json#checkpoint_acceptance_delegation_question
   exact_source_ci:
-    current_published_source:
+    prior_published_source:
       sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
       run_id: 39734932990
       conclusion: success
@@ -355,6 +388,18 @@ integration_checkpoint:
         Hosted exact-source CI does not substitute for the local full backend/application profile;
         the assigned local collector stopped at shard 59/104 with a MemoryError and did not reach
         integration or combined coverage.
+    current_published_source:
+      sha: 197ea15a9a90fbc76089a38fe67013c00a722d91
+      run_id: 39779005214
+      conclusion: success
+      backend_job_id: 119825141281
+      frontend_unit_job_id: 119825140870
+      branch_declared_job_id: 119835836042
+      e2e_playwright_job_id: 119835836056
+      exhaustive_integration_gate: skipped_by_feature_branch_policy
+      scope_note: >-
+        Exact-source hosted feature CI is green. The skipped Exhaustive Integration Gate is not
+        staging evidence; local full application profile evidence is separately recorded above.
     latest_repaired_source:
       sha: 790223f3aad553e4dacd2efffb13cdece4e50f28
       run_id: 39501877296
@@ -648,64 +693,34 @@ acceptance_criteria:
   text: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding
     roadmap; stop at ready_for_human_review, closure pending human acceptance.
 progress:
-  completed: [SLICP1, SLICP2]
+  completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: strategy-tc-three-feature-consumer-reconciliation
+  current_phase: strategy-lab-v2-integration-1-accepted-ready-for-integration
   current_blocker: >-
-    The accepted Provider/ETF/TC staging reconciliation and focused Study-reference PostgreSQL/API/
-    restart component have prior evidence. The Provider-reader PostgreSQL component passes 2/2 on
-    corrected module SHA d91c6051cc6f8d6b3762ba45c5196d84f39c4b9de2eb60b80c07357cd67232ac, with its
-    first failure retained. Exact hosted source CI 39734932990 passed Backend, Frontend Unit,
-    Branch-declared and Playwright; Exhaustive was skipped by branch policy. The first assigned local
-    full backend attempt is terminal RED: shards 1-96 passed (including one existing opt-in skip),
-    then shard 97 had 49 passed and one sandbox fixture failure (expected START_FAILED, observed
-    OUTPUT_LIMIT_EXCEEDED); integrations and combined coverage were not reached. Its exact log is
-    /tmp/strategy-backend-12ae557.5kGLqni2; cleanup_failed=0, exact fixtures are absent and
-    container/volume/network diffs are empty. Root's authorized unchanged-node diagnostic passed
-    1/1 in 0.40s with child umask 022 and observed the generated public directory at mode 0755,
-    establishing the prior child-umask mismatch without source changes or Docker. Two authorized
-    25-test canonical slices reproduced coverage flush
-    MemoryError under 2 GiB RLIMIT_AS (peak RSS 393276/392304 KiB); both exact groups then passed
-    25/25 under 8 GiB RLIMIT_AS inside separate verified 1536 MiB hard-memory/no-swap scopes. Actual
-    pytest PIDs 1258894/1260258 had VmPeak 2236916/2242224 KiB and VmHWM 420160/450784 KiB. This
-    strongly implicates the prior address-space cap rather than physical RAM, while the old failing
-    processes did not retain direct VmPeak snapshots. All four scoped runs' exact IDs/logs/receipts
-    remain under /tmp/strategy-shard59-diagnostic-02d5ffaa/ and
-    /tmp/strategy-shard59-cgroup-02d5ffaa/. Both transient scopes are inactive/dead; no tests were
-    changed, skipped or retried and the SUT 1 GiB limit remains unchanged. Root owns the next full-gate
-    decision; that decision was the one-time 08:59Z release recorded under
-    active_changeset.released_full_backend_gate and its first result remains red. A fresh one-time
-    full run is released at 09:34Z on frozen source 12ae557 under
-    strategy-backend-x-umask-20261022.scope, with child umask 022, outer umask 077, harness-only
-    8 GiB address space, 1536 MiB/no-swap physical cap and unchanged 1 GiB SUT limit. It retains
-    all 5690 tests, zero retries and the 75% combined threshold. Its invocation safely aborted
-    before pytest: after starting the two bounded fixtures, MemAvailable was 1841136 KiB, below the
-    runner's 2-GiB pre-collector guard. No collector PID/log or tests exist for that attempt;
-    cleanup_failed=0, exact fixture IDs are absent, global container/volume/network diffs are empty
-    and the scope cgroup is absent. The preflight receipt is /tmp/strategy-backend-12ae557.x3tnybZo/.
-    Root's 09:39Z addendum confirms this preflight abort did not consume the one full-run release.
-    The private PG readiness probe now uses `pg_isready -h 127.0.0.1` so it cannot accept the
-    initdb Unix-only temporary server as final readiness. Before the authorized single preflight
-    retry, old IDs/names and collector were absent, the assigned scope was absent, and headroom was
-    2312712 KiB. Allow at most 60 seconds settling after final TCP readiness; retain the 2-GiB guard
-    and do not loop fixture starts.
-    The owned source correction wires the actual Compose backtest and forward worker DATABASE_URL
-    to the same PostgreSQL service as their namespaced migration URLs. Both focused Compose tests
-    pass, and read-only actual Compose rendering confirms both resolved values; this does not prove
-    real worker DB/Redis readiness. One released shard-25 runner attempt stopped before pytest
-    because its sanitized PATH omitted the installed UV binary. No collector PID/tests existed; the
-    exact PG/Redis IDs were cleaned, cleanup_failed=0, and global inventories were unchanged. Do
-    not replay that pre-pytest attempt. Fresh/previous-release migration, full combined application,
-    full_stack_browser, Exhaustive, coordinator review, and all original 18 roadmap criteria remain open. Study-input authentication
-    is not native Nautilus execution proof; the existing goal remains active and unbudgeted.
+    Root accepted this exact bounded checkpoint at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91
+    under the human-delegated decision. The exact-source hosted CI 39779005214 passed Backend,
+    Frontend Unit, Branch-declared and E2E Playwright; the feature-branch Exhaustive Integration Gate
+    was skipped by policy and is not staging evidence. The final local application profile passed:
+    real registered API and default DB/Redis worker readiness/restart; functional browser 195 passed
+    with two existing live-opt-in skips in 20.8 minutes; strict visual 104/104 in 13.4 minutes;
+    both used zero retries and unchanged assertions/references/tolerances/masks. The full local
+    backend collector evidence remains input-qualified to earlier source; its integration wrapper
+    did not capture a separate pytest exit, so a clean full-backend pass on P is not claimed. The
+    fresh/previous-release migration gate passed at B b96d456 and the reviewed B-to-P migration/model
+    input diff is empty; migration was not separately rerun on P. Exact owned profile cleanup passed,
+    all three global inventory diffs are zero bytes, and own project/browser resources are absent.
+    Two browser-start preflight failures (missing pinned image, then missing nested mountpoint) are
+    retained as no-test failures; the corrected attempt ran the full suite once without retries.
+    The checkpoint is accepted and ready for the coordinator's canonical staging integration;
+    the original 18-criterion roadmap remains open and the owner must not self-integrate. No live
+    provider/quota, job dispatch, native execution, broker, real-capital, paid/trial or deployment
+    operation occurred. Nautilus authority remains exact-build/scope qualified; generic Study output
+    is not native execution proof. The current native goal remains active and unbudgeted.
   next_action: >-
-    Close and publish the worker runtime DATABASE_URL correction with focused tests and static
-    resolved-Compose evidence. Do not start another backend fixture without a fresh exact-source/
-    resource release; verify /home/m920q/.local/bin/uv before any fixture creation. Continue
-    private app-runner preparation only: bounded probes/API/worker phases, real DB+Redis readiness,
-    exact browser cleanup, pre-launch inventories, private SECRET_KEY and corrected source/helper
-    pins. No app phase is released. Full backend, application/worker restart, full_stack_browser,
-    migration, Exhaustive and exact-source CI remain mandatory; no checkpoint/native authority claim.
+    Hand off the clean closure-record commit to Root for guarded canonical staging integration.
+    After Root releases the exact synchronized green staging result, continue the full original
+    18-criterion roadmap in this same worktree without changing its criteria or enabling unsupported
+    scopes.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -713,8 +728,32 @@ parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries."
 planning_state: ready
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: >-
+  Human delegated conditional checkpoint acceptance with the exact answer “Yes—approve that initial
+  scope and handle checkpoint acceptance.” Root exercised that authority and accepted
+  strategy-lab-v2-integration-1 at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91 on
+  2026-10-22, as recorded in
+  /home/m920q/charting-platform/.ai/staging-attempts/strategy-197ea15a-checkpoint-acceptance-20261022.md.
+  This covers only the bounded checkpoint and authorizes the coordinator's guarded staging workflow;
+  it does not complete the 18-criterion roadmap or authorize owner self-integration, deployment,
+  live/native/paid/trial operation, or unsafe scope activation.
+closure_summary: >-
+  Accepted checkpoint strategy-lab-v2-integration-1 at tested source
+  197ea15a9a90fbc76089a38fe67013c00a722d91 after the exact hosted run 39779005214 passed all required
+  feature jobs and the local final app profile passed API/worker DB+Redis restart, functional
+  195/197 with two existing live-opt-in skips, strict visual 104/104, zero test retries and exact
+  resource cleanup with all three global diffs empty. Reconciled consumers preserve canonical
+  Provider identity/local-series/coverage/freshness/provenance, ETF known-at membership and
+  owner-scoped immutable TC Study/CodeVersion references with fail-closed drift/owner checks; additive
+  slv2_0011 joins accepted migration histories. Migration acceptance is qualified by the passed
+  B b96d456 fresh/previous-release run and empty Alembic/model/migration-input diff from B to P, not
+  by a separate migration run on P. Local full-backend evidence is input-qualified and does not
+  claim a clean full-backend run on P because its integration wrapper lacked an independent pytest
+  exit; exact-source backend CI on P is green. Unsupported/unreviewed provider routes, forward
+  operation, broker/capital execution, paid/trial activity and unqualified native execution remain
+  disabled; Help parity with official V25 remains open. The full 18-criterion roadmap and all
+  historical failures remain intact and uncompleted. The required capture is integration_capture:
+  exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -1024,7 +1063,7 @@ deployment_impact: >-
   Add local Compose backtest/forward worker services and a persistent artifact
   volume with conservative defaults. No deployment, worker activation against
   real data, provider secret distribution, or broker connectivity is authorized.
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
   # These accumulated entries are dated implementation snapshots, not the live
   # gate list. Use current_blocker/next_action for active work; stable Nautilus
