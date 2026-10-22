@@ -16125,8 +16125,8 @@ and run/code-version/dataset/payload digest drift denials; registered API mutati
 storage on invalid evidence and persists the exact verified reference on valid evidence; then build
 a fresh session factory/worker hydrator and verify the same immutable reference after restart. Include
 changed/deleted-row cases and assert no network/acquisition path is invoked. Keep both live-provider
-flags at `0`. Run only that module first with `-m pytest -q -n 0 tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`
-under the fixture limits, then record exact container/schema/test/cleanup. Separately run fresh and
+flags at `0`. Run only that module first with `pytest -q tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`
+under the fixture limits (default single-process execution), then record exact container/schema/test/cleanup. Separately run fresh and
 previous-release Alembic upgrade/data-preservation tests with the final single-head graph; no stamp,
 reparent, reset, or data deletion. Only after Root assigns capacity run the repository-required full
 local backend/application profile and `full_stack_browser`, followed by exact-source hosted CI and
@@ -16137,3 +16137,29 @@ all trading/broker defaults remain disabled.
 Exact-source CI, actual SQL/API/restart tests, fresh/previous-release upgrade and data-preservation,
 the required full local application and `full_stack_browser`, and Exhaustive remain open. Checkpoint
 remains `in_progress`/unaccepted; all roadmap criteria and provider holds remain unchanged.
+
+### Narrow imported-model typing repair and exact goal state — 2026-10-22
+
+The first authorized MyPy run's two imported diagnostics were real unresolved type names in
+`AdjustmentFactorObservation` relationship annotations, not in the resolver or its test. Per Root's
+narrow authorization, `backend/app/models/adjustment_factor.py` now imports `Instrument` and
+`DataSource` only inside a module-tail `TYPE_CHECKING` block. The mapped class body is untouched; the
+diff adds no runtime import, column, relationship, constraint or behavior. One post-change rerun of
+the same offline bounded two-file MyPy command passed with no issues in both requested files.
+The prior red remains in the append-only journal. No pytest was replayed, and no database, service,
+browser, native, or provider operation ran.
+
+Root's live goal snapshot and this thread's `get_goal` both confirm the existing unbudgeted native
+goal is `active` under the existing claim; the older workstream query's `unavailable` state was
+stale. Session state now records active/unbudgeted without goal recreation or accounting reset.
+Correction to the already-published validation row timestamped `04:29:00Z`: that timestamp was
+mistyped while the actual UTC clock was approximately `04:23–04:25Z`; this correction is appended
+without rewriting that historic row.
+
+After this narrow source boundary closes, prepare the ordinary backend PostgreSQL integration
+module for actual released Study rows, API pre-persistence admission, and reconstructed worker
+hydration. Preserve all real FKs/uniques/enums; the producer FK closure is exactly `user`,
+`code_asset`, `code_version`, `research_run`, and `research_artifact`; the Strategy aggregate and
+receipt tables are also required for the API persistence round-trip. Use the existing lazy PG
+fixture fallback without an opt-in skip, and omit `-n 0` unless the repository actually installs
+xdist. Root reviews the exact fixture/module command and assigns capacity before any DB launch.

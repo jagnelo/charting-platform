@@ -36,12 +36,12 @@ integration_checkpoint:
     validation: >-
       37 focused API/resolver/factory/composition/worker/migration checks and 4 hydration/ORM
       metadata checks passed before the nested resolver return-annotation clarification; that
-      clarification changes no runtime behavior and tests were not replayed. Ruff check/format and
-      diff checks pass. The authorized focused MyPy invocation on the resolver and its test reports
-      two diagnostics in the imported pre-existing app/models/adjustment_factor.py forward
-      relationship names (Instrument, DataSource); no touched resolver/test diagnostic was emitted.
-      Preserve the red result without suppression or unrelated typing expansion. Exact-source CI,
-      real SQL/API/restart proof and full integration profiles remain pending.
+      clarification changes no runtime behavior and tests were not replayed. The first authorized
+      two-file MyPy invocation exposed only imported AdjustmentFactorObservation relationship names;
+      narrowly authorized module-tail TYPE_CHECKING imports for Instrument and DataSource preserve
+      that mapped class body and runtime schema, and the same two-file MyPy command now passes.
+      Preserve the initial red receipt. Exact-source CI, real SQL/API/restart proof and full
+      integration profiles remain pending.
     owned_paths:
       - backend/app/strategy_lab_v2/study_artifact_resolver.py
       - backend/app/strategy_lab_v2/application.py
@@ -441,18 +441,20 @@ progress:
   total: 5
   current_phase: strategy-tc-three-feature-consumer-reconciliation
   current_blocker: >-
-    The accepted three-feature source reconciliation is implemented and its bounded unit checks
-    passed, but strict persisted SQL/owner/restart proof has not run. Focused MyPy on the resolver
-    and its test is blocked by two imported existing relationship annotations in
-    app/models/adjustment_factor.py, not by a diagnostic on the touched seam. Exact-source CI,
-    actual producer-row PostgreSQL/API/restart validation, fresh/previous-release upgrade and data
-    preservation, full_stack_browser, Exhaustive, and the complete 18-criterion review remain open.
-    Public resolver wiring authenticates stored input only; it is not native execution proof.
+    The accepted three-feature reconciliation is implemented, but exact hosted CI 39721966157 is
+    running on fb05317 and persisted SQL/API/restart proof has not run. Focused resolver/test MyPy
+    passes after a narrow module-tail TYPE_CHECKING-only fix; its initial imported-name errors remain
+    recorded. Actual producer-row PostgreSQL/API/restart validation, fresh/previous-release upgrade
+    and data preservation, full_stack_browser, Exhaustive, and the complete 18-criterion review
+    remain open. Study input authentication is not native execution proof. Root independently
+    verified the existing native goal active and unbudgeted at 04:23 UTC; do not retain the
+    superseded unavailable-state claim.
   next_action: >-
-    Publish this exact merged consumer/migration source context and capture exact branch CI. Then,
-    after coordinator resource approval, run the bounded real PostgreSQL producer-row/API/restart
-    matrix and fresh/previous-release migration-upgrade preservation checks before the required
-    full local application and full_stack_browser profile, Exhaustive gate, and exact-source CI.
+    Publish the narrow typing repair and accurate current-source receipt. Then prepare the normal
+    PostgreSQL producer-row/API/restart integration module with full mapped FK closure and exact
+    fixture commands for Root review; do not launch the DB fixture until coordinator slot
+    assignment. Prove fresh/previous-release upgrades and preservation before full application,
+    full_stack_browser, and Exhaustive gates.
     Keep the full checkpoint in_progress and all five acceptance criteria open until their original
     evidence is complete; do not claim native Nautilus execution from persisted Study inputs.
 branch: feat/strategy-lab-v2

@@ -34,23 +34,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "backend/app/strategy_lab_v2/application.py",
-    "backend/app/strategy_lab_v2/search_dispatch_rpc.py",
-    "backend/app/strategy_lab_v2/search_preparation_composition.py",
-    "backend/app/strategy_lab_v2/study_artifact_resolver.py",
-    "backend/app/strategy_lab_v2/worker_callbacks.py",
-    "backend/app/strategy_lab_v2/tests/test_application.py",
-    "backend/app/strategy_lab_v2/tests/test_search_dispatch_rpc.py",
-    "backend/app/strategy_lab_v2/tests/test_worker_callbacks.py",
-    "backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py",
-    "backend/app/strategy_lab_v2/tests/test_migration_compatibility.py",
-    "backend/alembic/versions/slv2_0011_merge_accepted_tc_and_strategy_heads.py",
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -67,16 +51,19 @@
     "objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "unavailable",
-  "goal_unavailable_reason": "The existing session-local Codex goal query reports status=blocked. Do not duplicate or claim it active; continue this coordinator-supervised turn under the existing claim and durable branch workstream.",
-  "head": "b469a9fdf74247dfb3b8160e318e3516bd7d9b58",
+  "goal_state": "active",
+  "goal_unavailable_reason": null,
+  "goal_state_observations": [
+    {"observed_at":"2026-10-22T04:23:00Z","status":"active","budget":"unbounded","source":"Root live snapshot for existing thread 01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b; no goal recreation or accounting reset."}
+  ],
+  "head": "fb05317df65eb1384052bc4f3b12a260bb242bad",
   "implementation_sha": "05e5df177abe9c264f163566635daeebbb488fa9",
   "last_checkpoint": "2026-10-22T04:14:38Z",
   "last_human_progress_update": "2026-10-20T21:20:08.693731+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the reviewed three-feature merge, consumer wiring, and additive slv2_0011 source context on the assigned Strategy branch; provide Root the bounded real PostgreSQL producer-row/API/restart and migration-upgrade plan. Preserve exact-source CI, full_stack_browser, Exhaustive, native qualification, checkpoint acceptance, and all 18 roadmap criteria as open.",
+  "next_action": "Publish the scoped AdjustmentFactorObservation relationship typing repair with accurate receipts. Then prepare the normal PostgreSQL producer-row/API/restart integration module and exact FK/fixture plan for Root review; do not launch the fixture before coordinator slot assignment. Preserve full application, full_stack_browser, Exhaustive, native qualification, checkpoint acceptance, and all 18 roadmap criteria as open.",
   "parent_branch": "staging",
-  "plan_hash": "134e9bfaf7ca70ea4dabb2317bc22e4cf6b129f1e7187b3a44aad19d9a422756",
+  "plan_hash": "c7fc901776b36764b20941e09539451a42292ae2eaa205b766705dca2b55db7a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -103,15 +90,15 @@
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "Source reconciliation at b469a9fdf74247dfb3b8160e318e3516bd7d9b58 is ready for scoped publication after final validation. Bounded API/resolver/composition/migration and restart-hydration/metadata regressions pass; static Alembic has one additive no-DDL head slv2_0011. The authorized focused MyPy run reported two imported app/models/adjustment_factor.py forward-relationship name errors (Instrument, DataSource), with no diagnostics in the requested resolver/test. Actual PostgreSQL API mutation/restart and fresh/previous-release upgrade/data preservation, exact-source CI, full_stack_browser and Exhaustive remain open. Do not launch DB/heavy gates before Root review. Full checkpoint remains in_progress/unaccepted; formal goal remains unavailable, not active.",
+    "current_blocker": "The scoped AdjustmentFactorObservation TYPE_CHECKING-only relationship import repair is implemented; the authorized two-file MyPy rerun passes, while the first two-error result is preserved. Exact CI 39721966157 is still running on fb05317. Actual producer-row PostgreSQL/API/restart validation and fresh/previous-release migration data-preservation remain pending Root resource review, followed by full application/full_stack_browser and Exhaustive. Full checkpoint remains in_progress/unaccepted; the existing native goal is active and unbudgeted.",
     "current_phase": "strategy-tc-three-feature-consumer-reconciliation",
-    "next_action": "Publish this coherent merge/consumer-wiring context on the assigned branch and provide Root the bounded PostgreSQL/API/worker restart and migration-upgrade plan. Preserve all no-provider-call, owner, terminal settlement, admission/reservation, immutable lineage and native-proof boundaries.",
+    "next_action": "Publish the narrow typing repair and accurate current-source record. Then prepare the actual normal PostgreSQL resolver/API/reconstructed-worker integration module and full FK closure/resource plan for Root review without launching it. Preserve all no-provider-call, owner, terminal settlement, admission/reservation, immutable lineage and native-proof boundaries.",
     "total": 5,
-    "updated_at": "2026-10-22T04:29:00+00:00"
+    "updated_at": "2026-10-22T04:27:41+00:00"
   },
-  "remote": "cf4c1c08023fe097152e5aed88df8242097f4a55",
-  "remote_sha": "cf4c1c08023fe097152e5aed88df8242097f4a55",
-  "remote_synchronized": false,
+  "remote": "fb05317df65eb1384052bc4f3b12a260bb242bad",
+  "remote_sha": "fb05317df65eb1384052bc4f3b12a260bb242bad",
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
