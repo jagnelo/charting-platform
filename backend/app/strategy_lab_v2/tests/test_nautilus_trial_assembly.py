@@ -32,6 +32,7 @@ from app.strategy_lab_v2.contracts import (
     ProductClass,
     RunAttempt,
     ScientificTrial,
+    SelectedStudyArtifactReference,
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
@@ -99,7 +100,7 @@ class JsonFrozenSeriesDecoder:
             )
 
 
-def _inputs(*, scenario=None, evaluation_window=None):
+def _inputs(*, scenario=None, evaluation_window=None, selected_study_artifact=None):
     requirement = CapabilityRequirement(
         instrument_id="AAPL.SIM",
         product_class=ProductClass.EQUITY,
@@ -162,6 +163,7 @@ def _inputs(*, scenario=None, evaluation_window=None):
         content_digest(SOURCE),
         parameter_schema={"window": {"type": "integer", "minimum": 1}},
         default_parameters={"window": 20},
+        selected_study_artifact=selected_study_artifact,
     )
     manifest = StrategySdkManifest(
         strategy,
@@ -631,6 +633,28 @@ def test_trial_assembly_rejects_unapplied_scenario_transforms(tmp_path) -> None:
             **values,
             artifact_store=LocalArtifactStore(tmp_path / "artifacts"),
         )
+
+
+def test_trial_assembly_fails_closed_for_selected_study_without_runtime_payload(tmp_path) -> None:
+    reference = SelectedStudyArtifactReference(
+        research_run_id=1,
+        code_version_id=2,
+        artifact_id=3,
+        artifact_name="screener.output",
+        artifact_type="series",
+        output_contract="study",
+        run_reproducibility_hash=content_digest("study-run"),
+        code_version_digest=content_digest("study-code-version"),
+        dataset_manifest_digest=content_digest("study-dataset"),
+        artifact_content_digest=content_digest("study-artifact"),
+    )
+    values = _inputs(selected_study_artifact=reference)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+
+    with pytest.raises(NautilusTrialAssemblyError, match="not materialized"):
+        assemble_nautilus_trial_runtime_input(**values, artifact_store=store)
+
+    assert not tuple((tmp_path / "artifacts").rglob("*"))
 
 
 def test_trial_assembly_replays_warmup_but_binds_only_the_evaluation_window(tmp_path) -> None:

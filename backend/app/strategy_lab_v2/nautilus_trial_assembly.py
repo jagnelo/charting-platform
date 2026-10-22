@@ -460,6 +460,11 @@ def assemble_nautilus_trial_runtime_input(
         component_input = inputs_by_component[component_id]
         strategy = component_input.strategy_manifest.strategy
         package = component_input.strategy_package
+        if strategy.selected_study_artifact is not None:
+            raise NautilusTrialAssemblyError(
+                f"component {component_id!r} pins a Study artifact that is not materialized "
+                "as a native runtime input"
+            )
         if strategy.fingerprint != component.strategy_fingerprint:
             raise NautilusTrialAssemblyError(
                 f"portfolio component {component_id!r} references a different strategy version"
