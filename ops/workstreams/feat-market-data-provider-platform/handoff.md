@@ -29533,3 +29533,39 @@ index, hold, or quota reset/change was made. Checkpoint remains `in_progress` /
   reset, deployment, or staging/sibling write is implied. Current plan records
   `ready_for_integration` for this accepted checkpoint while ICP7's exact
   final-publication CI remains pending.
+## 2026-10-22 21:30Z — failed CIK restart durability regression
+
+The SEC issuer-universe implementation at source `ad1bfa64b45aa93bd48e3b97cb30a9d905c807e1`
+commits each per-CIK outcome/request-log and resume cursor in one transaction,
+stops on a failed CIK, and verifies the cursor under lock before the next
+provider call. The existing file-backed worker-restart regression covered a
+successful CIK followed by cancellation, while the failed-CIK retry regression
+used the same test session. Added a second file-backed SQLite regression that
+commits one successful CIK and a failed next CIK, closes that worker, then
+opens a fresh session and proves the failure and preceding cursor survived;
+the resumed worker retries only the failed CIK and then continues. Existing
+success-restart, failure-retry, and concurrent-cursor tests remain unchanged.
+
+No-network evidence on the working test-only change: the new restart case
+passed 1/1; the complete SEC scan module passed 26/26; Ruff check, Ruff format
+check, and `git diff --check` passed. This is still an uncommitted test change
+on base source `ad1bfa64b45aa93bd48e3b97cb30a9d905c807e1`; hosted CI `39851338439`
+is green only for that parent, not this added regression. No provider, issuer,
+or SEC HTTP; no quota reservation/spend/reset; no Docker or persistent service
+database; no retained data, staging, or sibling change. The local full profile
+remains deferred while the coordinator reserves heavy capacity for first-human
+deployment. Next: publish the tested owned change and obtain exact-source CI;
+keep the full local profile pending until the coordinator releases its slot.
+Current owned dirty paths are `backend/tests/unit/services/test_market_event_edgar_scan.py`,
+`ops/workstreams/feat-market-data-provider-platform/handoff.md`,
+`ops/workstreams/feat-market-data-provider-platform/validation.jsonl`, and
+`ops/workstreams/feat-market-data-provider-platform/session.json`; no other
+source or workstream file is part of this change.
+
+The repository checkpoint helper subsequently synchronized `session.json` to
+actual local/remote HEAD `ad1bfa64b45aa93bd48e3b97cb30a9d905c807e1` and the four
+dirty paths above. Its read-only resource accounting found the existing
+assigned Provider stack (8 containers, 4 volumes) within its recorded budget;
+it started/stopped no service and changed no dataset. This does not release the
+coordinator's deferred full-profile slot or establish that its separate image
+build is idle.

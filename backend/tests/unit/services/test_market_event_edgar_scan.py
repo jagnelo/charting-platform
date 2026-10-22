@@ -283,6 +283,106 @@ async def test_edgar_issuer_scan_cursor_survives_worker_session_restart(tmp_path
 
 
 @pytest.mark.asyncio
+async def test_edgar_failed_cik_is_durable_across_worker_restart_without_replaying_success(
+    tmp_path, monkeypatch
+):
+    """A restarted worker retries the failed CIK, not an already committed one."""
+
+    import app.models  # noqa: F401 - register all tables and foreign-key targets.
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'edgar-scan-failed-restart.db'}")
+    Base.metadata.create_all(bind=engine)
+    sessions = sessionmaker(bind=engine, expire_on_commit=False)
+    calls: list[str] = []
+
+    async def fake_refresh(db, ciks, **_kwargs):
+        cik = ciks[0]
+        calls.append(cik)
+        failed = cik == "0000000052" and calls.count(cik) == 1
+        db.add(
+            ProviderRequestLog(
+                capability=ProviderCapability.MARKET_EVENTS,
+                operation="fetch_ipo_pipeline_events",
+                operation_family="market_events",
+                requested_at=datetime.now(UTC),
+                success=not failed,
+                provider_symbol=f"CIK:{cik}",
+                error_type="TemporaryFailure" if failed else None,
+                error_message="temporary failure" if failed else None,
+            )
+        )
+        issuer_result = {
+            "cik": cik,
+            "status": "failed" if failed else "refreshed",
+            "events": 0,
+            "linked": 0,
+            "unlinked": 0,
+            "error": {"error_type": "TemporaryFailure"} if failed else None,
+        }
+        return {
+            "status": "failed" if failed else "no_events",
+            "events": 0,
+            "failures": int(failed),
+            "issuers": [issuer_result],
+        }
+
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+    try:
+        with sessions() as setup_db:
+            setup_db.add_all([_issuer(51), _issuer(52), _issuer(53)])
+            setup_db.commit()
+
+        first_worker = sessions()
+        first = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+            AsyncSessionAdapter(first_worker), max_issuers=3
+        )
+        assert first["status"] == "failed"
+        assert calls == ["0000000051", "0000000052"]
+        first_worker.close()
+
+        resumed_worker = sessions()
+        state = resumed_worker.execute(select(MarketEventScanState)).scalar_one()
+        assert state.status == "partial"
+        assert state.cursor_issuer_id == 1
+        assert state.scanned_count == 1
+        assert state.provenance["last_batch_results"][-1]["cik"] == "0000000052"
+        assert state.provenance["last_batch_results"][-1]["status"] == "failed"
+        assert state.provenance["last_batch_failed_ciks"] == ["0000000052"]
+        assert [
+            (row.provider_symbol, row.success)
+            for row in resumed_worker.execute(
+                select(ProviderRequestLog).order_by(ProviderRequestLog.id)
+            ).scalars()
+        ] == [("CIK:0000000051", True), ("CIK:0000000052", False)]
+
+        resumed = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+            AsyncSessionAdapter(resumed_worker), max_issuers=3
+        )
+        assert resumed["cycle_complete"] is True
+        assert calls == [
+            "0000000051",
+            "0000000052",
+            "0000000052",
+            "0000000053",
+        ]
+        assert [
+            (row.provider_symbol, row.success)
+            for row in resumed_worker.execute(
+                select(ProviderRequestLog).order_by(ProviderRequestLog.id)
+            ).scalars()
+        ] == [
+            ("CIK:0000000051", True),
+            ("CIK:0000000052", False),
+            ("CIK:0000000052", True),
+            ("CIK:0000000053", True),
+        ]
+        resumed_worker.close()
+    finally:
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_edgar_issuer_scan_stops_at_failed_cik_and_retries_without_replaying_success(
     db, monkeypatch
 ):
