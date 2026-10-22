@@ -88,18 +88,19 @@
     }
   ],
   "active_changeset": {
-    "baseline": "4af6a4f6237bb76e22c3f2b0da6b4d6acc786788",
-    "intent": "Surface an explicit inactive/successor or non-publisher terminal symbol audit as not_applicable when holdings are absent, while preserving unknown for unaudited routes and unavailable for actual route failures.",
-    "name": "Terminal capability without a holdings snapshot",
+    "baseline": "ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3",
+    "intent": "Synchronize runtime last_checked dates for all fallback identities with their existing durable provider-audit records so identity-level capability chronology is truthful; preserve every route status and source hold.",
+    "name": "Runtime fallback audit date parity",
     "owned_paths": [
-      "backend/app/services/etf_holdings_capability.py",
+      "backend/app/services/etf_holdings_adapters.py",
+      "backend/tests/unit/services/test_etf_holdings_adapters.py",
       "backend/tests/unit/services/test_etf_holdings_capability.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
     ],
-    "state": "implementation_81be3e1f_committed_locally;capability_module_105_passed;Ruff_format_and_diff_checks_passed;workstream_packet_and_exact_branch_CI_pending_publication;full_local_profile_remains_required_and_waits_for_safe_slot;no_external_http_or_quota;MSMR_QQQ_and_Militia_GOOG_quarantined"
+    "state": "implementation_535f8928_committed_locally;capability_106_plus_ledger_parity_1_passed;Ruff_format_and_diff_checks_passed;workstream_packet_and_exact_branch_CI_pending_publication;full_local_profile_remains_required_and_waits_for_safe_slot;no_external_http_or_quota;MSMR_QQQ_and_Militia_GOOG_quarantined"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -150,8 +151,13 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22: The initial EICP checkpoint is accepted in exact synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f; the full fourteen-criterion roadmap remains open. ETF source 81be3e1f83c35f40ea79567beccfd2462cc26d4d adds a conservative terminal-capability correction: explicit inactive/successor and non-publisher audits yield not_applicable without holdings, while unaudited symbols remain unknown and failed routes remain unavailable. The complete deterministic capability module passed 105 tests; changed-file Ruff/format and diff checks passed. Exact run 39843906382 is still in_progress on prior workstream-only source 4af6a4f6237bb76e22c3f2b0da6b4d6acc786788 and does not cover the new source. Full local full_stack_browser remains required and awaits Root's safe slot. Preserve all old partial/red evidence, the 15 Tier-0 and 156 Tier-1 audit phrase, unresolved/quarantined MSMR/QQQ and Militia/GOOG, and all disabled unknown/quota-held/unreviewed/paid/trial/unsafe routes. No issuer/provider/SEC HTTP, quota replay, data reset, retained-resource cleanup, deployment, or sibling/staging write.",
-  "dirty_paths": [],
+  "current_blocker_latest": "2026-10-22: The accepted EICP checkpoint remains at synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f; the full roadmap remains open. Source 535f8928da53da9c20838007336d71b6e627e4c9 synchronizes all 74 runtime fallback identity investigation dates with current durable provider-audit records, replacing the obsolete shared 2026-07-26 date without changing any route status or eligibility. The capability module, exact provider-ledger parity test, and preserved narrative-count sentinel passed 108 combined cases; Ruff/format/diff and workstream validation passed. Exact CI 39845969811 remains in_progress on prior workstream-only source ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 (Frontend passed; integration tests now in progress), so it does not validate 535f8928. Full local full_stack_browser awaits Root's safe slot. Preserve all prior partial/red evidence, the 15 Tier-0 and 156 Tier-1 audit phrase, MSMR/QQQ and Militia/GOOG quarantines, and disabled unknown/quota-held/unreviewed/paid/trial/unsafe routes. No issuer/provider/SEC HTTP, quota replay, data reset, retained-resource cleanup, deployment, or sibling/staging write.",
+  "dirty_paths": [
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -176,8 +182,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "81be3e1f83c35f40ea79567beccfd2462cc26d4d",
-  "implementation_sha": "81be3e1f83c35f40ea79567beccfd2462cc26d4d",
+  "head": "535f8928da53da9c20838007336d71b6e627e4c9",
+  "implementation_sha": "535f8928da53da9c20838007336d71b6e627e4c9",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -287,9 +293,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-22T20:05:34Z",
+  "last_checkpoint": "2026-10-22T20:15:48Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-22: The bounded EICP1-EICP7 checkpoint was accepted and integrated into exact synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f (Actions 39827786248; Exhaustive job 120006510572; canonical receipt .ai/staging-attempts/20261022T192741Z-0e342512e53b.json). ETF adopted the release by clean fast-forward and independently verified origin/staging refs. The 2026-10-22 capability correction at 81be3e1f83c35f40ea79567beccfd2462cc26d4d now surfaces explicitly terminal symbol/provider audit outcomes as not_applicable when no holdings snapshot exists; unknown symbols and failed routes retain unknown/unavailable outcomes. The deterministic capability module passed 105 tests with changed-file Ruff/format/diff checks. This source commit is local and the coherent workstream packet is being prepared; exact final-published-head CI remains pending. The full local full_stack_browser profile remains required and awaits Root's safe slot. This does not close the original roadmap: all fourteen criteria, issuer onboarding, 15 Tier-0 and 156 Tier-1 investigations, MSMR/QQQ and Militia/GOOG quarantine, unknown/quota-held/unreviewed/paid/trial/unsafe holds, and the 30-day observation remain. No live requests, quota replay, dataset reset, retained-resource cleanup, deployment, or self-integration occurred.",
+  "latest_checkpoint": "2026-10-22: The bounded EICP checkpoint remains accepted at synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f; the full roadmap remains open. Source 81be3e1f83c35f40ea79567beccfd2462cc26d4d surfaces audited terminal no-snapshot outcomes without changing unknown/failed route behavior. Follow-up source 535f8928da53da9c20838007336d71b6e627e4c9 reconciles all 74 runtime fallback identity investigation dates with their current durable provider-audit rows without changing route status or eligibility. The capability module, exact fallback-ledger parity test, and narrative-count sentinel passed 108 cases; changed-file Ruff, format, diff, and workstream validation passed. Existing CI 39845969811 remains in progress on prior workstream-only source ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 and does not validate 535f8928. Exact published-head CI and the required full_stack_browser profile remain pending. Preserve all fourteen criteria, issuer onboarding, the 15 Tier-0 and 156 Tier-1 audit narrative, MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/quota-held/unreviewed/paid/trial/unsafe routes, and 30-day observation. No live request, quota replay, dataset reset, retained-resource cleanup, deployment, or self-integration occurred.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -325,8 +331,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish source 81be3e1f83c35f40ea79567beccfd2462cc26d4d with this coherent workstream packet, verify exact origin parity and inspect the resulting exact-source CI. Then continue offline evidence-backed AC2/AC4/AC5 issuer-audit and capability work in relevance order without refreshing blocked routes absent new retained evidence. Obtain Root's assigned safe slot before the still-required local full_stack_browser matrix. Preserve AC1-AC14, all history, quarantines and route/cost holds; no live issuer/provider/SEC request, quota action, unsafe activation, data reset, retained-resource cleanup, staging/sibling/master write, deployment or self-integration.",
-  "plan_hash": "f314e7ab6d3a7726639245590ea120fafcc97613a1352321ffc01f44b088a557",
+  "next_action": "Publish source 535f8928da53da9c20838007336d71b6e627e4c9 with this coherent workstream packet, verify exact origin parity and inspect resulting exact-source CI. Then continue offline evidence-backed AC2/AC4/AC5 issuer-audit and capability work in relevance order without refreshing blocked routes absent new retained evidence. Obtain Root's assigned safe slot before the still-required local full_stack_browser matrix. Preserve AC1-AC14, all history, quarantines and route/cost holds; no live issuer/provider/SEC request, quota action, unsafe activation, data reset, retained-resource cleanup, staging/sibling/master write, deployment or self-integration.",
+  "plan_hash": "80d690546dccb3aac1ca37b50ac52ecdf47ac070d61a8c6e6263fd97602b5e72",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -377,11 +383,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The accepted initial checkpoint and exact staging baseline 0e342512e53ba2268425294d61c50e219eaafa4f are complete. The full roadmap remains open, with 15 Tier-0 and 156 Tier-1 investigations preserved; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined and all unsafe/unknown/paid/trial operations disabled. Local source 81be3e1f83c35f40ea79567beccfd2462cc26d4d passed the 105-test capability module and changed-file Ruff/format/diff checks; its exact published-head CI is pending. The full_stack_browser gate remains required when Root assigns a safe slot. Continue offline ETF-owned work meanwhile.",
+    "current_blocker": "The accepted initial checkpoint and exact staging baseline 0e342512e53ba2268425294d61c50e219eaafa4f are complete. The full roadmap remains open, with 15 Tier-0 and 156 Tier-1 investigations preserved; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined and all unsafe/unknown/paid/trial operations disabled. Local source 535f8928da53da9c20838007336d71b6e627e4c9 reconciles runtime fallback audit dates with durable ledger evidence without changing route status; the capability, parity, and narrative-sentinel checks passed 108 tests and Ruff/format/diff/workstream validation passed. Exact CI for this source is pending. The full_stack_browser gate remains required when Root assigns a safe slot. Continue offline ETF-owned work meanwhile.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Publish and verify the coherent owner packet for source 81be3e1f83c35f40ea79567beccfd2462cc26d4d, then continue offline evidence-backed AC2/AC4/AC5 issuer-audit and capability work without refreshing blocked routes absent new retained evidence. Obtain Root's assigned safe slot before the required full_stack_browser matrix. Preserve all fourteen original criteria, source history, quarantines, cost/route holds, and the 30-day post-integration observation.",
+    "next_action": "Publish and verify the coherent owner packet for source 535f8928da53da9c20838007336d71b6e627e4c9, then continue offline evidence-backed AC2/AC4/AC5 issuer-audit and capability work without refreshing blocked routes absent new retained evidence. Obtain Root's assigned safe slot before the required full_stack_browser matrix. Preserve all fourteen original criteria, source history, quarantines, cost/route holds, and the 30-day post-integration observation.",
     "total": 14,
-    "updated_at": "2026-10-22T20:05:34Z"
+    "updated_at": "2026-10-22T20:15:48Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -393,8 +399,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "4af6a4f6237bb76e22c3f2b0da6b4d6acc786788",
-  "remote_sha": "4af6a4f6237bb76e22c3f2b0da6b4d6acc786788",
+  "remote": "ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3",
+  "remote_sha": "ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3",
   "remote_synchronized": false,
   "roadmap_acceptance_criteria": [
     {

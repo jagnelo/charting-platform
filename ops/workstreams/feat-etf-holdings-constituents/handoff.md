@@ -13323,3 +13323,49 @@ Militia/GOOG quarantines, and disabled unknown/quota-held/unreviewed/paid/trial/
 unsafe routes. The next independent work is offline evidence-backed AC2/AC4/AC5
 audit/capability work in relevance order; do not refresh a blocked route without
 new retained evidence or authorized access.
+
+## Runtime fallback audit-date reconciliation — 2026-10-22
+
+The accepted integration baseline remains exact synchronized green staging
+`0e342512e53ba2268425294d61c50e219eaafa4f`; it is an ancestor of this branch.
+The normal owner preflight confirms claim
+`f206bbc5-abbf-473a-a44f-fb5706c81282` in the assigned ETF worktree. The
+checkout is at source `535f8928da53da9c20838007336d71b6e627e4c9`, one
+substantive source commit ahead of origin `ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3`;
+the plan/session packet for publication is being completed. No staging merge
+was needed or performed because the released baseline was already in history.
+
+Offline parity review found all 74 runtime fallback identity summaries sharing
+the obsolete `2026-07-26` investigation date while their current durable
+provider-audit records carry issuer-specific dates from `2026-09-02` through
+`2026-10-05`. The source change maps each fallback key to its ledger date and
+the existing parity test now requires exact equality; an identity-level test
+confirms the Aegon audit displays `2026-10-05` while remaining unavailable.
+This changes audit chronology only: no route status, eligibility, holdings
+freshness, or source availability is promoted.
+
+Validation on source `535f8928da53da9c20838007336d71b6e627e4c9`: the complete
+capability module plus exact fallback-ledger parity test passed 107 combined
+cases. Changed-file Ruff and formatting checks and `git diff --check` passed.
+The earlier run `39845969811` is on preceding source
+`ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3` (Frontend succeeded; Backend was
+still running at the last live check) and is not evidence for `535f8928`.
+Exact-source hosted CI for `535f8928` remains pending publication; the required
+`full_stack_browser` profile remains open and awaits Root's safe slot.
+
+Next: finish this coherent branch-owned evidence packet, publish the source and
+records on the ETF branch, verify exact remote parity and inspect its own CI;
+then continue offline AC2/AC4/AC5 audit/capability remediation in relevance
+order. Preserve all 14 criteria and history, the `15 Tier-0 and 156 Tier-1`
+accounting, MSMR/QQQ and Militia/GOOG quarantines, all unknown/quota-held/
+unreviewed/paid/trial/unsafe holds, and the 30-day observation gate. No live
+issuer/Provider/SEC request, quota action, heavy profile, data/resource cleanup,
+staging/sibling/master write, deployment, or self-acceptance occurred.
+
+After completing this workstream packet, the same focused source profile plus
+the mandatory narrative-count sentinel was rerun on unchanged implementation
+`535f8928da53da9c20838007336d71b6e627e4c9`: 108 tests passed in 5.14s. Ruff,
+format, workstream validation, and whitespace checks also passed. Exact CI
+`39845969811` remains on the preceding source; its frontend job passed, backend
+unit phase passed, and backend integration phase is still running. It is neither
+the final source CI nor a reason to wait before continuing offline work.

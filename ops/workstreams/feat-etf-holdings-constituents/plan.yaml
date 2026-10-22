@@ -540,14 +540,19 @@ current_blocker: >-
   The initial ETF integration checkpoint is accepted in synchronized green
   staging 0e342512e53ba2268425294d61c50e219eaafa4f; all fourteen original
   roadmap criteria, issuer onboarding, and post-integration 30-day observation
-  remain open. On source 81be3e1f83c35f40ea79567beccfd2462cc26d4d, an offline
-  capability correction now surfaces an explicit inactive/successor or
-  non-publisher terminal audit as not_applicable when there is no snapshot,
-  while an unaudited symbol remains unknown and an actually failed route remains
-  unavailable. The full capability module passed 105 tests; changed-file Ruff,
-  format, and diff checks passed. Exact CI 39843906382 is still in progress on
-  the preceding workstream-only source 4af6a4f6237bb76e22c3f2b0da6b4d6acc786788
-  and does not validate this source change; the exact published final-head CI
+  remain open. Source 81be3e1f83c35f40ea79567beccfd2462cc26d4d corrected
+  no-snapshot terminal capability display without weakening unknown or failed
+  route states. Follow-up source 535f8928da53da9c20838007336d71b6e627e4c9
+  synchronizes each of the 74 runtime fallback identity investigation dates
+  with its current durable provider-audit row; dates are evidence chronology,
+  not route eligibility or current holdings claims. The deterministic capability
+  module, exact provider-ledger parity test, and the narrative-count sentinel
+  passed 108 combined cases, as did
+  changed-file Ruff, format, and diff checks. Exact CI 39845969811 remains in
+  progress on the preceding workstream-only source
+  ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 (Frontend passed; Backend unit
+  passed and integration is in progress); it does not validate this source
+  change. Exact published-head CI
   remains required after publication. The full local integration/browser profile
   remains mandatory and awaits Root's safe slot. Preserve the original
   monolithic partial attempt, earlier visual failure, all setup receipts, exact
@@ -1563,23 +1568,25 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    Run 39843906382 is in_progress on prior workstream-only source
-    4af6a4f6237bb76e22c3f2b0da6b4d6acc786788; it does not validate source
-    81be3e1f83c35f40ea79567beccfd2462cc26d4d. Exact final-published-head CI is
+    Run 39845969811 is in_progress on prior workstream-only source
+    ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 (Frontend passed; Backend unit
+    passed and integration is in progress); it does not validate source
+    535f8928da53da9c20838007336d71b6e627e4c9. Exact final-published-head CI is
     pending and mandatory.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
   Continue the original full ETF roadmap in this same branch and goal lineage.
-  Publish the terminal-capability correction and its branch-owned evidence,
-  inspect exact-source CI, then continue offline evidence-backed AC2/AC4/AC5
-  issuer audit and Tier-0 consumer work in relevance order. Do not refresh any
-  blocked source without new retained evidence or authorized safe access. Obtain
-  Root's assigned safe slot before the required local full_stack_browser matrix;
-  it remains mandatory and is not waived. Preserve all fourteen criteria,
-  issuer onboarding, later 30-day observation, historical failure
-  classifications, MSMR/QQQ and Militia/GOOG quarantines, and
+  Publish the fallback-audit timestamp reconciliation and its branch-owned
+  evidence, inspect exact-source CI, then continue offline evidence-backed
+  AC2/AC4/AC5 issuer audit and Tier-0 consumer work in relevance order. Treat
+  audit dates as evidence chronology only; do not change source statuses or
+  refresh blocked routes without new retained evidence or authorized safe
+  access. Obtain Root's assigned safe slot before the required local
+  full_stack_browser matrix; it remains mandatory and is not waived. Preserve
+  all fourteen criteria, issuer onboarding, later 30-day observation, historical
+  failure classifications, MSMR/QQQ and Militia/GOOG quarantines, and
   unknown/quota-held/unreviewed/paid/trial/unsafe route holds. No issuer, SEC,
   or Provider HTTP, quota spend/reset, dataset reset, retained-resource cleanup,
   staging/sibling/master write, deployment, or self-integration.
