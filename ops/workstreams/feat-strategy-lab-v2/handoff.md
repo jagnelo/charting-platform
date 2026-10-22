@@ -16687,3 +16687,25 @@ and pin the corrected source/helper hashes. Full backend, real application and
 worker restart, browser/strict visual, exact-source CI, migration and exhaustive
 gates remain open; the full 18-criterion roadmap and checkpoint remain
 in_progress/unaccepted.
+
+## Post-push operational checkpoint — 2026-10-22 10:24 UTC
+
+The worker runtime database wiring changeset is committed as
+`f9e138e4cc80847f1127cf5b3b3e021f6f56e383`, pushed to
+`origin/feat/strategy-lab-v2`, and was verified clean and synchronized before
+this operational record. Focused evidence is two passing Compose tests (local
+2/2 in 0.22s; Root independent rerun 2/2 in 0.24s), successful read-only
+resolved Compose rendering/checking, and static/workstream validation. Exact
+push CI `39762599907` is in progress and Root is monitoring it; the prior exact
+CI remains historical and does not cover this commit. The shard-25 backend
+attempt failed during UV PATH preflight before pytest and its bounded fixtures
+were cleaned without global resource changes.
+
+The enclosing operational-record commit's SHA is intentionally not embedded in
+these files; closure is proven externally by the final clean worktree and
+matching local/origin refs. Checkpoint remains `in_progress`, not accepted.
+Next action: wait for Root's release of the complete current-source shard-25
+backend gate; no fixture, app, browser, worker, or other full-profile resources
+are authorized before that release. Actual DB/Redis worker readiness/restart,
+full application/browser/visual, migration, Exhaustive, and all original
+roadmap criteria remain open.
