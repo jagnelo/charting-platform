@@ -164,9 +164,7 @@ def preflight_runtime_isolation(
         reasons.append("strategy_requested_writable_paths")
     if request.secret_names_requested:
         reasons.append("strategy_requested_secrets")
-    missing = tuple(
-        sorted(set(request.dependency_digests) - profile.allowed_dependency_digests)
-    )
+    missing = tuple(sorted(set(request.dependency_digests) - profile.allowed_dependency_digests))
     if missing:
         reasons.append("dependency_digest_not_vetted")
     decision = RuntimeIsolationDecision.REJECT if reasons else RuntimeIsolationDecision.ALLOW

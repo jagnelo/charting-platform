@@ -66,18 +66,12 @@ class FakeSession:
                 row
                 for (owner, _), row in self.summaries.items()
                 if owner == values["owner_id"]
-                and (
-                    values.get("state_key") is None
-                    or row["state_key"] == values["state_key"]
-                )
+                and (values.get("state_key") is None or row["state_key"] == values["state_key"])
                 and (
                     values.get("submission_id") is None
                     or row["submission_id"] == values["submission_id"]
                 )
-                and (
-                    values.get("attempt_id") is None
-                    or row["attempt_id"] == values["attempt_id"]
-                )
+                and (values.get("attempt_id") is None or row["attempt_id"] == values["attempt_id"])
             ]
             if "ORDER BY updated_at DESC" in sql and "submission_id ASC" not in sql:
                 rows.sort(
@@ -187,12 +181,18 @@ async def test_execution_summary_adapter_registers_replays_latest_and_scopes_own
     assert replay.decision is ExecutionSummaryStateDecision.REPLAY_EXISTING
     await adapter.ensure(principal="owner-a", summary=succeeded)
 
-    assert await adapter.load(
-        principal="owner-a", submission_id=running.submission_id, attempt_id=running.attempt_id
-    ) == succeeded
-    assert await adapter.load(
-        principal="owner-b", submission_id=running.submission_id, attempt_id=running.attempt_id
-    ) is None
+    assert (
+        await adapter.load(
+            principal="owner-a", submission_id=running.submission_id, attempt_id=running.attempt_id
+        )
+        == succeeded
+    )
+    assert (
+        await adapter.load(
+            principal="owner-b", submission_id=running.submission_id, attempt_id=running.attempt_id
+        )
+        is None
+    )
     assert await adapter.load_all(principal="owner-b") == ()
 
 

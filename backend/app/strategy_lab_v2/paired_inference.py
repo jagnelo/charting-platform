@@ -129,7 +129,11 @@ class PairedInferenceUnavailable:
             self.pairing_receipt_fingerprint,
             field_name="pairing_receipt_fingerprint",
         )
-        if not isinstance(self.sample_size, int) or isinstance(self.sample_size, bool) or self.sample_size < 1:
+        if (
+            not isinstance(self.sample_size, int)
+            or isinstance(self.sample_size, bool)
+            or self.sample_size < 1
+        ):
             raise ValueError("sample_size must be a positive integer")
         if (
             not isinstance(self.maximum_exact_observations, int)
@@ -226,10 +230,7 @@ def infer_paired_mean(
     extreme_count = 0
     for mask in range(permutation_count):
         signed_sum: Decimal = sum(
-            (
-                delta if mask & (1 << index) else -delta
-                for index, delta in enumerate(deltas)
-            ),
+            (delta if mask & (1 << index) else -delta for index, delta in enumerate(deltas)),
             Decimal(0),
         )
         if abs(signed_sum) >= observed_absolute_sum:

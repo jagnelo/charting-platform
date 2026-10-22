@@ -47,7 +47,9 @@ def _rankable_result(
         parameter_set={"lookback": parameter},
         seed=parameter,
     )
-    attempt = RunAttempt(attempt_id, trial.trial_id, 1, AttemptState.SUCCEEDED, result.attempt.created_at)
+    attempt = RunAttempt(
+        attempt_id, trial.trial_id, 1, AttemptState.SUCCEEDED, result.attempt.created_at
+    )
     metric = MetricValue(
         "return",
         Decimal(value),
@@ -112,9 +114,12 @@ def test_descriptive_ranking_is_deterministic_and_directional() -> None:
     assert [entry.value for entry in ranking.entries] == [Decimal("0.25"), Decimal("0.10")]
     assert ranking.entries[0].position == 1
     assert ranking.entries[0].preflight_label == "rigorous"
-    assert ranking.fingerprint == descriptive_rank_results(
-        (second, first), metric_name="return", direction=RankingDirection.MAXIMIZE
-    ).fingerprint
+    assert (
+        ranking.fingerprint
+        == descriptive_rank_results(
+            (second, first), metric_name="return", direction=RankingDirection.MAXIMIZE
+        ).fingerprint
+    )
     minimum = descriptive_rank_results(
         (first, second), metric_name="return", direction=RankingDirection.MINIMIZE
     )
@@ -138,14 +143,29 @@ def test_degraded_results_are_excluded_by_default_and_labeled_when_explicitly_in
         parameter_set={"lookback": 2},
         seed=2,
     )
-    degraded_attempt = RunAttempt("attempt-degraded", degraded_trial.trial_id, 1, AttemptState.SUCCEEDED, rigorous.attempt.created_at)
+    degraded_attempt = RunAttempt(
+        "attempt-degraded",
+        degraded_trial.trial_id,
+        1,
+        AttemptState.SUCCEEDED,
+        rigorous.attempt.created_at,
+    )
     degraded_metric = MetricValue(
-        "return", Decimal("0.50"), "fraction", rigorous.metric_set.definition_version,
-        MetricBasis.NET, 10, calculation_definition=CALCULATION,
+        "return",
+        Decimal("0.50"),
+        "fraction",
+        rigorous.metric_set.definition_version,
+        MetricBasis.NET,
+        10,
+        calculation_definition=CALCULATION,
     )
     degraded_metrics = MetricSet(
-        "metrics-degraded", degraded_trial.trial_id, degraded_attempt.attempt_id,
-        rigorous.metric_set.definition_version, (degraded_metric,), rigorous.metric_set.created_at,
+        "metrics-degraded",
+        degraded_trial.trial_id,
+        degraded_attempt.attempt_id,
+        rigorous.metric_set.definition_version,
+        (degraded_metric,),
+        rigorous.metric_set.created_at,
     )
     degraded = replace(
         rigorous,
@@ -160,9 +180,7 @@ def test_degraded_results_are_excluded_by_default_and_labeled_when_explicitly_in
     assert ranking.exclusions[0].reason is RankingExclusionReason.INELIGIBLE_PREFLIGHT
     assert ranking.exclusions[0].trial_id == degraded.trial_id
 
-    explicit = descriptive_rank_results(
-        (degraded,), metric_name="return", include_degraded=True
-    )
+    explicit = descriptive_rank_results((degraded,), metric_name="return", include_degraded=True)
     assert explicit.eligible_results == 1
     assert explicit.entries[0].preflight_label == "degraded"
 
@@ -170,7 +188,9 @@ def test_degraded_results_are_excluded_by_default_and_labeled_when_explicitly_in
 def test_missing_null_unversioned_and_incompatible_results_are_explicitly_excluded() -> None:
     valid = _rankable_result("0.10", parameter=1, attempt_id="attempt-valid")
     null = _null_result(_rankable_result("0.20", parameter=2, attempt_id="attempt-null"))
-    unversioned = _unversioned_result(_rankable_result("0.30", parameter=3, attempt_id="attempt-unversioned"))
+    unversioned = _unversioned_result(
+        _rankable_result("0.30", parameter=3, attempt_id="attempt-unversioned")
+    )
     missing = _missing_result(_rankable_result("0.35", parameter=5, attempt_id="attempt-missing"))
     incompatible = replace(
         _rankable_result("0.40", parameter=4, attempt_id="attempt-incompatible"),
@@ -215,7 +235,9 @@ def test_duplicate_successful_attempts_for_one_trial_do_not_rank_twice() -> None
     first = _rankable_result("0.10", parameter=1, attempt_id="attempt-one")
     duplicate = replace(
         first,
-        attempt=RunAttempt("attempt-two", first.trial_id, 2, AttemptState.SUCCEEDED, first.attempt.created_at),
+        attempt=RunAttempt(
+            "attempt-two", first.trial_id, 2, AttemptState.SUCCEEDED, first.attempt.created_at
+        ),
         metric_set=replace(first.metric_set, metric_set_id="metrics-two", attempt_id="attempt-two"),
     )
     ranking = descriptive_rank_results((first, duplicate), metric_name="return")

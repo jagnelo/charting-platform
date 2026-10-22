@@ -160,7 +160,9 @@ class PostgresSnapshotCoverageAdapter:
                 resolutions = tuple(_authenticate_row(row, owner_id) for row in result.mappings())
                 ordered = tuple(sorted(resolutions, key=lambda item: item.snapshot_fingerprint))
                 if resolutions != ordered:
-                    raise ValueError("PostgreSQL snapshot coverage rows are not deterministically ordered")
+                    raise ValueError(
+                        "PostgreSQL snapshot coverage rows are not deterministically ordered"
+                    )
                 return resolutions
 
     async def _load_one(
@@ -275,7 +277,9 @@ def _decode_resolution(row: Mapping[str, Any]) -> SnapshotCoverageResolution:
                     tuple(item["mismatches"]),
                 )
             )
-        missing = _decode_digest_list(row["missing_series_digests_json"], "missing_series_digests_json")
+        missing = _decode_digest_list(
+            row["missing_series_digests_json"], "missing_series_digests_json"
+        )
         unexpected = _decode_digest_list(
             row["unexpected_series_digests_json"], "unexpected_series_digests_json"
         )

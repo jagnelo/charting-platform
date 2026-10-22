@@ -42,7 +42,11 @@ class LeaseObservation:
         require_sha256_digest(self.observation_id, field_name="observation_id")
         for name in ("lease_id", "worker_id", "attempt_id"):
             _nonempty(getattr(self, name), name)
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 1:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 1
+        ):
             raise ValueError("lease observation sequence must be positive")
         if not isinstance(self.kind, LeaseObservationKind):
             raise TypeError("lease observation kind must be a LeaseObservationKind")
@@ -143,9 +147,11 @@ class LeaseObservationResolution:
             raise TypeError("decision must be a LeaseObservationDecision")
         if not isinstance(self.state, LeaseObservationState):
             raise TypeError("state must be a LeaseObservationState")
-        if not isinstance(self.expected_sequence, int) or isinstance(
-            self.expected_sequence, bool
-        ) or self.expected_sequence < 1:
+        if (
+            not isinstance(self.expected_sequence, int)
+            or isinstance(self.expected_sequence, bool)
+            or self.expected_sequence < 1
+        ):
             raise ValueError("expected_sequence must be a positive integer")
         requires_reason = self.decision in {
             LeaseObservationDecision.CONFLICT,
@@ -178,7 +184,11 @@ def apply_lease_observation(
             rejection_reason="observation identity does not match the lease",
         )
     existing = next(
-        (item for item in state.applied_observations if item.observation_id == observation.observation_id),
+        (
+            item
+            for item in state.applied_observations
+            if item.observation_id == observation.observation_id
+        ),
         None,
     )
     if existing is not None:

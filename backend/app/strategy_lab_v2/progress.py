@@ -39,7 +39,11 @@ class ExecutionProgressUpdate:
     def __post_init__(self) -> None:
         if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
             raise ValueError("progress attempt_id must not be empty")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 1:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 1
+        ):
             raise ValueError("progress sequence must be a positive integer")
         if not isinstance(self.phase, ProgressPhase):
             raise TypeError("progress phase must be a ProgressPhase")
@@ -98,7 +102,11 @@ class ExecutionProgressState:
     def __post_init__(self) -> None:
         if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
             raise ValueError("progress state attempt_id must not be empty")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 0
+        ):
             raise ValueError("progress state sequence must be non-negative")
         if not isinstance(self.phase, ProgressPhase):
             raise TypeError("progress state phase must be a ProgressPhase")

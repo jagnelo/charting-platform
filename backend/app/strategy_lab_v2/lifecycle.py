@@ -265,11 +265,7 @@ class ForwardEventObservation:
         missing_end = self.missing_sequence_end
         if (missing_start is None) != (missing_end is None):
             raise ValueError("missing sequence bounds must be provided together")
-        if (
-            missing_start is not None
-            and missing_end is not None
-            and missing_start > missing_end
-        ):
+        if missing_start is not None and missing_end is not None and missing_start > missing_end:
             raise ValueError("missing sequence start must not exceed its end")
         if not isinstance(self.correction_requires_counterfactual_replay, bool):
             raise TypeError("correction replay flag must be a boolean")
@@ -335,13 +331,10 @@ def apply_forward_event_observation(
     # instance contract stores only identity/sequence, so reject accidental
     # cursor movement rather than silently dropping it.
     instance_has_event = instance.last_event_id is not None
-    cursor_matches = (
-        observation.next_cursor.last_event_id == instance.last_event_id
-        and (
-            observation.next_cursor.last_sequence == instance.last_event_sequence
-            if instance_has_event
-            else observation.next_cursor.last_sequence in {-1, instance.last_event_sequence}
-        )
+    cursor_matches = observation.next_cursor.last_event_id == instance.last_event_id and (
+        observation.next_cursor.last_sequence == instance.last_event_sequence
+        if instance_has_event
+        else observation.next_cursor.last_sequence in {-1, instance.last_event_sequence}
     )
     if not cursor_matches:
         raise ValueError("non-accepted observation must not advance the instance cursor")

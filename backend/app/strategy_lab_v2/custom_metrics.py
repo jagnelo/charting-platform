@@ -39,8 +39,7 @@ def _entrypoint(value: str) -> None:
         raise TypeError("entrypoint must use module.path:callable syntax")
     parts = value.split(":")
     if len(parts) != 2 or any(
-        not part or any(not token.isidentifier() for token in part.split("."))
-        for part in parts
+        not part or any(not token.isidentifier() for token in part.split(".")) for part in parts
     ):
         raise ValueError("entrypoint must use module.path:callable syntax")
 

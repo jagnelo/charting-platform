@@ -44,7 +44,11 @@ class ExecutionEvent:
             value = getattr(self, name)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"event {name} must not be empty")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 1:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 1
+        ):
             raise ValueError("event sequence must be a positive integer")
         if not isinstance(self.event_type, ExecutionEventType):
             raise TypeError("event_type must be an ExecutionEventType")
@@ -84,7 +88,11 @@ class EventStreamCursor:
             value = getattr(self, name)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"cursor {name} must not be empty")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 0
+        ):
             raise ValueError("cursor sequence must be non-negative")
         if self.sequence == 0 and self.last_event_id is not None:
             raise ValueError("an empty cursor cannot contain a last event")

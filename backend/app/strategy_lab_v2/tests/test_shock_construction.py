@@ -87,9 +87,7 @@ def test_shock_construction_requires_typed_values() -> None:
     with pytest.raises(TypeError, match="operation"):
         ShockDimension("return", "relative", (Decimal("0.1"),), "fraction")  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="finite"):
-        ShockLeg(
-            "return", ShockOperation.RELATIVE, Decimal("NaN"), "fraction", "instrument"
-        )
+        ShockLeg("return", ShockOperation.RELATIVE, Decimal("NaN"), "fraction", "instrument")
     with pytest.raises(ValueError, match="scenario_prefix"):
         expand_shock_matrix(_dimensions(), scenario_prefix=" ")
 

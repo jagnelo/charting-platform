@@ -68,13 +68,9 @@ def _snapshot(
         positions=tuple(
             ()
             if position_notional == 0
-            else (
-                ComponentPositionExposure("alpha", "US.AAPL", position_notional),
-            )
+            else (ComponentPositionExposure("alpha", "US.AAPL", position_notional),)
         ),
-        instrument_risk_models=(
-            InstrumentRiskBinding("US.AAPL", risk_model),
-        ),
+        instrument_risk_models=(InstrumentRiskBinding("US.AAPL", risk_model),),
     )
 
 
@@ -164,10 +160,12 @@ def test_sell_order_closes_existing_exposure_without_opening_a_short() -> None:
 
 
 def test_shared_risk_breach_withholds_every_order() -> None:
-    portfolio = _portfolio(SharedRiskPolicy(
-        max_gross_exposure_fraction=Decimal("0.50"),
-        risk_models=(CASH_EQUITY_NOTIONAL_RISK_MODEL,),
-    ))
+    portfolio = _portfolio(
+        SharedRiskPolicy(
+            max_gross_exposure_fraction=Decimal("0.50"),
+            risk_models=(CASH_EQUITY_NOTIONAL_RISK_MODEL,),
+        )
+    )
     decision = route_order_intents(
         portfolio,
         _snapshot(portfolio),
@@ -247,9 +245,7 @@ def test_unsupported_product_model_is_rejected_even_with_a_digest() -> None:
 
 
 def test_registered_option_model_can_route_delta_adjusted_exposure() -> None:
-    portfolio = _portfolio(
-        SharedRiskPolicy(risk_models=(OPTION_DELTA_NOTIONAL_RISK_MODEL,))
-    )
+    portfolio = _portfolio(SharedRiskPolicy(risk_models=(OPTION_DELTA_NOTIONAL_RISK_MODEL,)))
     decision = route_order_intents(
         portfolio,
         _snapshot(portfolio, risk_model=OPTION_DELTA_NOTIONAL_RISK_MODEL),

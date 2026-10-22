@@ -17,23 +17,36 @@ NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 def _entry() -> AuditEntry:
     return AuditEntry(
-        "run_attempt", "attempt-1", 1, AuditEntryType.OUTCOME_RECORDED,
-        content_digest("outcome"), NOW, "worker-1",
+        "run_attempt",
+        "attempt-1",
+        1,
+        AuditEntryType.OUTCOME_RECORDED,
+        content_digest("outcome"),
+        NOW,
+        "worker-1",
     )
 
 
 def _message(entry: AuditEntry, *, request: str = "request") -> OutboxMessage:
     return OutboxMessage(
-        content_digest(request), "run_attempt", "attempt-1", entry.entry_id,
-        "strategy-lab.events", content_digest("audit-payload"), NOW, NOW,
+        content_digest(request),
+        "run_attempt",
+        "attempt-1",
+        entry.entry_id,
+        "strategy-lab.events",
+        content_digest("audit-payload"),
+        NOW,
+        NOW,
     )
 
 
 def test_linked_audit_and_outbox_commit_together() -> None:
     entry = _entry()
     result = stage_audit_outbox(
-        AuditJournal("run_attempt", "attempt-1"), entry,
-        OutboxState(), _message(entry),
+        AuditJournal("run_attempt", "attempt-1"),
+        entry,
+        OutboxState(),
+        _message(entry),
     )
     assert result.decision is AuditOutboxDecision.COMMIT
     assert result.journal.entries == (entry,)
@@ -53,11 +66,18 @@ def test_exact_pair_retry_replays_without_state_change() -> None:
 
 def test_audit_gap_keeps_outbox_unchanged() -> None:
     entry = AuditEntry(
-        "run_attempt", "attempt-1", 2, AuditEntryType.OUTCOME_RECORDED,
-        content_digest("outcome"), NOW, "worker-1",
+        "run_attempt",
+        "attempt-1",
+        2,
+        AuditEntryType.OUTCOME_RECORDED,
+        content_digest("outcome"),
+        NOW,
+        "worker-1",
     )
     outbox = OutboxState()
-    result = stage_audit_outbox(AuditJournal("run_attempt", "attempt-1"), entry, outbox, _message(entry))
+    result = stage_audit_outbox(
+        AuditJournal("run_attempt", "attempt-1"), entry, outbox, _message(entry)
+    )
     assert result.decision is AuditOutboxDecision.GAP
     assert result.journal.entries == ()
     assert result.outbox == outbox
@@ -65,10 +85,18 @@ def test_audit_gap_keeps_outbox_unchanged() -> None:
 
 def test_outbox_request_conflict_keeps_journal_unchanged() -> None:
     entry = _entry()
-    applied = stage_audit_outbox(AuditJournal("run_attempt", "attempt-1"), entry, OutboxState(), _message(entry))
+    applied = stage_audit_outbox(
+        AuditJournal("run_attempt", "attempt-1"), entry, OutboxState(), _message(entry)
+    )
     changed = OutboxMessage(
-        _message(entry).request_id, "run_attempt", "attempt-1", entry.entry_id,
-        "strategy-lab.events", content_digest("different-payload"), NOW, NOW,
+        _message(entry).request_id,
+        "run_attempt",
+        "attempt-1",
+        entry.entry_id,
+        "strategy-lab.events",
+        content_digest("different-payload"),
+        NOW,
+        NOW,
     )
     result = stage_audit_outbox(applied.journal, entry, applied.outbox, changed)
     assert result.decision is AuditOutboxDecision.CONFLICT
@@ -79,10 +107,18 @@ def test_outbox_request_conflict_keeps_journal_unchanged() -> None:
 def test_identity_mismatch_rejects_before_either_resolution() -> None:
     entry = _entry()
     foreign = OutboxMessage(
-        content_digest("request"), "run_attempt", "attempt-1", content_digest("other-event"),
-        "strategy-lab.events", content_digest("audit-payload"), NOW, NOW,
+        content_digest("request"),
+        "run_attempt",
+        "attempt-1",
+        content_digest("other-event"),
+        "strategy-lab.events",
+        content_digest("audit-payload"),
+        NOW,
+        NOW,
     )
-    result = stage_audit_outbox(AuditJournal("run_attempt", "attempt-1"), entry, OutboxState(), foreign)
+    result = stage_audit_outbox(
+        AuditJournal("run_attempt", "attempt-1"), entry, OutboxState(), foreign
+    )
     assert result.decision is AuditOutboxDecision.REJECT
     assert result.journal.entries == ()
     assert result.outbox.messages == ()
@@ -98,5 +134,7 @@ def test_types_and_resolution_contract_fail_closed() -> None:
         AuditOutboxResolution(
             AuditOutboxDecision.REJECT,
             AuditJournal("run_attempt", "attempt-1"),
-            OutboxState(), entry.entry_id, _message(entry).message_id,
+            OutboxState(),
+            entry.entry_id,
+            _message(entry).message_id,
         )

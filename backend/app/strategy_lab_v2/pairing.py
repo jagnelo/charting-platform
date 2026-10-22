@@ -119,9 +119,7 @@ def verify_keyed_random_stream_pairing(
             raise ValueError(f"paired stream draw value mismatch for key {key!r}")
 
     ordered_keys = tuple(sorted(baseline_keys))
-    paired_draws = tuple(
-        (key, baseline_by_key[key].draw_value) for key in ordered_keys
-    )
+    paired_draws = tuple((key, baseline_by_key[key].draw_value) for key in ordered_keys)
     claim = KeyedRandomStreamPairingClaim(
         baseline_attempt_id=baseline_attempt_id,
         variant_attempt_id=variant_attempt_id,

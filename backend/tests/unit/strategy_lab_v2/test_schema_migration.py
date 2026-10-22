@@ -5,10 +5,7 @@ from pathlib import Path
 from types import ModuleType
 
 _MIGRATION_PATH = (
-    Path(__file__).parents[3]
-    / "alembic"
-    / "versions"
-    / "slv2_0001_add_strategy_lab_v2_storage.py"
+    Path(__file__).parents[3] / "alembic" / "versions" / "slv2_0001_add_strategy_lab_v2_storage.py"
 )
 _PAYLOAD_MIGRATION_PATH = _MIGRATION_PATH.with_name(
     "slv2_0002_add_strategy_lab_v2_dispatch_payloads.py"

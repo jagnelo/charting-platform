@@ -102,7 +102,9 @@ async def test_legacy_adapter_persists_replays_and_scopes_registry() -> None:
     session = FakeSession()
     adapter = PostgresLegacyImportAdapter(lambda: session)
     request = _request()
-    applied = await adapter.import_record(principal="owner-a", request=request, assessment=_assessment())
+    applied = await adapter.import_record(
+        principal="owner-a", request=request, assessment=_assessment()
+    )
     assert applied.decision is LegacyImportDecision.ACCEPT
     replay = await adapter.import_record(
         principal="owner-a",
@@ -119,7 +121,9 @@ async def test_unsupported_import_is_preserved_and_conflicts_do_not_mutate() -> 
     session = FakeSession()
     adapter = PostgresLegacyImportAdapter(lambda: session)
     first = await adapter.import_record(
-        principal="owner-a", request=_request(kind=LegacyRecordKind.RESULT), assessment=_assessment(supported=False)
+        principal="owner-a",
+        request=_request(kind=LegacyRecordKind.RESULT),
+        assessment=_assessment(supported=False),
     )
     assert first.decision is LegacyImportDecision.UNSUPPORTED
     before = dict(session.records)
@@ -149,4 +153,3 @@ def test_legacy_schema_is_explicit_and_identifiers_are_validated() -> None:
     assert "PRIMARY KEY (owner_id, legacy_id)" in schema.statements[0]
     with pytest.raises(ValueError, match="safe SQL identifier"):
         PostgresLegacySchema(import_table="unsafe;drop")
-

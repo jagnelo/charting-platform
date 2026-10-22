@@ -223,7 +223,9 @@ def plan_execution_orchestration(
         sandbox_plan_fingerprint=sandbox_plan.fingerprint,
         execution_plan_fingerprint=execution_plan.fingerprint,
         worker_id=admission.worker_id,
-        authoritative=(decision is ExecutionOrchestrationDecision.READY and execution_plan.authoritative),
+        authoritative=(
+            decision is ExecutionOrchestrationDecision.READY and execution_plan.authoritative
+        ),
         decision=decision,
         rejection_reasons=reasons_tuple,
     )

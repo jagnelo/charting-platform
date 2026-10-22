@@ -116,9 +116,7 @@ class PostgresWorkerSettlementAdapter:
                 current = await self._load_one(session, owner_id, record.attempt_id)
                 if current is None:
                     await self._insert(session, owner_id, record)
-                    return SettlementReceiptResolution(
-                        SettlementReceiptDecision.REGISTERED, record
-                    )
+                    return SettlementReceiptResolution(SettlementReceiptDecision.REGISTERED, record)
                 if current != record:
                     raise ValueError("worker settlement identity is already bound")
                 return SettlementReceiptResolution(

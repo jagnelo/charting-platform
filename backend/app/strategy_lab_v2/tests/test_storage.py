@@ -13,8 +13,13 @@ from app.strategy_lab_v2.storage import (
 )
 
 
-def _request(*, request: str = "request", value: int = 1, expected_version: int = 0,
-             expected_state_fingerprint: str | None = None) -> StorageTransactionRequest:
+def _request(
+    *,
+    request: str = "request",
+    value: int = 1,
+    expected_version: int = 0,
+    expected_state_fingerprint: str | None = None,
+) -> StorageTransactionRequest:
     return StorageTransactionRequest(
         content_digest(request),
         (
@@ -89,7 +94,11 @@ def test_create_collision_and_missing_update_are_conflicts() -> None:
     assert collision.decision is StorageTransactionDecision.CONFLICT
     missing = resolve_storage_transaction(
         (),
-        _request(request="missing", expected_version=1, expected_state_fingerprint=content_digest("state")),
+        _request(
+            request="missing",
+            expected_version=1,
+            expected_state_fingerprint=content_digest("state"),
+        ),
     )
     assert missing.decision is StorageTransactionDecision.CONFLICT
 

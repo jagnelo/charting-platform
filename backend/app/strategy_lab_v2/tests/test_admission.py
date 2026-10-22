@@ -93,12 +93,22 @@ def test_admission_composes_authorization_runtime_and_serial_capacity() -> None:
 def test_exact_admission_replays_only_with_a_live_matching_reservation() -> None:
     authorization, request, preflight, pool = _fixture()
     first = resolve_execution_admission(
-        ExecutionAdmissionLedger(), authorization, request, preflight, pool,
-        reservation_id=_reservation("one"), now=NOW + timedelta(seconds=4)
+        ExecutionAdmissionLedger(),
+        authorization,
+        request,
+        preflight,
+        pool,
+        reservation_id=_reservation("one"),
+        now=NOW + timedelta(seconds=4),
     )
     replay = resolve_execution_admission(
-        first.ledger, authorization, request, preflight, first.pool,
-        reservation_id=_reservation("one"), now=NOW + timedelta(seconds=5)
+        first.ledger,
+        authorization,
+        request,
+        preflight,
+        first.pool,
+        reservation_id=_reservation("one"),
+        now=NOW + timedelta(seconds=5),
     )
     assert replay.decision is ExecutionAdmissionDecision.REPLAY_EXISTING
     assert replay.admission == first.admission
@@ -109,8 +119,13 @@ def test_exact_admission_replays_only_with_a_live_matching_reservation() -> None
         reservations=(replace(first.pool.reservations[0], released_at=NOW + timedelta(seconds=6)),),
     )
     missing = resolve_execution_admission(
-        first.ledger, authorization, request, preflight, released,
-        reservation_id=_reservation("one"), now=NOW + timedelta(seconds=7)
+        first.ledger,
+        authorization,
+        request,
+        preflight,
+        released,
+        reservation_id=_reservation("one"),
+        now=NOW + timedelta(seconds=7),
     )
     assert missing.decision is ExecutionAdmissionDecision.REJECT
     assert missing.rejection_reason == "admission receipt is missing its active worker reservation"
@@ -119,8 +134,13 @@ def test_exact_admission_replays_only_with_a_live_matching_reservation() -> None
 def test_admission_reports_capacity_and_conflicting_attempt_content() -> None:
     authorization, request, preflight, pool = _fixture()
     first = resolve_execution_admission(
-        ExecutionAdmissionLedger(), authorization, request, preflight, pool,
-        reservation_id=_reservation("one"), now=NOW + timedelta(seconds=4)
+        ExecutionAdmissionLedger(),
+        authorization,
+        request,
+        preflight,
+        pool,
+        reservation_id=_reservation("one"),
+        now=NOW + timedelta(seconds=4),
     )
     saturated_request = _request(
         "attempt-2",
@@ -130,13 +150,23 @@ def test_admission_reports_capacity_and_conflicting_attempt_content() -> None:
     saturated_preflight = preflight_strategy_runtime(saturated_request, _profile())
     other_authorization = replace(authorization, attempt_id="attempt-2")
     saturated = resolve_execution_admission(
-        ExecutionAdmissionLedger(), other_authorization, saturated_request, saturated_preflight,
-        first.pool, reservation_id=_reservation("two"), now=NOW + timedelta(seconds=5)
+        ExecutionAdmissionLedger(),
+        other_authorization,
+        saturated_request,
+        saturated_preflight,
+        first.pool,
+        reservation_id=_reservation("two"),
+        now=NOW + timedelta(seconds=5),
     )
     assert saturated.decision is ExecutionAdmissionDecision.SATURATED
     conflict = resolve_execution_admission(
-        first.ledger, authorization, request, preflight, first.pool,
-        reservation_id=_reservation("different"), now=NOW + timedelta(seconds=5)
+        first.ledger,
+        authorization,
+        request,
+        preflight,
+        first.pool,
+        reservation_id=_reservation("different"),
+        now=NOW + timedelta(seconds=5),
     )
     assert conflict.decision is ExecutionAdmissionDecision.CONFLICT
     assert conflict.rejection_reason == "attempt is already bound to different admission content"
@@ -145,19 +175,31 @@ def test_admission_reports_capacity_and_conflicting_attempt_content() -> None:
 def test_admission_fails_closed_for_runtime_or_worker_identity_mismatches() -> None:
     authorization, request, preflight, pool = _fixture(network=True)
     rejected = resolve_execution_admission(
-        ExecutionAdmissionLedger(), authorization, request, preflight, pool,
-        reservation_id=_reservation("one"), now=NOW + timedelta(seconds=4)
+        ExecutionAdmissionLedger(),
+        authorization,
+        request,
+        preflight,
+        pool,
+        reservation_id=_reservation("one"),
+        now=NOW + timedelta(seconds=4),
     )
     assert rejected.decision is ExecutionAdmissionDecision.REJECT
     assert rejected.rejection_reason == "runtime preflight is not accepted"
 
     good_authorization, good_request, good_preflight, good_pool = _fixture()
     wrong_worker = WorkerPoolState(
-        WorkerProfile("worker-2", WorkerKind.BACKTEST, good_pool.profile.runtime_profile_fingerprint)
+        WorkerProfile(
+            "worker-2", WorkerKind.BACKTEST, good_pool.profile.runtime_profile_fingerprint
+        )
     )
     worker_rejected = resolve_execution_admission(
-        ExecutionAdmissionLedger(), good_authorization, good_request, good_preflight, wrong_worker,
-        reservation_id=_reservation("one"), now=NOW + timedelta(seconds=4)
+        ExecutionAdmissionLedger(),
+        good_authorization,
+        good_request,
+        good_preflight,
+        wrong_worker,
+        reservation_id=_reservation("one"),
+        now=NOW + timedelta(seconds=4),
     )
     assert worker_rejected.decision is ExecutionAdmissionDecision.REJECT
     assert worker_rejected.rejection_reason == "authorization lease is bound to a different worker"
@@ -166,19 +208,34 @@ def test_admission_fails_closed_for_runtime_or_worker_identity_mismatches() -> N
 def test_admission_requires_monotonic_time_and_active_worker_reservation() -> None:
     authorization, request, preflight, pool = _fixture()
     early = resolve_execution_admission(
-        ExecutionAdmissionLedger(), authorization, request, preflight, pool,
-        reservation_id=_reservation("one"), now=NOW + timedelta(seconds=1)
+        ExecutionAdmissionLedger(),
+        authorization,
+        request,
+        preflight,
+        pool,
+        reservation_id=_reservation("one"),
+        now=NOW + timedelta(seconds=1),
     )
     assert early.decision is ExecutionAdmissionDecision.REJECT
     assert early.rejection_reason == "admission time cannot precede authorization"
 
     accepted = resolve_execution_admission(
-        ExecutionAdmissionLedger(), authorization, request, preflight, pool,
-        reservation_id=_reservation("one"), now=NOW + timedelta(seconds=4)
+        ExecutionAdmissionLedger(),
+        authorization,
+        request,
+        preflight,
+        pool,
+        reservation_id=_reservation("one"),
+        now=NOW + timedelta(seconds=4),
     )
     inconsistent = resolve_execution_admission(
-        ExecutionAdmissionLedger(), authorization, request, preflight, accepted.pool,
-        reservation_id=_reservation("different"), now=NOW + timedelta(seconds=5)
+        ExecutionAdmissionLedger(),
+        authorization,
+        request,
+        preflight,
+        accepted.pool,
+        reservation_id=_reservation("different"),
+        now=NOW + timedelta(seconds=5),
     )
     assert inconsistent.decision is ExecutionAdmissionDecision.REJECT
     assert inconsistent.rejection_reason == "worker reservation exists without an admission receipt"

@@ -83,9 +83,7 @@ async def test_successful_enqueue_proposes_published_outbox_state() -> None:
 async def test_transport_replay_recovers_crash_before_outbox_ack() -> None:
     message = _message()
     state = _state(message)
-    result = await relay_outbox_message(
-        state, message, RedisDispatchTransport(FakeRedis(0))
-    )
+    result = await relay_outbox_message(state, message, RedisDispatchTransport(FakeRedis(0)))
     assert result.decision is OutboxRelayDecision.REPLAY_EXISTING
     assert result.state.published_message_ids == frozenset({message.message_id})
 
@@ -95,9 +93,7 @@ async def test_transport_replay_recovers_crash_before_outbox_ack() -> None:
 async def test_conflict_or_transport_failure_preserves_pending_state(code) -> None:
     message = _message()
     state = _state(message)
-    result = await relay_outbox_message(
-        state, message, RedisDispatchTransport(FakeRedis(code))
-    )
+    result = await relay_outbox_message(state, message, RedisDispatchTransport(FakeRedis(code)))
     assert result.decision in {OutboxRelayDecision.CONFLICT, OutboxRelayDecision.REJECT}
     assert result.state == state
     assert message.message_id in {item.message_id for item in result.state.pending_messages}
@@ -108,13 +104,9 @@ async def test_conflict_or_transport_failure_preserves_pending_state(code) -> No
 async def test_exact_relay_retry_replays_without_transport_call() -> None:
     message = _message()
     state = _state(message)
-    first = await relay_outbox_message(
-        state, message, RedisDispatchTransport(FakeRedis(1))
-    )
+    first = await relay_outbox_message(state, message, RedisDispatchTransport(FakeRedis(1)))
     redis = FakeRedis(RuntimeError("must not be called"))
-    replay = await relay_outbox_message(
-        first.state, message, RedisDispatchTransport(redis)
-    )
+    replay = await relay_outbox_message(first.state, message, RedisDispatchTransport(redis))
     assert replay.decision is OutboxRelayDecision.REPLAY_EXISTING
     assert replay.state == first.state
     assert redis.calls == []
@@ -123,9 +115,7 @@ async def test_exact_relay_retry_replays_without_transport_call() -> None:
 @pytest.mark.asyncio
 async def test_unknown_message_and_invalid_arguments_fail_closed() -> None:
     message = _message()
-    result = await relay_outbox_message(
-        OutboxState(), message, RedisDispatchTransport(FakeRedis())
-    )
+    result = await relay_outbox_message(OutboxState(), message, RedisDispatchTransport(FakeRedis()))
     assert result.decision is OutboxRelayDecision.REJECT
     assert "not present" in (result.rejection_reason or "")
     with pytest.raises(TypeError, match="transport"):

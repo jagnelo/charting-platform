@@ -103,7 +103,11 @@ def test_recovery_backoff_caps_and_attempt_limit_is_terminal() -> None:
     # The supplied chain is intentionally invalid: the latest attempt is running.
     with pytest.raises(ValueError, match="terminal"):
         plan_attempt_recovery(
-            (first, second, transition_attempt(third, AttemptState.RUNNING, now=NOW + timedelta(seconds=22))),
+            (
+                first,
+                second,
+                transition_attempt(third, AttemptState.RUNNING, now=NOW + timedelta(seconds=22)),
+            ),
             reason=RecoveryReason.WORKER_CRASH,
             observed_at=NOW + timedelta(seconds=23),
             policy=policy,

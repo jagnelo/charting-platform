@@ -88,7 +88,10 @@ class FakeSession:
             return FakeResult(rowcount=1)
         if sql.lstrip().startswith("UPDATE") and "execution_progress" in sql:
             row = self.progress.get(key)
-            if row is None or row["checkpoint_fingerprint"] != values["expected_checkpoint_fingerprint"]:
+            if (
+                row is None
+                or row["checkpoint_fingerprint"] != values["expected_checkpoint_fingerprint"]
+            ):
                 return FakeResult(rowcount=0)
             row.update(values)
             return FakeResult(rowcount=1)

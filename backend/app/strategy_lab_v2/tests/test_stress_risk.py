@@ -24,21 +24,21 @@ def _stress(
     observations: tuple[StressScenarioObservation, ...] | None = None,
 ) -> StressScenarioSnapshot:
     default_observations = (
-            StressScenarioObservation(
-                "base-case",
-                content_digest("shock-base"),
-                Decimal("100000"),
-                Decimal("95000"),
-                content_digest("stress-values-base"),
-            ),
-            StressScenarioObservation(
-                "downside",
-                content_digest("shock-downside"),
-                Decimal("100000"),
-                Decimal("90000"),
-                content_digest("stress-values-downside"),
-            ),
-        )
+        StressScenarioObservation(
+            "base-case",
+            content_digest("shock-base"),
+            Decimal("100000"),
+            Decimal("95000"),
+            content_digest("stress-values-base"),
+        ),
+        StressScenarioObservation(
+            "downside",
+            content_digest("shock-downside"),
+            Decimal("100000"),
+            Decimal("90000"),
+            content_digest("stress-values-downside"),
+        ),
+    )
     return StressScenarioSnapshot(
         portfolio_fingerprint or margin_decision.portfolio_fingerprint,
         margin_decision.exposure_snapshot_fingerprint,
@@ -59,7 +59,9 @@ def test_stress_gate_approves_complete_scenarios_within_explicit_limits() -> Non
     decision = apply_stress_risk_gate(
         margin,
         _stress(margin),
-        StressRiskPolicy(max_loss_fraction=Decimal("0.20"), minimum_stressed_equity=Decimal("80000")),
+        StressRiskPolicy(
+            max_loss_fraction=Decimal("0.20"), minimum_stressed_equity=Decimal("80000")
+        ),
     )
 
     assert decision.kind is StressRiskDecisionKind.APPROVED
@@ -76,7 +78,9 @@ def test_stress_gate_withholds_all_orders_for_loss_or_equity_breaches() -> None:
     decision = apply_stress_risk_gate(
         margin,
         _stress(margin),
-        StressRiskPolicy(max_loss_fraction=Decimal("0.05"), minimum_stressed_equity=Decimal("95000")),
+        StressRiskPolicy(
+            max_loss_fraction=Decimal("0.05"), minimum_stressed_equity=Decimal("95000")
+        ),
     )
 
     assert decision.kind is StressRiskDecisionKind.RISK_REJECTED

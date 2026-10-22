@@ -33,7 +33,11 @@ class ForwardSeenEvent:
     def __post_init__(self) -> None:
         _nonempty(self.event_id, "event_id")
         require_sha256_digest(self.event_fingerprint, field_name="event_fingerprint")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 0
+        ):
             raise ValueError("event sequence must be a non-negative integer")
 
 
@@ -91,7 +95,13 @@ class ForwardLiveAdmissionState:
             else frozenset()
         )
         seen = (
-            (ForwardSeenEvent(receipt.final_event_id, receipt.final_event_fingerprint, receipt.final_event_sequence),)
+            (
+                ForwardSeenEvent(
+                    receipt.final_event_id,
+                    receipt.final_event_fingerprint,
+                    receipt.final_event_sequence,
+                ),
+            )
             if receipt.final_event_id is not None and receipt.final_event_fingerprint is not None
             else ()
         )
@@ -130,15 +140,23 @@ class ForwardAdmissionResolution:
         if not isinstance(self.state, ForwardLiveAdmissionState):
             raise TypeError("state must be a ForwardLiveAdmissionState")
         require_sha256_digest(self.event_fingerprint, field_name="event_fingerprint")
-        if self.decision in {
-            ForwardAdmissionDecision.CONFLICT,
-            ForwardAdmissionDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ForwardAdmissionDecision.CONFLICT,
+                ForwardAdmissionDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision not in {
-            ForwardAdmissionDecision.CONFLICT,
-            ForwardAdmissionDecision.REJECT,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            not in {
+                ForwardAdmissionDecision.CONFLICT,
+                ForwardAdmissionDecision.REJECT,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful admission resolutions cannot contain a reason")
 
 
@@ -197,7 +215,9 @@ def admit_forward_event(
         ForwardEventDisposition.OUT_OF_ORDER: ForwardAdmissionDecision.OUT_OF_ORDER,
         ForwardEventDisposition.CORRECTION: ForwardAdmissionDecision.CORRECTION,
     }
-    return ForwardAdmissionResolution(decisions[observation.disposition], next_state, event_fingerprint)
+    return ForwardAdmissionResolution(
+        decisions[observation.disposition], next_state, event_fingerprint
+    )
 
 
 def _validate_observation(

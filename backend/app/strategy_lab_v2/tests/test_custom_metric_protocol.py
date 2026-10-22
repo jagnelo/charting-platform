@@ -161,7 +161,9 @@ def test_custom_metric_cli_reads_and_atomically_writes_typed_result(tmp_path) ->
     assert result.metric is not None and result.metric.value == Decimal("3.5")
 
 
-def test_custom_metric_cli_rejects_oversized_request_before_reading_unbounded_text(tmp_path) -> None:
+def test_custom_metric_cli_rejects_oversized_request_before_reading_unbounded_text(
+    tmp_path,
+) -> None:
     request_path = tmp_path / "oversized-request.json"
     result_path = tmp_path / "result.json"
     request_path.write_bytes(b"{" + (b" " * MAX_WIRE_PAYLOAD_BYTES))
@@ -187,9 +189,7 @@ def test_custom_metric_cli_supports_deterministic_batches(tmp_path) -> None:
     )
     request_path = tmp_path / "batch-request.json"
     result_path = tmp_path / "batch-result.json"
-    request_path.write_text(
-        serialize_custom_metric_invocation_batch(invocations), encoding="utf-8"
-    )
+    request_path.write_text(serialize_custom_metric_invocation_batch(invocations), encoding="utf-8")
     assert (
         custom_metric_main(
             ["--request", str(request_path), "--result", str(result_path), "--batch"]

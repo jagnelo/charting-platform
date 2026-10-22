@@ -49,9 +49,7 @@ def test_idempotency_replay_ignores_submission_timestamp() -> None:
 
 def test_submission_lifecycle_times_normalize_to_utc_for_identity() -> None:
     offset = timezone(timedelta(hours=2))
-    request = _request(
-        submitted_at=(NOW + timedelta(hours=2)).replace(tzinfo=offset)
-    )
+    request = _request(submitted_at=(NOW + timedelta(hours=2)).replace(tzinfo=offset))
     receipt = create_submission_receipt(
         request,
         accepted_at=(NOW + timedelta(hours=3)).replace(tzinfo=offset),

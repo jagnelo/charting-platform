@@ -177,9 +177,7 @@ class PostgresRuntimeExecutionAdapter:
                     )
                 return RuntimeStateResolution(RuntimeStateDecision.REPLAY_EXISTING, current)
 
-    async def load(
-        self, *, principal: Any, attempt_id: str
-    ) -> RuntimeExecutionState | None:
+    async def load(self, *, principal: Any, attempt_id: str) -> RuntimeExecutionState | None:
         """Read one owner-scoped runtime state and verify its stored identity."""
 
         _validate_attempt(attempt_id)
@@ -376,7 +374,9 @@ class PostgresRuntimeExecutionAdapter:
             state, execution_plan, sandbox_plan, run_result, observed_at=observed_at
         )
         if checked.decision is RuntimeResultDecision.REJECT:
-            return RuntimeStateResolution(RuntimeStateDecision.REJECT, state, checked.rejection_reason)
+            return RuntimeStateResolution(
+                RuntimeStateDecision.REJECT, state, checked.rejection_reason
+            )
         if checked.decision is RuntimeResultDecision.REPLAY_EXISTING:
             return RuntimeStateResolution(RuntimeStateDecision.REPLAY_EXISTING, state)
         return await self.materialize_sandbox_result(

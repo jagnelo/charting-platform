@@ -109,7 +109,11 @@ class OutboxState:
     def pending_messages(self) -> tuple[OutboxMessage, ...]:
         return tuple(
             sorted(
-                (item for item in self.messages if item.message_id not in self.published_message_ids),
+                (
+                    item
+                    for item in self.messages
+                    if item.message_id not in self.published_message_ids
+                ),
                 key=lambda item: (item.available_at, item.message_id),
             )
         )

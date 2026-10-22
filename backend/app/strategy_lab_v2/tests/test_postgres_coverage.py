@@ -101,8 +101,18 @@ async def test_coverage_adapter_registers_replays_and_scopes_attestations() -> N
     assert registered.decision is CoverageStateDecision.REGISTERED
     replay = await adapter.ensure(principal="owner-a", attestation=attestation)
     assert replay.decision is CoverageStateDecision.REPLAY_EXISTING
-    assert await adapter.load(principal="owner-a", series_content_digest=attestation.series_content_digest) == attestation
-    assert await adapter.load(principal="owner-b", series_content_digest=attestation.series_content_digest) is None
+    assert (
+        await adapter.load(
+            principal="owner-a", series_content_digest=attestation.series_content_digest
+        )
+        == attestation
+    )
+    assert (
+        await adapter.load(
+            principal="owner-b", series_content_digest=attestation.series_content_digest
+        )
+        is None
+    )
 
 
 @pytest.mark.asyncio
@@ -126,9 +136,13 @@ async def test_coverage_adapter_rejects_tampered_rows() -> None:
     adapter = PostgresCoverageAdapter(lambda: session)
     attestation = _attestation()
     await adapter.ensure(principal="owner-a", attestation=attestation)
-    session.attestations[("owner-a", attestation.series_content_digest)]["attestation_fingerprint"] = content_digest("tampered")
+    session.attestations[("owner-a", attestation.series_content_digest)][
+        "attestation_fingerprint"
+    ] = content_digest("tampered")
     with pytest.raises(ValueError, match="fingerprint"):
-        await adapter.load(principal="owner-a", series_content_digest=attestation.series_content_digest)
+        await adapter.load(
+            principal="owner-a", series_content_digest=attestation.series_content_digest
+        )
 
 
 def test_coverage_schema_is_explicit_and_identifiers_are_validated() -> None:

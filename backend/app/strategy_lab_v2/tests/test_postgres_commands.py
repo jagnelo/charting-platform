@@ -84,8 +84,7 @@ class FakeSession:
         if sql.lstrip().startswith("INSERT"):
             key = (values["owner_id"], values["idempotency_key"])
             if key in self.rows or any(
-                row["owner_id"] == values["owner_id"]
-                and row["command_id"] == values["command_id"]
+                row["owner_id"] == values["owner_id"] and row["command_id"] == values["command_id"]
                 for row in self.rows.values()
             ):
                 return FakeResult(rowcount=0)
@@ -114,7 +113,9 @@ def _context(status: OutcomeStatus = OutcomeStatus.RUNNING) -> ExecutionCommandC
                 1,
                 status,
                 NOW + timedelta(seconds=1),
-                result_digest=content_digest("result") if status is OutcomeStatus.SUCCEEDED else None,
+                result_digest=content_digest("result")
+                if status is OutcomeStatus.SUCCEEDED
+                else None,
             ),
         ).state
         phase = ProgressPhase.FAILED if status is OutcomeStatus.FAILED else ProgressPhase.RUNNING
@@ -125,7 +126,9 @@ def _context(status: OutcomeStatus = OutcomeStatus.RUNNING) -> ExecutionCommandC
     return ExecutionCommandContext(outcome, progress)
 
 
-def _command(value: str, kind: ExecutionCommandKind = ExecutionCommandKind.CANCEL) -> ExecutionCommand:
+def _command(
+    value: str, kind: ExecutionCommandKind = ExecutionCommandKind.CANCEL
+) -> ExecutionCommand:
     return ExecutionCommand(content_digest(value), ATTEMPT, kind, NOW, "operator request")
 
 
@@ -181,19 +184,29 @@ async def test_command_adapter_returns_typed_precondition_and_not_found_errors()
     failed_context = _context(OutcomeStatus.FAILED)
     failed_context = ExecutionCommandContext(
         failed_context.outcome,
-        ExecutionProgressState(ATTEMPT, 1, ProgressPhase.FAILED, 10, 10, False, NOW + timedelta(seconds=1)),
+        ExecutionProgressState(
+            ATTEMPT, 1, ProgressPhase.FAILED, 10, 10, False, NOW + timedelta(seconds=1)
+        ),
     )
-    adapter = PostgresCommandAdapter(lambda: session, StateReader(failed_context), clock=lambda: NOW)
+    adapter = PostgresCommandAdapter(
+        lambda: session, StateReader(failed_context), clock=lambda: NOW
+    )
     with pytest.raises(ApiAdapterError) as precondition:
         await adapter.command(
-            principal="alice", request_id="request-1", idempotency_key="key", command=_command("cancel")
+            principal="alice",
+            request_id="request-1",
+            idempotency_key="key",
+            command=_command("cancel"),
         )
     assert precondition.value.error.code is ApiErrorCode.PRECONDITION_FAILED
 
     missing = PostgresCommandAdapter(lambda: FakeSession(), StateReader(None), clock=lambda: NOW)
     with pytest.raises(ApiAdapterError) as not_found:
         await missing.command(
-            principal="alice", request_id="request-2", idempotency_key="key", command=_command("cancel")
+            principal="alice",
+            request_id="request-2",
+            idempotency_key="key",
+            command=_command("cancel"),
         )
     assert not_found.value.error.code is ApiErrorCode.NOT_FOUND
 

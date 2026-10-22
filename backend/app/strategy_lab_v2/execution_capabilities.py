@@ -28,9 +28,7 @@ class ExecutionCapabilityBinding:
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{name} must not be empty")
         require_sha256_digest(self.engine_build_digest, field_name="engine_build_digest")
-        require_sha256_digest(
-            self.conformance_fingerprint, field_name="conformance_fingerprint"
-        )
+        require_sha256_digest(self.conformance_fingerprint, field_name="conformance_fingerprint")
         if not isinstance(self.authoritative, bool):
             raise TypeError("authoritative must be a boolean")
         if not self.product_classes:
@@ -102,11 +100,7 @@ def preflight_execution_capability(
             gaps.append(f"execution_model:{requirement.execution_model}")
         if requirement.account_model not in binding.account_models:
             gaps.append(f"account_model:{requirement.account_model}")
-    classification = (
-        PreflightClass.UNSUPPORTED
-        if gaps
-        else report.classification
-    )
+    classification = PreflightClass.UNSUPPORTED if gaps else report.classification
     return ExecutionCapabilityPreflight(
         report_fingerprint=report.fingerprint,
         binding_fingerprint=binding.fingerprint,

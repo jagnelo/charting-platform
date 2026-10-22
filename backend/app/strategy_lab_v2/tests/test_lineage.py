@@ -61,9 +61,7 @@ def test_lineage_append_is_idempotent_and_deterministically_ordered() -> None:
 
 
 def test_lineage_entry_normalizes_offset_equivalent_creation_times() -> None:
-    equivalent = _entry(
-        created_at=datetime(2024, 1, 1, 1, tzinfo=timezone(timedelta(hours=1)))
-    )
+    equivalent = _entry(created_at=datetime(2024, 1, 1, 1, tzinfo=timezone(timedelta(hours=1))))
     assert equivalent == _entry()
     assert equivalent.created_at.tzinfo is UTC
 

@@ -88,7 +88,10 @@ async def test_acquisition_adapter_registers_replays_and_scopes_receipts() -> No
     assert registered.decision is AcquisitionStateDecision.REGISTERED
     replay = await adapter.ensure(principal="owner-a", receipt=receipt)
     assert replay.decision is AcquisitionStateDecision.REPLAY_EXISTING
-    assert await adapter.load(principal="owner-a", request_fingerprint=receipt.request_fingerprint) == receipt
+    assert (
+        await adapter.load(principal="owner-a", request_fingerprint=receipt.request_fingerprint)
+        == receipt
+    )
     assert await adapter.load_all(principal="owner-b") == ()
 
 
@@ -117,7 +120,9 @@ async def test_acquisition_adapter_rejects_tampered_rows() -> None:
     adapter = PostgresAcquisitionAdapter(lambda: session)
     receipt = _receipt()
     await adapter.ensure(principal="owner-a", receipt=receipt)
-    session.receipts[("owner-a", receipt.request_fingerprint)]["receipt_fingerprint"] = content_digest("tampered")
+    session.receipts[("owner-a", receipt.request_fingerprint)]["receipt_fingerprint"] = (
+        content_digest("tampered")
+    )
     with pytest.raises(ValueError, match="fingerprint"):
         await adapter.load(principal="owner-a", request_fingerprint=receipt.request_fingerprint)
 
@@ -128,4 +133,3 @@ def test_acquisition_schema_is_explicit_and_identifiers_are_validated() -> None:
     assert "PRIMARY KEY (owner_id, request_fingerprint)" in schema.statements[0]
     with pytest.raises(ValueError, match="safe SQL identifier"):
         PostgresAcquisitionSchema(receipt_table="unsafe;drop")
-

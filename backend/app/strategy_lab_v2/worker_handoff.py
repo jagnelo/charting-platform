@@ -54,7 +54,9 @@ def decode_worker_handoff(payload: DispatchPayload) -> WorkerExecutionRequest:
     return request
 
 
-async def materialize_worker_handoff(_entry: Any, payload: DispatchPayload) -> WorkerExecutionRequest:
+async def materialize_worker_handoff(
+    _entry: Any, payload: DispatchPayload
+) -> WorkerExecutionRequest:
     """Adapt the strict decoder to the worker service materializer callback."""
 
     return decode_worker_handoff(payload)

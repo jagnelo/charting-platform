@@ -98,7 +98,10 @@ def test_same_pin_id_with_changed_metadata_is_a_conflict() -> None:
 
 def test_pinned_artifact_requires_a_pin_then_retains_active_pin() -> None:
     state = _state()
-    assert resolve_artifact_retention(state, observed_at=NOW).decision is RetentionDecision.PIN_REQUIRED
+    assert (
+        resolve_artifact_retention(state, observed_at=NOW).decision
+        is RetentionDecision.PIN_REQUIRED
+    )
     pinned = add_retention_pin(state, _pin("one")).state
     resolution = resolve_artifact_retention(pinned, observed_at=NOW)
     assert resolution.decision is RetentionDecision.RETAIN_PINNED
@@ -109,7 +112,10 @@ def test_expired_pin_reveals_ephemeral_expiry_eligibility() -> None:
     eligible = NOW + timedelta(days=2)
     state = _state(ArtifactRetention.EPHEMERAL, eligible_at=eligible)
     pinned = add_retention_pin(state, _pin("one", expires_at=eligible)).state
-    assert resolve_artifact_retention(pinned, observed_at=NOW).decision is RetentionDecision.RETAIN_PINNED
+    assert (
+        resolve_artifact_retention(pinned, observed_at=NOW).decision
+        is RetentionDecision.RETAIN_PINNED
+    )
     assert (
         resolve_artifact_retention(pinned, observed_at=eligible).decision
         is RetentionDecision.EXPIRE_ELIGIBLE
@@ -119,7 +125,10 @@ def test_expired_pin_reveals_ephemeral_expiry_eligibility() -> None:
 def test_tiered_result_remains_tiered_until_eligibility() -> None:
     eligible = NOW + timedelta(days=2)
     state = _state(ArtifactRetention.TIERED_RESULT, eligible_at=eligible)
-    assert resolve_artifact_retention(state, observed_at=NOW).decision is RetentionDecision.RETAIN_TIERED
+    assert (
+        resolve_artifact_retention(state, observed_at=NOW).decision
+        is RetentionDecision.RETAIN_TIERED
+    )
     assert (
         resolve_artifact_retention(state, observed_at=eligible).decision
         is RetentionDecision.TIER_ELIGIBLE
@@ -129,17 +138,19 @@ def test_tiered_result_remains_tiered_until_eligibility() -> None:
 def test_release_is_idempotent_and_reopens_retention_decision() -> None:
     pin = _pin("one")
     state = add_retention_pin(_state(), pin).state
-    released = release_retention_pin(
-        state, pin_id=pin.pin_id, released_at=NOW + timedelta(hours=1)
+    released = release_retention_pin(state, pin_id=pin.pin_id, released_at=NOW + timedelta(hours=1))
+    assert (
+        resolve_artifact_retention(released, observed_at=NOW).decision
+        is RetentionDecision.RETAIN_PINNED
     )
-    assert resolve_artifact_retention(released, observed_at=NOW).decision is RetentionDecision.RETAIN_PINNED
     assert (
         resolve_artifact_retention(released, observed_at=NOW + timedelta(hours=1)).decision
         is RetentionDecision.PIN_REQUIRED
     )
-    assert release_retention_pin(
-        released, pin_id=pin.pin_id, released_at=NOW + timedelta(hours=2)
-    ) == released
+    assert (
+        release_retention_pin(released, pin_id=pin.pin_id, released_at=NOW + timedelta(hours=2))
+        == released
+    )
 
 
 def test_retention_contract_rejects_invalid_deadlines_and_foreign_pins() -> None:

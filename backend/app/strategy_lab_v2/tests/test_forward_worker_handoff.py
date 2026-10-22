@@ -31,12 +31,14 @@ class DispatchStore:
         return self.record
 
 
-def _entry_and_payload() -> tuple[
-    RedisStreamEntry,
-    DispatchPayload,
-    ForwardEventDispatchRecord,
-    ForwardEventWorkItem,
-]:
+def _entry_and_payload() -> (
+    tuple[
+        RedisStreamEntry,
+        DispatchPayload,
+        ForwardEventDispatchRecord,
+        ForwardEventWorkItem,
+    ]
+):
     event_fingerprint = content_digest("canonical-live-event")
     payload = DispatchPayload.from_mapping(
         {
@@ -65,9 +67,14 @@ def _entry_and_payload() -> tuple[
         request.payload_digest,
         request.fingerprint,
     )
-    return entry, payload, record, ForwardEventWorkItem(
+    return (
+        entry,
+        payload,
         record,
-        ForwardEventDispatchPayload(event_fingerprint),
+        ForwardEventWorkItem(
+            record,
+            ForwardEventDispatchPayload(event_fingerprint),
+        ),
     )
 
 

@@ -106,7 +106,16 @@ def test_state_requires_deterministic_identity_and_known_publications() -> None:
 
 def test_message_requires_digest_time_order_and_scheduling_identity() -> None:
     with pytest.raises(ValueError, match="request_id"):
-        OutboxMessage("bad", "run_attempt", "attempt-1", content_digest("event"), "topic", content_digest("p"), NOW, NOW)
+        OutboxMessage(
+            "bad",
+            "run_attempt",
+            "attempt-1",
+            content_digest("event"),
+            "topic",
+            content_digest("p"),
+            NOW,
+            NOW,
+        )
     with pytest.raises(ValueError, match="available_at"):
         _message(available_at=NOW - timedelta(seconds=1))
     with pytest.raises(ValueError, match="timezone-aware"):

@@ -53,7 +53,9 @@ def _live_state() -> ForwardLiveAdmissionState:
     return ForwardLiveAdmissionState.from_warmup(active, receipt)
 
 
-def _event(event_id: str, sequence: int, *, correction_of: str | None = None) -> CanonicalForwardEvent:
+def _event(
+    event_id: str, sequence: int, *, correction_of: str | None = None
+) -> CanonicalForwardEvent:
     return CanonicalForwardEvent(
         event_id,
         sequence,
@@ -130,7 +132,9 @@ def test_gap_is_buffered_and_late_event_can_reconcile() -> None:
         first.state,
         event1,
         observe_forward_event(
-            ForwardCursor(last_sequence=0, last_event_id="live-0", last_event_time=event0.event_time),
+            ForwardCursor(
+                last_sequence=0, last_event_id="live-0", last_event_time=event0.event_time
+            ),
             event1,
         ),
     )
@@ -152,7 +156,9 @@ def test_duplicate_out_of_order_and_correction_decisions_remain_observable() -> 
         accepted.state,
         duplicate,
         observe_forward_event(
-            ForwardCursor(last_sequence=0, last_event_id="live-1", last_event_time=event1.event_time),
+            ForwardCursor(
+                last_sequence=0, last_event_id="live-1", last_event_time=event1.event_time
+            ),
             duplicate,
         ),
     )
@@ -162,7 +168,9 @@ def test_duplicate_out_of_order_and_correction_decisions_remain_observable() -> 
         duplicate_result.state,
         correction,
         observe_forward_event(
-            ForwardCursor(last_sequence=0, last_event_id="live-1", last_event_time=event1.event_time),
+            ForwardCursor(
+                last_sequence=0, last_event_id="live-1", last_event_time=event1.event_time
+            ),
             correction,
         ),
     )
@@ -172,7 +180,11 @@ def test_duplicate_out_of_order_and_correction_decisions_remain_observable() -> 
 
 def test_admission_requires_active_instance_and_warmup_cursor_binding() -> None:
     receipt = ForwardWarmupReceipt(
-        "forward-1", SNAPSHOT, CarryInMode.FLAT, content_digest("warmup"), NOW + timedelta(minutes=1)
+        "forward-1",
+        SNAPSHOT,
+        CarryInMode.FLAT,
+        content_digest("warmup"),
+        NOW + timedelta(minutes=1),
     )
     with pytest.raises(ValueError, match="active"):
         ForwardLiveAdmissionState(ForwardStateCheckpoint(_warming()), receipt.fingerprint)

@@ -104,15 +104,23 @@ class SubmissionDispatchResolution:
                 DispatchDecision.REPLAY_EXISTING,
             }:
                 raise ValueError("accepted resolutions require an accepted dispatch")
-        if self.decision in {
-            SubmissionDispatchDecision.CONFLICT,
-            SubmissionDispatchDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                SubmissionDispatchDecision.CONFLICT,
+                SubmissionDispatchDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision not in {
-            SubmissionDispatchDecision.CONFLICT,
-            SubmissionDispatchDecision.REJECT,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            not in {
+                SubmissionDispatchDecision.CONFLICT,
+                SubmissionDispatchDecision.REJECT,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("accepted resolutions cannot contain a rejection reason")
 
     @property
@@ -141,9 +149,7 @@ def resolve_submission_dispatch(
         raise TypeError("request must be a SubmissionRequest")
     if not isinstance(dispatch_request, DispatchRequest):
         raise TypeError("dispatch_request must be a DispatchRequest")
-    if not isinstance(prior_dispatches, Sequence) or isinstance(
-        prior_dispatches, str | bytes
-    ):
+    if not isinstance(prior_dispatches, Sequence) or isinstance(prior_dispatches, str | bytes):
         raise TypeError("prior_dispatches must be a sequence")
     _aware(accepted_at, "accepted_at")
     if accepted_at < request.submitted_at:
@@ -153,7 +159,9 @@ def resolve_submission_dispatch(
     if dispatch_request.payload_digest != request.payload_digest:
         return _reject(ledger, request.fingerprint, "dispatch payload differs from submission")
     if dispatch_request.idempotency_key != request.idempotency_key:
-        return _reject(ledger, request.fingerprint, "dispatch idempotency key differs from submission")
+        return _reject(
+            ledger, request.fingerprint, "dispatch idempotency key differs from submission"
+        )
     if dispatch_request.created_at < request.submitted_at:
         return _reject(ledger, request.fingerprint, "dispatch cannot precede submission")
 

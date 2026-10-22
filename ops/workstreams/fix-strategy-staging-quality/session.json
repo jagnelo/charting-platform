@@ -1,0 +1,105 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "FMT1",
+      "text": "Pinned backend code and formatting checks pass without policy changes."
+    },
+    {
+      "id": "FMT2",
+      "text": "All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes."
+    },
+    {
+      "id": "FMT3",
+      "text": "Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance."
+    },
+    {
+      "id": "PROV1",
+      "text": "Affected readiness browser flows wait for their fixture response before the unchanged provenance assertions; no assertion, timeout, retry, skip, reference or production behavior changes."
+    },
+    {
+      "id": "PROV2",
+      "text": "Actual isolated full-stack focused browser validation passes with exact cleanup; full final branch CI and new staging exhaustive functional/visual gates remain required."
+    }
+  ],
+  "active_session_id": "706a780f-1b88-48e7-bef2-2a2b0524fbb1",
+  "branch": "fix/strategy-staging-quality",
+  "dirty_paths": [
+    "ops/workstreams/fix-strategy-staging-quality/session.json"
+  ],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-strategy-staging-quality-a3afbefe",
+      "charting-stack-fix-strategy-staging-quality-a3afbefe"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-strategy-staging-quality-a3afbefe16"
+  },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/strategy-staging-quality: Repair the four-feature staging formatting gate and readiness-provenance browser setup without weakening behavior, assertions or validation, then return the tested checkpoint for guarded remediation integration.. Acceptance criteria: FMT1: Pinned backend code and formatting checks pass without policy changes.; FMT2: All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes.; FMT3: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.; PROV1: Affected readiness browser flows wait for their fixture response before the unchanged provenance assertions; no assertion, timeout, retry, skip, reference or production behavior changes.; PROV2: Actual isolated full-stack focused browser validation passes with exact cleanup; full final branch CI and new staging exhaustive functional/visual gates remain required.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-22T16:58:20.359455+00:00",
+  "goal_request": {
+    "objective": "Advance fix/strategy-staging-quality: Repair the four-feature staging formatting gate and readiness-provenance browser setup without weakening behavior, assertions or validation, then return the tested checkpoint for guarded remediation integration.. Acceptance criteria: FMT1: Pinned backend code and formatting checks pass without policy changes.; FMT2: All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes.; FMT3: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.; PROV1: Affected readiness browser flows wait for their fixture response before the unchanged provenance assertions; no assertion, timeout, retry, skip, reference or production behavior changes.; PROV2: Actual isolated full-stack focused browser validation passes with exact cleanup; full final branch CI and new staging exhaustive functional/visual gates remain required.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "Original coordinator native goal remains active/unbudgeted and covers this accepted repair in the same visible thread; no duplicate goal or accounting reset. Final full branch CI and new staging exhaustive validation remain mandatory.",
+  "head": "c83b10a581ea94e8fb8435fe02034ebc5e623fed",
+  "implementation_sha": "c83b10a581ea94e8fb8435fe02034ebc5e623fed",
+  "last_checkpoint": "2026-10-22T16:58:26.280298+00:00",
+  "last_human_progress_update": "2026-10-22T16:54:40.709361+00:00",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "continue implementation from the branch workstream",
+  "parent_branch": "staging",
+  "plan_hash": "c8f081bd10ddc0e4c4459cfa546e60b8b5a7f01f57e16276d2b78fdaec57941d",
+  "planning_required": true,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [
+      "FMT1",
+      "FMT2",
+      "PROV1",
+      "PROV2"
+    ],
+    "current_blocker": "none",
+    "current_phase": "local-quality-validation-green",
+    "next_action": "Finalize technical closure and require final exact full branch CI green before canonical remediation integration; all new staging exhaustive gates remain mandatory.",
+    "total": 5,
+    "updated_at": "2026-10-22T16:54:40.709327+00:00"
+  },
+  "remote": "c83b10a581ea94e8fb8435fe02034ebc5e623fed",
+  "remote_sha": "c83b10a581ea94e8fb8435fe02034ebc5e623fed",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "706a780f-1b88-48e7-bef2-2a2b0524fbb1",
+  "state": "checkpointed",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality",
+  "worktree_id": "fix-strategy-staging-quality-a3afbefe16"
+}

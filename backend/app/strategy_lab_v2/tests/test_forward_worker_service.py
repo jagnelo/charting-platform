@@ -42,9 +42,7 @@ def _work() -> tuple[RedisStreamEntry, DispatchPayload, ForwardEventWorkItem]:
     request = DispatchRequest(
         "forward-key", "forward-instance", payload.payload_digest, "forward-events", NOW
     )
-    record = ForwardEventDispatchRecord(
-        "owner-1", "forward-instance", event_fingerprint, request
-    )
+    record = ForwardEventDispatchRecord("owner-1", "forward-instance", event_fingerprint, request)
     entry = RedisStreamEntry(
         "strategy-lab:v2:stream:forward-events",
         "1-0",
@@ -53,8 +51,10 @@ def _work() -> tuple[RedisStreamEntry, DispatchPayload, ForwardEventWorkItem]:
         request.payload_digest,
         request.fingerprint,
     )
-    return entry, payload, ForwardEventWorkItem(
-        record, ForwardEventDispatchPayload(event_fingerprint)
+    return (
+        entry,
+        payload,
+        ForwardEventWorkItem(record, ForwardEventDispatchPayload(event_fingerprint)),
     )
 
 

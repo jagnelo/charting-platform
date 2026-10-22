@@ -33,10 +33,15 @@ def _profile() -> RuntimeIsolationProfile:
 def _request(profile: RuntimeIsolationProfile | None = None) -> StrategyRuntimeRequest:
     profile = profile or _profile()
     return StrategyRuntimeRequest(
-        content_digest("request"), "attempt-1", content_digest("package"),
-        content_digest("source"), content_digest("inputs"), profile.fingerprint,
+        content_digest("request"),
+        "attempt-1",
+        content_digest("package"),
+        content_digest("source"),
+        content_digest("inputs"),
+        profile.fingerprint,
         "strategy.main:run",
-        RuntimeIsolationRequest("attempt-1", (content_digest("dep"),)), NOW,
+        RuntimeIsolationRequest("attempt-1", (content_digest("dep"),)),
+        NOW,
     )
 
 
@@ -96,46 +101,95 @@ def test_isolation_rejection_propagates_and_state_creation_fails_closed() -> Non
     assert preflight.decision is StrategyRuntimeDecision.REJECT
     assert "network_must_be_disabled" in preflight.rejection_reasons
     with pytest.raises(ValueError, match="allowed preflight"):
-        new_runtime_execution_state(preflight, attempt_id="attempt-1", output_limit_bytes=100, accepted_at=NOW)
+        new_runtime_execution_state(
+            preflight, attempt_id="attempt-1", output_limit_bytes=100, accepted_at=NOW
+        )
 
 
 def test_running_and_success_receipts_enforce_output_budget_and_replay() -> None:
     preflight = preflight_strategy_runtime(_request(), _profile())
-    state = new_runtime_execution_state(preflight, attempt_id="attempt-1", output_limit_bytes=100, accepted_at=NOW)
+    state = new_runtime_execution_state(
+        preflight, attempt_id="attempt-1", output_limit_bytes=100, accepted_at=NOW
+    )
     running = apply_runtime_execution_update(
         state,
-        RuntimeExecutionUpdate(preflight.request_fingerprint, "attempt-1", 1, RuntimeExecutionPhase.RUNNING, NOW + timedelta(seconds=1)),
+        RuntimeExecutionUpdate(
+            preflight.request_fingerprint,
+            "attempt-1",
+            1,
+            RuntimeExecutionPhase.RUNNING,
+            NOW + timedelta(seconds=1),
+        ),
     )
     output = content_digest("output")
     succeeded = apply_runtime_execution_update(
         running.state,
-        RuntimeExecutionUpdate(preflight.request_fingerprint, "attempt-1", 2, RuntimeExecutionPhase.SUCCEEDED, NOW + timedelta(seconds=2), output, 25),
+        RuntimeExecutionUpdate(
+            preflight.request_fingerprint,
+            "attempt-1",
+            2,
+            RuntimeExecutionPhase.SUCCEEDED,
+            NOW + timedelta(seconds=2),
+            output,
+            25,
+        ),
     )
     assert succeeded.decision is RuntimeExecutionDecision.APPLY
     replay = apply_runtime_execution_update(
         succeeded.state,
-        RuntimeExecutionUpdate(preflight.request_fingerprint, "attempt-1", 2, RuntimeExecutionPhase.SUCCEEDED, NOW + timedelta(seconds=2), output, 25),
+        RuntimeExecutionUpdate(
+            preflight.request_fingerprint,
+            "attempt-1",
+            2,
+            RuntimeExecutionPhase.SUCCEEDED,
+            NOW + timedelta(seconds=2),
+            output,
+            25,
+        ),
     )
     assert replay.decision is RuntimeExecutionDecision.REPLAY_EXISTING
     with pytest.raises(ValueError, match="output exceeds"):
         apply_runtime_execution_update(
             running.state,
-            RuntimeExecutionUpdate(preflight.request_fingerprint, "attempt-1", 2, RuntimeExecutionPhase.SUCCEEDED, NOW + timedelta(seconds=2), output, 101),
+            RuntimeExecutionUpdate(
+                preflight.request_fingerprint,
+                "attempt-1",
+                2,
+                RuntimeExecutionPhase.SUCCEEDED,
+                NOW + timedelta(seconds=2),
+                output,
+                101,
+            ),
         )
 
 
 def test_failure_and_cancellation_are_terminal_and_conflicts_reject() -> None:
     preflight = preflight_strategy_runtime(_request(), _profile())
-    state = new_runtime_execution_state(preflight, attempt_id="attempt-1", output_limit_bytes=100, accepted_at=NOW)
+    state = new_runtime_execution_state(
+        preflight, attempt_id="attempt-1", output_limit_bytes=100, accepted_at=NOW
+    )
     failed = apply_runtime_execution_update(
         state,
-        RuntimeExecutionUpdate(preflight.request_fingerprint, "attempt-1", 1, RuntimeExecutionPhase.FAILED, NOW + timedelta(seconds=1), error_digest=content_digest("error")),
+        RuntimeExecutionUpdate(
+            preflight.request_fingerprint,
+            "attempt-1",
+            1,
+            RuntimeExecutionPhase.FAILED,
+            NOW + timedelta(seconds=1),
+            error_digest=content_digest("error"),
+        ),
     )
     assert failed.state.phase is RuntimeExecutionPhase.FAILED
     with pytest.raises(ValueError, match="terminal runtime state"):
         apply_runtime_execution_update(
             failed.state,
-            RuntimeExecutionUpdate(preflight.request_fingerprint, "attempt-1", 2, RuntimeExecutionPhase.CANCELLED, NOW + timedelta(seconds=2)),
+            RuntimeExecutionUpdate(
+                preflight.request_fingerprint,
+                "attempt-1",
+                2,
+                RuntimeExecutionPhase.CANCELLED,
+                NOW + timedelta(seconds=2),
+            ),
         )
     running = apply_runtime_execution_update(
         state,
@@ -163,21 +217,53 @@ def test_failure_and_cancellation_are_terminal_and_conflicts_reject() -> None:
 def test_request_requires_attempt_binding_and_declared_digests() -> None:
     profile = _profile()
     with pytest.raises(ValueError, match="request_id"):
-        StrategyRuntimeRequest("bad", "attempt-1", content_digest("package"), content_digest("source"), content_digest("inputs"), _profile().fingerprint, "strategy.main:run", RuntimeIsolationRequest("attempt-1"), NOW)
+        StrategyRuntimeRequest(
+            "bad",
+            "attempt-1",
+            content_digest("package"),
+            content_digest("source"),
+            content_digest("inputs"),
+            _profile().fingerprint,
+            "strategy.main:run",
+            RuntimeIsolationRequest("attempt-1"),
+            NOW,
+        )
     with pytest.raises(ValueError, match="runtime attempt"):
-        StrategyRuntimeRequest(content_digest("request"), "attempt-1", content_digest("package"), content_digest("source"), content_digest("inputs"), profile.fingerprint, "strategy.main:run", RuntimeIsolationRequest("other"), NOW)
+        StrategyRuntimeRequest(
+            content_digest("request"),
+            "attempt-1",
+            content_digest("package"),
+            content_digest("source"),
+            content_digest("inputs"),
+            profile.fingerprint,
+            "strategy.main:run",
+            RuntimeIsolationRequest("other"),
+            NOW,
+        )
 
 
 def test_update_contract_requires_terminal_payloads_and_monotonic_time() -> None:
     request_fingerprint = content_digest("request")
     with pytest.raises(ValueError, match="successful runtime updates"):
-        RuntimeExecutionUpdate(request_fingerprint, "attempt-1", 1, RuntimeExecutionPhase.SUCCEEDED, NOW)
+        RuntimeExecutionUpdate(
+            request_fingerprint, "attempt-1", 1, RuntimeExecutionPhase.SUCCEEDED, NOW
+        )
     with pytest.raises(ValueError, match="failed runtime updates"):
-        RuntimeExecutionUpdate(request_fingerprint, "attempt-1", 1, RuntimeExecutionPhase.FAILED, NOW)
+        RuntimeExecutionUpdate(
+            request_fingerprint, "attempt-1", 1, RuntimeExecutionPhase.FAILED, NOW
+        )
     preflight = preflight_strategy_runtime(_request(), _profile())
-    state = new_runtime_execution_state(preflight, attempt_id="attempt-1", output_limit_bytes=100, accepted_at=NOW)
+    state = new_runtime_execution_state(
+        preflight, attempt_id="attempt-1", output_limit_bytes=100, accepted_at=NOW
+    )
     with pytest.raises(ValueError, match="time cannot move backwards"):
         apply_runtime_execution_update(
             state,
-            RuntimeExecutionUpdate(preflight.request_fingerprint, "attempt-1", 1, RuntimeExecutionPhase.RUNNING, NOW - timedelta(seconds=1)),
+            RuntimeExecutionUpdate(
+                preflight.request_fingerprint,
+                "attempt-1",
+                1,
+                RuntimeExecutionPhase.RUNNING,
+                NOW - timedelta(seconds=1),
+            ),
         )

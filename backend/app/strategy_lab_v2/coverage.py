@@ -70,7 +70,11 @@ class CoverageAttestation:
         end = self.end.astimezone(UTC)
         if start >= end:
             raise ValueError("coverage start must be earlier than end")
-        if not isinstance(self.row_count, int) or isinstance(self.row_count, bool) or self.row_count <= 0:
+        if (
+            not isinstance(self.row_count, int)
+            or isinstance(self.row_count, bool)
+            or self.row_count <= 0
+        ):
             raise ValueError("coverage row_count must be a positive integer")
         for name in ("complete", "gap_free"):
             if not isinstance(getattr(self, name), bool):

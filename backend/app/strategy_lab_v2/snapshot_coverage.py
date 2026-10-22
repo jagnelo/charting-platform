@@ -57,7 +57,9 @@ class SnapshotCoverageResolution:
                 require_sha256_digest(digest, field_name=f"{name} item")
             object.__setattr__(self, name, tuple(sorted(values)))
         if self.decision is SnapshotCoverageDecision.VERIFIED:
-            if not reports or any(item.decision is not CoverageVerificationDecision.VERIFIED for item in reports):
+            if not reports or any(
+                item.decision is not CoverageVerificationDecision.VERIFIED for item in reports
+            ):
                 raise ValueError("verified snapshots require a verified report for every series")
             if self.missing_series_digests or self.unexpected_series_digests:
                 raise ValueError("verified snapshots cannot have missing or unexpected series")
@@ -116,9 +118,7 @@ def verify_snapshot_coverage(
         report = verify_coverage_attestation(series, attestations_by_series[series_digest])
         reports.append(report)
         if not report.verified:
-            mismatches.extend(
-                f"{series_digest}:{mismatch}" for mismatch in report.mismatches
-            )
+            mismatches.extend(f"{series_digest}:{mismatch}" for mismatch in report.mismatches)
     if missing:
         mismatches.extend(f"missing_series:{item}" for item in sorted(missing))
     if unexpected:
