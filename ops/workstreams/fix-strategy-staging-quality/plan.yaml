@@ -1,0 +1,34 @@
+schema: 4
+branch: fix/strategy-staging-quality
+base_sha: 5178b414b426ec61bdcb22257b4f956581c25d0c
+parent_branch: staging
+parent_sha: 5178b414b426ec61bdcb22257b4f956581c25d0c
+dependency_authorization: "Under the human standing authorization recorded on 2026-10-20, the coordinator authorizes this narrowly scoped formatter-only remediation directly from exact degraded staging 5178b414b426ec61bdcb22257b4f956581c25d0c; no semantic changes, gate weakening, provider requests or retained-resource changes."
+human_intent_authorization: "Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting-only repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md."
+planning_state: draft
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: pending_agent_assessment
+local_validation_reason: pending agent assessment from changed paths and runtime impact
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting-only repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md."
+scope: []
+owned_paths: []
+dependencies: []
+acceptance_criteria: []
+branch_tests: []
+branch_tests_reason: pending agent assessment
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps: []
+progress:
+  completed: []
+  total: 0
+  current_phase: plan
+  current_blocker: none
+  next_action: complete the branch-owned plan before creating a goal
