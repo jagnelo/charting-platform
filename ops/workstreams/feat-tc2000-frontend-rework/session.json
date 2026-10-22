@@ -142,7 +142,7 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "59d0c3b6b4eb07968b256d879c0ad9e27456f90b",
+  "head": "eaddaef9e19f7dd3cf3798465a1cf1680e5813dc",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -153,7 +153,7 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-22T19:55:29+00:00",
+  "last_checkpoint": "2026-10-22T20:03:57+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -186,7 +186,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "af3670e5e1ea7354d97ea1b8bc0bcc9071288cc7d77968cfba61d6082d79557c",
+  "plan_hash": "b8a4baff0a1306f0c8a3b33779cdcc3ebf5bc43690c340e5eeb7a3955c8af008",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -206,28 +206,28 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "No upstream dependency blocks TC development. M2 adoption is published; Custom Date Sort formula and exact chart/trendline range-source helpers pass 11 focused tests and type-check. Persisted-history/coverage loading, actual gesture wiring, output destinations, and the existing sector/industry comparator source remain unimplemented; no sub-industry mapping is assumed.",
-    "current_phase": "M2_adopted_and_scope_reconciled;custom_date_sort_formula_and_range_source_11_tests_typecheck_green;persisted_data_gesture_and_output_wiring_in_progress;AC1_AC9_and_REF_HELP_V25_open",
+    "current_blocker": "No upstream dependency blocks TC development. Custom Date Sort formula/range core is published at eaddaef9; a dirty coverage resolver passes 12 focused tests and Vue type-check, binding ready coverage to exact historical range/timeframe/adjustment, canonical local provenance, known lineage, and unique endpoint bars. Persisted-history loading, chart gestures, output wiring, and a truthful sector/industry comparator source remain open; no sub-industry mapping is assumed.",
+    "current_phase": "M2_adopted;custom_date_sort_formula_range_core_published_eaddaef;coverage_scope_lineage_gate_12_tests_typecheck_green_dirty;history_gesture_comparator_output_wiring_pending;AC1_AC9_and_REF_HELP_V25_open",
     "next_action": "Qualify existing persisted sector/industry history and coverage interfaces, then connect the formula and exact range helpers to actual chart gestures and implement the documented result-window/WatchList destinations without provider acquisition.",
     "total": 5,
-    "updated_at": "2026-10-22T19:55:29+00:00"
+    "updated_at": "2026-10-22T20:03:57+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "59d0c3b6b4eb07968b256d879c0ad9e27456f90b",
-    "current_pending_range": "M2 adoption/guard checkpoint 59d0c3b6 is already published and independently verified. The Custom Date Sort calculation helper, focused test, and corresponding own workstream records are the current in-progress source slice.",
+    "current_local_head": "eaddaef9e19f7dd3cf3798465a1cf1680e5813dc",
+    "current_pending_range": "M2 adoption/guard checkpoint 59d0c3b6 and pure Custom Date Sort calculation/range core eaddaef are published. The exact-scope local-coverage resolver and corresponding own records are the current in-progress slice.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "59d0c3b6b4eb07968b256d879c0ad9e27456f90b",
-    "status": "Exact coordinator-released staging M2 is the parent source for published adoption checkpoint 59d0c3b6; remote ref independently matches. The Custom Date Sort pure calculation slice is in progress; exact CI for the post-adoption branch record is not represented as M2 CI."
+    "remote_tracking_sha": "eaddaef9e19f7dd3cf3798465a1cf1680e5813dc",
+    "status": "Exact coordinator-released staging M2 is the parent source for published adoption checkpoint 59d0c3b6; remote ref was independently verified then. The first Custom Date Sort core is published at eaddaef and its branch ref was independently compared through GitHub as identical. A direct shell ls-remote query hit transient DNS failure; the local origin tracking ref also reads eaddaef."
   },
-  "remote": "59d0c3b6b4eb07968b256d879c0ad9e27456f90b",
-  "remote_sha": "59d0c3b6b4eb07968b256d879c0ad9e27456f90b",
+  "remote": "eaddaef9e19f7dd3cf3798465a1cf1680e5813dc",
+  "remote_sha": "eaddaef9e19f7dd3cf3798465a1cf1680e5813dc",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

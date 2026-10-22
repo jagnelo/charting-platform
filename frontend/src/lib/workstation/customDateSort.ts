@@ -14,6 +14,24 @@ export interface CustomDateSortBarBoundary {
   ts: string | number
 }
 
+export interface CustomDateSortPriceBar extends CustomDateSortBarBoundary {
+  close: number | null
+}
+
+export interface CustomDateSortCoverageEvidence {
+  status: 'ready' | 'partial' | 'missing' | 'stale' | string
+  provenance: string
+  mode: string
+  timeframe: string
+  adjusted: boolean
+  requested_start: string
+  requested_end: string
+  lineage?: {
+    source_lineage?: string
+    unknown_bar_count?: number
+  } | null
+}
+
 export type CustomDateSortValue =
   | {
       status: 'ready'
@@ -26,12 +44,28 @@ export type CustomDateSortValue =
       reason: 'instrument_price_unavailable' | 'comparison_history_unavailable'
     }
 
+export type CustomDateSortPriceEvidence =
+  | {
+      status: 'ready'
+      prices: CustomDateSortPriceRange
+      sourceLineage: 'provider_only' | 'derived_only' | 'provider_and_derived'
+    }
+  | {
+      status: 'unavailable'
+      reason:
+        | 'coverage_not_ready'
+        | 'coverage_scope_mismatch'
+        | 'non_local_provenance'
+        | 'unknown_lineage'
+        | 'boundary_price_unavailable'
+    }
+
 function percentChange(range: CustomDateSortPriceRange): number | null {
   const { startClose, endClose } = range
   if (
     startClose == null || endClose == null
     || !Number.isFinite(startClose) || !Number.isFinite(endClose)
-    || startClose <= 0
+    || startClose <= 0 || endClose <= 0
   ) return null
   const result = ((endClose - startClose) / startClose) * 100
   return Number.isFinite(result) ? result : null
@@ -55,6 +89,56 @@ function rangeFromEpochs(first: number | null, second: number | null): CustomDat
   const start = Math.min(first, second)
   const end = Math.max(first, second)
   return { start: new Date(start).toISOString(), end: new Date(end).toISOString() }
+}
+
+/**
+ * Resolve the two selected closes only from a ready canonical-local coverage
+ * response with fully known provider/derived lineage. Coverage is range- and
+ * adjustment-specific at the API boundary; this helper preserves that contract
+ * instead of treating two present values as sufficient evidence.
+ */
+export function resolveCoveredCustomDateSortPrices(
+  bars: readonly CustomDateSortPriceBar[],
+  range: CustomDateSortRange,
+  expectedScope: { timeframe: string; adjusted: boolean },
+  coverage: CustomDateSortCoverageEvidence,
+): CustomDateSortPriceEvidence {
+  if (coverage.status !== 'ready') return { status: 'unavailable', reason: 'coverage_not_ready' }
+  const startMs = epochMilliseconds(range.start)
+  const endMs = epochMilliseconds(range.end)
+  if (
+    startMs == null || endMs == null || startMs >= endMs
+    || coverage.mode !== 'historical'
+    || coverage.timeframe !== expectedScope.timeframe
+    || coverage.adjusted !== expectedScope.adjusted
+    || epochMilliseconds(coverage.requested_start) !== startMs
+    || epochMilliseconds(coverage.requested_end) !== endMs
+  ) return { status: 'unavailable', reason: 'coverage_scope_mismatch' }
+  if (coverage.provenance !== 'canonical_local_database') {
+    return { status: 'unavailable', reason: 'non_local_provenance' }
+  }
+  const sourceLineage = coverage.lineage?.source_lineage
+  if (
+    coverage.lineage?.unknown_bar_count !== 0
+    || !['provider_only', 'derived_only', 'provider_and_derived'].includes(sourceLineage ?? '')
+  ) return { status: 'unavailable', reason: 'unknown_lineage' }
+
+  const closeAt = (timestamp: number) => {
+    const matches = bars.filter(candidate => epochMilliseconds(candidate.ts) === timestamp)
+    if (matches.length !== 1) return null
+    const close = matches[0].close
+    return typeof close === 'number' && Number.isFinite(close) && close > 0 ? close : null
+  }
+  const startClose = closeAt(startMs)
+  const endClose = closeAt(endMs)
+  if (startClose == null || endClose == null) {
+    return { status: 'unavailable', reason: 'boundary_price_unavailable' }
+  }
+  return {
+    status: 'ready',
+    prices: { startClose, endClose },
+    sourceLineage: sourceLineage as 'provider_only' | 'derived_only' | 'provider_and_derived',
+  }
 }
 
 /** Map a uPlot index-range drag to exact UTC bar boundaries; never estimate dates. */

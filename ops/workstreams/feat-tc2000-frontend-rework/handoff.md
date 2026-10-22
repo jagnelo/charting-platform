@@ -20,18 +20,26 @@ an independent remote query confirmed the exact ref. That record commit contains
 no product changes and its automatic CI remains separate from staging run
 39827786248. No browser/Compose/provider operation was performed.
 
+The first Custom Date Sort core was committed as `eaddaef9e19f7dd3cf3798465a1cf1680e5813dc`;
+`rtk git push` returned success, and the connected GitHub compare API independently
+reported `feat/tc2000-frontend-rework` identical to that SHA (the shell
+`ls-remote` query separately hit transient DNS failure). A follow-on offline
+coverage-evidence resolver is now being developed on that published base.
+
 The next branch-owned roadmap item is the V25 Custom Date Sort consumer using
 only persisted OHLCV/history and explicit coverage/classification contracts,
 with no provider routing or acquisition. Its pure formula and exact-boundary
-range-source core is in `frontend/src/lib/workstation/customDateSort.ts`; 11
-focused tests and Vue type-check pass. It maps chart indices and two-point
-trendline timestamps to UTC boundaries, computes the documented formulas from
-already-resolved close pairs, and returns explicit unavailable states. It does
-not fetch history, select chart gestures, decide coverage, map classification,
-or persist/output results. Persisted-history loading, truthful sector/industry
-comparator inputs, actual chart interaction, and new-window/WatchList output
-remain unimplemented. Official `REF-HELP-V25`, broader AC1-AC9 completion, and
-integration beyond this exact released baseline remain open.
+range-source core is in `frontend/src/lib/workstation/customDateSort.ts`; 12
+focused tests and Vue type-check pass for the current dirty coverage-evidence
+resolver. It maps chart indices and two-point trendline timestamps to UTC
+boundaries, computes the documented formulas from already-resolved close
+pairs, and refuses non-ready, mismatched-scope, non-local, unknown-lineage, or
+ambiguous boundary-price evidence. It does not fetch history, select chart
+gestures, map classification, or persist/output results. Persisted-history
+loading, truthful sector/industry comparator inputs, actual chart interaction,
+and new-window/WatchList output remain unimplemented. Official `REF-HELP-V25`,
+broader AC1-AC9 completion, and integration beyond this exact released baseline
+remain open.
 
 ## Previous bounded-checkpoint status — 2026-10-22
 
