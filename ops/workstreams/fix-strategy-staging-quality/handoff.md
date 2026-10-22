@@ -104,3 +104,13 @@ flaky test. Do not restart that observer or blindly replay failed CI; use connec
 read-only GitHub evidence and start canonical integration only after corrected
 final branch CI is terminal green. Staging remains5178b414, exact degraded marker
 unchanged; original feature worktrees remain frozen/clean. Root goal staysactive.
+
+Implementation now registers the successful matching GET readiness response
+listener before navigation via Promise.all in both adjacent provenance tests.
+Exact label text/locators/5s assertion/10s visibility waits and global test policy
+are unchanged. No application-source modification. Offline locked npm install
+passed; discovery selects exactly2 affected tests; workspace-store unit suite
+80passed5.75s and vue-tsc type-check exited0. Real browser evidence remains pending.
+Next: freeze this implementation SHA for a uniquely owned source-pinned isolated
+fixture, run the affected real browser flows with retries0/trace enabled, clean
+exact owned resources, then finalize records and require full exact hosted/staged gates.
