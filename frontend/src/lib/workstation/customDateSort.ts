@@ -1,5 +1,7 @@
 export type CustomDateSortMode = 'percent_change' | 'vs_sub_industry' | 'vs_industry'
 
+const CUSTOM_DATE_SORT_TIMEFRAMES = new Set(['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN'])
+
 export interface CustomDateSortPriceRange {
   startClose: number | null
   endClose: number | null
@@ -8,6 +10,15 @@ export interface CustomDateSortPriceRange {
 export interface CustomDateSortRange {
   start: string
   end: string
+}
+
+export interface CustomDateSortListColumn {
+  key: string
+  label: string
+  mode: 'percent_change'
+  range: CustomDateSortRange
+  timeframe: string
+  adjusted: boolean
 }
 
 export interface CustomDateSortBarBoundary {
@@ -89,6 +100,51 @@ function rangeFromEpochs(first: number | null, second: number | null): CustomDat
   const start = Math.min(first, second)
   const end = Math.max(first, second)
   return { start: new Date(start).toISOString(), end: new Date(end).toISOString() }
+}
+
+/** Build a serializable, range-specific result-column definition for a WatchList window. */
+export function customDateSortListColumn(
+  range: CustomDateSortRange,
+  timeframe: string,
+  adjusted: boolean,
+): CustomDateSortListColumn | null {
+  const start = epochMilliseconds(range.start)
+  const end = epochMilliseconds(range.end)
+  const normalizedTimeframe = timeframe.trim().toUpperCase()
+  if (start == null || end == null || start >= end || !CUSTOM_DATE_SORT_TIMEFRAMES.has(normalizedTimeframe)) return null
+  const normalizedRange = { start: new Date(start).toISOString(), end: new Date(end).toISOString() }
+  const startDate = normalizedRange.start.slice(0, 10)
+  const endDate = normalizedRange.end.slice(0, 10)
+  return {
+    key: `custom-date-sort:${normalizedTimeframe}:${normalizedRange.start}:${normalizedRange.end}:${adjusted ? 'adj' : 'raw'}`,
+    label: `Custom % ${startDate}–${endDate}`,
+    mode: 'percent_change',
+    range: normalizedRange,
+    timeframe: normalizedTimeframe,
+    adjusted,
+  }
+}
+
+/** Validate persisted workspace column data by recomputing its canonical key/label. */
+export function parseCustomDateSortListColumn(value: unknown): CustomDateSortListColumn | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const candidate = value as Record<string, unknown>
+  if (
+    candidate.mode !== 'percent_change'
+    || typeof candidate.timeframe !== 'string'
+    || typeof candidate.adjusted !== 'boolean'
+    || !candidate.range || typeof candidate.range !== 'object' || Array.isArray(candidate.range)
+  ) return null
+  const range = candidate.range as Record<string, unknown>
+  if (typeof range.start !== 'string' || typeof range.end !== 'string') return null
+  const definition = customDateSortListColumn(
+    { start: range.start, end: range.end },
+    candidate.timeframe,
+    candidate.adjusted,
+  )
+  return definition && candidate.key === definition.key && candidate.label === definition.label
+    ? definition
+    : null
 }
 
 /**

@@ -145,6 +145,7 @@
         <span v-else-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
         <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
         <span v-else>No personal watchlists available.</span>
+        <span v-if="Object.values(customDateSortListLoading).some(Boolean)" role="status" aria-live="polite">Calculating Custom Date Sort from canonical local history…</span>
         <span v-if="personalWatchlistError" class="personal-watchlist-tool__error">{{ personalWatchlistError }}</span>
         <span v-if="favoriteStore.error" class="personal-watchlist-tool__error" role="alert">{{ favoriteStore.error }}</span>
         <span v-if="watchlistStore.loadError" class="personal-watchlist-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ watchlistStore.loadError }}</span>
@@ -178,6 +179,8 @@
         :rows="isFavoritesTool ? favoriteRows : flaggedItemsSelected ? flaggedWatchlistRows : selectedCombo ? comboWatchlistRows : personalWatchlistRows"
         :selected="activeSymbol"
         :columns="personalWatchlistColumns"
+        :initial-sort-key="customDateSortListColumns[0]?.key"
+        :initial-sort-direction="customDateSortListColumns.length ? 'desc' : 'asc'"
         :visible-column-keys="configuredColumnKeys"
         :filter-text="configuredFilterText"
         :condition-screener-id="configuredConditionScreenerId"
@@ -299,6 +302,17 @@
               {{ customDateSortUnavailableLabel }}
             </span>
             <span v-else-if="customDateSortMessage" role="status" aria-live="polite">{{ customDateSortMessage }}</span>
+            <template v-if="customDateSortMode === 'percent_change' && customDateSortValue?.status === 'ready'">
+              <label>
+                <span>WatchList</span>
+                <select v-model.number="customDateSortTargetWatchlistId" aria-label="Custom Date Sort target WatchList">
+                  <option :value="null">Select a personal WatchList</option>
+                  <option v-for="target in customDateSortTargets" :key="target.id" :value="target.id">{{ target.name }}</option>
+                </select>
+              </label>
+              <button type="button" :disabled="customDateSortTargetWatchlistId == null" @click="openCustomDateSortWatchlist">Sort in new WatchList window</button>
+              <span v-if="customDateSortDestinationMessage" role="status" aria-live="polite">{{ customDateSortDestinationMessage }}</span>
+            </template>
           </template>
           <span v-else-if="customDateSortSelecting" role="status" aria-live="polite">Drag from one loaded bar to another.</span>
           <span v-else-if="customDateSortMessage" role="status" aria-live="polite">{{ customDateSortMessage }}</span>
@@ -950,8 +964,8 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { fetchCanonicalInstrument } from '@/lib/workstation/instrumentQueries'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
-import { calculateCustomDateSortValue, type CustomDateSortMode, type CustomDateSortPriceRange, type CustomDateSortRange, type CustomDateSortValue } from '@/lib/workstation/customDateSort'
-import { loadCustomDateSortLocalEvidence } from '@/lib/workstation/customDateSortData'
+import { calculateCustomDateSortValue, customDateSortListColumn, parseCustomDateSortListColumn, type CustomDateSortListColumn, type CustomDateSortMode, type CustomDateSortPriceRange, type CustomDateSortRange, type CustomDateSortValue } from '@/lib/workstation/customDateSort'
+import { loadCustomDateSortLocalEvidence, loadCustomDateSortLocalListValues } from '@/lib/workstation/customDateSortData'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import ChartTemplateControl from './ChartTemplateControl.vue'
@@ -959,7 +973,7 @@ import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
-import { useWorkspaceStore, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useFavoritesStore } from '@/stores/favorites'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
@@ -1120,6 +1134,8 @@ const customDateSortMode = ref<CustomDateSortMode>('percent_change')
 const customDateSortLoading = ref(false)
 const customDateSortValue = ref<CustomDateSortValue | null>(null)
 const customDateSortMessage = ref('')
+const customDateSortDestinationMessage = ref('')
+const customDateSortTargetWatchlistId = ref<number | null>(null)
 const customDateSortInstrumentPrices = ref<CustomDateSortPriceRange | null>(null)
 let customDateSortRequestSequence = 0
 const customDateSortUnavailableLabel = computed(() => {
@@ -1140,6 +1156,7 @@ function clearCustomDateSort() {
   customDateSortInstrumentPrices.value = null
   customDateSortValue.value = null
   customDateSortMessage.value = ''
+  customDateSortDestinationMessage.value = ''
   customDateSortLoading.value = false
 }
 function toggleCustomDateSort() {
@@ -1214,6 +1231,33 @@ const configuredComboKey = typeof configuredWatchlistId === 'string' && configur
 const selectedComboKey = ref<string | null>(configuredComboKey)
 const selectedPersonalWatchlistId = ref<number | null>(typeof configuredWatchlistId === 'number' ? configuredWatchlistId : null)
 const personalWatchlists = computed(() => watchlistStore.watchlists.filter(watchlist => !watchlist.is_managed))
+const customDateSortTargets = computed(() => personalWatchlists.value.filter(watchlist => !watchlist.is_managed))
+function openCustomDateSortWatchlist() {
+  const range = customDateSortRange.value
+  const target = customDateSortTargets.value.find(watchlist => watchlist.id === customDateSortTargetWatchlistId.value)
+  if (!range || customDateSortMode.value !== 'percent_change' || customDateSortValue.value?.status !== 'ready' || !target) {
+    customDateSortDestinationMessage.value = 'Choose a personal WatchList after a verified percent-change result is ready.'
+    return
+  }
+  const column = customDateSortListColumn(range, chartStore.timeframe, true)
+  const watchlistDefinition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'watchlist' && tool.instance_prefix === 'watchlist')
+  if (!column || !watchlistDefinition) {
+    customDateSortDestinationMessage.value = 'This date range cannot be saved as a WatchList sort column.'
+    return
+  }
+  const opened = workspaceStore.openTool(
+    { ...watchlistDefinition, title: `Custom Date Sort · ${target.name}` },
+    {
+      personal: true,
+      watchlist_id: target.id,
+      custom_date_sort_columns: [column],
+      column_keys: ['symbol', 'name', 'last', 'change', column.key],
+    },
+  )
+  customDateSortDestinationMessage.value = opened
+    ? `Opened ${target.name} sorted by canonical local percent change for ${column.label.slice('Custom % '.length)}.`
+    : 'Unable to open a WatchList window in the current workspace.'
+}
 const comboLists = ref<ComboListDefinition[]>([])
 const comboNameDraft = ref('')
 const comboUnionIds = ref<number[]>([])
@@ -1234,18 +1278,97 @@ function explicitMarketMapSourceId(rows: Array<{ instrumentId: number | null }>)
   const ids = [...new Set(rows.map(row => row.instrumentId).filter(id => id != null && Number.isInteger(id) && id > 0))] as number[]
   return ids.length ? `explicit:${ids.join(',')}` : null
 }
-const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.items ?? []).map(item => ({
+const customDateSortListColumns = computed<CustomDateSortListColumn[]>(() => {
+  const configured = props.tool.configuration.custom_date_sort_columns
+  if (!Array.isArray(configured)) return []
+  return configured
+    .map(parseCustomDateSortListColumn)
+    .filter((column): column is CustomDateSortListColumn => column != null)
+})
+const customDateSortListValues = ref<Record<string, Record<string, number | null>>>({})
+const customDateSortListWarnings = ref<Record<string, Record<string, string | null>>>({})
+const customDateSortListLoading = ref<Record<string, boolean>>({})
+let customDateSortListGeneration = 0
+let customDateSortListAbortController: AbortController | null = null
+onBeforeUnmount(() => {
+  customDateSortListGeneration += 1
+  customDateSortListAbortController?.abort()
+})
+const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.items ?? []).map(item => {
+  const symbol = item.symbol ?? `#${item.instrument_id}`
+  const values: Record<string, string | number | null> = {
+    last: watchlistStore.priceMap[item.symbol ?? '']?.close ?? null,
+    change: watchlistStore.priceMap[item.symbol ?? '']?.pct ?? null,
+  }
+  const warnings: Record<string, string | null> = {}
+  for (const column of customDateSortListColumns.value) {
+    values[column.key] = customDateSortListValues.value[column.key]?.[symbol] ?? null
+    warnings[column.key] = customDateSortListWarnings.value[column.key]?.[symbol]
+      ?? (customDateSortListLoading.value[column.key] ? 'Checking canonical local history…' : 'Local date-sort evidence is unavailable.')
+  }
+  return {
   itemId: item.id,
   sourceWatchlistId: selectedPersonalWatchlist.value?.id,
   instrumentId: item.instrument_id,
-  symbol: item.symbol ?? `#${item.instrument_id}`,
+  symbol,
   name: item.name ?? item.symbol ?? `Instrument ${item.instrument_id}`,
   flagged: item.flagged === true,
-  values: {
-    last: watchlistStore.priceMap[item.symbol ?? '']?.close ?? null,
-    change: watchlistStore.priceMap[item.symbol ?? '']?.pct ?? null,
+  values,
+  warnings,
+  }
+}))
+watch(
+  [
+    () => customDateSortListColumns.value.map(column => JSON.stringify(column)).join('\u001f'),
+    () => selectedPersonalWatchlist.value?.id ?? null,
+    () => personalWatchlistRows.value.map(row => row.symbol).sort().join('\u001f'),
+  ],
+  async () => {
+    const generation = ++customDateSortListGeneration
+    customDateSortListAbortController?.abort()
+    customDateSortListAbortController = null
+    const columns = customDateSortListColumns.value
+    const rows = personalWatchlistRows.value
+    if (
+      !columns.length || !selectedPersonalWatchlist.value
+      || flaggedItemsSelected.value || selectedCombo.value || isFavoritesTool.value
+    ) {
+      customDateSortListValues.value = {}
+      customDateSortListWarnings.value = {}
+      customDateSortListLoading.value = {}
+      return
+    }
+    const controller = new AbortController()
+    customDateSortListAbortController = controller
+    customDateSortListValues.value = {}
+    customDateSortListWarnings.value = {}
+    customDateSortListLoading.value = Object.fromEntries(columns.map(column => [column.key, true]))
+    const nextValues: Record<string, Record<string, number | null>> = {}
+    const nextWarnings: Record<string, Record<string, string | null>> = {}
+    await Promise.all(columns.map(async column => {
+      const results = await loadCustomDateSortLocalListValues({
+        symbols: rows.map(row => row.symbol),
+        timeframe: column.timeframe,
+        adjusted: column.adjusted,
+        range: column.range,
+        signal: controller.signal,
+      })
+      if (generation !== customDateSortListGeneration || controller.signal.aborted) return
+      nextValues[column.key] = Object.fromEntries(results.map(result => [
+        result.symbol,
+        result.status === 'ready' ? result.valuePercent / 100 : null,
+      ]))
+      nextWarnings[column.key] = Object.fromEntries(results.map(result => [
+        result.symbol,
+        result.status === 'ready' ? null : `Unavailable: ${result.reason.replace(/_/g, ' ')}.`,
+      ]))
+      customDateSortListValues.value = { ...nextValues }
+      customDateSortListWarnings.value = { ...nextWarnings }
+      customDateSortListLoading.value = { ...customDateSortListLoading.value, [column.key]: false }
+    }))
   },
-})))
+  { immediate: true },
+)
 const favoriteRows = computed(() => favoriteStore.favorites.map(item => ({
   itemId: item.id,
   instrumentId: item.instrument_id,
@@ -1267,12 +1390,13 @@ const personalMarketMapSourceId = computed(() => {
   if (flaggedItemsSelected.value) return explicitMarketMapSourceId(flaggedWatchlistRows.value)
   return null
 })
-const personalWatchlistColumns: WatchlistColumn[] = [
+const personalWatchlistColumns = computed<WatchlistColumn[]>(() => [
   { key: 'symbol', label: 'Symbol', width: '72px' },
   { key: 'name', label: 'Name', width: 'minmax(130px, 1fr)' },
   { key: 'last', label: 'Last', width: '72px', format: 'number' },
   { key: 'change', label: 'Chg %', width: '68px', format: 'percent' },
-]
+  ...customDateSortListColumns.value.map(column => ({ key: column.key, label: column.label, width: '92px', format: 'percent' as const })),
+])
 const personalSymbolDraft = ref('')
 const personalListNameDraft = ref('')
 // A user-entered name must win over a stale virtual-tool snapshot. Without an

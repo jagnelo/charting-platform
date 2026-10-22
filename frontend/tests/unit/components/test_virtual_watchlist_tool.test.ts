@@ -1060,6 +1060,30 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('select')?.[0]?.[0]).toMatchObject({ instrumentId: 3, symbol: 'XLV' })
   })
 
+  it('opens a persisted Custom Date Sort WatchList column in descending value order', () => {
+    const key = 'custom-date-sort:D1:2026-01-01T00:00:00.000Z:2026-01-02T00:00:00.000Z:adj'
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Custom Date Sort · Core',
+        rows: [
+          { instrumentId: 11, symbol: 'AAA', name: 'Alpha', values: { [key]: 0.05 } },
+          { instrumentId: 12, symbol: 'BBB', name: 'Beta', values: { [key]: 0.17 } },
+        ],
+        columns: [
+          { key: 'symbol', label: 'Symbol' },
+          { key, label: 'Custom % 2026-01-01–2026-01-02', format: 'percent' },
+        ],
+        visibleColumnKeys: ['symbol', key],
+        initialSortKey: key,
+        initialSortDirection: 'desc',
+      },
+    })
+
+    expect(wrapper.get(`button[aria-label="Sort by Custom % 2026-01-01–2026-01-02, descending"]`).attributes('aria-pressed')).toBe('true')
+    expect(wrapper.findAll('.watchlist__row')[0].text()).toContain('BBB')
+    expect(wrapper.findAll('.watchlist__row')[1].text()).toContain('AAA')
+  })
+
   it('publishes a persisted visible-column set without allowing an empty table', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: {

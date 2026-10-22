@@ -201,6 +201,8 @@ const props = withDefaults(defineProps<{
   rows: WatchlistRow[]
   selected?: string
   columns?: WatchlistColumn[]
+  initialSortKey?: string
+  initialSortDirection?: 'asc' | 'desc'
   visibleColumnKeys?: string[]
   filterText?: string
   conditionScreenerId?: number | null
@@ -232,6 +234,8 @@ const props = withDefaults(defineProps<{
   columnOverrides?: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>
 }>(), {
   selected: '',
+  initialSortKey: 'symbol',
+  initialSortDirection: 'asc',
   columns: () => [
     { key: 'symbol', label: 'Symbol', width: '72px' },
     { key: 'name', label: 'Name', width: 'minmax(130px, 1fr)' },
@@ -279,8 +283,8 @@ const pythonConditionMatchedSymbols = ref<Set<string> | null>(null)
 const pythonConditionState = ref('')
 const pythonAlertBusy = ref(false)
 const pythonAlertState = ref('')
-const sortKey = ref('symbol')
-const sortDirection = ref<'asc' | 'desc'>('asc')
+const sortKey = ref(props.initialSortKey)
+const sortDirection = ref<'asc' | 'desc'>(props.initialSortDirection)
 const selectedSymbols = ref<string[]>([])
 const selectionAnchor = ref<string | null>(null)
 const keyboardActiveSymbol = ref<string | null>(props.selected || null)

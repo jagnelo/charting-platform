@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import {
   calculateCustomDateSortValue,
+  customDateSortListColumn,
   customDateSortRangeFromChartIndices,
   customDateSortRangeFromChartPositions,
   customDateSortRangeFromTrendline,
+  parseCustomDateSortListColumn,
   resolveCoveredCustomDateSortPrices,
 } from '@/lib/workstation/customDateSort'
 
@@ -113,6 +115,27 @@ describe('persisted Custom Date Sort calculations', () => {
 })
 
 describe('Custom Date Sort range sources', () => {
+  it('creates and strictly validates a persistent canonical-local WatchList result column', () => {
+    const definition = customDateSortListColumn({
+      start: '2026-02-03T00:00:00Z',
+      end: '2026-02-05T00:00:00.000Z',
+    }, 'd1', true)
+    expect(definition).toEqual({
+      key: 'custom-date-sort:D1:2026-02-03T00:00:00.000Z:2026-02-05T00:00:00.000Z:adj',
+      label: 'Custom % 2026-02-03–2026-02-05',
+      mode: 'percent_change',
+      range: { start: '2026-02-03T00:00:00.000Z', end: '2026-02-05T00:00:00.000Z' },
+      timeframe: 'D1',
+      adjusted: true,
+    })
+    expect(parseCustomDateSortListColumn(definition)).toEqual(definition)
+    expect(parseCustomDateSortListColumn({ ...definition!, key: 'custom-date-sort:guessed' })).toBeNull()
+    expect(parseCustomDateSortListColumn({ ...definition!, mode: 'vs_industry' })).toBeNull()
+    expect(customDateSortListColumn({
+      start: '2026-02-03T00:00:00Z', end: '2026-02-03T00:00:00Z',
+    }, 'D1', true)).toBeNull()
+  })
+
   it('maps chart selection indices to exact normalized bar times', () => {
     expect(customDateSortRangeFromChartIndices([
       { ts: '2026-02-03T00:00:00Z' },
