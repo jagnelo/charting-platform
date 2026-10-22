@@ -2357,6 +2357,22 @@ def evaluate_capability(
         )
 
     symbol_audit = symbol_audit_for_profile(profile)
+    if (
+        availability == UNKNOWN
+        and not has_snapshot
+        and symbol_audit.outcome == NOT_APPLICABLE
+        and symbol_audit.evidence_state
+        in {"inactive_or_successor_disposition", "identity_level_terminal_disposition"}
+    ):
+        # An explicit terminal identity/symbol audit is more informative than
+        # the generic no-snapshot state. Keep failed routes unavailable and
+        # unaudited routes unknown; this only surfaces a documented terminal
+        # disposition and never makes holdings usable.
+        availability = NOT_APPLICABLE
+        reason = (
+            "The symbol-level source audit records that this ETF/provider is no longer "
+            f"applicable ({symbol_audit.evidence_state})."
+        )
     audit_revalidated_at = _metadata_datetime(state_metadata, "symbol_audit_revalidated_at")
     if (
         availability == CURRENT

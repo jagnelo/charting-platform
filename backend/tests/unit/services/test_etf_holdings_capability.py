@@ -13,6 +13,7 @@ from app.services.etf_holdings_capability import (
     CURRENT,
     DEGRADED,
     NO_SOURCE,
+    NOT_APPLICABLE,
     SEC_FILING,
     STALE,
     UNAVAILABLE,
@@ -682,6 +683,55 @@ def test_ranked_fallback_terminal_symbol_is_not_applicable():
     assert result.tier == 1
     assert result.outcome == "not_applicable"
     assert result.evidence_state == "inactive_or_successor_disposition"
+
+
+@pytest.mark.parametrize(
+    ("symbol", "adapter_key", "evidence_state"),
+    [
+        ("ADFI", "anfield", "inactive_or_successor_disposition"),
+        ("ABEQ", "epiris", "identity_level_terminal_disposition"),
+    ],
+)
+def test_explicit_terminal_audit_is_not_applicable_without_a_snapshot(
+    symbol, adapter_key, evidence_state
+):
+    result = evaluate_capability(
+        profile_with_symbol(symbol, adapter_key),
+        None,
+        None,
+        now=NOW,
+    )
+
+    assert result.availability == NOT_APPLICABLE
+    assert result.symbol_audit.evidence_state == evidence_state
+    assert result.usable_for_current_analysis is False
+    assert result.displayable_last_known is False
+
+
+def test_unreviewed_symbol_without_snapshot_remains_unknown():
+    result = evaluate_capability(
+        profile_with_symbol("UNREVIEWED", "matrix"),
+        None,
+        None,
+        now=NOW,
+    )
+
+    assert result.availability == UNKNOWN
+    assert result.symbol_audit.outcome == UNKNOWN
+    assert result.usable_for_current_analysis is False
+
+
+def test_failed_route_for_terminal_symbol_remains_unavailable_without_snapshot():
+    result = evaluate_capability(
+        profile_with_symbol("ADFI", "anfield"),
+        None,
+        state(status="failure", reason="route failure"),
+        now=NOW,
+    )
+
+    assert result.availability == UNAVAILABLE
+    assert result.usable_for_current_analysis is False
+    assert result.reason == "route failure"
 
 
 @pytest.mark.parametrize("symbol", ["UDIV", "UDEF", "GEDG"])
