@@ -5,30 +5,49 @@ parent_branch: staging
 parent_sha: 5178b414b426ec61bdcb22257b4f956581c25d0c
 dependency_authorization: "Under the human standing authorization recorded on 2026-10-20, the coordinator authorizes this narrowly scoped formatter-only remediation directly from exact degraded staging 5178b414b426ec61bdcb22257b4f956581c25d0c; no semantic changes, gate weakening, provider requests or retained-resource changes."
 human_intent_authorization: "Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting-only repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md."
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: unit
+local_validation_reason: >-
+  Pinned Ruff formatting only, with exact formatter-output and AST equivalence
+  proven for every changed Python file. No database, queue, UI, dependency,
+  migration, provider or runtime behavior changes. Run backend lint and focused
+  startup/schema unit regressions locally; preserve the accepted full local
+  application evidence and require new exact-source full hosted CI and exhaustive
+  staging validation. No Docker/browser fixture is needed for whitespace-only input.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: "Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting-only repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
+goal: Repair the exact four-feature staging formatting failure without semantic changes, then return the clean validated repair for delegated coordinator acceptance and guarded remediation integration.
+scope:
+  - Apply only pinned Ruff 0.4.7 formatting to the 139 reported Python files.
+  - Prove every changed Python file matches formatter output and preserves its AST.
+  - Validate lint and focused unit contracts; preserve all gates and original feature roadmaps.
+owned_paths:
+  - backend/app/strategy_lab_v2/
+  - backend/tests/integration/strategy_lab_v2/test_oos_terminal_postgres_redis.py
+  - backend/tests/unit/strategy_lab_v2/test_app_migration_startup.py
+  - backend/tests/unit/strategy_lab_v2/test_schema_migration.py
+  - ops/workstreams/fix-strategy-staging-quality/
+dependencies:
+  - Exact degraded staging 5178b414b426ec61bdcb22257b4f956581c25d0c contains all four accepted feature checkpoints; exhaustive lint failed before its remaining stages.
+acceptance_criteria:
+  - {id: FMT1, text: Pinned backend code and formatting checks pass without policy changes.}
+  - {id: FMT2, text: All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes.}
+  - {id: FMT3, text: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.}
+branch_tests:
+  - make lint-backend
+branch_tests_reason: Full hosted backend CI already executes all backend unit and integration tests; additionally enforce the exact missing formatting gate on this repair branch before another staging attempt.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: authorized
+status: in_progress
 remaining_gaps: []
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 3
+  current_phase: pinned-formatting-repair
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Apply only the pinned formatter, prove equivalence, and run local lint and focused tests under the existing active unbudgeted coordinator goal.

@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "706a780f-1b88-48e7-bef2-2a2b0524fbb1",
   "branch": "fix/strategy-staging-quality",
-  "parent_branch": "staging",
-  "implementation_sha": "5178b414b426ec61bdcb22257b4f956581c25d0c",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-strategy-staging-quality-a3afbefe",
+      "charting-stack-fix-strategy-staging-quality-a3afbefe"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-strategy-staging-quality-a3afbefe16"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/strategy-staging-quality: Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting-only repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/strategy-staging-quality: Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting-only repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "6f48c86df1ccd02fe93aa10535fcb6f14d8c41ed",
+  "implementation_sha": "5178b414b426ec61bdcb22257b4f956581c25d0c",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "e5d426240bf0cb165fa59d263bc3f15ab8b980fb1b4d7e05958e41c731d7bfd8",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "6f48c86df1ccd02fe93aa10535fcb6f14d8c41ed",
+  "remote_sha": "6f48c86df1ccd02fe93aa10535fcb6f14d8c41ed",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "706a780f-1b88-48e7-bef2-2a2b0524fbb1",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality/ops/workstreams/fix-strategy-staging-quality/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality",
+  "worktree_id": "fix-strategy-staging-quality-a3afbefe16"
 }
