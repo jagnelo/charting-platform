@@ -37,25 +37,27 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "backend_job_id": 120075928623,
-    "branch_declared_job_id": 120083158317,
-    "conclusion": "success",
-    "e2e_job_id": 120083158123,
-    "e2e_summary": "191 passed,110 declared skips,16.2 minutes,0 failures,0 flakes,0 retry markers",
-    "frontend_unit_job_id": 120075927943,
-    "head_sha": "23ba07a76a10eb05b4352b9e2fd421ba288acf91",
+    "backend_job_id": 120129412183,
+    "conclusion": "frontend_unit_failure; other jobs not terminally verified",
+    "frontend_unit_job_id": 120129412483,
+    "head_sha": "fd567b418d9566310bafab9115cee067539b69ef",
     "jobs": {
-      "backend": "5191 unit + 497 integration passed;84 percent combined coverage;1 existing unit skip;2 existing integration skips",
-      "branch_declared": "success",
-      "e2e": "success_191_pass_110_existing_skip_0_failure_0_flake_0_retry_marker",
-      "exhaustive_integration_gate": "skipped",
-      "frontend_unit": "success"
+      "backend": "in progress at last observation",
+      "frontend_unit": "failed: function coverage 69.08 percent below unchanged 70 percent threshold"
     },
-    "run_id": 39850573339,
-    "status": "terminal successful exact-source branch CI on record HEAD 23ba07a76a10eb05b4352b9e2fd421ba288acf91",
-    "visuals": "The Exhaustive Integration Gate and 104 visual cases were skipped by this feature-branch workflow; strict104 visual evidence remains qualified to its recorded test/product sources."
+    "run_id": 39866293985,
+    "status": "frontend unit failed on published source fd567b418d9566310bafab9115cee067539b69ef; backend was still in progress at last observation; no full-run conclusion claimed",
+    "visuals": "No new browser result qualifies this source candidate; prior visual evidence remains qualified to its recorded test/product inputs."
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/workstation/tagColumns.ts",
+    "frontend/tests/unit/components/test_workstation_tool_content_tag_columns.test.ts",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -135,7 +137,7 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
+  "head": "fd567b418d9566310bafab9115cee067539b69ef",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",

@@ -991,7 +991,12 @@ import { useFavoritesStore } from '@/stores/favorites'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from './VirtualWatchlistTool.vue'
-import { parseTagColumnWatchlistIds, type TagColumnTarget } from '@/lib/workstation/tagColumns'
+import {
+  createTagColumnMembershipToggler,
+  mergeTagColumnConfiguration,
+  resolveTagColumnTargets,
+  type TagColumnTarget,
+} from '@/lib/workstation/tagColumns'
 import RatioUPlot from './RatioUPlot.vue'
 import InstrumentNoteTool from './InstrumentNoteTool.vue'
 import InstrumentAlertsTool from './InstrumentAlertsTool.vue'
@@ -1094,7 +1099,6 @@ let disposed = false
 let comboListLoadSequence = 0
 let comboMutationSequence = 0
 let personalMutationSequence = 0
-const pendingTagMembershipMutations = new Set<string>()
 let benchmarkFamilyReadinessSequence = 0
 let familyAnalyticsSequence = 0
 let familyOverviewSequence = 0
@@ -1420,6 +1424,13 @@ const personalListNameEditing = ref(false)
 const personalListBusy = ref(false)
 const personalWatchlistBusy = ref(false)
 const personalWatchlistError = ref('')
+const toggleTagColumnMembership = createTagColumnMembershipToggler({
+  getPersonalWatchlists: () => personalWatchlists.value,
+  isDisposed: () => disposed,
+  addItem: (watchlistId, instrumentId) => watchlistStore.addItem(watchlistId, instrumentId),
+  removeItem: (watchlistId, itemId) => watchlistStore.removeItem(watchlistId, itemId),
+  setError: message => { personalWatchlistError.value = message },
+})
 // Workspace snapshots can echo an older watchlist_id while a local selection
 // is still being persisted. Keep that stale echo from snapping the visible
 // list back to a different tab during membership actions.
@@ -1727,36 +1738,6 @@ async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-wat
   if (disposed || sequence !== personalMutationSequence) return
   if (transferred.length !== itemIds.length) {
     personalWatchlistError.value = `${selectedRows.length} selected row${selectedRows.length === 1 ? '' : 's'} could not be ${action === 'move-to-watchlist' ? 'moved' : 'copied'} to ${target.name}.`
-  }
-}
-
-async function toggleTagColumnMembership(row: { symbol: string; instrumentId: number | null }, targetWatchlistId?: number) {
-  const instrumentId = row.instrumentId
-  if (disposed || targetWatchlistId == null || !Number.isInteger(targetWatchlistId) || instrumentId == null || !Number.isInteger(instrumentId) || instrumentId <= 0) return
-  const target = personalWatchlists.value.find(watchlist => watchlist.id === targetWatchlistId)
-  if (!target || target.is_managed || target.is_locked) {
-    personalWatchlistError.value = 'Tag Columns can change membership only in an unlocked personal WatchList.'
-    return
-  }
-  const mutationKey = `${target.id}:${instrumentId}`
-  if (pendingTagMembershipMutations.has(mutationKey)) return
-  pendingTagMembershipMutations.add(mutationKey)
-  personalWatchlistError.value = ''
-  try {
-    const existing = target.items.find(item => item.instrument_id === instrumentId)
-    if (existing) {
-      await watchlistStore.removeItem(target.id, existing.id)
-      if (personalWatchlists.value.find(list => list.id === target.id)?.items.some(item => item.instrument_id === instrumentId)) {
-        personalWatchlistError.value = `Unable to remove ${row.symbol} from ${target.name}.`
-      }
-    } else {
-      const added = await watchlistStore.addItem(target.id, instrumentId)
-      if (!added || !personalWatchlists.value.find(list => list.id === target.id)?.items.some(item => item.instrument_id === instrumentId)) {
-        personalWatchlistError.value = `Unable to add ${row.symbol} to ${target.name}.`
-      }
-    }
-  } finally {
-    pendingTagMembershipMutations.delete(mutationKey)
   }
 }
 
@@ -3745,26 +3726,13 @@ const configuredColumnKeys = computed(() => {
   const keys = liveToolConfiguration.value.column_keys
   return Array.isArray(keys) && keys.every(key => typeof key === 'string') ? keys as string[] : []
 })
-const configuredTagColumns = computed<TagColumnTarget[]>(() => parseTagColumnWatchlistIds(
+const configuredTagColumns = computed<TagColumnTarget[]>(() => resolveTagColumnTargets(
   liveToolConfiguration.value.tag_watchlist_ids,
-).map(id => {
-  const target = personalWatchlists.value.find(watchlist => watchlist.id === id)
-  return {
-    id,
-    name: target?.name ?? `WatchList ${id} (unavailable)`,
-    locked: Boolean(target?.is_locked || target?.is_managed),
-    instrumentIds: target ? target.items.map(item => item.instrument_id) : null,
-  }
-}))
+  personalWatchlists.value,
+))
 function updateTagColumns(value: { targetWatchlistIds: number[]; visibleColumnKeys: string[] }) {
-  const ids = parseTagColumnWatchlistIds(value.targetWatchlistIds)
-  const keys = Array.isArray(value.visibleColumnKeys)
-    ? [...new Set(value.visibleColumnKeys.filter((key): key is string => typeof key === 'string'))]
-    : configuredColumnKeys.value
   emit('configuration', props.tool.instance_key, {
-    ...liveToolConfiguration.value,
-    tag_watchlist_ids: ids,
-    column_keys: keys,
+    ...mergeTagColumnConfiguration(liveToolConfiguration.value, value, configuredColumnKeys.value),
   })
 }
 const configuredFilterText = computed(() => typeof props.tool.configuration.filter_text === 'string' ? props.tool.configuration.filter_text : '')

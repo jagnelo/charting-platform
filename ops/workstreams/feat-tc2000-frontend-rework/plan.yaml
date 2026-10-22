@@ -60,28 +60,49 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The exact combined staging release 0e342512e53ba2268425294d61c50e219eaafa4f
-  remains an ancestor of published branch HEAD 23ba07a76a10eb05b4352b9e2fd421ba288acf91,
-  which is synchronized with origin. The published Custom Date Sort implementation
-  remains 5ca3423e553e27e36dc8002be5f11996bbd4cf9e; exact-range coverage,
-  canonical local OHLCV, a four-symbol concurrency bound and explicit unavailable
-  outcomes are retained. No arbitrary-date industry/sub-industry comparator
-  series exists in the reviewed contract, so relative modes remain unavailable.
-  Tag Columns is published at 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74, with
-  exact feature-ref parity independently confirmed through the connected
-  GitHub comparison API. Its three focused suites pass 102/102 and Vue
-  type-check passes; workstream/scope/record checks pass. Earlier one-worker full
-  frontend coverage and production build predate the shared alert-placement
-  correction and new parent-level test, so they do not qualify these bytes.
-  Exact-source branch CI and authenticated browser validation remain pending.
-  The previous branch CI 39850573339 remains qualified only to record HEAD 23ba and
-  skipped Exhaustive Integration Gate; it does not validate Tag Columns or
-  strict visual parity. Root's shared Market Map repair is not yet released
-  into this branch; do not duplicate that fix or start a heavy local profile
-  before release/explicit slot.
-  No provider acquisition, live test, deployment or visual-reference change was
-  performed. Official REF-HELP-V25 and broader AC1-AC9 work remain open.
+  The latest accepted synchronized staging ancestor remains
+  0e342512e53ba2268425294d61c50e219eaafa4f. Root reports its separate Market Map
+  repair at staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad, but exact staging CI
+  39866387942 was live and not accepted at the last coordinator update; do not
+  adopt it until Root supplies the actual green release. The last published TC
+  base was fd567b418d9566310bafab9115cee067539b69ef, synchronized with origin
+  at last observation; the current candidate is based on that source. Its exact
+  branch CI 39866293985 has a Frontend Unit
+  failure at 69.08% function coverage versus the unchanged 70% threshold; the
+  backend job was still in progress at last observation, so no whole-run result
+  is claimed. The failure is caused by the Tag Columns unit suite importing the
+  large WorkstationToolContent component, adding hundreds of unrelated component
+  functions to the coverage denominator. A branch-owned refactor now extracts
+  Tag Columns target/configuration/membership logic into the existing tested
+  tagColumns seam and structurally checks all six parent bindings without
+  importing the monolith. The candidate's exact-source CI remains pending: the
+  three affected frontend suites pass 103/103, Vue type-check exits 0, TC scope guard passes for
+  994 paths (858 immutable imports and 29 exact adaptations), and all 35 scope
+  self-tests pass. The failed 69.08% receipt remains qualified to published
+  source fd; full frontend coverage/build and exact candidate CI remain pending.
+  Custom Date Sort remains at published implementation
+  5ca3423e553e27e36dc8002be5f11996bbd4cf9e; exact-range coverage, canonical local
+  OHLCV, four-symbol concurrency and explicit unavailable outcomes remain intact.
+  No source-backed arbitrary-date industry/sub-industry comparator exists, so
+  relative modes remain unavailable. No browser/Compose fixture was launched;
+  the full local profile remains coordinator-capacity gated. No provider
+  acquisition, live test, deployment or visual-reference change occurred.
+  Official REF-HELP-V25 and broader AC1-AC9 work remain open.
 current_checkpoint_status: >-
+  Current continuation (2026-10-22): the branch-owned Tag Columns coverage
+  recovery candidate is being validated on top of published HEAD
+  fd567b418d9566310bafab9115cee067539b69ef. The exact published-source branch run
+  39866293985 has a Frontend Unit failure at 69.08% functions versus the unchanged
+  70% threshold; this is not a product assertion failure, and the backend job
+  was still running at last observation. The candidate moves production-owned
+  Tag Columns configuration and mutation behavior into the focused
+  `tagColumns.ts` seam, tests the same guards/errors/in-flight coalescing, and
+  parses the parent SFC to assert all six direct host bindings. The three
+  affected suites pass 103/103 and `vue-tsc --noEmit` exits0. No full frontend
+  coverage/build or browser profile has yet qualified this candidate. Root's
+  later staging repair remains unaccepted until its exact CI is green and Root
+  releases it; no merge or shared-source import is performed here.
+
   The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
   implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
   human standing authorization and literal checkpoint delegation. Its exact
@@ -1216,16 +1237,18 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "combined_green_staging_0e342512_ancestor_of_published_786ff4c9;custom_date_sort_percent_destination_published_5ca3423;tag_columns_published_786ff4c9;focused_102_tests_and_current_vue_typecheck_green;prior_full_frontend_coverage_build_do_not_qualify_latest_patch;candidate_exact_CI_and_authenticated_browser_pending;custom_source_functional_strict104_visual_pending;relative_comparator_unavailable_without_source_contract;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "combined_green_staging_0e342512_ancestor;root_market_map_staging_4687bd0d_CI39866387942_not_accepted;published_TC_HEAD_fd567b41_exact_CI39866293985_frontend_coverage_red_69.08_vs_70_backend_in_progress_last_seen;Tag_Columns_helper_seam_candidate_focused_103_green_typecheck_green_scope994_selftests35_green;candidate_coverage_build_exact_CI_pending;no_local_browser_or_compose;Custom_Date_Sort_relative_comparator_unavailable;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Qualify the published Tag Columns source with exact branch CI; run the full
-    local profile only after Root releases the reserved existing-runtime slot.
-    Keep Custom Date Sort relative modes unavailable until a source-backed
-    arbitrary-date comparator series contract exists. Preserve the full AC1-AC9
-    roadmap, official REF-HELP-V25 gap, provider/live holds and screenshot policy.
-    Preserve native goal/session accounting, disabled live/provider operations,
-    protected visual oracles, the official REF-HELP-V25 gap, and the full
-    AC1-AC9 roadmap. Do not create an acknowledgment-only commit or claim
+    Finish review of the focused Tag Columns extraction and parent-template
+    binding contract; run canonical UV workstream validation and diff/scope
+    checks, then publish the coherent source-and-record change so exact-source
+    branch CI can verify the unchanged global coverage threshold. Do not adopt
+    Root's 4687bd0d staging repair until its exact CI is green and released.
+    Continue Custom Date Sort only after this current published-source coverage
+    failure is resolved; relative modes remain unavailable without a
+    source-backed arbitrary-date comparator series. Preserve the full AC1-AC9
+    roadmap, official REF-HELP-V25 gap, provider/live holds, screenshots and
+    thresholds. Do not create an acknowledgment-only commit or claim
     whole-roadmap/V25 completion.
 
     Historical next-action record follows unchanged, superseded only for the

@@ -1,434 +1,217 @@
-import { flushPromises, shallowMount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
-import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
-import { defineComponent } from 'vue'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
-import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
-import { useWatchlistStore } from '@/stores/watchlist'
-import type { WorkspaceWindowState } from '@/stores/workspace'
+import { parse as parseTemplate } from '@vue/compiler-dom'
+import { parse as parseSfc } from '@vue/compiler-sfc'
+import { describe, expect, it, vi } from 'vitest'
 
-const { apiDelete, apiGet, apiPost } = vi.hoisted(() => ({
-  apiDelete: vi.fn(),
-  apiGet: vi.fn(),
-  apiPost: vi.fn(),
-}))
+import {
+  createTagColumnMembershipToggler,
+  mergeTagColumnConfiguration,
+  resolveTagColumnTargets,
+  type TagColumnWatchlist,
+} from '@/lib/workstation/tagColumns'
 
-vi.mock('@/lib/api', () => ({
-  api: {
-    delete: apiDelete,
-    get: apiGet,
-    patch: vi.fn(),
-    post: apiPost,
-    put: vi.fn(),
-  },
-}))
+const toolContentPath = join(process.cwd(), 'src/components/workstation/WorkstationToolContent.vue')
 
-const ToolWindowStub = defineComponent({
-  name: 'ToolWindow',
-  template: '<div class="tool-window-stub"><slot /></div>',
-})
+function virtualWatchlistNodes(node: ReturnType<typeof parseTemplate>['children'][number]): Array<{
+  props: Array<{ type: number; name?: string; arg?: { content?: string }; exp?: { content?: string } }>
+  children?: Array<ReturnType<typeof parseTemplate>['children'][number]>
+  tag?: string
+  type: number
+}> {
+  if (node.type !== 1) return []
+  const current = node.tag === 'VirtualWatchlistTool' ? [node] : []
+  return [
+    ...current,
+    ...node.children.flatMap(child => virtualWatchlistNodes(child)),
+  ]
+}
 
-const VirtualWatchlistToolStub = defineComponent({
-  name: 'VirtualWatchlistTool',
-  emits: ['row-action', 'update:tag-columns'],
-  template: '<div data-testid="virtual-watchlist-tool-stub" />',
-})
+function watchlistFixture(overrides: Partial<TagColumnWatchlist> = {}): TagColumnWatchlist {
+  return {
+    id: 7,
+    name: 'Core',
+    is_managed: false,
+    is_locked: false,
+    items: [{ id: 11, instrument_id: 101 }],
+    ...overrides,
+  }
+}
 
-describe('WorkstationToolContent Tag Column mutations', () => {
-  let pinia: ReturnType<typeof createPinia>
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  beforeEach(() => {
-    pinia = createPinia()
-    setActivePinia(pinia)
-    apiGet.mockResolvedValue([])
-    apiDelete.mockReset()
-    apiPost.mockReset()
-  })
-
-  it('revalidates and mutates only the selected personal target, surfacing failure outside the personal-list branch', async () => {
-    const watchlistStore = useWatchlistStore()
-    watchlistStore.watchlists = [
-      {
-        id: 7,
-        name: 'Core',
-        is_managed: false,
-        is_locked: false,
-        items: [{ id: 11, instrument_id: 101, symbol: 'SPY', name: 'SPY' }],
-      },
-      {
-        id: 8,
-        name: 'Other',
-        is_managed: false,
-        is_locked: false,
-        items: [],
-      },
-    ]
-    apiDelete.mockRejectedValueOnce(new Error('offline'))
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const wrapper = shallowMount(WorkstationToolContent, {
-      props: {
-        tool: {
-          instance_key: 'benchmark-list',
-          tool_type: 'benchmark_list',
-          title: 'Benchmarks',
-          configuration: {},
-          link_group: 'blue',
-          timeframe_link_group: 'blue',
-        } as unknown as WorkspaceWindowState,
-        activeWindowKey: 'benchmark-list',
-      },
-      global: {
-        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
-        stubs: {
-          ToolWindow: ToolWindowStub,
-          VirtualWatchlistTool: VirtualWatchlistToolStub,
-        },
-      },
-    })
-
-    wrapper.getComponent(VirtualWatchlistToolStub).vm.$emit(
-      'row-action',
-      'toggle-tag-membership',
-      { symbol: 'SPY', instrumentId: 101 },
-      7,
-    )
-    await flushPromises()
-
-    expect(apiDelete).toHaveBeenCalledOnce()
-    expect(apiDelete).toHaveBeenCalledWith('/watchlists/7/items/11')
-    expect(wrapper.get('[role="alert"]').text()).toContain('Unable to remove SPY from Core.')
-    expect(watchlistStore.watchlists[1].items).toEqual([])
-    wrapper.unmount()
-    queryClient.clear()
-  })
-
-  it('adds membership only to the explicitly selected personal target', async () => {
-    const watchlistStore = useWatchlistStore()
-    watchlistStore.watchlists = [
-      {
-        id: 7,
-        name: 'Core',
-        is_managed: false,
-        is_locked: false,
-        items: [],
-      },
-      {
-        id: 8,
-        name: 'Other',
-        is_managed: false,
-        is_locked: false,
-        items: [],
-      },
-    ]
-    apiPost.mockResolvedValueOnce({ id: 12, instrument_id: 101, symbol: 'SPY', name: 'SPY' })
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const wrapper = shallowMount(WorkstationToolContent, {
-      props: {
-        tool: {
-          instance_key: 'benchmark-list',
-          tool_type: 'benchmark_list',
-          title: 'Benchmarks',
-          configuration: {},
-          link_group: 'blue',
-          timeframe_link_group: 'blue',
-        } as unknown as WorkspaceWindowState,
-        activeWindowKey: 'benchmark-list',
-      },
-      global: {
-        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
-        stubs: {
-          ToolWindow: ToolWindowStub,
-          VirtualWatchlistTool: VirtualWatchlistToolStub,
-        },
-      },
-    })
-
-    wrapper.getComponent(VirtualWatchlistToolStub).vm.$emit(
-      'row-action',
-      'toggle-tag-membership',
-      { symbol: 'SPY', instrumentId: 101 },
-      7,
-    )
-    await flushPromises()
-
-    expect(apiPost).toHaveBeenCalledOnce()
-    expect(apiPost).toHaveBeenCalledWith('/watchlists/7/items', { instrument_id: 101 })
-    expect(watchlistStore.watchlists[0].items).toEqual([
-      { id: 12, instrument_id: 101, symbol: 'SPY', name: 'SPY' },
+describe('WorkstationToolContent Tag Column contracts', () => {
+  it('resolves configured personal targets and preserves unavailable or read-only evidence', () => {
+    expect(resolveTagColumnTargets(
+      [7, 8, 7, 0, '9'],
+      [watchlistFixture(), watchlistFixture({ id: 8, name: 'Managed', is_managed: true, items: [] })],
+    )).toEqual([
+      { id: 7, name: 'Core', locked: false, instrumentIds: [101] },
+      { id: 8, name: 'Managed', locked: true, instrumentIds: [] },
     ])
-    expect(watchlistStore.watchlists[1].items).toEqual([])
-    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
-    wrapper.unmount()
-    queryClient.clear()
-  })
 
-  it('persists normalized Tag Column targets and visibility without dropping sibling configuration', async () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const wrapper = shallowMount(WorkstationToolContent, {
-      props: {
-        tool: {
-          instance_key: 'benchmark-list',
-          tool_type: 'benchmark_list',
-          title: 'Benchmarks',
-          configuration: {
-            tag_watchlist_ids: [3],
-            column_keys: ['symbol'],
-            keep_unrelated_setting: 'unchanged',
-          },
-          link_group: 'blue',
-          timeframe_link_group: 'blue',
-        } as unknown as WorkspaceWindowState,
-        activeWindowKey: 'benchmark-list',
-      },
-      global: {
-        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
-        stubs: {
-          ToolWindow: ToolWindowStub,
-          VirtualWatchlistTool: VirtualWatchlistToolStub,
-        },
-      },
-    })
-
-    wrapper.getComponent(VirtualWatchlistToolStub).vm.$emit('update:tag-columns', {
-      targetWatchlistIds: [7, 7, 0, -1],
-      visibleColumnKeys: ['symbol', 'tag-watchlist:7', 'tag-watchlist:7'],
-    })
-
-    expect(wrapper.emitted('configuration')?.at(-1)).toEqual([
-      'benchmark-list',
-      {
-        tag_watchlist_ids: [7],
-        column_keys: ['symbol', 'tag-watchlist:7'],
-        keep_unrelated_setting: 'unchanged',
-      },
+    expect(resolveTagColumnTargets([9], [])).toEqual([
+      { id: 9, name: 'WatchList 9 (unavailable)', locked: false, instrumentIds: null },
     ])
-    wrapper.unmount()
-    queryClient.clear()
   })
 
-  it('rejects a forged membership event for a locked target before transport', async () => {
-    const watchlistStore = useWatchlistStore()
-    watchlistStore.watchlists = [
-      {
-        id: 7,
-        name: 'Managed Core',
-        is_managed: true,
-        is_locked: true,
-        items: [],
-      },
-    ]
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const wrapper = shallowMount(WorkstationToolContent, {
-      props: {
-        tool: {
-          instance_key: 'benchmark-list',
-          tool_type: 'benchmark_list',
-          title: 'Benchmarks',
-          configuration: {},
-          link_group: 'blue',
-          timeframe_link_group: 'blue',
-        } as unknown as WorkspaceWindowState,
-        activeWindowKey: 'benchmark-list',
-      },
-      global: {
-        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
-        stubs: {
-          ToolWindow: ToolWindowStub,
-          VirtualWatchlistTool: VirtualWatchlistToolStub,
-        },
-      },
+  it('normalizes updates while preserving sibling configuration and the current columns on malformed input', () => {
+    expect(mergeTagColumnConfiguration(
+      { title: 'Core', tag_watchlist_ids: [3], column_keys: ['symbol'], untouched: true },
+      { targetWatchlistIds: [7, 7, -1, '8'], visibleColumnKeys: ['symbol', 'tag-watchlist:7', 'symbol'] },
+      ['last'],
+    )).toEqual({
+      title: 'Core',
+      tag_watchlist_ids: [7],
+      column_keys: ['symbol', 'tag-watchlist:7'],
+      untouched: true,
     })
 
-    wrapper.getComponent(VirtualWatchlistToolStub).vm.$emit(
-      'row-action',
-      'toggle-tag-membership',
-      { symbol: 'SPY', instrumentId: 101 },
-      7,
-    )
-    await flushPromises()
-
-    expect(apiDelete).not.toHaveBeenCalled()
-    expect(apiPost).not.toHaveBeenCalled()
-    expect(wrapper.get('[role="alert"]').text()).toContain('unlocked personal WatchList')
-    expect(watchlistStore.watchlists[0].items).toEqual([])
-    wrapper.unmount()
-    queryClient.clear()
+    expect(mergeTagColumnConfiguration(
+      { column_keys: ['symbol'] },
+      { targetWatchlistIds: null, visibleColumnKeys: null },
+      ['symbol', 'change'],
+    )).toEqual({ tag_watchlist_ids: [], column_keys: ['symbol', 'change'] })
   })
 
-  it('surfaces a failed add and leaves the selected target unchanged', async () => {
-    const watchlistStore = useWatchlistStore()
-    watchlistStore.watchlists = [
-      {
-        id: 7,
-        name: 'Core',
-        is_managed: false,
-        is_locked: false,
-        items: [],
-      },
-      {
-        id: 8,
-        name: 'Other',
-        is_managed: false,
-        is_locked: false,
-        items: [],
-      },
-    ]
-    apiPost.mockRejectedValueOnce(new Error('offline'))
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const wrapper = shallowMount(WorkstationToolContent, {
-      props: {
-        tool: {
-          instance_key: 'benchmark-list',
-          tool_type: 'benchmark_list',
-          title: 'Benchmarks',
-          configuration: {},
-          link_group: 'blue',
-          timeframe_link_group: 'blue',
-        } as unknown as WorkspaceWindowState,
-        activeWindowKey: 'benchmark-list',
-      },
-      global: {
-        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
-        stubs: {
-          ToolWindow: ToolWindowStub,
-          VirtualWatchlistTool: VirtualWatchlistToolStub,
-        },
-      },
+  it('toggles membership only in the selected unlocked personal target', async () => {
+    const watchlists = [watchlistFixture(), watchlistFixture({ id: 8, name: 'Other', items: [] })]
+    const error = { value: 'previous error' }
+    const addItem = vi.fn(async (watchlistId: number, instrumentId: number) => {
+      const target = watchlists.find(item => item.id === watchlistId)!
+      const added = { id: 22, instrument_id: instrumentId }
+      target.items = [...target.items, added]
+      return added
+    })
+    const removeItem = vi.fn(async (watchlistId: number, itemId: number) => {
+      const target = watchlists.find(item => item.id === watchlistId)!
+      target.items = target.items.filter(item => item.id !== itemId)
+    })
+    const toggle = createTagColumnMembershipToggler({
+      getPersonalWatchlists: () => watchlists,
+      isDisposed: () => false,
+      addItem,
+      removeItem,
+      setError: message => { error.value = message },
     })
 
-    wrapper.getComponent(VirtualWatchlistToolStub).vm.$emit(
-      'row-action',
-      'toggle-tag-membership',
-      { symbol: 'SPY', instrumentId: 101 },
-      7,
-    )
-    await flushPromises()
+    await toggle({ symbol: 'SPY', instrumentId: 101 }, 8)
+    expect(addItem).toHaveBeenCalledOnce()
+    expect(addItem).toHaveBeenCalledWith(8, 101)
+    expect(watchlists[0].items).toEqual([{ id: 11, instrument_id: 101 }])
+    expect(watchlists[1].items).toEqual([{ id: 22, instrument_id: 101 }])
+    expect(error.value).toBe('')
 
-    expect(apiPost).toHaveBeenCalledOnce()
-    expect(apiPost).toHaveBeenCalledWith('/watchlists/7/items', { instrument_id: 101 })
-    expect(wrapper.get('[role="alert"]').text()).toContain('Unable to add SPY to Core.')
-    expect(watchlistStore.watchlists[0].items).toEqual([])
-    expect(watchlistStore.watchlists[1].items).toEqual([])
-    wrapper.unmount()
-    queryClient.clear()
+    await toggle({ symbol: 'SPY', instrumentId: 101 }, 8)
+    expect(removeItem).toHaveBeenCalledOnce()
+    expect(removeItem).toHaveBeenCalledWith(8, 22)
+    expect(watchlists[1].items).toEqual([])
+    expect(error.value).toBe('')
   })
 
-  it('ignores a duplicate in-flight toggle for the same target and instrument', async () => {
-    const watchlistStore = useWatchlistStore()
-    watchlistStore.watchlists = [
-      {
-        id: 7,
-        name: 'Core',
-        is_managed: false,
-        is_locked: false,
-        items: [],
-      },
+  it('rejects locked, managed, invalid and unavailable targets before transport', async () => {
+    const watchlists = [
+      watchlistFixture({ id: 7, is_locked: true }),
+      watchlistFixture({ id: 8, is_managed: true }),
     ]
-    let resolveAdd: ((item: { id: number; instrument_id: number; symbol: string; name: string }) => void) | undefined
-    apiPost.mockImplementationOnce(() => new Promise(resolve => { resolveAdd = resolve }))
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const wrapper = shallowMount(WorkstationToolContent, {
-      props: {
-        tool: {
-          instance_key: 'benchmark-list',
-          tool_type: 'benchmark_list',
-          title: 'Benchmarks',
-          configuration: {},
-          link_group: 'blue',
-          timeframe_link_group: 'blue',
-        } as unknown as WorkspaceWindowState,
-        activeWindowKey: 'benchmark-list',
-      },
-      global: {
-        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
-        stubs: {
-          ToolWindow: ToolWindowStub,
-          VirtualWatchlistTool: VirtualWatchlistToolStub,
-        },
-      },
+    const setError = vi.fn()
+    const addItem = vi.fn()
+    const removeItem = vi.fn()
+    const toggle = createTagColumnMembershipToggler({
+      getPersonalWatchlists: () => watchlists,
+      isDisposed: () => false,
+      addItem,
+      removeItem,
+      setError,
     })
-    const list = wrapper.getComponent(VirtualWatchlistToolStub)
-    const row = { symbol: 'SPY', instrumentId: 101 }
-    list.vm.$emit('row-action', 'toggle-tag-membership', row, 7)
-    list.vm.$emit('row-action', 'toggle-tag-membership', row, 7)
 
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledOnce())
-    expect(apiPost).toHaveBeenCalledWith('/watchlists/7/items', { instrument_id: 101 })
-    expect(watchlistStore.watchlists[0].items).toEqual([])
-    resolveAdd?.({ id: 12, instrument_id: 101, symbol: 'SPY', name: 'SPY' })
-    await flushPromises()
+    for (const targetId of [7, 8, 9, 0, Number.NaN]) {
+      await toggle({ symbol: 'SPY', instrumentId: 101 }, targetId)
+    }
+    await toggle({ symbol: 'SPY', instrumentId: null }, 7)
 
-    expect(watchlistStore.watchlists[0].items).toEqual([
-      { id: 12, instrument_id: 101, symbol: 'SPY', name: 'SPY' },
-    ])
-    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
-    wrapper.unmount()
-    queryClient.clear()
+    expect(addItem).not.toHaveBeenCalled()
+    expect(removeItem).not.toHaveBeenCalled()
+    expect(setError).toHaveBeenCalledTimes(4)
+    expect(setError).toHaveBeenLastCalledWith('Tag Columns can change membership only in an unlocked personal WatchList.')
   })
 
-  it('routes the personal WatchList surface through the same target-guarded membership mutation', async () => {
-    const watchlistStore = useWatchlistStore()
-    watchlistStore.watchlists = [
-      {
-        id: 7,
-        name: 'Core',
-        is_managed: false,
-        is_locked: false,
-        items: [{ id: 11, instrument_id: 101, symbol: 'SPY', name: 'SPY' }],
-      },
-      {
-        id: 8,
-        name: 'Other',
-        is_managed: false,
-        is_locked: false,
-        items: [{ id: 22, instrument_id: 101, symbol: 'SPY', name: 'SPY' }],
-      },
-    ]
-    apiDelete.mockResolvedValueOnce(undefined)
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const wrapper = shallowMount(WorkstationToolContent, {
-      props: {
-        tool: {
-          instance_key: 'watchlist-personal',
-          tool_type: 'watchlist',
-          title: 'Core',
-          configuration: { personal: true, watchlist_id: 7 },
-          link_group: 'blue',
-          timeframe_link_group: 'blue',
-        } as unknown as WorkspaceWindowState,
-        activeWindowKey: 'watchlist-personal',
-      },
-      global: {
-        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
-        stubs: {
-          ToolWindow: ToolWindowStub,
-          VirtualWatchlistTool: VirtualWatchlistToolStub,
-        },
-      },
+  it('reports failed add and remove confirmations without inventing membership', async () => {
+    const watchlists = [watchlistFixture()]
+    const setError = vi.fn()
+    const toggle = createTagColumnMembershipToggler({
+      getPersonalWatchlists: () => watchlists,
+      isDisposed: () => false,
+      addItem: vi.fn().mockResolvedValue(null),
+      removeItem: vi.fn().mockResolvedValue(undefined),
+      setError,
     })
 
-    wrapper.getComponent(VirtualWatchlistToolStub).vm.$emit(
-      'row-action',
-      'toggle-tag-membership',
-      { symbol: 'SPY', instrumentId: 101 },
-      7,
-    )
-    await flushPromises()
+    await toggle({ symbol: 'QQQ', instrumentId: 202 }, 7)
+    expect(setError).toHaveBeenLastCalledWith('Unable to add QQQ to Core.')
 
-    expect(apiDelete).toHaveBeenCalledOnce()
-    expect(apiDelete).toHaveBeenCalledWith('/watchlists/7/items/11')
-    expect(watchlistStore.watchlists[0].items).toEqual([])
-    expect(watchlistStore.watchlists[1].items).toEqual([
-      { id: 22, instrument_id: 101, symbol: 'SPY', name: 'SPY' },
-    ])
-    wrapper.unmount()
-    queryClient.clear()
+    await toggle({ symbol: 'SPY', instrumentId: 101 }, 7)
+    expect(setError).toHaveBeenLastCalledWith('Unable to remove SPY from Core.')
+    expect(watchlists[0].items).toEqual([{ id: 11, instrument_id: 101 }])
+  })
+
+  it('coalesces a duplicate in-flight mutation for the same target and instrument', async () => {
+    const watchlists = [watchlistFixture({ items: [] })]
+    let resolveAdd: ((item: { id: number; instrument_id: number }) => void) | undefined
+    const addItem = vi.fn(() => new Promise<{ id: number; instrument_id: number }>(resolve => { resolveAdd = resolve }))
+    const toggle = createTagColumnMembershipToggler({
+      getPersonalWatchlists: () => watchlists,
+      isDisposed: () => false,
+      addItem,
+      removeItem: vi.fn(),
+      setError: vi.fn(),
+    })
+
+    const first = toggle({ symbol: 'SPY', instrumentId: 101 }, 7)
+    await toggle({ symbol: 'SPY', instrumentId: 101 }, 7)
+    expect(addItem).toHaveBeenCalledOnce()
+    watchlists[0].items = [{ id: 22, instrument_id: 101 }]
+    resolveAdd?.({ id: 22, instrument_id: 101 })
+    await first
+  })
+
+  it('does not start mutations after the owning tool has been disposed', async () => {
+    const addItem = vi.fn()
+    const removeItem = vi.fn()
+    const toggle = createTagColumnMembershipToggler({
+      getPersonalWatchlists: () => [watchlistFixture()],
+      isDisposed: () => true,
+      addItem,
+      removeItem,
+      setError: vi.fn(),
+    })
+
+    await toggle({ symbol: 'SPY', instrumentId: 101 }, 7)
+    expect(addItem).not.toHaveBeenCalled()
+    expect(removeItem).not.toHaveBeenCalled()
+  })
+
+  it('binds the normalized Tag Column contract on every WatchList host template', () => {
+    const source = readFileSync(toolContentPath, 'utf8')
+    const { descriptor, errors } = parseSfc(source, { filename: toolContentPath })
+    expect(errors).toEqual([])
+    expect(descriptor.template).not.toBeNull()
+    const template = parseTemplate(descriptor.template!.content)
+    const hosts = template.children.flatMap(node => virtualWatchlistNodes(node))
+
+    expect(hosts).toHaveLength(6)
+    for (const host of hosts) {
+      expect(host.props).toContainEqual(expect.objectContaining({
+        type: 7,
+        name: 'bind',
+        arg: expect.objectContaining({ content: 'tag-columns' }),
+        exp: expect.objectContaining({ content: 'configuredTagColumns' }),
+      }))
+      expect(host.props).toContainEqual(expect.objectContaining({
+        type: 7,
+        name: 'on',
+        arg: expect.objectContaining({ content: 'update:tag-columns' }),
+        exp: expect.objectContaining({ content: 'updateTagColumns' }),
+      }))
+    }
   })
 })

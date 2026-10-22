@@ -1,5 +1,32 @@
 # feat/tc2000-frontend-rework
 
+## Current continuation — 2026-10-22: Tag Columns coverage recovery
+
+The current candidate was prepared on published TC base
+`fd567b418d9566310bafab9115cee067539b69ef`, whose exact branch CI
+`39866293985` had a Frontend Unit failure on the unchanged
+function-coverage threshold (69.08% against 70%); the backend job was still in
+progress at last observation, so no whole-run conclusion is recorded. The
+failure is attributable to the focused Tag Columns suite importing the
+monolithic `WorkstationToolContent.vue`, adding hundreds of unrelated functions
+to the denominator. No coverage exclusion, threshold change, assertion waiver,
+or unrelated tests were used.
+
+The current candidate moves target resolution, configuration merge,
+and guarded membership toggling into `frontend/src/lib/workstation/tagColumns.ts`.
+Tests exercise the production helpers and statically verify all six parent
+`VirtualWatchlistTool` bindings without importing the large component. The
+three affected suites pass `103/103`, `vue-tsc --noEmit` exits `0`, the TC scope
+guard passes for 994 paths (858 byte-verified immutable imports and 29 exact
+adaptations), and all 35 scope self-tests pass. Full frontend coverage/build and
+exact candidate CI remain pending; no browser/Compose profile was launched.
+Root's latest repair at staging `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`
+was awaiting its exact CI and acceptance at the last coordinator update, so
+this source has not adopted it. The prior accepted `0e342512...` staging
+baseline remains the branch ancestor. Custom Date Sort relative modes remain
+unavailable without a source-backed arbitrary-date comparator contract, and
+the full AC1–AC9 / official REF-HELP-V25 roadmap remains open.
+
 ## Current status — 2026-10-22: combined staging adopted; roadmap continues
 
 The original TC branch fast-forwarded from `febc6fbb7a033534f3c486f766dd437780954d09`
