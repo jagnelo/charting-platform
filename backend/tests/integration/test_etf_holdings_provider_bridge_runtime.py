@@ -2300,13 +2300,16 @@ async def test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_bind
                         forms={"NPORT-P"},
                         max_filings=1,
                     )
-                legacy_adapter = get_holdings_adapter("voya")
+                # Voya is now an HTTPX adapter, so it tests reviewed-host
+                # denial rather than the legacy requests transport guard.
+                # NSI still uses the blocked requests namespace directly.
+                legacy_adapter = get_holdings_adapter("nsi")
                 assert legacy_adapter is not None
                 with pytest.raises(
                     ETFHoldingsRouteHeldError,
                     match="legacy requests transport is not admitted",
                 ):
-                    await legacy_adapter.fetch_latest(symbol=case.instrument_symbol)
+                    await legacy_adapter.fetch_latest(symbol="NSI")
 
                 profile.sec_cik = "0000000001"
                 await session.flush()

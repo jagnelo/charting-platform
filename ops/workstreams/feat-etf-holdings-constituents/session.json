@@ -150,7 +150,7 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22 21:43Z: Exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published ETF source is 61dea5d3d22ffd6a1f04e301bc7e688001251953; its exact hosted CI outcome was not independently available in this session. Kensington's registered CSV route was found using raw requests.get despite the shared fail-closed transport. It now uses the Provider-backed HTTPX facade, with deterministic success and 403/no-fallback tests. Kensington tests passed 2/2 and the already-running declared offline branch suite passed: adapter615, checkpoint consumers15, route drift23, offline contracts9 passed/537 skipped, Ruff/workstream validation, frontend type-check, UI17 and production build. Live flags were0; no issuer/provider/SEC HTTP or quota use occurred. The Kensington correction is uncommitted and needs coherent owner-record validation, publication and exact-source CI. Do not start another heavy job while Root owns the slot. The full roadmap remains open with 15 Tier-0 and 156 Tier-1; full_stack_browser and the 30-day observation are incomplete. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/unreviewed/paid/trial/unsafe routes remain disabled.",
+  "current_blocker_latest": "2026-10-22 21:56Z: Accepted green staging 0e342512e53ba2268425294d61c50e219eaafa4f remains an ancestor. Kensington guarded transport is published at 96e2a3511fa19078810e4dd4e88c25d469a28b40; exact CI39860049634 is in progress (Frontend green; Backend integration phase active). Static review found raw requests.get fallbacks after HTTPX403 in Rayliant, Gabelli, and ARS; the shared ETF facade does not admit or account for those calls. These paths now retain the HTTPX status failure. Focused success and no-fallback tests passed6/6; Ruff, format and diff checks passed. These follow-up changes are uncommitted and not in active CI; do not cancel that run or launch a broad local job while Root owns the slot. No external issuer/provider/SEC HTTP or quota use occurred. Full_stack_browser and the 30-day observation remain open; preserve 15 Tier-0 and 156 Tier-1, quarantines and all route holds.",
   "dirty_paths": [],
   "docker": {
     "available": false,
@@ -176,8 +176,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "61dea5d3d22ffd6a1f04e301bc7e688001251953",
-  "implementation_sha": "61dea5d3d22ffd6a1f04e301bc7e688001251953",
+  "head": "96e2a3511fa19078810e4dd4e88c25d469a28b40",
+  "implementation_sha": "96e2a3511fa19078810e4dd4e88c25d469a28b40",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -325,8 +325,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run the fast narrative-count sentinel, workstream/schema/JSONL/plan-hash/diff checks for the Kensington guarded-transport correction, then commit and push only this coherent ETF-owned source/test/workstream change and verify exact remote parity and exact-source CI. Continue the complete AC1-AC14 roadmap from retained evidence. Do not issue issuer/provider/SEC requests, spend quota, activate held routes, or start another heavy local job while Root owns the slot. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation.",
-  "plan_hash": "337986528caa5cf2392f82d1033b4f7b7b05860ded6104f2862d96ac8cf4dfcb",
+  "next_action": "Run fast collection, Ruff, narrative-count, workstream/schema/JSONL/plan-hash/diff checks for the NSI legacy-transport fixture correction plus Rayliant/Gabelli/ARS guarded-403 source/tests; publish this coherent change and verify exact-source CI. No local integration/browser gate while Root owns the heavy slot. Continue AC1-AC14 without issuer/provider/SEC HTTP, quota, unsafe activation or cleanup. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds and the 30-day observation.",
+  "plan_hash": "7a4169960d961dc7e25d6fd5ffac67ab6054ecdbd4d2d7cf2f45b819dc401482",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -377,11 +377,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The accepted green staging SHA 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published ETF source is 61dea5d3d22ffd6a1f04e301bc7e688001251953; exact hosted CI was not independently available in this session. Kensington's registered CSV route now uses the Provider-backed HTTPX facade instead of the fail-closed raw requests transport; focused tests passed 2/2 and the already-running offline branch suite passed adapters615, checkpoint consumers15, route drift23, offline contracts9 passed/537 skipped, Ruff/workstream validation, frontend type-check, UI17 and build with live flags0. No external HTTP or quota operation occurred. This uncommitted Kensington change requires owner-record validation, publication and exact-source CI. Do not start another heavy job while Root owns the slot. The full roadmap remains open with 15 Tier-0 and 156 Tier-1; full_stack_browser and 30-day observation are incomplete. MSMR/QQQ and Militia/GOOG remain quarantined and held routes stay disabled.",
+    "current_blocker": "Exact CI39860049634 on published source96e2a3511fa19078810e4dd4e88c25d469a28b40 is terminal RED: backend unit passed5204 with1 expected skip; integration passed496, skipped2, failed1 because a synthetic test asserted the requests guard while invoking Voya's guarded HTTPX path. The fixture now invokes NSI, whose registered fetch path uses requests; hosted integration proof is pending. Uncommitted Rayliant/Gabelli/ARS changes remove unguarded requests fallbacks after HTTPX403; six deterministic tests and fast static/workstream checks passed. No local integration/browser gate while Root owns the heavy slot; no external HTTP or quota. Preserve 15 Tier-0 and 156 Tier-1, all quarantines/holds, and the full roadmap.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Run the fast narrative-count sentinel, workstream/schema/JSONL/plan-hash/diff checks for the Kensington correction, then publish only the coherent ETF-owned source/test/workstream change and verify exact-source CI. Continue AC1-AC14 from retained evidence; no issuer/provider/SEC requests, quota, unsafe activation or heavy local jobs while Root owns the slot. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation.",
+    "next_action": "Run fast collection, Ruff, narrative-count, workstream/schema/JSONL/plan-hash/diff checks for the NSI legacy-transport fixture correction plus Rayliant/Gabelli/ARS guarded-403 source/tests; publish coherently and verify exact-source CI. No local integration/browser gate while Root owns the heavy slot. Continue AC1-AC14 without issuer/provider/SEC HTTP, quota, unsafe activation or cleanup; preserve all criteria, history, quarantines, route holds, and the 30-day observation.",
     "total": 14,
-    "updated_at": "2026-10-22T21:43:35Z"
+      "updated_at": "2026-10-22T22:04:36Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -393,8 +393,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "61dea5d3d22ffd6a1f04e301bc7e688001251953",
-  "remote_sha": "61dea5d3d22ffd6a1f04e301bc7e688001251953",
+  "remote": "96e2a3511fa19078810e4dd4e88c25d469a28b40",
+  "remote_sha": "96e2a3511fa19078810e4dd4e88c25d469a28b40",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

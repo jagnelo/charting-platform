@@ -577,28 +577,25 @@ current_blocker: >-
   unsafe operations stay disabled. No live calls, quota replay, dataset reset,
   retained-resource cleanup, deployment, or cross-worktree write occurred.
   On 2026-10-22, the exact synchronized green release 0e342512e53ba2268425294d61c50e219eaafa4f was reverified from its canonical receipt and confirmed as an ancestor of current ETF tip e4816268eb0c5effaad97979d13be843b50fc950; GitHub independently confirms the ETF remote at e481626, so no merge or push was needed for adoption. The assigned worktree has four pre-existing dirty ETF workstream records, and the released merge changes overlapping record/test paths; these were preserved without reset, rebase, stash, or forced merge. A read-only transport audit found Voya's catalogued native adapter still called the fail-closed legacy requests namespace. Voya now uses the shared Provider-backed HTTPX facade with per-hop redirect admission; its unit assertion verifies client timeout/redirect configuration, URL, and Referer. The Voya test passed, the full deterministic adapter module passed 611 tests, the provider-bridge and refresh modules passed 34 tests, and changed-file Ruff/format/diff checks passed. The complete declared branch suite then passed: adapter 611, checkpoint consumer 15, route-drift 23, offline live contracts 9 passed/537 network cases skipped, Ruff and workstream validation, frontend type-check, 17 frontend tests, and frontend build. This worktree-only change is not covered by earlier exact CI 39850920455, which remains in progress on the pre-fix e481 source; no live route or full_stack_browser result is claimed.
-  Current continuation at 2026-10-22 21:43Z: the released green staging SHA
-  0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published
-  branch/origin source 61dea5d3d22ffd6a1f04e301bc7e688001251953 contains the
-  guarded HTTPX 403 corrections for PublicCsv/NEOS; the hosted run result for
-  that exact SHA was not independently available in this session. A subsequent
-  static audit found the registered Kensington native adapter's CSV request
-  still used raw requests.get, which the shared transport intentionally holds.
-  It now uses the Provider-backed HTTPX facade with explicit redirect handling;
-  deterministic success and 403/no-fallback tests were added. Both focused
-  Kensington tests passed, and the already-running complete declared offline
-  branch suite passed: adapters 615, checkpoint consumers 15, route drift 23,
-  offline live contracts 9 passed/537 skipped, Ruff/workstream validation,
-  frontend type-check, ETF UI tests 17, and production build. Live flags were
-  explicitly 0. No external HTTP or quota operation occurred. This Kensington
-  change is still uncommitted and requires coherent workstream checks,
-  publication, and exact-source CI. The full_stack_browser profile remains
-  open and waits for Root's safe slot; no further heavy profile is authorized
-  while Root owns the local slot. Preserve all fourteen criteria, issuer
-  onboarding, the post-integration 30-day observation, and 15 Tier-0 and 156
-  Tier-1 investigations; MSMR/QQQ and Militia/GOOG remain unresolved and
-  quarantined, and unknown/quota-held/unreviewed/paid/trial/unsafe routes stay
-  disabled.
+  Current continuation at 2026-10-22 22:04Z: released green staging
+  0e342512e53ba2268425294d61c50e219eaafa4f remains an ancestor. Published ETF
+  source 96e2a3511fa19078810e4dd4e88c25d469a28b40 exact CI39860049634 is
+  terminal RED: frontend passed; backend unit passed5204 with1 expected skip;
+  backend integration passed496, skipped2, failed1; later jobs skipped. The
+  failure is the test's Voya negative case expecting the legacy requests guard,
+  while Voya now uses guarded HTTPX and is correctly stopped earlier by the
+  synthetic reviewed-host allowlist. The test-only fixture now uses registered
+  NSI, whose fetch path actually calls the fail-closed requests namespace; this
+  correction is not yet run in DB integration or hosted CI. Separately, local
+  Rayliant/Gabelli/ARS adapter changes remove raw requests fallbacks after
+  HTTPX403; their six deterministic success/denial cases passed, as did the
+  audit-count sentinel, Ruff check/format, diff check, and workstream validator.
+  No heavy local profile is authorized while Root owns the slot. Publish only
+  after fast checks, then inspect new exact-source CI. Full_stack_browser remains
+  required and unrun. Preserve all fourteen criteria, issuer onboarding, the
+  post-integration 30-day observation, and 15 Tier-0 and 156 Tier-1
+  investigations; MSMR/QQQ and Militia/GOOG remain unresolved/quarantined, and
+  unknown/quota-held/unreviewed/paid/trial/unsafe routes stay disabled.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -1618,16 +1615,15 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Complete the fast narrative-count sentinel, workstream/schema/JSONL/plan-hash
-  and diff checks for the Kensington guarded-transport correction, then commit
-  and push only the coherent ETF-owned source/test/workstream change and verify
-  exact remote parity and exact-source CI. Continue the full AC1-AC14 roadmap
-  from retained evidence; do not change route status or refresh blocked sources
-  without qualifying evidence and authorized safe access. The full_stack_browser
-  matrix remains required and awaits Root's safe slot; do not launch another
-  heavy backend/frontend/Compose/browser job while Root owns it. Preserve all
-  issuer onboarding, 30-day observation, historical/red results, 15 Tier-0 and
-  156 Tier-1 accounting, MSMR/QQQ and Militia/GOOG quarantines, and all
-  unknown/quota-held/unreviewed/paid/trial/unsafe holds. No issuer, SEC, or
-  Provider HTTP, quota spend/reset, dataset reset, retained-resource cleanup,
-  staging/sibling/master write, deployment, or self-integration.
+  Validate the source-96 CI fixture correction with fast collection, Ruff,
+  count/schema/JSONL/plan-hash/diff checks; then publish the coherent Rayliant,
+  Gabelli, ARS guarded-403 correction and NSI transport-guard fixture correction
+  together and inspect exact-source CI. Do not run local integration/browser
+  gates while Root owns the heavy slot. Continue AC1-AC14 from retained evidence;
+  do not change route status or refresh blocked sources without qualifying
+  evidence and authorized access. The full_stack_browser matrix remains required
+  and awaits Root's slot. Preserve issuer onboarding, 30-day observation,
+  historical/red results, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG
+  quarantines, and unknown/quota-held/unreviewed/paid/trial/unsafe holds. No
+  issuer, SEC, or Provider HTTP, quota, dataset reset, retained-resource
+  cleanup, staging/sibling/master write, deployment, or self-integration.

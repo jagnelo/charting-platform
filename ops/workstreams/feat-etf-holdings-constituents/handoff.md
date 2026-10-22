@@ -13729,3 +13729,64 @@ start another heavy local job while Root owns the slot. Preserve the full
 AC1-AC14 roadmap, `15 Tier-0 and 156 Tier-1`, all historic partial/red evidence,
 MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/quota-held/unreviewed/
 paid/trial/unsafe routes, and the post-integration 30-day observation.
+
+## Guarded 403 handling for Kensington, Rayliant, Gabelli, and ARS — 2026-10-22 21:56Z
+
+Published Kensington fix `96e2a3511fa19078810e4dd4e88c25d469a28b40` is clean
+and synchronized to the ETF branch. Exact Actions CI `39860049634` is active
+on that published SHA (Frontend green; Backend integration phase active). A
+further offline transport audit found Rayliant's product-page, Gabelli's
+holdings-CSV, and ARS's product-page paths each attempted raw `requests.get`
+after HTTPX 403. Those fallbacks cannot run under the intentional fail-closed
+ETF `requests` namespace and do not create governed attempt records. All three
+adapters now surface the admitted HTTPX status error instead of trying an
+unadmitted transport; route eligibility, source evidence, and business parsing
+remain unchanged.
+
+Focused deterministic success and HTTP403/no-fallback tests passed 6/6. Ruff
+passed; formatting and `git diff --check` passed after mechanical formatting.
+No provider/issuer/SEC HTTP, quota, or route-eligibility change occurred. This
+is a focused source/test worktree change only; the full declared branch suite
+has not been rerun for it because Root owns the heavy local slot. The current
+exact CI must terminate before deciding publication timing; do not cancel it or
+launch another broad local run. Preserve all fourteen roadmap criteria,
+`15 Tier-0 and 156 Tier-1`, historical results, MSMR/QQQ and Militia/GOOG
+quarantines, disabled unknown/quota-held/unreviewed/paid/trial/unsafe routes,
+and the 30-day observation gate.
+
+## Exact CI follow-up: correct legacy-transport fixture — 2026-10-22 22:04Z
+
+Exact Actions run `39860049634` on published source
+`96e2a3511fa19078810e4dd4e88c25d469a28b40` is terminal RED. Frontend passed;
+backend unit passed 5,204 with one expected skip; backend integration passed
+496, skipped 2, and failed 1; dependent E2E, Exhaustive and branch-declared jobs
+were skipped. The sole failure was
+`test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_binding`:
+the synthetic fixture invoked Voya but expected the fail-closed `requests`
+guard. Voya now uses the shared HTTPX bridge, so its call was correctly denied
+first by the fixture's reviewed-host allowlist. Source inspection confirmed NSI
+is a registered adapter whose actual fetch path still calls the intentionally
+blocked `requests` namespace. The integration fixture now invokes NSI with its
+configured `NSI` symbol, preserving the intended zero-transport guard assertion;
+this test-only correction has not yet run against a database or hosted CI.
+
+In the same uncommitted follow-up, Rayliant, Gabelli/GAMCO and ARS no longer
+attempt raw `requests.get` after admitted HTTPX 403 responses; those fallbacks
+could not be admitted/accounted by the shared runtime. Their six deterministic
+success/403 cases passed. A repeat run also passed all six cases and the
+audit-count sentinel; Ruff check/format, diff check and the branch workstream
+validator passed. No broad local backend/integration/browser work was run while
+Root owns the heavy slot. No issuer/provider/SEC request, quota use, route-state
+change, staging/sibling mutation or cleanup occurred. The current code and
+fixture changes remain uncommitted and need fast collection/static checks,
+coherent publication and fresh exact-source CI. Preserve CI `39860049634` as
+historical red evidence; do not rerun or relabel it green. The full
+`full_stack_browser` profile, all AC1-AC14 roadmap scope, 15 Tier-0 and 156
+Tier-1 accounting, MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/
+quota-held/unreviewed/paid/trial/unsafe routes, and the post-integration
+30-day observation remain open. Exact owned paths in this uncommitted context:
+`backend/app/services/etf_holdings_adapters.py`,
+`backend/tests/unit/services/test_etf_holdings_adapters.py`,
+`backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`, and
+the four ETF-owned records `plan.yaml`, `handoff.md`, `session.json`, and
+`validation.jsonl`.

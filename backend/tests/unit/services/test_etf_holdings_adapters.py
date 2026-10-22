@@ -2161,6 +2161,36 @@ async def test_rayliant_adapter_discovers_product_page_and_preserves_foreign_ref
 
 
 @pytest.mark.asyncio
+async def test_rayliant_product_page_403_stays_on_admitted_httpx(monkeypatch):
+    adapter = get_holdings_adapter("rayliant")
+    assert adapter is not None
+    product_page_url = "https://funds.rayliant.com/cnqq/"
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(url=product_page_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter._fetch_text(product_page_url, accept="text/html,*/*")
+
+    assert len(FakeAsyncClient.requested) == 1
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == product_page_url
+    assert request_kwargs["follow_redirects"] is True
+    assert request_kwargs["headers"]["Accept"] == "text/html,*/*"
+
+
+@pytest.mark.asyncio
 async def test_neuberger_berman_adapter_discovers_official_detailed_holdings_workbook(monkeypatch):
     adapter = get_holdings_adapter("neuberger_berman")
     assert adapter is not None
@@ -4822,6 +4852,36 @@ async def test_gabelli_adapter_parses_per_fund_daily_holdings_csv(monkeypatch):
     assert result.rows[2].row_type == "cash"
     assert result.legal_metadata["route_resolution"] == "issuer_per_fund_daily_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
+async def test_gabelli_holdings_csv_403_stays_on_admitted_httpx(monkeypatch):
+    adapter = get_holdings_adapter("gamco")
+    assert adapter is not None
+    holdings_url = "https://gabelli.com/wp-content/uploads/Holdings_GCAD.csv"
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(url=holdings_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="GCAD")
+
+    assert len(FakeAsyncClient.requested) == 1
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == holdings_url
+    assert request_kwargs["follow_redirects"] is True
+    assert request_kwargs["headers"]["Referer"] == "https://gabelli.com/ticker/gcad/"
 
 
 @pytest.mark.asyncio
@@ -15778,6 +15838,35 @@ async def test_ars_provider_alias_uses_verified_ars_product_page_route(monkeypat
     assert result.rows[0].symbol == "NVDA"
     assert result.legal_metadata["adapter_key"] == "ars"
     assert result.legal_metadata["source_provider"] == "ars_investment_partners"
+
+
+@pytest.mark.asyncio
+async def test_ars_product_page_403_stays_on_admitted_httpx(monkeypatch):
+    adapter = get_holdings_adapter("ars")
+    assert adapter is not None
+    product_page_url = "https://arsinvestetfs.com/acep/"
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(url=product_page_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter._fetch_product_page(product_page_url)
+
+    assert len(FakeAsyncClient.requested) == 1
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == product_page_url
+    assert request_kwargs["follow_redirects"] is True
 
 
 @pytest.mark.asyncio

@@ -6915,26 +6915,8 @@ class RayliantHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     async def _fetch_text(url: str, *, accept: str) -> str:
         headers = _issuer_page_request_headers(accept=accept)
-        try:
-            async with httpx.AsyncClient(
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.get(url, headers=headers, follow_redirects=True)
-            response.raise_for_status()
-            return response.text
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 403:
-                raise
-        # Rayliant's CDN permits the same public request through requests but
-        # currently rejects httpx's TLS fingerprint. Keep this as a narrow
-        # issuer-local transport fallback, not a generic provider fallback.
-        response = await asyncio.to_thread(
-            requests.get,
-            url,
-            headers=headers,
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(url, headers=headers, follow_redirects=True)
         response.raise_for_status()
         return response.text
 
@@ -8349,34 +8331,15 @@ class GabelliHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         headers = _issuer_page_request_headers(accept="text/csv,text/plain,*/*")
         headers["Referer"] = f"https://gabelli.com/ticker/{normalized_symbol.lower()}/"
-        try:
-            async with httpx.AsyncClient(
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.get(
-                    resolved_source_url,
-                    headers=headers,
-                    follow_redirects=True,
-                )
-            response.raise_for_status()
-            raw_csv = response.text
-            fetched_url = str(response.url)
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 403:
-                raise
-            # Gabelli's CDN permits the same public CSV through requests but
-            # rejects httpx's TLS fingerprint. Keep this transport fallback
-            # limited to this issuer-native route.
-            fallback_response = await asyncio.to_thread(
-                requests.get,
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
                 resolved_source_url,
                 headers=headers,
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-                allow_redirects=True,
+                follow_redirects=True,
             )
-            fallback_response.raise_for_status()
-            raw_csv = fallback_response.text
-            fetched_url = str(fallback_response.url)
+        response.raise_for_status()
+        raw_csv = response.text
+        fetched_url = str(response.url)
         rows, composition_date = self._parse_daily_holdings_csv(raw_csv, symbol=normalized_symbol)
         if not rows:
             raise ValueError(
@@ -9102,34 +9065,10 @@ class ArtemisHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     async def _fetch_product_page(url: str) -> httpx.Response | requests.Response:
         headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
-        try:
-            async with httpx.AsyncClient(
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.get(url, headers=headers, follow_redirects=True)
-            response.raise_for_status()
-            return response
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 403:
-                raise
-        # ARS uses a Cloudflare edge that intermittently rejects httpx while
-        # accepting the same public page through a browser-compatible client.
-        for attempt in range(3):
-            try:
-                response = await asyncio.to_thread(
-                    requests.get,
-                    url,
-                    headers=headers,
-                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-                    allow_redirects=True,
-                )
-                response.raise_for_status()
-                return response
-            except requests.exceptions.Timeout:
-                if attempt == 2:
-                    raise
-                await asyncio.sleep(0.25 * (attempt + 1))
-        raise AssertionError("unreachable")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(url, headers=headers, follow_redirects=True)
+        response.raise_for_status()
+        return response
 
     @classmethod
     def _parse_holdings_html(
