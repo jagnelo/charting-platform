@@ -5,10 +5,12 @@
 The exact synchronized green staging release `0e342512e53ba2268425294d61c50e219eaafa4f`
 is an ancestor of this ETF branch. It was verified from the canonical release
 record and receipt; no merge was needed because it was already in the branch
-history. The ETF branch was published at `136c62a78ae157953b689e4fb341f4098683f80e`
-with the Voya native-route change, and its exact CI run `39853885891` is still
-in progress. This source checkpoint is a follow-up on the accepted baseline,
-not acceptance or closure of the full ETF roadmap.
+history. The ETF branch is now published at
+`c23fa9e925677c5dc6bc4335e1419f6d0c05954b`, containing the Voya and REX
+guarded-transport fixes; local and remote refs matched after push. Exact CI
+`39855044854` was created for this REX commit and is pending/in progress. The
+earlier Voya CI `39853885891` is on its parent only. These are source fixes on
+the accepted baseline, not acceptance or closure of the full ETF roadmap.
 
 The next offline audit found the same concrete guarded-transport defect in the
 REX native route: its complete holdings CSV form used `requests.post`, which is
@@ -22,21 +24,32 @@ passed 611/611. The full branch-declared offline suite passed: adapter 611,
 checkpoint consumer 15, route-drift 23, offline live contracts 9 passed/537
 network-bearing cases skipped, Ruff/workstream validation, frontend type-check,
 17 frontend tests, and production build. No external issuer/provider/SEC HTTP
-or quota operation occurred, and the opt-in live sweep remained disabled.
+or quota operation occurred, and the opt-in live sweep remained disabled. REX
+was committed and pushed as `c23fa9e925677c5dc6bc4335e1419f6d0c05954b`;
+exact run `39855044854` applies to that SHA and does not include PeakShares.
 
-The REX source and test are locally modified on top of the published Voya
-commit. Their coherent workstream receipt and final count/schema/hash checks
-are now recorded and passed; the ETF-only commit/push remains. Exact CI `39853885891` covers only the
-Voya commit, not this REX follow-up. No live REX success, full-stack browser
-pass, route promotion, full-roadmap completion, or post-integration observation
-is claimed. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined; all
-unknown, quota-held, unreviewed, paid/trial, and unsafe operations remain
-disabled. Preserve all fourteen criteria, the exact “15 Tier-0 and 156 Tier-1”
-count wording, historical failures, and the 30-day observation gate.
+The next offline audit found a separate unsafe PeakShares fallback: after three
+HTTPX POST timeouts the adapter called raw `requests.post`, escaping the shared
+per-attempt admission boundary. The fallback is removed; all three attempts
+continue through the same Provider-backed client and a terminal timeout is
+surfaced rather than making an unadmitted fourth request. The success-after-one-
+timeout contract and the three-timeout fail-closed contract pass; the latter
+asserts all three POSTs use the configured FilePoint URL, fund ID and product
+page Referer. The complete declared branch suite passed again with live tests
+disabled. PeakShares source/test and owner-record updates remain uncommitted and
+are not covered by REX CI `39855044854`.
 
-Next: close and publish this substantive REX adapter/test checkpoint, then
-inspect the resulting exact-source CI. Continue the full roadmap from retained
-evidence without issuer/provider/SEC requests or quota spend. A full
+No live REX or PeakShares success, full-stack browser pass, route promotion,
+full-roadmap completion, or post-integration observation is claimed. MSMR/QQQ
+and Militia/GOOG remain unresolved/quarantined; all unknown, quota-held,
+unreviewed, paid/trial, and unsafe operations remain disabled. Preserve all
+fourteen criteria, the exact “15 Tier-0 and 156 Tier-1” count wording,
+historical failures, and the 30-day observation gate.
+
+Next: close and publish the substantive PeakShares guarded-transport change
+with its coherent evidence, then inspect resulting exact-source CI. Continue
+the full roadmap from retained evidence without issuer/provider/SEC requests
+or quota spend. A full
 `full_stack_browser` matrix remains required and needs Root's assigned safe
 slot; no staging/sibling/master write, deployment, self-integration, data reset,
 or retained-resource cleanup is authorized.

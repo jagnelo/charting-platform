@@ -336,15 +336,16 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: REX guarded transport compatibility
-    state: focused_rex_test_pass;adapter_611_pass;declared_offline_branch_suite_pass;final_records_checks_pass;commit_push_and_exact_ci_pending
-    baseline: 136c62a78ae157953b689e4fb341f4098683f80e
+    name: PeakShares guarded retry boundary
+    state: two_peakshares_contracts_pass;adapter_611_pass;declared_offline_branch_suite_pass;final_records_checks_pending
+    baseline: c23fa9e925677c5dc6bc4335e1419f6d0c05954b
     intent: >-
-      Route the registered REX complete-holdings CSV form through Provider-backed
-      HTTPX rather than the intentionally fail-closed requests namespace. Preserve
-      its configured timeout, redirect policy, product URL, form fields, Referer,
-      parser, result metadata, errors, and one shared admission/settlement for
-      each physical hop. No live request or route promotion is claimed.
+      Remove PeakShares' raw requests.post escape after three FilePoint
+      timeouts. Keep every physical POST on the same Provider-backed HTTPX
+      client so each retry is separately admitted/settled, preserve existing
+      backoff and the original terminal timeout, and never convert a governed
+      failure into an unadmitted request. No live request or route promotion
+      is claimed.
     owned_paths:
       - backend/app/services/etf_holdings_adapters.py
       - backend/tests/unit/services/test_etf_holdings_adapters.py
@@ -1583,19 +1584,19 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    Exact Actions run 39853885891 is in progress on published source
-    136c62a78ae157953b689e4fb341f4098683f80e, which contains the Voya
-    guarded-transport change but not the current REX follow-up. The REX source
-    and deterministic test pass locally through the full declared offline
-    branch suite; after coherent publication a new exact-head run is required.
-    Earlier cancelled, partial and red runs remain historical and are not
-    upgraded to green.
+    Exact Actions run 39855044854 was created for published REX source
+    c23fa9e925677c5dc6bc4335e1419f6d0c05954b and is pending/in progress; it
+    does not contain the current PeakShares follow-up. The PeakShares tests and
+    full declared offline branch suite pass locally; a fresh exact-head run is
+    required after its coherent publication. Earlier cancelled, partial and
+    red runs remain historical and are not upgraded to green.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Publish the fully validated REX guarded-transport checkpoint in one ETF-owned
-  commit/push and inspect exact-source CI. Continue
+  Record the validated PeakShares guarded-retry change, run final count/schema/
+  hash/diff checks, then commit/push only this ETF-owned checkpoint and inspect
+  exact-source CI. Continue
   the full AC1-AC14 roadmap from retained evidence; do not change route status
   or refresh blocked sources without qualifying new evidence and authorized
   safe access. The full_stack_browser matrix remains required and awaits Root's

@@ -2503,7 +2503,7 @@ async def test_peakshares_adapter_verifies_product_page_and_parses_fund_scoped_h
 
 
 @pytest.mark.asyncio
-async def test_peakshares_adapter_uses_requests_transport_after_repeated_filepoint_timeouts(
+async def test_peakshares_adapter_stops_after_governed_filepoint_timeouts(
     monkeypatch,
 ):
     adapter = get_holdings_adapter("peakshares")
@@ -2523,44 +2523,24 @@ async def test_peakshares_adapter_uses_requests_transport_after_repeated_filepoi
         httpx.ReadTimeout("PeakShares FilePoint route was slow"),
         httpx.ReadTimeout("PeakShares FilePoint route was slow"),
     ]
-    requests_post_calls = []
-
-    def fake_requests_post(url, **kwargs):
-        requests_post_calls.append((url, kwargs))
-        return FakeResponse(
-            text=json.dumps(
-                [
-                    {
-                        "asOfDate": "2026-07-24T00:00:00",
-                        "portfolioNumber": "1477",
-                        "portfolioName": "PeakShares Sector Rotation ETF",
-                        "securityIdentifier": "81369Y886",
-                        "securityTicker": "XLU US",
-                        "securityDescriptionLong": "State Street Utilities Select Sector SPDR ETF",
-                        "netAssetsPercent": 0.1219,
-                        "segment": "EXCHANGE-TRADED FUND",
-                        "category": "EQUITY",
-                    },
-                ]
-            ),
-            content_type="application/json",
-            url="https://filepoint.live/peakshares_getholdings_cached4.php",
-        )
-
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.post", fake_requests_post)
 
-    result = await adapter.fetch_latest(symbol="PSTR", identifiers={})
+    with pytest.raises(httpx.ReadTimeout, match="FilePoint route was slow"):
+        await adapter.fetch_latest(symbol="PSTR", identifiers={})
 
     assert len(FakeAsyncClient.requested) == 4
-    assert len(requests_post_calls) == 1
-    assert requests_post_calls[0][0] == "https://filepoint.live/peakshares_getholdings_cached4.php"
-    assert requests_post_calls[0][1]["data"] == {"fundID": "1477"}
-    assert requests_post_calls[0][1]["headers"]["Referer"] == (
-        "https://www.peaksharesfunds.com/PSTR.html"
+    assert all(
+        request_url == "https://filepoint.live/peakshares_getholdings_cached4.php"
+        for request_url, _ in FakeAsyncClient.requested[1:]
     )
-    assert result.rows[0].symbol == "XLU"
-    assert result.legal_metadata["composition_date"] == "2026-07-24"
+    assert all(
+        request_kwargs["data"] == {"fundID": "1477"}
+        for _, request_kwargs in FakeAsyncClient.requested[1:]
+    )
+    assert all(
+        request_kwargs["headers"]["Referer"] == "https://www.peaksharesfunds.com/PSTR.html"
+        for _, request_kwargs in FakeAsyncClient.requested[1:]
+    )
 
 
 @pytest.mark.asyncio

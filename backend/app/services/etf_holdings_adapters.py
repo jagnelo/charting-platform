@@ -62755,15 +62755,14 @@ class PeakSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         fund_id: str,
         referer: str,
     ) -> httpx.Response:
-        # FilePoint can intermittently stall through httpx while the same
-        # verified issuer route remains available through a browser-like
-        # requests transport. Keep the fallback scoped to PeakShares fund ids.
+        # Each retry stays on the Provider-backed client so every physical
+        # request receives its own admission and settlement. Never escape to
+        # the intentionally fail-closed requests namespace after timeouts.
         headers = {
             **_holdings_request_headers(accept="application/json,text/plain,*/*"),
             "Origin": "https://www.peaksharesfunds.com",
             "Referer": referer,
         }
-        timeout = settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
         for attempt in range(3):
             try:
                 return await client.post(
@@ -62773,23 +62772,10 @@ class PeakSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     follow_redirects=True,
                 )
             except httpx.TimeoutException:
-                if attempt != 2:
-                    await asyncio.sleep(0.25 * (attempt + 1))
-        response = await asyncio.to_thread(
-            requests.post,
-            self.HOLDINGS_URL,
-            data={"fundID": fund_id},
-            headers=headers,
-            timeout=timeout,
-            allow_redirects=True,
-        )
-        request = httpx.Request("POST", str(response.url))
-        return httpx.Response(
-            status_code=response.status_code,
-            request=request,
-            headers=response.headers,
-            content=response.content,
-        )
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(0.25 * (attempt + 1))
+        raise AssertionError("PeakShares retry loop exited without a response or timeout.")
 
     @staticmethod
     def _validate_product_page(raw_html: str, *, symbol: str, fund_id: str) -> None:

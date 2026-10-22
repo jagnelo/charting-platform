@@ -88,9 +88,9 @@
     }
   ],
   "active_changeset": {
-    "baseline": "136c62a78ae157953b689e4fb341f4098683f80e",
-    "intent": "Route REX's registered native complete-holdings CSV form through the shared Provider-backed HTTPX facade instead of the intentionally fail-closed requests namespace, preserving independently admitted redirects and the existing form/header/parser/result contract.",
-    "name": "REX guarded transport compatibility",
+    "baseline": "c23fa9e925677c5dc6bc4335e1419f6d0c05954b",
+    "intent": "Remove PeakShares' raw requests.post escape after three FilePoint timeouts while preserving three separately governed HTTPX attempts, existing backoff, and the original terminal timeout.",
+    "name": "PeakShares guarded retry boundary",
     "owned_paths": [
       "backend/app/services/etf_holdings_adapters.py",
       "backend/tests/unit/services/test_etf_holdings_adapters.py",
@@ -99,7 +99,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
     ],
-    "state": "exact_staging_release_0e342512_is_ancestor;published_Voya_fix_136c62a_remote_verified_and_exact_CI_39853885891_in_progress;REX_HTTPX_fix_focused1_and_adapter611_passed;declared_offline_branch_suite_green_adapter611_consumer15_route_drift23_offline_live9_pass_537_skip_frontend_typecheck_tests17_build;final_count_schema_hash_diff_checks_passed;commit_push_and_exact_CI_pending;no_live_HTTP_or_full_stack_claim"
+    "state": "exact_staging_release_0e342512_is_ancestor;REX_commit_c23fa9e_remote_verified_exact_CI_39855044854_pending;PeakShares_retries_remain_on_guarded_HTTPX_after_three_timeouts;two_peakshares_contracts_pass;full_declared_offline_branch_suite_green_adapter611_consumer15_route_drift23_offline_live9_pass_537_skip_frontend_typecheck_tests17_build;PeakShares_records_and_exact_CI_pending;no_live_HTTP_or_full_stack_claim"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -150,7 +150,7 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22 21:08Z: Exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f was verified as an ancestor of the ETF branch; no merge was needed. ETF commit 136c62a78ae157953b689e4fb341f4098683f80e is published and local/origin parity was independently verified; exact CI 39853885891 is in progress on that Voya-only source and does not cover the current REX follow-up. Static review found REX's registered native complete-holdings route used the intentionally fail-closed requests.post namespace. The adapter and deterministic fake-client test now use Provider-backed HTTPX with the configured timeout, redirect policy, same URL, POST form fields and Referer. Focused REX test 1/1, complete adapter module 611/611, and full declared offline branch suite passed (consumer15, route-drift23, offline contracts9 passed/537 skipped, Ruff/workstream validation, frontend type-check, 17 frontend tests, build). The final narrative sentinel, workstream validator, Ruff/format, JSON/YAML/JSONL parsing, plan-hash comparison and diff check now pass. REX source/test and coherent owner-record evidence are the current uncommitted change; commit/push and exact-source CI remain. No live route, provider call, quota operation or full_stack_browser pass is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all route holds, and the 30-day observation gate.",
+  "current_blocker_latest": "2026-10-22 21:13Z: Exact green staging release 0e342512e53ba2268425294d61c50e219eaafa4f is in ETF history. Source c23fa9e925677c5dc6bc4335e1419f6d0c05954b is published and synchronized with Voya/REX fixes; exact run 39855044854 was created on that SHA and is pending/in progress. PeakShares' previous third-timeout raw requests.post escape is removed; all three retries remain on the guarded Provider-backed HTTPX client and propagate the final timeout. The success-after-retry and three-timeout fail-closed tests pass. Full branch-declared offline suite passes: 611 adapters, 15 consumers, 23 route-drift, 9 offline contracts passed/537 live cases skipped, Ruff/workstream validation, frontend type-check, ETF frontend17, and build. PeakShares source/test plus owner-record evidence remain local and need final checks, publication and exact-source CI. No issuer/provider/SEC HTTP, quota operation, full_stack_browser pass, route promotion or whole-roadmap completion is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all holds and the 30-day observation gate.",
   "dirty_paths": [
     "backend/app/services/etf_holdings_adapters.py",
     "backend/tests/unit/services/test_etf_holdings_adapters.py",
@@ -294,9 +294,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-22T21:08:56Z",
+  "last_checkpoint": "2026-10-22T21:13:25Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-22: Exact green staging release 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of the ETF branch; no merge was needed. The ETF branch is published/synchronized at 136c62a78ae157953b689e4fb341f4098683f80e with Voya routed through the guarded HTTPX facade; exact CI 39853885891 is still in progress on that source and does not cover the current REX follow-up. REX's registered native holdings form was found calling fail-closed requests.post; it now uses Provider-backed HTTPX with existing timeout/redirect behavior and preserves form/header/parser/result contract. Focused REX test 1/1, adapter module 611/611, and all seven declared offline branch groups passed including consumer15, route-drift23, offline contracts9 passed/537 skipped, lint/workstream validation, frontend type-check, ETF frontend17 and production build. Final count sentinel, workstream/schema/JSONL/hash/diff checks passed after owner-record changes. REX source/test plus evidence remain uncommitted; publish and inspect fresh exact-source CI. All live issuer/provider/SEC activity and quota operations remain disabled; no full_stack_browser pass or whole-roadmap completion is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, other holds, history and the 30-day observation gate.",
+  "latest_checkpoint": "2026-10-22: Exact green staging release 0e342512e53ba2268425294d61c50e219eaafa4f is an ancestor of the ETF branch. Published ETF source c23fa9e925677c5dc6bc4335e1419f6d0c05954b contains Voya and REX guarded-HTTPX corrections; exact CI 39855044854 was created for that SHA. The current uncommitted PeakShares correction removes the requests.post fallback after three HTTPX timeouts and keeps all retry attempts on the shared governed client. Its success-after-retry and three-timeout terminal-error contracts pass; all seven declared offline branch groups pass on the worktree (611 adapter, consumer15, route-drift23, offline contracts9 passed/537 live cases skipped, lint/workstream validation, frontend type-check, ETF frontend17, build). Final owner-record checks remain before commit/push and exact-source CI. No live HTTP/quota, full_stack_browser pass, route promotion or full-roadmap completion is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, holds, historical evidence and the 30-day observation gate.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -332,8 +332,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the validated REX guarded-transport source/test plus coherent ETF workstream evidence in one commit/push, verify exact remote parity, and inspect exact-source CI. Continue the full AC1-AC14 roadmap from retained evidence; no issuer/provider/SEC HTTP, quota use, unsafe activation, live-test execution, data reset/cleanup, sibling/staging/master write, deployment, self-integration, or full-stack/browser matrix without Root's safe slot. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation.",
-  "plan_hash": "5a493c1b5ef219c24ac0f23e248cb5e02c146645323cbbaa2861e36f44aa877b",
+  "next_action": "Record and publish the validated PeakShares guarded-retry correction plus coherent workstream evidence in one ETF-only commit/push, verify exact remote parity, and inspect its exact-source CI. Continue the complete AC1-AC14 roadmap from retained evidence; no issuer/provider/SEC HTTP, quota use, unsafe activation, live-test execution, data reset/cleanup, sibling/staging/master write, deployment, self-integration, or full-stack/browser matrix without Root's safe slot. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation.",
+  "plan_hash": "014f42d9c94be42d968bfd3fcab24e28d75d620cb2a4a4f937d3ab1ea9e07dbb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -384,11 +384,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The accepted staging release 0e342512e53ba2268425294d61c50e219eaafa4f is an ancestor of the ETF branch. Published source 136c62a78ae157953b689e4fb341f4098683f80e contains the Voya guarded-transport fix; exact CI 39853885891 is in progress on that source. The current substantive local change fixes REX's registered native route through Provider-backed HTTPX; focused test, full adapter module (611), and the full declared offline branch suite passed, with all live issuer calls disabled. REX is not covered by CI until its coherent change is published. The full roadmap remains open with 15 Tier-0 and 156 Tier-1; no full-stack profile/live route is claimed. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/unreviewed/paid/trial/unsafe routes stay disabled.",
+    "current_blocker": "The accepted staging release 0e342512e53ba2268425294d61c50e219eaafa4f is an ancestor of ETF. Published source c23fa9e925677c5dc6bc4335e1419f6d0c05954b contains Voya/REX fixes; exact CI 39855044854 is pending/in progress on that SHA. The current local PeakShares fix removes raw requests.post after three governed HTTPX timeouts; both retry success and terminal timeout contracts pass, and the complete declared offline branch suite passes with live calls disabled. PeakShares is not covered by CI until publication. The full roadmap remains open with 15 Tier-0 and 156 Tier-1; no full-stack profile or live route is claimed. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/unreviewed/paid/trial/unsafe routes stay disabled.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Finish the REX guarded-transport checkpoint with final narrative-count sentinel, workstream/schema/JSONL/plan-hash/diff checks; commit and push only this ETF change; verify exact remote SHA and inspect its exact CI. Continue the full AC1-AC14 roadmap from retained evidence; no issuer/provider/SEC requests, quota use, unsafe route changes or live-test execution. Obtain Root's safe slot before full_stack_browser. Preserve all fourteen criteria, historical evidence, quarantines, route/cost holds, and the 30-day observation.",
+    "next_action": "Finish final workstream count/schema/JSONL/plan-hash/diff checks for the PeakShares fix, then commit/push only the ETF-owned change and verify exact remote SHA/CI. Continue full AC1-AC14 work from retained evidence; no issuer/provider/SEC requests, quota use, unsafe route changes or live-test execution. Obtain Root's safe slot before full_stack_browser. Preserve all criteria, historical evidence, quarantines, route/cost holds, and the 30-day observation.",
     "total": 14,
-    "updated_at": "2026-10-22T21:08:00Z"
+    "updated_at": "2026-10-22T21:13:25Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -400,8 +400,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "136c62a78ae157953b689e4fb341f4098683f80e",
-  "remote_sha": "136c62a78ae157953b689e4fb341f4098683f80e",
+  "remote": "c23fa9e925677c5dc6bc4335e1419f6d0c05954b",
+  "remote_sha": "c23fa9e925677c5dc6bc4335e1419f6d0c05954b",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
