@@ -185,3 +185,9 @@ class RadarSetupThread(Base, TimestampMixin):
             RadarDetection.id,
         ),
     )
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.instrument import Instrument

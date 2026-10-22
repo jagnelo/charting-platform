@@ -215,3 +215,18 @@ class ForexDetail(Base, TimestampMixin):
     pip_size: Mapped[Decimal | None] = mapped_column(Numeric(18, 8), nullable=True)
     field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     instrument: Mapped["Instrument"] = relationship(back_populates="forex_detail")
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.asset_class import InstrumentType
+    from app.models.chart_drawing import ChartDrawing
+    from app.models.indicator_alert import IndicatorAlert
+    from app.models.instrument_event import InstrumentEvent
+    from app.models.instrument_identity import InstrumentIdentifier, InstrumentProviderSymbol
+    from app.models.listing import InstrumentListing
+    from app.models.market_data_foundation import Issuer, MarketSeries
+    from app.models.ohlcv import OHLCVBar
+    from app.models.price_alert import PriceAlert
+    from app.models.tokenized_asset import TokenizedAssetDetail

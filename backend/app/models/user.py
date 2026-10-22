@@ -54,3 +54,18 @@ class User(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<User id={self.id} username={self.username}>"
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.chart_drawing import ChartDrawing
+    from app.models.dashboard import Dashboard
+    from app.models.indicator_alert import IndicatorAlert
+    from app.models.indicator_preset import IndicatorPreset
+    from app.models.instrument_indicator_config import InstrumentIndicatorConfig
+    from app.models.price_alert import PriceAlert
+    from app.models.screener import ScreenerDefinition
+    from app.models.screener_alert import ScreenerAlert
+    from app.models.strategy import StrategyDefinition
+    from app.models.watchlist import Watchlist

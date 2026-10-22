@@ -1,0 +1,196 @@
+from __future__ import annotations
+
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta, timezone
+
+import pytest
+
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.workers import (
+    WorkerKind,
+    WorkerPoolState,
+    WorkerProfile,
+    WorkerReservationDecision,
+    rank_available_backtest_worker_pools,
+    release_worker_slot,
+    reserve_worker_slot,
+)
+
+NOW = datetime(2024, 1, 1, tzinfo=UTC)
+RUNTIME = content_digest({"runtime": "strategy-v2"})
+
+
+def _pool() -> WorkerPoolState:
+    return WorkerPoolState(WorkerProfile("worker-1", WorkerKind.BACKTEST, RUNTIME))
+
+
+def _reservation_id(value: str) -> str:
+    return content_digest({"reservation": value})
+
+
+def test_worker_pool_reserves_one_serial_slot_and_replays_same_attempt() -> None:
+    pool = _pool()
+    reservation_id = _reservation_id("one")
+    accepted = reserve_worker_slot(
+        pool,
+        attempt_id="attempt-1",
+        reservation_id=reservation_id,
+        acquired_at=NOW,
+    )
+    assert accepted.decision is WorkerReservationDecision.ACCEPT
+    assert accepted.reservation is not None
+    assert len(accepted.pool.active_reservations) == 1
+    replay = reserve_worker_slot(
+        accepted.pool,
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("different-id"),
+        acquired_at=NOW + timedelta(seconds=1),
+    )
+    assert replay.decision is WorkerReservationDecision.REPLAY_EXISTING
+    assert replay.reservation == accepted.reservation
+
+
+def test_worker_reservation_normalizes_offset_equivalent_times() -> None:
+    offset_time = datetime(2024, 1, 1, 2, tzinfo=timezone(timedelta(hours=2)))
+    accepted = reserve_worker_slot(
+        _pool(),
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("offset"),
+        acquired_at=offset_time,
+    )
+    assert accepted.reservation is not None
+    assert accepted.reservation.acquired_at == NOW
+    assert accepted.reservation.acquired_at.tzinfo is UTC
+
+
+def test_worker_pool_reports_saturation_and_reopens_after_release() -> None:
+    accepted = reserve_worker_slot(
+        _pool(),
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("one"),
+        acquired_at=NOW,
+    )
+    saturated = reserve_worker_slot(
+        accepted.pool,
+        attempt_id="attempt-2",
+        reservation_id=_reservation_id("two"),
+        acquired_at=NOW + timedelta(seconds=1),
+    )
+    assert saturated.decision is WorkerReservationDecision.SATURATED
+    released = release_worker_slot(
+        accepted.pool,
+        reservation_id=_reservation_id("one"),
+        released_at=NOW + timedelta(seconds=2),
+    )
+    reopened = reserve_worker_slot(
+        released,
+        attempt_id="attempt-2",
+        reservation_id=_reservation_id("two"),
+        acquired_at=NOW + timedelta(seconds=3),
+    )
+    assert reopened.decision is WorkerReservationDecision.ACCEPT
+    assert (
+        release_worker_slot(
+            released,
+            reservation_id=_reservation_id("one"),
+            released_at=NOW + timedelta(seconds=4),
+        )
+        == released
+    )
+
+
+def test_backtest_pool_ranking_is_deterministic_and_spreads_unused_slots() -> None:
+    pools = tuple(
+        WorkerPoolState(WorkerProfile(f"worker-{index}", WorkerKind.BACKTEST, RUNTIME))
+        for index in range(4)
+    )
+    first = rank_available_backtest_worker_pools(pools, attempt_id="attempt-1")
+    replay = rank_available_backtest_worker_pools(pools, attempt_id="attempt-1")
+    assert first == replay
+    assert {first[0].profile.worker_id for _ in range(1)} == {replay[0].profile.worker_id}
+
+    assignments = {
+        rank_available_backtest_worker_pools(pools, attempt_id=f"attempt-{index}")[
+            0
+        ].profile.worker_id
+        for index in range(32)
+    }
+    assert assignments == {f"worker-{index}" for index in range(4)}
+
+
+def test_backtest_pool_ranking_skips_busy_slots_and_preserves_attempt_assignment() -> None:
+    pools = tuple(
+        WorkerPoolState(WorkerProfile(f"worker-{index}", WorkerKind.BACKTEST, RUNTIME))
+        for index in range(3)
+    )
+    busy = reserve_worker_slot(
+        pools[0],
+        attempt_id="other-attempt",
+        reservation_id=_reservation_id("other"),
+        acquired_at=NOW,
+    ).pool
+    available = rank_available_backtest_worker_pools((busy, *pools[1:]), attempt_id="attempt-1")
+    assert busy not in available
+    assert {pool.profile.worker_id for pool in available} == {"worker-1", "worker-2"}
+
+    reserved = reserve_worker_slot(
+        pools[1],
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("attempt"),
+        acquired_at=NOW,
+    ).pool
+    assert rank_available_backtest_worker_pools(
+        (busy, reserved, pools[2]), attempt_id="attempt-1"
+    ) == (reserved,)
+
+
+def test_worker_pool_rejects_unsafe_profile_and_reused_reservation_id() -> None:
+    unsafe = replace(_pool().profile, isolation_required=False)
+    rejected = reserve_worker_slot(
+        WorkerPoolState(unsafe),
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("one"),
+        acquired_at=NOW,
+    )
+    assert rejected.decision is WorkerReservationDecision.REJECT
+    assert rejected.rejection_reason == "worker isolation is required"
+
+    accepted = reserve_worker_slot(
+        _pool(),
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("one"),
+        acquired_at=NOW,
+    )
+    reused = reserve_worker_slot(
+        accepted.pool,
+        attempt_id="attempt-2",
+        reservation_id=_reservation_id("one"),
+        acquired_at=NOW + timedelta(seconds=1),
+    )
+    assert reused.decision is WorkerReservationDecision.REJECT
+    assert reused.rejection_reason == "reservation id is already bound"
+
+
+def test_worker_contract_rejects_non_serial_or_invalid_time_and_ids() -> None:
+    with pytest.raises(ValueError, match="exactly one"):
+        WorkerProfile("worker-1", WorkerKind.FORWARD, RUNTIME, max_concurrent_nodes=2)
+    with pytest.raises(ValueError, match="reservation_id"):
+        reserve_worker_slot(_pool(), attempt_id="attempt-1", reservation_id="bad", acquired_at=NOW)
+    accepted = reserve_worker_slot(
+        _pool(),
+        attempt_id="attempt-1",
+        reservation_id=_reservation_id("one"),
+        acquired_at=NOW,
+    )
+    with pytest.raises(ValueError, match="precede"):
+        release_worker_slot(
+            accepted.pool,
+            reservation_id=_reservation_id("one"),
+            released_at=NOW - timedelta(seconds=1),
+        )
+    with pytest.raises(ValueError, match="not present"):
+        release_worker_slot(
+            accepted.pool,
+            reservation_id=_reservation_id("missing"),
+            released_at=NOW,
+        )

@@ -42,3 +42,10 @@ class InstrumentListing(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<InstrumentListing ticker={self.ticker} exchange_id={self.exchange_id}>"
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.exchange import Exchange
+    from app.models.instrument import Instrument

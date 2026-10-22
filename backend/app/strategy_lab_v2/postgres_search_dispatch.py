@@ -1,0 +1,1154 @@
+"""Atomic PostgreSQL staging for search candidates and worker dispatch.
+
+This adapter is the durable counterpart to :mod:`search_dispatch`.  It keeps
+the provider/engine-owned authorization and runtime preflight inputs explicit,
+but owns the transaction that locks search state, worker capacity, admission
+receipts, dispatch identity, and the shared execution outbox.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Mapping
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any, Protocol
+
+from app.strategy_lab_v2.admission import (
+    ExecutionAdmission,
+    ExecutionAdmissionLedger,
+)
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.dispatch import (
+    DispatchDecision,
+    DispatchEnvelope,
+    DispatchRequest,
+    DispatchResolution,
+    SearchDispatchIntent,
+)
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
+from app.strategy_lab_v2.engine_execution import NautilusExecutionScope
+from app.strategy_lab_v2.execution import ExecutionAuthorization
+from app.strategy_lab_v2.execution_orchestration import plan_execution_orchestration
+from app.strategy_lab_v2.lifecycle import AttemptLeaseStatus
+from app.strategy_lab_v2.outbox import OutboxMessage
+from app.strategy_lab_v2.postgres_search_state import PostgresSearchStateAdapter
+from app.strategy_lab_v2.postgres_worker_state import PostgresWorkerStateAdapter
+from app.strategy_lab_v2.runtime_execution import (
+    StrategyRuntimePreflight,
+    StrategyRuntimeRequest,
+)
+from app.strategy_lab_v2.search_dispatch import (
+    SearchDispatchDecision,
+    SearchDispatchResolution,
+    resolve_search_dispatch,
+)
+from app.strategy_lab_v2.worker_handoff import decode_worker_handoff
+from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
+from app.strategy_lab_v2.workers import WorkerReservation
+
+
+class AsyncSessionFactory(Protocol):
+    def __call__(self) -> Any: ...
+
+
+class AsyncSessionLike(Protocol):
+    async def __aenter__(self) -> Any: ...
+
+    async def __aexit__(self, exc_type: Any, exc: Any, traceback: Any) -> Any: ...
+
+    def begin(self) -> Any: ...
+
+    async def execute(self, statement: Any, params: Mapping[str, Any] | None = None) -> Any: ...
+
+
+@dataclass(frozen=True, slots=True)
+class PostgresSearchDispatchSchema:
+    """Additive tables for admission receipts and search dispatch intents.
+
+    The outbox table is the existing shared
+    ``strategy_lab_v2_execution_outbox`` table owned by the event transaction
+    adapter.  This schema intentionally does not duplicate that DDL.
+    """
+
+    admission_table: str = "strategy_lab_v2_execution_admissions"
+    dispatch_table: str = "strategy_lab_v2_search_dispatches"
+    payload_table: str = "strategy_lab_v2_dispatch_payloads"
+    outbox_table: str = "strategy_lab_v2_execution_outbox"
+
+    def __post_init__(self) -> None:
+        for name, value in (
+            ("admission_table", self.admission_table),
+            ("dispatch_table", self.dispatch_table),
+            ("payload_table", self.payload_table),
+            ("outbox_table", self.outbox_table),
+        ):
+            if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
+                raise ValueError(f"{name} must be a safe SQL identifier")
+
+    @property
+    def statements(self) -> tuple[str, ...]:
+        return (
+            f"""
+            CREATE TABLE {self.admission_table} (
+                owner_id TEXT NOT NULL,
+                request_fingerprint TEXT NOT NULL,
+                authorization_fingerprint TEXT NOT NULL,
+                runtime_request_fingerprint TEXT NOT NULL,
+                attempt_id TEXT NOT NULL,
+                worker_id TEXT NOT NULL,
+                worker_kind TEXT NOT NULL,
+                worker_profile_fingerprint TEXT NOT NULL,
+                reservation_id TEXT NOT NULL,
+                admitted_at TEXT NOT NULL,
+                authoritative BOOLEAN NOT NULL,
+                admission_fingerprint TEXT NOT NULL,
+                PRIMARY KEY (owner_id, request_fingerprint),
+                UNIQUE (owner_id, attempt_id),
+                UNIQUE (owner_id, reservation_id)
+            )
+            """,
+            f"""
+            CREATE TABLE {self.dispatch_table} (
+                owner_id TEXT NOT NULL,
+                experiment_fingerprint TEXT NOT NULL,
+                candidate_index BIGINT NOT NULL,
+                idempotency_key TEXT NOT NULL,
+                request_fingerprint TEXT NOT NULL,
+                attempt_id TEXT NOT NULL,
+                payload_digest TEXT NOT NULL,
+                queue_name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                dispatch_fingerprint TEXT NOT NULL,
+                PRIMARY KEY (owner_id, idempotency_key),
+            UNIQUE (owner_id, experiment_fingerprint, candidate_index, attempt_id),
+                UNIQUE (owner_id, request_fingerprint)
+            )
+            """,
+            f"""
+            CREATE TABLE {self.payload_table} (
+                payload_digest TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                byte_length BIGINT NOT NULL,
+                payload_fingerprint TEXT NOT NULL
+            )
+            """,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class SearchDispatchRecord:
+    """Authenticated dispatch identity handed from Redis to a worker."""
+
+    owner_id: str
+    experiment_fingerprint: str
+    candidate_index: int
+    request: DispatchRequest
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.owner_id, str) or not self.owner_id.strip():
+            raise ValueError("owner_id must not be empty")
+        require_sha256_digest(self.experiment_fingerprint, field_name="experiment_fingerprint")
+        if (
+            not isinstance(self.candidate_index, int)
+            or isinstance(self.candidate_index, bool)
+            or self.candidate_index < 0
+        ):
+            raise ValueError("candidate_index must be a non-negative integer")
+        if not isinstance(self.request, DispatchRequest):
+            raise TypeError("request must be a DispatchRequest")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+class PostgresSearchDispatchAdapter:
+    """Stage one candidate, admission, dispatch, and outbox atomically."""
+
+    def __init__(
+        self,
+        session_factory: AsyncSessionFactory,
+        *,
+        schema: PostgresSearchDispatchSchema | None = None,
+        search_state: PostgresSearchStateAdapter | None = None,
+        worker_state: PostgresWorkerStateAdapter | None = None,
+    ) -> None:
+        if not callable(session_factory):
+            raise TypeError("session_factory must be callable")
+        self._session_factory = session_factory
+        self._schema = schema or PostgresSearchDispatchSchema()
+        self._search_state = search_state or PostgresSearchStateAdapter(session_factory)
+        self._worker_state = worker_state or PostgresWorkerStateAdapter(session_factory)
+
+    @property
+    def schema(self) -> PostgresSearchDispatchSchema:
+        return self._schema
+
+    async def load(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str | None = None,
+    ) -> SearchDispatchRecord | None:
+        """Load a candidate dispatch, optionally selecting one retry attempt."""
+
+        owner_id = _principal_id(principal)
+        _validate_digest(experiment_fingerprint, "experiment_fingerprint")
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
+            raise ValueError("candidate_index must be a non-negative integer")
+        if attempt_id is not None and (not isinstance(attempt_id, str) or not attempt_id.strip()):
+            raise ValueError("attempt_id must be non-empty when provided")
+        attempt_clause = " AND attempt_id = :attempt_id" if attempt_id is not None else ""
+        parameters: dict[str, Any] = {
+            "owner_id": owner_id,
+            "experiment_fingerprint": experiment_fingerprint,
+            "candidate_index": candidate_index,
+        }
+        if attempt_id is not None:
+            parameters["attempt_id"] = attempt_id
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                rows = await self._select_dispatch_rows(
+                    session,
+                    "WHERE owner_id = :owner_id AND experiment_fingerprint = :experiment_fingerprint "
+                    f"AND candidate_index = :candidate_index{attempt_clause}",
+                    parameters,
+                )
+                return _single_dispatch_record(rows, owner_id=owner_id)
+
+    async def load_by_request_fingerprint(
+        self, request_fingerprint: str
+    ) -> SearchDispatchRecord | None:
+        """Resolve one dispatch from Redis content identity without guessing an owner."""
+
+        _validate_digest(request_fingerprint, "request_fingerprint")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                rows = await self._select_dispatch_rows(
+                    session,
+                    "WHERE request_fingerprint = :request_fingerprint",
+                    {"request_fingerprint": request_fingerprint},
+                )
+                if len(rows) > 1:
+                    raise ValueError("PostgreSQL search dispatch identity is ambiguous")
+                return _single_dispatch_record(rows)
+
+    async def load_by_payload_digest(self, payload_digest: str) -> SearchDispatchRecord | None:
+        """Resolve a dispatch from the payload identity preserved by the outbox.
+
+        The Redis envelope created by the shared outbox has its own transport
+        request fingerprint and event identifier; neither is the original
+        search-dispatch request fingerprint or attempt ID. The content-addressed
+        payload digest is preserved end to end and uniquely binds the durable
+        dispatch record to the authenticated worker handoff.
+        """
+
+        _validate_digest(payload_digest, "payload_digest")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                rows = await self._select_dispatch_rows(
+                    session,
+                    "WHERE payload_digest = :payload_digest",
+                    {"payload_digest": payload_digest},
+                )
+                if len(rows) > 1:
+                    raise ValueError("PostgreSQL search dispatch payload identity is ambiguous")
+                record = _single_dispatch_record(rows)
+                if record is not None and record.request.payload_digest != payload_digest:
+                    raise ValueError("PostgreSQL search dispatch payload identity drifted")
+                return record
+
+    async def load_admission_ledger(self, *, principal: Any) -> ExecutionAdmissionLedger:
+        """Load and authenticate an owner's immutable worker-admission receipts."""
+
+        owner_id = _principal_id(principal)
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                return await self._load_admission_ledger(session, owner_id)
+
+    async def replay_idempotency(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str,
+        dispatch_intent: SearchDispatchIntent,
+    ) -> SearchDispatchResolution | None:
+        """Replay a prior key before rebuilding leases or expensive runtime inputs."""
+
+        owner_id = _principal_id(principal)
+        _validate_digest(experiment_fingerprint, "experiment_fingerprint")
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
+            raise ValueError("candidate_index must be a non-negative integer")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        if not isinstance(dispatch_intent, SearchDispatchIntent):
+            raise TypeError("dispatch_intent must be a SearchDispatchIntent")
+        if dispatch_intent.attempt_id != attempt_id:
+            raise ValueError("dispatch intent must reference the dispatch attempt")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                return await self._resolve_idempotency_in_session(
+                    session,
+                    owner_id=owner_id,
+                    experiment_fingerprint=experiment_fingerprint,
+                    candidate_index=candidate_index,
+                    attempt_id=attempt_id,
+                    dispatch_intent=dispatch_intent,
+                )
+
+    async def dispatch(
+        self,
+        *,
+        principal: Any,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str,
+        authorization: ExecutionAuthorization,
+        runtime_request: StrategyRuntimeRequest,
+        runtime_preflight: StrategyRuntimePreflight,
+        reservation_id: str,
+        dispatch_request: DispatchRequest,
+        payload: Mapping[str, Any],
+        now: datetime,
+        available_at: datetime | None = None,
+    ) -> SearchDispatchResolution:
+        """Resolve and persist one candidate dispatch in one SQL transaction."""
+
+        owner_id = _principal_id(principal)
+        _validate_digest(experiment_fingerprint, "experiment_fingerprint")
+        if (
+            not isinstance(candidate_index, int)
+            or isinstance(candidate_index, bool)
+            or candidate_index < 0
+        ):
+            raise ValueError("candidate_index must be a non-negative integer")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        if not isinstance(authorization, ExecutionAuthorization):
+            raise TypeError("authorization must be an ExecutionAuthorization")
+        if not isinstance(runtime_request, StrategyRuntimeRequest):
+            raise TypeError("runtime_request must be a StrategyRuntimeRequest")
+        if not isinstance(runtime_preflight, StrategyRuntimePreflight):
+            raise TypeError("runtime_preflight must be a StrategyRuntimePreflight")
+        if not isinstance(dispatch_request, DispatchRequest):
+            raise TypeError("dispatch_request must be a DispatchRequest")
+        if not isinstance(payload, Mapping):
+            raise TypeError("payload must be a mapping")
+        payload_record = DispatchPayload.from_mapping(payload)
+        if payload_record.payload_digest != dispatch_request.payload_digest:
+            raise ValueError("dispatch payload does not match its content digest")
+        worker_request = decode_worker_handoff(payload_record)
+        _validate_worker_request_binding(
+            worker_request,
+            experiment_fingerprint=experiment_fingerprint,
+            attempt_id=attempt_id,
+            authorization=authorization,
+            runtime_request=runtime_request,
+            runtime_preflight=runtime_preflight,
+            reservation_id=reservation_id,
+            queue_name=dispatch_request.queue_name,
+            now=now,
+        )
+        _validate_digest(reservation_id, "reservation_id")
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("dispatch time must be timezone-aware")
+        if available_at is None:
+            available_at = dispatch_request.created_at
+        if (
+            not isinstance(available_at, datetime)
+            or available_at.tzinfo is None
+            or available_at.utcoffset() is None
+        ):
+            raise ValueError("dispatch available_at must be timezone-aware")
+        available_at = available_at.astimezone(UTC)
+        if available_at < dispatch_request.created_at:
+            raise ValueError("dispatch available_at cannot precede its creation time")
+
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                existing_resolution = await self._resolve_idempotency_in_session(
+                    session,
+                    owner_id=owner_id,
+                    experiment_fingerprint=experiment_fingerprint,
+                    candidate_index=candidate_index,
+                    attempt_id=attempt_id,
+                    dispatch_intent=SearchDispatchIntent(
+                        dispatch_request.idempotency_key,
+                        dispatch_request.attempt_id,
+                        dispatch_request.queue_name,
+                        dispatch_request.created_at,
+                    ),
+                )
+                if existing_resolution is not None:
+                    return existing_resolution
+                state = await self._search_state._load_state(
+                    session, owner_id, experiment_fingerprint
+                )
+                if state is None:
+                    raise ValueError("search experiment was not found")
+                if authorization.attempt_id != attempt_id:
+                    raise ValueError("authorization must reference the dispatch attempt")
+                if runtime_request.attempt_id != attempt_id:
+                    raise ValueError("runtime request must reference the dispatch attempt")
+                profile = await self._worker_state._load_profile(
+                    session, authorization.lease_worker_id
+                )
+                if profile is None:
+                    raise ValueError("worker profile is not registered")
+                pool = await self._worker_state._load_pool(session, profile)
+                ledger = await self._load_admission_ledger(session, owner_id)
+                prior_dispatches = await self._load_dispatches(
+                    session, owner_id, experiment_fingerprint
+                )
+                prior_payload = await self._load_payload(session, dispatch_request.payload_digest)
+                if prior_payload is not None and prior_payload != payload_record:
+                    raise ValueError(
+                        "dispatch payload identity is already bound to different content"
+                    )
+                resolution = resolve_search_dispatch(
+                    state,
+                    candidate_index=candidate_index,
+                    attempt_id=attempt_id,
+                    authorization=authorization,
+                    runtime_request=runtime_request,
+                    runtime_preflight=runtime_preflight,
+                    admission_ledger=ledger,
+                    pool=pool,
+                    reservation_id=reservation_id,
+                    dispatch_request=dispatch_request,
+                    prior_dispatches=prior_dispatches,
+                    now=now,
+                )
+                if resolution.decision not in {
+                    SearchDispatchDecision.ENQUEUE,
+                    SearchDispatchDecision.REPLAY_EXISTING,
+                }:
+                    return resolution
+                admission = next(
+                    (
+                        item
+                        for item in resolution.admission_ledger.admissions
+                        if item.attempt_id == attempt_id
+                    ),
+                    None,
+                )
+                if admission != worker_request.admission:
+                    raise ValueError(
+                        "worker handoff admission differs from atomic PostgreSQL admission"
+                    )
+                if resolution.pool != worker_request.worker_pool:
+                    raise ValueError(
+                        "worker handoff reservation differs from atomic PostgreSQL worker pool"
+                    )
+                if resolution.decision is SearchDispatchDecision.REPLAY_EXISTING:
+                    return resolution
+                persisted_lease = await self._worker_state._load_lease(
+                    session,
+                    authorization.lease_id,
+                )
+                if persisted_lease is None:
+                    raise ValueError("worker authorization lease is not persisted")
+                if persisted_lease != worker_request.lease_state:
+                    raise ValueError("worker handoff lease differs from persisted PostgreSQL lease")
+                if persisted_lease.lease.status_at(now) is not AttemptLeaseStatus.ACTIVE:
+                    raise ValueError("persisted worker lease is not active at dispatch time")
+                if prior_payload is None:
+                    await self._insert_payload(session, payload_record)
+                await self._persist_resolution(
+                    session,
+                    owner_id,
+                    candidate_index=candidate_index,
+                    resolution=resolution,
+                    available_at=available_at,
+                )
+                return resolution
+
+    async def _persist_resolution(
+        self,
+        session: AsyncSessionLike,
+        owner_id: str,
+        *,
+        candidate_index: int,
+        resolution: SearchDispatchResolution,
+        available_at: datetime,
+    ) -> None:
+        if resolution.dispatch_resolution is None or resolution.envelope is None:
+            raise ValueError("enqueued search dispatch omitted dispatch evidence")
+        current = await self._search_state._load_state(
+            session, owner_id, resolution.search_state.experiment_fingerprint
+        )
+        if current is None:
+            raise ValueError("search experiment disappeared during dispatch")
+        if current != resolution.search_state:
+            await self._search_state._update_state(
+                session, owner_id, current, resolution.search_state
+            )
+        prior_admissions = await self._load_admission_ledger(session, owner_id)
+        prior_fingerprints = {item.fingerprint for item in prior_admissions.admissions}
+        new_admissions = tuple(
+            item
+            for item in resolution.admission_ledger.admissions
+            if item.fingerprint not in prior_fingerprints
+        )
+        for admission in new_admissions:
+            await self._insert_admission(session, owner_id, admission)
+        if len(new_admissions) != 1:
+            raise ValueError("enqueued search dispatch must add exactly one admission")
+        reservation = next(
+            (
+                item
+                for item in resolution.pool.reservations
+                if item.reservation_id == new_admissions[0].reservation_id
+            ),
+            None,
+        )
+        if reservation is not None and reservation.active:
+            existing = await self._load_reservation(
+                session, resolution.pool.profile.worker_id, reservation.reservation_id
+            )
+            if existing is None:
+                await self._worker_state._insert_reservation(session, reservation)
+            elif existing != reservation:
+                raise ValueError("worker reservation identity is already bound")
+        await self._insert_dispatch(
+            session,
+            owner_id,
+            resolution.search_state.experiment_fingerprint,
+            candidate_index,
+            resolution.envelope.request,
+        )
+        outbox = _search_outbox_message(
+            owner_id,
+            resolution.search_state.experiment_fingerprint,
+            candidate_index,
+            resolution.envelope.request,
+            available_at=available_at,
+        )
+        await self._insert_outbox(session, outbox)
+
+    async def _resolve_idempotency_in_session(
+        self,
+        session: AsyncSessionLike,
+        *,
+        owner_id: str,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        attempt_id: str,
+        dispatch_intent: SearchDispatchIntent,
+    ) -> SearchDispatchResolution | None:
+        rows = await self._select_dispatch_rows(
+            session,
+            "WHERE owner_id = :owner_id AND idempotency_key = :idempotency_key",
+            {"owner_id": owner_id, "idempotency_key": dispatch_intent.idempotency_key},
+        )
+        existing = _single_dispatch_record(rows, owner_id=owner_id)
+        if existing is None:
+            return None
+        payload = await self._load_payload(session, existing.request.payload_digest)
+        if payload is None:
+            raise ValueError(
+                "persisted search dispatch is missing its authenticated worker payload"
+            )
+        worker_request = decode_worker_handoff(payload)
+        _validate_worker_request_binding(
+            worker_request,
+            experiment_fingerprint=existing.experiment_fingerprint,
+            attempt_id=existing.request.attempt_id,
+            authorization=worker_request.authorization,
+            runtime_request=worker_request.runtime_request,
+            runtime_preflight=worker_request.runtime_preflight,
+            reservation_id=worker_request.admission.reservation_id,
+            queue_name=existing.request.queue_name,
+            now=worker_request.observed_at,
+        )
+        profile = await self._worker_state._load_profile(
+            session,
+            worker_request.authorization.lease_worker_id,
+        )
+        if profile is None:
+            raise ValueError("persisted search dispatch worker profile is missing")
+        pool = await self._worker_state._load_pool(session, profile)
+        ledger = await self._load_admission_ledger(session, owner_id)
+        state = await self._search_state._load_state(
+            session,
+            owner_id,
+            existing.experiment_fingerprint,
+        )
+        if state is None:
+            raise ValueError("persisted search dispatch experiment state is missing")
+        same_intent = (
+            existing.experiment_fingerprint == experiment_fingerprint
+            and existing.candidate_index == candidate_index
+            and existing.request.attempt_id == attempt_id
+            and existing.request.idempotency_key == dispatch_intent.idempotency_key
+            and existing.request.queue_name == dispatch_intent.queue_name
+            and existing.request.created_at == dispatch_intent.created_at
+        )
+        if not same_intent:
+            return SearchDispatchResolution(
+                SearchDispatchDecision.CONFLICT,
+                state,
+                ledger,
+                pool,
+                rejection_reason="idempotency key is already bound to a different dispatch intent",
+            )
+        dispatch_resolution = DispatchResolution(
+            DispatchDecision.REPLAY_EXISTING,
+            existing.request.fingerprint,
+            existing.request.fingerprint,
+        )
+        envelope = DispatchEnvelope(existing.request.fingerprint, existing.request)
+        return SearchDispatchResolution(
+            SearchDispatchDecision.REPLAY_EXISTING,
+            state,
+            ledger,
+            pool,
+            dispatch_resolution,
+            envelope,
+        )
+
+    async def _load_admission_ledger(
+        self, session: AsyncSessionLike, owner_id: str
+    ) -> ExecutionAdmissionLedger:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT owner_id, request_fingerprint, authorization_fingerprint,
+                       runtime_request_fingerprint, attempt_id, worker_id, worker_kind,
+                       worker_profile_fingerprint, reservation_id, admitted_at,
+                       authoritative, admission_fingerprint
+                FROM {self._schema.admission_table}
+                WHERE owner_id = :owner_id
+                ORDER BY request_fingerprint ASC
+                FOR UPDATE
+                """
+            ),
+            {"owner_id": owner_id},
+        )
+        admissions: list[ExecutionAdmission] = []
+        for row in result.mappings():
+            admission = _decode_admission(row)
+            if row.get("owner_id") != owner_id:
+                raise ValueError("PostgreSQL admission owner identity drifted")
+            if row.get("admission_fingerprint") != admission.fingerprint:
+                raise ValueError("PostgreSQL admission fingerprint does not match bytes")
+            admissions.append(admission)
+        return ExecutionAdmissionLedger(tuple(admissions))
+
+    async def _load_dispatches(
+        self, session: AsyncSessionLike, owner_id: str, experiment_fingerprint: str
+    ) -> tuple[DispatchRequest, ...]:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT owner_id, experiment_fingerprint, candidate_index,
+                       idempotency_key, request_fingerprint, attempt_id,
+                       payload_digest, queue_name, created_at, dispatch_fingerprint
+                FROM {self._schema.dispatch_table}
+                WHERE owner_id = :owner_id
+                  AND experiment_fingerprint = :experiment_fingerprint
+                ORDER BY request_fingerprint ASC
+                FOR UPDATE
+                """
+            ),
+            {"owner_id": owner_id, "experiment_fingerprint": experiment_fingerprint},
+        )
+        requests: list[DispatchRequest] = []
+        for row in result.mappings():
+            request = _decode_dispatch(row)
+            if (
+                row.get("owner_id") != owner_id
+                or row.get("experiment_fingerprint") != experiment_fingerprint
+            ):
+                raise ValueError("PostgreSQL search dispatch owner/experiment drifted")
+            if row.get("request_fingerprint") != request.fingerprint:
+                raise ValueError("PostgreSQL search dispatch fingerprint does not match bytes")
+            requests.append(request)
+        return tuple(sorted(requests, key=lambda item: item.fingerprint))
+
+    async def _load_payload(
+        self, session: AsyncSessionLike, payload_digest: str
+    ) -> DispatchPayload | None:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT payload_digest, payload_json, byte_length, payload_fingerprint
+                FROM {self._schema.payload_table}
+                WHERE payload_digest = :payload_digest
+                FOR SHARE
+                """
+            ),
+            {"payload_digest": payload_digest},
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL search dispatch payload query returned duplicate keys")
+        row = rows[0]
+        payload = DispatchPayload(
+            row["payload_digest"], row["payload_json"], int(row["byte_length"])
+        )
+        if row.get("payload_fingerprint") not in (None, payload.fingerprint):
+            raise ValueError("PostgreSQL search dispatch payload fingerprint does not match bytes")
+        return payload
+
+    async def _insert_payload(self, session: AsyncSessionLike, payload: DispatchPayload) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.payload_table}
+                    (payload_digest, payload_json, byte_length, payload_fingerprint)
+                VALUES (:payload_digest, :payload_json, :byte_length, :payload_fingerprint)
+                ON CONFLICT (payload_digest) DO NOTHING
+                """
+            ),
+            {
+                "payload_digest": payload.payload_digest,
+                "payload_json": payload.payload_json,
+                "byte_length": payload.byte_length,
+                "payload_fingerprint": payload.fingerprint,
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL search dispatch payload insert lost a uniqueness race")
+
+    async def _select_dispatch_rows(
+        self,
+        session: AsyncSessionLike,
+        predicate: str,
+        params: Mapping[str, Any],
+    ) -> list[Mapping[str, Any]]:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT owner_id, experiment_fingerprint, candidate_index,
+                       idempotency_key, request_fingerprint, attempt_id,
+                       payload_digest, queue_name, created_at, dispatch_fingerprint
+                FROM {self._schema.dispatch_table}
+                {predicate}
+                ORDER BY request_fingerprint ASC
+                FOR SHARE
+                """
+            ),
+            params,
+        )
+        return list(result.mappings())
+
+    async def _load_reservation(
+        self, session: AsyncSessionLike, worker_id: str, reservation_id: str
+    ) -> WorkerReservation | None:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT reservation_id, worker_id, kind, attempt_id, acquired_at,
+                       released_at, reservation_fingerprint
+                FROM {self._worker_state.schema.reservation_table}
+                WHERE worker_id = :worker_id AND reservation_id = :reservation_id
+                FOR UPDATE
+                """
+            ),
+            {"worker_id": worker_id, "reservation_id": reservation_id},
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL worker reservation query returned duplicate keys")
+        row = rows[0]
+        reservation = _decode_reservation(row)
+        if row.get("reservation_fingerprint") != reservation.fingerprint:
+            raise ValueError("PostgreSQL worker reservation fingerprint does not match bytes")
+        return reservation
+
+    async def _insert_admission(
+        self, session: AsyncSessionLike, owner_id: str, admission: ExecutionAdmission
+    ) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.admission_table}
+                    (owner_id, request_fingerprint, authorization_fingerprint,
+                     runtime_request_fingerprint, attempt_id, worker_id, worker_kind,
+                     worker_profile_fingerprint, reservation_id, admitted_at,
+                     authoritative, admission_fingerprint)
+                VALUES (:owner_id, :request_fingerprint, :authorization_fingerprint,
+                        :runtime_request_fingerprint, :attempt_id, :worker_id, :worker_kind,
+                        :worker_profile_fingerprint, :reservation_id, :admitted_at,
+                        :authoritative, :admission_fingerprint)
+                ON CONFLICT (owner_id, request_fingerprint) DO NOTHING
+                """
+            ),
+            {
+                "owner_id": owner_id,
+                "request_fingerprint": admission.request_fingerprint,
+                "authorization_fingerprint": admission.authorization_fingerprint,
+                "runtime_request_fingerprint": admission.runtime_request_fingerprint,
+                "attempt_id": admission.attempt_id,
+                "worker_id": admission.worker_id,
+                "worker_kind": admission.worker_kind.value,
+                "worker_profile_fingerprint": admission.worker_profile_fingerprint,
+                "reservation_id": admission.reservation_id,
+                "admitted_at": _encode_datetime(admission.admitted_at),
+                "authoritative": admission.authoritative,
+                "admission_fingerprint": admission.fingerprint,
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL admission insert lost a uniqueness race")
+
+    async def _insert_dispatch(
+        self,
+        session: AsyncSessionLike,
+        owner_id: str,
+        experiment_fingerprint: str,
+        candidate_index: int,
+        request: DispatchRequest,
+    ) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.dispatch_table}
+                    (owner_id, experiment_fingerprint, candidate_index,
+                     idempotency_key, request_fingerprint, attempt_id,
+                     payload_digest, queue_name, created_at, dispatch_fingerprint)
+                VALUES (:owner_id, :experiment_fingerprint, :candidate_index,
+                        :idempotency_key, :request_fingerprint, :attempt_id,
+                        :payload_digest, :queue_name, :created_at, :dispatch_fingerprint)
+                ON CONFLICT (owner_id, idempotency_key) DO NOTHING
+                """
+            ),
+            {
+                "owner_id": owner_id,
+                "experiment_fingerprint": experiment_fingerprint,
+                "candidate_index": candidate_index,
+                "idempotency_key": request.idempotency_key,
+                "request_fingerprint": request.fingerprint,
+                "attempt_id": request.attempt_id,
+                "payload_digest": request.payload_digest,
+                "queue_name": request.queue_name,
+                "created_at": _encode_datetime(request.created_at),
+                "dispatch_fingerprint": request.fingerprint,
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL search dispatch insert lost a uniqueness race")
+
+    async def _insert_outbox(self, session: AsyncSessionLike, message: OutboxMessage) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.outbox_table}
+                    (message_id, message_fingerprint, request_id, aggregate_type,
+                     aggregate_id, event_id, topic, payload_digest, created_at,
+                     available_at, published)
+                VALUES (:message_id, :message_fingerprint, :request_id, :aggregate_type,
+                        :aggregate_id, :event_id, :topic, :payload_digest, :created_at,
+                        :available_at, FALSE)
+                ON CONFLICT (message_id) DO NOTHING
+                """
+            ),
+            {
+                "message_id": message.message_id,
+                "message_fingerprint": message.fingerprint,
+                "request_id": message.request_id,
+                "aggregate_type": message.aggregate_type,
+                "aggregate_id": message.aggregate_id,
+                "event_id": message.event_id,
+                "topic": message.topic,
+                "payload_digest": message.payload_digest,
+                "created_at": _encode_datetime(message.created_at),
+                "available_at": _encode_datetime(message.available_at),
+            },
+        )
+        if getattr(result, "rowcount", 0) not in (0, 1):
+            raise ValueError("PostgreSQL search outbox insert failed")
+
+
+def _search_outbox_message(
+    owner_id: str,
+    experiment_fingerprint: str,
+    candidate_index: int,
+    request: DispatchRequest,
+    *,
+    available_at: datetime | None = None,
+) -> OutboxMessage:
+    scheduled_at = request.created_at if available_at is None else available_at
+    event_id = content_digest(
+        {
+            "owner_id": owner_id,
+            "experiment_fingerprint": experiment_fingerprint,
+            "candidate_index": candidate_index,
+            "dispatch_fingerprint": request.fingerprint,
+        }
+    )
+    request_id = content_digest(
+        {
+            "owner_id": owner_id,
+            "experiment_fingerprint": experiment_fingerprint,
+            "candidate_index": candidate_index,
+            "dispatch_fingerprint": request.fingerprint,
+            "kind": "search-dispatch-outbox",
+        }
+    )
+    return OutboxMessage(
+        request_id=request_id,
+        aggregate_type="strategy_search_candidate",
+        aggregate_id=f"{experiment_fingerprint}:{candidate_index}",
+        event_id=event_id,
+        topic=request.queue_name,
+        payload_digest=request.payload_digest,
+        created_at=request.created_at,
+        available_at=scheduled_at,
+    )
+
+
+def _decode_admission(row: Mapping[str, Any]) -> ExecutionAdmission:
+    from app.strategy_lab_v2.workers import WorkerKind
+
+    try:
+        admission = ExecutionAdmission(
+            row["request_fingerprint"],
+            row["authorization_fingerprint"],
+            row["runtime_request_fingerprint"],
+            row["attempt_id"],
+            row["worker_id"],
+            WorkerKind(row["worker_kind"]),
+            row["worker_profile_fingerprint"],
+            row["reservation_id"],
+            _decode_datetime(row["admitted_at"], "admitted_at"),
+            row["authoritative"],
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL admission row is malformed") from error
+    return admission
+
+
+def _decode_dispatch(row: Mapping[str, Any]) -> DispatchRequest:
+    try:
+        request = DispatchRequest(
+            row["idempotency_key"],
+            row["attempt_id"],
+            row["payload_digest"],
+            row["queue_name"],
+            _decode_datetime(row["created_at"], "created_at"),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL search dispatch row is malformed") from error
+    return request
+
+
+def _single_dispatch_record(
+    rows: list[Mapping[str, Any]], *, owner_id: str | None = None
+) -> SearchDispatchRecord | None:
+    if not rows:
+        return None
+    if len(rows) != 1:
+        raise ValueError("PostgreSQL search dispatch query returned duplicate identities")
+    row = rows[0]
+    row_owner = row.get("owner_id")
+    if not isinstance(row_owner, str) or not row_owner.strip():
+        raise ValueError("PostgreSQL search dispatch owner is malformed")
+    if owner_id is not None and row_owner != owner_id:
+        raise ValueError("PostgreSQL search dispatch owner identity drifted")
+    experiment = row.get("experiment_fingerprint")
+    if not isinstance(experiment, str):
+        raise ValueError("PostgreSQL search dispatch experiment identity is malformed")
+    request = _decode_dispatch(row)
+    if row.get("request_fingerprint") != request.fingerprint:
+        raise ValueError("PostgreSQL search dispatch fingerprint does not match bytes")
+    if row.get("dispatch_fingerprint") not in (None, request.fingerprint):
+        raise ValueError("PostgreSQL search dispatch record fingerprint does not match bytes")
+    try:
+        candidate_index = int(row["candidate_index"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL search dispatch candidate index is malformed") from error
+    return SearchDispatchRecord(row_owner, experiment, candidate_index, request)
+
+
+def _decode_reservation(row: Mapping[str, Any]) -> WorkerReservation:
+    from app.strategy_lab_v2.workers import WorkerKind
+
+    try:
+        return WorkerReservation(
+            row["reservation_id"],
+            row["worker_id"],
+            WorkerKind(row["kind"]),
+            row["attempt_id"],
+            _decode_datetime(row["acquired_at"], "acquired_at"),
+            _decode_optional_datetime(row.get("released_at"), "released_at"),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL reservation row is malformed") from error
+
+
+def _validate_worker_request_binding(
+    request: WorkerExecutionRequest,
+    *,
+    experiment_fingerprint: str,
+    attempt_id: str,
+    authorization: ExecutionAuthorization,
+    runtime_request: StrategyRuntimeRequest,
+    runtime_preflight: StrategyRuntimePreflight,
+    reservation_id: str,
+    queue_name: str,
+    now: datetime,
+) -> None:
+    """Reject handoff drift before the transaction can write any dispatch state."""
+
+    if not isinstance(request, WorkerExecutionRequest):
+        raise TypeError("dispatch payload must encode a WorkerExecutionRequest")
+    if request.authorization != authorization:
+        raise ValueError("worker handoff authorization differs from dispatch evidence")
+    if request.runtime_request != runtime_request:
+        raise ValueError("worker handoff runtime request differs from dispatch evidence")
+    if request.runtime_preflight != runtime_preflight:
+        raise ValueError("worker handoff runtime preflight differs from dispatch evidence")
+    if request.admission.attempt_id != attempt_id:
+        raise ValueError("worker handoff admission references a different attempt")
+    if request.admission.reservation_id != reservation_id:
+        raise ValueError("worker handoff admission references a different reservation")
+    if request.admission.authorization_fingerprint != authorization.fingerprint:
+        raise ValueError("worker handoff admission references different authorization")
+    if request.admission.runtime_request_fingerprint != runtime_request.fingerprint:
+        raise ValueError("worker handoff admission references a different runtime request")
+    if (
+        request.worker_pool.profile.worker_id != authorization.lease_worker_id
+        or request.worker_pool.profile.runtime_profile_fingerprint
+        != runtime_request.runtime_profile_fingerprint
+    ):
+        raise ValueError("worker handoff pool differs from dispatch worker identity")
+    if (
+        request.admission.worker_profile_fingerprint
+        != request.worker_pool.profile.runtime_profile_fingerprint
+    ):
+        raise ValueError("worker handoff admission differs from its worker profile")
+    if request.admission.worker_id != request.worker_pool.profile.worker_id:
+        raise ValueError("worker handoff admission differs from its worker")
+    reservation = next(
+        (
+            item
+            for item in request.worker_pool.active_reservations
+            if item.reservation_id == reservation_id and item.attempt_id == attempt_id
+        ),
+        None,
+    )
+    if reservation is None:
+        raise ValueError("worker handoff pool omits its active reservation")
+    lease = request.lease_state.lease
+    if (
+        lease.attempt_id != attempt_id
+        or lease.worker_id != authorization.lease_worker_id
+        or lease.lease_id != authorization.lease_id
+    ):
+        raise ValueError("worker handoff lease differs from dispatch authorization")
+    if lease.status_at(now) is not AttemptLeaseStatus.ACTIVE:
+        raise ValueError("worker handoff lease is not active at dispatch time")
+    if request.observed_at != now or request.started_at > now:
+        raise ValueError("worker handoff observation differs from dispatch time")
+    if request.runtime_input_artifact.attempt_id != attempt_id:
+        raise ValueError("worker handoff runtime artifact references a different attempt")
+    if request.runtime_input_artifact.input_bundle_digest != runtime_request.input_bundle_digest:
+        raise ValueError("worker handoff runtime artifact differs from the runtime request")
+    binding = request.runtime_input_artifact.trial_binding
+    if binding is None:
+        raise ValueError("worker handoff runtime artifact omits its persisted trial binding")
+    if (
+        binding.attempt_id != attempt_id
+        or binding.trial_fingerprint != authorization.trial_id
+        or binding.experiment_fingerprint != experiment_fingerprint
+        or binding.strategy_package_fingerprint != runtime_request.package_fingerprint
+    ):
+        raise ValueError("worker handoff trial binding differs from dispatch identity")
+    if (
+        request.execution_plan.trial_id != authorization.trial_id
+        or request.execution_plan.attempt_id != attempt_id
+        or request.execution_plan.data_snapshot_fingerprint != binding.snapshot_fingerprint
+        or request.execution_plan.authorization_fingerprint != authorization.fingerprint
+        or request.execution_plan.runtime_preflight_fingerprint != runtime_preflight.fingerprint
+        or request.execution_plan.sandbox_plan_fingerprint != request.sandbox_plan.fingerprint
+    ):
+        raise ValueError("worker handoff execution plan differs from its bound inputs")
+    if request.execution_plan.execution_scope is NautilusExecutionScope.FORWARD_COMPATIBILITY:
+        raise ValueError("search dispatch cannot enqueue a forward-only execution plan")
+    if queue_name != "strategy-backtest":
+        raise ValueError("search dispatch must target the strategy-backtest queue")
+    expected_orchestration = plan_execution_orchestration(
+        request.authorization,
+        request.admission,
+        request.runtime_request,
+        request.runtime_preflight,
+        request.runtime_state,
+        request.sandbox_plan,
+        request.execution_plan,
+    )
+    if (
+        not expected_orchestration.accepted
+        or expected_orchestration.fingerprint != request.orchestration_plan.fingerprint
+    ):
+        raise ValueError("worker handoff orchestration does not match its execution evidence")
+
+
+def _validate_digest(value: str, field_name: str) -> None:
+    require_sha256_digest(value, field_name=field_name)
+
+
+def _principal_id(principal: Any) -> str:
+    value = getattr(principal, "id", principal)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("authenticated principal identity is required")
+    return value.strip()
+
+
+def _encode_datetime(value: datetime) -> str:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("datetime must be timezone-aware")
+    return value.astimezone(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def _decode_datetime(value: Any, field_name: str) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be an ISO-8601 string")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(f"{field_name} is malformed") from error
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError(f"{field_name} must be timezone-aware")
+    return parsed
+
+
+def _decode_optional_datetime(value: Any, field_name: str) -> datetime | None:
+    return None if value is None else _decode_datetime(value, field_name)
+
+
+def _statement(sql: str) -> Any:
+    from sqlalchemy import text
+
+    return text(sql)
+
+
+__all__ = [
+    "PostgresSearchDispatchAdapter",
+    "PostgresSearchDispatchSchema",
+    "SearchDispatchRecord",
+]

@@ -1,10 +1,12 @@
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
+from alembic.script import ScriptDirectory
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.database import Base
+from app.strategy_lab_v2.migration_compatibility import assert_unambiguous_migration_history
 from app.models import *   # noqa: F401,F403 — ensure all models are imported
 
 config = context.config
@@ -33,7 +35,8 @@ def run_migrations_online():
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.", poolclass=pool.NullPool,
     )
-    with connectable.connect() as connection:
+    with connectable.begin() as connection:
+        assert_unambiguous_migration_history(connection, ScriptDirectory.from_config(config))
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()

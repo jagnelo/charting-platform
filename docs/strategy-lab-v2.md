@@ -1,0 +1,1728 @@
+# Strategy Lab v2 backend
+
+Strategy Lab v2 is a local-first backend sandbox for reproducible portfolio
+backtests, search and walk-forward experiments, and persistent broker-free
+forward/shadow evaluation. It is a new versioned platform contract; it does not
+extend or reinterpret the current Strategy Lab runner.
+
+## Execution contract
+
+An immutable strategy version declares its SDK version, exact dependency
+artifacts, parameter schema/defaults, and content digest. A portfolio version
+binds strategy versions to instrument scopes, capital budgets, priorities,
+and typed/versioned shared-risk and optional calendar-rebalance policies. The
+core plans deterministic schedule boundaries from a complete pinned calendar,
+and its pure rebalance-allocation gate applies targets only at the exact
+scheduled UTC boundary. A missed boundary is classified by the occurrence's
+explicit fail-run or skip-occurrence policy; it is never silently caught up at
+a later event. Engine adapters still own event-tape mapping, order sizing, and
+fills. A
+`TargetPositionIntent.target_fraction` is a fraction of the emitting component's
+share of current account equity; the host multiplies it by that component's
+capital weight. Targets are bounded by the component's capital budget unless an
+explicit component-leverage limit is raised in the policy. Component targets
+are resolved together at one event, conflict
+handling is explicit (`reject`, `highest_priority`, or `sum_component_targets`),
+and gross risk is calculated before same-instrument netting. Shared gross, net,
+instrument, component, open-instrument-count, and short-position limits fail the
+whole candidate batch closed; targets are never silently scaled. Raw quantity
+`OrderIntent`s are sized only after an engine adapter supplies authoritative
+instrument economics, FX conversion, and product-appropriate risk valuation.
+Risk calculations use a content-addressed, per-product risk-model binding. The
+current registry covers cash-equity and crypto-spot marked notional, futures
+contract notional, option delta-adjusted underlying notional, and FX pair
+notional; unsupported or unregistered products fail closed. These notional
+concentration caps are not a complete market, margin, liquidity, or
+derivative-risk model, and passing them never authorizes order execution.
+Before execution, a capability preflight
+must establish the requested product, data granularity, history, adjustment,
+session/feed, corporate-action, and execution-model semantics. Missing rigorous
+support fails closed. A degraded run is possible only through an explicit,
+evidence-backed substitution and is excluded from rigorous rankings by default.
+The API-side `CapabilityPreflightService` strictly parses those requested
+semantics and explicit substitutions, then combines them with typed capability
+cells and an exact execution/conformance binding supplied by trusted local host
+resolvers. Coverage evidence and engine claims are never accepted from the
+request body. The registered API remains fail-closed unless its production
+host composes the local Provider evidence reader with exact pinned Nautilus RC
+evidence and an explicit supported scope. The current composition admits only
+regular-session daily XNYS OHLCV for equity with `market` execution and a `cash`
+account. It is capability-preflight evidence, not proof of a native execution
+run; frozen-series decoding remains separately required for execution. Forward,
+broker, trading, and all other product/execution/account scopes remain
+unavailable.
+The registered PostgreSQL adapter accepts that host composition through the
+local `STRATEGY_LAB_V2_API_BINDINGS=module:factory` setting. Its synchronous
+factory receives the shared async session factory and persistence bundle, and returns typed
+`StrategyLabV2ApiBindings`; configured request resolvers must be async. Search
+dispatch bindings should proxy to the isolated local preparation service and
+return its durable dispatch resolution rather than materializing a trial in
+the API process. The `walk_forward_observation_calendar` binding must resolve
+the experiment's exact pinned strategy packages, build their union SDK data
+manifest, and derive unique event-time batches through the verified
+content-addressed snapshot decoder. The walk-forward endpoint accepts fold
+policy and candidate identities only; it never accepts observation dates.
+`AuthenticatedWalkForwardCalendarResolver` composes the owner-scoped resource
+reader, `StrategyPackageArtifactResolver`, and
+`FrozenEventTapeArtifactResolver` for that binding, sharing one content-addressed
+artifact store and offloading archive/data decoding away from the API event
+loop. The default local API bindings factory accepts an optional
+`STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY=module:factory`; this trusted
+provider-platform adapter factory receives the shared persistence bundle and
+must synchronously return the async resolver. Its implementation owns the
+provider-specific decoder and calls the Strategy Lab composition factory with
+the configured absolute artifact root and runtime ABI. When omitted, calendar
+resolution remains unavailable and plan creation fails closed with the typed
+precondition response. After the immutable definition is stored, plan creation
+materializes and publishes each distinct fold-local training trial through the
+ordinary owner-scoped trial resource path, then initializes the existing
+PostgreSQL search-state queue. Trial keys and mutation idempotency keys derive from the
+definition and trial fingerprints. If the request is interrupted between these
+steps, an exact plan replay republishes any missing trials and initializes or
+replays the queue without replacing candidate state that has already advanced
+to running or terminal. Queue conflicts fail as HTTP 409; they do not dispatch work.
+
+Walk-forward finalization keeps the existing descriptive distribution across
+selected fold metrics and, when the local artifact root is configured, also
+hydrates the exact owner-scoped OOS result manifests and derives portfolio-level
+metrics from their receipt-bound native Nautilus equity traces. It publishes the
+compounded portfolio-equity curve as a bounded, Zstandard-compressed Parquet
+artifact into the same content-addressed store, then registers an owner-scoped
+retention pin before persisting its metrics. The backend mounts
+`strategy_lab_artifacts` at `/strategy-lab-artifacts`; the local
+`STRATEGY_LAB_V2_ARTIFACT_ROOT` must point to that shared absolute path. The
+result exposes `native_metrics_status`, `native_metrics_summary_fingerprint`,
+`native_portfolio_metrics`, and `native_portfolio_curve_artifact`; without the artifact store it explicitly reports
+`artifact_store_not_configured` and keeps the legacy fold-distribution scope.
+Native metrics are persisted in a separate owner-scoped immutable PostgreSQL
+v2 aggregate, so existing fold-summary and earlier metrics-only v1 records remain
+untouched. Each metric
+binds the selected fold set and source result/trace evidence; fold gaps are
+treated as inactive periods, and no regular cadence is inferred from irregular
+native event marks.
+`POST /experiments/{experiment_id}/walk-forward/dispatch` selects one queue
+slot. The application creates or reuses an owner-scoped `QUEUED` run-attempt
+resource whose identity binds the experiment, candidate slot, trial fingerprint,
+and retry ordinal, then delegates to the ordinary isolated search preparation
+and atomic worker-admission/transactional-outbox dispatch path. The caller
+chooses only the queue name and slot; it cannot provide the attempt identity or
+worker/runtime evidence. Repeating the same idempotency key reuses the durable
+attempt and dispatch intent. Capacity saturation leaves the candidate pending
+and permits a retry without changing its attempt identity. An absent calendar
+binding preserves the typed 501 precondition response. An absent overall setting
+preserves the current typed 501 response.
+
+The local transport is versioned JSON over a shared Unix-domain socket, not a
+network listener. The API sends only its authenticated owner identity and
+dispatch coordinates; the preparation process performs owner-scoped hydration,
+loads the operator-pinned local Nautilus evidence, builds the immutable worker
+handoff, and commits the dispatch through the shared PostgreSQL adapters before
+returning a fingerprint-checked typed resolution. The service runs one
+preparation at a time in its own process, requires a shared 32-byte-or-longer
+local bearer token, and has no Docker socket or provider credentials. Transport
+errors are retryable and the existing idempotency key makes a retry safe.
+
+Compose includes this process only in the explicit `strategy-lab-v2` profile.
+To connect it, configure `STRATEGY_LAB_V2_API_BINDINGS` as
+`app.strategy_lab_v2.search_dispatch_rpc:build_api_bindings`, set the same
+absolute `STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH` and
+`STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN` for the API and preparation service,
+and provide `STRATEGY_LAB_V2_PREPARATION_BINDINGS_FACTORY=module:factory`.
+Capability preflight additionally requires the operator-owned
+`STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE` value exactly
+`{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"]}`
+and the four Nautilus RC artifact/source/image pin settings documented by the
+local conformance source. Missing, partial, malformed, or unsupported
+scope/evidence configuration leaves that route unavailable; it does not affect
+the existing search/calendar bindings.
+The backend and opt-in preparation service mount this same operator directory
+read-only and receive the same artifact/source/image pins; no artifact is
+discovered by filename. The later preparation context also compares its
+selected `RuntimeIsolationProfile.runtime_image_digest` with the RC release pin
+and rejects mismatches before dispatch, so preflight evidence cannot authorize
+a different worker image.
+Generate the shared token locally (for example, `openssl rand -hex 32`) and
+keep it in the local environment file. The bindings factory is called with the
+shared `PostgresStrategyLabV2Persistence`, artifact root, and verified
+`NautilusRcConformanceResolution`. It returns only the provider-owned frozen
+series decoder, runtime ABI, and canonical market/runtime context resolver.
+The preparation service itself composes owner-scoped PostgreSQL hydration and
+worker-state reads, local artifact/package verification, runtime materialization,
+and the search-dispatch resolver; it also enforces that the context uses the
+operator-pinned RC evidence and exact worker-image digest. Start the
+`strategy-lab-v2-preparation` and `strategy-lab-v2-worker` profile services only
+after those local settings and the read-only evidence directory are present.
+The service never invents provider coverage or instrument metadata; those
+capabilities remain unsupported until their approved staging contract is
+available.
+
+Data acquisition and repair belong to the shared market-data platform. The
+resulting series are verified and frozen into a content-addressed snapshot
+before simulation; a simulator must not fetch market data. Each series binds an
+upstream coverage-evidence digest in addition to its content digest. Bounds and
+row count alone do not prove observations are complete: the staged provider
+adapter must verify that attestation (including calendar and gap semantics)
+against the series content digest, range, row count, and semantic dimensions
+before execution is enabled. The package-owned `snapshot_coverage.py` and
+`data_acquisition.py` contracts now record that verification and bind it to the
+request, preflight, frozen snapshot, and opaque provider receipt; provider I/O,
+repair, and evidence retrieval remain owned by the staged adapter.
+Trial identities
+include the experiment, snapshot, preflight, parameter/scenario configuration,
+and deterministic seed. Infrastructure retries create new run attempts linked
+to the same scientific trial. Native engine outputs, not a parallel fill model,
+are the source of official account, order, position, and metric results.
+
+Parameter grids, seeded random draws, Latin-hypercube samples, scenario matrices,
+and anchored/rolling walk-forward folds are deterministic. Walk-forward planning
+keeps training and out-of-sample indices separate, supports a pre-test gap and
+purges prior test/embargo observations from later training. Aggregate helpers
+include only each non-overlapping out-of-sample index once.
+
+Persistent forward instances warm up once from an immutable historical
+snapshot, then consume only new canonical events. Duplicate, missing, stale,
+out-of-order, and corrected events are classified explicitly. Corrections do
+not rewrite earlier decisions; they request a separately identified
+counterfactual replay. Gap events are buffered without advancing the contiguous
+cursor, so late missing events can be applied and the buffer reconciled in order.
+The forward state machine never represents broker order submission. Admission
+revalidates each supplied observation against the persisted sequence cursor,
+rejecting forged accepted/gap classifications and cursor movement; buffered
+event IDs remain content-bound, so a changed retry is a conflict rather than a
+silent replacement. Canonical forward event and cursor timestamps normalize
+aware offsets to UTC before comparison and fingerprinting, keeping equivalent
+instants on one replay identity. Forward instance lifecycle timestamps,
+warm-up completion timestamps, correction request timestamps, and
+counterfactual replay-plan timestamps apply the same UTC normalization before
+identity checks, so restart, warm-up, and correction records cannot diverge on
+offset formatting alone.
+
+The forward lifecycle REST mutation requires an `Idempotency-Key` and stores an
+owner/instance/key-bound receipt atomically with its PostgreSQL state transition.
+Exact retries return the original typed instance snapshot even if the instance
+has since advanced; reuse of the key with a different target or request time is
+a typed HTTP 409. Failed state transitions also return 409 rather than an
+accepted response.
+
+The asynchronous execution lifecycle applies this invariant to submission,
+worker admission, runtime request/update/state, outcome, progress, command,
+authorization, and execution-summary timestamps. Retries and persisted
+read-model projections therefore retain one identity for equivalent instants
+through the full local execution handoff.
+
+Attempt records and worker leases apply the same normalization to acquisition,
+heartbeat, expiry, release, creation, and transition timestamps, keeping
+capacity reservations and retry lineage stable across offset-changing storage
+or transport boundaries.
+
+## Current engine-neutral package
+
+The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
+
+- `canonical.py` provides stable JSON serialization, SHA-256 content addresses,
+  and recursive immutability. Datetimes normalize aware offsets to UTC and
+  timedeltas have an explicit structural representation, so fingerprinted
+  lifecycle evidence remains stable across equivalent transport encodings.
+- `contracts.py` defines immutable strategy, portfolio, snapshot, experiment,
+  package, trial, attempt, artifact, metric, run-result provenance, and
+  forward-instance records. Portfolios carry a typed, calendar-versioned
+  rebalance policy rather than an unvalidated free-form mapping. Snapshot
+  preflight matching includes event type and
+  semantic series requirements; manifest interval continuity is structural
+  validation, not a substitute for upstream coverage-attestation verification.
+  Scientific trials also carry typed randomization provenance: master/effective
+  seed, policy, replicate index/count, scope and seed-group fingerprints, and
+  derivation version. Generated assignments verify their effective seed against
+  the supported seed-group digest; unsupported derivation versions fail closed.
+  Strategy dependencies and experiment strategy collections are canonicalized
+  by identity, so equivalent declaration order cannot change trial provenance.
+  Authoritative metric sets likewise validate typed values and canonicalize
+  `(name, basis)` records before their content-addressed fingerprint is used.
+- `capabilities.py` implements strict/degraded capability-cell preflight.
+  Requirement and supported-history boundaries normalize aware timestamps to
+  UTC before matching and identity calculation.
+  `execution_capabilities.py` binds that data decision to a registered engine
+  build and conformance fingerprint, failing closed when product, execution,
+  or account semantics are not supported. Non-authoritative engines may be
+  executable for compatibility evidence but cannot publish authoritative
+  results.
+- `data_acquisition.py` binds a provider acquisition receipt to one typed
+  capability preflight, frozen `DataSnapshot`, and verified snapshot-coverage
+  resolution. Identity drift, stale receipts, unsupported preflight, and
+  incomplete coverage reject the handoff deterministically; provider fetching,
+  repair, and persistence remain adapter responsibilities. Request and receipt
+  timestamps normalize to UTC before acquisition identity and temporal checks.
+- `coverage.py` verifies provider attestations against frozen series metadata,
+  normalizing series and attestation timestamps to UTC before coverage identity
+  and comparison.
+- `execution_data_admission.py` is the final pure data gate before a Nautilus
+  plan is consumed. It requires the verified acquisition handoff to match the
+  scientific trial, frozen snapshot, and ready engine plan, so a worker cannot
+  bypass coverage verification by passing only a snapshot digest.
+- `execution.py` composes source, trial, engine, attempt, and lease checks into
+  one immutable `ExecutionAuthorization`. A future worker must obtain this
+  authorization before invoking an engine adapter; it carries no source bytes,
+  secrets, or external-service handles.
+- `forward_state.py` provides immutable, fingerprinted forward checkpoints with
+  processed, buffered, correction, duplicate, and out-of-order evidence.
+  Accepted/gap/correction records are idempotent when replayed, while anomaly
+  counts remain observable for each newly observed event.
+- `dispatch.py` defines immutable queue requests/envelopes and pure idempotency
+  resolution. A repeated key with the same attempt/payload/queue replays the
+  existing request; a reused key with different content is an explicit
+  conflict. Dispatch creation timestamps normalize to UTC so offset-equivalent
+  queue requests retain one message identity. Redis/outbox publication still
+  requires an atomic adapter.
+- `progress.py` defines ordered worker progress, cancellation intents, and
+  resumable progress state. Updates cannot reorder, change the total, move
+  backward, or mutate terminal states; cancellation is idempotent and must end
+  in an explicit cancelled terminal update.
+- `sdk.py` exposes declared read-only inputs and typed order/target-position
+  intents. Public SDK boundaries reject malformed dependency, event, position,
+  context, and enum values before they reach a strategy; every declared field
+  is required on each provided event, event timestamps must stay within each
+  dependency's declared history interval, and intent validation checks the
+  strategy's declared instrument scope.
+- `strategy_validation.py` performs deterministic static source preflight before
+  a strategy package can reach a future runtime. It rejects disallowed imports,
+  relative imports, dynamic-code/file/network calls, private-object
+  introspection, and wall-clock calls (`now`, `today`, and `utcnow`), while
+  binding the result to the exact source digest. This is an early rejection
+  layer only; it is not a substitute for the separately required isolated
+  runtime and resource controls.
+- `artifacts.py` verifies an already-read immutable payload against its
+  `ArtifactManifest` using raw-byte SHA-256 and exact byte length, returning a
+  digest-bound receipt with typed mismatch reasons. Retrieval, atomic
+  publication, retention, and storage I/O remain adapter/worker concerns.
+- `artifact_store.py` provides local atomic content-addressed byte storage and
+  bounded cleanup evidence. Cleanup observation and filesystem modification
+  timestamps normalize to UTC; cleanup resolutions fingerprint their explicit
+  minimum-age duration as canonical structured data.
+- `artifact_publication.py` turns verified receipts into a storage-neutral
+  create-if-absent or reuse-existing plan and exposes whether the retention
+  class requires a pin. It never overwrites an existing content address or
+  performs publication itself.
+- `result_integrity.py` verifies one-to-one coverage of every output artifact
+  referenced by a successful `RunResultManifest`, rejecting missing,
+  unexpected, duplicate, foreign, or unverified receipts before a result can be
+  treated as complete. It does not read storage or certify engine semantics.
+- `allocation.py` resolves event-aligned component target-position intents using
+  typed policies, preserves existing component-attributed positions, records
+  deterministic conflicts, and returns proposed versus risk-approved account targets.
+  Explicit zero targets are preserved. Exact registered cash-equity, crypto-spot,
+  futures, option-delta, and FX risk models are accepted only when the policy
+  and snapshot bind the same model; unregistered models fail closed. Current
+  exposure snapshots bind opaque valuation evidence which the adapter must verify.
+  This pure module does not create or route engine orders.
+- `risk_models.py` applies the registered product formulas to adapter-verified
+  order economics: marked quantity value for cash/crypto, contract notional for
+  futures, delta-adjusted underlying notional for options, and marked pair
+  notional for FX. It returns a digest-bound signed base-notional receipt and
+  deliberately omits margin, liquidity, settlement, and engine-fill claims.
+- `margin_risk.py` layers an event-aligned, adapter-supplied initial/maintenance
+  requirement and capacity gate over routed orders. Utilization and capacity
+  breaches withhold the entire batch; the contract never infers margin from
+  notional exposure or issues a solvency verdict.
+- `stress_risk.py` layers explicit adapter-generated stressed-equity scenarios
+  over the margin/routing decision. Loss-fraction and minimum-equity policy
+  breaches withhold the entire batch while retaining shock/evidence identities;
+  the package does not construct shocks or claim a solvency verdict.
+- `liquidity_risk.py` layers adapter-supplied available quantity/notional and
+  slippage evidence over stress, margin, and routing. Per-instrument batch
+  participation and slippage ceilings are evaluated all-or-nothing; missing
+  capacity is explicit and the contract makes no fill-quality guarantee.
+- `settlement_risk.py` layers adapter-supplied per-order settlement cash deltas
+  and per-currency free-cash evidence over liquidity, stress, margin, and
+  routing. Gross settlement debits and minimum remaining-cash buffers withhold
+  the entire batch; missing order estimates or currency capacity fail closed.
+  Product cash flows, conversions, and settlement timing remain adapter-owned.
+- `shock_construction.py` expands explicitly typed shock dimensions into stable
+  scenario definitions and content-addressed identities. It never applies
+  shocks, infers cross-asset effects, or calculates stressed equity; those
+  operations remain engine/account-adapter responsibilities.
+- `risk_pipeline.py` composes routing, margin, stress, liquidity, and settlement
+  in a fixed order and verifies the fingerprint chain in one immutable
+  pre-engine admission receipt. It exposes only approved routed orders and has
+  no submission or fill capability.
+- `order_routing.py` converts explicit `OrderIntent` quantities into
+  digest-bound, adapter-supplied product-risk base-notional estimates, validates
+  lot/tick/currency/model evidence, and applies the same all-or-nothing shared
+  risk gate before exposing an engine-neutral routed order. Estimates are not
+  fills and no order is submitted; unregistered product models remain
+  fail-closed.
+- `rebalance.py` validates complete local-date calendar coverage with explicit
+  trading/closed days, official trading-date labels, UTC session segments,
+  timezone and tzdb versions, and source evidence. It deterministically schedules
+  per-session, ISO-weekly, monthly, quarterly, or yearly boundaries using the
+  first/last actual session and session-open-before-events or
+  session-close-after-events timing. Calendar identity is content-addressed;
+  weekly/monthly/etc. schedules require complete bucket coverage so missing
+  dates cannot be silently treated as holidays. DST/overnight timing is carried
+  by explicit UTC instants. `rebalance_allocation.py` composes that boundary
+  with typed target intents and the existing allocation/risk gate: only an
+  exact event applies targets, while before-boundary, fail-run misfire, and
+  skip-occurrence outcomes are immutable, content-addressed decisions. Neither
+  module implies same-price fills, infers a catch-up event, fetches calendars,
+  or creates orders.
+- `event_tape.py` provides a frozen, snapshot-bound event sequence for replay.
+  It canonicalizes cross-series ordering, rejects duplicate event identities,
+  prevents one dependency from switching instruments, and requires each
+  dependency's sequence and event time to advance monotonically. Deterministic
+  same-time batches and explicit non-interpolating time slices are available to
+  a later strategy/engine adapter. `bind_event_tape()` then verifies the tape
+  against the frozen snapshot's preflight substitutions, declared effective
+  intervals, series coverage, declared instruments, exact dependency fields,
+  and SDK manifest, returning a content-addressed binding with per-dependency
+  event counts. Acquisition, coverage attestation, and fills remain outside
+  this contract.
+- `replay.py` turns a verified frozen tape into one immutable SDK context per
+  same-time batch, retaining only each dependency's declared trailing lookback
+  and optional host-supplied position snapshots. `replay_event_tape()` repeats
+  snapshot/manifest binding, invokes one stateful strategy session in
+  chronological order, preserves tape/binding/source/parameter identities, and
+  stops at the first typed rejection or failure. It does not apply intents or
+  model fills; engine/account adapters remain responsible for those effects.
+- `observations.py` defines normalized event-time/sequence points, native
+  fill-cost cash effects with explicit currency-conversion and slippage-benchmark
+  evidence, explicit complete/partial/unavailable cost-report coverage, and
+  account/component P&L records. Account-equity intervals distinguish complete,
+  partial, and unavailable external-cash-flow reports; a complete report must
+  explicitly report both net amount and flow occurrence, distinguishing no flows
+  from offsetting flows with a zero net amount. Event and fill observations are
+  scoped to one run attempt so metrics cannot silently combine separate retries.
+  Engine adapters must provide the evidence; the core does not perform FX
+  conversion, infer costs, or infer P&L attribution from position weights.
+- `experiments.py` expands deterministic search/scenario plans and
+  leakage-aware walk-forward folds. Trial seeds remain per-candidate by default
+  with the pre-existing derivation unchanged. The default also retains existing
+  trial IDs: its typed seed metadata remains available without redundantly adding
+  the legacy schedule to identity. An explicit shared-per-scenario-replicate
+  policy assigns the same initial seed across parameter candidates within one
+  fixed experiment scope, scenario, and replicate, and records the seed group
+  needed for later matching. This is not evidence of paired random draws:
+  stateful/unkeyed engine streams may diverge when strategies take different
+  paths. `pairing.py` now verifies decoded content-addressed keyed streams
+  against registered engine-conformance and stream-contract identities. It
+  rejects duplicate or unmatched keys and differing draw values, then emits a
+  deterministic verification receipt. The
+  `SensitivityComparisonEvidence` distinguishes unpaired results (which does
+  not prove statistical independence), a matched shared seed group only, and an
+  unverified keyed-stream pairing claim. Equal integer seeds without matching
+  scope/scenario/replicate provenance remain unpaired. The contract checks that a
+  pairing claim binds both successful attempts and their engine build, declares
+  complete draw-key alignment, and references trace/pairing artifacts in both
+  result manifests. It cannot authenticate those bytes or engine conformance, so
+  it deliberately does not label a claim as verified pairing; a receipt from
+  the keyed-stream verifier is required. `sensitivity.py` adds a
+  descriptive one-factor metric comparison over successful results. It requires
+  identical parameter keys with exactly one canonically different value,
+  matches metrics by `(name, gross/net basis)`, and requires equal non-null
+  calculation fingerprints. The comparison separately binds a measurement-scope
+  identity to the experiment, frozen snapshot, declared scenario, portfolio
+  currency, execution context, metric calculation, referenced coverage claims,
+  and session-calendar evidence. Run-specific observation digests may differ;
+  both realized sample sizes and the existing randomization-evidence label are
+  retained. `SensitivityComparisonEvidence` rejects mismatched fixed run
+  context; the comparator returns the signed `variant - baseline` difference or
+  a typed unavailable reason for missing, unversioned, incompatible, null, or
+  metric-level out-of-scope inputs such as different session calendars. This
+  output is descriptive only: it does not average candidates or replicates,
+  estimate significance, or claim paired inference. A shared
+  snapshot binds coverage-evidence digests as claims; this engine-neutral
+  comparator cannot authenticate their referenced documents.
+  The scenario digest binds the declared scenario but is not a separate typed
+  evaluation-window contract. `calculate_paired_metric_metrics()` consumes
+  aligned keyed observations plus a verified receipt and returns descriptive
+  baseline/variant means, nearest-rank delta median, extrema, and sample
+  deviation. The receipt and observations establish provenance/alignment but
+  no inferential model or significance claim is made.
+  `paired_inference.py` adds the bounded trusted-inference step separately:
+  `infer_paired_mean()` requires the verified keyed-stream receipt and performs
+  an inclusive two-sided exact sign-flip test for a zero paired mean delta.
+  Every sign assignment is enumerated deterministically and the result records
+  the observation/receipt identities, tail counts, method, null, and contract
+  version. A configurable maximum of 20 observations prevents unbounded CPU;
+  larger requests return typed unavailable evidence rather than an approximate
+  or unseeded result. `calculate_paired_inference_metrics()` projects the
+  p-value and enumeration counts as versioned metrics with explicit null
+  reasons. This is statistical evidence only and never a profitability verdict.
+  `EvaluationWindow` is an immutable trial-bound interval with an optional
+  warm-up start. Its fingerprint participates in trial identity and in
+  sensitivity measurement scope, so variants with different evaluation or
+  warm-up periods are rejected as incomparable rather than silently mixed.
+  Replicates are explicit; infrastructure retries remain attempts of the same
+  scientific trial.
+- `ranking.py` provides deterministic descriptive ordering for completed
+  results within one experiment and compatible snapshot, portfolio, engine,
+  allocation, metric, unit, and calculation contexts. It excludes degraded
+  preflight, non-authoritative engine, null, missing, unversioned, incompatible,
+  and duplicate-trial results by default; an explicit exploratory opt-in can
+  include non-authoritative engine output while retaining the exclusion label.
+  It makes no profitability or statistical inference claim.
+- `metrics.py` v17 computes Decimal account P&L/return, drawdown duration, Ulcer,
+  annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
+  historical VaR/expected shortfall, and trade outcome/streak summaries from
+  authoritative engine equity and trade-P&L series. The equity input contains
+  equally spaced post-start marks only (not the opening balance), and
+  `periods_per_year` must match that cadence; timestamped/irregular observations
+  are not yet modeled for annualized time-series metrics. Currency is explicit;
+  calculation/annualization basis, gross/net basis, samples, and null reasons
+  travel with each metric. Tail calculations use an explicitly versioned
+  nearest-rank empirical convention. Native OOS exposure metrics are equally
+  sample-weighted gross and signed net base exposure from the simulator's
+  event-time portfolio valuation relative to contemporaneous equity; they are
+  bound to the same byte-verified trace as cash and equity. They are not
+  time-weighted exposure or margin/capital requirements. A missing exposure mark
+  or zero-equity event withholds the complete exposure family rather than
+  dropping that event. Native result summaries also include a separate
+  event-sampled account cash/equity ratio family. Cash ratios do not imply
+  margin, buying power, or liquidity. Fill-cost totals and basis points are null when
+  any fill cost report is partial or
+  unavailable; category values are explicitly reported amounts, not asserted
+  complete totals. Complete reports may explicitly state zero cost. Cost metrics
+  use engine-reported signed cash effects, explicit base-currency conversions,
+  and named slippage benchmarks, with fill notional as the stated basis-points
+  denominator. Run-level component P&L attribution reconciles
+  exactly to portfolio gross/net P&L and requires an explicit unallocated
+  component when residual results exist. These remain only part of the planned
+  catalog. `calculate_calendar_period_metrics()` adds run-scoped linked
+  prior-mark-to-session-close P&L and per-period returns for each-session,
+  ISO-weekly, monthly, quarterly, or yearly cadence, tied to the exact session
+  calendar and complete-period flag. Net P&L reconciles account equity changes
+  after explicit complete external-flow reports; it is null when those reports
+  are partial or unavailable. Returns are null for incomplete period coverage.
+  Flow-bearing periods use the geometric boundary-aware path when every event
+  has explicit pre/post valuations, and remain null when that evidence is
+  missing.
+  `calculate_rolling_equity_metrics()` returns structured, run-scoped points for
+  each observed close. Each window requires the requested number of consecutive
+  session-close intervals plus the preceding session close; missing observations
+  are explicit incomplete points, not compressed samples. Annualization periods
+  and periodic risk-free target are required inputs. Rolling return, volatility,
+  Sharpe, Sortino, drawdown, duration, and Ulcer metrics fail closed on incomplete
+  flow evidence or external flows; net P&L remains available only with complete
+  flow reports. `calculate_session_return_distribution_metrics()` adds a
+  run-scoped summary over an explicit inclusive range of actual trading-session
+  labels: nearest-rank close-to-close return quantiles and empirical VaR/expected
+  shortfall, with no interpolation and the selected tail sample counts recorded.
+  Every session must have an observation and a mark at the preceding actual
+  session close. Missing coverage, incomplete external-flow reporting, or any
+  external-flow event withholds the entire distribution; simple close-to-close
+  returns are not presented as flow-adjusted time-weighted returns. Histogram
+  bins and sensitivity ranking/inference are not part of this summary.
+  `calculate_capital_margin_utilization_metrics()` adds an engine-neutral,
+  run-scoped summary of event-sampled initial and maintenance margin
+  requirements relative to their supplied capacities and contemporaneous
+  account equity. Requirements, capacities, currency, and valuation evidence
+  are authoritative adapter inputs; the calculator never infers margin,
+  leverage, or buying power from notional exposure. It reports equally
+  sample-weighted means and observed maxima as diagnostic ratios, including
+  ratios above one, without turning them into a breach or profitability
+  verdict. `calculate_financing_cost_metrics()` separately consumes bounded
+  engine-reported financing-cost reports outside fill costs. Complete reports
+  publish signed net financing cost; partial or unavailable reports retain
+  coverage counts and reported cash effects but withhold the derived net cost.
+  `calculate_stress_scenario_metrics()` separately consumes adapter-supplied
+  stressed-equity observations bound to explicit shock-definition digests. It
+  reports scenario counts, loss counts, average and worst stressed returns and
+  P&L, and minimum stressed equity; it does not construct shocks or issue a
+  solvency/risk verdict.
+  Trusted paired inference is now available through the separate exact
+  sign-flip calculator described above; approximate/bootstrap inference and
+  inferential ranking remain outside this package boundary.
+  `calculate_time_weighted_return_metrics()` now provides a strict,
+  engine-neutral flow-adjusted return path. Each reported external event must
+  carry explicit pre-flow and post-flow equity boundary marks whose difference
+  reconciles the event cash amount; missing or incomplete flow evidence
+  withholds both linked and elapsed-time annualized returns. Annualization uses
+  an explicit days-per-year convention and elapsed UTC duration, so irregular
+  spacing is not treated as a fixed session cadence. Calendar-period, rolling,
+  and session-distribution aggregators now consume the same boundary evidence;
+  flow-adjusted status is retained on distribution summaries.
+  The official Nautilus OOS result path also reports native closed-position
+  win/loss/break-even counts and rates, plus per-currency gross winning P&L,
+  losing-P&L magnitude, and position profit factor. Currency-specific amounts
+  are never combined or FX-converted; any missing OOS close-time coverage or
+  realized-P&L value withholds the affected position-quality metrics. Native
+  calculations record their fixed Decimal precision and rounding context.
+  `summarize_one_factor_metric_replicates()` adds a deterministic descriptive
+  baseline/variant summary over complete replicate arms. It requires one result
+  per planned replicate index, one canonical parameter change, identical fixed
+  execution and metric-measurement scope, and non-null values. Each arm retains
+  realized observation sample sizes and seed provenance, and reports Decimal
+  mean, nearest-rank median/minimum/maximum, and configured nearest-rank
+  quantiles. The result exposes only the signed difference of arm means; it does
+  not rank candidates, estimate significance, or claim independence or paired
+  inference. Trusted paired inference is provided separately by the bounded
+  exact sign-flip calculator; approximate/bootstrap inference and inferential
+  ranking remain outside this package boundary.
+- Every metric produced by the v2 calculators carries a versioned
+  `MetricCalculationDefinition` (`strategy-lab.metric-calculation.v1`) with a
+  stable formula-family ID, Decimal context, and effective formula parameters.
+  `MetricEvidenceReference` records run-specific input/result digests separately;
+  the digest is retained for provenance but is intentionally excluded from a
+  metric's `calculation_fingerprint`. That fingerprint also excludes the output
+  value, sample size, null result, and free-text display basis, while binding
+  metric name, unit, gross/net basis, formula-definition version, and structured
+  calculation definition. A missing structured definition (as in legacy or
+  manually constructed values) yields no calculation fingerprint, so the
+  descriptive comparator withholds the delta. This is a calculation-identity
+  primitive; the comparator validates shared run scope, declared data/coverage
+  identity, currency, calendar evidence, and calculation compatibility
+  separately. Existing `calculation_basis` strings remain display-compatible;
+  the metric formula version is bumped when the catalog or calculations change.
+- `lifecycle.py` contains pure attempt/forward state transitions, event
+  anomaly classification, and typed monotonic execution-attempt leases.
+  Running attempts can acquire a lease, active leases can renew, and expired or
+  released leases cannot be renewed; persistence, worker scheduling, and clock
+  ownership remain outside the package. `apply_forward_event_observation()`
+  advances a forward instance only for contiguous accepted events, preserves
+  anomaly cursors, and increments corrections without rewriting prior state.
+- `pairing.py` verifies exact keyed common-random draw alignment and emits a
+  content-bound receipt that can upgrade sensitivity provenance to
+  `verified_paired`; it does not perform statistical inference.
+- `recovery.py` defines deterministic, bounded infrastructure recovery. A
+  terminal failed attempt can produce a retry plan only for explicitly
+  retryable causes and while the attempt limit remains; capped exponential
+  backoff is derived from the next ordinal and supplied observation time.
+  Successful attempts are no-ops, cancellation is terminal by default, and
+  `RecoveryPlan` is content-addressed for idempotent scheduling records.
+  Aware retry observations and plan timestamps normalize to UTC at the
+  contract boundary, so offset-equivalent instants retain one retry identity.
+  `RecoveryPlan.materialize_retry_attempt()` preserves the immutable trial
+  identity. Durable compare-and-set, scheduling, worker restart, and engine
+  disposal remain adapter responsibilities.
+- `events.py` defines content-addressed execution event envelopes, typed
+  per-trial/attempt cursors, and pure append decisions. Event timestamps are
+  normalized to UTC at construction, so equivalent offset-aware retries retain
+  one dataclass value and event identity after transport. Exact prior events
+  can be replayed; stale, missing, foreign, or conflicting sequences are
+  surfaced without advancing the cursor. PostgreSQL/outbox/Redis adapters
+  still own atomic persistence and transport.
+- `api_contracts.py` defines stable REST-boundary values for future routes:
+  snapshot-bound opaque cursors round-trip deterministically with an integrity
+  checksum, strict decoding rejects duplicate fields and non-finite JSON
+  constants, page envelopes require consistent continuation cursors, and
+  `ApiError` carries a typed code, HTTP status, retryability, request identity,
+  and recursively frozen details. Cursor checksums are not authentication;
+  authorization and snapshot ownership remain route responsibilities.
+- `submissions.py` defines idempotent asynchronous submission requests and
+  receipts. Request fingerprints bind the operation, attempt, idempotency key,
+  and payload digest while excluding transport timestamps; resolution returns
+  202 acceptance/replay or 409 conflict, and contradictory prior receipts fail
+  closed. Receipt creation performs no queue, database, or worker I/O.
+- `submission_dispatch.py` composes that 202 receipt with the matching worker
+  dispatch envelope. Submission and dispatch identities must bind to the same
+  attempt, idempotency key, and payload; a receipt retry may repair a missing
+  dispatch, but an existing dispatch without a receipt is a conflict. The
+  returned receipt ledger and dispatch proposal remain storage-neutral for one
+  compare-and-set transaction.
+- `outcomes.py` defines ordered accepted/running/succeeded/failed/cancelled
+  outcome updates bound to one submission and attempt. Success requires a
+  content-addressed result, failures carry a typed `ApiError`, and exact
+  repeats replay the existing terminal state while regressions, foreign
+  identities, stale timestamps, and conflicting sequences fail closed.
+- `lineage.py` defines immutable artifact-manifest lineage edges and
+  owner-scoped indexes. Semantic keys exclude recording timestamps for
+  idempotency, exact edges replay, changed metadata conflicts, and entries are
+  deterministically ordered. Aware creation timestamps normalize to UTC before
+  lineage identity and replay comparison. Storage adapters must still enforce
+  manifest existence, foreign-key constraints, and atomic persistence.
+- `runtime.py` defines fail-closed isolation preflight for future strategy
+  workers. A profile requires a pinned runtime image, exact vetted dependency
+  digests, disabled network, read-only root, dropped capabilities, disabled
+  secrets, and positive wall/CPU/memory/output limits; execution requests that
+  ask for forbidden access or missing pins are rejected with explicit reasons.
+  This contract does not itself create containers or enforce OS limits.
+- `conformance.py` defines the engine release/conformance evidence gate. The
+  required multi-instrument accounting, native order/fill/cost, deterministic
+  replay, lifecycle, and forward-event-tape checks are explicit. A complete
+  exact-pinned stable or release-candidate build can qualify after passing the
+  four simulator checks. Local backtest authority is scope-specific; forward
+  event-tape parity is additionally required for forward-shadow execution.
+  Release pins include the exact Nautilus wheel checksum and runtime-image
+  digest, and pre-releases remain barred from broker/real-capital use.
+- `engine_execution.py` records the conformance scope required by each
+  isolated process. `BACKTEST_COMPATIBILITY` permits the exact-pinned RC to
+  run non-authoritative backtest/replay work when only forward parity is
+  deferred. `BACKTEST_AUTHORITATIVE` requires the four simulator checks and
+  permits an exact stable or release-candidate build; `FORWARD_COMPATIBILITY`
+  and `FULL` require all checks. Forward authority is separate from local
+  backtest authority.
+- `nautilus_runtime.py` defines the exact `2.0.0rc6` compatibility-runtime
+  declaration. It binds source, wheel, and runtime-image digests, Python/Rust
+  versions, legacy-runtime isolation, and the release pin consumed by
+  conformance; it never imports Nautilus or discovers packages.
+- `nautilus_runtime_probe.py` is the isolated-image smoke entrypoint. It checks
+  the installed package version, imports the v2 backtest bindings, constructs
+  and disposes a `BacktestEngine`, and emits only structured lifecycle evidence;
+  it cannot acquire data or publish results.
+- `NautilusRuntimeProbeEvidence` strictly parses that probe output against the
+  immutable runtime/image digest and Python/package declaration. It is a
+  compatibility receipt only and cannot authorize publication or live shadow.
+- `require_runtime_probe_binding(...)` joins a complete fixture resolution to
+  that probe receipt and rejects package/channel/pin/image mismatches. The
+  harness remains engine-injected and therefore cannot be mistaken for actual
+  Nautilus conformance or authority.
+- `nautilus_rc_fixture_probe.py` runs deterministic, synthetic in-memory
+  order/fill, multi-instrument, and replay paths inside the pinned RC image;
+  forward event-tape parity remains explicitly deferred until the real
+  canonical-event adapter exists.
+- `NautilusRcFixtureReceipt` records that image-backed result as four passed
+  checks plus one deferred forward-parity check, preserving the exact runtime,
+  wheel, image, and fixture digests. Those four checks may support local
+  backtest authority once publication receives the matching scoped execution
+  evidence; the deferred parity check still blocks forward scope.
+- `resolve_nautilus_rc_conformance(...)` is the typed bridge from that parsed
+  image receipt to the ordinary engine evidence/report pair. It verifies the
+  runtime, probe, image, package, and fixture identities, exposes the four
+  passed checks to backtest scopes, and preserves the missing forward-parity
+  check so only forward/full scope is held back.
+- `nautilus_event_adapter.py` defines the provider-neutral canonical-event wire
+  boundary for that future adapter. It binds an already verified frozen event
+  tape to the SDK manifest, converts timestamps to exact UTC nanoseconds,
+  validates the event-type field contract, and content-addresses the ordered
+  materialization. It deliberately imports neither Nautilus nor any provider;
+  host callback/Rust implementation and forward-parity evidence remain gated.
+  `materialize_nautilus_forward_tape(...)` additionally binds a deterministic
+  instance-scoped batch of admitted canonical events to payload records and
+  requires exact persisted delivery identities for each event. Only accepted
+  non-correction dispatches may enter the live tape; buffered events and
+  corrections remain outside that input path.
+  `verify_nautilus_event_tape_parity(...)` provides the strict observed-wire
+  schema and non-authoritative pass/fail receipt for that future adapter, with
+  canonical ordering and field-level mismatch evidence.
+  `verify_nautilus_forward_event_tape_parity(...)` applies a strict,
+  order-preserving wire comparison to an admitted forward batch. Forward
+  parity definition v2 rejects callback reordering rather than sorting the
+  observed batch, and retains instance/tape identity in a separate
+  non-authoritative forward-parity receipt.
+- `nautilus_forward_delivery.py` authenticates a Redis entry and rehydrated
+  PostgreSQL dispatch against the persisted pre-event checkpoint, warm-up
+  receipt, event, and admission decision. Correction dispatches become a
+  separate typed replay input bound to the correction plan and original event;
+  they cannot enter the ordinary live tape. The concrete native callback
+  factory and isolated forward-runtime integration remain outstanding.
+- `resolve_nautilus_forward_parity(...)` composes that strict verifier with
+  the `FORWARD_EVENT_TAPE_PARITY` conformance projection, returning one typed
+  resolution that binds the tape, receipt, and observation for the eventual
+  host/Rust callback boundary.
+- `nautilus_engine_input.py` completes the next engine-input seam without
+  importing Nautilus. It binds the event tape to provider-supplied instrument
+  precision/increment metadata, one shared venue/account model and initial cash,
+  plus immutable strategy source/manifest/parameter identities. Missing
+  instruments, cross-venue events, duplicate catalog entries, invalid account
+  currency, and malformed strategy identities fail before a native engine
+  adapter can construct orders or account state.
+- `nautilus_runtime_data.py` and `nautilus_runtime_adapter.py` are copied only
+  into the exact isolated RC image. They strictly validate the serialized
+  engine-input payload, materialize native FX/crypto/equity, venue/account, and
+  quote/trade/bar values, invoke `BacktestEngine`, and emit digest-bound scalar
+  execution evidence. `nautilus_strategy_bridge.py` validates the existing
+  serialized SDK invocation batch, binds each context to exactly one tape event,
+  refreshes position snapshots from the native portfolio, invokes the existing
+  strategy session from native callbacks, and serializes the invocation result
+  batch through the existing protocol. Supported `OrderIntent` values become
+  native orders; `TargetPositionIntent` remains fail-closed until the platform
+  allocation/risk handoff is wired. The raw RC runtime receipt remains
+  non-authoritative; a separate local-backtest publication gate can promote
+  only outputs bound to the four simulator checks and exact execution plan.
+  Forward parity remains deferred until the host/Rust canonical-event callback
+  exists.
+- `nautilus_runtime_adapter_probe.py` is the image-local end-to-end fixture for
+  that bridge. It runs two native quote events through a buy-once strategy,
+  verifies two serialized SDK results plus a native order, fill, position, cost,
+  and deterministic evidence under the hardened network-disabled/read-only
+  container boundary.
+- `build_event_tape_parity_observation(...)` projects that receipt into the
+  existing `FORWARD_EVENT_TAPE_PARITY` conformance check. Failed receipts are
+  assigned a distinct failure digest, so expected-fixture configuration cannot
+  manufacture a pass. It accepts both historical and instance-scoped forward
+  parity receipts, keeping the eventual host callback on the same conformance
+  projection path.
+- `require_rc_fixture_binding(...)` binds the parsed image-backed RC fixture
+  receipt to the runtime probe, release pin, and partial conformance suite,
+  preserving that fixture's non-authoritative status and the deferred
+  forward-parity check.
+- Materialization resolves the effective `event_type` from the bound snapshot
+  preflight, including explicitly recorded degraded substitutions, rather than
+  silently reverting to the requested manifest value.
+- `NautilusForwardEventEnvelope` binds an admitted `CanonicalForwardEvent` to
+  its payload-bearing `MarketEvent` and wire record, rejecting ID, sequence, or
+  timestamp drift before a future live adapter can hand data to the engine.
+- `result_publication.py` composes conformance, runtime isolation, and exact
+  result-artifact integrity into a storage-neutral publish plan. A local
+  authoritative backtest must match its exact Nautilus release pin, conformance
+  report, and authoritative execution-plan fingerprint and pass all four
+  simulator checks; it does not wait for forward parity. Full scope additionally
+  requires the complete report. Already-published manifests replay idempotently,
+  while build, release, scope, runtime, conformance, or artifact mismatches
+  reject without changing the result record.
+- `progress_checkpoint.py` adds restart-safe progress checkpoints retaining
+  every applied update fingerprint. Only the next contiguous sequence advances
+  state; exact repeats replay, gaps wait for missing updates, and stale or
+  conflicting updates fail closed. Durable storage and stream transport remain
+  outside this pure contract.
+- `workers.py` defines serial backtest and separately typed forward worker
+  profiles, content-addressed reservations, deterministic capacity decisions,
+  and idempotent release. Unsafe profiles, reused reservation identities, and
+  concurrent attempts fail closed; process scheduling, lease heartbeats,
+  restart recovery, and engine disposal remain adapter responsibilities.
+  Reservation acquisition/release timestamps normalize to UTC before capacity
+  identity and replay comparison.
+- `artifact_retention.py` defines immutable owner-scoped retention pins and
+  manifest-bound retention state. Pin adds and releases are idempotent; pinned
+  classes fail closed without an active pin, while tiered/ephemeral eligibility
+  is evaluated only at an explicit timestamp. Aware creation, expiry, release,
+  and observation timestamps normalize to UTC before retention identity and
+  replay comparison. The contract never deletes, moves, or rewrites artifact
+  bytes.
+- `lease_observations.py` defines ordered heartbeat/release envelopes and a
+  restart-safe lease observation state. Exact retries replay, changed content
+  conflicts, gaps/stale sequences remain visible, and expired or released
+  leases reject further heartbeats. Lease identity and final heartbeat
+  metadata must match; aware observation and expiry timestamps normalize to UTC
+  before ordering and replay; persistence and clock scheduling remain
+  adapter-owned.
+- `forward_warmup.py` defines manifest-bound warm-up completion receipts. A
+  warming instance can transition to active once, seed its historical cursor,
+  and replay the same receipt without rewriting live state; changed receipts,
+  mismatched snapshot/carry-in, stale completion times, and cursor overwrite
+  attempts fail closed.
+- `forward_admission.py` adds active-instance live-event admission with
+  content-addressed event identities. Contiguous events advance the existing
+  checkpoint, gaps remain buffered for later reconciliation, and duplicate,
+  out-of-order, correction, conflict, and exact-replay outcomes stay explicit.
+  A completed warm-up cursor is seeded into the admission state so historical
+  events cannot be silently replayed.
+- `artifact_commit.py` defines an immutable commit ledger for verified
+  publication plans. Create-if-absent finalization records one content key,
+  exact retries replay it, storage-key collisions conflict, and
+  reuse-existing plans fail closed until a committed record is observed.
+  Aware commit timestamps normalize to UTC before publication identity and
+  replay comparison. No bytes are written or deleted by this contract.
+- `execution_summary.py` projects submission, outcome, progress, and result
+  publication into one immutable API read model. It enforces identity and
+  terminal-phase consistency, requires authoritative publication for success,
+  and exposes ready/in-progress/terminal decisions without leaking engine
+  handles or mutable worker state.
+- `commands.py` defines content-addressed retry and cancellation command
+  intents with idempotent receipts. Commands are accepted only when their
+  outcome/progress preconditions hold; terminal cancellation, non-failed
+  retry, identity mismatch, and reused command content fail closed. Applying a
+  cancellation or scheduling a retry remains an adapter responsibility.
+- `capability_summary.py` projects data and engine preflight into one stable
+  machine-facing summary. It preserves instrument-scoped data gaps,
+  engine-model gaps, degradation evidence, executable/ranking flags, and
+  authoritative-publication eligibility without recomputing or weakening the
+  underlying fail-closed checks.
+- `forward_corrections.py` defines additive counterfactual replay commands for
+  admitted correction events. Plans retain the original event identity,
+  correction identity, warm-up receipt, and immutable pre-correction
+  checkpoint basis; exact retries replay, changed content conflicts, and
+  unadmitted/mismatched corrections fail closed without rewriting live state.
+- `audit.py` defines an immutable aggregate-scoped execution audit journal.
+  Entries carry typed event kinds, content-addressed payloads, actor and
+  correlation identity, and contiguous sequence numbers. Occurrence timestamps
+  are normalized to UTC at construction, keeping equality, identity, and
+  monotonic journal checks stable across offset-changing serialization. Exact
+  appends replay; gaps, stale sequence content, same-sequence conflicts,
+  foreign aggregates, and timestamp regressions remain explicit without
+  mutating the journal. A future PostgreSQL/outbox adapter must persist the
+  returned decision atomically; this contract never writes or transports audit
+  records.
+- `outbox.py` defines immutable transactional-outbox messages and state.
+  Request identity conflicts, content duplicates, deterministic pending order,
+  and publish acknowledgements are resolved without I/O. Exact enqueue and
+  acknowledgement retries replay idempotently; unknown acknowledgements reject.
+  Message identity excludes scheduling timestamps, while the full record retains
+  them for auditability. Creation and availability timestamps normalize to UTC
+  before scheduling and state fingerprinting. PostgreSQL transactionality and
+  Redis transport remain adapter responsibilities.
+- `audit_outbox.py` links an audit entry to its transport envelope through one
+  pure atomic staging resolution. The envelope must carry the audit entry
+  identity; gaps, conflicts, or rejects return both original states so an
+  adapter cannot commit one side alone. A successful resolution provides the
+  journal and outbox states for one PostgreSQL transaction, while a repeated
+  pair replays idempotently.
+- `legacy.py` defines digest-only preservation and explicit import reports for
+  legacy definitions and results. Adapter-supplied mapping assessments are
+  retained with the original record; unsupported imports remain inspectable,
+  supported imports expose a converted identity, exact retries replay, and
+  changed payload or mapping content conflicts. Record and request timestamps
+  normalize to UTC before preservation and replay identity. Reports permanently
+  reject any replay-equivalence claim.
+- `search_state.py` defines an immutable candidate-level search checkpoint.
+  Candidates retain their scientific trial fingerprint while infrastructure
+  attempts can start, fail, and retry. Active-attempt conflicts, terminal
+  result conflicts, cancellation requests, and monotonic timestamps fail
+  closed; exact starts, terminal receipts, and cancellation retries replay.
+  Cancellation blocks new work but still requires explicit terminal receipts,
+  and candidate/checkpoint timestamps normalize to UTC before monotonicity and
+  replay identity. The module exposes no ranking or profitability verdict.
+- `coverage.py` verifies a provider-supplied coverage attestation against every
+  frozen `DataSeriesManifest` dimension: evidence and series digests, interval,
+  row count, instrument/event semantics, session/feed, adjustment and
+  corporate-action policy. Incomplete or gapped claims reject explicitly, and
+  the report retains deterministic evidence identities. The verifier performs
+  no provider I/O, repair, or inference; the adapter must supply the attestation
+  before execution is enabled.
+- `snapshot_coverage.py` composes those per-series checks into the snapshot
+  admission boundary. It requires exactly one attestation for every frozen
+  series, rejects missing, duplicate, unexpected, incomplete, or mismatched
+  evidence, and returns a deterministic snapshot-bound verification receipt.
+  Provider acquisition and execution adapters still own fetching the evidence
+  and enforcing this receipt before a run starts.
+- `runtime_execution.py` binds a strategy runtime request to its package/source,
+  frozen input bundle, declared entrypoint, and isolation profile. Allowed
+  requests advance through ordered accepted/running/terminal receipts; exact
+  retries replay, terminal conflicts fail closed, and successful output size is
+  checked against the declared limit. This is a protocol and receipt boundary,
+  not container enforcement or an engine invocation.
+- `admission.py` composes an execution authorization, accepted runtime
+  preflight, and serial worker profile into one idempotent admission decision.
+  It binds the worker reservation to the attempt, runtime profile, and request
+  identity; exact retries replay only while the receipt's reservation remains
+  active. Saturation, conflicting attempt content, profile/worker drift, and a
+  reservation without a matching receipt fail closed. Ledger and worker-pool
+  updates are returned together for a future adapter transaction; no queue,
+  persistence, process, or engine I/O occurs here.
+- `search_dispatch.py` stages candidate start, execution admission, and queue
+  idempotency as one storage-neutral resolution. A saturation, cancellation,
+  authorization/runtime rejection, or dispatch conflict returns the original
+  candidate, admission ledger, and worker pool, preventing orphaned running
+  work. Exact retries replay the candidate, admission, and dispatch evidence;
+  a newly admitted attempt cannot silently reuse an existing queue message.
+  Persistence and queue publication remain adapter-owned.
+- `worker_recovery.py` composes an admitted attempt's lease, worker reservation,
+  and deterministic infrastructure-retry plan. It releases capacity and
+  materializes a new queued attempt against the same scientific trial for
+  crash/expiry/transient failures, while successful or non-retryable attempts
+  close without a retry. Its content-addressed recovery ledger replays exact
+  release/retry requests and reports conflicting evidence instead of trying to
+  release a slot twice. Recovery also applies the ordered lease-release
+  observation and returns it with the released pool; missing admission
+  evidence, worker drift, invalid lease-expiry claims, and missing retry
+  identities fail closed; no attempt transition, scheduling, or engine
+  invocation is performed. Release receipts and observed timestamps normalize
+  aware offsets to UTC before ledger identity and replay comparison.
+- `result_completion.py` composes terminal runtime, outcome, progress, result
+  publication, and content-addressed artifact-commit evidence. It resolves all
+  artifact plans against a working ledger but returns the original ledger on
+  any conflict or rejection, preventing partial finalization. Exact completion
+  retries replay only when every recorded commit remains present; successful
+  publication replays without a prior completion receipt are rejected. This is
+  an adapter transaction boundary and performs no byte writes, result publish,
+  process control, or engine I/O.
+- `forward_event_transaction.py` composes live-event admission with the
+  correction replay command boundary. Ordinary events retain the existing
+  accepted/gap/duplicate/out-of-order decisions; corrections are committed
+  only when a separately identified counterfactual replay plan also resolves.
+  Missing commands, changed event or command content, and invalid replay
+  evidence return the original live checkpoint, so a correction cannot be
+  observed without an auditable replay basis.
+- `forward_event_dispatch.py` binds admitted forward events to content-addressed
+  worker dispatch envelopes. Accepted and buffered-gap events enqueue work;
+  duplicate/out-of-order observations remain non-dispatching, and correction
+  dispatches include the replay-plan identity. Queue idempotency conflicts and
+  payload drift return the original forward checkpoint, preventing a worker
+  message from being published for state that was not atomically admitted.
+- `forward_worker_handoff.py` authenticates a Redis forward-event delivery
+  against the owner-scoped PostgreSQL dispatch identity and canonical payload
+  digest before returning a typed `ForwardEventWorkItem`. The work item carries
+  only event/replay fingerprints; a host-owned canonical event-stream adapter
+  must resolve the event bytes, so transport data cannot select a provider,
+  engine, or broker action.
+- `forward_worker_service.py` composes that authenticated handoff with the
+  bounded Redis worker scheduler. It leaves entries pending when materialization
+  or host event handling fails and acknowledges only an entry-bound durable
+  receipt; reservation, event acquisition, and Nautilus process execution stay
+  outside this transport service.
+- `forward_account.py` defines the engine-neutral shadow-account ledger used by
+  a future forward handler: accepted orders, engine fills, multi-currency cash,
+  positions, and applied-event identities are immutable and replay-safe. Fill
+  application is deterministic and broker-free; durable account storage and
+  engine/provider integration remain adapter-owned gates.
+- `execution_event_transaction.py` links each canonical execution-event append
+  to its audit-journal entry and transactional-outbox message. Event sequence
+  gaps, audit gaps, identity mismatches, and outbox conflicts return every
+  original state, while exact retries replay only when all three identities
+  agree. Persistence adapters still own the compare-and-set transaction and
+  transport; this contract performs no I/O or engine work.
+- `api_resources.py` defines typed public resource identifiers, immutable
+  resource documents, and snapshot-bound collection envelopes for the future
+  versioned REST surface. Collection items, resource types, opaque cursors, and
+  snapshot digests must agree before a page can be returned; attributes,
+  relationships, and metadata are frozen and content-addressed.
+- `resource_mutations.py` defines idempotent create receipts for mutable
+  resources. The router accepts strict `attributes`/`relationships`/`meta`
+  bodies, returns 202 resource documents, replays exact keys, and exposes
+  typed conflicts or rejected preconditions without allowing artifact or
+  metric-set creation through the generic route.
+- `resource_domains.py` is the first domain-owned API mutation boundary. It
+  decodes strategy, package, portfolio, experiment, attempt, snapshot, trial,
+  metric-set, and forward-instance attributes into immutable typed contracts,
+  canonicalizes dependency,
+  parameter, capital, risk, rebalance, seed, engine, lifecycle, coverage,
+  and series/trial/metric/forward-state data, binds the normalized domain fingerprint into projected
+  resource metadata, and rejects unknown fields, invalid
+  source/archive/runtime/portfolio/experiment/attempt/snapshot/trial/metric/forward
+  identities, or conflicting API IDs. Other resource types remain
+  registration-neutral until their domain adapters are introduced.
+- `api_router.py` provides a registration-neutral `/strategy-lab/v2` FastAPI
+  router factory. It serializes exact Decimal/date/timestamp values, rejects
+  non-finite or unsupported JSON scalars, and emits typed errors; validates
+  cursor ownership at the collection boundary; rejects control characters in
+  request IDs and idempotency keys; reparses raw JSON bodies to reject duplicate
+  fields and non-finite constants before validation; rejects adapter pages whose
+  snapshot differs from an incoming cursor; exposes
+  static strategy-source validation; converts invalid request metadata into
+  typed client errors on every route; and delegates idempotent submissions plus
+  retry/cancellation commands to an injected adapter. The adapter must scope
+  reads to the authenticated principal and atomically persist receipts before
+  returning them. PostgreSQL compare-and-set, Redis dispatch, and worker effects
+  remain shared integration concerns; application registration and
+  authentication are composed in `application.py`. Collection adapters receive
+  the route-generated request
+  identity and must return it unchanged in the collection envelope, preventing
+  response evidence from being detached from the originating request.
+- `application.py` is the additive application seam for the first durable API
+  slice. It converts the existing integer-backed authenticated `User.id` into
+  the opaque string owner key expected by the package contracts, composes the
+  PostgreSQL resource, submission/dispatch, execution-state, and command
+  adapters over `AsyncSessionLocal`, and supplies the authenticated dependency
+  functions to the router factory. Generic mutable-resource creation now
+  crosses this seam through the shared compare-and-set aggregate store: owner
+  identity, mutation fingerprint, accepted timestamp, and resource envelope
+  are persisted together, exact retries reconstruct the durable receipt, and
+  cross-owner or changed-content collisions fail closed. Server-generated
+  resource IDs are owner-scoped, and typed resources atomically reserve their
+  owner/type/domain-fingerprint identity with the resource create so aliases
+  cannot make later domain hydration ambiguous. Strategy mutations are
+  normalized through the typed
+  `StrategyVersion`/`StrategyPackage`/`PortfolioComposition`/
+  `ExperimentDefinition`/`RunAttempt`/`DataSnapshot`/`ScientificTrial`/
+  `MetricSet`/`ForwardInstance` contracts
+  before storage; other resource domain adapters remain explicit follow-up
+  gates. `persistence.py` now owns the complete
+  PostgreSQL adapter graph behind one shared async session factory, preserving
+  the aggregate-store sharing and the command/state dependency while keeping
+  later worker and API projections on the same application-owned seam.
+  `app.main` registers this router at
+  `/api/v1/strategy-lab/v2` while the legacy Strategy Lab routes remain
+  unchanged. Remaining resource projections, worker effects, result
+  publication, and engine execution are still explicit gates; artifact byte
+  lifecycle remains outside this seam.
+- `outbox_application.py` adds the application-owned relay seam on top of the
+  shared persistence bundle. `OutboxRelayService` loads the authenticated
+  PostgreSQL outbox, relays only available messages through the idempotent Redis
+  Streams transport, and compare-and-set acknowledges publication afterward.
+  Redis enqueue/replay is therefore safe across crashes, while a lost
+  acknowledgement leaves the authoritative row pending for a later retry.
+  `OutboxRelayScheduler` now supplies a bounded, cancellable periodic loop with
+  injected clock/sleep controls for deterministic tests. The caller still owns
+  Redis client lifecycle, migration startup, and worker activation. The
+  application-owned `redis_application.py` seam now supplies that lifecycle:
+  it constructs a text-decoding `redis.asyncio` client from an explicit local
+  URL, composes relay/worker transports, and closes the client idempotently.
+- `postgres_resources.py` supplies the read-only persistence bridge for that
+  boundary. It projects authenticated-owner aggregate snapshots into immutable
+  resource documents, orders pages deterministically, and binds every cursor to
+  the complete visible-set digest. Missing or foreign rows are not disclosed;
+  malformed owner/resource/relationship state and snapshot drift fail closed.
+  It now accepts application-owned relational projection loaders as well, so
+  attempts, metric sets, and forward instances can be read from their
+  authenticated PostgreSQL projections while retaining the same cursor and
+  snapshot contract; aggregate-backed resource types continue through the
+  original store path.
+  The adapter is registration-neutral and does not execute migrations, mutate
+  aggregates, or dispatch work. The additive Alembic revision
+  `ff0a1b2c3d4e_add_strategy_lab_v2_storage.py` creates every v2 adapter table
+  and the active-worker reservation index while leaving legacy Strategy Lab
+  tables unchanged.
+- `postgres_submission.py` maps idempotent submission receipts and dispatch
+  intents to an owner-scoped additive PostgreSQL transaction. Exact retries
+  replay the durable receipt, a missing dispatch can be repaired from that
+  receipt, changed content conflicts, and different principals remain isolated.
+  It validates payload/fingerprint identity and atomically stages or repairs an
+  owner-derived message in the shared execution outbox; the later relay owns
+  Redis publication while application activation and worker effects remain
+  gated.
+- `postgres_commands.py` maps retry/cancellation commands to owner-scoped,
+  transactionally locked PostgreSQL receipts. It resolves the latest injected
+  outcome/progress context through the engine-neutral command state machine,
+  replays exact idempotent commands, rejects content drift and terminal
+  preconditions with typed API errors, and verifies receipt fingerprints before
+  use. The adapter persists no worker side effect; migrations, wiring, and
+  execution dispatch remain gated.
+- `postgres_event_transaction.py` maps the canonical execution-event,
+  append-only audit, transactional-outbox, and stream-cursor contract to one
+  SQLAlchemy async transaction. It locks and re-authenticates existing rows,
+  enforces contiguous sequence/cursor identity, persists all four linked rows
+  atomically, supports exact replay and caller cursor compare-and-set, and
+  exposes authenticated complete-outbox loading plus compare-and-set
+  publication acknowledgement. Redis publication is now composed by the
+  application-owned outbox relay, while worker effects, relay scheduling,
+  migrations, and event-stream registration remain gated.
+- `postgres_execution_state.py` maps owner-scoped outcome and progress
+  checkpoints to additive PostgreSQL rows. It locks both attempt records,
+  preserves monotonic outcome transitions and progress update fingerprints,
+  applies combined updates atomically, exposes an authenticated command-state
+  reader, and fails closed on partial or tampered state. It remains a
+  registration-neutral adapter; startup migration rollout and worker effects
+  are still shared integration concerns. The initial authenticated command
+  route is composed by `application.py`.
+- `postgres_worker_state.py` maps immutable worker profiles, serial reservation
+  capacity, and execution-attempt lease observations to additive PostgreSQL
+  rows. Profile and lease identities are re-authenticated before use; active
+  reservations are guarded by a database uniqueness index and compare-and-set
+  release, while ordered heartbeat/release observations are applied atomically
+  with exact replay and gap/stale/conflict decisions. The adapter performs no
+  process scheduling, clock polling, engine disposal, queue publication, or
+  migration rollout; application registration is provided by the initial v2
+  composition, while worker scheduling remains a shared integration gate.
+- `postgres_artifact_retention.py` maps manifest-bound retention state and
+  owner-scoped immutable pins to additive PostgreSQL rows. Pin add/release
+  operations update the pin and state fingerprints atomically, exact retries
+  replay, and retention eligibility is resolved at an explicit observation time
+  without deleting or tiering bytes. Malformed, foreign, tampered, or
+  compare-and-set-racing rows fail closed; byte collection consumes only its
+  authenticated resolution through the application lifecycle service.
+- `postgres_artifact_commit.py` maps immutable artifact-publication commit
+  records to an additive PostgreSQL ledger. It locks and authenticates the
+  complete commit set, preserves create-if-absent semantics and exact retries,
+  and lets storage-key collisions return the pure conflict decision before any
+  write. Artifact bytes, manifest validation, retention policy, migrations, and
+  application wiring remain outside this registration-neutral adapter.
+- `postgres_lineage.py` maps owner-scoped immutable artifact-lineage edges to
+  an additive PostgreSQL table. Semantic keys provide idempotent replay and
+  changed-edge conflicts; rows are locked, fingerprint-authenticated, and
+  deterministically ordered before the pure lineage index is returned. The
+  adapter does not certify manifests, create foreign-key migrations, authorize
+  owners, or publish artifact bytes.
+- `postgres_forward_state.py` maps persistent broker-free forward instances,
+  one-time historical warm-up receipts, and content-addressed seen-event
+  identities to additive PostgreSQL tables. Lifecycle transitions, warm-up
+  activation, and live-event admission lock the owner-scoped rows and use
+  authenticated compare-and-set updates; exact retries replay while duplicate,
+  gap, out-of-order, and correction observations remain represented in the
+  checkpoint. Its atomic event-transaction path persists a correction's
+  counterfactual replay plan in the same transaction as the event checkpoint,
+  so a correction can never be admitted without replay evidence. The adapter
+  now also exposes authenticated deterministic instance listing for the future
+  forward-instance collection projection. It never fetches provider data,
+  submits broker orders, starts workers, or applies migrations.
+- `application.py` now exposes owner-normalized forward lifecycle methods for
+  instance registration, lifecycle transitions, one-time warm-up completion,
+  and atomic canonical-event/correction admission. Offset-aware transition
+  observations are normalized to UTC at this boundary; provider event
+  acquisition, forward worker scheduling, and broker submission remain outside
+  the adapter.
+- `postgres_search_state.py` maps immutable experiment queues and candidate
+  checkpoints to additive PostgreSQL tables. Candidate starts/retries,
+  terminal receipts, and cancellation requests delegate to the pure search
+  state machine and persist only through owner-scoped row locks and
+  compare-and-set fingerprints. Exact retries replay, while candidate or
+  experiment tampering fails closed; dispatch transport and worker effects
+  remain separate integration concerns.
+- `application.py` now exposes owner-normalized candidate start/retry and
+  terminal-record methods over that search state adapter. Candidate timestamps
+  are normalized to UTC before compare-and-set persistence, while candidate
+  dispatch authorization and worker transport remain explicit host seams.
+- `postgres_legacy.py` maps digest-only legacy import records and compatibility
+  assessments to an owner-scoped additive PostgreSQL registry. Original
+  metadata and mapping evidence are authenticated before each read; supported
+  and unsupported imports are preserved, exact retries replay, and changed
+  payload or mapping content returns the pure conflict decision. The adapter
+  never reads legacy payload bytes or claims replay parity. The registration-
+  neutral router now exposes `POST /legacy/imports` with strict idempotency,
+  digest-only fields, and a typed compatibility report; the application
+  adapter delegates it to the owner-scoped PostgreSQL registry. Preserved
+  records are also projected through the read-only `legacy-imports` resource,
+  still without payload bytes or replay-equivalence claims. Migrations and
+  authentication remain shared integration concerns.
+- `postgres_coverage.py` maps provider-supplied coverage attestations to an
+  owner-scoped additive PostgreSQL evidence registry. Series/evidence digests,
+  interval and row-count semantics, adjustment/session/feed claims, and
+  attestation fingerprints are re-authenticated on read; exact registration
+  retries replay and changed series content conflicts. Provider fetching,
+  repair, snapshot admission, migrations, and application authorization stay
+  outside this registration-neutral adapter.
+- `postgres_capability.py` maps immutable data/engine capability summaries to an
+  owner-scoped additive PostgreSQL read model. Report and binding identities
+  are the stable key; gaps, degradations, executable/ranking flags, and
+  authoritative-publication eligibility are serialized and re-authenticated so
+  altered projections conflict instead of silently replacing preflight
+  evidence. The shared persistence bundle projects these summaries through the
+  read-only `capability-summaries` API resource, preserving the
+  provider/engine boundary while making preflight outcomes machine-readable.
+  Capability calculation, provider entitlement, engine registration,
+  migrations, and API authorization remain outside the adapter.
+- `postgres_acquisition.py` maps provider-produced acquisition receipts to an
+  owner-scoped additive PostgreSQL handoff registry keyed by the preflight
+  request identity. Frozen snapshot, provider snapshot, coverage-resolution,
+  and opaque provider-receipt digests are authenticated before reuse; exact
+  retries replay and changed handoffs conflict. Fetching, repair, snapshot
+  creation, provider policy, migrations, and execution admission remain
+  outside this adapter.
+- `postgres_snapshot_coverage.py` maps snapshot-level coverage verification
+  receipts to an owner-scoped additive PostgreSQL table. Per-series reports,
+  missing/unexpected digests, rejection reasons, and the complete resolution
+  fingerprint are re-authenticated on read; exact retries replay and changed
+  resolutions conflict. Provider fetch/repair, attestation lookup, snapshot
+  creation, migrations, and execution admission remain outside the adapter.
+- `postgres_execution_summary.py` maps immutable execution-status projections
+  to an owner-scoped additive PostgreSQL read model. Outcome/progress state
+  identities are append-only, exact retries replay, and changed content for a
+  checkpoint conflicts; reads authenticate the projection and select the latest
+  state for an attempt while preserving history. Submission/outcome persistence,
+  result publication, migrations, authorization, and the remaining result
+  routes remain separate integration concerns.
+- `postgres_result_completion.py` maps terminal result completion and the
+  shared artifact commit ledger into one additive PostgreSQL transaction.
+  Runtime/outcome/progress/publication evidence is resolved by the pure
+  completion contract before new commits and the completion receipt are
+  inserted; artifact conflicts leave both ledgers unchanged, and exact retries
+  replay the existing receipt. Artifact bytes, migrations, authorization, and
+  worker wiring remain outside this registration-neutral adapter. The
+  application adapter now registers the owner-scoped publication plan before
+  delegating accepted terminal evidence to this atomic completion boundary;
+  rejected publication plans are retained as evidence and cannot complete.
+- `postgres_result_publication.py` maps immutable publish/replay/reject plans to
+  an owner-scoped additive PostgreSQL evidence table. Plan fingerprints,
+  attempt/result/reproduction/build identities, and rejection reasons are
+  authenticated on reads; exact retries replay while distinct decisions remain
+  separate audit evidence. Publication bytes, completion coordination,
+  migrations, authorization, and route wiring remain outside the adapter.
+- `postgres_runtime_execution.py` maps accepted runtime state and immutable
+  sandbox update receipts to owner-scoped additive PostgreSQL tables. Runtime
+  transitions are resolved through the pure monotonic contract, committed with
+  compare-and-set state updates, and replayed by exact sequence/fingerprint;
+  sandbox materialization commits running and terminal evidence atomically.
+  Process execution, artifact bytes, migrations, authorization, and official
+  result publication remain separate integration concerns.
+- `postgres_result_materialization.py` retains immutable `RunResultManifest`
+  payloads as owner-scoped canonical JSON projections. Pure manifest validation
+  runs before registration, attempt identities are single-bound, exact retries
+  replay, changed candidates conflict, and payload/record fingerprints are
+  authenticated on every read. Its strict decoder now fully rehydrates the
+  typed manifest through an allowlisted contracts/capabilities/rebalance
+  registry, requires byte-for-byte canonical serialization, verifies lineage
+  identities, and exposes deterministic artifact references from the validated
+  `output_artifacts` field; reordered fields, malformed nested tags, and
+  contract drift fail closed. The application persistence bundle
+  deduplicates those references into owner-scoped `/artifacts` resources with
+  attempt relationships. Artifact bytes, migrations, authorization, and
+  publication remain separate integration concerns.
+- `postgres_runtime_receipts.py` retains immutable strategy-runtime request and
+  isolation-preflight evidence as owner-scoped canonical projections. Request
+  and preflight payloads are independently content-addressed, exact retries
+  replay, changed content conflicts against the same attempt/request, and
+  rejected preflight reasons remain inspectable without exposing secrets or
+  starting a process. Typed preflight reads reuse the allowlisted canonical
+  decoder, require canonical bytes, and verify request/profile/isolation,
+  decision, and rejection identities before returning admission evidence.
+  Persisted request submission timestamps normalize to UTC before their durable
+  record fingerprints are calculated.
+- `postgres_metrics.py` retains immutable `MetricSet` summaries as
+  owner-scoped canonical projections. Metric-set payloads and compact value
+  summaries are content-addressed, one attempt cannot silently replace a
+  prior metric set, exact retries replay, and tampering is detected before
+  metric data can be read by result/API adapters. Typed reads reuse the
+  allowlisted canonical decoder, require byte-for-byte canonical payloads,
+  and verify persisted identity, lineage, creation-time, and value-summary
+  projections before returning a `MetricSet`; persisted creation timestamps
+  normalize to UTC before record fingerprints are calculated. The API
+  persistence bundle uses this typed read path for `metric-sets` resources.
+- `storage.py` defines the persistence adapter boundary: versioned aggregate
+  snapshots, content-addressed create/update mutations, compare-and-set
+  preconditions, deterministic transaction ordering, and idempotent receipts.
+  Conflicts and missing aggregates return the original state, while exact
+  request retries replay the recorded committed set. PostgreSQL mapping and
+  transaction execution remain outside this pure contract.
+- `artifact_store.py` provides the local-first raw-byte adapter for immutable
+  content-addressed artifacts. It verifies manifests before publication,
+  including streaming digest/length checks for mounted result files, uses
+  same-directory temporary files and atomic create-if-absent links, deduplicates
+  concurrent writers, makes published files read-only, and re-verifies every
+  read so tampering or path/symlink escapes fail closed. Its retention-aware
+  collector verifies the same bytes again and removes them only for an explicit
+  tier/expiry-eligible, unpinned decision; retained and missing content are
+  idempotently reported, with directory fsync after deletion. Its cleanup
+  reconciler treats PostgreSQL commit records as authoritative, removes only
+  digest-verified aged uncommitted content or recognized crash-left temporary
+  files, retains fresh/committed entries, and never touches unknown files.
+- `artifact_application.py` composes that byte store with the PostgreSQL commit
+  ledger. It verifies and publishes bytes or mounted files before finalizing durable commit
+  evidence, maps exact retries to replayed commit records, and exposes an
+  explicit factory with a caller-supplied NAS-mountable root. A crash between
+  byte publication and metadata finalization leaves only an immutable orphan
+  for later reconciliation; it cannot overwrite a committed digest. The
+  application cleanup service and cancellable scheduler provide bounded,
+  explicit-time reconciliation cycles without starting workers or hiding
+  failures.
+- `persistence.py` composes every registration-neutral PostgreSQL v2 adapter
+  over one async session factory, exposing a single application-owned graph for
+  resource, lifecycle, result, coverage, capability, lineage, artifact, and
+  worker-state projections. The application adapter uses this bundle for its
+  initial API slice, and artifact publication can be created from the same
+  graph with an explicit local/NAS-mountable root. Its retention service first
+  resolves PostgreSQL retention at an explicit observation time, then invokes
+  the guarded collector; its cleanup factory shares the authoritative commit
+  ledger for orphan discovery and scheduled reconciliation.
+- `application.py` exposes the owner-scoped `publish_and_complete_result`
+  bridge. It authenticates the application principal, registers immutable
+  publication evidence before terminal completion, short-circuits rejected
+  plans, and delegates accepted plans to the atomic result-completion/artifact
+  transaction with UTC-normalized completion time. Worker activation, route
+  selection, and publication-byte mapping remain explicit host responsibilities.
+- `artifacts.py` and `ArtifactManifest` enforce typed byte lengths, retention
+  classes, and authenticated integrity receipts. Verified receipts cannot claim
+  success with mismatched observed bytes, and failure reasons are canonicalized
+  before publication planning so equivalent corruption evidence has one stable
+  identity.
+- `sandbox.py` builds deterministic, shell-free Docker argv plans only after
+  runtime preflight succeeds. Plans pin the runtime image digest, disable the
+  network, make the root read-only, drop capabilities, disable privilege
+  escalation and secrets, run as an unprivileged user, mount inputs read-only,
+  bound output/CPU/memory/PID limits, and carry the explicit wall-time budget;
+  execution remains a worker adapter responsibility. The Nautilus-specific
+  builder additionally binds `STRATEGY_ENGINE_ID=nautilus` into the argv so the
+  final process boundary can distinguish an engine-owned command from a
+  generic strategy runtime plan.
+- `sandbox_execution.py` executes only those validated argv plans with
+  `shell=False`, a minimal secret-free environment, process-group cleanup,
+  explicit wall-time enforcement, and bounded stdout/stderr capture. The
+  executor revalidates the complete hardened argv immediately before spawn so
+  manually forged plans cannot add host networking, privilege, writable-root,
+  or unbounded-process controls. Typed results distinguish success, non-zero
+  exit, timeout, output overflow, and process-start failure. Process-start
+  evidence is a versioned exception-type digest rather than a host-specific OS
+  error string, preserving deterministic identities without exposing paths.
+  On successful execution it also streams the validated host source bound to
+  `/outputs/result`, recording bounded content digest/size evidence when the
+  file is regular, non-symlinked, present, and within the declared limit.
+  This evidence does not publish bytes or invent a result manifest; those
+  remain application-owned publication responsibilities. Docker remains the
+  production command boundary.
+- `backend/strategy_runtime/` provides the restricted invocation runner used
+  inside that command boundary. It binds source bytes to the declared digest,
+  repeats static source preflight, exposes only the engine-neutral SDK symbols
+  and a vetted standard-library import surface, and validates every emitted
+  intent against the manifest before returning a content-addressed result.
+  Source/entrypoint/output failures are typed without returning exception text;
+  the package still requires the hardened container for actual isolation. A
+  `StrategyInvocationSession` loads one strategy instance for an entire worker
+  lifetime, preserving state across monotonically advancing contexts while
+  pinning seed/parameter identity and rejecting context-scope drift. Its
+  explicit JSON wire protocol preserves typed values and fingerprints request
+  and result envelopes. The batch protocol carries a non-empty sequence of
+  contexts and an independently fingerprinted sequence of typed results, so an
+  isolated worker can retain one strategy instance across a replay. Batch
+  serializers, decoders, and direct execution now preflight strict
+  `(event_time, event_sequence)` ordering before strategy code is loaded or
+  invoked, preventing partial execution of replay envelopes with duplicate or
+  out-of-order contexts. The
+  `run_strategy_events()` primitive stops at the first typed rejection/failure;
+  `python -m strategy_runtime` accepts either the single-event or batch
+  envelope, atomically publishes the matching typed result envelope, and uses
+  status-based exit codes. Wire timestamps are normalized to UTC so equivalent
+  instants produce byte-identical envelopes. Failure evidence is a versioned,
+  exception-type-only digest; exception text and process-specific repr values
+  never affect the published result. Inbound wire decoders reject envelopes
+  larger than 16 MiB before JSON parsing, keeping mounted request parsing
+  bounded independently of the container's memory and output limits. Both
+  mounted strategy and custom-metric CLIs read at most that limit plus one byte
+  before decoding, so oversized request files cannot bypass the decoder guard.
+  The single and batch serializers apply the same byte bound before a request or
+  result envelope is written, keeping generated mounted artifacts within the
+  protocol contract.
+  The SDK's
+  `MarketEvent` and
+  `StrategyContext` also normalize aware event times to UTC before scope and
+  fingerprint checks, so direct SDK callers cannot reintroduce offset-specific
+  identity drift. SDK manifests canonicalize dependency and field declaration
+  order, so equivalent contracts also retain one stable manifest fingerprint.
+  The dedicated worker image/entrypoint and Docker activation are still
+  separate integration gates.
+- `custom_metrics.py` provides the matching process-local custom-metric
+  boundary. A source-bound callable receives only recursively frozen Decimal
+  observations and JSON parameters, returns one finite Decimal, and is wrapped
+  as a versioned `MetricValue` with input/source evidence. Static violations,
+  source drift, malformed outputs, and runtime exceptions are typed without
+  exposing exception text. `custom_metric_protocol.py` carries the request and
+  result over a strict tagged-JSON envelope with duplicate-field rejection,
+  source/definition identity, and result fingerprints; `custom_metric_runner.py`
+  provides a mounted-file CLI with atomic typed-result publication. Entrypoint
+  paths are validated and resolved deterministically, including dotted callable
+  attributes. The same protocol also supports uniquely fingerprinted ordered
+  batches for exhaustive metric sweeps, and the CLI can execute those batches
+  without changing the single-invocation contract. Production use still
+  requires the hardened no-network container.
+- Every invocation result also carries the immutable SDK manifest fingerprint
+  used for validation, allowing a host adapter to reject a result produced
+  under a different strategy contract even when source/context identities are
+  otherwise reusable.
+- Runtime request serialization/deserialization now rejects any source bytes
+  whose content digest differs from the immutable SDK manifest. This keeps
+  malformed source/manifest pairs out of mounted bundles instead of deferring
+  the contradiction to strategy invocation.
+- `engine_execution.py` binds the final Nautilus invocation gate to execution
+  authorization, runtime preflight, sandbox request identity, data-snapshot
+  identity, hardened sandbox argv validation, and scope-specific conformance
+  evidence. Only a compatible Nautilus build with a valid isolated v2 release
+  pin can run; authoritative local backtests additionally require the four
+  simulator checks, an authoritative authorization, and an exact match between
+  the release pin's runtime-image digest and the sandbox image that will
+  actually execute. Full/forward scope requires forward parity. No engine
+  process is started while any required gate is missing.
+- `redis_transport.py` publishes dispatch envelopes to Redis Streams through a
+  Lua compare-and-set script. The idempotency key and stream append are staged
+  atomically, exact retries replay, changed payloads conflict, and failed
+  `XADD` operations remove their marker. It also creates consumer groups
+  idempotently, decodes content-addressed entries, reclaims idle pending
+  deliveries, and acknowledges entries with typed failure evidence. Redis
+  remains transport-only; the authoritative state and outbox records stay in
+  the persistence adapter.
+- `outbox_relay.py` binds one authoritative outbox message to that Redis
+  transport. It uses the message's semantic identity as the transport
+  idempotency key and proposes the published outbox state only after enqueue or
+  exact replay; Redis conflicts and failures preserve the pending state so a
+  later relay can retry safely.
+- `outbox_application.py` provides the durable caller for that pure relay:
+  it loads the complete authenticated outbox, bounds each relay cycle, and
+  persists publication through PostgreSQL compare-and-set acknowledgement.
+  `OutboxRelayScheduler` adds bounded periodic execution with explicit
+  cancellation and injectable time controls. This composes Redis idempotency
+  with authoritative database state; `redis_application.py` owns concrete
+  client construction/closure, transport composition, and the scheduler
+  factory used by the dedicated worker lifecycle.
+- `worker_consumer.py` provides the bounded Redis worker pump. It ensures the
+  consumer group, reclaims idle deliveries before reading new entries, and
+  requires an explicit handler receipt. Only a content-matched completed
+  receipt is acknowledged; retry, rejection, handler-content drift, and Redis
+  acknowledgement failure leave the delivery unacknowledged with typed
+  evidence. `handle_materialized_once()` adds the durable handoff: it resolves
+  canonical payload bytes through an injected content-addressed loader,
+  re-authenticates the payload digest and decoded mapping, and only then calls
+  a two-argument materialized handler. Missing or malformed payloads remain
+  pending for retry or an explicit poison-message policy; payload bytes are
+  not placed in Redis stream fields.
+- `RedisDispatchWorkerScheduler` adds the bounded application scheduling seam:
+  each cycle remains batch-limited, cancellation is explicit, and tests can
+  inject sleep or a finite cycle cap. The runtime factory composes it without
+  owning process lifecycle, lease heartbeats, engine disposal, or handler
+  execution policy.
+- `dispatch_payload.py` defines the immutable canonical payload record used by
+  that worker handoff. PostgreSQL submission persistence stores one record per
+  digest, verifies byte length and canonical decoded content on every read, and
+  deduplicates equivalent payloads across owner-scoped submissions. The
+  additive `ff1a2b3c4d5e` migration creates this table; startup migration
+  invocation is now explicit through `migration_startup.py`; process-level
+  worker activation remains an integration gate.
+- `postgres_storage.py` maps the compare-and-set aggregate contract to one
+  SQLAlchemy async transaction. It locks requested aggregate/receipt rows,
+  preserves canonical state identity through a versioned JSON codec, uses
+  idempotent inserts and guarded updates, and rolls back on concurrent races.
+  Its read methods return authenticated canonical aggregate snapshots in
+  deterministic key order for the resource bridge. It exposes the future
+  additive schema contract but never creates tables or registers models; the
+  additive migration owns table creation and application startup still owns
+  migration execution.
+- `nautilus_runner.py` is the final process handoff after the Nautilus
+  execution gate. Rejected, non-Nautilus, sandbox-mismatched, or unmarked
+  sandbox plans return before process creation; ready plans execute only
+  through the bounded sandbox adapter and preserve authoritative status only
+  for successful gated runs.
+- `runtime_result_adapter.py` materializes one bounded sandbox result into the
+  monotonic runtime execution state. It verifies command-plan and request
+  identity, records bounded stdout digest/size for success or typed error
+  identity for failure, replays exact terminal evidence, and rejects conflicting
+  terminal evidence. Gated Nautilus results are envelope-checked before this
+  materialization; rejected pre-process plans remain admission failures rather
+  than strategy failures. This is runtime evidence only; official result
+  artifacts still require the result-publication gates.
+- `execution_orchestration.py` binds authorization, worker admission, runtime
+  preflight/state, sandbox planning, and the gated Nautilus plan into one
+  immutable worker handoff. It rejects identity drift, unhardened sandbox
+  plans, already-started runtime state, output-limit changes, and unauthorized
+  authoritative execution before any process or queue adapter is called.
+- `worker_execution.py` revalidates that handoff immediately before process
+  creation, including the admission's active serial `WorkerPoolState`,
+  reservation identity, and active `LeaseObservationState` at an explicit
+  `started_at`, invokes only the gated Nautilus runner, and returns typed
+  process plus runtime evidence. Stale/rejected handoffs, released capacity,
+  or expired leases cannot spawn; evidence that outlives its lease is rejected
+  before runtime materialization. Successful, failed, and runtime-rejected
+  outcomes remain storage-neutral for a later compare-and-set transaction. The
+  typed resolution also rejects a contradictory worker decision/runtime-result
+  pair before it can be settled.
+- `worker_process.py` provides the dedicated serial process boundary for that
+  handoff. `SerialWorkerProcessExecutor` uses a fresh `spawn` child per
+  execution, transfers only the immutable request and typed resolution over a
+  one-way pipe, and makes the parent responsible for join, timeout,
+  termination, and reaping. Child failures are reduced to stable type-only
+  digests; this module does not acquire leases, persist state, or run from
+  FastAPI/the general ARQ worker. A service entrypoint and Compose activation
+  remain deployment integration gates.
+- `worker_service.py` composes that process boundary with the Redis scheduler.
+  It materializes each authenticated durable payload, runs the handoff off the
+  event loop in the serial executor, and delegates completion persistence to an
+  injected writer before the transport can acknowledge the entry. The Redis
+  runtime factory exposes this composition without starting it implicitly. An
+  optional durable lease-observation writer emits ordered, content-addressed
+  heartbeats while the serial process runs; unexpected sequence/state or
+  persistence rejection leaves the entry pending for recovery.
+- An optional terminal writer receives `WorkerCompletionContext`, binding the
+  exact stream entry, materialized immutable request, process resolution, and
+  UTC completion observation before returning the typed acknowledgement receipt.
+  This keeps terminal outcome/result publication and atomic worker-capacity
+  release in an explicit application callback, while preserving the existing
+  two-argument completion writer for transport-only adapters.
+- `worker_terminal_adapter.py` supplies the concrete PostgreSQL callback for
+  that seam. Its typed evidence resolver binds the authenticated submission,
+  outcome/progress checkpoint, result/publication plan, and artifact plans; the
+  adapter persists runtime evidence, terminal public state, successful result
+  manifest, result completion, its immutable `MetricSet`, execution summary,
+  durable worker settlement receipt, and the lease/reservation release before
+  returning an acknowledgement digest. Manifest and metric persistence are
+  idempotent and precede/ follow result completion respectively, so a retry
+  after a crash cannot publish a different result or metric set.
+  The
+  additive worker-settlement table makes the receipt replayable across a crash
+  between immutable settlement and the capacity compare-and-set. The shared
+  persistence bundle exposes this as `worker_terminal_writer(...)`; evidence
+  resolution remains application-owned and no transport or engine policy is
+  hidden inside it. Before successful completion, the callback now
+  re-registers the authenticated publication plan through the shared
+  publication adapter, so retries cannot bypass owner-scoped publication
+  evidence or turn a rejected plan into a completion.
+- `worker_evidence_resolution.py` keeps the default sandbox mapper fail-closed
+  for its single `/outputs/result` contract, and now accepts an explicit
+  application-owned artifact-path mapping callback for multi-artifact result
+  manifests. Every manifest artifact must be mapped exactly once and each
+  mapped file is independently verified/published; no path is inferred from
+  worker payloads.
+- `worker_entrypoint.py` is the explicit local process boundary for that
+  composition. It validates namespaced environment configuration, runs startup
+  migrations before connecting Redis, builds the shared PostgreSQL persistence
+  bundle and callback factory, installs SIGINT/SIGTERM cancellation, and closes
+  Redis in `finally`. It never runs as an import side effect and does not add
+  engine, lease-heartbeat, or result-authority policy; those remain injected
+  worker adapters. It starts the bounded transactional-outbox scheduler beside
+  the Redis worker pump when the shared persistence/runtime surfaces are
+  available, and cancels both deterministically at shutdown. Invoke it locally with
+  `python -m app.strategy_lab_v2.worker_entrypoint` once a callback factory is
+  configured.
+- `worker_handoff.py` defines the versioned
+  `strategy-lab.worker-execution-request.v1` dispatch envelope. It stores the
+  canonical `WorkerExecutionRequest` bytes behind an outer content-addressed
+  mapping, rehydrates all nested execution contracts through the explicit
+  allowlist, verifies the request and payload identities, and exposes
+  `materialize_worker_handoff()` for the worker callback seam. It does not
+  resolve terminal/result evidence or acknowledge Redis entries.
+- `worker_callbacks.py` composes that materializer with the durable
+  `PostgresWorkerTerminalAdapter`. It loads an evidence resolver from
+  `STRATEGY_LAB_V2_EVIDENCE_RESOLVER` using explicit `module:attribute`
+  syntax; missing or malformed configuration fails before Redis is opened.
+  Search-dispatch workers additionally pass an explicit binding callback into
+  that factory; the package-owned composition resolves the dispatch owner and
+  attempt through the authoritative submission adapter and returns no terminal
+  evidence when that receipt is missing. Ordinary submission-backed workers
+  retain the two-argument factory contract.
+  `default_evidence_resolver_factory` is the opt-in local Compose worker
+  default for the package-owned authenticated lookup plus single-output
+  artifact mapper, while a host may still provide a stricter/custom multi-artifact
+  resolver. Failed runtime receipts without a projected durable API error are
+  mapped to a stable internal error carrying only the persisted error digest;
+  exception text and paths are never reconstructed at this boundary. The
+  persistence composition also accepts an optional host runtime-error factory
+  when retryability or typed classification must follow application policy;
+  the digest-only fallback remains deterministic when no factory is supplied.
+  Any injected error must retain the worker request fingerprint as its request
+  identity, so host classification cannot detach terminal evidence from the
+  immutable execution request.
+  Successful terminal evidence also requires exactly one verified publication
+  plan for every output artifact in the result manifest; incomplete or
+  substituted plan sets fail before terminal persistence.
+- `search_worker_handoff.py` adds the explicit search-queue worker binding. It
+  resolves each Redis request fingerprint through the durable PostgreSQL
+  dispatch record before decoding the immutable worker handoff, verifies
+  request/attempt/payload/queue identity and every orchestration component
+  fingerprint, and fails closed on missing or conflicting evidence.
+  `worker_callbacks.create_search_dispatch()` exposes this materializer as an
+  explicit callback-factory choice using the worker's `STRATEGY_LAB_V2_QUEUE`
+  setting; the ordinary submission-backed factory remains unchanged so a
+  queue is never treated as search-backed implicitly.
+  The fallback completion writer can only return a retry, so terminal evidence
+  cannot be acknowledged through the legacy path.
+- Terminal evidence lookup is keyed by the Redis dispatch fingerprint carried
+  on `WorkerCompletionContext.entry`; the decoded worker-request fingerprint
+  remains separate execution evidence. Submission-backed dispatches join their
+  durable dispatch and submission rows with owner/idempotency authentication.
+  Search-dispatch records require an explicit host-owned binding resolver to
+  supply the authoritative submission receipt; missing or mismatched binding
+  fails closed, and no synthetic receipt identity is inferred from dispatch
+  metadata.
+- The root Compose stack now contains an explicit, opt-in
+  `strategy-lab-v2-worker` profile. It is separate from the general ARQ worker,
+  starts only after PostgreSQL/Redis health, writes to the named
+  `strategy_lab_artifacts` volume, and uses a read-only root, dropped
+  capabilities, no-new-privileges, and a bounded `/tmp`. Because sandbox
+  plans launch separately pinned runtime containers, the profile requires the
+  local Docker socket. The package-owned callback composer is the default; its
+  resolver setting may be overridden before Redis opens when a host needs
+  multi-artifact mapping, and the profile is never enabled by the default
+  stack. The service deliberately has no fixed `container_name` or host port,
+  and its default Redis consumer identity includes the Compose `HOSTNAME` and
+  process ID, so local Docker Compose can add independent serial worker
+  processes with, for example,
+  `docker compose --profile strategy-lab-v2 up --scale strategy-lab-v2-worker=3`.
+  Each replica still runs one Nautilus child at a time; actual parallel
+  admissions remain bounded by separately reserved worker profiles and local
+  host capacity.
+- The image's common `/app/docker-entrypoint.sh` runs `alembic upgrade head`
+  before executing either dedicated worker module. Alembic reads the generic
+  `DATABASE_URL_SYNC`; the worker module then applies its namespaced synchronous
+  migration URL and uses `app.database.AsyncSessionLocal` via `DATABASE_URL` for
+  runtime persistence. Both opt-in Compose workers set the generic Alembic URL,
+  their namespaced worker URL, and the async runtime URL to the same in-network
+  PostgreSQL database. Keep all three aligned in manual container launches too;
+  do not disable migrations or rely on a localhost fallback. A process-only
+  running check is not proof that the database connection is usable.
+- The root Compose stack also contains a separate opt-in
+  `strategy-lab-v2-forward-worker` profile. It consumes only the dedicated
+  `forward-events` Redis queue, uses the namespaced forward database setting,
+  has no Docker socket, and shares only the bind-mountable artifact volume.
+  Its callback factory is intentionally empty by default: host canonical-event
+  materialization plus account/engine settlement must be configured explicitly
+  before Redis opens, so forward shadow execution cannot silently select a
+  provider or simulator policy.
+- `migration_startup.py` provides the explicit Alembic startup hook. It
+  validates a PostgreSQL URL and absolute script location, runs the configured
+  target off the event loop, serializes concurrent callers, replays the exact
+  result, and reduces migration exceptions to stable type-only digests. The
+  FastAPI lifespan and dedicated worker entrypoint invoke it only when their
+  namespaced migration settings enable startup migration; module import and
+  router construction remain side-effect free.
+- `postgres_worker_state.py` exposes `release_capacity()`, an atomic durable
+  release for the worker lease observation and its serial reservation. The
+  operation locks and authenticates both state families, compare-and-set
+  updates them together, and replays exact retries without a second mutation;
+  completion/recovery callbacks can use it for either backtest or forward
+  workers.
+- `worker_settlement.py` closes the serial worker lifecycle after any bounded
+  handoff, including a pre-process rejection. It verifies the orchestration
+  plan is still bound to the admission and pool profile, applies a deterministic
+  ordered lease-release observation, releases the matching reservation only
+  once, and records content-addressed evidence. Exact retries replay an
+  already-released reservation and lease; changed evidence, an active pool with
+  an existing receipt, an expired lease, or a missing/mismatched reservation
+  fails closed and leaves recovery to the retry path.
+  Settlement release timestamps normalize to UTC before receipt identity and
+  reservation/lease reconciliation.
+- `worker_terminal.py` composes the terminal public outcome/progress projection
+  with worker pool and lease settlement. It returns a committed proposal only
+  when both terminal evidence and capacity release accept; a missing result,
+  expired lease, settlement conflict, or pre-process worker rejection leaves
+  every original state unchanged for the recovery or adapter path. Exact
+  terminal retries replay only when both public and worker receipts match.
+- `result_materialization.py` binds engine-neutral result evidence to an
+  immutable `RunResultManifest`. Trial, attempt, metric, snapshot, package, and
+  output-artifact identities must agree; exact retries replay an existing
+  manifest and changed content conflicts. Package and artifact evidence is
+  canonicalized before comparison. Engine observation, metric-set creation,
+  and manifest creation timestamps normalize to UTC before fingerprinting, so
+  equivalent instants replay identically. The manifest remains unpublished until
+  artifact-integrity and authoritative publication gates succeed.
+- `execution_terminal.py` projects terminal runtime evidence into the public
+  outcome and progress streams as one storage-neutral decision. Successful
+  runtimes require an attempt-bound result manifest, failures require a typed
+  `ApiError`, cancellation requires an explicit cancellation request, and
+  matching terminal retries replay while half-terminal or contradictory state
+  is rejected.
+- `conformance_fixtures.py` defines typed expected/observed digest evidence for
+  every required engine check. Suites reject duplicate checks and untruthful
+  pass claims, require complete coverage before evidence construction, and feed
+  the exact-release gate without importing or starting Nautilus. Its
+  executable `execute_conformance_suite(...)` runs every required check through
+  an injected engine boundary, reduces runner exceptions to deterministic
+  failed observations, and returns suite/evidence/report as one identity-bound
+  resolution. Evidence construction rejects omitted checks while preserving
+  complete suites with failed observations as compatibility evidence, and
+  normalizes aware test timestamps to UTC. `NautilusReleasePin` binds the exact
+  v2 package/tag, source, wheel, and runtime-image digests, Python/Rust versions,
+  and legacy-runtime isolation; complete fixture evidence without a valid
+  isolated pin remains
+  compatible evidence but can never be authoritative.
+- `tests/` holds focused tests adjacent to the new package because the active
+  provider workstream owns `backend/tests/`.
+
+This SDK and static preflight are not a security boundary. Trusted local Python
+strategies still need the separately implemented isolated runtime (no network,
+read-only filesystem, no secrets, and enforced resource/time/output limits).
+The package-local API router imports FastAPI only to expose a registration-neutral
+factory; it imports no provider, ORM, queue, or Nautilus modules and performs no
+persistence, dispatch, or engine I/O.
+
+Run the focused suite from `backend/` with:
+
+```sh
+rtk uv run pytest app/strategy_lab_v2/tests -q --override-ini addopts=
+rtk uv run ruff check app/strategy_lab_v2
+rtk uv run mypy app/strategy_lab_v2
+```
+
+The override disables the repository-wide coverage threshold for this focused
+path; it is not a substitute for final full-backend coverage gates.
+
+The combined backend gate also collects the package-owned tests:
+
+```sh
+make test-backend-coverage
+```
+
+This keeps coverage honest across the package without moving tests into the
+provider-owned `backend/tests` tree or adding coverage exclusions. It remains a
+repository-wide integration gate and still requires Docker-backed PostgreSQL
+and Redis services.
+
+## Deferred integration gates
+
+Do not add remaining shared models, provider/task entrypoints, global
+dependency or lockfile changes, additional shared Compose services, or
+frontend work until the
+provider-platform, ETF, and TC2000 branches reach staging and their shared
+paths are semantically reconciled. The initial v2 router registration is
+additive and uses only the existing auth/database graph; any expansion into
+provider-backed acquisition, point-in-time membership, CodeVersion/Study Lab
+objects, or shared worker scheduling must consume those staged contracts rather than
+duplicating flows. The application adapter remains the only place allowed to
+authorize, persist, enqueue, or execute a request; the package router itself
+continues to own no I/O.
+
+Nautilus is the planned authoritative simulator, isolated from the legacy 1.x
+environment. The current exact `2.0.0rc6` release candidate may be installed
+in a separate Python/Rust/runtime-image boundary and used now for local
+backtest and replay runs. An exact-pinned stable or pre-release v2 build may
+publish authoritative local backtest results after the four simulator checks
+pass: multi-instrument accounting, native execution/cost reports, deterministic
+replay, and engine lifecycle. Results retain the exact release pin, channel,
+conformance fingerprints, execution scope/plan, and wheel/image digests;
+pre-releases remain barred from broker connections or real capital. Broker-free
+forward-shadow activation additionally requires backtest/forward event-tape
+parity. The local Compose
+worker/storage and API phases follow shared-path reconciliation, and the
+TC2000-native UI remains a separate authorization boundary.
+# Current validation boundary (2026-10-07)
+
+The authoritative persisted-owner/native Nautilus RC6 path is exercised both
+in
+`app/strategy_lab_v2/tests/test_search_dispatch_preparation.py::test_persisted_owner_graph_composes_exact_authoritative_rc6_worker_request`
+and in the Docker-backed
+`backend/tests/integration/strategy_lab_v2/test_oos_terminal_postgres_redis.py::test_oos_terminal_commit_survives_worker_loss_before_real_redis_ack`
+integration. The latter composes the exact owner-hydrated request and native
+process result with the production PostgreSQL terminal adapter, durable result
+publication/completion/settlement, and Redis crash-reclaim ACK path; replay
+asserts that no second Nautilus process is launched. The combined OOS/native
+terminal boundary is therefore closed for the pinned RC6 backtest scope.

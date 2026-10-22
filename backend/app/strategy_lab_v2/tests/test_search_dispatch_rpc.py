@@ -1,0 +1,507 @@
+from __future__ import annotations
+
+import asyncio
+import socket
+import sys
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from types import ModuleType
+from typing import Any, cast
+
+import httpx
+import pytest
+import uvicorn
+
+import app.strategy_lab_v2.search_dispatch_rpc as rpc_module
+from app.strategy_lab_v2.admission import ExecutionAdmissionLedger
+from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
+from app.strategy_lab_v2.api_router import ApiAdapterError
+from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.dispatch import SearchDispatchIntent
+from app.strategy_lab_v2.search_dispatch import SearchDispatchResolution, resolve_search_dispatch
+from app.strategy_lab_v2.search_preparation_service import create_search_preparation_app
+from app.strategy_lab_v2.search_state import new_search_execution_state
+from app.strategy_lab_v2.tests.test_admission import _fixture, _reservation
+
+NOW = datetime(2024, 1, 1, tzinfo=UTC)
+AUTH_TOKEN = "local-preparation-test-token-0123456789abcdef"
+
+
+def _resolution(command: dict[str, Any]) -> SearchDispatchResolution:
+    authorization, runtime_request, runtime_preflight, pool = _fixture()
+    dispatch_intent = command["dispatch_intent"]
+    return resolve_search_dispatch(
+        new_search_execution_state(
+            command["experiment_fingerprint"],
+            (content_digest("trial-one"),),
+            now=NOW,
+        ),
+        candidate_index=command["candidate_index"],
+        attempt_id=command["attempt_id"],
+        authorization=authorization,
+        runtime_request=runtime_request,
+        runtime_preflight=runtime_preflight,
+        admission_ledger=ExecutionAdmissionLedger(),
+        pool=pool,
+        reservation_id=_reservation("rpc"),
+        dispatch_request=dispatch_intent.bind_payload(content_digest("worker-payload")),
+        prior_dispatches=(),
+        now=NOW + timedelta(seconds=4),
+    )
+
+
+def _command_kwargs() -> dict[str, Any]:
+    return {
+        "principal": type("Principal", (), {"id": 42})(),
+        "request_id": "request-rpc-1",
+        "experiment_fingerprint": content_digest("experiment-rpc"),
+        "candidate_index": 0,
+        "attempt_id": "attempt-1",
+        "dispatch_intent": SearchDispatchIntent(
+            "dispatch-rpc-1",
+            "attempt-1",
+            "strategy-backtest",
+            NOW,
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"unknown": True},
+        {"candidate_index": 1},
+        {"principal_id": "other-owner"},
+    ],
+)
+def test_search_dispatch_rpc_command_rejects_fingerprint_drift(mutation: dict[str, Any]) -> None:
+    command = rpc_module.SearchDispatchRpcCommand.from_call(**_command_kwargs())
+    wire = command.to_wire()
+    wire.update(mutation)
+
+    with pytest.raises(ValueError):
+        rpc_module.SearchDispatchRpcCommand.from_wire(wire)
+
+
+def test_walk_forward_progress_command_round_trips_and_rejects_mutation() -> None:
+    command = rpc_module.WalkForwardProgressRpcCommand.from_call(
+        principal="42",
+        request_id="progress-request",
+        experiment_fingerprint=content_digest("progress-experiment"),
+        attempt_id="attempt-progress",
+        dispatch_request_fingerprint=content_digest("progress-dispatch"),
+        queue_name="strategy-backtest",
+    )
+    assert rpc_module.WalkForwardProgressRpcCommand.from_wire(command.to_wire()) == command
+    mutated = command.to_wire()
+    mutated["principal_id"] = "other-owner"
+    with pytest.raises(ValueError, match="fingerprint"):
+        rpc_module.WalkForwardProgressRpcCommand.from_wire(mutated)
+
+
+def test_local_api_bindings_factory_requires_and_uses_complete_socket_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    forward_profile_digest = content_digest("forward-runtime")
+    monkeypatch.setenv("STRATEGY_LAB_V2_FORWARD_WORKER_ID", "forward-worker-1")
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT", forward_profile_digest
+    )
+    monkeypatch.setattr(
+        provider_capability_host.LocalNautilusRcConformanceEvidenceSource,
+        "from_environment",
+        lambda _environment: pytest.fail("disabled scope must not read the evidence artifact"),
+    )
+
+    from app.strategy_lab_v2.application import StrategyLabV2ApiBindings
+
+    bindings = rpc_module.build_api_bindings(None, None)
+
+    assert isinstance(bindings, StrategyLabV2ApiBindings)
+    # The registered search/calendar host does not enable capability preflight
+    # without both the exact pinned evidence and explicit supported scope.
+    assert bindings.capability_preflight is None
+    assert bindings.selected_study_artifact_resolver is None
+    assert isinstance(bindings.search_dispatch, rpc_module.UnixSocketSearchDispatchClient)
+    assert bindings.search_dispatch.socket_path == Path("/run/strategy/preparation.sock")
+    assert bindings.forward_worker_runtime_profile_fingerprint == forward_profile_digest
+
+    monkeypatch.delenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN")
+    with pytest.raises(ValueError, match="must both be configured"):
+        rpc_module.build_api_bindings(None, None)
+
+
+def test_local_api_factory_composes_only_the_proven_provider_backtest_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    monkeypatch.setenv(
+        provider_capability_host.CAPABILITY_SCOPE_CONFIG_ENV,
+        '{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"]}',
+    )
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY", "/operator/nautilus-evidence"
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256", "a" * 64)
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256", "b" * 64)
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256", "c" * 64)
+
+    resolution = object()
+    evidence_source = type("PinnedEvidenceSource", (), {"load": lambda self: resolution})()
+    monkeypatch.setattr(
+        provider_capability_host.LocalNautilusRcConformanceEvidenceSource,
+        "from_environment",
+        lambda _environment: evidence_source,
+    )
+    observed: dict[str, Any] = {}
+
+    def bind_backtest(value: Any, **kwargs: Any) -> object:
+        observed["resolution"] = value
+        observed.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(
+        provider_capability_host,
+        "build_nautilus_backtest_execution_binding",
+        bind_backtest,
+    )
+
+    bindings = rpc_module.build_api_bindings(lambda: None, object())
+
+    assert bindings.capability_preflight is not None
+    assert bindings.selected_study_artifact_resolver is not None
+    assert observed["resolution"] is resolution
+    assert observed["product_classes"] == frozenset({provider_capability_host.ProductClass.EQUITY})
+    assert observed["execution_models"] == frozenset({"market"})
+    assert observed["account_models"] == frozenset({"cash"})
+
+
+@pytest.mark.parametrize(
+    "scope",
+    [
+        '{"product_classes":["future"],"execution_models":["market"],"account_models":["cash"]}',
+        '{"product_classes":["equity"],"execution_models":["bar-close-v1"],"account_models":["cash-equity-v1"]}',
+        '{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"],"extra":true}',
+        "not-json",
+    ],
+)
+def test_local_api_factory_keeps_invalid_scope_configuration_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+    scope: str,
+) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    monkeypatch.setenv(provider_capability_host.CAPABILITY_SCOPE_CONFIG_ENV, scope)
+    bindings = rpc_module.build_api_bindings(lambda: None, object())
+    assert bindings.capability_preflight is None
+
+
+def test_local_api_factory_keeps_wrong_build_evidence_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    monkeypatch.setenv(
+        provider_capability_host.CAPABILITY_SCOPE_CONFIG_ENV,
+        '{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"]}',
+    )
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY", "/operator/nautilus-evidence"
+    )
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256", "a" * 64)
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256", "b" * 64)
+    monkeypatch.setenv("STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256", "c" * 64)
+
+    source = type("WrongBuildEvidenceSource", (), {"load": lambda self: object()})()
+    monkeypatch.setattr(
+        provider_capability_host.LocalNautilusRcConformanceEvidenceSource,
+        "from_environment",
+        lambda _environment: source,
+    )
+
+    def reject_wrong_build(*_args: Any, **_kwargs: Any) -> Any:
+        raise ValueError("conformance build does not match the pinned runtime")
+
+    monkeypatch.setattr(
+        provider_capability_host,
+        "build_nautilus_backtest_execution_binding",
+        reject_wrong_build,
+    )
+    bindings = rpc_module.build_api_bindings(lambda: None, object())
+    assert bindings.capability_preflight is None
+
+
+def test_local_api_factory_keeps_partial_pinned_evidence_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.strategy_lab_v2 import provider_capability_host
+
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    monkeypatch.setenv(
+        provider_capability_host.CAPABILITY_SCOPE_CONFIG_ENV,
+        '{"product_classes":["equity"],"execution_models":["market"],"account_models":["cash"]}',
+    )
+    monkeypatch.setenv(
+        "STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY", "/operator/nautilus-evidence"
+    )
+
+    bindings = rpc_module.build_api_bindings(lambda: None, object())
+    assert bindings.capability_preflight is None
+
+
+def test_local_api_bindings_factory_composes_provider_owned_walk_forward_calendar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    persistence = object()
+    received: list[Any] = []
+    module = ModuleType("strategy_lab_test_calendar_host")
+
+    async def calendar_resolver(**_kwargs: Any) -> tuple[datetime, ...]:
+        return (NOW, NOW + timedelta(days=1))
+
+    def build_calendar(value: Any) -> Any:
+        received.append(value)
+        return calendar_resolver
+
+    module.build_calendar = build_calendar  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    monkeypatch.setenv(
+        rpc_module.WALK_FORWARD_CALENDAR_FACTORY_ENV,
+        f"{module.__name__}:build_calendar",
+    )
+
+    bindings = rpc_module.build_api_bindings(None, persistence)
+
+    assert bindings.walk_forward_observation_calendar is calendar_resolver
+    assert received == [persistence]
+
+
+def test_local_api_bindings_factory_opens_the_shared_artifact_store(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH", "/run/strategy/preparation.sock")
+    monkeypatch.setenv("STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN", AUTH_TOKEN)
+    artifact_root = tmp_path / "shared-artifacts"
+    monkeypatch.setenv(rpc_module.STRATEGY_LAB_V2_ARTIFACT_ROOT_ENV, str(artifact_root))
+
+    bindings = rpc_module.build_api_bindings(None, object())
+
+    assert bindings.walk_forward_artifact_store is not None
+    assert bindings.walk_forward_artifact_store.root == artifact_root
+
+    monkeypatch.setenv(rpc_module.STRATEGY_LAB_V2_ARTIFACT_ROOT_ENV, "relative-artifacts")
+    with pytest.raises(ValueError, match="must be absolute"):
+        rpc_module._walk_forward_artifact_store_from_environment()
+
+
+def test_local_api_bindings_factory_requires_async_walk_forward_calendar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = ModuleType("strategy_lab_test_invalid_calendar_host")
+    module.build_calendar = lambda _persistence: lambda **_kwargs: ()  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    monkeypatch.setenv(
+        rpc_module.WALK_FORWARD_CALENDAR_FACTORY_ENV,
+        f"{module.__name__}:build_calendar",
+    )
+
+    with pytest.raises(TypeError, match="async resolver"):
+        rpc_module._walk_forward_calendar_from_environment(object())
+
+
+@pytest.mark.asyncio
+async def test_unix_search_dispatch_client_round_trips_typed_atomic_resolution(
+    tmp_path: Path,
+) -> None:
+    command = rpc_module.SearchDispatchRpcCommand.from_call(**_command_kwargs())
+    observed: dict[str, Any] = {}
+    progress_observed: dict[str, Any] = {}
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+
+    async def dispatch_search_candidate(**kwargs: Any) -> SearchDispatchResolution:
+        observed.update(kwargs)
+        return _resolution(kwargs)
+
+    adapter.dispatch_search_candidate = dispatch_search_candidate
+
+    async def reconcile_walk_forward_terminal(**kwargs: Any) -> dict[str, Any]:
+        progress_observed.update(kwargs)
+        return {
+            "decision": "waiting",
+            "dispatched_candidate_indices": (),
+            "summary_fingerprint": None,
+        }
+
+    adapter.reconcile_walk_forward_terminal = reconcile_walk_forward_terminal
+    socket_path = tmp_path / "preparation.sock"
+    app = create_search_preparation_app(
+        adapter,
+        auth_token=AUTH_TOKEN,
+        socket_path=socket_path,
+    )
+    listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    listener.bind(str(socket_path))
+    listener.listen(8)
+    server = uvicorn.Server(
+        uvicorn.Config(
+            app,
+            log_level="critical",
+            access_log=False,
+            proxy_headers=False,
+            ws="none",
+        )
+    )
+    server_task = asyncio.create_task(server.serve(sockets=[listener]))
+    try:
+        for _ in range(500):
+            if server.started:
+                break
+            await asyncio.sleep(0.01)
+        else:
+            raise AssertionError("Unix-socket preparation service did not start")
+        client = rpc_module.UnixSocketSearchDispatchClient(
+            socket_path,
+            AUTH_TOKEN,
+        )
+
+        resolution = await client(**_command_kwargs())
+        progress = await rpc_module.UnixSocketWalkForwardProgressClient(
+            socket_path,
+            AUTH_TOKEN,
+        )(
+            principal="42",
+            request_id="progress-rpc-1",
+            experiment_fingerprint=command.experiment_fingerprint,
+            attempt_id="attempt-1",
+            dispatch_request_fingerprint=content_digest("dispatch-fingerprint"),
+            queue_name="strategy-backtest",
+        )
+    finally:
+        server.should_exit = True
+        await asyncio.wait_for(server_task, timeout=5)
+        listener.close()
+
+    assert resolution.decision.value == "enqueue"
+    assert resolution.search_state.experiment_fingerprint == command.experiment_fingerprint
+    assert observed["principal"] == "42"
+    assert observed["request_id"] == "request-rpc-1"
+    assert observed["dispatch_intent"] == command.dispatch_intent
+    assert progress.decision == "waiting"
+    assert progress_observed["principal"] == "42"
+    assert progress_observed["attempt_id"] == "attempt-1"
+    assert progress_observed["dispatch_request_fingerprint"] == content_digest(
+        "dispatch-fingerprint"
+    )
+    assert socket_path.stat().st_mode & 0o777 == 0o660
+
+
+@pytest.mark.asyncio
+async def test_unix_search_dispatch_client_preserves_typed_service_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+
+    async def dispatch_search_candidate(**kwargs: Any) -> SearchDispatchResolution:
+        raise ApiAdapterError(
+            ApiError(
+                ApiErrorCode.CONFLICT,
+                "dispatch key belongs to different content",
+                kwargs["request_id"],
+                409,
+                False,
+                {"attempt_id": kwargs["attempt_id"]},
+            )
+        )
+
+    adapter.dispatch_search_candidate = dispatch_search_candidate
+    app = create_search_preparation_app(adapter, auth_token=AUTH_TOKEN)
+    monkeypatch.setattr(
+        rpc_module.httpx,
+        "AsyncHTTPTransport",
+        lambda **_kwargs: httpx.ASGITransport(app=app),
+    )
+    client = rpc_module.UnixSocketSearchDispatchClient(
+        Path("/tmp/strategy-lab-preparation-test.sock"),
+        AUTH_TOKEN,
+    )
+
+    with pytest.raises(ApiAdapterError) as raised:
+        await client(**_command_kwargs())
+
+    assert raised.value.error.code is ApiErrorCode.CONFLICT
+    assert raised.value.error.status_code == 409
+    assert raised.value.error.details["attempt_id"] == "attempt-1"
+
+
+@pytest.mark.asyncio
+async def test_unix_walk_forward_progress_client_uses_authenticated_service_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, Any] = {}
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+
+    async def reconcile_walk_forward_terminal(**kwargs: Any) -> dict[str, Any]:
+        observed.update(kwargs)
+        return {
+            "decision": "finalized",
+            "dispatched_candidate_indices": (),
+            "summary_fingerprint": content_digest("walk-forward-summary"),
+        }
+
+    adapter.reconcile_walk_forward_terminal = reconcile_walk_forward_terminal
+    app = create_search_preparation_app(adapter, auth_token=AUTH_TOKEN)
+    monkeypatch.setattr(
+        rpc_module.httpx,
+        "AsyncHTTPTransport",
+        lambda **_kwargs: httpx.ASGITransport(app=app),
+    )
+    client = rpc_module.UnixSocketWalkForwardProgressClient(
+        Path("/tmp/strategy-lab-progress-test.sock"),
+        AUTH_TOKEN,
+    )
+    receipt = await client(
+        principal="42",
+        request_id="progress-request",
+        experiment_fingerprint=content_digest("progress-experiment"),
+        attempt_id="attempt-progress",
+        dispatch_request_fingerprint=content_digest("progress-dispatch"),
+        queue_name="strategy-backtest",
+    )
+
+    assert receipt.decision == "finalized"
+    assert receipt.summary_fingerprint == content_digest("walk-forward-summary")
+    assert observed["principal"] == "42"
+    assert observed["attempt_id"] == "attempt-progress"
+    assert observed["queue_name"] == "strategy-backtest"
+
+
+@pytest.mark.asyncio
+async def test_preparation_service_rejects_requests_without_the_shared_local_token() -> None:
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    app = create_search_preparation_app(adapter, auth_token=AUTH_TOKEN)
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://local.test") as client:
+        response = await client.post(
+            rpc_module.SEARCH_DISPATCH_RPC_PATH,
+            json={},
+        )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == ApiErrorCode.AUTHORIZATION_REQUIRED.value

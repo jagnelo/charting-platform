@@ -1,0 +1,515 @@
+"""Owner-scoped resource reads over the Strategy Lab v2 aggregate store.
+
+This is a read-only persistence adapter for the registration-neutral API
+boundary.  It projects the versioned canonical aggregate JSON used by
+``PostgresAggregateStore`` into :mod:`api_resources` values, computes a stable
+visible snapshot for cursor pagination, and never mutates a row or invokes a
+worker.  Additive relational migrations can replace the aggregate projection
+later without changing the route contract.
+"""
+
+from __future__ import annotations
+
+import inspect
+from collections.abc import Awaitable, Callable, Mapping, Sequence
+from types import MappingProxyType
+from typing import Any, Protocol
+
+from app.strategy_lab_v2.api_contracts import ApiCursor
+from app.strategy_lab_v2.api_resources import (
+    ApiResourceType,
+    ResourceCollection,
+    ResourceDocument,
+    ResourceIdentifier,
+)
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.contracts import RunAttempt
+from app.strategy_lab_v2.resource_domains import (
+    DomainResourceContract,
+    rehydrate_resource_contract,
+)
+from app.strategy_lab_v2.storage import AggregateKey, StoredAggregate
+
+
+class AggregateReadStore(Protocol):
+    """Minimal read surface needed by :class:`PostgresResourceReader`."""
+
+    async def get(self, key: AggregateKey) -> StoredAggregate | None: ...
+
+    async def list_type(self, aggregate_type: str) -> tuple[StoredAggregate, ...]: ...
+
+
+ResourceProjection = Callable[
+    ..., Awaitable[Sequence[ResourceDocument]] | Sequence[ResourceDocument]
+]
+
+
+class PostgresResourceReader:
+    """Project owner-scoped aggregate state into immutable API resources."""
+
+    def __init__(
+        self,
+        store: AggregateReadStore,
+        *,
+        projections: Mapping[ApiResourceType, ResourceProjection] | None = None,
+    ) -> None:
+        # Protocol runtime checks are intentionally avoided; duck typing keeps
+        # test doubles and future SQLAlchemy adapters usable without requiring
+        # ``@runtime_checkable`` on the structural contract.
+        if not callable(getattr(store, "get", None)) or not callable(
+            getattr(store, "list_type", None)
+        ):
+            raise TypeError("store must provide async get and list_type methods")
+        if projections is not None:
+            if not isinstance(projections, Mapping):
+                raise TypeError("projections must be a mapping")
+            if any(
+                not isinstance(resource_type, ApiResourceType) or not callable(loader)
+                for resource_type, loader in projections.items()
+            ):
+                raise TypeError("projections must map resource types to callables")
+        self._store = store
+        self._projections = dict(projections or {})
+
+    async def get_resource(
+        self,
+        *,
+        principal: Any,
+        resource_type: ApiResourceType,
+        resource_id: str,
+    ) -> ResourceDocument | None:
+        """Return one resource or ``None`` without leaking another owner’s row."""
+
+        if not isinstance(resource_type, ApiResourceType):
+            raise TypeError("resource_type must be an ApiResourceType")
+        if not isinstance(resource_id, str) or not resource_id.strip():
+            raise ValueError("resource_id must not be empty")
+        projection = self._projections.get(resource_type)
+        if projection is not None:
+            documents = await self._load_projection(projection, principal)
+            return next((document for document in documents if document.id == resource_id), None)
+        aggregate = await self._store.get(AggregateKey(resource_type.value, resource_id))
+        if aggregate is None:
+            return None
+        if not self._owned_by(aggregate, principal):
+            return None
+        return self._project(aggregate, resource_type)
+
+    async def get_domain_contract(
+        self,
+        *,
+        principal: Any,
+        resource_type: ApiResourceType,
+        resource_id: str,
+    ) -> DomainResourceContract | None:
+        """Load the owner-scoped aggregate as a typed domain contract.
+
+        API projections may replace a resource envelope with a runtime read
+        model (for example, attempt execution summaries). Domain hydration must
+        instead read the canonical aggregate so worker inputs retain immutable
+        trial and attempt bindings.
+        """
+
+        if not isinstance(resource_type, ApiResourceType):
+            raise TypeError("resource_type must be an ApiResourceType")
+        if not isinstance(resource_id, str) or not resource_id.strip():
+            raise ValueError("resource_id must not be empty")
+        aggregate = await self._store.get(AggregateKey(resource_type.value, resource_id))
+        if aggregate is None or not self._owned_by(aggregate, principal):
+            return None
+        document = self._project(aggregate, resource_type)
+        expected_domain_fingerprint = document.meta.get("domain_fingerprint")
+        if expected_domain_fingerprint is not None and not isinstance(
+            expected_domain_fingerprint, str
+        ):
+            raise ValueError("persisted resource domain fingerprint is malformed")
+        return rehydrate_resource_contract(
+            resource_type,
+            document.attributes,
+            expected_domain_fingerprint=expected_domain_fingerprint,
+        )
+
+    async def get_domain_contracts_by_fingerprint(
+        self,
+        *,
+        principal: Any,
+        resource_type: ApiResourceType,
+        fingerprints: Sequence[str],
+    ) -> Mapping[str, DomainResourceContract]:
+        """Load a batch of immutable domain identities within one owner scope.
+
+        Related domain objects point at content fingerprints rather than API
+        resource IDs. Loading a whole requested set with one owner-scoped read
+        avoids repeated resource scans while hydrating a worker trial graph.
+        Missing fingerprints are omitted so the caller can fail closed without
+        revealing whether another owner has the same content.
+        """
+
+        if not isinstance(resource_type, ApiResourceType):
+            raise TypeError("resource_type must be an ApiResourceType")
+        if not isinstance(fingerprints, Sequence) or isinstance(fingerprints, str | bytes):
+            raise TypeError("fingerprints must be a sequence of content digests")
+        requested = tuple(fingerprints)
+        for fingerprint in requested:
+            require_sha256_digest(fingerprint, field_name="domain_fingerprint")
+        if len(set(requested)) != len(requested):
+            raise ValueError("domain fingerprints must be unique")
+        if not requested:
+            return MappingProxyType({})
+
+        # Domain identities are stored in canonical aggregates. In particular,
+        # ATTEMPT's API projection contains mutable execution summaries, not
+        # the immutable RunAttempt needed by worker graph hydration.
+        aggregates = await self._store.list_type(resource_type.value)
+        documents = tuple(
+            self._project(aggregate, resource_type)
+            for aggregate in aggregates
+            if self._owned_by(aggregate, principal)
+        )
+
+        wanted = set(requested)
+        matches: dict[str, ResourceDocument] = {}
+        for document in documents:
+            if document.identity.resource_type is not resource_type:
+                raise ValueError("projected resource has the wrong domain type")
+            declared = document.meta.get("domain_fingerprint")
+            if declared is None:
+                continue
+            if not isinstance(declared, str):
+                raise ValueError("persisted resource domain fingerprint is malformed")
+            if declared not in wanted:
+                continue
+            if declared in matches:
+                raise ValueError("owner has duplicate resources for one domain fingerprint")
+            matches[declared] = document
+
+        return MappingProxyType(
+            {
+                fingerprint: rehydrate_resource_contract(
+                    resource_type,
+                    document.attributes,
+                    expected_domain_fingerprint=fingerprint,
+                )
+                for fingerprint, document in matches.items()
+            }
+        )
+
+    async def get_domain_contract_by_fingerprint(
+        self,
+        *,
+        principal: Any,
+        resource_type: ApiResourceType,
+        fingerprint: str,
+    ) -> DomainResourceContract | None:
+        """Return one owner-scoped typed contract by its immutable identity."""
+
+        matches = await self.get_domain_contracts_by_fingerprint(
+            principal=principal,
+            resource_type=resource_type,
+            fingerprints=(fingerprint,),
+        )
+        return matches.get(fingerprint)
+
+    async def get_run_attempt_by_attempt_id(
+        self,
+        *,
+        principal: Any,
+        attempt_id: str,
+    ) -> RunAttempt | None:
+        """Resolve an attempt's stable domain id without exposing other owners."""
+
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        aggregates = await self._store.list_type(ApiResourceType.ATTEMPT.value)
+        matches: list[ResourceDocument] = []
+        for aggregate in aggregates:
+            if not self._owned_by(aggregate, principal):
+                continue
+            document = self._project(aggregate, ApiResourceType.ATTEMPT)
+            if document.attributes.get("attempt_id") == attempt_id:
+                matches.append(document)
+        if len(matches) > 1:
+            raise ValueError("owner has duplicate run attempts for one attempt id")
+        if not matches:
+            return None
+        document = matches[0]
+        expected_domain_fingerprint = document.meta.get("domain_fingerprint")
+        if expected_domain_fingerprint is not None and not isinstance(
+            expected_domain_fingerprint, str
+        ):
+            raise ValueError("persisted attempt domain fingerprint is malformed")
+        contract = rehydrate_resource_contract(
+            ApiResourceType.ATTEMPT,
+            document.attributes,
+            expected_domain_fingerprint=expected_domain_fingerprint,
+        )
+        if not isinstance(contract, RunAttempt):
+            raise ValueError("persisted attempt has the wrong domain contract")
+        return contract
+
+    async def get_run_attempts_for_trial(
+        self,
+        *,
+        principal: Any,
+        trial_id: str,
+    ) -> tuple[RunAttempt, ...]:
+        """Load one owner's immutable attempt lineage for a scientific trial.
+
+        Attempt API projections may be execution summaries rather than the
+        canonical domain record, so recovery and hydration use the underlying
+        aggregate rows and authenticate each typed contract before returning
+        the ordered lineage.
+        """
+
+        if not isinstance(trial_id, str) or not trial_id.strip():
+            raise ValueError("trial_id must not be empty")
+        aggregates = await self._store.list_type(ApiResourceType.ATTEMPT.value)
+        attempts: list[RunAttempt] = []
+        for aggregate in aggregates:
+            if not self._owned_by(aggregate, principal):
+                continue
+            document = self._project(aggregate, ApiResourceType.ATTEMPT)
+            if document.attributes.get("trial_id") != trial_id:
+                continue
+            expected_domain_fingerprint = document.meta.get("domain_fingerprint")
+            if expected_domain_fingerprint is not None and not isinstance(
+                expected_domain_fingerprint, str
+            ):
+                raise ValueError("persisted attempt domain fingerprint is malformed")
+            contract = rehydrate_resource_contract(
+                ApiResourceType.ATTEMPT,
+                document.attributes,
+                expected_domain_fingerprint=expected_domain_fingerprint,
+            )
+            if not isinstance(contract, RunAttempt):
+                raise ValueError("persisted attempt has the wrong domain contract")
+            attempts.append(contract)
+        ordered = tuple(sorted(attempts, key=lambda item: (item.ordinal, item.attempt_id)))
+        if len({item.ordinal for item in ordered}) != len(ordered):
+            raise ValueError("owner has duplicate run-attempt ordinals for one trial")
+        return ordered
+
+    async def list_resources(
+        self,
+        *,
+        principal: Any,
+        resource_type: ApiResourceType,
+        limit: int,
+        cursor: ApiCursor | None,
+        request_id: str,
+    ) -> ResourceCollection:
+        """Return a deterministic page bound to the visible aggregate snapshot."""
+
+        if not isinstance(resource_type, ApiResourceType):
+            raise TypeError("resource_type must be an ApiResourceType")
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 100:
+            raise ValueError("limit must be between 1 and 100")
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if cursor is not None and not isinstance(cursor, ApiCursor):
+            raise TypeError("cursor must be an ApiCursor or None")
+
+        projection = self._projections.get(resource_type)
+        if projection is not None:
+            documents = await self._load_projection(projection, principal)
+            return self._paginate_documents(
+                resource_type,
+                limit,
+                cursor,
+                request_id,
+                documents,
+            )
+
+        aggregates = await self._store.list_type(resource_type.value)
+        records: list[tuple[str, ResourceDocument]] = []
+        for aggregate in aggregates:
+            if not self._owned_by(aggregate, principal):
+                continue
+            document = self._project(aggregate, resource_type)
+            sort_value = self._sort_value(aggregate)
+            records.append((sort_value, document))
+        records.sort(key=lambda item: (item[0], item[1].id))
+        if len({document.id for _, document in records}) != len(records):
+            raise ValueError("visible resource IDs must be unique")
+        snapshot_digest = content_digest(
+            tuple(
+                (sort_value, document.id, document.fingerprint) for sort_value, document in records
+            )
+        )
+        return self._paginate_records(
+            resource_type,
+            limit,
+            cursor,
+            request_id,
+            records,
+            snapshot_digest=snapshot_digest,
+        )
+
+    async def _load_projection(
+        self, projection: ResourceProjection, principal: Any
+    ) -> tuple[ResourceDocument, ...]:
+        value = projection(principal=principal)
+        if inspect.isawaitable(value):
+            value = await value
+        if not isinstance(value, Sequence) or isinstance(value, str | bytes):
+            raise TypeError("resource projection must return a sequence")
+        documents = tuple(value)
+        if any(not isinstance(document, ResourceDocument) for document in documents):
+            raise TypeError("resource projections must contain ResourceDocument values")
+        if len({document.id for document in documents}) != len(documents):
+            raise ValueError("projected resource IDs must be unique")
+        return documents
+
+    @classmethod
+    def _paginate_documents(
+        cls,
+        resource_type: ApiResourceType,
+        limit: int,
+        cursor: ApiCursor | None,
+        request_id: str,
+        documents: Sequence[ResourceDocument],
+    ) -> ResourceCollection:
+        if any(document.identity.resource_type is not resource_type for document in documents):
+            raise ValueError("projected resource has the wrong collection type")
+        records = tuple(
+            sorted(((document.id, document) for document in documents), key=lambda item: item[0])
+        )
+        snapshot_digest = content_digest(
+            tuple(
+                (sort_value, document.id, document.fingerprint) for sort_value, document in records
+            )
+        )
+        return cls._paginate_records(
+            resource_type,
+            limit,
+            cursor,
+            request_id,
+            records,
+            snapshot_digest=snapshot_digest,
+        )
+
+    @staticmethod
+    def _paginate_records(
+        resource_type: ApiResourceType,
+        limit: int,
+        cursor: ApiCursor | None,
+        request_id: str,
+        records: Sequence[tuple[str, ResourceDocument]],
+        *,
+        snapshot_digest: str,
+    ) -> ResourceCollection:
+        visible = tuple(records)
+        if cursor is not None:
+            if cursor.resource != resource_type.value:
+                raise ValueError("cursor resource does not match the requested collection")
+            if cursor.snapshot_digest != snapshot_digest:
+                raise ValueError("cursor snapshot does not match the visible resource set")
+            visible = tuple(
+                item
+                for item in visible
+                if (item[0], item[1].id) > (cursor.sort_value, cursor.item_id)
+            )
+        page = visible[:limit]
+        has_more = len(visible) > len(page)
+        next_cursor = None
+        if has_more:
+            sort_value, document = page[-1]
+            next_cursor = ApiCursor(
+                resource=resource_type.value,
+                snapshot_digest=snapshot_digest,
+                sort_value=sort_value,
+                item_id=document.id,
+            )
+        return ResourceCollection(
+            request_id=request_id,
+            resource_type=resource_type,
+            snapshot_digest=snapshot_digest,
+            items=tuple(document for _, document in page),
+            has_more=has_more,
+            next_cursor=next_cursor,
+        )
+
+    @staticmethod
+    def _owned_by(aggregate: StoredAggregate, principal: Any) -> bool:
+        state = aggregate.state
+        if not isinstance(state, Mapping) or "owner_id" not in state:
+            raise ValueError("resource aggregate must declare owner_id")
+        owner_id = state["owner_id"]
+        principal_id = getattr(principal, "id", principal)
+        if owner_id is None or principal_id is None:
+            raise ValueError("resource owner identity must not be null")
+        return str(owner_id) == str(principal_id)
+
+    @staticmethod
+    def _sort_value(aggregate: StoredAggregate) -> str:
+        state = aggregate.state
+        if not isinstance(state, Mapping):
+            raise ValueError("resource aggregate state must be a mapping")
+        value = state.get("sort_value", aggregate.key.aggregate_id)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("resource sort_value must be a non-empty string")
+        return value
+
+    @staticmethod
+    def _project(aggregate: StoredAggregate, resource_type: ApiResourceType) -> ResourceDocument:
+        state = aggregate.state
+        if not isinstance(state, Mapping):
+            raise ValueError("resource aggregate state must be a mapping")
+        declared_type = state.get("resource_type", resource_type.value)
+        if declared_type != resource_type.value:
+            raise ValueError("resource aggregate type does not match the requested resource")
+        declared_id = state.get("resource_id", aggregate.key.aggregate_id)
+        if declared_id != aggregate.key.aggregate_id:
+            raise ValueError("resource aggregate ID does not match its state")
+        schema_version = state.get("schema_version", 1)
+        if (
+            not isinstance(schema_version, int)
+            or isinstance(schema_version, bool)
+            or schema_version < 1
+        ):
+            raise ValueError("resource schema_version must be a positive integer")
+        revision_digest = state.get("revision_digest", aggregate.state_fingerprint)
+        require_sha256_digest(revision_digest, field_name="revision_digest")
+        attributes = state.get("attributes", {})
+        meta = state.get("meta", {})
+        if not isinstance(attributes, Mapping) or not isinstance(meta, Mapping):
+            raise ValueError("resource attributes and meta must be mappings")
+        relationships = PostgresResourceReader._relationships(state.get("relationships", {}))
+        return ResourceDocument(
+            ResourceIdentifier(
+                resource_type,
+                aggregate.key.aggregate_id,
+                schema_version=schema_version,
+                revision_digest=revision_digest,
+            ),
+            attributes=attributes,
+            relationships=relationships,
+            meta=meta,
+        )
+
+    @staticmethod
+    def _relationships(raw: Any) -> dict[str, tuple[ResourceIdentifier, ...]]:
+        if not isinstance(raw, Mapping):
+            raise ValueError("resource relationships must be a mapping")
+        result: dict[str, tuple[ResourceIdentifier, ...]] = {}
+        for name, targets in raw.items():
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError("relationship names must be non-empty strings")
+            if not isinstance(targets, Sequence) or isinstance(targets, str | bytes):
+                raise ValueError("relationship targets must be sequences")
+            identifiers: list[ResourceIdentifier] = []
+            for target in targets:
+                if not isinstance(target, Mapping):
+                    raise ValueError("relationship target must be a mapping")
+                if set(target) != {"type", "id"}:
+                    raise ValueError("relationship target must contain type and id only")
+                try:
+                    target_type = ApiResourceType(target["type"])
+                except (TypeError, ValueError) as error:
+                    raise ValueError("relationship target type is unsupported") from error
+                identifiers.append(ResourceIdentifier(target_type, target["id"]))
+            result[name] = tuple(identifiers)
+        return result
+
+
+__all__ = ["AggregateReadStore", "PostgresResourceReader", "ResourceProjection"]

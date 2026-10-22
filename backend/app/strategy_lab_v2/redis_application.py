@@ -1,0 +1,359 @@
+"""Application-owned Redis client lifecycle for Strategy Lab v2 transport."""
+
+from __future__ import annotations
+
+import asyncio
+import inspect
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from importlib import import_module
+from typing import Any
+
+from app.strategy_lab_v2.dispatch_payload import DispatchPayloadLoader
+from app.strategy_lab_v2.forward_account_worker import (
+    ForwardAccountEventResolver,
+    ForwardAccountStore,
+    ForwardAccountWorkerHandler,
+)
+from app.strategy_lab_v2.forward_worker_authorization import (
+    AuthorizedForwardEventHandler,
+    ForwardWorkerAuthorizationResolver,
+)
+from app.strategy_lab_v2.forward_worker_service import (
+    ForwardEventHandler,
+    ForwardEventMaterializer,
+    ForwardEventWorkerService,
+)
+from app.strategy_lab_v2.forward_worker_settlement import (
+    ForwardCapacityReleaseStore,
+    ForwardReleaseObservationResolver,
+    ForwardWorkerCapacityReleaseHandler,
+)
+from app.strategy_lab_v2.outbox_application import (
+    OutboxPersistence,
+    OutboxRelayScheduler,
+    OutboxRelayService,
+)
+from app.strategy_lab_v2.redis_transport import RedisDispatchTransport
+from app.strategy_lab_v2.worker_consumer import (
+    RedisDispatchWorker,
+    RedisDispatchWorkerScheduler,
+)
+from app.strategy_lab_v2.worker_process import SerialWorkerProcessExecutor
+from app.strategy_lab_v2.worker_service import (
+    DedicatedStrategyWorkerService,
+    WorkerCancellationReader,
+    WorkerCompletionWriter,
+    WorkerHandoffMaterializer,
+    WorkerLeaseHeartbeatWriter,
+    WorkerLeaseStateReader,
+    WorkerRecoveryWriter,
+    WorkerTerminalReplayReader,
+    WorkerTerminalWriter,
+)
+from app.strategy_lab_v2.workers import WorkerProfile
+
+
+class RedisDispatchRuntime:
+    """Own one concrete Redis client and its v2 transport adapters.
+
+    The package transport remains client-agnostic. This application seam is
+    responsible only for constructing the configured ``redis.asyncio`` client,
+    exposing relay/worker factories, and closing that client exactly once.
+    """
+
+    def __init__(self, client: Any, transport: RedisDispatchTransport) -> None:
+        if not callable(getattr(client, "aclose", None)):
+            raise TypeError("client must provide an async aclose method")
+        if not isinstance(transport, RedisDispatchTransport):
+            raise TypeError("transport must be a RedisDispatchTransport")
+        self._client = client
+        self._transport = transport
+        self._closed = False
+
+    @classmethod
+    async def connect(
+        cls,
+        url: str,
+        *,
+        namespace: str = "strategy-lab:v2",
+        **client_options: Any,
+    ) -> RedisDispatchRuntime:
+        """Create a runtime from a ``redis://`` or ``rediss://`` URL.
+
+        Connection establishment is left to the first Redis operation, which
+        keeps construction non-blocking and lets callers control health checks.
+        The URL is passed directly to the official client and never included in
+        resolution evidence or logs by this module.
+        """
+
+        if not isinstance(url, str) or not url.strip():
+            raise ValueError("Redis URL must not be empty")
+        if not url.startswith(("redis://", "rediss://")):
+            raise ValueError("Redis URL must use redis:// or rediss://")
+        if "decode_responses" in client_options and client_options["decode_responses"] is not True:
+            raise ValueError("Redis client decode_responses must be true")
+        options = dict(client_options)
+        options["decode_responses"] = True
+        redis_module = import_module("redis.asyncio")
+        client_factory = getattr(redis_module, "Redis", None)
+        if client_factory is None or not callable(getattr(client_factory, "from_url", None)):
+            raise TypeError("redis.asyncio.Redis.from_url is unavailable")
+        client = client_factory.from_url(url, **options)
+        if inspect.isawaitable(client):
+            client = await client
+        return cls(client, RedisDispatchTransport(client, namespace=namespace))
+
+    @property
+    def transport(self) -> RedisDispatchTransport:
+        """Return the transport bound to this runtime's client."""
+
+        return self._transport
+
+    def outbox_relay(self, persistence: OutboxPersistence) -> OutboxRelayService:
+        """Build an outbox relay over the shared Redis transport."""
+
+        return OutboxRelayService(persistence, self._transport)
+
+    def outbox_scheduler(
+        self,
+        persistence: OutboxPersistence,
+        *,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        interval_seconds: float = 1.0,
+        limit: int = 100,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    ) -> OutboxRelayScheduler:
+        """Build a bounded scheduler for the shared transactional outbox."""
+
+        return OutboxRelayScheduler(
+            self.outbox_relay(persistence),
+            clock=clock,
+            interval_seconds=interval_seconds,
+            limit=limit,
+            sleep=sleep,
+        )
+
+    def worker(
+        self,
+        *,
+        queue_name: str,
+        group_name: str,
+        consumer_name: str,
+        reclaim_idle_ms: int = 30_000,
+        batch_size: int = 1,
+        block_ms: int = 0,
+    ) -> RedisDispatchWorker:
+        """Build one bounded Redis worker pump over this runtime."""
+
+        return RedisDispatchWorker(
+            self._transport,
+            queue_name=queue_name,
+            group_name=group_name,
+            consumer_name=consumer_name,
+            reclaim_idle_ms=reclaim_idle_ms,
+            batch_size=batch_size,
+            block_ms=block_ms,
+        )
+
+    def worker_scheduler(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+    ) -> RedisDispatchWorkerScheduler:
+        """Build a cancellable scheduler for one bounded worker pump."""
+
+        return RedisDispatchWorkerScheduler(
+            worker,
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+        )
+
+    def worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: WorkerHandoffMaterializer,
+        completion_writer: WorkerCompletionWriter,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+        process_executor: SerialWorkerProcessExecutor | None = None,
+        heartbeat_writer: WorkerLeaseHeartbeatWriter | None = None,
+        heartbeat_interval_seconds: float = 5.0,
+        heartbeat_extension_seconds: float = 30.0,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        heartbeat_sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        terminal_writer: WorkerTerminalWriter | None = None,
+        recovery_writer: WorkerRecoveryWriter | None = None,
+        lease_state_reader: WorkerLeaseStateReader | None = None,
+        cancellation_reader: WorkerCancellationReader | None = None,
+        terminal_replay_reader: WorkerTerminalReplayReader | None = None,
+    ) -> DedicatedStrategyWorkerService:
+        """Compose the dedicated Redis-to-process worker service."""
+
+        scheduler = self.worker_scheduler(
+            worker,
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+        )
+        return DedicatedStrategyWorkerService(
+            scheduler,
+            payload_loader,
+            materializer,
+            completion_writer,
+            process_executor=process_executor,
+            heartbeat_writer=heartbeat_writer,
+            heartbeat_interval_seconds=heartbeat_interval_seconds,
+            heartbeat_extension_seconds=heartbeat_extension_seconds,
+            clock=clock,
+            heartbeat_sleep=heartbeat_sleep,
+            terminal_writer=terminal_writer,
+            recovery_writer=recovery_writer,
+            lease_state_reader=lease_state_reader,
+            cancellation_reader=cancellation_reader,
+            terminal_replay_reader=terminal_replay_reader,
+        )
+
+    def forward_worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: ForwardEventMaterializer,
+        handler: ForwardEventHandler,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+    ) -> ForwardEventWorkerService:
+        """Compose the isolated forward-event worker over a dedicated queue.
+
+        Forward settlement intentionally has a separate service type from the
+        backtest/runtime worker.  The host must supply authenticated handoff
+        materialization and account/engine handling; this factory only binds
+        the bounded Redis scheduler and payload loader.
+        """
+
+        scheduler = self.worker_scheduler(
+            worker,
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+        )
+        return ForwardEventWorkerService(
+            scheduler,
+            payload_loader,
+            materializer,
+            handler,
+        )
+
+    def authorized_forward_worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: ForwardEventMaterializer,
+        authorization_resolver: ForwardWorkerAuthorizationResolver,
+        handler: ForwardEventHandler,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> ForwardEventWorkerService:
+        """Compose a forward worker whose handler is lease/reservation gated."""
+
+        return self.forward_worker_service(
+            worker,
+            payload_loader=payload_loader,
+            materializer=materializer,
+            handler=AuthorizedForwardEventHandler(
+                authorization_resolver,
+                handler,
+                clock=clock,
+            ),
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+        )
+
+    def settling_forward_worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: ForwardEventMaterializer,
+        authorization_resolver: ForwardWorkerAuthorizationResolver,
+        handler: ForwardEventHandler,
+        release_store: ForwardCapacityReleaseStore,
+        profile: WorkerProfile,
+        observation_resolver: ForwardReleaseObservationResolver,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> ForwardEventWorkerService:
+        """Compose a forward worker that releases capacity before ack."""
+
+        return self.forward_worker_service(
+            worker,
+            payload_loader=payload_loader,
+            materializer=materializer,
+            handler=ForwardWorkerCapacityReleaseHandler(
+                authorization_resolver,
+                handler,
+                release_store,
+                profile=profile,
+                observation_resolver=observation_resolver,
+                clock=clock,
+            ),
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+        )
+
+    def account_settling_forward_worker_service(
+        self,
+        worker: RedisDispatchWorker,
+        *,
+        payload_loader: DispatchPayloadLoader,
+        materializer: ForwardEventMaterializer,
+        authorization_resolver: ForwardWorkerAuthorizationResolver,
+        account_store: ForwardAccountStore,
+        principal: Any,
+        event_resolver: ForwardAccountEventResolver,
+        release_store: ForwardCapacityReleaseStore,
+        profile: WorkerProfile,
+        observation_resolver: ForwardReleaseObservationResolver,
+        interval_seconds: float = 1.0,
+        sleep: Callable[[float], Awaitable[None]],
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> ForwardEventWorkerService:
+        """Compose authorization, account settlement, and capacity release."""
+
+        account_handler = ForwardAccountWorkerHandler(
+            account_store,
+            principal=principal,
+            event_resolver=event_resolver,
+        )
+        return self.settling_forward_worker_service(
+            worker,
+            payload_loader=payload_loader,
+            materializer=materializer,
+            authorization_resolver=authorization_resolver,
+            handler=account_handler,
+            release_store=release_store,
+            profile=profile,
+            observation_resolver=observation_resolver,
+            interval_seconds=interval_seconds,
+            sleep=sleep,
+            clock=clock,
+        )
+
+    async def aclose(self) -> None:
+        """Close the concrete Redis client idempotently."""
+
+        if self._closed:
+            return
+        self._closed = True
+        result = self._client.aclose()
+        if isinstance(result, Awaitable) or inspect.isawaitable(result):
+            await result
+
+
+__all__ = ["RedisDispatchRuntime"]

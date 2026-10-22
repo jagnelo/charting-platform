@@ -37,15 +37,35 @@ def test_parse_collected_nodeids_separates_the_complete_test_roots():
     output = "\n".join(
         (
             "tests/unit/test_one.py::test_unit",
+            "app/strategy_lab_v2/tests/test_adapter.py::test_strategy_unit",
             "tests/integration/api/test_two.py::test_integration",
-            "================ 2 tests collected ================",
+            "================ 3 tests collected ================",
         )
     )
 
     assert RUNNER.parse_collected_nodeids(output) == {
         "tests/unit": ["tests/unit/test_one.py::test_unit"],
+        "app/strategy_lab_v2/tests": [
+            "app/strategy_lab_v2/tests/test_adapter.py::test_strategy_unit"
+        ],
         "tests/integration": ["tests/integration/api/test_two.py::test_integration"],
     }
+
+
+def test_strategy_package_is_included_in_bounded_unit_shards():
+    assert "app/strategy_lab_v2/tests" in RUNNER.UNIT_TEST_ROOTS
+    suites = {
+        "tests/unit": ["tests/unit/test_one.py::test_unit"],
+        "app/strategy_lab_v2/tests": [
+            "app/strategy_lab_v2/tests/test_adapter.py::test_strategy_unit"
+        ],
+        "tests/integration": ["tests/integration/test_db.py::test_integration"],
+    }
+
+    assert RUNNER.combined_unit_nodeids(suites) == [
+        "tests/unit/test_one.py::test_unit",
+        "app/strategy_lab_v2/tests/test_adapter.py::test_strategy_unit",
+    ]
 
 
 def test_pytest_args_keep_coverage_append_enabled_without_per_shard_reports():
@@ -66,10 +86,14 @@ def test_backend_pytest_defaults_do_not_enable_implicit_coverage_reports():
 
 def test_ci_preserves_unit_coverage_and_enforces_combined_backend_threshold():
     workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    unit = workflow.split("- name: Run unit tests", 1)[1].split(
+        "- name: Run integration tests", 1
+    )[0]
     integration = workflow.split(
         "- name: Run integration tests (with testcontainers)", 1
     )[1]
     integration = integration.split("- name: Enforce combined backend coverage", 1)[0]
+    assert "app/strategy_lab_v2/tests" in unit
     assert "--cov-append" in integration
     assert "uv run coverage report --fail-under=75" in workflow
 

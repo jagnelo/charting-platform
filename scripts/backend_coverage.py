@@ -11,7 +11,13 @@ from typing import Sequence
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1] / "backend"
-TEST_ROOTS = ("tests/unit", "tests/integration")
+BASE_TEST_ROOTS = ("tests/unit", "tests/integration")
+STRATEGY_TEST_ROOT = "app/strategy_lab_v2/tests"
+UNIT_TEST_ROOTS = (
+    "tests/unit",
+    *((STRATEGY_TEST_ROOT,) if (BACKEND_DIR / STRATEGY_TEST_ROOT).is_dir() else ()),
+)
+TEST_ROOTS = (*UNIT_TEST_ROOTS, "tests/integration")
 # Keep shards small enough for the resource-limited research-runner tests.
 # A few research-runner cases allocate large scientific-data fixtures; grouping
 # 100 of them in one process can exhaust the 1 GiB test-process ceiling before
@@ -27,6 +33,11 @@ def partition(items: Sequence[str], size: int) -> list[list[str]]:
     if size < 1:
         raise ValueError("shard size must be positive")
     return [list(items[start : start + size]) for start in range(0, len(items), size)]
+
+
+def combined_unit_nodeids(suites: dict[str, list[str]]) -> list[str]:
+    """Include every available unit-like suite in the same bounded shards."""
+    return [nodeid for root in UNIT_TEST_ROOTS for nodeid in suites[root]]
 
 
 def parse_collected_nodeids(output: str) -> dict[str, list[str]]:
@@ -171,7 +182,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if status:
         return status
 
-    unit_shards = partition(suites["tests/unit"], args.shard_size)
+    unit_shards = partition(combined_unit_nodeids(suites), args.shard_size)
     for index, nodeids in enumerate(unit_shards, start=1):
         status = _run_pytest(
             nodeids,

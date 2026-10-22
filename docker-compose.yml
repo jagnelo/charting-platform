@@ -24,10 +24,21 @@ volumes:
   research_results:
     labels:
       charting.worktree.id: ${WORKTREE_ID:-unscoped}
+  strategy_lab_artifacts:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
+  strategy_lab_v2_preparation_socket:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
 
 networks:
   charting:
     driver: bridge
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
+  strategy_lab_v2_internal:
+    driver: bridge
+    internal: true
     labels:
       charting.worktree.id: ${WORKTREE_ID:-unscoped}
 
@@ -47,7 +58,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_HOST_PORT:-5432}:5432"   # expose for pgAdmin / direct access — remove in production
-    networks: [charting]
+    networks: [charting, strategy_lab_v2_internal]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -86,6 +97,20 @@ services:
       # Infrastructure — always Docker-internal hostnames in this context
       DATABASE_URL:      postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
       DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      STRATEGY_LAB_V2_MIGRATIONS_ENABLED: ${STRATEGY_LAB_V2_MIGRATIONS_ENABLED:-true}
+      STRATEGY_LAB_V2_MIGRATION_TARGET: ${STRATEGY_LAB_V2_MIGRATION_TARGET:-head}
+      STRATEGY_LAB_V2_API_BINDINGS: ${STRATEGY_LAB_V2_API_BINDINGS:-}
+      STRATEGY_LAB_V2_ARTIFACT_ROOT: /strategy-lab-artifacts
+      STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY: ${STRATEGY_LAB_V2_WALK_FORWARD_CALENDAR_FACTORY:-}
+      STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH: ${STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH:-/run/strategy-lab-v2/preparation.sock}
+      STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN: ${STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN:-}
+      STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE: ${STRATEGY_LAB_V2_BACKTEST_CAPABILITY_SCOPE:-}
+      STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY: /nautilus-rc-evidence
+      STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256: ${STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256:-}
+      STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256: ${STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256:-}
+      STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256: ${STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256:-}
+      STRATEGY_LAB_V2_FORWARD_WORKER_ID: ${STRATEGY_LAB_V2_FORWARD_WORKER_ID:-}
+      STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT: ${STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT:-}
       REDIS_URL:         redis://redis:6379/0
       OHLCV_DISTRIBUTED_LOCK_ENABLED: ${OHLCV_DISTRIBUTED_LOCK_ENABLED:-false}
       OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS: ${OHLCV_DISTRIBUTED_LOCK_TTL_SECONDS:-900}
@@ -363,8 +388,66 @@ services:
       - ./ops:/ops:ro
       - research_jobs:/jobs
       - research_results:/results
+      - strategy_lab_artifacts:/strategy-lab-artifacts
+      - strategy_lab_v2_preparation_socket:/run/strategy-lab-v2
+      # Read-only copy of the operator-pinned conformance artifact. Empty pins
+      # keep API capability preflight unavailable; the worker never mounts this.
+      - type: bind
+        source: ${STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_HOST_DIRECTORY:-./.ai/runtime/strategy-lab-v2/nautilus-rc-evidence}
+        target: /nautilus-rc-evidence
+        read_only: true
+        bind:
+          create_host_path: true
       - ${PROVIDER_QUOTA_LEDGER_HOST_DIR:-${HOME}/.config/charting-platform/provider-quota}:/var/lib/charting-platform/provider-quota
       - ${FINRA_ORF_REFRESH_TOKEN_STATE_HOST_DIR:-${HOME}/.config/charting-platform/provider-secrets/finra-orf}:/var/lib/charting-platform/provider-secrets/finra-orf
+
+  # Search preparation hydrates owner-scoped PostgreSQL state and materializes
+  # frozen runtime inputs outside the public FastAPI event loop. It is opt-in,
+  # serial, and intentionally has neither the Docker socket nor provider keys.
+  strategy-lab-v2-preparation:
+    profiles: ["strategy-lab-v2"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      labels:
+        charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    restart: unless-stopped
+    command: python -m app.strategy_lab_v2.search_preparation_service
+    read_only: true
+    mem_limit: ${STRATEGY_LAB_V2_PREPARATION_MEMORY_LIMIT:-2g}
+    cpus: "${STRATEGY_LAB_V2_PREPARATION_CPUS:-2.0}"
+    pids_limit: ${STRATEGY_LAB_V2_PREPARATION_PIDS_LIMIT:-128}
+    cap_drop: ["ALL"]
+    security_opt:
+      - "no-new-privileges:true"
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      STRATEGY_LAB_V2_ARTIFACT_ROOT: /strategy-lab-artifacts
+      STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH: ${STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH:-/run/strategy-lab-v2/preparation.sock}
+      STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN: ${STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN:-}
+      STRATEGY_LAB_V2_PREPARATION_BINDINGS_FACTORY: ${STRATEGY_LAB_V2_PREPARATION_BINDINGS_FACTORY:-}
+      STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_DIRECTORY: /nautilus-rc-evidence
+      STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256: ${STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_ARTIFACT_SHA256:-}
+      STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256: ${STRATEGY_LAB_V2_NAUTILUS_RC_SOURCE_SHA256:-}
+      STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256: ${STRATEGY_LAB_V2_NAUTILUS_RC_IMAGE_SHA256:-}
+      PYTHONUNBUFFERED: "1"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - strategy_lab_artifacts:/strategy-lab-artifacts
+      - strategy_lab_v2_preparation_socket:/run/strategy-lab-v2
+      - type: bind
+        source: ${STRATEGY_LAB_V2_NAUTILUS_RC_EVIDENCE_HOST_DIRECTORY:-./.ai/runtime/strategy-lab-v2/nautilus-rc-evidence}
+        target: /nautilus-rc-evidence
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [strategy_lab_v2_internal]
 
   # ── ARQ worker (background tasks) ──────────────────────────────────────────
   worker:
@@ -648,6 +731,114 @@ services:
       # this path.
       - ${PROVIDER_QUOTA_LEDGER_HOST_DIR:-${HOME}/.config/charting-platform/provider-quota}:/var/lib/charting-platform/provider-quota
       - ${FINRA_ORF_REFRESH_TOKEN_STATE_HOST_DIR:-${HOME}/.config/charting-platform/provider-secrets/finra-orf}:/var/lib/charting-platform/provider-secrets/finra-orf
+
+  # ── Strategy Lab v2 execution worker (explicit opt-in) ────────────────────
+  # This process is intentionally separate from the general ARQ worker. It
+  # requires an application-owned callback factory and the local Docker daemon
+  # because sandbox plans launch separately pinned, network-disabled runtime
+  # containers. It is never started by the default stack profile.
+  strategy-lab-v2-worker:
+    profiles: ["strategy-lab-v2"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      labels:
+        charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    restart: unless-stopped
+    command: python -m app.strategy_lab_v2.worker_entrypoint
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - "no-new-privileges:true"
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
+    environment:
+      # The common image ENTRYPOINT runs Alembic before this Python worker and
+      # reads generic DATABASE_URL_SYNC. Keep it aligned with the namespaced
+      # worker migration URL; runtime AsyncSessionLocal uses DATABASE_URL.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      STRATEGY_LAB_V2_DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      STRATEGY_LAB_V2_REDIS_URL: redis://redis:6379/0
+      STRATEGY_LAB_V2_ARTIFACT_ROOT: /strategy-lab-artifacts
+      STRATEGY_LAB_V2_CALLBACK_FACTORY: ${STRATEGY_LAB_V2_CALLBACK_FACTORY:-app.strategy_lab_v2.worker_callbacks:create}
+      # The package-owned mapper is safe for the canonical single
+      # /outputs/result contract. Hosts with multi-artifact manifests must
+      # override this with an explicit resolver that maps every artifact.
+      STRATEGY_LAB_V2_EVIDENCE_RESOLVER: ${STRATEGY_LAB_V2_EVIDENCE_RESOLVER:-app.strategy_lab_v2.worker_callbacks:default_evidence_resolver_factory}
+      STRATEGY_LAB_V2_MIGRATIONS_ENABLED: ${STRATEGY_LAB_V2_MIGRATIONS_ENABLED:-true}
+      STRATEGY_LAB_V2_MIGRATION_TARGET: ${STRATEGY_LAB_V2_MIGRATION_TARGET:-head}
+      STRATEGY_LAB_V2_QUEUE: ${STRATEGY_LAB_V2_QUEUE:-backtest}
+      STRATEGY_LAB_V2_GROUP: ${STRATEGY_LAB_V2_GROUP:-strategy-lab-v2}
+      # Required when the search-dispatch callback factory is selected; recovery
+      # schedules retries through the same local authenticated preparation API.
+      STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH: ${STRATEGY_LAB_V2_PREPARATION_SOCKET_PATH:-/run/strategy-lab-v2/preparation.sock}
+      STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN: ${STRATEGY_LAB_V2_PREPARATION_AUTH_TOKEN:-}
+      STRATEGY_LAB_V2_PROCESS_TIMEOUT_SECONDS: ${STRATEGY_LAB_V2_PROCESS_TIMEOUT_SECONDS:-300}
+      STRATEGY_LAB_V2_DOCKER_BINARY: ${STRATEGY_LAB_V2_DOCKER_BINARY:-docker}
+    volumes:
+      - strategy_lab_artifacts:/strategy-lab-artifacts
+      - strategy_lab_v2_preparation_socket:/run/strategy-lab-v2
+      - type: bind
+        source: ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [charting]
+
+  # ── Strategy Lab v2 forward-event worker (explicit opt-in) ────────────────
+  # This service is intentionally separate from the backtest worker. It owns
+  # only Redis forward-event polling and durable handoff; the host must provide
+  # authenticated event/materializer and account/engine callbacks explicitly.
+  strategy-lab-v2-forward-worker:
+    profiles: ["strategy-lab-v2"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      labels:
+        charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    restart: unless-stopped
+    command: python -m app.strategy_lab_v2.forward_worker_entrypoint
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - "no-new-privileges:true"
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=64m"]
+    environment:
+      # The common image ENTRYPOINT runs Alembic before this Python worker and
+      # reads generic DATABASE_URL_SYNC. Keep it aligned with the namespaced
+      # worker migration URL; runtime AsyncSessionLocal uses DATABASE_URL.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      STRATEGY_LAB_V2_FORWARD_DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}
+      STRATEGY_LAB_V2_FORWARD_REDIS_URL: redis://redis:6379/0
+      STRATEGY_LAB_V2_FORWARD_CALLBACK_FACTORY: ${STRATEGY_LAB_V2_FORWARD_CALLBACK_FACTORY:-}
+      STRATEGY_LAB_V2_FORWARD_WORKER_ID: ${STRATEGY_LAB_V2_FORWARD_WORKER_ID:-}
+      STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT: ${STRATEGY_LAB_V2_FORWARD_RUNTIME_PROFILE_FINGERPRINT:-}
+      STRATEGY_LAB_V2_FORWARD_MIGRATIONS_ENABLED: ${STRATEGY_LAB_V2_FORWARD_MIGRATIONS_ENABLED:-true}
+      STRATEGY_LAB_V2_FORWARD_MIGRATION_TARGET: ${STRATEGY_LAB_V2_FORWARD_MIGRATION_TARGET:-head}
+      STRATEGY_LAB_V2_FORWARD_QUEUE: ${STRATEGY_LAB_V2_FORWARD_QUEUE:-forward-events}
+      STRATEGY_LAB_V2_FORWARD_GROUP: ${STRATEGY_LAB_V2_FORWARD_GROUP:-strategy-lab-v2-forward}
+      STRATEGY_LAB_V2_FORWARD_INTERVAL_SECONDS: ${STRATEGY_LAB_V2_FORWARD_INTERVAL_SECONDS:-1.0}
+      STRATEGY_LAB_V2_FORWARD_RECLAIM_IDLE_MS: ${STRATEGY_LAB_V2_FORWARD_RECLAIM_IDLE_MS:-30000}
+      STRATEGY_LAB_V2_FORWARD_BATCH_SIZE: ${STRATEGY_LAB_V2_FORWARD_BATCH_SIZE:-1}
+      STRATEGY_LAB_V2_FORWARD_BLOCK_MS: ${STRATEGY_LAB_V2_FORWARD_BLOCK_MS:-0}
+    volumes:
+      - strategy_lab_artifacts:/strategy-lab-artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [charting]
 
   # User code never runs in FastAPI or the general worker. This service has no
   # network, no provider credentials, a read-only root filesystem, dropped Linux

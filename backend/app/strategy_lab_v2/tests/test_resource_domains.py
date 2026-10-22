@@ -1,0 +1,892 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, replace
+from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Any
+
+import pytest
+
+from app.strategy_lab_v2.api_resources import ApiResourceType
+from app.strategy_lab_v2.canonical import (
+    canonical_json,
+    content_digest,
+    content_digest_dataclass_projection,
+)
+from app.strategy_lab_v2.capabilities import (
+    CapabilityCell,
+    CapabilityRequirement,
+    preflight_capabilities,
+)
+from app.strategy_lab_v2.contracts import (
+    AdjustmentMode,
+    EventGranularity,
+    ExperimentDefinition,
+    ProductClass,
+    SelectedStudyArtifactReference,
+    StrategyVersion,
+)
+from app.strategy_lab_v2.forward_execution_plan import ForwardExecutionPlan
+from app.strategy_lab_v2.resource_domains import (
+    normalize_resource_attributes,
+    rehydrate_resource_contract,
+)
+from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
+
+SOURCE_DIGEST = content_digest("strategy-source")
+ARTIFACT_DIGEST = content_digest("dependency-wheel")
+
+
+@dataclass(frozen=True)
+class _PersistedOwnerGraph:
+    strategy_attributes: dict[str, Any]
+
+
+def _plain_json(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: _plain_json(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_plain_json(item) for item in value]
+    return value
+
+
+def _attributes() -> dict:
+    return {
+        "strategy_id": "momentum",
+        "version_id": "2026-09-17",
+        "sdk_version": "strategy-sdk.v2",
+        "source_digest": SOURCE_DIGEST,
+        "dependencies": [
+            {
+                "distribution": "numpy",
+                "version": "2.0.0",
+                "artifact_digest": ARTIFACT_DIGEST,
+            }
+        ],
+        "parameter_schema": {"lookback": {"type": "integer"}},
+        "default_parameters": {"lookback": 20},
+    }
+
+
+def _selected_study_artifact() -> dict[str, Any]:
+    return {
+        "research_run_id": 41,
+        "code_version_id": 12,
+        "artifact_id": 87,
+        "artifact_name": "parameters",
+        "artifact_type": "strategy_parameters",
+        "output_contract": "strategy-parameters.v1",
+        "run_reproducibility_hash": "run-hash-41",
+        "code_version_digest": content_digest("code-version"),
+        "dataset_manifest_digest": content_digest("dataset-manifest"),
+        "artifact_content_digest": content_digest({"lookback": 20}),
+    }
+
+
+def test_strategy_attributes_are_normalized_and_domain_fingerprinted() -> None:
+    result = normalize_resource_attributes(ApiResourceType.STRATEGY, _attributes())
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["strategy_id"] == "momentum"
+    assert result.attributes["dependencies"][0]["distribution"] == "numpy"
+    assert result.attributes["dependencies"][0]["version"] == "2.0.0"
+    assert result.attributes["parameter_schema"]["lookback"]["type"] == "integer"
+
+    reordered = _attributes()
+    reordered["dependencies"] = list(reversed(reordered["dependencies"]))
+    assert normalize_resource_attributes(ApiResourceType.STRATEGY, reordered) == result
+
+
+def test_persisted_strategy_attributes_rehydrate_to_the_same_typed_contract() -> None:
+    normalized = normalize_resource_attributes(ApiResourceType.STRATEGY, _attributes())
+
+    restored = rehydrate_resource_contract(ApiResourceType.STRATEGY, normalized.attributes)
+
+    assert isinstance(restored, StrategyVersion)
+    expected = normalized.typed_contract
+    assert isinstance(expected, StrategyVersion)
+    assert restored.fingerprint == normalized.domain_fingerprint
+    assert restored.fingerprint == expected.fingerprint
+
+
+def test_strategy_without_study_reference_keeps_historical_fingerprint_projection() -> None:
+    strategy = normalize_resource_attributes(ApiResourceType.STRATEGY, _attributes()).typed_contract
+
+    assert isinstance(strategy, StrategyVersion)
+    assert (
+        "selected_study_artifact"
+        not in normalize_resource_attributes(ApiResourceType.STRATEGY, _attributes()).attributes
+    )
+    assert strategy.fingerprint == content_digest_dataclass_projection(
+        strategy,
+        (
+            "strategy_id",
+            "version_id",
+            "sdk_version",
+            "source_digest",
+            "dependencies",
+            "parameter_schema",
+            "default_parameters",
+        ),
+    )
+    assert strategy.fingerprint == content_digest(strategy)
+    assert "selected_study_artifact" not in canonical_json(strategy)
+
+
+def test_explicit_null_asdict_roundtrip_preserves_pre_change_strategy_golden() -> None:
+    manifest = _inputs()["strategy_manifest"]
+    original = manifest.strategy
+    serialized = asdict(
+        _PersistedOwnerGraph(
+            {
+                "strategy_id": original.strategy_id,
+                "version_id": original.version_id,
+                "sdk_version": original.sdk_version,
+                "source_digest": original.source_digest,
+                "dependencies": [
+                    {
+                        "distribution": item.distribution,
+                        "version": item.version,
+                        "artifact_digest": item.artifact_digest,
+                    }
+                    for item in original.dependencies
+                ],
+                "parameter_schema": _plain_json(original.parameter_schema),
+                "default_parameters": _plain_json(original.default_parameters),
+                "selected_study_artifact": None,
+            }
+        )
+    )["strategy_attributes"]
+
+    assert serialized["selected_study_artifact"] is None
+    normalized = normalize_resource_attributes(ApiResourceType.STRATEGY, serialized)
+    restored = rehydrate_resource_contract(ApiResourceType.STRATEGY, normalized.attributes)
+
+    assert isinstance(restored, StrategyVersion)
+    assert restored.selected_study_artifact is None
+    assert "selected_study_artifact" not in normalized.attributes
+    assert (
+        restored.fingerprint
+        == original.fingerprint
+        == ("sha256:b9cd02de1e0b205ea040cf33badba19f39715a2145a8306effb9573c6d2a8ddd")
+    )
+
+
+def test_no_reference_nested_sdk_and_package_identities_match_pre_change_goldens() -> None:
+    values = _inputs()
+    manifest = values["strategy_manifest"]
+    package = values["strategy_package"]
+
+    # Generated from the exact 42c05021 Git objects in a separate interpreter;
+    # fixed values deliberately do not call the canonical helpers as an oracle.
+    assert manifest.strategy.fingerprint == (
+        "sha256:b9cd02de1e0b205ea040cf33badba19f39715a2145a8306effb9573c6d2a8ddd"
+    )
+    assert manifest.fingerprint == (
+        "sha256:7a39bba534453a2ce621add3d4f6edda60f642285f198022360e1405de823907"
+    )
+    assert package.fingerprint == (
+        "sha256:c806796528369f35a386b63a2357e5a420f5122ff25876fa9fe778c12831a884"
+    )
+
+    referenced_strategy = replace(
+        manifest.strategy,
+        selected_study_artifact=SelectedStudyArtifactReference(**_selected_study_artifact()),
+    )
+    referenced_manifest = replace(manifest, strategy=referenced_strategy)
+    referenced_package = replace(package, strategy_fingerprint=referenced_strategy.fingerprint)
+    assert referenced_manifest.fingerprint != manifest.fingerprint
+    assert referenced_package.fingerprint != package.fingerprint
+
+
+def test_selected_study_artifact_reference_roundtrips_and_binds_strategy_fingerprint() -> None:
+    attributes = _attributes()
+    attributes["selected_study_artifact"] = _selected_study_artifact()
+    normalized = normalize_resource_attributes(ApiResourceType.STRATEGY, attributes)
+    restored = rehydrate_resource_contract(ApiResourceType.STRATEGY, normalized.attributes)
+
+    assert isinstance(normalized.typed_contract, StrategyVersion)
+    assert isinstance(restored, StrategyVersion)
+    assert restored.selected_study_artifact == SelectedStudyArtifactReference(
+        **_selected_study_artifact()
+    )
+    assert restored.fingerprint == normalized.domain_fingerprint
+    assert (
+        restored.fingerprint
+        != normalize_resource_attributes(ApiResourceType.STRATEGY, _attributes()).domain_fingerprint
+    )
+
+
+def test_selected_study_artifact_rejects_untrusted_extra_or_malformed_fields() -> None:
+    extra = _attributes()
+    extra["selected_study_artifact"] = {**_selected_study_artifact(), "verified": True}
+    with pytest.raises(ValueError, match="exactly the immutable reference fields"):
+        normalize_resource_attributes(ApiResourceType.STRATEGY, extra)
+
+    malformed = _attributes()
+    malformed["selected_study_artifact"] = {
+        **_selected_study_artifact(),
+        "artifact_id": True,
+    }
+    with pytest.raises(ValueError, match="artifact_id must be a positive integer"):
+        normalize_resource_attributes(ApiResourceType.STRATEGY, malformed)
+
+    malformed_text = _attributes()
+    malformed_text["selected_study_artifact"] = {
+        **_selected_study_artifact(),
+        "artifact_name": 87,
+    }
+    with pytest.raises(ValueError, match="artifact_name must be a non-empty string"):
+        normalize_resource_attributes(ApiResourceType.STRATEGY, malformed_text)
+
+
+def test_rehydration_fails_closed_for_untyped_resource_domains() -> None:
+    with pytest.raises(ValueError, match="no typed domain contract"):
+        rehydrate_resource_contract(
+            ApiResourceType.ARTIFACT,
+            {"name": "artifact"},
+        )
+
+
+def test_strategy_resource_id_aliases_must_agree() -> None:
+    attributes = _attributes()
+    attributes.update({"id": "one", "resource_id": "two"})
+
+    try:
+        normalize_resource_attributes(ApiResourceType.STRATEGY, attributes)
+    except ValueError as error:
+        assert "must agree" in str(error)
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("conflicting strategy resource IDs should be rejected")
+
+
+def test_strategy_rejects_unknown_or_invalid_dependency_fields() -> None:
+    unknown = _attributes()
+    unknown["network"] = True
+    try:
+        normalize_resource_attributes(ApiResourceType.STRATEGY, unknown)
+    except ValueError as error:
+        assert "unsupported fields" in str(error)
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("unknown strategy fields should be rejected")
+
+    malformed = _attributes()
+    malformed["dependencies"] = [{"distribution": "numpy"}]
+    try:
+        normalize_resource_attributes(ApiResourceType.STRATEGY, malformed)
+    except ValueError as error:
+        assert "distribution" in str(error)
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("malformed strategy dependencies should be rejected")
+
+
+def test_non_domain_resources_remain_frozen_until_their_domain_adapter_exists() -> None:
+    attributes = {"name": "artifact", "nested": {"values": [1, 2]}}
+
+    result = normalize_resource_attributes(ApiResourceType.ARTIFACT, attributes)
+
+    assert result.domain_fingerprint is None
+    assert result.attributes["nested"]["values"] == (1, 2)
+
+
+def test_package_attributes_are_normalized_and_domain_fingerprinted() -> None:
+    attributes = {
+        "package_id": "momentum-package",
+        "strategy_fingerprint": content_digest("strategy-version"),
+        "package_format": "source_archive",
+        "archive_digest": content_digest("strategy-archive"),
+        "manifest_digest": content_digest("strategy-manifest"),
+        "dependency_lock_digest": content_digest("dependency-lock"),
+        "archive_byte_length": 128,
+        "entrypoint": "strategy.main:run",
+        "sdk_version": "strategy-sdk.v2",
+        "runtime_abi": "python3.12-linux-arm64",
+    }
+
+    result = normalize_resource_attributes(ApiResourceType.PACKAGE, attributes)
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["package_format"] == "source_archive"
+    assert result.attributes["archive_byte_length"] == 128
+
+
+def test_package_rejects_unknown_fields_and_invalid_runtime_identity() -> None:
+    unknown = {
+        "package_id": "pkg",
+        "unexpected": True,
+    }
+    try:
+        normalize_resource_attributes(ApiResourceType.PACKAGE, unknown)
+    except ValueError as error:
+        assert "unsupported fields" in str(error)
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("unknown package fields should be rejected")
+
+    invalid = {
+        "package_id": "pkg",
+        "strategy_fingerprint": "sha256:bad",
+        "package_format": "wheel",
+        "archive_digest": ARTIFACT_DIGEST,
+        "manifest_digest": ARTIFACT_DIGEST,
+        "dependency_lock_digest": ARTIFACT_DIGEST,
+        "archive_byte_length": 0,
+        "entrypoint": "not-an-entrypoint",
+        "sdk_version": "sdk",
+        "runtime_abi": "abi",
+    }
+    try:
+        normalize_resource_attributes(ApiResourceType.PACKAGE, invalid)
+    except ValueError as error:
+        assert "invalid" in str(error) or "digest" in str(error)
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("invalid package identity should be rejected")
+
+
+def test_portfolio_attributes_are_normalized_with_risk_and_rebalance_contracts() -> None:
+    attributes = {
+        "portfolio_id": "balanced",
+        "version_id": "v1",
+        "initial_capital": "100000.00",
+        "base_currency": "usd",
+        "components": [
+            {
+                "component_id": "momentum",
+                "strategy_fingerprint": content_digest("momentum-strategy"),
+                "instrument_ids": ["US.AAPL", "US.MSFT"],
+                "capital_weight": "0.60",
+                "priority": 2,
+            },
+            {
+                "component_id": "defensive",
+                "strategy_fingerprint": content_digest("defensive-strategy"),
+                "instrument_ids": ["US.TLT"],
+                "capital_weight": "0.40",
+            },
+        ],
+        "rebalance_policy": {
+            "calendar_id": "nyse",
+            "calendar_fingerprint": content_digest("nyse-calendar"),
+            "cadence": "monthly",
+            "trigger": "session_close_after_events",
+            "selection": "last_session",
+            "misfire_policy": "fail_run",
+        },
+        "shared_risk_policy": {
+            "max_gross_exposure_fraction": "1.25",
+            "max_net_exposure_fraction": "0.80",
+            "max_component_leverage": "1.25",
+            "allow_short_positions": False,
+            "target_conflict_policy": "reject",
+            "risk_models": [
+                {
+                    "product_class": "equity",
+                    "exposure_measure": "signed_base_notional",
+                    "definition_digest": content_digest("equity-risk"),
+                }
+            ],
+        },
+    }
+
+    result = normalize_resource_attributes(ApiResourceType.PORTFOLIO, attributes)
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["base_currency"] == "USD"
+    assert result.attributes["initial_capital"] == Decimal("100000.00")
+    assert result.attributes["components"][0]["capital_weight"] == Decimal("0.60")
+    assert result.attributes["rebalance_policy"]["cadence"] == "monthly"
+    assert result.attributes["shared_risk_policy"]["risk_models"][0]["product_class"] == "equity"
+
+
+def test_portfolio_rejects_unknown_fields_and_overweight_components() -> None:
+    attributes = {
+        "portfolio_id": "balanced",
+        "version_id": "v1",
+        "initial_capital": "1000",
+        "base_currency": "USD",
+        "components": [
+            {
+                "component_id": "one",
+                "strategy_fingerprint": content_digest("one"),
+                "instrument_ids": ["US.AAPL"],
+                "capital_weight": "0.75",
+            },
+            {
+                "component_id": "two",
+                "strategy_fingerprint": content_digest("two"),
+                "instrument_ids": ["US.MSFT"],
+                "capital_weight": "0.50",
+            },
+        ],
+    }
+
+    with pytest.raises(ValueError, match="must not exceed one"):
+        normalize_resource_attributes(ApiResourceType.PORTFOLIO, attributes)
+
+    unknown: dict[str, Any] = dict(attributes)
+    unknown["unexpected"] = True
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.PORTFOLIO, unknown)
+
+
+def test_experiment_attributes_are_normalized_and_strategy_order_is_canonical() -> None:
+    first = content_digest("strategy-one")
+    second = content_digest("strategy-two")
+    package_bindings = {
+        first: content_digest("package-one"),
+        second: content_digest("package-two"),
+    }
+    attributes = {
+        "experiment_id": "momentum-search",
+        "portfolio_fingerprint": content_digest("portfolio-v1"),
+        "strategy_fingerprints": [second, first],
+        "snapshot_fingerprint": content_digest("snapshot-v1"),
+        "capability_contract_digest": content_digest("capability-v1"),
+        "seed": 42,
+        "metric_definition_version": "strategy-lab.metrics.v1",
+        "engine_contract": {"engine": "nautilus", "version": "v2"},
+        "strategy_package_fingerprints": package_bindings,
+    }
+
+    result = normalize_resource_attributes(ApiResourceType.EXPERIMENT, attributes)
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["strategy_fingerprints"] == tuple(sorted((first, second)))
+    assert result.attributes["strategy_package_fingerprints"] == package_bindings
+    assert result.attributes["seed"] == 42
+    assert result.attributes["engine_contract"]["version"] == "v2"
+
+    restored = rehydrate_resource_contract(ApiResourceType.EXPERIMENT, result.attributes)
+    assert isinstance(restored, ExperimentDefinition)
+    assert restored.strategy_package_fingerprints == package_bindings
+
+
+def test_experiment_rejects_incomplete_strategy_package_bindings() -> None:
+    first = content_digest("strategy-one")
+    second = content_digest("strategy-two")
+    attributes = {
+        "experiment_id": "momentum-search",
+        "portfolio_fingerprint": content_digest("portfolio-v1"),
+        "strategy_fingerprints": [first, second],
+        "snapshot_fingerprint": content_digest("snapshot-v1"),
+        "capability_contract_digest": content_digest("capability-v1"),
+        "seed": 42,
+        "metric_definition_version": "strategy-lab.metrics.v1",
+        "strategy_package_fingerprints": {first: content_digest("package-one")},
+    }
+
+    with pytest.raises(ValueError, match="one package for every strategy version"):
+        normalize_resource_attributes(ApiResourceType.EXPERIMENT, attributes)
+
+
+def test_experiment_rejects_non_integer_seed_and_unknown_fields() -> None:
+    attributes = {
+        "experiment_id": "search",
+        "portfolio_fingerprint": content_digest("portfolio"),
+        "strategy_fingerprints": [content_digest("strategy")],
+        "snapshot_fingerprint": content_digest("snapshot"),
+        "capability_contract_digest": content_digest("capability"),
+        "seed": "42",
+        "metric_definition_version": "metrics.v1",
+    }
+
+    with pytest.raises(ValueError, match="seed must be an integer"):
+        normalize_resource_attributes(ApiResourceType.EXPERIMENT, attributes)
+
+    unknown: dict[str, Any] = dict(attributes)
+    unknown["unexpected"] = True
+    unknown["seed"] = 42
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.EXPERIMENT, unknown)
+
+
+def test_attempt_attributes_are_normalized_with_utc_lifecycle_timestamps() -> None:
+    created_at = datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
+    result = normalize_resource_attributes(
+        ApiResourceType.ATTEMPT,
+        {
+            "attempt_id": content_digest("attempt-1"),
+            "trial_id": content_digest("trial-1"),
+            "ordinal": 1,
+            "state": "queued",
+            "created_at": "2026-09-17T12:00:00Z",
+            "updated_at": created_at,
+            "resource_id": "attempt-1",
+        },
+    )
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["state"] == "queued"
+    assert result.attributes["created_at"] == created_at
+    assert result.attributes["updated_at"] == created_at
+    assert result.attributes["resource_id"] == "attempt-1"
+
+
+def test_attempt_rejects_naive_timestamps_and_invalid_state() -> None:
+    attributes = {
+        "attempt_id": content_digest("attempt-1"),
+        "trial_id": content_digest("trial-1"),
+        "ordinal": 1,
+        "state": "not-a-state",
+        "created_at": "2026-09-17T12:00:00",
+    }
+
+    with pytest.raises(ValueError, match="invalid"):
+        normalize_resource_attributes(ApiResourceType.ATTEMPT, attributes)
+
+    attributes["state"] = "queued"
+    with pytest.raises(ValueError, match="timezone-aware"):
+        normalize_resource_attributes(ApiResourceType.ATTEMPT, attributes)
+
+
+def _preflight_payload() -> dict:
+    start = datetime(2020, 1, 1, tzinfo=UTC)
+    end = datetime(2022, 1, 1, tzinfo=UTC)
+    requirement = CapabilityRequirement(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularity=EventGranularity.BAR,
+        event_type="ohlcv",
+        timeframe="1d",
+        start=start,
+        end=end,
+        adjustment=AdjustmentMode.SPLIT_ADJUSTED,
+        session="regular",
+        feed="consolidated",
+        execution_model="bar-close",
+        account_model="cash-equity",
+        corporate_action_semantics="split-adjusted-v1",
+    )
+    cell = CapabilityCell(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularities=frozenset({EventGranularity.BAR}),
+        event_types=frozenset({"ohlcv"}),
+        timeframes=frozenset({"1d"}),
+        adjustments=frozenset({AdjustmentMode.SPLIT_ADJUSTED}),
+        sessions=frozenset({"regular"}),
+        feeds=frozenset({"consolidated"}),
+        execution_models=frozenset({"bar-close"}),
+        account_models=frozenset({"cash-equity"}),
+        corporate_action_semantics=frozenset({"split-adjusted-v1"}),
+        history_start=start,
+        history_end=end,
+        evidence_digest=content_digest("capability-evidence"),
+    )
+    return asdict(preflight_capabilities((requirement,), (cell,)))
+
+
+def test_snapshot_attributes_rehydrate_preflight_and_series_contracts() -> None:
+    start = datetime(2020, 1, 1, tzinfo=UTC)
+    end = datetime(2022, 1, 1, tzinfo=UTC)
+    result = normalize_resource_attributes(
+        ApiResourceType.SNAPSHOT,
+        {
+            "snapshot_id": "snapshot-v1",
+            "provider_snapshot_id": "provider-v1",
+            "preflight_report": _preflight_payload(),
+            "series": [
+                {
+                    "instrument_id": "US.AAPL",
+                    "event_type": "ohlcv",
+                    "event_granularity": "bar",
+                    "timeframe": "1d",
+                    "session": "regular",
+                    "feed": "consolidated",
+                    "start": start,
+                    "end": end,
+                    "adjustment": "split_adjusted",
+                    "corporate_action_semantics": "split-adjusted-v1",
+                    "coverage_evidence_digest": content_digest("coverage"),
+                    "content_digest": content_digest("series"),
+                    "row_count": 500,
+                }
+            ],
+            "created_at": "2026-09-17T12:00:00Z",
+            "etf_memberships": [
+                {
+                    "etf_instrument_id": "US.ARCA.SPY",
+                    "decision_time": "2022-01-01T00:00:00Z",
+                    "snapshot_id": 41,
+                    "content_digest": content_digest("frozen-spy-membership"),
+                }
+            ],
+            "resource_id": "snapshot-1",
+        },
+    )
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["snapshot_id"] == "snapshot-v1"
+    assert (
+        result.attributes["preflight_report"]["fingerprint"] == _preflight_payload()["fingerprint"]
+    )
+    assert result.attributes["series"][0]["adjustment"] == "split_adjusted"
+    assert result.attributes["etf_memberships"][0]["snapshot_id"] == 41
+    assert result.attributes["created_at"] == datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
+
+
+def test_snapshot_rejects_tampered_preflight_or_series_fields() -> None:
+    preflight = _preflight_payload()
+    preflight["fingerprint"] = content_digest("tampered")
+    base = {
+        "snapshot_id": "snapshot-v1",
+        "provider_snapshot_id": "provider-v1",
+        "preflight_report": preflight,
+        "series": [],
+        "created_at": "2026-09-17T12:00:00Z",
+    }
+    with pytest.raises(ValueError, match="fingerprint"):
+        normalize_resource_attributes(ApiResourceType.SNAPSHOT, base)
+
+    unknown: dict[str, Any] = dict(base)
+    unknown["unexpected"] = True
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.SNAPSHOT, unknown)
+
+
+def test_trial_attributes_generate_and_bind_reproducible_trial_identity() -> None:
+    result = normalize_resource_attributes(
+        ApiResourceType.TRIAL,
+        {
+            "experiment_fingerprint": content_digest("experiment-v1"),
+            "snapshot_fingerprint": content_digest("snapshot-v1"),
+            "preflight_report": _preflight_payload(),
+            "parameter_set": {"lookback": 20, "threshold": "0.03"},
+            "scenario": {"slippage_bps": 2},
+            "seed": 19,
+            "evaluation_window": {
+                "start": "2021-01-01T00:00:00Z",
+                "end": "2021-12-31T00:00:00Z",
+                "purpose": "out_of_sample",
+                "warmup_start": "2020-12-01T00:00:00Z",
+            },
+            "resource_id": "trial-1",
+        },
+    )
+
+    assert result.domain_fingerprint == result.attributes["trial_id"]
+    assert result.attributes["randomization"]["policy"] == "per_candidate"
+    assert result.attributes["evaluation_window"]["purpose"] == "out_of_sample"
+    assert result.attributes["parameter_set"]["lookback"] == 20
+
+
+def test_trial_rejects_mismatched_identity_and_invalid_randomization() -> None:
+    attributes = {
+        "trial_id": content_digest("not-the-derived-id"),
+        "experiment_fingerprint": content_digest("experiment-v1"),
+        "snapshot_fingerprint": content_digest("snapshot-v1"),
+        "preflight_report": _preflight_payload(),
+        "parameter_set": {},
+        "scenario": {},
+        "seed": 19,
+    }
+
+    with pytest.raises(ValueError, match="trial_id"):
+        normalize_resource_attributes(ApiResourceType.TRIAL, attributes)
+
+    attributes.pop("trial_id")
+    attributes["randomization"] = {"policy": "not-a-policy"}
+    with pytest.raises(ValueError, match="required|invalid"):
+        normalize_resource_attributes(ApiResourceType.TRIAL, attributes)
+
+
+def test_metric_set_attributes_are_normalized_with_calculation_and_evidence() -> None:
+    definition_version = "strategy-lab.metrics.v1"
+    result = normalize_resource_attributes(
+        ApiResourceType.METRIC_SET,
+        {
+            "metric_set_id": "metric-set-1",
+            "trial_id": content_digest("trial-1"),
+            "attempt_id": content_digest("attempt-1"),
+            "definition_version": definition_version,
+            "values": [
+                {
+                    "name": "annual_return",
+                    "value": "0.1234",
+                    "unit": "fraction",
+                    "definition_version": definition_version,
+                    "basis": "net",
+                    "sample_size": 252,
+                    "annualization_basis": "trading_sessions_252",
+                    "calculation_basis": "equity_curve",
+                    "calculation_definition": {
+                        "formula_id": "annualized-return",
+                        "contract_version": "metrics-formula.v1",
+                        "parameters": {"sessions_per_year": 252},
+                    },
+                    "evidence_references": [
+                        {"role": "equity-curve", "digest": content_digest("equity-curve")}
+                    ],
+                },
+                {
+                    "name": "sortino",
+                    "value": None,
+                    "unit": "ratio",
+                    "definition_version": definition_version,
+                    "basis": "net",
+                    "sample_size": 0,
+                    "null_reason": "insufficient downside observations",
+                },
+            ],
+            "created_at": "2026-09-17T12:00:00Z",
+            "resource_id": "metric-set-1",
+        },
+    )
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["values"][0]["name"] == "annual_return"
+    assert result.attributes["values"][0]["value"] == Decimal("0.1234")
+    assert result.attributes["values"][0]["calculation_definition"]["formula_id"] == (
+        "annualized-return"
+    )
+    assert result.attributes["values"][1]["null_reason"] == "insufficient downside observations"
+
+
+def test_metric_set_rejects_null_values_without_reasons_or_unknown_fields() -> None:
+    attributes: dict[str, Any] = {
+        "metric_set_id": "metric-set-1",
+        "trial_id": content_digest("trial-1"),
+        "attempt_id": content_digest("attempt-1"),
+        "definition_version": "metrics.v1",
+        "values": [
+            {
+                "name": "sharpe",
+                "value": None,
+                "unit": "ratio",
+                "definition_version": "metrics.v1",
+                "basis": "net",
+                "sample_size": 0,
+            }
+        ],
+        "created_at": "2026-09-17T12:00:00Z",
+    }
+    with pytest.raises(ValueError, match="null_reason"):
+        normalize_resource_attributes(ApiResourceType.METRIC_SET, attributes)
+
+    attributes["values"][0]["null_reason"] = "not enough data"
+    unknown: dict[str, Any] = dict(attributes)
+    unknown["unexpected"] = True
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.METRIC_SET, unknown)
+
+
+def test_forward_instance_attributes_are_normalized_as_typed_state() -> None:
+    result = normalize_resource_attributes(
+        ApiResourceType.FORWARD_INSTANCE,
+        {
+            "instance_id": "forward-1",
+            "portfolio_fingerprint": content_digest("portfolio-v1"),
+            "warmup_snapshot_fingerprint": content_digest("snapshot-v1"),
+            "carry_in_mode": "synthetic_historical",
+            "state": "active",
+            "last_event_id": "event-42",
+            "last_event_sequence": 42,
+            "correction_count": 2,
+            "created_at": "2026-09-17T12:00:00+01:00",
+            "updated_at": "2026-09-17T12:30:00+01:00",
+            "resource_id": "forward-1",
+            "id": "forward-1",
+        },
+    )
+
+    assert result.domain_fingerprint is not None
+    assert result.attributes["carry_in_mode"] == "synthetic_historical"
+    assert result.attributes["state"] == "active"
+    assert result.attributes["last_event_sequence"] == 42
+    assert result.attributes["created_at"].isoformat() == "2026-09-17T11:00:00+00:00"
+    without_api_ids = {
+        key: value for key, value in result.attributes.items() if key not in {"resource_id", "id"}
+    }
+    assert (
+        normalize_resource_attributes(
+            ApiResourceType.FORWARD_INSTANCE,
+            without_api_ids,
+        ).attributes["resource_id"]
+        == "forward-1"
+    )
+
+
+def test_forward_instance_rejects_invalid_progress_and_identity_fields() -> None:
+    attributes: dict[str, Any] = {
+        "instance_id": "forward-1",
+        "portfolio_fingerprint": content_digest("portfolio-v1"),
+        "warmup_snapshot_fingerprint": content_digest("snapshot-v1"),
+        "carry_in_mode": "flat",
+        "state": "created",
+        "last_event_id": None,
+        "last_event_sequence": 1,
+        "correction_count": 0,
+        "created_at": "2026-09-17T12:00:00Z",
+        "updated_at": "2026-09-17T12:00:00Z",
+    }
+    with pytest.raises(ValueError, match="last_event_id"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
+
+    attributes["last_event_sequence"] = 0
+    attributes["state"] = "not-a-state"
+    with pytest.raises(ValueError, match="forward_instance attributes are invalid"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
+
+    attributes["state"] = "created"
+    attributes["resource_id"] = "forward-1"
+    attributes["id"] = "different-id"
+    with pytest.raises(ValueError, match="must agree"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
+
+    attributes.pop("id")
+    attributes["resource_id"] = "another-instance"
+    with pytest.raises(ValueError, match="must equal its instance id"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_INSTANCE, attributes)
+
+
+def _forward_execution_plan_attributes() -> dict[str, Any]:
+    return {
+        "instance_id": "forward-1",
+        "portfolio_fingerprint": content_digest("portfolio-v1"),
+        "components": [
+            {
+                "component_id": "momentum",
+                "strategy_fingerprint": content_digest("strategy-v1"),
+                "package_fingerprint": content_digest("package-v1"),
+                "parameters": {"lookback": 20},
+                "random_seed": 42,
+            }
+        ],
+    }
+
+
+def test_forward_execution_plan_is_a_typed_instance_keyed_resource() -> None:
+    attributes = _forward_execution_plan_attributes()
+    attributes["resource_id"] = "forward-1"
+
+    normalized = normalize_resource_attributes(
+        ApiResourceType.FORWARD_EXECUTION_PLAN,
+        attributes,
+    )
+    restored = rehydrate_resource_contract(
+        ApiResourceType.FORWARD_EXECUTION_PLAN,
+        normalized.attributes,
+        expected_domain_fingerprint=normalized.domain_fingerprint,
+    )
+
+    assert isinstance(normalized.typed_contract, ForwardExecutionPlan)
+    assert normalized.attributes["resource_id"] == "forward-1"
+    assert isinstance(restored, ForwardExecutionPlan)
+    assert restored.fingerprint == normalized.typed_contract.fingerprint
+
+
+def test_forward_execution_plan_rejects_ambiguous_resource_and_component_fields() -> None:
+    mismatched_id = _forward_execution_plan_attributes()
+    mismatched_id["resource_id"] = "another-instance"
+    with pytest.raises(ValueError, match="resource id must equal its instance id"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_EXECUTION_PLAN, mismatched_id)
+
+    malformed = _forward_execution_plan_attributes()
+    malformed["components"] = [{"component_id": "momentum"}]
+    with pytest.raises(ValueError, match="require component_id"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_EXECUTION_PLAN, malformed)
+
+    unknown = _forward_execution_plan_attributes()
+    unknown["broker"] = "disabled"
+    with pytest.raises(ValueError, match="unsupported fields"):
+        normalize_resource_attributes(ApiResourceType.FORWARD_EXECUTION_PLAN, unknown)

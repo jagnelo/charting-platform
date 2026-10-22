@@ -6,7 +6,8 @@
  */
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
 import { closePopupWhenOpen } from './popup_cleanup'
-import type { Locator, Page } from '@playwright/test'
+import { requestsStartedWhileHidden } from './hidden_request_observation'
+import type { Locator, Page, Request } from '@playwright/test'
 
 async function findNarrowVisibleChart(page: Page): Promise<Locator> {
   const charts = page.locator('.chart-tool:visible')
@@ -3309,10 +3310,12 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8l — hidden workstation surfaces suspend market-analysis refreshes', async ({ page, browserDiagnostics }) => {
-    const refreshRequests: string[] = []
+    const refreshRequests: Request[] = []
     page.on('request', request => {
       const path = new URL(request.url()).pathname
-      if (path.startsWith('/api/v1/market-groups/') || path.startsWith('/api/v1/analysis/')) refreshRequests.push(path)
+      if (path.startsWith('/api/v1/market-groups/') || path.startsWith('/api/v1/analysis/')) {
+        refreshRequests.push(request)
+      }
     })
     await page.goto('/chart')
     await expect(page.locator('.workstation').first()).toBeVisible({ timeout: 10_000 })
@@ -3320,14 +3323,22 @@ test.describe('TC2000 workstation', () => {
     // workstation shell is visible; establish the hidden-state baseline only
     // after that bounded first-load window has settled.
     await page.waitForTimeout(3_000)
-    refreshRequests.length = 0
 
-    await page.evaluate(() => {
+    const hiddenAtEpochMs = await page.evaluate(() => {
+      // Use the browser clock at the same atomic transition as the hidden
+      // state. Node-side timestamps can race the Playwright protocol boundary.
+      const transitionTime = performance.timeOrigin + performance.now()
       Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
       document.dispatchEvent(new Event('visibilitychange'))
+      return transitionTime
     })
     await page.waitForTimeout(1_500)
-    expect(refreshRequests).toEqual([])
+
+    const requestObservations = refreshRequests.map(request => ({
+      path: new URL(request.url()).pathname,
+      startTime: request.timing().startTime,
+    }))
+    expect(requestsStartedWhileHidden(requestObservations, hiddenAtEpochMs)).toEqual([])
 
     await page.evaluate(() => {
       Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })

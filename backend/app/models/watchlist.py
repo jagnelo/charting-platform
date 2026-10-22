@@ -99,3 +99,11 @@ class WatchlistItem(Base):
 
     def __repr__(self) -> str:
         return f"<WatchlistItem watchlist={self.watchlist_id} instrument={self.instrument_id}>"
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.instrument import Instrument
+    from app.models.screener import ScreenerDefinition
+    from app.models.user import User

@@ -27,3 +27,9 @@ class Exchange(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<Exchange mic={self.mic} name={self.name}>"
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.listing import InstrumentListing

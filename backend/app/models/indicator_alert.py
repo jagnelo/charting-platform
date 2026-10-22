@@ -96,3 +96,10 @@ class IndicatorAlert(Base, TimestampMixin):
             f"{self.indicator_a_type} {self.condition} "
             f"{self.threshold_value or self.indicator_b_type}>"
         )
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.instrument import Instrument
+    from app.models.user import User

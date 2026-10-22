@@ -134,9 +134,13 @@ migrate-down:
 
 test-unit:
 	@echo "▶  Backend unit tests (no containers)..."
-	cd backend && $(BACKEND_ENV) uv run pytest tests/unit \
-	  --cov=app --cov-report=term-missing \
-	  --no-header -q
+	cd backend && { \
+	  set -- tests/unit; \
+	  if [ -d app/strategy_lab_v2/tests ]; then set -- "$$@" app/strategy_lab_v2/tests; fi; \
+	  $(BACKEND_ENV) uv run pytest "$$@" \
+	    --cov=app --cov-report=term-missing \
+	    --no-header -q; \
+	}
 
 test-int:
 	@echo "▶  Backend integration tests (testcontainers)..."

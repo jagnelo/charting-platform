@@ -1,6 +1,7 @@
 import enum
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BIGINT,
@@ -19,6 +20,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.base import TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.data_source import DataSource
+    from app.models.instrument import Instrument
+    from app.models.market_data_foundation import MarketSeries
 from app.models.ohlcv import Timeframe
 
 

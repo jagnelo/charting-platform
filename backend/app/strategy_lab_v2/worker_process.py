@@ -1,0 +1,519 @@
+"""Dedicated serial OS-process boundary for one Strategy Lab execution.
+
+Redis remains a transport concern and FastAPI/the general ARQ worker must not
+run Nautilus jobs inline.  This module gives a dedicated worker entrypoint a
+small, spawn-based process adapter: one immutable handoff is sent to one fresh
+child, the child returns only typed execution evidence, and the parent owns
+join/timeout/termination.  It deliberately does not acquire leases, persist
+state, or decide whether a result is authoritative.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import multiprocessing
+import threading
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import StrEnum
+from math import isfinite
+from typing import Any
+
+from app.strategy_lab_v2.admission import ExecutionAdmission
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.conformance import (
+    EngineConformanceEvidence,
+    evaluate_engine_conformance,
+)
+from app.strategy_lab_v2.engine_execution import NautilusExecutionPlan
+from app.strategy_lab_v2.execution import ExecutionAuthorization
+from app.strategy_lab_v2.execution_orchestration import ExecutionOrchestrationPlan
+from app.strategy_lab_v2.lease_observations import LeaseObservationState
+from app.strategy_lab_v2.nautilus_runtime_bundle import NautilusRuntimeInputArtifactReference
+from app.strategy_lab_v2.runtime_execution import (
+    RuntimeExecutionState,
+    StrategyRuntimePreflight,
+    StrategyRuntimeRequest,
+)
+from app.strategy_lab_v2.sandbox import (
+    SandboxCommandPlan,
+    sandbox_account_equity_trace_path,
+    sandbox_context_stream_digest,
+    sandbox_context_stream_path,
+    sandbox_memory_limit_bytes,
+    sandbox_native_reports_path,
+)
+from app.strategy_lab_v2.worker_execution import (
+    WorkerExecutionResolution,
+    execute_worker_handoff,
+)
+from app.strategy_lab_v2.workers import WorkerPoolState
+
+
+@dataclass(frozen=True, slots=True)
+class WorkerExecutionRequest:
+    """Pickle-safe immutable input for one fresh worker process."""
+
+    orchestration_plan: ExecutionOrchestrationPlan
+    authorization: ExecutionAuthorization
+    admission: ExecutionAdmission
+    runtime_request: StrategyRuntimeRequest
+    runtime_preflight: StrategyRuntimePreflight
+    runtime_state: RuntimeExecutionState
+    sandbox_plan: SandboxCommandPlan
+    execution_plan: NautilusExecutionPlan
+    worker_pool: WorkerPoolState
+    lease_state: LeaseObservationState
+    started_at: datetime
+    observed_at: datetime
+    runtime_input_artifact: NautilusRuntimeInputArtifactReference = field(kw_only=True)
+    conformance_evidence: EngineConformanceEvidence | None = field(
+        default=None,
+        kw_only=True,
+    )
+    docker_binary: str = "docker"
+
+    def __post_init__(self) -> None:
+        expected = {
+            "orchestration_plan": ExecutionOrchestrationPlan,
+            "authorization": ExecutionAuthorization,
+            "admission": ExecutionAdmission,
+            "runtime_request": StrategyRuntimeRequest,
+            "runtime_preflight": StrategyRuntimePreflight,
+            "runtime_state": RuntimeExecutionState,
+            "sandbox_plan": SandboxCommandPlan,
+            "execution_plan": NautilusExecutionPlan,
+            "worker_pool": WorkerPoolState,
+            "lease_state": LeaseObservationState,
+        }
+        for name, value_type in expected.items():
+            if not isinstance(getattr(self, name), value_type):
+                raise TypeError(f"{name} must be a {value_type.__name__}")
+        for name in ("started_at", "observed_at"):
+            value = getattr(self, name)
+            if value.tzinfo is None or value.utcoffset() is None:
+                raise ValueError(f"{name} must be timezone-aware")
+        if not isinstance(self.docker_binary, str) or not self.docker_binary.strip():
+            raise ValueError("docker_binary must not be empty")
+        if any(character in self.docker_binary for character in "\x00\r\n"):
+            raise ValueError("docker_binary must not contain control characters")
+        if not isinstance(self.runtime_input_artifact, NautilusRuntimeInputArtifactReference):
+            raise TypeError(
+                "runtime_input_artifact must be a NautilusRuntimeInputArtifactReference"
+            )
+        if self.conformance_evidence is not None:
+            if not isinstance(self.conformance_evidence, EngineConformanceEvidence):
+                raise TypeError("conformance_evidence must be EngineConformanceEvidence or None")
+            evidence = self.conformance_evidence
+            if (
+                evidence.engine_id.lower() != self.execution_plan.engine_id.lower()
+                or evidence.engine_version != self.execution_plan.engine_version
+                or evidence.build_digest != self.execution_plan.engine_build_digest
+                or evaluate_engine_conformance(evidence).fingerprint
+                != self.execution_plan.conformance_report_fingerprint
+            ):
+                raise ValueError("worker conformance evidence differs from the execution plan")
+        if self.runtime_input_artifact.attempt_id != self.runtime_request.attempt_id:
+            raise ValueError("runtime input artifact must reference the runtime attempt")
+        if (
+            self.runtime_input_artifact.input_bundle_digest
+            != self.runtime_request.input_bundle_digest
+        ):
+            raise ValueError("runtime input artifact must match the runtime request digest")
+        if self.runtime_input_artifact.artifact.byte_length > max(
+            1, sandbox_memory_limit_bytes(self.sandbox_plan) // 8
+        ):
+            raise ValueError("runtime input artifact exceeds the worker memory-derived bound")
+        context_reference = self.runtime_input_artifact.context_stream
+        equity_trace_path = sandbox_account_equity_trace_path(self.sandbox_plan)
+        native_reports_path = sandbox_native_reports_path(self.sandbox_plan)
+        if context_reference is None:
+            if (
+                sandbox_context_stream_digest(self.sandbox_plan) is not None
+                or sandbox_context_stream_path(self.sandbox_plan) is not None
+                or equity_trace_path is not None
+                or native_reports_path is not None
+            ):
+                raise ValueError(
+                    "sandbox context/equity stream mounts are not bound to the runtime artifact"
+                )
+        elif (
+            sandbox_context_stream_digest(self.sandbox_plan)
+            != context_reference.artifact.content_digest
+            or sandbox_context_stream_path(self.sandbox_plan) is None
+            or equity_trace_path is None
+            or native_reports_path is None
+        ):
+            raise ValueError(
+                "sandbox context/equity stream mounts differ from the runtime artifact"
+            )
+
+    @property
+    def request_fingerprint(self) -> str:
+        return content_digest(self)
+
+
+class WorkerProcessDecision(StrEnum):
+    COMPLETED = "completed"
+    TIMED_OUT = "timed_out"
+    START_FAILED = "start_failed"
+    CHILD_FAILED = "child_failed"
+
+
+@dataclass(frozen=True, slots=True)
+class WorkerProcessResolution:
+    """Parent-observed lifecycle and typed child evidence."""
+
+    request_fingerprint: str
+    decision: WorkerProcessDecision
+    execution: WorkerExecutionResolution | None = None
+    process_id: int | None = None
+    error_digest: str | None = None
+
+    def __post_init__(self) -> None:
+        require_sha256_digest(self.request_fingerprint, field_name="request_fingerprint")
+        if not isinstance(self.decision, WorkerProcessDecision):
+            raise TypeError("decision must be a WorkerProcessDecision")
+        if self.process_id is not None and (
+            not isinstance(self.process_id, int)
+            or isinstance(self.process_id, bool)
+            or self.process_id < 0
+        ):
+            raise ValueError("process_id must be a non-negative integer or None")
+        if self.error_digest is not None:
+            require_sha256_digest(self.error_digest, field_name="error_digest")
+        if self.decision is WorkerProcessDecision.COMPLETED:
+            if self.execution is None or self.error_digest is not None:
+                raise ValueError("completed worker processes require execution evidence only")
+        elif self.execution is not None or self.error_digest is None:
+            raise ValueError("failed worker processes require an error digest only")
+        if self.execution is not None and not isinstance(self.execution, WorkerExecutionResolution):
+            raise TypeError("execution must be a WorkerExecutionResolution")
+
+    @property
+    def fingerprint(self) -> str:
+        return content_digest(self)
+
+
+ProcessFactory = Callable[..., Any]
+PipeFactory = Callable[[bool], tuple[Any, Any]]
+
+
+class SerialWorkerProcessExecutor:
+    """Run one handoff in one fresh ``spawn`` child at a time."""
+
+    def __init__(
+        self,
+        *,
+        timeout_seconds: float = 300.0,
+        process_factory: ProcessFactory | None = None,
+        pipe_factory: PipeFactory | None = None,
+    ) -> None:
+        if (
+            not isinstance(timeout_seconds, int | float)
+            or isinstance(timeout_seconds, bool)
+            or not isfinite(float(timeout_seconds))
+            or timeout_seconds <= 0
+        ):
+            raise ValueError("timeout_seconds must be a finite positive number")
+        context = multiprocessing.get_context("spawn")
+        self._process_factory = process_factory or context.Process
+        self._pipe_factory = pipe_factory or context.Pipe
+        if not callable(self._process_factory):
+            raise TypeError("process_factory must be callable")
+        if not callable(self._pipe_factory):
+            raise TypeError("pipe_factory must be callable")
+        self._timeout_seconds = float(timeout_seconds)
+        self._run_lock = threading.Lock()
+
+    def run(
+        self,
+        request: WorkerExecutionRequest,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> WorkerProcessResolution:
+        """Execute a single handoff and always reap/terminate its child."""
+
+        if not isinstance(request, WorkerExecutionRequest):
+            raise TypeError("request must be a WorkerExecutionRequest")
+        timeout = self._timeout_seconds if timeout_seconds is None else timeout_seconds
+        if (
+            not isinstance(timeout, int | float)
+            or isinstance(timeout, bool)
+            or not isfinite(float(timeout))
+            or timeout <= 0
+        ):
+            raise ValueError("timeout_seconds must be a finite positive number")
+        if not self._run_lock.acquire(blocking=False):
+            raise RuntimeError("serial worker process executor is already running")
+        receiver = sender = process = None
+        try:
+            receiver, sender = self._pipe_factory(False)
+            process = self._process_factory(target=_child_main, args=(request, sender))
+            try:
+                process.start()
+            except BaseException as error:
+                return WorkerProcessResolution(
+                    request.request_fingerprint,
+                    WorkerProcessDecision.START_FAILED,
+                    process_id=None,
+                    error_digest=_error_digest(error),
+                )
+            sender.close()
+            sender = None
+            process.join(float(timeout))
+            process_id = getattr(process, "pid", None)
+            if process.is_alive():
+                _terminate_and_reap(process)
+                return WorkerProcessResolution(
+                    request.request_fingerprint,
+                    WorkerProcessDecision.TIMED_OUT,
+                    process_id=process_id,
+                    error_digest=content_digest("strategy lab worker process timed out"),
+                )
+            if not receiver.poll():
+                return WorkerProcessResolution(
+                    request.request_fingerprint,
+                    WorkerProcessDecision.CHILD_FAILED,
+                    process_id=process_id,
+                    error_digest=content_digest("strategy lab worker exited without evidence"),
+                )
+            message = receiver.recv()
+            if not isinstance(message, tuple) or len(message) != 2:
+                return WorkerProcessResolution(
+                    request.request_fingerprint,
+                    WorkerProcessDecision.CHILD_FAILED,
+                    process_id=process_id,
+                    error_digest=content_digest("strategy lab worker returned malformed evidence"),
+                )
+            tag, value = message
+            if tag == "completed" and isinstance(value, WorkerExecutionResolution):
+                return WorkerProcessResolution(
+                    request.request_fingerprint,
+                    WorkerProcessDecision.COMPLETED,
+                    execution=value,
+                    process_id=process_id,
+                )
+            if tag == "failed" and isinstance(value, str):
+                require_sha256_digest(value, field_name="child error digest")
+                return WorkerProcessResolution(
+                    request.request_fingerprint,
+                    WorkerProcessDecision.CHILD_FAILED,
+                    process_id=process_id,
+                    error_digest=value,
+                )
+            return WorkerProcessResolution(
+                request.request_fingerprint,
+                WorkerProcessDecision.CHILD_FAILED,
+                process_id=process_id,
+                error_digest=content_digest("strategy lab worker returned invalid evidence"),
+            )
+        finally:
+            if sender is not None:
+                sender.close()
+            if receiver is not None:
+                receiver.close()
+            self._run_lock.release()
+
+    async def run_async(
+        self,
+        request: WorkerExecutionRequest,
+        *,
+        timeout_seconds: float | None = None,
+        poll_interval_seconds: float = 0.005,
+    ) -> WorkerProcessResolution:
+        """Run one spawn child without starting it from an executor thread.
+
+        ``multiprocessing`` spawn bootstrap is tied to the interpreter's main
+        thread in several supported runtimes.  Starting the child here keeps
+        that boundary on the worker event-loop thread while cooperative polling
+        leaves lease-heartbeat tasks responsive.
+        """
+
+        if not isinstance(request, WorkerExecutionRequest):
+            raise TypeError("request must be a WorkerExecutionRequest")
+        timeout = self._timeout_seconds if timeout_seconds is None else timeout_seconds
+        if (
+            not isinstance(timeout, int | float)
+            or isinstance(timeout, bool)
+            or not isfinite(float(timeout))
+            or timeout <= 0
+        ):
+            raise ValueError("timeout_seconds must be a finite positive number")
+        if (
+            not isinstance(poll_interval_seconds, int | float)
+            or isinstance(poll_interval_seconds, bool)
+            or not isfinite(float(poll_interval_seconds))
+            or poll_interval_seconds <= 0
+        ):
+            raise ValueError("poll_interval_seconds must be a finite positive number")
+        if not self._run_lock.acquire(blocking=False):
+            raise RuntimeError("serial worker process executor is already running")
+        receiver = sender = process = None
+        try:
+            receiver, sender = self._pipe_factory(False)
+            process = self._process_factory(target=_child_main, args=(request, sender))
+            try:
+                process.start()
+            except BaseException as error:
+                return WorkerProcessResolution(
+                    request.request_fingerprint,
+                    WorkerProcessDecision.START_FAILED,
+                    process_id=None,
+                    error_digest=_error_digest(error),
+                )
+            sender.close()
+            sender = None
+            deadline = asyncio.get_running_loop().time() + float(timeout)
+            try:
+                while process.is_alive():
+                    if asyncio.get_running_loop().time() >= deadline:
+                        await _terminate_and_reap_async(process)
+                        return WorkerProcessResolution(
+                            request.request_fingerprint,
+                            WorkerProcessDecision.TIMED_OUT,
+                            process_id=getattr(process, "pid", None),
+                            error_digest=content_digest("strategy lab worker process timed out"),
+                        )
+                    await asyncio.sleep(float(poll_interval_seconds))
+            except asyncio.CancelledError:
+                await _terminate_and_reap_async(process)
+                raise
+            process.join()
+            process_id = getattr(process, "pid", None)
+            return _resolution_from_pipe(request.request_fingerprint, receiver, process_id)
+        finally:
+            if sender is not None:
+                sender.close()
+            if receiver is not None:
+                receiver.close()
+            self._run_lock.release()
+
+
+def _terminate_and_reap(process: Any) -> None:
+    """Escalate a timed-out child termination and reap its process handle."""
+
+    process.terminate()
+    process.join(1.0)
+    if process.is_alive():
+        kill = getattr(process, "kill", None)
+        if callable(kill):
+            kill()
+        else:  # pragma: no cover - old/custom process implementations
+            process.terminate()
+        process.join(1.0)
+
+
+async def _terminate_and_reap_async(process: Any) -> None:
+    """Escalate and reap without blocking the worker event loop."""
+
+    process.terminate()
+    await _join_until_reaped(process, timeout_seconds=1.0)
+    if process.is_alive():
+        kill = getattr(process, "kill", None)
+        if callable(kill):
+            kill()
+        else:  # pragma: no cover - old/custom process implementations
+            process.terminate()
+        await _join_until_reaped(process, timeout_seconds=1.0)
+
+
+async def _join_until_reaped(process: Any, *, timeout_seconds: float) -> None:
+    """Poll a process join while yielding to heartbeat and cancellation tasks."""
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout_seconds
+    while process.is_alive() and loop.time() < deadline:
+        process.join(0)
+        if process.is_alive():
+            await asyncio.sleep(0.005)
+    process.join(0)
+
+
+def _resolution_from_pipe(
+    request_fingerprint: str,
+    receiver: Any,
+    process_id: int | None,
+) -> WorkerProcessResolution:
+    """Decode one completed child message for sync and async callers."""
+
+    if not receiver.poll():
+        return WorkerProcessResolution(
+            request_fingerprint,
+            WorkerProcessDecision.CHILD_FAILED,
+            process_id=process_id,
+            error_digest=content_digest("strategy lab worker exited without evidence"),
+        )
+    message = receiver.recv()
+    if not isinstance(message, tuple) or len(message) != 2:
+        return WorkerProcessResolution(
+            request_fingerprint,
+            WorkerProcessDecision.CHILD_FAILED,
+            process_id=process_id,
+            error_digest=content_digest("strategy lab worker returned malformed evidence"),
+        )
+    tag, value = message
+    if tag == "completed" and isinstance(value, WorkerExecutionResolution):
+        return WorkerProcessResolution(
+            request_fingerprint,
+            WorkerProcessDecision.COMPLETED,
+            execution=value,
+            process_id=process_id,
+        )
+    if tag == "failed" and isinstance(value, str):
+        require_sha256_digest(value, field_name="child error digest")
+        return WorkerProcessResolution(
+            request_fingerprint,
+            WorkerProcessDecision.CHILD_FAILED,
+            process_id=process_id,
+            error_digest=value,
+        )
+    return WorkerProcessResolution(
+        request_fingerprint,
+        WorkerProcessDecision.CHILD_FAILED,
+        process_id=process_id,
+        error_digest=content_digest("strategy lab worker returned invalid evidence"),
+    )
+
+
+def _child_main(request: WorkerExecutionRequest, sender: Any) -> None:
+    try:
+        result = execute_worker_handoff(
+            request.orchestration_plan,
+            request.authorization,
+            request.admission,
+            request.runtime_request,
+            request.runtime_preflight,
+            request.runtime_state,
+            request.sandbox_plan,
+            request.execution_plan,
+            worker_pool=request.worker_pool,
+            lease_state=request.lease_state,
+            started_at=request.started_at,
+            observed_at=request.observed_at,
+            runtime_input_artifact=request.runtime_input_artifact,
+            docker_binary=request.docker_binary,
+        )
+        sender.send(("completed", result))
+    except BaseException as error:  # pragma: no cover - child process boundary
+        sender.send(("failed", _error_digest(error)))
+    finally:
+        sender.close()
+
+
+def _error_digest(error: BaseException) -> str:
+    return content_digest(
+        {
+            "type": f"{type(error).__module__}.{type(error).__qualname__}",
+            "version": "strategy-lab.worker-process.error.v1",
+        }
+    )
+
+
+__all__ = [
+    "SerialWorkerProcessExecutor",
+    "WorkerExecutionRequest",
+    "WorkerProcessDecision",
+    "WorkerProcessResolution",
+]

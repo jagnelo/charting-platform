@@ -1,6 +1,8 @@
 import asyncio
 import logging
+from collections.abc import AsyncGenerator, Coroutine
 from inspect import isawaitable
+from typing import Any, cast
 
 import anyio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -70,7 +72,7 @@ async def _finish_cleanup(operation, description: str) -> None:
     # is no child task to shield in that case.
     if not isawaitable(operation):
         return
-    cleanup_task = asyncio.create_task(operation)
+    cleanup_task = asyncio.create_task(cast(Coroutine[Any, Any, Any], operation))
     try:
         await asyncio.shield(cleanup_task)
     except BaseException:
@@ -103,7 +105,7 @@ async def close_session_safely(session: AsyncSession) -> None:
         )
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Yield a request-scoped session with cancellation-safe cleanup.
 
     ASGI streaming responses can be cancelled when a browser closes the

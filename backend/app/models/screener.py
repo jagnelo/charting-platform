@@ -133,3 +133,9 @@ class ScreenerResult(Base):
 
     def __repr__(self) -> str:
         return f"<ScreenerResult screener_id={self.screener_id} matched={len(self.matched_ids)} run_at={self.run_at}>"
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.user import User

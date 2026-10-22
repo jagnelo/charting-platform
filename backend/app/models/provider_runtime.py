@@ -448,3 +448,10 @@ class ProviderAvailabilityObservation(Base, TimestampMixin):
         ),
         Index("ix_provider_availability_observation_classification", "classification"),
     )
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.data_source import DataSource
+    from app.models.instrument import Instrument

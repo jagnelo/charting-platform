@@ -1,0 +1,840 @@
+"""PostgreSQL adapter for idempotent API submission and outbox staging.
+
+The adapter is deliberately registration-neutral: it maps the package-owned
+submission/dispatch contracts to one SQLAlchemy async transaction but does not
+create tables, register models, enqueue Redis messages, or start workers.  A
+future application wiring layer can inject this adapter into ``api_router``
+after the additive migration and authentication dependency are reconciled.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any, Protocol
+
+from app.strategy_lab_v2.api_contracts import ApiError, ApiErrorCode
+from app.strategy_lab_v2.api_router import ApiAdapterError, SubmissionServiceResult
+from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
+from app.strategy_lab_v2.dispatch import DispatchRequest
+from app.strategy_lab_v2.dispatch_payload import DispatchPayload
+from app.strategy_lab_v2.outbox import OutboxMessage
+from app.strategy_lab_v2.submission_dispatch import (
+    SubmissionDispatchDecision,
+    SubmissionReceiptLedger,
+    resolve_submission_dispatch,
+)
+from app.strategy_lab_v2.submissions import (
+    SubmissionDecision,
+    SubmissionReceipt,
+    SubmissionRequest,
+    resolve_submission,
+)
+from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
+
+
+class AsyncSessionFactory(Protocol):
+    def __call__(self) -> Any: ...
+
+
+class AsyncSessionLike(Protocol):
+    async def __aenter__(self) -> Any: ...
+
+    async def __aexit__(self, exc_type: Any, exc: Any, traceback: Any) -> Any: ...
+
+    def begin(self) -> Any: ...
+
+    async def execute(self, statement: Any, params: Mapping[str, Any] | None = None) -> Any: ...
+
+
+@dataclass(frozen=True, slots=True)
+class PostgresSubmissionSchema:
+    """Additive DDL contract for submission receipts and durable dispatch intents."""
+
+    submission_table: str = "strategy_lab_v2_submissions"
+    dispatch_table: str = "strategy_lab_v2_submission_dispatches"
+    payload_table: str = "strategy_lab_v2_dispatch_payloads"
+    outbox_table: str = "strategy_lab_v2_execution_outbox"
+
+    def __post_init__(self) -> None:
+        for name, value in (
+            ("submission_table", self.submission_table),
+            ("dispatch_table", self.dispatch_table),
+            ("payload_table", self.payload_table),
+            ("outbox_table", self.outbox_table),
+        ):
+            if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
+                raise ValueError(f"{name} must be a safe SQL identifier")
+
+    @property
+    def statements(self) -> tuple[str, ...]:
+        return (
+            f"""
+            CREATE TABLE {self.submission_table} (
+                owner_id TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL,
+                request_fingerprint TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                attempt_id TEXT NOT NULL,
+                payload_digest TEXT NOT NULL,
+                submitted_at TEXT NOT NULL,
+                accepted_at TEXT NOT NULL,
+                PRIMARY KEY (owner_id, idempotency_key)
+            )
+            """,
+            f"""
+            CREATE TABLE {self.dispatch_table} (
+                owner_id TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL,
+                request_fingerprint TEXT NOT NULL,
+                attempt_id TEXT NOT NULL,
+                payload_digest TEXT NOT NULL,
+                queue_name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (owner_id, idempotency_key)
+            )
+            """,
+            f"""
+            CREATE TABLE {self.payload_table} (
+                payload_digest TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                byte_length BIGINT NOT NULL,
+                payload_fingerprint TEXT NOT NULL
+            )
+            """,
+        )
+
+
+class PostgresSubmissionDispatchAdapter:
+    """Durably stage one owner-scoped submission and its dispatch intent."""
+
+    def __init__(
+        self,
+        session_factory: AsyncSessionFactory,
+        *,
+        schema: PostgresSubmissionSchema | None = None,
+        queue_for_operation: Callable[[str], str] | None = None,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        if not callable(session_factory):
+            raise TypeError("session_factory must be callable")
+        if queue_for_operation is not None and not callable(queue_for_operation):
+            raise TypeError("queue_for_operation must be callable")
+        if not callable(clock):
+            raise TypeError("clock must be callable")
+        self._session_factory = session_factory
+        self._schema = schema or PostgresSubmissionSchema()
+        self._queue_for_operation = queue_for_operation or (lambda operation: operation)
+        self._clock = clock
+
+    @property
+    def schema(self) -> PostgresSubmissionSchema:
+        return self._schema
+
+    async def submit(
+        self,
+        *,
+        principal: Any,
+        request_id: str = "adapter",
+        request: SubmissionRequest,
+        payload: Mapping[str, Any],
+    ) -> SubmissionServiceResult:
+        """Resolve and durably stage a submission/outbox pair atomically."""
+
+        if not isinstance(request, SubmissionRequest):
+            raise TypeError("request must be a SubmissionRequest")
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("request_id must not be empty")
+        if not isinstance(payload, Mapping):
+            raise TypeError("payload must be a mapping")
+        if content_digest(payload) != request.payload_digest:
+            raise ApiAdapterError(
+                _api_error(
+                    ApiErrorCode.VALIDATION_ERROR,
+                    "submission payload does not match its content digest",
+                    request_id=request_id,
+                    status_code=422,
+                )
+            )
+        payload_record = DispatchPayload.from_mapping(payload)
+        if payload_record.payload_digest != request.payload_digest:
+            raise ValueError("submission payload digest does not match canonical payload")
+        owner_id = _principal_id(principal)
+        queue_name = self._queue_for_operation(request.operation)
+        if not isinstance(queue_name, str) or not queue_name.strip():
+            raise ValueError("queue_for_operation must return a non-empty string")
+        dispatch_request = DispatchRequest(
+            idempotency_key=request.idempotency_key,
+            attempt_id=request.attempt_id,
+            payload_digest=request.payload_digest,
+            queue_name=queue_name,
+            created_at=request.submitted_at,
+        )
+        accepted_at = self._clock()
+        if accepted_at.tzinfo is None or accepted_at.utcoffset() is None:
+            raise ValueError("clock must return a timezone-aware datetime")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                prior_receipt = await self._load_submission(
+                    session, owner_id, request.idempotency_key
+                )
+                prior_dispatch = await self._load_dispatch(
+                    session, owner_id, request.idempotency_key
+                )
+                ledger = SubmissionReceiptLedger(
+                    (prior_receipt,) if prior_receipt is not None else ()
+                )
+                resolution = resolve_submission_dispatch(
+                    ledger,
+                    request,
+                    dispatch_request,
+                    accepted_at=accepted_at,
+                    prior_dispatches=(prior_dispatch,) if prior_dispatch is not None else (),
+                )
+                if resolution.decision in {
+                    SubmissionDispatchDecision.CONFLICT,
+                    SubmissionDispatchDecision.REJECT,
+                }:
+                    code = (
+                        ApiErrorCode.IDEMPOTENCY_CONFLICT
+                        if resolution.decision is SubmissionDispatchDecision.CONFLICT
+                        else ApiErrorCode.PRECONDITION_FAILED
+                    )
+                    raise ApiAdapterError(
+                        _api_error(
+                            code,
+                            resolution.rejection_reason or "submission was rejected",
+                            request_id=request_id,
+                            status_code=409,
+                        )
+                    )
+                receipt = resolution.receipt
+                if receipt is None:  # pragma: no cover - guarded by pure resolution
+                    raise ValueError("submission resolution omitted its receipt")
+                if prior_receipt is None:
+                    await self._insert_submission(session, owner_id, receipt)
+                if prior_dispatch is None:
+                    await self._insert_dispatch(session, owner_id, dispatch_request)
+                prior_payload = await self._load_payload(session, request.payload_digest)
+                if prior_payload is not None and prior_payload != payload_record:
+                    raise ApiAdapterError(
+                        _api_error(
+                            ApiErrorCode.IDEMPOTENCY_CONFLICT,
+                            "submission payload digest is already bound to different content",
+                            request_id=request_id,
+                            status_code=409,
+                        )
+                    )
+                if prior_payload is None:
+                    await self._insert_payload(session, payload_record)
+                outbox_message = _submission_outbox_message(
+                    owner_id,
+                    request,
+                    dispatch_request,
+                )
+                prior_outbox = await self._load_outbox(session, outbox_message.request_id)
+                if prior_outbox is not None and prior_outbox != outbox_message:
+                    raise ApiAdapterError(
+                        _api_error(
+                            ApiErrorCode.IDEMPOTENCY_CONFLICT,
+                            "submission outbox identity is already bound to different content",
+                            request_id=request_id,
+                            status_code=409,
+                        )
+                    )
+                if prior_outbox is None:
+                    await self._insert_outbox(session, outbox_message)
+                submission_resolution = resolve_submission(request, ledger.receipts)
+                if submission_resolution.decision is SubmissionDecision.ACCEPT:
+                    # The pure dispatch resolver creates the receipt using the
+                    # adapter clock, so the request fingerprint remains exact.
+                    submission_resolution = resolve_submission(request, ())
+                return SubmissionServiceResult(submission_resolution, receipt)
+
+    async def load_payload(self, payload_digest: str) -> DispatchPayload | None:
+        """Load one authenticated content-addressed payload for a worker."""
+
+        require_sha256_digest(payload_digest, field_name="payload_digest")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                return await self._load_payload(session, payload_digest)
+
+    async def load_submission(self, *, principal: Any, attempt_id: str) -> SubmissionReceipt | None:
+        """Load the one owner-scoped submission bound to an execution attempt.
+
+        Terminal evidence resolvers use this authenticated lookup to bind a
+        process completion to durable submission state.  Multiple rows for an
+        attempt are rejected rather than selecting an arbitrary idempotency
+        record.
+        """
+
+        owner_id = _principal_id(principal)
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT owner_id, idempotency_key, request_fingerprint, operation,
+                               attempt_id, payload_digest, submitted_at, accepted_at
+                        FROM {self._schema.submission_table}
+                        WHERE owner_id = :owner_id AND attempt_id = :attempt_id
+                        FOR SHARE
+                        """
+                    ),
+                    {"owner_id": owner_id, "attempt_id": attempt_id},
+                )
+                rows = list(result.mappings())
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise ValueError("PostgreSQL submission attempt query returned duplicate keys")
+                row = rows[0]
+                receipt = _decode_submission(row)
+                if row.get("owner_id") != owner_id or row.get("attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL submission owner/attempt identity drifted")
+                if row.get("request_fingerprint") != receipt.request.fingerprint:
+                    raise ValueError("PostgreSQL submission fingerprint does not match bytes")
+                return receipt
+
+    async def load_submission_binding(
+        self, *, request_fingerprint: str, attempt_id: str
+    ) -> WorkerSubmissionBinding | None:
+        """Resolve the unique owner/submission binding for a worker request.
+
+        Redis transports intentionally carry content identities rather than
+        tenant data. If the same request identity is bound to multiple owners,
+        the lookup fails closed instead of selecting an arbitrary principal.
+        """
+
+        require_sha256_digest(request_fingerprint, field_name="request_fingerprint")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT owner_id, idempotency_key, request_fingerprint, operation,
+                               attempt_id, payload_digest, submitted_at, accepted_at
+                        FROM {self._schema.submission_table}
+                        WHERE request_fingerprint = :request_fingerprint
+                          AND attempt_id = :attempt_id
+                        FOR SHARE
+                        """
+                    ),
+                    {
+                        "request_fingerprint": request_fingerprint,
+                        "attempt_id": attempt_id,
+                    },
+                )
+                rows = list(result.mappings())
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise ValueError("PostgreSQL worker submission binding is ambiguous")
+                row = rows[0]
+                owner_id = row.get("owner_id")
+                if not isinstance(owner_id, str) or not owner_id.strip():
+                    raise ValueError("PostgreSQL worker submission owner is malformed")
+                receipt = _decode_submission(row)
+                if row.get("request_fingerprint") != receipt.request.fingerprint:
+                    raise ValueError(
+                        "PostgreSQL worker submission fingerprint does not match bytes"
+                    )
+                if row.get("attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker submission attempt identity drifted")
+                if receipt.request.fingerprint != request_fingerprint:
+                    raise ValueError("PostgreSQL worker request fingerprint identity drifted")
+                return WorkerSubmissionBinding(owner_id, receipt)
+
+    async def load_dispatch_binding(
+        self, *, request_fingerprint: str, attempt_id: str
+    ) -> WorkerSubmissionBinding | None:
+        """Resolve a worker dispatch identity to its accepted submission.
+
+        Redis carries the fingerprint of ``DispatchRequest`` while terminal
+        evidence is owned by the corresponding ``SubmissionReceipt``.  The
+        join is owner- and idempotency-scoped so the transport identity cannot
+        be converted into a principal by selecting an arbitrary submission.
+        """
+
+        require_sha256_digest(request_fingerprint, field_name="request_fingerprint")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT s.owner_id, s.idempotency_key, s.request_fingerprint,
+                               s.operation, s.attempt_id, s.payload_digest,
+                               s.submitted_at, s.accepted_at,
+                               d.request_fingerprint AS dispatch_request_fingerprint,
+                               d.attempt_id AS dispatch_attempt_id
+                        FROM {self._schema.submission_table} AS s
+                        INNER JOIN {self._schema.dispatch_table} AS d
+                          ON d.owner_id = s.owner_id
+                         AND d.idempotency_key = s.idempotency_key
+                        WHERE d.request_fingerprint = :request_fingerprint
+                          AND d.attempt_id = :attempt_id
+                        FOR SHARE
+                        """
+                    ),
+                    {
+                        "request_fingerprint": request_fingerprint,
+                        "attempt_id": attempt_id,
+                    },
+                )
+                rows = list(result.mappings())
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise ValueError("PostgreSQL worker dispatch binding is ambiguous")
+                row = rows[0]
+                owner_id = row.get("owner_id")
+                if not isinstance(owner_id, str) or not owner_id.strip():
+                    raise ValueError("PostgreSQL worker dispatch owner is malformed")
+                receipt = _decode_submission(row)
+                if row.get("request_fingerprint") != receipt.request.fingerprint:
+                    raise ValueError(
+                        "PostgreSQL worker submission fingerprint does not match bytes"
+                    )
+                if row.get("attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker submission attempt identity drifted")
+                if row.get("dispatch_request_fingerprint") != request_fingerprint:
+                    raise ValueError("PostgreSQL worker dispatch fingerprint identity drifted")
+                if row.get("dispatch_attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker dispatch attempt identity drifted")
+                return WorkerSubmissionBinding(owner_id, receipt)
+
+    async def load_dispatch_binding_by_payload_digest(
+        self, *, payload_digest: str, attempt_id: str
+    ) -> WorkerSubmissionBinding | None:
+        """Resolve a submission from the content identity retained by Redis.
+
+        The transactional outbox assigns a transport request fingerprint that
+        differs from the original dispatch request fingerprint. The immutable
+        payload digest remains unchanged and is joined to the owner-scoped
+        accepted submission and dispatch rows here.
+        """
+
+        require_sha256_digest(payload_digest, field_name="payload_digest")
+        if not isinstance(attempt_id, str) or not attempt_id.strip():
+            raise ValueError("attempt_id must not be empty")
+        session: AsyncSessionLike = self._session_factory()
+        async with session:
+            async with session.begin():
+                result = await session.execute(
+                    _statement(
+                        f"""
+                        SELECT s.owner_id, s.idempotency_key, s.request_fingerprint,
+                               s.operation, s.attempt_id, s.payload_digest,
+                               s.submitted_at, s.accepted_at,
+                               d.request_fingerprint AS dispatch_request_fingerprint,
+                               d.attempt_id AS dispatch_attempt_id,
+                               d.payload_digest AS dispatch_payload_digest
+                        FROM {self._schema.submission_table} AS s
+                        INNER JOIN {self._schema.dispatch_table} AS d
+                          ON d.owner_id = s.owner_id
+                         AND d.idempotency_key = s.idempotency_key
+                        WHERE d.payload_digest = :payload_digest
+                          AND d.attempt_id = :attempt_id
+                        FOR SHARE
+                        """
+                    ),
+                    {"payload_digest": payload_digest, "attempt_id": attempt_id},
+                )
+                rows = list(result.mappings())
+                if not rows:
+                    return None
+                if len(rows) != 1:
+                    raise ValueError("PostgreSQL worker payload binding is ambiguous")
+                row = rows[0]
+                owner_id = row.get("owner_id")
+                if not isinstance(owner_id, str) or not owner_id.strip():
+                    raise ValueError("PostgreSQL worker submission owner is malformed")
+                receipt = _decode_submission(row)
+                if row.get("request_fingerprint") != receipt.request.fingerprint:
+                    raise ValueError(
+                        "PostgreSQL worker submission fingerprint does not match bytes"
+                    )
+                if row.get("attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker submission attempt identity drifted")
+                if row.get("dispatch_attempt_id") != attempt_id:
+                    raise ValueError("PostgreSQL worker dispatch attempt identity drifted")
+                if row.get("dispatch_payload_digest") != payload_digest:
+                    raise ValueError("PostgreSQL worker dispatch payload identity drifted")
+                return WorkerSubmissionBinding(owner_id, receipt)
+
+    async def _load_payload(
+        self, session: AsyncSessionLike, payload_digest: str
+    ) -> DispatchPayload | None:
+        require_sha256_digest(payload_digest, field_name="payload_digest")
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT payload_digest, payload_json, byte_length, payload_fingerprint
+                FROM {self._schema.payload_table}
+                WHERE payload_digest = :payload_digest
+                FOR SHARE
+                """
+            ),
+            {"payload_digest": payload_digest},
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL dispatch payload query returned duplicate keys")
+        row = rows[0]
+        record = _decode_payload(row)
+        if row.get("payload_fingerprint") not in (None, record.fingerprint):
+            raise ValueError("PostgreSQL dispatch payload fingerprint does not match bytes")
+        if row.get("payload_digest") != record.payload_digest:
+            raise ValueError("PostgreSQL dispatch payload identity drifted")
+        return record
+
+    async def _insert_payload(self, session: AsyncSessionLike, payload: DispatchPayload) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.payload_table}
+                    (payload_digest, payload_json, byte_length, payload_fingerprint)
+                VALUES (:payload_digest, :payload_json, :byte_length, :payload_fingerprint)
+                ON CONFLICT (payload_digest) DO NOTHING
+                """
+            ),
+            {
+                "payload_digest": payload.payload_digest,
+                "payload_json": payload.payload_json,
+                "byte_length": payload.byte_length,
+                "payload_fingerprint": payload.fingerprint,
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL dispatch payload insert lost a uniqueness race")
+
+    async def _load_outbox(
+        self, session: AsyncSessionLike, request_id: str
+    ) -> OutboxMessage | None:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT request_id, message_fingerprint, aggregate_type, aggregate_id, event_id, topic,
+                       payload_digest, created_at, available_at
+                FROM {self._schema.outbox_table}
+                WHERE request_id = :request_id
+                FOR UPDATE
+                """
+            ),
+            {"request_id": request_id},
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL submission outbox query returned duplicate keys")
+        message = _decode_outbox(rows[0])
+        if rows[0].get("request_id") != message.request_id:
+            raise ValueError("PostgreSQL submission outbox request identity drifted")
+        if rows[0].get("message_fingerprint") not in (None, message.fingerprint):
+            raise ValueError("PostgreSQL submission outbox fingerprint does not match bytes")
+        return message
+
+    async def _insert_outbox(self, session: AsyncSessionLike, message: OutboxMessage) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.outbox_table}
+                    (message_id, message_fingerprint, request_id, aggregate_type,
+                     aggregate_id, event_id, topic, payload_digest, created_at,
+                     available_at, published)
+                VALUES (:message_id, :message_fingerprint, :request_id, :aggregate_type,
+                        :aggregate_id, :event_id, :topic, :payload_digest, :created_at,
+                        :available_at, FALSE)
+                ON CONFLICT (request_id) DO NOTHING
+                """
+            ),
+            {
+                "message_id": message.message_id,
+                "message_fingerprint": message.fingerprint,
+                "request_id": message.request_id,
+                "aggregate_type": message.aggregate_type,
+                "aggregate_id": message.aggregate_id,
+                "event_id": message.event_id,
+                "topic": message.topic,
+                "payload_digest": message.payload_digest,
+                "created_at": _encode_datetime(message.created_at),
+                "available_at": _encode_datetime(message.available_at),
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL submission outbox insert lost a uniqueness race")
+
+    async def _load_submission(
+        self, session: AsyncSessionLike, owner_id: str, idempotency_key: str
+    ) -> SubmissionReceipt | None:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT owner_id, idempotency_key, request_fingerprint, operation,
+                       attempt_id, payload_digest, submitted_at, accepted_at
+                FROM {self._schema.submission_table}
+                WHERE owner_id = :owner_id AND idempotency_key = :idempotency_key
+                FOR UPDATE
+                """
+            ),
+            {"owner_id": owner_id, "idempotency_key": idempotency_key},
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL submission query returned duplicate keys")
+        row = rows[0]
+        receipt = _decode_submission(row)
+        if row.get("owner_id") != owner_id:
+            raise ValueError("PostgreSQL submission owner identity drifted")
+        return receipt
+
+    async def _load_dispatch(
+        self, session: AsyncSessionLike, owner_id: str, idempotency_key: str
+    ) -> DispatchRequest | None:
+        result = await session.execute(
+            _statement(
+                f"""
+                SELECT owner_id, idempotency_key, request_fingerprint, attempt_id,
+                       payload_digest, queue_name, created_at
+                FROM {self._schema.dispatch_table}
+                WHERE owner_id = :owner_id AND idempotency_key = :idempotency_key
+                FOR UPDATE
+                """
+            ),
+            {"owner_id": owner_id, "idempotency_key": idempotency_key},
+        )
+        rows = list(result.mappings())
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise ValueError("PostgreSQL dispatch query returned duplicate keys")
+        row = rows[0]
+        dispatch = _decode_dispatch(row)
+        if row.get("owner_id") != owner_id:
+            raise ValueError("PostgreSQL dispatch owner identity drifted")
+        if row.get("request_fingerprint") != dispatch.fingerprint:
+            raise ValueError("PostgreSQL dispatch fingerprint does not match bytes")
+        return dispatch
+
+    async def _insert_submission(
+        self, session: AsyncSessionLike, owner_id: str, receipt: SubmissionReceipt
+    ) -> None:
+        request = receipt.request
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.submission_table}
+                    (owner_id, idempotency_key, request_fingerprint, operation,
+                     attempt_id, payload_digest, submitted_at, accepted_at)
+                VALUES (:owner_id, :idempotency_key, :request_fingerprint, :operation,
+                        :attempt_id, :payload_digest, :submitted_at, :accepted_at)
+                ON CONFLICT (owner_id, idempotency_key) DO NOTHING
+                """
+            ),
+            {
+                "owner_id": owner_id,
+                "idempotency_key": request.idempotency_key,
+                "request_fingerprint": request.fingerprint,
+                "operation": request.operation,
+                "attempt_id": request.attempt_id,
+                "payload_digest": request.payload_digest,
+                "submitted_at": _encode_datetime(request.submitted_at),
+                "accepted_at": _encode_datetime(receipt.accepted_at),
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL submission insert lost an idempotency race")
+
+    async def _insert_dispatch(
+        self, session: AsyncSessionLike, owner_id: str, request: DispatchRequest
+    ) -> None:
+        result = await session.execute(
+            _statement(
+                f"""
+                INSERT INTO {self._schema.dispatch_table}
+                    (owner_id, idempotency_key, request_fingerprint, attempt_id,
+                     payload_digest, queue_name, created_at)
+                VALUES (:owner_id, :idempotency_key, :request_fingerprint, :attempt_id,
+                        :payload_digest, :queue_name, :created_at)
+                ON CONFLICT (owner_id, idempotency_key) DO NOTHING
+                """
+            ),
+            {
+                "owner_id": owner_id,
+                "idempotency_key": request.idempotency_key,
+                "request_fingerprint": request.fingerprint,
+                "attempt_id": request.attempt_id,
+                "payload_digest": request.payload_digest,
+                "queue_name": request.queue_name,
+                "created_at": _encode_datetime(request.created_at),
+            },
+        )
+        if getattr(result, "rowcount", 0) != 1:
+            raise ValueError("PostgreSQL dispatch insert lost an idempotency race")
+
+
+def _submission_outbox_message(
+    owner_id: str,
+    request: SubmissionRequest,
+    dispatch: DispatchRequest,
+) -> OutboxMessage:
+    """Bind an API submission to the shared execution outbox namespace."""
+
+    event_id = content_digest({"owner_id": owner_id, "submission_fingerprint": request.fingerprint})
+    request_id = content_digest(
+        {"owner_id": owner_id, "submission_fingerprint": request.fingerprint, "kind": "outbox"}
+    )
+    return OutboxMessage(
+        request_id=request_id,
+        aggregate_type="strategy_submission",
+        aggregate_id=request.attempt_id,
+        event_id=event_id,
+        topic=dispatch.queue_name,
+        payload_digest=dispatch.payload_digest,
+        created_at=dispatch.created_at,
+        available_at=dispatch.created_at,
+    )
+
+
+def _decode_outbox(row: Mapping[str, Any]) -> OutboxMessage:
+    try:
+        message = OutboxMessage(
+            row["request_id"],
+            row["aggregate_type"],
+            row["aggregate_id"],
+            row["event_id"],
+            row["topic"],
+            row["payload_digest"],
+            _decode_datetime(row["created_at"], "created_at"),
+            _decode_datetime(row["available_at"], "available_at"),
+        )
+        if row.get("message_fingerprint") not in (None, message.fingerprint):
+            raise ValueError("submission outbox fingerprint does not match bytes")
+        return message
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL submission outbox row is malformed") from error
+
+
+def _decode_payload(row: Mapping[str, Any]) -> DispatchPayload:
+    try:
+        payload = DispatchPayload(
+            row["payload_digest"],
+            row["payload_json"],
+            int(row["byte_length"]),
+        )
+        if row.get("payload_fingerprint") not in (None, payload.fingerprint):
+            raise ValueError("dispatch payload fingerprint does not match bytes")
+        return payload
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL dispatch payload row is malformed") from error
+
+
+def _statement(sql: str) -> Any:
+    """Keep SQLAlchemy optional at import time for contract-level tests."""
+
+    from sqlalchemy import text
+
+    return text(sql)
+
+
+def _principal_id(principal: Any) -> str:
+    value = getattr(principal, "id", principal)
+    if not isinstance(value, str) or not value.strip():
+        raise ApiAdapterError(
+            _api_error(
+                ApiErrorCode.AUTHORIZATION_REQUIRED,
+                "authenticated principal identity is required",
+                request_id="adapter",
+                status_code=401,
+            )
+        )
+    return value.strip()
+
+
+def _encode_datetime(value: datetime) -> str:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("datetime must be timezone-aware")
+    return value.astimezone(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def _decode_datetime(value: Any, field_name: str) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be an ISO-8601 string")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(f"{field_name} is malformed") from error
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError(f"{field_name} must be timezone-aware")
+    return parsed
+
+
+def _decode_submission(row: Mapping[str, Any]) -> SubmissionReceipt:
+    try:
+        request = SubmissionRequest(
+            idempotency_key=row["idempotency_key"],
+            operation=row["operation"],
+            attempt_id=row["attempt_id"],
+            payload_digest=row["payload_digest"],
+            submitted_at=_decode_datetime(row["submitted_at"], "submitted_at"),
+        )
+        if row["request_fingerprint"] != request.fingerprint:
+            raise ValueError("submission fingerprint does not match bytes")
+        return SubmissionReceipt(
+            request,
+            accepted_at=_decode_datetime(row["accepted_at"], "accepted_at"),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL submission row is malformed") from error
+
+
+def _decode_dispatch(row: Mapping[str, Any]) -> DispatchRequest:
+    try:
+        request = DispatchRequest(
+            idempotency_key=row["idempotency_key"],
+            attempt_id=row["attempt_id"],
+            payload_digest=row["payload_digest"],
+            queue_name=row["queue_name"],
+            created_at=_decode_datetime(row["created_at"], "created_at"),
+        )
+        if row["request_fingerprint"] != request.fingerprint:
+            raise ValueError("dispatch fingerprint does not match bytes")
+        return request
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("PostgreSQL dispatch row is malformed") from error
+
+
+def _api_error(
+    code: ApiErrorCode,
+    message: str,
+    *,
+    request_id: str,
+    status_code: int,
+) -> ApiError:
+    return ApiError(
+        code=code,
+        message=message,
+        request_id=request_id,
+        status_code=status_code,
+    )
+
+
+__all__ = ["PostgresSubmissionDispatchAdapter", "PostgresSubmissionSchema"]

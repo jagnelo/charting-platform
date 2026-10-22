@@ -1,0 +1,551 @@
+from __future__ import annotations
+
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+
+import pytest
+
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.capabilities import CapabilityCell, Degradation, preflight_capabilities
+from app.strategy_lab_v2.contracts import AdjustmentMode, EventGranularity, ProductClass
+from app.strategy_lab_v2.event_tape import FrozenEventTape
+from app.strategy_lab_v2.forward_corrections import CounterfactualReplayPlan
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
+from app.strategy_lab_v2.nautilus_event_adapter import (
+    NAUTILUS_FORWARD_PARITY_VERSION,
+    NautilusEventRecord,
+    NautilusEventTape,
+    NautilusForwardDeliveryBinding,
+    NautilusForwardEventEnvelope,
+    NautilusForwardEventParityReceipt,
+    NautilusForwardEventTape,
+    materialize_nautilus_event,
+    materialize_nautilus_event_tape,
+    materialize_nautilus_forward_event,
+    materialize_nautilus_forward_tape,
+    verify_nautilus_event_tape_parity,
+    verify_nautilus_forward_event_tape_parity,
+)
+from app.strategy_lab_v2.nautilus_forward_delivery import NautilusForwardCorrectionReplayInput
+from app.strategy_lab_v2.sdk import MarketEvent
+from app.strategy_lab_v2.tests.test_event_tape import _binding_inputs
+
+BASE = datetime(2024, 1, 2, 14, 30, 0, 123456, tzinfo=UTC)
+
+
+def _event(
+    event_id: str = "bar-1",
+    *,
+    event_time: datetime = BASE,
+    sequence: int = 4,
+    values: dict[str, object] | None = None,
+) -> MarketEvent:
+    return MarketEvent(
+        dependency_id="daily-bars",
+        event_id=event_id,
+        instrument_id="US.AAPL",
+        event_time=event_time,
+        sequence=sequence,
+        values=values
+        or {
+            "open": 100.0,
+            "high": 102.0,
+            "low": 99.0,
+            "close": 101.0,
+            "volume": 1200,
+        },
+    )
+
+
+def _delivery_binding(
+    event: CanonicalForwardEvent,
+    *,
+    admission_decision: str = "enqueue",
+    replay_plan_fingerprint: str | None = None,
+) -> NautilusForwardDeliveryBinding:
+    return NautilusForwardDeliveryBinding(
+        instance_id="forward-instance-1",
+        event_fingerprint=content_digest(event),
+        redis_stream_id=f"{event.sequence}-0",
+        redis_entry_fingerprint=content_digest({"entry": event.event_id}),
+        dispatch_record_fingerprint=content_digest({"dispatch": event.event_id}),
+        request_fingerprint=content_digest({"request": event.event_id}),
+        pre_event_checkpoint_fingerprint=content_digest({"checkpoint": event.sequence}),
+        warmup_receipt_fingerprint=content_digest("forward-warmup"),
+        admission_decision=admission_decision,
+        replay_plan_fingerprint=replay_plan_fingerprint,
+    )
+
+
+def test_materialized_event_uses_exact_utc_nanoseconds_and_freezes_values() -> None:
+    event = _event(event_time=BASE.astimezone(UTC) + timedelta(microseconds=7))
+
+    record = materialize_nautilus_event(event, event_type="ohlcv")
+
+    assert record.event_time_ns == 1_704_205_800_123_463_000
+    assert record.values["close"] == 101.0
+    with pytest.raises(TypeError):
+        record.values["close"] = 99.0  # type: ignore[index]
+    assert record.fingerprint.startswith("sha256:")
+
+
+def test_event_tape_order_and_fingerprint_are_deterministic() -> None:
+    first = materialize_nautilus_event(_event("bar-1", sequence=1), event_type="ohlcv")
+    second = materialize_nautilus_event(
+        _event("bar-2", event_time=BASE + timedelta(minutes=1), sequence=2),
+        event_type="ohlcv",
+    )
+    source = content_digest("source-tape")
+
+    tape = NautilusEventTape(source, (first, second))
+    reversed_tape = NautilusEventTape(source, (second, first))
+
+    assert tape.events == (first, second)
+    assert tape.fingerprint == reversed_tape.fingerprint
+
+
+def test_event_record_rejects_unsupported_type_and_missing_wire_fields() -> None:
+    event = _event(values={"close": 100.0})
+
+    with pytest.raises(ValueError, match="missing fields"):
+        materialize_nautilus_event(event, event_type="ohlcv")
+    with pytest.raises(ValueError, match="unsupported Nautilus event type"):
+        materialize_nautilus_event(_event(), event_type="depth")
+
+
+def test_event_tape_rejects_duplicate_ids_and_wrong_source_digest() -> None:
+    record = materialize_nautilus_event(_event(), event_type="ohlcv")
+
+    with pytest.raises(ValueError, match="event ids must be unique"):
+        NautilusEventTape(content_digest("source"), (record, record))
+    with pytest.raises(ValueError, match="source_tape_fingerprint"):
+        NautilusEventTape("not-a-digest", (record,))
+
+
+def test_materialize_event_tape_reuses_bound_snapshot_and_manifest_identity() -> None:
+    source_tape, snapshot, manifest = _binding_inputs()
+    dependency = manifest.data_dependencies[0]
+    fields = ("close", "high", "low", "open", "volume")
+    manifest = replace(manifest, data_dependencies=(replace(dependency, fields=fields),))
+    events = tuple(
+        replace(
+            event,
+            values={
+                "close": event.values["close"],
+                "high": event.values["close"],
+                "low": event.values["close"],
+                "open": event.values["close"],
+                "volume": 1000,
+            },
+        )
+        for event in source_tape.events
+    )
+    tape = FrozenEventTape(snapshot.fingerprint, events)
+
+    materialized = materialize_nautilus_event_tape(tape, snapshot, manifest)
+
+    assert materialized.source_tape_fingerprint == tape.fingerprint
+    assert [event.event_id for event in materialized.events] == ["bar-1", "bar-2"]
+    assert all(event.event_type == "ohlcv" for event in materialized.events)
+
+
+def test_materialize_event_tape_uses_effective_degraded_event_type() -> None:
+    source_tape, snapshot, manifest = _binding_inputs()
+    dependency = manifest.data_dependencies[0]
+    requirement = replace(dependency.requirement, event_type="trade")
+    cell = CapabilityCell(
+        instrument_id="US.AAPL",
+        product_class=ProductClass.EQUITY,
+        event_granularities=frozenset({EventGranularity.BAR}),
+        event_types=frozenset({"ohlcv"}),
+        timeframes=frozenset({"1d"}),
+        adjustments=frozenset({AdjustmentMode.SPLIT_ADJUSTED}),
+        sessions=frozenset({"regular"}),
+        feeds=frozenset({"consolidated"}),
+        execution_models=frozenset({"bar-close-v1"}),
+        account_models=frozenset({"cash-equity-v1"}),
+        corporate_action_semantics=frozenset({"split-adjusted-v1"}),
+        history_start=BASE - timedelta(days=10),
+        history_end=BASE + timedelta(days=10),
+        evidence_digest=content_digest("capability"),
+    )
+    report = preflight_capabilities(
+        (requirement,),
+        (cell,),
+        allow_degraded=True,
+        degradations=(Degradation("US.AAPL", "event_type", "ohlcv", "bar evidence"),),
+    )
+    snapshot = replace(snapshot, preflight_report=report)
+    manifest = replace(
+        manifest,
+        data_dependencies=(
+            replace(
+                dependency,
+                requirement=requirement,
+                fields=("close", "high", "low", "open", "volume"),
+            ),
+        ),
+    )
+    events = tuple(
+        replace(
+            event,
+            values={
+                "close": event.values["close"],
+                "high": event.values["close"],
+                "low": event.values["close"],
+                "open": event.values["close"],
+                "volume": 1000,
+            },
+        )
+        for event in source_tape.events
+    )
+    tape = FrozenEventTape(snapshot.fingerprint, events)
+
+    materialized = materialize_nautilus_event_tape(tape, snapshot, manifest)
+
+    assert all(event.event_type == "ohlcv" for event in materialized.events)
+
+
+def test_event_tape_parity_accepts_permuted_equivalent_wire_records() -> None:
+    first = materialize_nautilus_event(_event("bar-1", sequence=1), event_type="ohlcv")
+    second = materialize_nautilus_event(
+        _event("bar-2", event_time=BASE + timedelta(minutes=1), sequence=2),
+        event_type="ohlcv",
+    )
+    tape = NautilusEventTape(content_digest("source"), (first, second))
+
+    receipt = verify_nautilus_event_tape_parity(
+        tape,
+        (_wire_payload(second), _wire_payload(first)),
+    )
+
+    assert receipt.passed is True
+    assert receipt.compatible is True
+    assert receipt.authoritative is False
+    assert receipt.mismatches == ()
+    assert receipt.fingerprint.startswith("sha256:")
+
+
+def test_event_tape_parity_returns_failed_evidence_for_value_drift() -> None:
+    record = materialize_nautilus_event(_event(), event_type="ohlcv")
+    tape = NautilusEventTape(content_digest("source"), (record,))
+    observed = _wire_payload(record)
+    observed["values"] = {**record.values, "close": 999.0}
+
+    receipt = verify_nautilus_event_tape_parity(tape, (observed,))
+
+    assert receipt.passed is False
+    assert receipt.compatible is False
+    assert receipt.mismatches == ("event[0].values",)
+    assert receipt.expected_wire_digest != receipt.observed_wire_digest
+
+
+def test_event_tape_parity_rejects_malformed_or_duplicate_wire_records() -> None:
+    record = materialize_nautilus_event(_event(), event_type="ohlcv")
+    tape = NautilusEventTape(content_digest("source"), (record,))
+    payload = _wire_payload(record)
+
+    with pytest.raises(ValueError, match="exact wire schema"):
+        verify_nautilus_event_tape_parity(tape, ({**payload, "extra": True},))
+    with pytest.raises(ValueError, match="ids must be unique"):
+        verify_nautilus_event_tape_parity(tape, (payload, payload))
+
+
+def test_forward_event_envelope_binds_canonical_identity_to_wire_payload() -> None:
+    market_event = _event()
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence,
+        market_event.event_time,
+        market_event.event_time + timedelta(seconds=1),
+        content_digest("provider-source"),
+    )
+
+    envelope = materialize_nautilus_forward_event(
+        canonical_event,
+        market_event,
+        event_type="ohlcv",
+    )
+
+    assert isinstance(envelope, NautilusForwardEventEnvelope)
+    assert envelope.record.event_id == canonical_event.event_id
+    assert envelope.record.sequence == canonical_event.sequence
+    assert envelope.record.event_time_ns == 1_704_205_800_123_456_000
+    assert envelope.fingerprint.startswith("sha256:")
+
+
+def test_forward_event_envelope_rejects_identity_drift() -> None:
+    market_event = _event()
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence + 1,
+        market_event.event_time,
+        market_event.event_time,
+        content_digest("provider-source"),
+    )
+
+    with pytest.raises(ValueError, match="sequences must match"):
+        materialize_nautilus_forward_event(canonical_event, market_event, event_type="ohlcv")
+
+
+def test_forward_event_tape_orders_envelopes_for_host_callback() -> None:
+    first_market = _event("bar-1", sequence=1)
+    second_market = _event(
+        "bar-2",
+        event_time=BASE + timedelta(minutes=1),
+        sequence=2,
+    )
+    first_canonical = CanonicalForwardEvent(
+        first_market.event_id,
+        first_market.sequence,
+        first_market.event_time,
+        first_market.event_time + timedelta(seconds=1),
+        content_digest("source-1"),
+    )
+    second_canonical = CanonicalForwardEvent(
+        second_market.event_id,
+        second_market.sequence,
+        second_market.event_time,
+        second_market.event_time + timedelta(seconds=1),
+        content_digest("source-2"),
+    )
+
+    tape = materialize_nautilus_forward_tape(
+        "forward-instance-1",
+        (second_canonical, first_canonical),
+        (second_market, first_market),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+        delivery_bindings=(
+            _delivery_binding(second_canonical),
+            _delivery_binding(first_canonical),
+        ),
+    )
+    equivalent = materialize_nautilus_forward_tape(
+        "forward-instance-1",
+        (first_canonical, second_canonical),
+        (first_market, second_market),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+        delivery_bindings=(
+            _delivery_binding(first_canonical),
+            _delivery_binding(second_canonical),
+        ),
+    )
+
+    assert isinstance(tape, NautilusForwardEventTape)
+    assert [item.record.event_id for item in tape.envelopes] == ["bar-1", "bar-2"]
+    assert tape.fingerprint == equivalent.fingerprint
+
+
+def test_forward_event_tape_rejects_dependency_mapping_drift() -> None:
+    market_event = _event()
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence,
+        market_event.event_time,
+        market_event.event_time,
+        content_digest("provider-source"),
+    )
+
+    with pytest.raises(ValueError, match="unused dependency"):
+        materialize_nautilus_forward_tape(
+            "forward-instance-1",
+            (canonical_event,),
+            (market_event,),
+            event_type_by_dependency={"daily-bars": "ohlcv", "unused": "quote"},
+            delivery_bindings=(_delivery_binding(canonical_event),),
+        )
+
+
+def test_forward_event_tape_rejects_correction_dispatch_from_live_input() -> None:
+    market_event = _event("bar-correction", sequence=2)
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence,
+        market_event.event_time,
+        market_event.event_time + timedelta(seconds=1),
+        content_digest("correction-source"),
+        correction_of="bar-original",
+    )
+    correction_binding = _delivery_binding(
+        canonical_event,
+        admission_decision="correction_enqueue",
+        replay_plan_fingerprint=content_digest("replay-plan"),
+    )
+
+    with pytest.raises(ValueError, match="only accepted non-correction"):
+        materialize_nautilus_forward_tape(
+            "forward-instance-1",
+            (canonical_event,),
+            (market_event,),
+            event_type_by_dependency={"daily-bars": "ohlcv"},
+            delivery_bindings=(correction_binding,),
+        )
+
+
+def test_forward_correction_replay_input_binds_plan_checkpoint_and_target() -> None:
+    market_event = _event("bar-correction", sequence=2)
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence,
+        market_event.event_time,
+        market_event.event_time + timedelta(seconds=1),
+        content_digest("correction-source"),
+        correction_of="bar-original",
+    )
+    checkpoint_fingerprint = content_digest("checkpoint")
+    warmup_fingerprint = content_digest("warmup")
+    replay_plan = CounterfactualReplayPlan(
+        content_digest("replay-id"),
+        "forward-instance-1",
+        canonical_event.event_id,
+        "bar-original",
+        checkpoint_fingerprint,
+        warmup_fingerprint,
+        BASE + timedelta(minutes=1),
+    )
+    binding = NautilusForwardDeliveryBinding(
+        instance_id="forward-instance-1",
+        event_fingerprint=content_digest(canonical_event),
+        redis_stream_id="1704205800000-0",
+        redis_entry_fingerprint=content_digest("redis-entry"),
+        dispatch_record_fingerprint=content_digest("dispatch-record"),
+        request_fingerprint=content_digest("dispatch-request"),
+        pre_event_checkpoint_fingerprint=checkpoint_fingerprint,
+        warmup_receipt_fingerprint=warmup_fingerprint,
+        admission_decision="correction_enqueue",
+        replay_plan_fingerprint=replay_plan.fingerprint,
+    )
+    envelope = materialize_nautilus_forward_event(
+        canonical_event,
+        market_event,
+        event_type="ohlcv",
+    )
+
+    replay_input = NautilusForwardCorrectionReplayInput(
+        binding,
+        replay_plan,
+        canonical_event,
+        envelope,
+    )
+
+    assert replay_input.replay_plan.fingerprint == binding.replay_plan_fingerprint
+    assert replay_input.delivery_binding.admission_decision == "correction_enqueue"
+    assert replay_input.fingerprint == content_digest(replay_input)
+
+
+def test_forward_event_tape_parity_rejects_reordered_wire_records() -> None:
+    tape = _forward_tape_for_parity()
+    observed = tuple(_wire_payload(item.record) for item in reversed(tape.envelopes))
+
+    receipt = verify_nautilus_forward_event_tape_parity(tape, observed)
+
+    assert isinstance(receipt, NautilusForwardEventParityReceipt)
+    assert receipt.instance_id == "forward-instance-1"
+    assert receipt.forward_tape_fingerprint == tape.fingerprint
+    assert receipt.parity_version == NAUTILUS_FORWARD_PARITY_VERSION
+    assert receipt.passed is False
+    assert receipt.compatible is False
+    assert receipt.authoritative is False
+    assert "event[0].event_id" in receipt.mismatches
+    assert receipt.expected_wire_digest != receipt.observed_wire_digest
+
+
+def test_forward_event_tape_parity_accepts_exact_sequence_order() -> None:
+    tape = _forward_tape_for_parity()
+    observed = tuple(_wire_payload(item.record) for item in tape.envelopes)
+
+    receipt = verify_nautilus_forward_event_tape_parity(tape, observed)
+
+    assert receipt.passed is True
+    assert receipt.compatible is True
+    assert receipt.mismatches == ()
+
+
+def test_forward_event_tape_parity_returns_failed_evidence_for_value_drift() -> None:
+    tape = _forward_tape_for_parity()
+    observed = [_wire_payload(item.record) for item in tape.envelopes]
+    observed[0] = {
+        **observed[0],
+        "values": {**tape.envelopes[0].record.values, "close": 999.0},
+    }
+
+    receipt = verify_nautilus_forward_event_tape_parity(tape, observed)
+
+    assert receipt.passed is False
+    assert receipt.compatible is False
+    assert receipt.mismatches == ("event[0].values",)
+    assert receipt.expected_wire_digest != receipt.observed_wire_digest
+
+
+def test_forward_event_tape_parity_rejects_malformed_or_duplicate_wire_records() -> None:
+    tape = _forward_tape_for_parity()
+    payload = _wire_payload(tape.envelopes[0].record)
+
+    with pytest.raises(ValueError, match="exact wire schema"):
+        verify_nautilus_forward_event_tape_parity(tape, ({**payload, "extra": True},))
+    with pytest.raises(ValueError, match="forward event ids must be unique"):
+        verify_nautilus_forward_event_tape_parity(tape, (payload, payload))
+
+
+def test_record_constructor_rejects_negative_wire_time() -> None:
+    with pytest.raises(ValueError, match="non-negative"):
+        NautilusEventRecord(
+            dependency_id="daily-bars",
+            event_id="bar-1",
+            instrument_id="US.AAPL",
+            event_type="ohlcv",
+            event_time_ns=-1,
+            sequence=0,
+            values={
+                "open": 100,
+                "high": 101,
+                "low": 99,
+                "close": 100,
+                "volume": 1,
+            },
+        )
+
+
+def _wire_payload(record: NautilusEventRecord) -> dict[str, object]:
+    return {
+        "dependency_id": record.dependency_id,
+        "event_id": record.event_id,
+        "instrument_id": record.instrument_id,
+        "event_type": record.event_type,
+        "event_time_ns": record.event_time_ns,
+        "sequence": record.sequence,
+        "values": dict(record.values),
+    }
+
+
+def _forward_tape_for_parity() -> NautilusForwardEventTape:
+    first_market = _event("bar-1", sequence=1)
+    second_market = _event(
+        "bar-2",
+        event_time=BASE + timedelta(minutes=1),
+        sequence=2,
+    )
+    first_canonical = CanonicalForwardEvent(
+        first_market.event_id,
+        first_market.sequence,
+        first_market.event_time,
+        first_market.event_time + timedelta(seconds=1),
+        content_digest("source-1"),
+    )
+    second_canonical = CanonicalForwardEvent(
+        second_market.event_id,
+        second_market.sequence,
+        second_market.event_time,
+        second_market.event_time + timedelta(seconds=1),
+        content_digest("source-2"),
+    )
+    return materialize_nautilus_forward_tape(
+        "forward-instance-1",
+        (first_canonical, second_canonical),
+        (first_market, second_market),
+        event_type_by_dependency={"daily-bars": "ohlcv"},
+        delivery_bindings=(
+            _delivery_binding(first_canonical),
+            _delivery_binding(second_canonical),
+        ),
+    )

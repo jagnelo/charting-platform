@@ -1,0 +1,514 @@
+"""Application-owned callback composition for the dedicated Strategy Lab worker."""
+
+from __future__ import annotations
+
+import inspect
+import os
+from collections.abc import Awaitable, Callable
+from importlib import import_module
+from pathlib import Path
+from typing import Any, cast
+
+from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.etf_pit import LocalETFMembershipReader
+from app.strategy_lab_v2.nautilus_worker_terminal import (
+    create_nautilus_oos_worker_terminal_evidence_resolver,
+)
+from app.strategy_lab_v2.persistence import SearchDispatchBindingResolver
+from app.strategy_lab_v2.postgres_search_dispatch import SearchDispatchRecord
+from app.strategy_lab_v2.search_dispatch_rpc import (
+    UnixSocketSearchDispatchClient,
+    UnixSocketWalkForwardProgressClient,
+    WalkForwardProgressRpcReceipt,
+)
+from app.strategy_lab_v2.search_worker_handoff import (
+    create_authenticated_search_dispatch_materializer,
+)
+from app.strategy_lab_v2.study_artifact_resolver import (
+    SelectedStudyArtifactResolver,
+    create_selected_study_artifact_resolver,
+)
+from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
+from app.strategy_lab_v2.trial_hydration import (
+    NautilusTrialDomainHydrator,
+    OwnerScopedDomainReader,
+)
+from app.strategy_lab_v2.worker_consumer import WorkerHandleDecision, WorkerHandleResult
+from app.strategy_lab_v2.worker_evidence import WorkerSubmissionBinding
+from app.strategy_lab_v2.worker_handoff import materialize_worker_handoff
+from app.strategy_lab_v2.worker_initial_state import ensure_worker_initial_state
+from app.strategy_lab_v2.worker_process import WorkerExecutionRequest
+from app.strategy_lab_v2.worker_recovery_application import (
+    create_worker_recovery_application,
+)
+from app.strategy_lab_v2.worker_service import (
+    WorkerCancellationReader,
+    WorkerServiceCallbacks,
+    WorkerTerminalWriter,
+)
+from app.strategy_lab_v2.worker_terminal_adapter import WorkerTerminalEvidenceResolver
+
+EvidenceResolverFactory = Callable[
+    ..., WorkerTerminalEvidenceResolver | Awaitable[WorkerTerminalEvidenceResolver]
+]
+WalkForwardProgressClient = Callable[..., Awaitable[WalkForwardProgressRpcReceipt]]
+
+
+def _etf_membership_reader_for_persistence(persistence: Any) -> LocalETFMembershipReader | None:
+    """Expose ETF SQL revalidation only when the host provides its real session port.
+
+    Older callback hosts may provide owner-scoped reads through another adapter
+    and have no ETF references. Keep those no-ETF flows compatible; the domain
+    hydrator rejects ETF-bearing snapshots when this local reader is unavailable.
+    """
+
+    session_factory = getattr(persistence, "session_factory", None)
+    if not callable(session_factory):
+        return None
+    return LocalETFMembershipReader(session_factory)
+
+
+def _study_artifact_resolver_for_persistence(
+    persistence: Any,
+) -> SelectedStudyArtifactResolver | None:
+    """Revalidate pinned Study outputs only through the host's real SQL session port."""
+
+    session_factory = getattr(persistence, "session_factory", None)
+    if not callable(session_factory):
+        return None
+    return create_selected_study_artifact_resolver(session_factory)
+
+
+async def _dispatch_for_stream_entry(dispatch_store: Any, entry: Any, attempt_id: str):
+    """Resolve a search dispatch through the immutable payload identity.
+
+    The outbox relay gives the Redis envelope a transport-specific request
+    fingerprint and event ID. The stored search request identity is therefore
+    recovered from the payload digest, then checked against the worker handoff.
+    """
+
+    payload_digest = getattr(entry, "payload_digest", None)
+    loader = getattr(dispatch_store, "load_by_payload_digest", None)
+    if callable(loader) and isinstance(payload_digest, str):
+        dispatch = await loader(payload_digest)
+    else:  # compatibility for simple host adapters and older direct queues
+        dispatch = await dispatch_store.load_by_request_fingerprint(entry.request_fingerprint)
+    if not isinstance(dispatch, SearchDispatchRecord):
+        return None
+    if dispatch.request.attempt_id != attempt_id or (
+        payload_digest is not None and dispatch.request.payload_digest != payload_digest
+    ):
+        return None
+    return dispatch
+
+
+async def create(
+    persistence: Any,
+    artifact_root: Path,
+    *,
+    search_dispatch_binding_resolver: SearchDispatchBindingResolver | None = None,
+) -> WorkerServiceCallbacks:
+    """Build typed handoff/terminal callbacks for one worker process."""
+
+    if not callable(getattr(persistence, "worker_terminal_writer", None)):
+        raise TypeError("persistence must expose worker_terminal_writer()")
+    if not isinstance(artifact_root, Path):
+        raise TypeError("artifact_root must be a Path")
+    resolver_factory = _load_resolver_factory(os.environ.get("STRATEGY_LAB_V2_EVIDENCE_RESOLVER"))
+    resolver = _invoke_evidence_resolver_factory(
+        resolver_factory,
+        persistence,
+        artifact_root,
+        search_dispatch_binding_resolver=search_dispatch_binding_resolver,
+    )
+    if inspect.isawaitable(resolver):
+        resolver = await resolver
+    if not callable(resolver):
+        raise TypeError("evidence resolver factory must return a callable")
+    terminal_writer = persistence.worker_terminal_writer(
+        cast(WorkerTerminalEvidenceResolver, resolver)
+    )
+    if not callable(terminal_writer):
+        raise TypeError("persistence.worker_terminal_writer() must return a callable")
+    return WorkerServiceCallbacks(
+        materialize_worker_handoff,
+        _terminal_only_completion,
+        terminal_writer=cast(WorkerTerminalWriter, terminal_writer),
+    )
+
+
+async def create_search_dispatch(
+    persistence: Any,
+    artifact_root: Path,
+    *,
+    walk_forward_progress_client: WalkForwardProgressClient | None = None,
+) -> WorkerServiceCallbacks:
+    """Build callbacks that authenticate search dispatches before decoding.
+
+    This is an explicit callback-factory variant for a worker whose queue is
+    populated by the search-dispatch transaction.  The ordinary ``create``
+    factory remains available for submission-backed queues; selecting this
+    factory is a host configuration decision and requires the queue identity
+    to be declared through the same ``STRATEGY_LAB_V2_QUEUE`` setting as the
+    worker entrypoint.
+    """
+
+    dispatch_store = getattr(persistence, "search_dispatch", None)
+    queue_name = os.environ.get("STRATEGY_LAB_V2_QUEUE")
+    if dispatch_store is None:
+        raise TypeError("persistence must expose search_dispatch")
+    if queue_name is None or not queue_name.strip():
+        raise ValueError("STRATEGY_LAB_V2_QUEUE must be configured for search dispatch workers")
+    resources = getattr(persistence, "resources", None)
+    if resources is None or not all(
+        callable(getattr(resources, method, None))
+        for method in (
+            "get_domain_contract",
+            "get_domain_contract_by_fingerprint",
+            "get_domain_contracts_by_fingerprint",
+        )
+    ):
+        raise TypeError("persistence must expose owner-scoped domain resource reads")
+    binding_resolver = create_default_search_dispatch_binding_resolver(persistence)
+    callbacks = await create(
+        persistence,
+        artifact_root,
+        search_dispatch_binding_resolver=binding_resolver,
+    )
+    materializer = create_authenticated_search_dispatch_materializer(
+        dispatch_store,
+        queue_name=queue_name,
+        domain_hydrator=NautilusTrialDomainHydrator(
+            cast(OwnerScopedDomainReader, resources),
+            etf_membership_reader=_etf_membership_reader_for_persistence(persistence),
+            selected_study_artifact_resolver=_study_artifact_resolver_for_persistence(persistence),
+        ),
+    )
+
+    initialized_materializer = _SearchDispatchWorkerHandoffMaterializer(
+        materializer,
+        dispatch_store=dispatch_store,
+        queue_name=queue_name,
+        persistence=persistence,
+        binding_resolver=binding_resolver,
+    )
+
+    worker_state = getattr(persistence, "worker_state", None)
+    if worker_state is None or not callable(getattr(worker_state, "load_lease", None)):
+        raise TypeError("persistence.worker_state must expose load_lease()")
+    recovery_application = create_worker_recovery_application(
+        persistence,
+        queue_name=queue_name,
+        dispatch_client=UnixSocketSearchDispatchClient.from_environment(),
+    )
+    terminal_writer = callbacks.terminal_writer
+    if terminal_writer is None:
+        raise TypeError("search dispatch workers require a terminal writer")
+    progress_client = (
+        walk_forward_progress_client or UnixSocketWalkForwardProgressClient.from_environment()
+    )
+
+    async def complete_terminal_and_notify(entry: Any, request: Any, observed_at: Any):
+        search_receipt = await recovery_application.complete_terminal_if_persisted(
+            entry=entry,
+            request=request,
+            observed_at=observed_at,
+        )
+        if search_receipt is not None and search_receipt.decision is WorkerHandleDecision.COMPLETE:
+            dispatch = await _dispatch_for_stream_entry(
+                dispatch_store,
+                entry,
+                request.runtime_request.attempt_id,
+            )
+            if not isinstance(dispatch, SearchDispatchRecord):
+                return WorkerHandleResult(
+                    entry.fingerprint,
+                    WorkerHandleDecision.RETRY,
+                    rejection_reason="completed search dispatch could not be reloaded for phase progress",
+                )
+            await progress_client(
+                principal=dispatch.owner_id,
+                request_id=content_digest(
+                    {
+                        "schema": "strategy-lab.walk-forward-completion-notice.v1",
+                        "attempt_id": dispatch.request.attempt_id,
+                        "dispatch_fingerprint": dispatch.request.fingerprint,
+                    }
+                ),
+                experiment_fingerprint=dispatch.experiment_fingerprint,
+                attempt_id=dispatch.request.attempt_id,
+                dispatch_request_fingerprint=dispatch.request.fingerprint,
+                queue_name=queue_name,
+            )
+        return search_receipt
+
+    async def terminal_dispatch_writer(context: Any) -> WorkerHandleResult:
+        result = await terminal_writer(context)
+        if result.decision is not WorkerHandleDecision.COMPLETE:
+            return result
+        search_receipt = await complete_terminal_and_notify(
+            context.entry,
+            context.request,
+            context.observed_at,
+        )
+        return result if search_receipt is None else search_receipt
+
+    async def lease_state_reader(request: WorkerExecutionRequest):
+        return await worker_state.load_lease(request.lease_state.lease.lease_id)
+
+    async def cancellation_reader(entry: Any, request: WorkerExecutionRequest) -> bool:
+        attempt_id = request.runtime_request.attempt_id
+        dispatch = await _dispatch_for_stream_entry(dispatch_store, entry, attempt_id)
+        if (
+            not isinstance(dispatch, SearchDispatchRecord)
+            or dispatch.request.queue_name != queue_name
+        ):
+            raise ValueError("worker cancellation dispatch binding is unavailable")
+        search_state = await persistence.search_state.load(
+            principal=dispatch.owner_id,
+            experiment_fingerprint=dispatch.experiment_fingerprint,
+        )
+        if (
+            search_state is None
+            or search_state.experiment_fingerprint != dispatch.experiment_fingerprint
+        ):
+            raise ValueError("worker cancellation search state is unavailable")
+        return search_state.cancellation_requested
+
+    async def terminal_replay_reader(entry: Any, request: WorkerExecutionRequest, observed_at):
+        """ACK a fully settled attempt before launching another Nautilus process."""
+
+        return await complete_terminal_and_notify(entry, request, observed_at)
+
+    return WorkerServiceCallbacks(
+        initialized_materializer,
+        callbacks.completion_writer,
+        heartbeat_writer=callbacks.heartbeat_writer,
+        terminal_writer=terminal_dispatch_writer,
+        recovery_writer=recovery_application,
+        lease_state_reader=lease_state_reader,
+        cancellation_reader=cast(WorkerCancellationReader, cancellation_reader),
+        terminal_replay_reader=terminal_replay_reader,
+    )
+
+
+class _SearchDispatchWorkerHandoffMaterializer:
+    """Authenticate a search handoff, then repair its durable initial state."""
+
+    def __init__(
+        self,
+        authenticated_materializer: Any,
+        *,
+        dispatch_store: Any,
+        queue_name: str,
+        persistence: Any,
+        binding_resolver: SearchDispatchBindingResolver,
+    ) -> None:
+        if not callable(authenticated_materializer):
+            raise TypeError("authenticated_materializer must be callable")
+        self.authenticated_materializer = authenticated_materializer
+        self._dispatch_store = dispatch_store
+        self._queue_name = queue_name
+        self._persistence = persistence
+        self._binding_resolver = binding_resolver
+
+    async def __call__(self, entry: Any, payload: Any) -> WorkerExecutionRequest:
+        request = await self.authenticated_materializer(entry, payload)
+        dispatch = await _dispatch_for_stream_entry(
+            self._dispatch_store,
+            entry,
+            request.runtime_request.attempt_id,
+        )
+        if not isinstance(dispatch, SearchDispatchRecord) or (
+            dispatch.request.queue_name != self._queue_name
+        ):
+            raise ValueError("worker initial state has no exact owner-scoped search dispatch")
+        resolved_binding = self._binding_resolver(dispatch)
+        binding = (
+            await resolved_binding if inspect.isawaitable(resolved_binding) else resolved_binding
+        )
+        if binding is None:
+            raise ValueError("worker initial state has no authenticated submission binding")
+        execution_state = getattr(self._persistence, "execution_state", None)
+        runtime_execution = getattr(self._persistence, "runtime_execution", None)
+        if execution_state is None or runtime_execution is None:
+            raise TypeError("persistence must expose execution_state and runtime_execution")
+        await ensure_worker_initial_state(
+            execution_state=execution_state,
+            runtime_execution=runtime_execution,
+            principal=binding.owner_id,
+            request=request,
+            submission=binding.receipt,
+        )
+        return request
+
+
+def default_evidence_resolver_factory(
+    persistence: Any,
+    artifact_root: Path,
+    *,
+    search_dispatch_binding_resolver: SearchDispatchBindingResolver | None = None,
+) -> WorkerTerminalEvidenceResolver:
+    """Compose owner-authenticated Nautilus OOS result publication.
+
+    The configured resolver uses the durable owner/attempt lookup, rehydrates
+    the exact typed trial graph, derives OOS metrics from verified native
+    output, and creates the per-artifact publication evidence required by the
+    terminal writer. Exact conformance evidence comes from the immutable
+    parent-owned worker request and is checked against its execution plan.
+    """
+
+    if not isinstance(artifact_root, Path):
+        raise TypeError("artifact_root must be a Path")
+    artifact_publication = getattr(persistence, "artifact_publication", None)
+    lookup_loader = getattr(persistence, "load_worker_terminal_evidence_for_request", None)
+    resources = getattr(persistence, "resources", None)
+    if not callable(artifact_publication):
+        raise TypeError("persistence must expose artifact_publication()")
+    if not callable(lookup_loader):
+        raise TypeError("persistence must expose load_worker_terminal_evidence_for_request()")
+    if resources is None or not all(
+        callable(getattr(resources, method, None))
+        for method in (
+            "get_domain_contract",
+            "get_domain_contract_by_fingerprint",
+            "get_domain_contracts_by_fingerprint",
+        )
+    ):
+        raise TypeError("persistence must expose owner-scoped domain resource reads")
+    publisher = artifact_publication(artifact_root)
+    hydrator = NautilusTrialDomainHydrator(
+        cast(OwnerScopedDomainReader, resources),
+        etf_membership_reader=_etf_membership_reader_for_persistence(persistence),
+        selected_study_artifact_resolver=_study_artifact_resolver_for_persistence(persistence),
+    )
+
+    async def lookup(
+        *, request_fingerprint: str, attempt_id: str, payload_digest: str | None = None
+    ):
+        return await lookup_loader(
+            request_fingerprint=request_fingerprint,
+            attempt_id=attempt_id,
+            payload_digest=payload_digest,
+            search_dispatch_binding_resolver=search_dispatch_binding_resolver,
+        )
+
+    resolver = create_nautilus_oos_worker_terminal_evidence_resolver(
+        lookup,
+        publisher,
+        hydrator,
+    )
+    if not callable(resolver):
+        raise TypeError("Nautilus OOS resolver factory returned an invalid callback")
+    return cast(WorkerTerminalEvidenceResolver, resolver)
+
+
+def create_default_search_dispatch_binding_resolver(
+    persistence: Any,
+) -> SearchDispatchBindingResolver:
+    """Bind search dispatches to their exact durable worker submission identity.
+
+    Search candidates are admitted internally and need not have an API
+    submissions-table row. In that case the PostgreSQL search-dispatch record
+    itself is the accepted submission record: it durably binds the idempotency
+    key, queue operation, attempt, payload digest, and creation time. Any
+    submissions-table row remains authoritative for an API-created attempt;
+    it must at least bind the same attempt, while its request digest and
+    operation may describe the original API command rather than the internal
+    worker payload.
+    """
+
+    submissions = getattr(persistence, "submissions", None)
+    loader = getattr(submissions, "load_submission", None)
+    if not callable(loader):
+        raise TypeError("persistence.submissions must expose load_submission()")
+
+    async def resolve(dispatch: SearchDispatchRecord) -> WorkerSubmissionBinding | None:
+        if not isinstance(dispatch, SearchDispatchRecord):
+            raise TypeError("dispatch must be a SearchDispatchRecord")
+        receipt = await loader(
+            principal=dispatch.owner_id,
+            attempt_id=dispatch.request.attempt_id,
+        )
+        if receipt is None:
+            request = SubmissionRequest(
+                idempotency_key=dispatch.request.idempotency_key,
+                operation=dispatch.request.queue_name,
+                attempt_id=dispatch.request.attempt_id,
+                payload_digest=dispatch.request.payload_digest,
+                submitted_at=dispatch.request.created_at,
+            )
+            receipt = SubmissionReceipt(request, accepted_at=dispatch.request.created_at)
+        if not isinstance(receipt, SubmissionReceipt):
+            raise TypeError("submission lookup must return SubmissionReceipt or None")
+        if receipt.request.attempt_id != dispatch.request.attempt_id:
+            return None
+        return WorkerSubmissionBinding(dispatch.owner_id, receipt)
+
+    return resolve
+
+
+async def _terminal_only_completion(entry: Any, _process: Any) -> WorkerHandleResult:
+    """Guard the legacy writer path; terminal_writer must own completion."""
+
+    fingerprint = getattr(entry, "fingerprint", None)
+    if not isinstance(fingerprint, str):
+        raise TypeError("worker entry must expose a fingerprint")
+    return WorkerHandleResult(
+        fingerprint,
+        WorkerHandleDecision.RETRY,
+        rejection_reason="typed terminal writer is required for Strategy Lab completion",
+    )
+
+
+def _load_resolver_factory(spec: str | None) -> EvidenceResolverFactory:
+    if spec is None or not spec.strip():
+        raise ValueError("STRATEGY_LAB_V2_EVIDENCE_RESOLVER must be configured")
+    module_name, separator, attribute = spec.partition(":")
+    if not separator or not module_name.strip() or not attribute.strip():
+        raise ValueError("evidence resolver must use module:attribute syntax")
+    module = import_module(module_name.strip())
+    factory = getattr(module, attribute.strip(), None)
+    if not callable(factory):
+        raise TypeError("evidence resolver target must be callable")
+    return cast(EvidenceResolverFactory, factory)
+
+
+def _invoke_evidence_resolver_factory(
+    factory: EvidenceResolverFactory,
+    persistence: Any,
+    artifact_root: Path,
+    *,
+    search_dispatch_binding_resolver: SearchDispatchBindingResolver | None,
+) -> WorkerTerminalEvidenceResolver | Awaitable[WorkerTerminalEvidenceResolver]:
+    if search_dispatch_binding_resolver is None:
+        return factory(persistence, artifact_root)
+    try:
+        parameters = inspect.signature(factory).parameters.values()
+    except (TypeError, ValueError) as error:
+        raise TypeError(
+            "search evidence resolver factory must expose the binding callback parameter"
+        ) from error
+    accepts_binding = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        or parameter.name == "search_dispatch_binding_resolver"
+        for parameter in parameters
+    )
+    if not accepts_binding:
+        raise TypeError(
+            "search evidence resolver factory must accept search_dispatch_binding_resolver"
+        )
+    return factory(
+        persistence,
+        artifact_root,
+        search_dispatch_binding_resolver=search_dispatch_binding_resolver,
+    )
+
+
+__all__ = [
+    "EvidenceResolverFactory",
+    "create",
+    "create_search_dispatch",
+    "create_default_search_dispatch_binding_resolver",
+    "default_evidence_resolver_factory",
+]

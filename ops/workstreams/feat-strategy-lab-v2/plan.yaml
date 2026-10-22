@@ -1,0 +1,1661 @@
+schema: 4
+goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap.
+  Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider,
+  ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.
+integration_checkpoint:
+  id: strategy-lab-v2-integration-1
+  completed_changesets:
+    - name: strategy-v2-selected-study-artifact-reference-preparation
+      status: complete
+      source_commit: b2fbcabf822041b41410f982a8ed45eed76815ce
+      integration_capture: exact branch HEAD
+    - name: strategy-private-selected-study-artifact-resolver-preparation
+      status: complete
+      source_commit: e5e80c3c0daa13cd1347b5673c302e1f5f5017f3
+      validation: 27 focused cases, two-file MyPy, exact-source CI 39667164392 green
+      scope: >-
+        Private owner-scoped resolver and fake-session contract only; no public API,
+        worker or persistence activation. Superseded by the accepted TC release below.
+      integration_capture: exact branch HEAD
+  active_changeset:
+    name: strategy-tc-three-feature-consumer-reconciliation
+    status: complete
+    base_source_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
+    released_staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
+    strategy_merge_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
+    phase: checkpoint_accepted_ready_for_integration
+    reconciled_alembic_head: slv2_0011
+    integration_capture: exact branch HEAD
+    intent: >-
+      Reconcile only the exact released three-feature staging SHA. Review the five real shared-path
+      overlaps, preserve Provider/ETF/TC semantics, complete owner-scoped selected Study reference
+      authentication at the API mutation boundary and persisted worker hydration path, and join
+      the actual e9c23a7b1d40 and slv2_0010 heads through additive no-DDL slv2_0011. Preserve all
+      terminal settlement, reservation, admission and owner-isolation guarantees. No provider or
+      broker activation, no fabricated execution proof, and no broader checkpoint acceptance.
+    validation: >-
+      37 focused API/resolver/factory/composition/worker/migration checks and 4 hydration/ORM
+      metadata checks passed before the nested resolver return-annotation clarification; that
+      clarification changes no runtime behavior and tests were not replayed. The first authorized
+      two-file MyPy invocation exposed only imported AdjustmentFactorObservation relationship names;
+      narrowly authorized module-tail TYPE_CHECKING imports for Instrument and DataSource preserve
+      that mapped class body and runtime schema, and the same two-file MyPy command now passes.
+      Preserve the initial red receipt. The Root-assigned local PostgreSQL component gate collected
+      20 cases: the real-FK-closure guard passed and 19 failed in common fixture setup because
+      CodeAsset.user_id had no ORM relationship ordering its User FK inserts. The root cause was
+      diagnosed from the mapped schema, and the test seed now explicitly flushes both owner rows
+      before constructing CodeAsset; this changes no production code, FK or assertion. Ruff,
+      formatting, byte-compile and workstream/diff validation pass after the correction, but the
+      PostgreSQL test has not been replayed and the fix is not yet database-verified. Preserve the
+      failed run and exact cleanup evidence. A separately authorized revised-source attempt then
+      passed all 20 PostgreSQL/API/reconstructed-worker cases in 7.19s on module SHA256
+      e415a20bd75a7f75c373fe4219b22117e27990233a1d96799a26e500ff04a2fd, using the cached pinned
+      PostgreSQL 16 Alpine image in one capped loopback-only container; the exact ID was removed,
+      cleanup_failed=0, and container/state/volume/network baseline diffs are empty. This validates
+      this focused component only. The later accepted exact-source and full local application-profile
+      evidence is recorded under final_checkpoint_acceptance below.
+    worker_alembic_url_repair: >-
+      The released app runtime attempt found that the common Docker entrypoint invokes Alembic
+      before the dedicated worker module and reads generic DATABASE_URL_SYNC. Both opt-in v2
+      Compose workers lacked that generic variable, so Alembic fell back to localhost and the
+      backtest worker restarted with a PostgreSQL connection error; no job/native execution ran.
+      The scoped repair adds the generic synchronous DSN equal to each worker's namespaced sync
+      DSN and async DATABASE_URL, and documents the common-entrypoint ordering. Exact complete-line
+      Compose assertions are mutation-checked by removing only each generic line in memory; both
+      mutants are rejected. The two Compose plus two entrypoint modules pass locally (18/18, 1.37s);
+      Root independently ran them offline without fixtures/cache writes (18/18, 1.45s). This did
+      not establish real worker readiness at the time. Prior local full-backend results are input-qualified to
+      earlier source; the integration wrapper did not capture a separate pytest exit, so do not
+      overstate its coverage evidence. The raw first cleanup diff showed the owned opt-in worker
+      remaining at that capture; Root later independently verified its absence and current full
+      container/state, volume and network inventories matching baseline. Subsequent actual
+      default AsyncSessionLocal DB readiness before and after worker restart, Redis consumer state,
+      and PID change passed on the final tested source; no job/native execution ran. See
+      final_checkpoint_acceptance for the full application profile and remaining roadmap boundaries.
+    final_checkpoint_acceptance:
+      decision_source: /home/m920q/charting-platform/.ai/staging-attempts/strategy-197ea15a-checkpoint-acceptance-20261022.md
+      accepted_at: 2026-10-22T13:35:00Z
+      tested_source_sha: 197ea15a9a90fbc76089a38fe67013c00a722d91
+      exact_source_ci:
+        run_id: 39779005214
+        backend_job_id: 119825141281
+        frontend_job_id: 119825140870
+        branch_declared_job_id: 119835836042
+        e2e_playwright_job_id: 119835836056
+        exhaustive_integration_gate: skipped_by_feature_branch_policy
+        conclusion: success
+      local_application_profile:
+        registered_api_and_worker_db_redis_restart: passed
+        functional: 195_passed_2_existing_live_opt_in_skips_20m48s_zero_retries
+        strict_visual: 104_passed_13m24s_zero_retries
+        browser_image: mcr.microsoft.com/playwright:v1.62.1-noble
+        browser_image_digest: sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+        cleanup: exact_owned_resources_absent_all_three_global_diffs_zero_bytes
+      migration_qualification: >-
+        Fresh/previous-release migration compatibility passed at B b96d456; the current B-to-P
+        Alembic/model/migration-compatibility input diff is empty. This is reviewed input equivalence,
+        not a separately launched migration run on P.
+      local_backend_qualification: >-
+        Earlier complete unit/integration/coverage evidence remains input-qualified; the full local
+        integration wrapper did not capture an independent pytest exit. Do not relabel it as a clean
+        full-backend run on P. Exact-source hosted backend CI on P is green.
+      acceptance_boundary: >-
+        Root accepted SLICP1-SLICP5 for ready_for_integration under the human's delegated acceptance.
+        This is not completion of the original 18-criterion roadmap, canonical staging integration,
+        Exhaustive staging proof, production qualification, live/native authority, paid/trial
+        activation or deployment.
+    follow_up_source_review:
+      status: prepared_for_coordinator_review_not_runtime_validated
+      base_source_commit: b96d456cbfe0d043cfe2e1abe266afb6460140b1
+      historical_exact_ci_run: 39726439939
+      historical_exact_ci_conclusion: failure
+      frontend_paths:
+        - frontend/tests/e2e/flows.spec.ts
+        - frontend/tests/e2e/hidden_request_observation.ts
+        - frontend/tests/unit/lib/test_hidden_request_observation.test.ts
+      frontend_scope: >-
+        Test-only browser-clock request-start classification preserves the F8l hidden-initiation
+        assertion and 1500ms observation. A delayed delivery of a pre-hidden request is excluded;
+        a request at/after the transition is counted; missing/nonpositive timing throws. This is a
+        plausible harness observation-window repair, not proof of the historical first-attempt CI
+        cause. No production visibility/API behavior, assertion, retry, endpoint filter or tolerance
+        changed. The three-case no-browser Vitest regression passed once; F8l was included in the
+        final 197-case functional run, which completed with 195 passed and two existing live-opt-in
+        skips and no retry/flaky summary.
+      provider_reader_paths:
+        - backend/tests/integration/strategy_lab_v2/test_provider_local_capability_reader_postgres.py
+      provider_reader_scope: >-
+        No existing real-PostgreSQL invocation of ProviderLocalCapabilityEvidenceReader was found;
+        test_study_artifact_resolution_postgres.py only forbids/monkeypatches that reader. The new
+        ordinary integration module derives the actual nine-table mapped FK closure (asset_class,
+        data_source, exchange, instrument, instrument_dataset_state, instrument_type, issuer,
+        market_series, ohlcv_bar), retains mapped constraints, and exercises positive local evidence,
+        immutable bar-content drift, identity revocation, non-XNYS denial, partial coverage, stale
+        freshness, unsupported product/feed and zero HTTP calls. Positive evidence must also pass
+        provider_series_capability_cell under the actual equity/market/cash host scope. Every source,
+        series, identity, venue, coverage and status restoration is positively revalidated before the
+        next denial mutation; a fresh status with expired stale_after is rejected at admission. Its
+        fixture cleanup covers setup failures and test teardown in one guarded finally. It has no
+        opt-in skip: ordinary CI lazily uses TEST_DATABASE_URL or the repository pg_container fixture.
+      latest_component_validation: >-
+        Preserve first attempt 9pOKab (1 passed/1 failed in 2.28s): the FK-closure test passed and
+        the persisted-reader case exposed missing provider provenance in its positive fixture. The
+        corrected module added provider=strategy-reader-fixture, explicit binding-mismatch diagnostics,
+        and a persisted OHLCV-bar removal denial/restoration readmission asserting the restored
+        immutable content digest. Root authorized one distinct corrected attempt, v8dBNX, on frozen
+        module SHA256 d91c6051cc6f8d6b3762ba45c5196d84f39c4b9de2eb60b80c07357cd67232ac: both cases
+        passed in 2.33s. The exact cached PostgreSQL 16 Alpine container used loopback port 32775,
+        384 MiB memory/swap, one CPU, and 256 MiB tmpfs; exact-ID cleanup succeeded, cleanup_failed=0,
+        and container/state/volume/network snapshots were unchanged. Raw output and receipts remain in
+        `/tmp/strategy-provider-reader-pg-02d5ffaa.v8dBNX/`. No provider/network request occurred.
+        The three-case frontend Vitest test also passed once; actual browser acceptance remains open.
+        The local full collector's 14 shard-53 failures occurred with routing forced off; two
+        representative mocked positive route-selection nodes passed once with routing true only in
+        that isolated process, which does not explain every failure.
+      latest_full_backend_attempt:
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        command: scripts/backend_coverage.py --shard-size 50
+        result: >-
+          The unchanged complete collector discovered 3432 tests/unit, 1759 app/strategy_lab_v2/tests,
+          and 499 tests/integration (5690 total). Unit shards 1-58 passed (2900 cases). Shard 59/104
+          exited 1 with pytest INTERNALERROR/MemoryError during pytest-cov collector flush_data at
+          runtestloop teardown, followed by a second MemoryError writing pytest cache/nodeids. No
+          assertion summary is available for shard 59; shards 60-104, all 499 integration tests,
+          and the combined coverage report/75% threshold were not reached. This is an incomplete
+          local full-backend gate, not a test-suite pass or a proven product assertion failure.
+        bounds_and_environment: >-
+          One UV offline/no-sync collector, no xdist/retries, 2 GiB address-space limit, 5400-second
+          wall limit with INT/20-second grace, RESEARCH_MAX_MEMORY_BYTES=1 GiB, scientific thread
+          pools set to one, normal mocked-test PROVIDER_ROUTING_ENABLED=true only in the isolated test
+          process, paid routing false, all live flags zero, cleared provider credentials/proxies,
+          private quota/FINRA/UV-cache paths and ENV_FILE=/dev/null. The two approved loopback-only
+          fixtures used the pinned cached PostgreSQL/Redis images, caps and tmpfs; no provider HTTP
+          or quota operation occurred.
+        fixture_receipt: >-
+          Runner-reported supervisor/collector PID 630769; raw log and evidence directory
+          /tmp/strategy-backend-12ae557.LAs9RC/. PostgreSQL ID
+          cb5c5e14a2ad09fec8ccaa6b132ae3ba2dadcd9d4a0a5fb45769393369f82274 and Redis ID
+          c8f71eb8a292cb6641b62f0b36698494bdd0d8a1d91cb4ec9a0f8985a16cb26b were each removed and
+          independently absent afterward; cleanup_failed=0. Global container/ID/volume/network
+          snapshots were byte-identical, and the Provider-reader test module SHA256 was unchanged
+          at d91c6051cc6f8d6b3762ba45c5196d84f39c4b9de2eb60b80c07357cd67232ac.
+        next_action: >-
+          Root released one complete frozen-source run at 08:59Z using the same shard-50 collector,
+          all 5690 discovered cases, zero retries and unchanged 75% combined threshold. The runner
+          raises only the test-harness RLIMIT_AS to 8 GiB inside a verified 1536 MiB physical-memory,
+          no-swap scope; the SUT 1 GiB budget is unchanged. Verify exact scope membership and limits,
+          run once, retain all output and cleanup evidence, and do not replay if it fails. Full local
+          application/worker and full_stack_browser remain separately required.
+      focused_shard_memory_diagnostics:
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        command: >-
+          Two sequential single-process offline UV pytest invocations over canonical collected unit
+          IDs [2900:2925] and [2925:2950], with --cov=app --cov-append --cov-report=, addopts override,
+          faulthandler_timeout=60, private coverage/cache/quota/FINRA paths, a 2 GiB inherited
+          RLIMIT_AS launcher cap, 180-second timeout with INT/20-second grace, and
+          RESEARCH_MAX_MEMORY_BYTES=1 GiB.
+        group_2900_2925: >-
+          25 exact IDs saved in /tmp/strategy-shard59-diagnostic-02d5ffaa/2900-2925/nodeids.txt;
+          exit 3 at coverage/collector.py:485 linenos.copy() MemoryError after 12.72 seconds, peak
+          RSS 393276 KiB. Raw log: /tmp/strategy-shard59-diagnostic-02d5ffaa/2900-2925/raw.log.
+        group_2925_2950: >-
+          25 exact IDs saved in /tmp/strategy-shard59-diagnostic-02d5ffaa/2925-2950/nodeids.txt;
+          exit 3 at coverage collector flush MemoryError after 13.95 seconds, peak RSS 392304 KiB.
+          Raw log: /tmp/strategy-shard59-diagnostic-02d5ffaa/2925-2950/raw.log.
+        process_observation: >-
+          Both runs reported pytest INTERNALERROR, not assertion failures, and produced no test summary.
+          GNU time captured peak RSS; the attempted live process monitor did not capture the actual
+          pytest PID or /proc VmSize/VmPeak/RLIMIT_AS snapshot. Do not infer those values from the
+          parent command or runner source. No source or workstream edit occurred during execution.
+        interpretation: >-
+          The repeated small-group failure shows that merely lowering the collector shard size to 25
+          has not been demonstrated to resolve coverage flush memory exhaustion. It does not identify
+          the allocation cause, prove host OOM, or authorize a full-suite replay. No assertion,
+          coverage requirement, test selection, retry policy, or production memory budget changed.
+      changed_resource_diagnostics:
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        resource_policy: >-
+          Each 25-case group ran once, sequentially, in its own transient user scope with
+          MemoryMax=1536M, MemorySwapMax=0, and an 8 GiB inherited test-process RLIMIT_AS. The
+          existing RESEARCH_MAX_MEMORY_BYTES remained 1 GiB; all tests/assertions/coverage settings
+          and disabled live/paid behavior remained unchanged. Each scope recorded memory.max=1610612736
+          and memory.swap.max=0 from inside its cgroup, then systemd reported it inactive/dead.
+        group_2900_2925: >-
+          strategy-shard59-a-20261022.scope; 25 passed, 2 warnings, pytest 11.10s, outer elapsed
+          14.04s, GNU time peak RSS 420368 KiB. Actual pytest PID 1258894 had 8 GiB RLIMIT_AS,
+          VmPeak 2236916 KiB and VmHWM 420160 KiB. Receipt and raw output:
+          /tmp/strategy-shard59-cgroup-02d5ffaa/2900-2925/.
+        group_2925_2950: >-
+          strategy-shard59-b-20261022.scope; 25 passed, 34 warnings, pytest 11.59s, outer elapsed
+          14.52s, GNU time peak RSS 455908 KiB. Actual pytest PID 1260258 had 8 GiB RLIMIT_AS,
+          VmPeak 2242224 KiB and VmHWM 450784 KiB. Receipt and raw output:
+          /tmp/strategy-shard59-cgroup-02d5ffaa/2925-2950/.
+        interpretation: >-
+          The same tests failed coverage flush under the prior 2 GiB cap and pass with observed
+          VmPeak above 2 GiB while confined below 1.5 GiB physical RAM with no swap. This strongly
+          implicates the address-space cap/native mappings as the cause; the failed old processes did
+          not retain direct VmPeak snapshots, so the causal diagnosis remains evidence-based rather
+          than direct per-process proof. This is not a full-backend pass, a change to the 1 GiB SUT
+          limit, or authorization to replay the complete collector.
+      released_full_backend_gate:
+        authorization: /home/m920q/charting-platform/.ai/staging-attempts/strategy-12ae-final-backend-authorization-20261022.md
+        released_at: "2026-10-22T08:59:00Z"
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        command: scripts/backend_coverage.py --shard-size 50
+        expected_cases: 5690
+        combined_coverage_threshold_percent: 75
+        retries: 0
+        user_scope: strategy-backend-x-umask-20261022.scope
+        harness_rlimit_as_bytes: 8589934592
+        physical_memory_max_bytes: 1610612736
+        memory_swap_max_bytes: 0
+        sut_research_max_memory_bytes: 1073741824
+        fixture_count: 2
+        status: preflight_retry_authorized_before_pytest
+        constraints: >-
+          Freeze source and owned records during the run. Preserve all cases, assertions, normal
+          skips, timeouts and cleanup guards. The earlier run's unchanged-node diagnostic proved
+          that child umask 077 caused its mode-sensitive fixture mismatch; this run applies umask
+          022 only to the pytest child while the private runner remains 077. Do not replay after
+          failure; full app/browser is separate.
+      latest_published_source_ci:
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        run_id: 39734932990
+        conclusion: success
+        backend: success
+        frontend_unit: success
+        branch_declared: success
+        e2e_playwright: success
+        exhaustive_integration_gate: skipped_by_feature_branch_policy
+        scope_note: >-
+          This exact hosted source CI is green but does not replace the failed/incomplete local full
+          backend run, the full local application profile, or the Exhaustive Integration Gate.
+    owned_paths:
+      - backend/app/strategy_lab_v2/study_artifact_resolver.py
+      - backend/app/strategy_lab_v2/application.py
+      - backend/app/strategy_lab_v2/search_dispatch_rpc.py
+      - backend/app/strategy_lab_v2/search_preparation_composition.py
+      - backend/app/strategy_lab_v2/worker_callbacks.py
+      - backend/app/strategy_lab_v2/trial_hydration.py
+      - backend/app/strategy_lab_v2/persistence.py
+      - backend/alembic/versions
+      - backend/app/strategy_lab_v2/tests
+      - backend/tests/integration/strategy_lab_v2
+      - frontend/tests/e2e/flows.spec.ts
+      - frontend/tests/e2e/hidden_request_observation.ts
+      - frontend/tests/unit/lib/test_hidden_request_observation.test.ts
+      - ops/workstreams/feat-strategy-lab-v2/plan.yaml
+      - ops/workstreams/feat-strategy-lab-v2/handoff.md
+      - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+      - ops/workstreams/feat-strategy-lab-v2/session.json
+  post_release_reconciliation_map: ops/workstreams/feat-strategy-lab-v2/post-release-reconciliation.md
+  current_coordination_boundary:
+    staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261022T040010Z-77af863902ac.json
+    exact_ci_run: 39711763791
+    exhaustive_job: 119609491175
+    accepted_producer_sources:
+      provider: 74d114aa6a174c723b01da25d83e7a49470bdc93
+      etf: c2c232596cf848d83c20e5f2b9f5c502ddd01808
+      tc2000: febc6fbb7a033534f3c486f766dd437780954d09
+    scope: Accepted Provider, ETF and TC2000 product checkpoints plus the synchronized common repairs.
+    status: >-
+      Root released exact synchronized green three-feature staging after canonical staging-reconcile
+      exit 0 and absent pending-watch marker. Merge this SHA only into the Strategy branch. It is
+      not Strategy checkpoint acceptance or full-roadmap completion. Recompute all cross-feature
+      consumers and migration heads; full combined database/application and browser gates remain open.
+  released_auxiliary_reconciliation:
+    staging_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261019T230653Z-281a57bd9fb7.json
+    exact_ci_run: 39335198284
+    strategy_merge_commit: 01735f607d3051e3ebe569762ee65d5aa5b99c82
+    scope: >-
+      Coordinator-released workflow/F8u/F9c repair baseline only. No Provider,
+      ETF, TC2000 or Strategy product checkpoint was accepted or imported.
+    semantic_result: >-
+      Clean non-conflicting merge retained the Strategy terminal recovery,
+      admission/reservation, immutable Study/Code, scope-qualified Nautilus and
+      slv2_0001 through slv2_0008 fail-closed migration guarantees unchanged.
+  migration_collision_authorization: >-
+    Central staging integration coordination authorizes auditing and resolving
+    Strategy Alembic identifier collisions now. Preserve upstream-owned migrations
+    and existing data; first establish safe compatibility for applied IDs, do not
+    blindly rename, stamp, reset or drop data. Inspect sibling migrations read-only;
+    no branch merge, staging write or competing heavy Docker gate. This is a narrow
+    exception to the existing shared migration/env path gates for this repair only.
+  migration_compatibility_plan: ops/workstreams/feat-strategy-lab-v2/migration-compatibility.md
+  common_repair_baseline:
+    staging_sha: 82d881e76be8de538abb6ec5c454d96afe0ee56a
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261015T213902Z-82d881e76be8.json
+    exact_ci_run: 38805309009
+    source: fix/chart-template-pointer-interaction@bc32034e7e8032c7c5934fb6cb12fb43567653e0
+    strategy_merge_commit: bda8cb11dde9995846ab9b942aae50a5ec34b3db
+    scope: Common repair only; no Provider, ETF or TC2000 product checkpoint acceptance and no combined product baseline release.
+    human_technical_fix_delegation: >-
+      The coordinator may review and close validated technical fixes without per-fix human signoff, per the 2026-10-15 recorded direction. This does not waive validation or accept feature checkpoints.
+  latest_common_repair_reconciliation:
+    staging_sha: 0145b65992b8692ce69f82f804f83f6c8e551fea
+    exact_ci_run: 38896729111
+    strategy_merge_commit: db7c16e77dfe05f5e14c1ef331cc86b36cdfd209
+    scope: >-
+      Exact coordinator-released green common repair baseline only; no product
+      checkpoint acceptance, no Provider/ETF/TC product baseline, and no sibling
+      or persistent staging mutation.
+    bounded_test_evidence: >-
+      The two changed research-runner tests reported passing, but pytest did not
+      exit after reporting them; the still-open command was interrupted after
+      process inspection found no lingering pytest/research child. Do not claim
+      a clean pytest exit or full runner-suite pass from this invocation.
+  planning_authorization: Prepare strategy-lab-v2-integration-1 in feat/strategy-lab-v2 and its existing
+    worktree. Adopt the central-first Strategy resume task in your own plan/handoff/session, preserving
+    the full production-grade engine-neutral backtest/experiment/broker-free forward roadmap. Prepare
+    consumer/negative-path evidence independently now. The human accepts checkpoints and the central
+    coordinator alone integrates into staging.
+  coordination_source: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
+  checkpoint_acceptance: accepted_by_coordinator_for_ready_for_integration
+  checkpoint_acceptance_delegation:
+    recorded_at: 2026-10-15T22:55Z
+    exact_question: >-
+      May I accept and merge the four development checkpoints into staging once
+      their required cross-feature contracts and full tests pass, using verified
+      free operations only and leaving quota-held, unreviewed, paid/trial and
+      unsafe operations explicitly disabled, preserving full roadmaps/no
+      deployment/paid activation/operational trial?
+    exact_answer: >-
+      Yes—approve that initial scope and handle checkpoint acceptance. This
+      coordinator now owns conditional technical checkpoint acceptance; no
+      further per-fix/per-checkpoint human signoff is needed INSIDE that scope.
+    authority: Coordinator may conditionally accept exact feature checkpoints only after required cross-feature contracts and full tests pass, within the approved free-only and explicitly disabled-operation boundary.
+    boundary: >-
+      This is not current Strategy source acceptance, a waiver of required
+      contracts or full local and exact-source CI, permission for this feature
+      owner to self-integrate or deploy, paid/trial activation, operational
+      trial, unsafe-operation enablement, or data cleanup. The coordinator must
+      review and accept an exact eligible source, then direct owned closure,
+      clean push/freeze, and canonical staging merge. Preserve the full roadmap.
+    source: /home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json#checkpoint_acceptance_delegation_question
+  exact_source_ci:
+    prior_published_source:
+      sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+      run_id: 39734932990
+      conclusion: success
+      backend: success
+      frontend_unit: success
+      branch_declared: success
+      e2e_playwright: success
+      exhaustive_integration_gate: skipped_by_feature_branch_policy
+      scope_note: >-
+        Hosted exact-source CI does not substitute for the local full backend/application profile;
+        the assigned local collector stopped at shard 59/104 with a MemoryError and did not reach
+        integration or combined coverage.
+    current_published_source:
+      sha: 197ea15a9a90fbc76089a38fe67013c00a722d91
+      run_id: 39779005214
+      conclusion: success
+      backend_job_id: 119825141281
+      frontend_unit_job_id: 119825140870
+      branch_declared_job_id: 119835836042
+      e2e_playwright_job_id: 119835836056
+      exhaustive_integration_gate: skipped_by_feature_branch_policy
+      scope_note: >-
+        Exact-source hosted feature CI is green. The skipped Exhaustive Integration Gate is not
+        staging evidence; local full application profile evidence is separately recorded above.
+    latest_repaired_source:
+      sha: 790223f3aad553e4dacd2efffb13cdece4e50f28
+      run_id: 39501877296
+      whole_run_state: not_green
+      backend_job_id: 118901132839
+      backend_conclusion: success
+      frontend_job_id: 118901132390
+      frontend_conclusion: success
+      branch_declared_job_id: 118910405861
+      branch_declared_conclusion: failure
+      branch_declared_summary: >-
+        Existing declared mypy command reports 151 errors across 29 files and
+        439 checked. Twelve are Provider _aware_utc argument annotation errors;
+        139 are imported ORM forward names, configuration, and database
+        async/task annotations. Do not rerun or weaken the command before the
+        scoped annotation repair is complete.
+      e2e_job_id: 118910406025
+      e2e_state_at_coordinator_report: in_progress
+      run_terminal_conclusion: cancelled
+      e2e_terminal_conclusion: cancelled
+      e2e_terminal_completed_at: 2026-10-20T22:09:34Z
+      e2e_scope_note: >-
+        Stack startup and backend health succeeded, but Playwright test execution
+        was cancelled after the subsequent source push; this is not an E2E pass.
+      exhaustive_job_id: 118910407489
+      exhaustive_conclusion: skipped
+      checks: >-
+        Backend and Frontend Unit Tests succeeded. Branch-declared Tests failed
+        on mypy annotation diagnostics; E2E was still running at the coordinator
+        report. This exact-source run covers Provider local-reader/preflight
+        consumer and additive slv2_0009 merge at 790223f3; it does not cover the
+        subsequently pushed host-composition commit 2b8551f9.
+    provider_host_composition:
+      sha: 2b8551f9bbed28b311e98e446de33b0a71feb57e
+      published: true
+      exact_ci_run_id: 39505922437
+      exact_ci_state_at_2026_10_20T22_09_38Z: in_progress
+      scope: >-
+        Production API host composition, blank-by-default Compose evidence and
+        scope forwarding, read-only backend/preparation artifact mount, and
+        bounded fail-closed factory/Compose tests. No product checkpoint
+        acceptance or full local/combined gate is implied.
+    typing_compatibility_local_validation:
+      command: cd backend && uv run mypy app/strategy_lab_v2 strategy_runtime
+      result: success
+      checked_source_files: 441
+      notes: >-
+        Same declared command/scope passes locally after ORM forward-reference,
+        config/database and Provider validator typing corrections plus removal
+        of an untyped PyYAML import from the Compose test. The initial pass was
+        not sufficient evidence of runtime schema equivalence: review found
+        two TYPE_CHECKING blocks splitting mapped class bodies. They have been
+        relocated, and focused metadata regression plus parent AST audit now
+        pass. Historical hosted 39501877296 remains red and is not replaced.
+      runtime_schema_regression_review:
+        result: repaired_and_bounded_checks_pass
+        parent_sha: 2b8551f9bbed28b311e98e446de33b0a71feb57e
+        audited_orm_modules: 26
+        audited_top_level_classes: 124
+        class_ast_differences_after_repair: 0
+        metadata_regression_test: backend/tests/unit/models/test_model_metadata_regression.py
+        affected_metadata: ExchangeCalendarException, StrategyRunBatch
+        mapped_columns_constraints_relationships_asserted: true
+        remaining_full_profile_gates_open: true
+    sha: 1fca3ec0b0f14d8e4f33ab25b0ce209847bd22de
+    run_id: 38812646577
+    conclusion: success_historical
+    evidence: Branch-declared, frontend unit, backend unit/integration and Playwright jobs passed; Exhaustive Integration Gate skipped. Superseded for current-source acceptance by the later exact-source failure below.
+    scope_limit: Hosted exact-source CI only; does not satisfy required local full_stack_browser profile or post-Provider/ETF/TC combined consumer validation.
+    provider_merge_failure:
+      sha: 812cac68ea8431fa35eef40de7a9fa89c423314a
+      run_id: 39498341861
+      backend_job_id: 118889129864
+      conclusion: failure
+      summary: >-
+        Frontend passed; backend had 4579 passing tests, one declared skip, and
+        one failure in test_strategy_chain_has_unique_ids_and_preserves_shared_base.
+        The actual merged graph had Provider head b6e9a42d1c73 and Strategy head
+        slv2_0008. This was a real migration-graph gap, not a CI replay condition.
+      repair: >-
+        Preserve this red receipt and add an additive Strategy-owned no-DDL
+        revision slv2_0009 merging only those two actual heads. Never rewrite
+        either history, accept multiple heads, or weaken the graph tests.
+      scope_limit: >-
+        Exact-source hosted result for 812cac68 only. Fresh/upgrade and combined
+        PostgreSQL validation remain required; no manual rerun is authorized.
+    later_exact_source_failure:
+      sha: 54fa13e1ba17a40de6f242e16d5a96d8217615cb
+      run_id: 38820638540
+      job_id: 116716106264
+      conclusion: failure_exit_152
+      observed_at: 2026-10-15T23:00:25.0138175Z
+      progress: Unit stream ended at 36% in tests/unit/services/test_research_runner.py; no assertion/traceback or coverage summary; integration and dependent E2E/Exhaustive jobs skipped.
+      diagnosis: >-
+        Exit 152 is consistent with SIGXCPU; exact source applies a process-level
+        RLIMIT_CPU around research execution. Plausible lead only, not a proven
+        cause. Do not rerun blindly or alter limits/thresholds; retain exact log
+        and investigate boundedly after upstream green release.
+    latest_exact_source_success:
+      sha: b6f1e48670a74aee669e9b80330fec836770fad1
+      run_id: 39164386651
+      conclusion: success
+      jobs: Branch-declared Tests, Frontend Unit Tests, Backend Tests, and E2E Tests (Playwright) succeeded; Exhaustive Integration Gate was skipped.
+      scope_limit: >-
+        This is exact-source hosted CI for terminal recovery admission/reservation
+        binding, not the required local full_stack_browser profile, coordinated
+        Exhaustive gate, or post-Provider/ETF/TC combined consumer and PostgreSQL
+        acceptance. The historical 54fa13e1 exit-152 cause remains unproven.
+    previous_exact_source_success:
+      sha: 9dd9a56251643275f285b8639403ed20a2acace4
+      run_id: 38904567468
+      conclusion: success
+      scope_limit: >-
+        Exact earlier Strategy source only; superseded as the latest hosted result
+        by run 38907993948 on c9723d2b3718b9d598e0d8d307c9fbbd1d943187.
+  prospective_provider_coverage_reconciliation: ops/workstreams/feat-strategy-lab-v2/coverage-runner-reconciliation.md
+  downstream_consumers:
+  - Combined workstation and future Strategy Lab frontend
+  - Local AI experiment agents
+  - Broker-free forward workers
+  required_contracts:
+  - Staged canonical identity, series, coverage and availability
+  - Staged point-in-time ETF membership and known-at provenance
+  - Staged immutable CodeVersion and Study outputs
+  - Reconciled API routers, migrations, configuration and Compose workers
+  contract_evidence: ops/workstreams/feat-strategy-lab-v2/integration-checkpoint.md
+  original_criterion_dispositions:
+  - id: AC-DOMAIN
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-SDK
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-DATA
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Consume staged identity/series/coverage and known-at ETF membership; reject ambiguous,
+      missing or future-known inputs. Shared wiring follows the three upstream integrations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-REPRODUCIBILITY
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Consume staged identity/series/coverage and known-at ETF membership; reject ambiguous,
+      missing or future-known inputs. Shared wiring follows the three upstream integrations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-SEARCH
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-PORTFOLIO
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-METRICS
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-ARTIFACTS
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-WORKERS
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-NAUTILUS
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-FORWARD
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-API
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-LEGACY
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-SECURITY
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-COMPOSE
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-UPSTREAM
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Consume staged identity/series/coverage and known-at ETF membership; reject ambiguous,
+      missing or future-known inputs. Shared wiring follows the three upstream integrations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-UI-BOUNDARY
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Consume staged immutable CodeVersion/Study lineage; the full Strategy Lab frontend
+      remains a separately authorized roadmap phase.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+  - id: AC-VALIDATION
+    disposition: partially_delivered
+    delivered: Branch-owned implementation with dated evidence; combined acceptance unproven.
+    remainder: Revalidate the complete original criterion against combined staged source; retain
+      unsupported scopes explicitly unavailable and preserve all remaining roadmap obligations.
+    owner: Strategy consumer owner after central staged dependencies
+    continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
+      tests and full required application validation.
+acceptance_criteria:
+- id: SLICP1
+  text: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending
+    human acceptance; reconcile stale session progress with later evidence.
+- id: SLICP2
+  text: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence
+    without importing unstaged implementations.
+- id: SLICP3
+  text: >-
+    Reconcile dependency-ordered accepted green staging incrementally: Provider
+    canonical identity/local series/coverage/freshness/provenance now; ETF
+    known-at point-in-time membership and TC2000 immutable CodeVersion/Study
+    outputs only after their releases; then prove the full combined consumer
+    contract without completing this criterion early.
+- id: SLICP4
+  text: Reconcile routers, migrations, configuration and Compose workers; pass full application and
+    exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact
+    build and scope.
+- id: SLICP5
+  text: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding
+    roadmap; stop at ready_for_human_review, closure pending human acceptance.
+progress:
+  completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
+  total: 5
+  current_phase: strategy-lab-v2-integration-1-accepted-ready-for-integration
+  current_blocker: >-
+    Root accepted this exact bounded checkpoint at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91
+    under the human-delegated decision. The exact-source hosted CI 39779005214 passed Backend,
+    Frontend Unit, Branch-declared and E2E Playwright; the feature-branch Exhaustive Integration Gate
+    was skipped by policy and is not staging evidence. The final local application profile passed:
+    real registered API and default DB/Redis worker readiness/restart; functional browser 195 passed
+    with two existing live-opt-in skips in 20.8 minutes; strict visual 104/104 in 13.4 minutes;
+    both used zero retries and unchanged assertions/references/tolerances/masks. The full local
+    backend collector evidence remains input-qualified to earlier source; its integration wrapper
+    did not capture a separate pytest exit, so a clean full-backend pass on P is not claimed. The
+    fresh/previous-release migration gate passed at B b96d456 and the reviewed B-to-P migration/model
+    input diff is empty; migration was not separately rerun on P. Exact owned profile cleanup passed,
+    all three global inventory diffs are zero bytes, and own project/browser resources are absent.
+    Two browser-start preflight failures (missing pinned image, then missing nested mountpoint) are
+    retained as no-test failures; the corrected attempt ran the full suite once without retries.
+    The checkpoint is accepted and ready for the coordinator's canonical staging integration;
+    the original 18-criterion roadmap remains open and the owner must not self-integrate. No live
+    provider/quota, job dispatch, native execution, broker, real-capital, paid/trial or deployment
+    operation occurred. Nautilus authority remains exact-build/scope qualified; generic Study output
+    is not native execution proof. The current native goal remains active and unbudgeted.
+  next_action: >-
+    Hand off the clean closure-record commit to Root for guarded canonical staging integration.
+    After Root releases the exact synchronized green staging result, continue the full original
+    18-criterion roadmap in this same worktree without changing its criteria or enabling unsupported
+    scopes.
+branch: feat/strategy-lab-v2
+base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+parent_branch: staging
+parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries."
+planning_state: ready
+human_closure_authorization: >-
+  Human delegated conditional checkpoint acceptance with the exact answer “Yes—approve that initial
+  scope and handle checkpoint acceptance.” Root exercised that authority and accepted
+  strategy-lab-v2-integration-1 at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91 on
+  2026-10-22, as recorded in
+  /home/m920q/charting-platform/.ai/staging-attempts/strategy-197ea15a-checkpoint-acceptance-20261022.md.
+  This covers only the bounded checkpoint and authorizes the coordinator's guarded staging workflow;
+  it does not complete the 18-criterion roadmap or authorize owner self-integration, deployment,
+  live/native/paid/trial operation, or unsafe scope activation.
+closure_summary: >-
+  Accepted checkpoint strategy-lab-v2-integration-1 at tested source
+  197ea15a9a90fbc76089a38fe67013c00a722d91 after the exact hosted run 39779005214 passed all required
+  feature jobs and the local final app profile passed API/worker DB+Redis restart, functional
+  195/197 with two existing live-opt-in skips, strict visual 104/104, zero test retries and exact
+  resource cleanup with all three global diffs empty. Reconciled consumers preserve canonical
+  Provider identity/local-series/coverage/freshness/provenance, ETF known-at membership and
+  owner-scoped immutable TC Study/CodeVersion references with fail-closed drift/owner checks; additive
+  slv2_0011 joins accepted migration histories. Migration acceptance is qualified by the passed
+  B b96d456 fresh/previous-release run and empty Alembic/model/migration-input diff from B to P, not
+  by a separate migration run on P. Local full-backend evidence is input-qualified and does not
+  claim a clean full-backend run on P because its integration wrapper lacked an independent pytest
+  exit; exact-source backend CI on P is green. Unsupported/unreviewed provider routes, forward
+  operation, broker/capital execution, paid/trial activity and unqualified native execution remain
+  disabled; Help parity with official V25 remains open. The full 18-criterion roadmap and all
+  historical failures remain intact and uncompleted. The required capture is integration_capture:
+  exact branch HEAD.
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  The final branch changes backend APIs, additive persistence, Redis-backed workers,
+  content-addressed artifacts, and isolated Nautilus runtime services. The initial
+  parallel-safe core can use unit validation, but branch completion changes the
+  Compose stack and requires the repository's full-stack browser profile plus
+  Docker-backed PostgreSQL/Redis, migration, worker, and backend API gates.
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+roadmap_goal: >-
+  Implement the production-grade, local-first Strategy Lab v2 backend for
+  reproducible portfolio backtesting, walk-forward and search experiments, and
+  persistent broker-free shadow testing. Keep the strategy SDK engine-neutral;
+  allow an exact-pinned stable or release-candidate Nautilus v2 build to publish
+  local backtests after scope-specific conformance, and respect provider-
+  platform, ETF, and TC2000 workstream ownership.
+scope:
+  - >-
+    Deliver an engine-neutral Strategy Lab v2 domain and strategy SDK for
+    immutable strategy versions/packages, portfolio compositions, frozen data
+    snapshots, experiments, scientific trials, infrastructure run attempts,
+    artifact manifests, metric sets, and persistent forward instances.
+  - >-
+    Deliver reproducible experiment construction and execution contracts:
+    capability-cell preflight, acquire-verify-freeze data flow, deterministic
+    grid/random/Latin-hypercube and scenario expansion, anchored/rolling
+    walk-forward windows with leakage controls, typed order intents, portfolio
+    allocation/risk boundaries, and rich versioned result metrics.
+  - >-
+    After upstream dependencies reach staging, integrate the shared canonical
+    provider/coverage and point-in-time ETF/universe contracts plus immutable
+    TC2000 CodeVersion/Study Lab outputs. Do not duplicate provider governance,
+    data acquisition, membership history, code authoring, or research execution.
+  - >-
+    Add authoritative local Nautilus BacktestNode execution when an exact-
+    pinned stable or release-candidate v2 build passes the four backtest
+    conformance checks. Keep its version, Python environment, and runtime image
+    isolated from legacy Nautilus 1.226. Record exact version, release channel,
+    wheel digest, and image digest in every result. Either channel may qualify
+    for broker-free full/forward shadow after all five checks, including
+    event-tape parity. No pre-release may control real capital or connect to a
+    broker.
+  - >-
+    Add isolated serial backtest workers and separately reserved persistent
+    forward workers; PostgreSQL metadata/state, Redis durable dispatch and
+    canonical event stream with database outbox/reconciliation, and
+    content-addressed Parquet/Arrow artifacts on Compose-managed NAS-mountable
+    storage. Scale replicas on one host; keep job/artifact contracts host-neutral.
+  - >-
+    Add machine-first REST resources under /api/v1/strategy-lab/v2, idempotent
+    asynchronous submissions, resumable progress streams, cursor pagination,
+    cancellation/retry, capability reporting, and read-only access to legacy
+    results with explicit compatible-definition import.
+  - >-
+    Persistent forward instances replay immutable historical warm-up once,
+    consume only newly arriving canonical events, persist orders/positions/cash,
+    record corrections append-only, and never submit broker orders. Activation
+    must declare flat start or synthetic historical carry-in.
+  - >-
+    Stop this branch at ready_for_human_review. The full dockable TC2000-native
+    Strategy Lab UI is a later separately authorized frontend branch after
+    backend integration and TC2000 semantic reconciliation.
+  - >-
+    Initially add only new engine-neutral package paths, their focused tests,
+    and this branch's workstream documentation. A narrow shared Makefile test
+    collection update is allowed only to include those package-owned tests in
+    the existing combined coverage gate. Do not modify active provider, ETF,
+    or TC2000 paths, current Strategy Lab routes/services, global runtime
+    dependencies, migrations, application registration, Compose, or frontend
+    until upstream branches have reached staging and exact shared-path
+    reconciliation is recorded.
+owned_paths:
+  - backend/app/strategy_lab_v2/
+  - backend/app/strategy_lab_v2/tests/
+  - backend/tests/integration/strategy_lab_v2/
+  - backend/strategy_runtime/
+  - docs/strategy-lab-v2.md
+  - ops/workstreams/feat-strategy-lab-v2/
+shared_path_gates:
+  - path: backend/app/models/
+    gate: Wait for provider, ETF, and TC2000 work to reach staging; reconcile model registration and migration ownership first.
+  - path: backend/alembic/versions/
+    gate: Add only additive v2 tables after reviewing the combined staging migration graph and prior-schema compatibility.
+  - path: backend/app/main.py
+    gate: Register the new v2 router only after reconciling TC2000's router changes on staging.
+  - path: backend/app/workers/
+    gate: Add dedicated simulation worker entrypoints without changing or loading Nautilus in FastAPI or the general ARQ worker.
+  - path: backend/app/tasks/
+    gate: Add data-acquisition coordination only after consuming the provider platform's staged coverage/acquisition API.
+  - path: backend/pyproject.toml
+    gate: Keep Nautilus v2 in an isolated runtime environment; do not alter the legacy backend pin unless an explicit combined dependency review requires it.
+  - path: backend/uv.lock
+    gate: Update only after the runtime environment split and Python/Rust version matrix are validated.
+  - path: docker-compose.yml
+    gate: Add isolated worker/artifact services after checking provider and TC2000 Compose changes on staging.
+  - path: docs/project-todos.md
+    gate: Update only after reconciling the TC2000 roadmap and current shared todo document on staging.
+  - path: Makefile
+    gate: This branch may change only the existing test-backend-coverage pytest collection to include package-owned v2 tests; reconcile concurrent staging edits line by line before integration.
+execution_plan:
+  phases:
+    - >-
+      Implement the parallel-safe pure core in new paths: immutable domain
+      contracts, SDK dependency declarations and order intents, capability
+      preflight/degraded labeling, experiment and walk-forward expansion,
+      versioned metrics, and deterministic fixtures.
+    - >-
+      After provider, ETF, and TC2000 work reaches staging, reconcile shared
+      contracts and then add additive persistence, API registration, acquisition
+      coordination, artifact storage, Redis/outbox orchestration, and Compose
+      services.
+    - >-
+      Add the isolated Rust canonical-data adapter and a separate exact-pinned
+      Nautilus v2 runtime. Exact-pinned release candidates may publish
+      authoritative local backtests after the four simulator checks—multi-
+      instrument accounting, native order/fill/cost reports, deterministic
+      replay, and lifecycle—pass. Broker-free full/forward-shadow execution
+      additionally requires event-tape parity, for five passing checks total;
+      stable release labeling is not a gate. Pre-releases remain barred from
+      broker connections and real capital.
+    - >-
+      Complete full branch integration/security/reproducibility validation and
+      hand off at ready_for_human_review. The UI and any deployed shadow soak
+      remain separately authorized follow-on gates.
+dependencies:
+  - >-
+    feat/market-data-provider-platform owns canonical identity, market series,
+    capability/entitlement, acquisition, coverage, and repair contracts. Consume
+    only after its reviewed work reaches staging; do not duplicate providers or
+    provider runtime policy.
+  - >-
+    feat/etf-holdings-constituents owns ETF holdings adapters and point-in-time
+    holdings history. Consume its staged membership and known-at contracts; do
+    not implement ETF source adapters or holdings refresh.
+  - >-
+    feat/tc2000-frontend-rework owns the workstation, unified Python/DSL,
+    immutable CodeVersion, Study Lab, and current Strategy Lab paths. Consume
+    staged code/output contracts; do not edit its active files before staging or
+    create a parallel editor/research runner.
+  - >-
+    An exact-pinned stable or release-candidate Nautilus v2 build may publish
+    local backtests after its four backtest conformance checks pass, and may
+    qualify broker-free full/forward shadow after all five checks including
+    event-tape parity pass. A stable release label is not required. Prereleases
+    never connect to brokers or control real capital. Preserve exact release
+    channel, wheel/image digest, conformance, scope, and execution-plan
+    provenance in every Nautilus result. Each later engine build must
+    independently pass the applicable scope checks.
+roadmap_acceptance_criteria:
+  - id: AC-DOMAIN
+    text: >-
+      Immutable, typed, versioned public contracts distinguish strategy versions,
+      packages, portfolio compositions, data snapshots, experiments, trials,
+      run attempts, artifact manifests, metric sets, and forward instances;
+      execution retries create attempts against the same immutable trial.
+  - id: AC-SDK
+    text: >-
+      Strategy code uses a versioned engine-neutral SDK, declares all data/model/
+      library dependencies, receives only frozen declared inputs, emits typed
+      order or target-position intents, and cannot access providers, network,
+      database, secrets, arbitrary files, or wall-clock time.
+  - id: AC-DATA
+    text: >-
+      Preflight represents support by asset/product, event granularity,
+      timeframe/history, adjustment/corporate-action semantics, session/feed,
+      and execution/account model. Missing rigorous requirements fail closed;
+      explicitly requested degraded trials are separately labelled with all
+      substitutions and excluded from rigorous rankings by default.
+  - id: AC-REPRODUCIBILITY
+    text: >-
+      Data is acquired through the shared platform before execution, verified,
+      frozen as a content-addressed snapshot, and never fetched inside the
+      simulator. A result manifest identifies strategy, portfolio, data,
+      capability contract, engine/build, dependency catalog, assumptions, seed,
+      and metric version sufficiently to reproduce the run.
+  - id: AC-SEARCH
+    text: >-
+      Deterministic grid, seeded random/Latin-hypercube, scenario-matrix, and
+      walk-forward trials are resumable and cancellable; walk-forward selection
+      uses training data only, supports rolling/anchored windows and gap/embargo,
+      freezes OOS evaluation, and aggregates OOS results only.
+  - id: AC-PORTFOLIO
+    text: >-
+      A trial simulates all instruments and strategies together in one shared
+      account. Immutable portfolio composition defines capital budgets, weights,
+      rebalancing, priority/contention, shared risk, and component attribution;
+      supported order intents are routed through platform allocation/risk before
+      the engine and unsupported capability combinations fail preflight.
+  - id: AC-METRICS
+    text: >-
+      Official results use native simulator orders, fills, positions, accounts,
+      and equity. Versioned metrics cover return/P&L, risk/drawdown, risk-adjusted
+      performance, trade quality, exposure/capital, execution costs, attribution,
+      rolling series, distributions, sensitivity, and calendar periods. Every
+      metric records units, calculation version, annualization/calendar basis,
+      gross/net basis, sample size, and null reason; no profitability verdict is
+      issued.
+  - id: AC-ARTIFACTS
+    text: >-
+      PostgreSQL stores authoritative metadata/state/lineage/leases/compact
+      metrics; Redis is dispatch/event transport only and is reconciled through a
+      transactional outbox. Large inputs and outputs use immutable compressed
+      content-addressed Parquet/Arrow artifacts with deduplication, pins, and
+      tiered retention; manifests and metric summaries are retained permanently.
+  - id: AC-WORKERS
+    text: >-
+      Backtests run in isolated, serial Nautilus worker processes scalable as
+      Compose replicas. Forward workers have separately reserved capacity and
+      obey one concurrent Nautilus node per process. Lease expiry, heartbeat,
+      cancellation, crash recovery, idempotency, engine disposal, and artifact
+      atomicity are covered; no Nautilus job runs in FastAPI or the general ARQ
+      worker.
+  - id: AC-NAUTILUS
+    text: >-
+      An exact-pinned stable or release-candidate Nautilus v2 build passes the
+      four backtest checks for multi-instrument accounting, native
+      order/fill/cost reports, deterministic replay, and engine lifecycle
+      before it can publish authoritative local backtests. Every result records
+      exact engine version/channel, wheel/image digests, conformance
+      fingerprints, execution scope, and plan fingerprint. Forward-shadow
+      execution additionally requires event-tape parity, completing the five
+      checks required for full broker-free simulation; stable release labeling
+      is not a gate. Pre-releases never control real capital or connect to a
+      broker.
+      The platform owns a Rust data adapter for canonical forward events;
+      provider adapters are not used as a second data source.
+  - id: AC-FORWARD
+    text: >-
+      Persistent broker-free shadow instances use immutable historical warm-up
+      followed only by new canonical events; activation declares flat start or
+      synthetic carry-in. Before warm-up, an owner-scoped immutable execution
+      plan pins the exact strategy version/package, parameters, and random seed
+      for every portfolio component; activation fails closed when any binding is
+      missing or inconsistent. Orders, positions, cash, metrics, and events
+      survive restart; duplicate, missing, late, corrected, stale, and
+      out-of-order data are observable, and corrections create separately
+      identified counterfactual replay without rewriting prior decisions.
+  - id: AC-API
+    text: >-
+      Versioned REST APIs under /api/v1/strategy-lab/v2 support strategy/package
+      validation, portfolios, capability preflight, snapshots, experiments,
+      trials, attempts, metrics/artifacts, and forward instances with
+      Idempotency-Key, 202 submissions, resumable progress, cursor pagination,
+      and stable typed errors. Existing routes remain available during migration.
+  - id: AC-LEGACY
+    text: >-
+      Legacy definitions and results remain inspectable. Explicit import returns
+      a conversion/compatibility report for supported definitions, preserves
+      original records, and makes no replay-equivalence claim.
+  - id: AC-SECURITY
+    text: >-
+      Trusted local Python strategies and custom metrics execute in constrained
+      isolated containers with no network, read-only root, dropped capabilities,
+      resource/time/output limits, vetted pinned libraries, and no runtime
+      secrets; malformed or escaping code is rejected by adversarial tests.
+  - id: AC-COMPOSE
+    text: >-
+      The local Compose deployment uses existing PostgreSQL and Redis, separate
+      simulation worker services, and bind-mountable content-addressed artifact
+      storage. Single-host replicas scale independently; no cloud execution,
+      Kubernetes, Kafka, MinIO, broker order route, or external testing service
+      is required.
+  - id: AC-UPSTREAM
+    text: >-
+      Provider-platform, ETF, and TC2000 dependencies are consumed only after
+      their approved work reaches staging. Every overlapping path and contract
+      receives line-level semantic reconciliation before shared-path changes;
+      no other worktree is mutated and no branch is directly merged.
+  - id: AC-UI-BOUNDARY
+    text: >-
+      Backend APIs and saved object identities support the later dockable
+      TC2000-native Strategy Library/Builder, Experiment Designer, Run Queue,
+      Results/Compare, Portfolio Composer, and Forward Monitor. Frontend product
+      implementation remains a separate branch and authorization.
+  - id: AC-VALIDATION
+    text: >-
+      Focused deterministic tests, database/Redis integration, migration
+      compatibility, worker restart/retry/cancel, artifact integrity, API
+      contracts, exact-pinned Nautilus v2 conformance, security/resource isolation,
+      Compose scaling, and full exact-tip branch validation pass. Deployment,
+      live shadow activation, human closure, integration, and promotion remain
+      separately authorized.
+branch_tests:
+  - cd backend && uv run pytest app/strategy_lab_v2/tests -q --override-ini addopts=
+  - uv run --project backend pytest backend/tests/unit/strategy_lab_v2/test_schema_migration.py -q --override-ini addopts=
+  - cd backend && uv run ruff check app/strategy_lab_v2
+  - cd backend && uv run mypy app/strategy_lab_v2 strategy_runtime
+  - git diff --check
+  - uv run --project backend python scripts/validate-workstream.py ops/workstreams
+branch_tests_reason: >-
+  The active provider workstream owns backend/tests, so v2-focused tests stay
+  beside the new package and use an explicit pytest path. The executable branch
+  checks cover the implemented engine-neutral package and durable workstream
+  records; database/migration, PostgreSQL/Redis, isolated runtime, Nautilus,
+  worker, API, Compose, and full exact-tip integration commands remain deferred
+  until their shared-path gates are open.
+live_test_impact: >-
+  No real broker, broker paper account, or external test service is used. Forward
+  validation consumes platform canonical events; activating a long-running
+  deployed shadow instance is a separate human-authorized operational gate.
+migration_impact: >-
+  Additive Strategy Lab v2 tables and indexes only. Preserve current Strategy Lab
+  rows and routes; do not rewrite historical results or claim replay parity.
+deployment_impact: >-
+  Add local Compose backtest/forward worker services and a persistent artifact
+  volume with conservative defaults. No deployment, worker activation against
+  real data, provider secret distribution, or broker connectivity is authorized.
+status: ready_for_integration
+remaining_gaps:
+  # These accumulated entries are dated implementation snapshots, not the live
+  # gate list. Use current_blocker/next_action for active work; stable Nautilus
+  # labeling is not required by AC-NAUTILUS.
+  # Any older snapshot prose claiming a stable release is required is superseded
+  # by AC-NAUTILUS and the explicit RC5 conformance policy below.
+  - The current engine-neutral package is only an initial core; deterministic static strategy-source preflight, pure artifact payload verification, bounded recovery planning, canonical execution event semantics, deterministic frozen event-tape semantics, REST cursor/error contracts, typed resource/collection envelopes, registration-neutral API serialization/router semantics, owner-scoped PostgreSQL resource-read projection semantics, owner-scoped PostgreSQL submission/dispatch staging semantics, owner-scoped PostgreSQL command-receipt semantics, atomic PostgreSQL execution-event/audit/outbox/cursor staging semantics, owner-scoped PostgreSQL outcome/progress checkpoint persistence semantics, owner-scoped PostgreSQL runtime execution state/materialization semantics, owner-scoped PostgreSQL result-manifest materialization persistence semantics, owner-scoped PostgreSQL runtime request/preflight receipt persistence semantics, owner-scoped PostgreSQL metric-set summary persistence semantics, PostgreSQL worker profile/reservation/lease persistence semantics, compare-and-set storage transaction semantics, PostgreSQL compare-and-set adapter semantics, hardened sandbox-command planning semantics, bounded sandbox process execution semantics, Nautilus-only execution-gating semantics, gated Nautilus plan-to-sandbox runner semantics, runtime-result materialization semantics, execution-handoff orchestration semantics, worker-handoff execution semantics, engine-result materialization semantics, terminal outcome/progress materialization semantics, atomic Redis Streams dispatch/consumer semantics, outbox-to-Redis relay semantics, bounded Redis worker-pump semantics, idempotent async submission semantics, atomic submission/dispatch staging semantics, typed execution outcomes, artifact lineage semantics, runtime-isolation preflight, engine conformance gating, authoritative result-publication gating, restart-safe progress checkpoints, serial worker-capacity reservation semantics, manifest-bound retention/pinning semantics, ordered worker lease observations, one-time forward warm-up handoff semantics, content-addressed live-event admission semantics, idempotent artifact commit finalization, execution-summary read-model semantics, retry/cancellation command semantics, capability/report projection semantics, additive forward counterfactual-replay command semantics, append-only execution audit journal semantics, transactional-outbox enqueue/acknowledgement semantics, atomic audit/outbox staging semantics, explicit legacy preservation/import report semantics, resumable cancellable search-candidate state semantics, provider coverage-attestation verification semantics, strategy-runtime request/receipt semantics, execution-admission/worker-binding semantics, atomic search-candidate/admission/dispatch staging semantics, atomic worker-release/retry-recovery staging semantics, idempotent worker-capacity settlement semantics, atomic result-completion/artifact-finalization semantics, atomic forward-event/correction-replay staging semantics, atomic forward-event/worker-dispatch staging semantics, atomic execution-event/audit/outbox transaction semantics, typed conformance-fixture evidence semantics, schedule-gated target allocation semantics, idempotent resource-creation API semantics, durable application-backed resource-creation aggregate semantics, and typed strategy/package/portfolio/experiment/attempt/snapshot/trial/metric-set/forward-instance resource registration semantics are present. A shared application persistence bundle now composes every PostgreSQL adapter over one session factory, and the application adapter now provides owner-scoped publication/completion and search/forward state read bridges; remaining domain-backed mutation flows, local Compose services, worker activation, and scope-bound authoritative backtest publication/forward parity remain unimplemented. Exact-pinned Nautilus v2 stable or release-candidate builds may provide authoritative local backtests after passing scope-specific conformance; forward-shadow execution additionally requires event-tape parity. The historical RC5 build passed four backtest checks and is qualified only for the exact tested artifact/scope.
+  - PostgreSQL artifact retention/pin persistence semantics are now implemented in a registration-neutral additive adapter with authenticated state fingerprints, idempotent pin add/release, and explicit-time retention resolution; shared migrations, authorization, and application API wiring remain open.
+  - PostgreSQL artifact commit-ledger persistence semantics are now implemented in a registration-neutral additive adapter with locked, authenticated commit records, exact replay, and storage-key uniqueness protection; immutable byte publication and shared migration/application wiring remain open.
+  - PostgreSQL artifact-lineage persistence semantics are now implemented in a registration-neutral additive adapter with owner-scoped deterministic indexes, semantic-key replay/conflict handling, and authenticated rows; manifest existence, foreign-key migrations, and application authorization remain open.
+  - Snapshot-level coverage verification now requires exactly one complete, content- and semantics-matching attestation for every frozen series. The provider-neutral acquisition handoff binds that resolution to the capability preflight, frozen snapshot, and opaque provider receipt, and data-bound execution admission requires that verified handoff before a ready engine plan can be consumed. Provider adapters still must fetch/repair the data and evidence, then enforce the verification receipt before runs can execute.
+  - Event-level target allocation and typed order sizing/routing now apply shared notional caps for the exact registered cash-equity, crypto-spot, futures contract-notional, option delta-adjusted, and FX pair models using digest-bound valuation evidence. Explicit event-aligned initial/maintenance margin-capacity, adapter-generated stressed-equity, liquidity participation/slippage, and settlement cash-availability gates now withhold routed batches on capacity, utilization, loss, minimum-equity, missing-capacity, participation, slippage, missing-estimate, settlement-debit, or remaining-cash breaches. Deterministic typed shock definitions can be expanded and identity-bound, and one fixed-order pipeline verifies the full routing-to-settlement fingerprint chain; adapters still own shock application and valuation. Unregistered/other models fail closed; engine-native order routing remains unimplemented.
+  - Metric catalog v6 now includes run-scoped account performance, trade quality, cash-equity exposure, engine-reported capital/margin utilization, explicitly scoped financing costs outside fill reports, adapter-supplied stress-scenario outcomes, fill costs, component attribution, calendar and rolling series, session-return distributions, one-run sensitivity deltas, descriptive complete-replicate one-factor summaries, verified keyed-stream pairing provenance, aligned paired-observation descriptive deltas, bounded exact paired sign-flip inference, explicit trial-bound evaluation windows, and a strict boundary-aware time-weighted return path with elapsed-time annualization. Calendar, rolling, and session-distribution returns now consume explicit boundary evidence for flow-bearing periods. Descriptive result ranking is now available only over compatible, structured, completed results; approximate/bootstrap inference and inferential ranking remain deferred.
+  - The provider-platform workstream has not reached staging; canonical acquisition and capability adapter wiring is deferred.
+  - The ETF holdings workstream has not reached staging; point-in-time ETF membership adapter wiring is deferred.
+  - The TC2000 frontend rework has not reached staging; immutable CodeVersion and Study Lab consumer wiring is deferred.
+  - The isolated Nautilus 2.0.0rc5 image fixture passed the four local-backtest checks (multi-instrument accounting, native order/fill/cost reporting, deterministic replay, and lifecycle) at source SHA f102f310499431b0c892483ec15e376f5503319f. Its exact-pinned RC receipt may authorize local backtests after matching build/image verification; broker-free full/forward shadow additionally requires event-tape parity, with no stable-label gate. Prereleases remain barred from broker connections and real-capital use.
+  - The stable-only sentence in the first accumulated historical snapshot is superseded: exact-pinned stable or release-candidate v2 builds qualify for local backtests after the four backtest checks; stable release labeling is not a gate.
+  - Native OOS metrics v14 now expose maximum peak-to-trough loss in the account base currency alongside fractional drawdown and recovery factor for fixed-cadence and event-aligned equity paths. The amount is derived only from observed equity peaks/troughs, is bound to the native trace evidence, and remains unavailable when the OOS trace has no scored observations.
+  - Native OOS metric definition v15 accepts exact attempt/portfolio-bound session equity intervals, their content-addressed calendar, and explicit sessions-per-year/risk-free/confidence parameters. Complete no-flow session coverage unlocks annualized volatility, Sharpe, Sortino, historical VaR/expected shortfall, and session-return quantiles; gaps, out-of-window closes, mixed evidence, or ambiguous flows fail closed. The native producer is now wired from the frozen runtime calendar and native close callbacks through the runner and result materializer into worker-terminal artifact publication. A package-owned worker-terminal regression verifies interval artifact publication and metric evidence, while incomplete coverage remains explicitly null. Actual Nautilus-process/Docker acceptance for calendar callbacks is still part of the full integration profile.
+  - The owner-authenticated worker-terminal path now consumes exact conformance evidence, rehydrates and checks the owner-scoped trial graph, materializes versioned native OOS metrics/results, publishes verified output bytes, and builds the publication plan. A worker-terminal success/redelivery test exercises the full persistence-port coordinator with pure completion/lease state and proves stable receipt identity when the callback observation time changes; artifact completion keys bind manifest/content/length/storage identity rather than the retry-varying create/reuse action. Real PostgreSQL/Redis/Compose adapter execution and full-stack/browser acceptance remain Docker-gated.
+  - The native component strategy bridge can now stage exactly one post-prefix forward event with its authenticated component contexts, preserving the already-open StrategyInvocationSession objects and shared portfolio callback path. It rejects staging before all immutable native events and contexts have replayed, verifies component identity/parameters/random seed, and maps contexts onto the staged event through the existing native tape parity checks. A focused bridge regression proves a new event is invoked after the frozen prefix. The persistent BacktestEngine session, native account effect extraction, durable checkpoint/replay, and CLI service wiring remain open.
+  - The isolated Nautilus runtime bundle now has a pinned-input content-addressed artifact contract. Durable worker handoff v2 carries its compact artifact manifest plus semantic bundle digest; the worker binds both to the attempt/request and verifies the exact mounted bytes and memory-derived size bound before Docker launch. Production assembly from frozen trial/snapshot/portfolio inputs remains open.
+  - The combined backend coverage gate now collects package-owned v2 tests and passes its 75% threshold. The dedicated worker entrypoint is now exposed through an explicit opt-in `strategy-lab-v2` Compose profile with a separate artifact volume, health-gated PostgreSQL/Redis dependencies, read-only root, dropped capabilities, bounded temporary filesystem, fail-closed Docker-socket binding, and a package-owned authenticated single-output evidence resolver default; host multi-artifact policy, live activation, and scope-bound authoritative Nautilus v2 execution remain open.
+  - Alembic revision `ff0a1b2c3d4e` now creates the complete additive Strategy Lab v2 adapter schema and the active-worker reservation index without touching legacy Strategy Lab tables; the FastAPI lifespan now invokes the explicit startup migration service when namespaced migration settings enable it, while remaining API projections, terminal/result callback wiring, and scope-bound authoritative Nautilus v2 execution remain open.
+  - Cached startup-migration failures now remain typed terminal failures instead of being relabelled as successful existing replays. Both dedicated backtest and forward worker entrypoints have repeated-attempt regressions proving the migration runner executes once and Redis is never opened after the cached failure; ambiguous `REPLAY_EXISTING` values carrying failure digests are rejected. The bounded migration/API/worker/schema slice passes 46 tests. Real PostgreSQL upgrade, Compose startup and combined-source runtime validation remain open.
+  - Application wiring now composes the existing authenticated user dependency and async session factory with owner-normalized PostgreSQL resource, submission/dispatch, execution-state, and command adapters, and registers the versioned `/api/v1/strategy-lab/v2` router additively. The mutable-resource route now has an application-owned compare-and-set aggregate bridge with durable owner binding, mutation fingerprints, accepted timestamps, exact replay, and fail-closed collision handling; strategy creation additionally normalizes a typed `StrategyVersion`, and read-only search/forward state routes project authenticated durable checkpoints, while remaining domain adapters, dedicated worker service activation, and scope-bound authoritative Nautilus v2 execution remain open.
+  - Local artifact application wiring now coordinates manifest verification, immutable filesystem publication, PostgreSQL artifact-commit finalization, explicit retention-authorized byte collection, and commit-ledger-based orphan/scheduled cleanup. The application adapter now registers immutable publication plans before delegating accepted terminal evidence to atomic result completion, the dedicated worker runs the transactional-outbox scheduler, the opt-in Compose worker defaults to the authenticated single-output evidence resolver, and explicit multi-artifact publication mapping is supported; runtime activation and host artifact-path policy remain open.
+  - >-
+      `persistence.py` now composes the complete registration-neutral PostgreSQL
+      v2 adapter graph over one async session factory, sharing the aggregate
+      store and execution-state context used by the initial API seam. Artifact
+      publication can be created from the same graph with an explicit artifact
+      root; API projections, migration startup, worker scheduling, and runtime
+      activation remain open.
+  - >-
+      The forward-state adapter now exposes owner-scoped deterministic
+      `load_all` reads for the forward-instance collection projection while
+      preserving checkpoint and fingerprint authentication; resource routing,
+      migration startup, worker scheduling, and runtime activation remain open.
+  - >-
+      `postgres_resources.py` now accepts application-owned relational
+      projection loaders and preserves the same owner, cursor, snapshot, and
+      deterministic ordering guarantees for attempts, metric sets, forward
+      instances, and content-addressed artifact references; aggregate-backed
+      strategy/package/portfolio/snapshot/experiment/trial resources remain on
+      the original store projection path.
+  - >-
+      Result-manifest persistence now narrowly authenticates canonical
+      `output_artifacts` payloads and exposes owner-scoped deterministic artifact
+      references; the application bundle deduplicates shared content digests,
+      records manifest/attempt/trial provenance, and projects `/artifacts`
+      resources with attempt relationships. Artifact bytes, retention/pin
+      reads, migration startup, and worker/application activation remain open.
+  - The package-owned restricted strategy invocation runner now binds source digests, repeats static preflight (including aliased wall-clock, module-introspection, and private import-form rejection), exposes only a vetted SDK/import surface, validates typed intents, and exposes a strict versioned canonical JSON request/result protocol (duplicate-field and non-finite-number rejection) plus atomic CLI output; worker image/entrypoint wiring, container activation, and application scheduling remain open.
+  - PostgreSQL forward-state persistence semantics are now implemented in a registration-neutral additive adapter with owner-scoped instance checkpoints, deterministic authenticated instance listing, one-time warm-up receipts, content-addressed seen-event identities, authenticated compare-and-set transitions, and restart-safe duplicate/gap/out-of-order/correction accounting; the application adapter now exposes owner-normalized instance registration, transitions, warm-up completion, event/correction transaction methods, and live-state reads, while the API projects the restart-safe checkpoint. The engine-neutral `forward_account.py` contract now covers append-only shadow orders, fills, positions, and multi-currency cash transitions; account-state persistence, migrations, event-stream wiring, worker execution, and provider authorization remain open.
+  - PostgreSQL shadow-account persistence now stores authenticated owner/instance state snapshots with deterministic canonical payloads, exact initialization replay, and typed load/apply outcomes. The application persistence bundle exposes initialize/load/apply account methods, and the additive migration creates the account table; event-stream admission, worker authorization/capacity binding, provider authorization, and Nautilus execution remain open.
+  - >-
+      `ForwardAccountWorkerHandler` now binds host-produced account effects to
+      the canonical stream event and authenticated Redis forward work item,
+      persists them through the owner-scoped account adapter, and returns a completed receipt only for
+      durable apply/replay outcomes. Missing accounts and out-of-order effects
+      remain retryable; identity conflicts and malformed effects fail closed.
+      Provider event resolution, worker capacity authorization, and Nautilus
+      execution remain host-owned gates.
+  - >-
+      The versioned API now exposes an authenticated read-only
+      `/forward-instances/{instance_id}/account` projection with canonical
+      account, position, order, fill, cash, and applied-event identities. The
+      route fails closed when the host has not supplied account persistence and
+      preserves the existing forward-admission state route.
+  - >-
+      `RedisDispatchRuntime.forward_worker_service()` now composes the bounded
+      Redis scheduler with the dedicated `ForwardEventWorkerService` and keeps
+      forward settlement separate from the generic backtest/runtime worker.
+      Host-supplied authenticated handoff, account settlement, worker
+      reservation, and engine callbacks remain explicit activation seams.
+  - >-
+      `AuthorizedForwardEventHandler` now validates a host-loaded `FORWARD`
+      reservation and execution lease against the dispatch instance, worker
+      identity, active reservation state, and current lease time before
+      delegating. Expired leases remain retryable; released, wrong-kind, and
+      cross-instance evidence fails closed. The Redis runtime exposes an
+      explicit authorized-forward-worker factory; durable reservation loading
+      remains application-owned.
+  - >-
+      The application adapter now loads the matching durable worker pool
+      reservation and lease from `PostgresWorkerStateAdapter` and returns a
+      typed `ForwardWorkerAuthorization` for the gate. Missing records return
+      no authorization rather than fabricating capacity; reservation and lease
+      identity validation remains fail-closed.
+  - >-
+      `PostgresWorkerStateAdapter.load_forward_authorization()` now loads the
+      profile, reservation, and lease/observation history under one transaction
+      with row locks before constructing the typed authorization. The
+      application bridge delegates to this atomic loader, avoiding a race
+      between separate pool and lease reads.
+  - >-
+      `ForwardWorkerCapacityReleaseHandler` now requires a durable handoff
+      result before resolving and persisting a release observation through the
+      existing atomic `release_capacity` boundary. Exact release replays
+      complete idempotently; rejected release evidence remains retryable and
+      therefore cannot acknowledge Redis work. The runtime exposes an explicit
+      settling-forward-worker factory.
+  - >-
+      `RedisDispatchRuntime.account_settling_forward_worker_service()` now
+      composes the complete host pipeline in one explicit factory: authenticated
+      reservation/lease gating, canonical-event-bound account settlement, and
+      atomic capacity release. The host still supplies event resolution and
+      engine/account adapters; omitting a required callback fails at
+      construction.
+  - >-
+      The versioned API now exposes strict canonical forward-event admission at
+      `/forward-instances/{instance_id}/events`. It reconstructs typed events,
+      cursors, observations, and optional correction commands, delegates the
+      atomic application transaction, serializes replay plans, and fails closed
+      when the host has not supplied forward-event persistence. Set-like
+      checkpoint identities are serialized deterministically.
+  - >-
+      The versioned API also exposes `/forward-instances/{instance_id}/events/dispatch`
+      for atomic event admission, content-addressed payload validation,
+      idempotent dispatch staging, and transactional-outbox evidence. Typed
+      dispatch envelopes and replay/conflict decisions are serialized without
+      activating a provider or worker runtime.
+  - >-
+      The versioned API now exposes `/forward-instances/{instance_id}/warmup`
+      for one-time authenticated historical warm-up completion. Carry-in mode,
+      snapshot/result identities, and final event cursor evidence are parsed
+      strictly and delegated to the existing durable warm-up boundary before
+      live admission can proceed.
+  - >-
+      The versioned API now exposes `/forward-instances/{instance_id}/lifecycle`
+      for owner-scoped forward state transitions. Target states and transition
+      timestamps are parsed strictly, delegated to the compare-and-set
+      persistence boundary, and serialized with typed applied/replay/conflict
+      evidence.
+  - >-
+      Authenticated counterfactual replay plans now have a durable read bridge
+      and `/forward-instances/{instance_id}/replays` projection. Plans are
+      deterministically ordered, fingerprint-checked, and exposed without
+      mutating the live forward checkpoint, preserving correction observability
+      for monitoring and later replay workers.
+  - Atomic PostgreSQL forward event/correction staging now persists counterfactual replay plans with the admitted event checkpoint in one transaction; exact retries return the stored replay identity, while malformed or contradictory replay rows fail closed. `PostgresForwardEventDispatchAdapter` now stages authenticated event payload bytes, forward dispatch identities, and the shared outbox over that checkpoint transaction, with owner/event/request uniqueness and typed second-dispatch conflicts. The authenticated forward handoff and bounded `ForwardEventWorkerService` bind Redis acknowledgement to a host-owned durable receipt. Worker authorization/capacity binding, event-stream activation, and scope-bound authoritative Nautilus v2 execution remain open.
+  - PostgreSQL search-state persistence now stores immutable experiment queues and candidate checkpoints with owner-scoped locks, candidate retry/terminal transitions, idempotent cancellation, and authenticated compare-and-set fingerprints. The application adapter now exposes owner-normalized checkpoint reads, candidate start/retry, and terminal-record methods; the versioned API exposes a read-only checkpoint projection, and the atomic search-dispatch adapter composes those locks with worker reservations, admission receipts, canonical durable payload bytes, dispatch identities, and the shared outbox. The canonical migration now creates the admission and dispatch tables; forward-event stream registration, worker activation, and provider event acquisition remain open.
+  - PostgreSQL legacy-import persistence now stores owner-scoped digest-only originals and exact compatibility assessments with authenticated record fingerprints; supported and unsupported imports replay idempotently while changed content conflicts, and payload-byte access, migrations, authorization, and application wiring remain open.
+  - PostgreSQL coverage-attestation persistence now stores owner-scoped provider evidence claims with authenticated series/attestation fingerprints, deterministic listing, exact registration replay, and changed-content conflicts; provider fetch/repair, snapshot admission, migrations, and application wiring remain open.
+  - PostgreSQL capability-summary persistence now stores owner-scoped report/binding projections with authenticated summary fingerprints, explicit gap/degradation evidence, deterministic listing, and changed-projection conflicts; capability calculation, entitlement/engine registration, migrations, and application wiring remain open.
+  - PostgreSQL acquisition-receipt persistence now stores owner-scoped request-bound snapshot/provider/coverage handoffs with authenticated receipt fingerprints, deterministic listing, exact replay, and changed-content conflicts; provider fetching/repair, snapshot creation, migrations, and application wiring remain open.
+  - PostgreSQL snapshot-coverage persistence now stores owner-scoped verified/rejected coverage resolutions with authenticated per-series reports, missing/unexpected digests, deterministic listing, exact replay, and changed-resolution conflicts; provider fetch/repair, snapshot creation, migrations, and application wiring remain open.
+  - PostgreSQL execution-summary persistence now stores owner-scoped append-only status projections keyed by submission/attempt state identity with authenticated outcome/progress fields, latest-attempt reads, deterministic history, exact replay, and changed-checkpoint conflicts; submission/outcome wiring, result publication, migrations, authorization, and application integration remain open.
+  - PostgreSQL result-completion persistence now resolves terminal runtime/outcome/progress/publication evidence with artifact publication plans in one locked transaction, inserting all new artifact commits and the completion receipt atomically; exact retries replay and artifact conflicts leave both ledgers unchanged. The application bridge now delegates accepted plans to this boundary after owner-scoped registration; artifact bytes, migrations, authorization, and worker activation remain open.
+  - PostgreSQL result-publication persistence now stores owner-scoped immutable publish/replay/reject plans with authenticated plan fingerprints, attempt/result/reproduction/build identities, deterministic reason lists, exact retries, and separate audit evidence for changed decisions; the application bridge registers these plans before completion and retains rejected plans as evidence. Publication bytes, migrations, authorization, and worker activation remain open.
+  - PostgreSQL runtime-execution persistence now stores owner-scoped accepted runtime state and immutable sandbox update receipts with authenticated fingerprints, exact sequence replay, monotonic compare-and-set transitions, and atomic running/terminal materialization; process execution, artifact publication integration, migrations, authorization, and application wiring remain open.
+  - PostgreSQL result-manifest persistence now retains owner-scoped canonical `RunResultManifest` payload projections with authenticated payload/record fingerprints, single-attempt binding, exact retries, changed-content conflicts, pure materialization gating, and full typed rehydration through an allowlisted contracts/capabilities/rebalance canonical decoder. Rehydration also requires byte-for-byte canonical serialization, so reordered fields, malformed nested tags, or contract drift fail closed; artifact projections consume the validated manifest. The dedicated worker terminal callback now idempotently registers the successful manifest before completion publication; scheduled artifact cleanup, migrations, authorization, and full application wiring remain open.
+  - PostgreSQL runtime-receipt persistence now stores owner-scoped canonical strategy-runtime request and isolation-preflight projections with independently authenticated payload/record fingerprints, exact retries, same-attempt/request conflict handling, and preserved rejection reasons. Typed `StrategyRuntimePreflight` reads now reuse the allowlisted contracts/runtime decoder, require canonical payload bytes, and verify request/profile/isolation/decision/rejection identities before returning admission evidence; process execution, migrations, authorization, and application wiring remain open.
+  - PostgreSQL metric-set persistence now stores owner-scoped canonical metric-set payloads and value-summary projections with authenticated payload/record fingerprints, deterministic reads, exact retries, and same-attempt conflict handling. Typed `MetricSet` reads now reuse the allowlisted canonical decoder, require byte-for-byte canonical payloads, and verify every persisted identity, lineage, creation-time, and value-summary projection before returning contracts; the API persistence bundle projects `metric-sets` from those typed reads rather than raw summaries. The dedicated worker terminal callback now idempotently persists the result manifest's immutable MetricSet after successful completion before final summary/capacity settlement; metric calculation, migrations, authorization, and full application wiring remain open.
+  - Execution and audit event contracts now normalize aware occurrence timestamps to UTC before identity and append/replay comparison, preventing offset-only retries from becoming false content conflicts; persistence, transport, and application wiring remain open.
+  - Artifact manifests and integrity receipts now reject untyped lengths/retention values and forged verified mismatches, while canonicalizing failure evidence before publication; guarded retention-authorized byte collection and commit-ledger-based orphan cleanup are implemented, while migrations, authorization, and application wiring remain open.
+  - A restricted custom-metric boundary now executes source-bound callables over frozen Decimal observations, emits versioned typed metrics with input evidence, and strips exception text; container worker activation and API/persistence wiring remain open.
+  - Custom-metric execution now has a strict tagged-JSON request/result protocol and mounted-file CLI with duplicate-field rejection, source/definition identity, result fingerprints, and atomic typed-result publication; worker image activation, persistence, API wiring, and scheduling remain open.
+  - Custom-metric entrypoint validation now rejects non-string declarations and resolves dotted callable paths through the restricted namespace; wire-helper exports are lazy to preserve package import safety.
+  - Custom metrics now support immutable uniquely fingerprinted ordered batches, strict batch request/result envelopes, and a batch CLI mode for deterministic metric sweeps; container worker activation and application wiring remain open.
+  - Strategy runtime batch requests now reject duplicate or out-of-order `(event_time, event_sequence)` contexts during serialization, decoding, and direct execution before strategy invocation; worker image activation, persistence, and application wiring remain open.
+  - REST cursor decoding now rejects duplicate object fields and non-finite JSON constants before checksum or snapshot validation; cursor checksums remain integrity aids rather than authentication, and route ownership checks remain open.
+  - REST resource serialization now canonicalizes dates, normalizes aware timestamps to UTC, preserves Decimal values as exact strings, and rejects non-finite or unsupported scalar values before JSON publication; application registration and authentication remain open.
+  - REST request metadata now rejects control characters in request IDs and idempotency keys before response headers or durable identity calculations; authentication, persistence, and application registration remain open.
+  - REST POST routes now reparse raw JSON bodies with duplicate-field and non-finite-value rejection before strategy validation, submission idempotency, or command dispatch; application registration and authentication remain open.
+  - Cursor-paginated collection responses now reject adapter snapshot drift against the incoming cursor, preserving snapshot-bound page traversal; persistence and application registration remain open.
+  - Strategy-validation request metadata failures now return typed 400 errors rather than escaping as unstructured exceptions; authentication and application registration remain open.
+  - Restricted strategy-runtime wire decoders and both mounted strategy/custom-metric CLIs now reject request files larger than 16 MiB before unbounded text decoding; mounted worker activation and application wiring remain open.
+  - Sandbox process-start failures now use versioned exception-type evidence instead of host-specific OS error text, preserving deterministic run identities; worker activation and application wiring remain open.
+  - Forward admission now validates observation structure and cursor/disposition semantics against live state, and content-checks buffered event retries before mutation; persistence and event-stream wiring remain open.
+  - Strategy and custom-metric single/batch serializers now enforce the 16 MiB wire bound before emitting request or result envelopes; worker activation and application wiring remain open.
+  - Canonical forward event and cursor timestamps now normalize aware offsets to UTC before comparison and fingerprinting; persistence migration and event-stream wiring remain open.
+  - Forward instance lifecycle, warm-up receipt, correction-command, and counterfactual replay-plan timestamps now normalize aware offsets to UTC before identity checks; persistence migration, event-stream wiring, and worker/application wiring remain open.
+  - Asynchronous submission, admission, runtime, outcome, progress, command, authorization, and execution-summary timestamps now normalize aware offsets to UTC before identity checks; application persistence and worker wiring remain open.
+  - Run-attempt and worker-lease lifecycle timestamps now normalize aware offsets to UTC before transition, capacity, and retry-lineage identity checks; application persistence and worker wiring remain open.
+  - PostgreSQL execution-event transaction persistence now exposes authenticated outbox loading and compare-and-set publication acknowledgement; `outbox_application.py` relays available messages to Redis with idempotent replay and leaves failed acknowledgements pending for retry. `redis_application.py` now exposes the bounded scheduler factory, and the dedicated worker lifecycle runs/cancels that scheduler beside the Redis pump when the persistence/runtime surfaces are available. Redis production client lifecycle, migration startup, and runtime activation remain open.
+  - PostgreSQL submission/dispatch staging now atomically creates or repairs an owner-derived message in the shared execution outbox alongside the owner-scoped receipt and dispatch intent, preserving idempotent retry and making API submissions visible to the Redis relay; worker payload materialization and runtime execution remain open.
+  - >-
+      `OutboxRelayScheduler` now provides bounded periodic relay cycles with
+      finite interval/batch validation, injected clock/sleep controls, and
+      explicit cancellation; Redis client construction, process lifecycle,
+      migration startup, worker entrypoints, and runtime activation remain
+      open.
+  - >-
+      `redis_application.py` now owns explicit local Redis client construction
+      and idempotent closure, forces text-decoding responses, and composes the
+      outbox relay and bounded worker-pump transports. Health checks, worker
+      process/task lifecycle, migration startup, and runtime activation remain
+      caller-owned.
+  - >-
+      `dispatch_payload.py` and the additive `ff1a2b3c4d5e` migration retain
+      canonical, content-addressed submission payload bytes separately from
+      Redis. Submission receipt, dispatch intent, payload record, and outbox
+      row are staged atomically; workers can resolve and re-authenticate a
+      payload by digest before invoking a materialized handler. Missing or
+      malformed payloads remain unacknowledged for retry/poison handling.
+  - >-
+      `artifact_store.py` now verifies manifest-bound bytes before evaluating
+      an explicit PostgreSQL retention resolution and deletes only
+      tier/expiry-eligible, unpinned content addresses with directory fsync.
+      Missing bytes are idempotent, retained bytes are reported without
+      mutation, and manifest/digest drift or corruption fails closed.
+      `LocalArtifactRetentionService` and the shared persistence bundle wire
+      this lifecycle to the existing retention adapter. The cleanup service
+      reconciles aged uncommitted content and recognized crash-left temporary
+      files against the authoritative commit ledger; unknown paths are left
+      untouched and the scheduler is cancellable and bounded.
+  - >-
+      `RedisDispatchWorkerScheduler` now runs bounded Redis worker cycles until
+      explicit cancellation, with finite interval validation, optional durable
+      payload materialization, injected sleep, and a deterministic cycle cap.
+      `RedisDispatchRuntime.worker_scheduler()` composes this seam while
+      handler execution, process lifecycle, lease heartbeats, and engine
+      disposal remain injected worker responsibilities.
+  - >-
+      `LocalArtifactStore` now rejects dangling target symlinks before missing
+      content handling, preserving fail-closed path and digest verification;
+      the regression is covered at the exact branch tip.
+  - >-
+      `LocalArtifactStore.cleanup_uncommitted()` and
+      `LocalArtifactCleanupService` reconcile digest-verified aged orphans and
+      crash-left temporary publication files against PostgreSQL commit records.
+      `ArtifactCleanupScheduler` adds explicit-time, cancellable periodic runs
+      with a deterministic cycle cap; unknown files and fresh entries remain
+      untouched.
+  - >-
+      `worker_process.py` now runs each immutable execution handoff in a fresh
+      spawn-based child process and returns only typed worker evidence over a
+      one-way pipe. Parent-owned timeout, termination, reaping, and stable
+      child-error digests provide the dedicated serial process boundary;
+      Redis service entrypoint, lease-heartbeat integration, and Compose
+      activation remain caller-owned.
+  - >-
+      `worker_service.py` composes the authenticated Redis payload loader,
+      bounded scheduler, fresh serial worker process, and injected durable
+      completion writer. Process execution runs off the event loop and the
+      transport is acknowledged only after the writer returns a matching
+      receipt; Redis runtime construction remains explicit and non-starting.
+  - >-
+      `migration_startup.py` provides an explicit application-owned Alembic
+      upgrade service with PostgreSQL URL/script validation, serialized
+      idempotent calls, off-event-loop execution, and stable redacted failure
+      evidence. The FastAPI lifespan and dedicated worker entrypoint invoke it
+      only when their explicit namespaced settings enable startup migration;
+      importing the router still performs no migration.
+  - >-
+      `worker_entrypoint.py` now owns the explicit local worker lifecycle:
+      validated namespaced configuration, startup migration before Redis,
+      shared PostgreSQL persistence construction, callback-factory loading,
+      bounded Redis worker-service composition, signal-driven cancellation, and
+      idempotent runtime closure. Terminal/result callback implementations,
+      Compose activation and scope-bound authoritative Nautilus v2 execution
+      remain separate integration gates; neither requires a stable upstream
+      release when an exact-pinned pre-release passes the same conformance.
+  - >-
+      Root Compose now exposes the dedicated worker as an explicit opt-in
+      `strategy-lab-v2` profile, separate from the general ARQ worker. The
+      profile uses a named artifact volume, health-gated PostgreSQL/Redis,
+      read-only root, dropped capabilities, bounded `/tmp`, and a non-creating
+      bind for the local Docker socket required by sandbox plans. An empty
+      callback factory fails closed at worker startup; the default stack never
+      enables this profile.
+  - >-
+      `worker_handoff.py` now defines a versioned, content-addressed dispatch
+      envelope for `WorkerExecutionRequest`. The envelope decoder rehydrates
+      the complete execution contract through the allowlisted decoder,
+      verifies request identity and outer payload binding, and exposes an
+      async materializer compatible with the dedicated worker callback seam;
+      terminal/result evidence resolution remains application-owned.
+  - >-
+      `worker_evidence_resolution.py` keeps the default sandbox mapper
+      fail-closed for its single `/outputs/result` mount and now accepts an
+      explicit application-owned artifact-path mapping for multi-artifact
+      manifests. Every manifest artifact is mapped exactly once and published
+      through the byte-verifying artifact service; worker payloads cannot infer
+      host paths.
+  - >-
+      `worker_callbacks.py` now composes the typed handoff materializer with
+      `PostgresWorkerTerminalAdapter` through a namespaced
+      `STRATEGY_LAB_V2_EVIDENCE_RESOLVER` module/attribute factory. Missing or
+      malformed resolver configuration fails before Redis opens, and the
+      legacy completion path can only return a retry; application evidence
+      resolution remains explicit rather than inferred from transport payloads.
+  - >-
+      `worker_service.py` now optionally emits ordered, content-addressed lease
+      heartbeats during each serial process handoff and fails closed on an
+      unexpected sequence/state or durable observation rejection. The local
+      entrypoint and Redis runtime pass a third heartbeat callback plus explicit
+      interval/extension limits; forward-capacity settlement and Compose
+      activation remain separate integration gates.
+  - >-
+      `PostgresWorkerStateAdapter.release_capacity()` now applies a release
+      observation and serial reservation release in one locked transaction for
+      backtest or forward profiles. It authenticates all identities, performs
+      lease and reservation compare-and-set updates, replays exact releases,
+      and leaves both state families unchanged on a rejected observation or
+      missing/foreign row.
+  - >-
+      `WorkerCompletionContext` and the optional terminal writer now bind the
+      exact Redis entry, immutable process request/resolution, and UTC
+      observation time before acknowledgement. The entrypoint and Redis runtime
+      pass this fourth callback while preserving the legacy completion writer;
+      concrete result/outcome/publication adapters remain application-owned.
+  - >-
+      `conformance_fixtures.py` now exposes an executable
+      `execute_conformance_suite(...)` boundary. It invokes every required
+      fixture through an injected engine runner, canonicalizes observed output,
+      reduces runner exceptions to deterministic failed evidence, and returns
+      the fixture suite, engine evidence, and gated report as one identity-bound
+      resolution. Authoritative local simulation requires a valid exact isolated
+      stable or release-candidate v2 pin and all checks for the requested scope.
+  - >-
+      `conformance.py` now binds a `NautilusReleasePin` to conformance evidence,
+      recording the exact v2 package/tag, source and runtime-image digests,
+      Python/Rust versions, and legacy-runtime isolation. Complete stable or
+      release-candidate fixture evidence with a valid isolated pin can become
+      authoritative for local simulation; full scope additionally requires
+      event-tape parity.
+  - >-
+      `resource_mutations.py` and the registration-neutral API router now expose
+      strict idempotent creation for mutable Strategy Lab resources. Exact
+      retries replay the existing resource receipt, changed content conflicts,
+      rejected preconditions are typed, and artifact/metric-set creation stays
+      read-only. Domain persistence and result-publication policy remain
+      application-owned integration gates.
+  - >-
+      `PostgresStrategyLabV2Adapter.create_resource()` now supplies the first
+      application-owned durable bridge for that generic mutation boundary. It
+      maps the resource envelope onto the shared compare-and-set aggregate
+      store, binds storage request identity to owner/resource/idempotency
+      content, persists the mutation fingerprint and accepted timestamp for
+      restart-safe receipt replay, and rejects foreign-owner or colliding
+      aggregates without disclosing their documents. Domain-specific resource
+      validation, outbox publication, and result policy remain separate gates.
+  - >-
+      `resource_domains.py` now decodes strategy, package, portfolio,
+      experiment, attempt, snapshot, trial, metric-set, and forward-instance
+      resource attributes into the immutable `StrategyVersion`,
+      `StrategyPackage`, `PortfolioComposition`, `ExperimentDefinition`,
+      `RunAttempt`, `DataSnapshot`, `ScientificTrial`, `MetricSet`, and
+      `ForwardInstance` contracts before
+      persistence. Source/archive/dependency digests, exact dependency
+      versions, entrypoint/runtime ABI, frozen parameter maps, exact decimal
+      capital/weights, component strategy links, shared risk models, calendar
+      rebalance policy, seed/engine identity, lifecycle state/timestamps,
+      capability preflight decisions, coverage evidence, series content,
+      unknown fields, and API ID aliases are validated deterministically; the
+      normalized domain fingerprint is projected in resource metadata.
+      Remaining generic resource domain adapters are separate follow-up gates.
+  - >-
+      `worker_terminal_adapter.py` now requires the application-owned metrics
+      adapter and persists the successful `RunResultManifest.metric_set` after
+      result completion, before execution summary and worker-capacity release.
+      Metric persistence is idempotent and retry-safe; a persistence failure
+      leaves the Redis entry pending and cannot acknowledge a partially
+      published metric result.
+  - >-
+      The dedicated terminal callback now also registers the successful
+      `RunResultManifest` through the shared result-materialization adapter
+      before result completion. Manifest persistence is owner-scoped,
+      attempt-bound, immutable, and replay-safe; failures leave the transport
+      entry pending and cannot acknowledge an unregistered result.
+  - >-
+      The dedicated terminal callback now re-registers the authenticated
+      owner-scoped result-publication plan before invoking atomic result
+      completion. Exact retries replay the immutable plan, rejected plans
+      remain audit evidence and cannot complete, and publication registration
+      is explicitly separate from the completion/artifact transaction.
+  - >-
+      Forward instances now require an immutable, instance-keyed execution-plan
+      resource before warm-up activation. Each component binds the exact
+      strategy and package fingerprints, frozen parameters, and random seed;
+      owner-scoped application validation checks the instance, portfolio,
+      strategy, and package links, and the runtime resolver verifies source
+      archive bytes and SDK manifests before returning all component recipes.
+      Persistent runtime integration and checkpoint-bound market-history
+      resolution remain open.
+roadmap_progress_history:
+  completed:
+    - engine-neutral-v2-domain-search-metrics-risk-and-execution-contracts
+    - combined-coverage-and-branch-validation
+    - trusted-paired-inference-and-scope-reconciliation
+    - engine-neutral-sdk-boundary-hardening
+    - restricted-strategy-invocation-runner
+    - strategy-runtime-wire-protocol-and-cli
+    - strategy-source-replay-safety-hardening
+    - strategy-runtime-json-integrity-hardening
+    - strategy-runtime-module-introspection-hardening
+    - strategy-runtime-private-import-hardening
+    - schedule-gated-target-allocation
+    - deterministic-frozen-event-tape
+    - snapshot-bound-event-tape-binding
+    - sdk-context-history-interval-boundary
+    - stateful-strategy-runtime-session
+    - deterministic-frozen-event-tape-replay
+    - strategy-runtime-batch-wire-protocol
+    - strategy-runtime-batch-cli
+    - deterministic-runtime-wire-identities
+    - runtime-wire-source-binding
+    - manifest-bound-runtime-results
+    - sdk-utc-event-time-normalization
+    - sdk-manifest-identity-canonicalization
+    - scientific-identity-canonicalization
+    - metric-set-identity-canonicalization
+    - execution-audit-event-time-normalization
+    - artifact-manifest-integrity-hardening
+    - restricted-custom-metric-boundary
+    - custom-metric-wire-protocol-and-cli
+    - custom-metric-entrypoint-and-export-hardening
+    - custom-metric-batch-runtime-and-wire-protocol
+    - strict-rest-cursor-token-decoding
+    - strict-rest-json-serialization
+    - strict-rest-request-metadata
+    - strict-rest-json-request-bodies
+    - snapshot-bound-rest-pagination
+    - strict-strategy-runtime-batch-chronology
+    - typed-strategy-validation-request-errors
+    - bounded-strategy-runtime-wire-payloads
+    - bounded-mounted-runtime-request-reads
+    - deterministic-sandbox-start-failure-evidence
+    - forward-observation-admission-integrity
+    - bounded-runtime-wire-serialization
+    - canonical-forward-event-time-identities
+    - forward-lifecycle-temporal-identities
+    - execution-lifecycle-temporal-identities
+    - attempt-lease-temporal-identities
+    - strategy-lab-v2-additive-schema-migration
+    - strategy-lab-v2-application-router-wiring
+    - strategy-lab-v2-local-artifact-publication-wiring
+    - strategy-lab-v2-shared-postgres-persistence-bundle
+    - strategy-lab-v2-forward-instance-listing
+    - strategy-lab-v2-relational-api-resource-projections
+    - strategy-lab-v2-postgres-outbox-redis-relay
+    - strategy-lab-v2-artifact-resource-projection
+    - strategy-lab-v2-bounded-outbox-relay-scheduling
+    - strategy-lab-v2-redis-runtime-lifecycle
+    - strategy-lab-v2-atomic-submission-outbox-staging
+    - strategy-lab-v2-durable-dispatch-payload-materialization
+    - strategy-lab-v2-retention-authorized-artifact-byte-lifecycle
+    - strategy-lab-v2-cancellable-worker-scheduling
+    - strategy-lab-v2-artifact-symlink-integrity-hardening
+    - strategy-lab-v2-artifact-orphan-reconciliation
+    - strategy-lab-v2-serial-worker-process-boundary
+    - strategy-lab-v2-dedicated-worker-service
+    - strategy-lab-v2-explicit-startup-migrations
+    - strategy-lab-v2-local-worker-entrypoint
+    - strategy-lab-v2-durable-lease-heartbeats
+    - strategy-lab-v2-atomic-worker-capacity-settlement
+    - strategy-lab-v2-terminal-completion-context
+    - strategy-lab-v2-concrete-terminal-result-persistence-adapter
+    - strategy-lab-v2-executable-conformance-harness
+    - strategy-lab-v2-isolated-nautilus-release-pin-contract
+    - strategy-lab-v2-idempotent-resource-creation-api-boundary
+    - strategy-lab-v2-durable-resource-creation-aggregate-bridge
+    - strategy-lab-v2-typed-strategy-resource-registration
+    - strategy-lab-v2-typed-strategy-package-registration
+    - strategy-lab-v2-typed-portfolio-resource-registration
+    - strategy-lab-v2-typed-experiment-resource-registration
+    - strategy-lab-v2-typed-attempt-resource-registration
+    - strategy-lab-v2-typed-snapshot-resource-registration
+    - strategy-lab-v2-typed-trial-resource-registration
+    - strategy-lab-v2-typed-metric-set-resource-registration
+    - strategy-lab-v2-typed-forward-instance-resource-registration
+    - strategy-lab-v2-worker-terminal-metric-persistence
+    - strategy-lab-v2-worker-terminal-manifest-persistence
+    - strategy-lab-v2-typed-result-manifest-rehydration
+    - strategy-lab-v2-canonical-result-manifest-rehydration
+    - strategy-lab-v2-typed-metric-set-rehydration
+    - strategy-lab-v2-typed-runtime-preflight-rehydration
+    - strategy-lab-v2-api-startup-migration-rollout
+    - strategy-lab-v2-capability-preflight-api
+    - strategy-lab-v2-capability-preflight-application-binding
+    - strategy-lab-v2-durable-search-lifecycle-api
+    - strategy-lab-v2-search-candidate-dispatch-api-boundary
+    - strategy-lab-v2-atomic-postgres-search-dispatch
+    - strategy-lab-v2-search-dispatch-application-binding
+    - strategy-lab-v2-search-dispatch-worker-lookup
+    - strategy-lab-v2-forward-shadow-account-persistence
+    - strategy-lab-v2-forward-shadow-account-worker-settlement
+    - strategy-lab-v2-forward-account-api-read-projection
+    - strategy-lab-v2-dedicated-forward-worker-runtime-composition
+    - strategy-lab-v2-forward-worker-reservation-lease-authorization
+    - strategy-lab-v2-durable-forward-worker-authorization-bridge
+    - strategy-lab-v2-atomic-forward-worker-authorization-load
+    - strategy-lab-v2-forward-worker-capacity-settlement
+    - strategy-lab-v2-account-settling-forward-worker-pipeline
+    - strategy-lab-v2-forward-event-admission-api
+    - strategy-lab-v2-forward-event-dispatch-api
+    - strategy-lab-v2-forward-warmup-api
+    - strategy-lab-v2-forward-lifecycle-api
+    - strategy-lab-v2-forward-replay-observability
+    - strategy-lab-v2-forward-worker-compose-boundary-hardening
+    - strategy-lab-v2-backtest-worker-compose-boundary-hardening
+    - strategy-lab-v2-nautilus-serialized-strategy-invocation-bridge
+    - strategy-lab-v2-nautilus-rc-worker-cli-and-result-artifact-path
+    - strategy-lab-v2-nautilus-content-addressed-runtime-input-handoff
+    - strategy-lab-v2-nautilus-time-batched-event-context-bridge
+    - strategy-lab-v2-nautilus-immutable-trial-input-assembly
+    - strategy-lab-v2-owner-scoped-typed-resource-rehydration
+    - strategy-lab-v2-verified-local-source-package-resolution
+    - strategy-lab-v2-verified-frozen-event-tape-artifact-boundary
+    - strategy-lab-v2-experiment-strategy-package-identity-binding
+    - strategy-lab-v2-disk-spooled-event-tape-artifact
+    - strategy-lab-v2-bounded-invocation-context-stream-protocol
+    - strategy-lab-v2-streaming-strategy-runtime-consumer
+    - strategy-lab-v2-nautilus-context-stream-sidecar-and-runtime-handoff
+    - strategy-lab-v2-scoped-backtest-result-publication-provenance
+    - strategy-lab-v2-default-disk-backed-event-tape-resolution
+    - strategy-lab-v2-owner-scoped-fingerprint-batch-and-trial-domain-hydration
+    - strategy-lab-v2-owner-bound-search-worker-graph-handoff
+    - strategy-lab-v2-owner-hydrated-verified-runtime-input-materialization
+    - strategy-lab-v2-trial-bound-runtime-evidence-and-worker-lineage
+    - strategy-lab-v2-host-composed-nautilus-backtest-dispatch
+    - strategy-lab-v2-production-search-dispatch-evidence-preparation
+    - nautilus-backtest-scoped-conformance-context-binding-v1
+    - nautilus-rc-pinned-local-evidence-reader-v1
+    - nautilus-rc-reproducible-local-evidence-build-v1
+    - strategy-lab-v2-isolated-search-preparation-rpc-v1
+    - strategy-lab-v2-local-preparation-composition-v1
+    - strategy-lab-v2-postgres-search-preparation-rpc-v1
+    - native-component-pnl-attribution-v1
+    - nautilus-native-signed-fee-reconciliation-v1
+    - nautilus-listed-derivative-instrument-materialization-v1
+    - nautilus-futures-margin-admission-v1
+    - nautilus-futures-target-allocation-v1
+    - nautilus-event-time-oos-drawdown-duration-v1
+    - nautilus-event-time-oos-cagr-calmar-v1
+    - nautilus-scope-qualified-backtest-authority-v1
+    - nautilus-oos-absolute-drawdown-v1
+    - nautilus-oos-session-risk-metric-wiring-v1
+    - nautilus-oos-session-close-intervals-v1
+    - strategy-lab-v2-owner-scoped-domain-identity-reservation-v1
+    - strategy-lab-v2-forward-lifecycle-idempotency-v1
+    - strategy-lab-v2-nautilus-forward-runtime-dto-codec-v1
+    - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
+    - strategy-lab-v2-durable-search-cancellation-v1
+    - strategy-lab-v2-postgres-backed-curve-download-v1
+  total: 18
+  current_phase: oos-native-terminal-receipt-first-recovery-v1
+  active_changeset:
+    id: strategy-lab-v2-oos-native-terminal-receipt-first-recovery-v1
+    scope: >-
+      Close the recovered walk-forward OOS dispatch through exact-pinned native
+      Nautilus execution, PostgreSQL terminal result settlement, and Redis
+      consumer acknowledgement/reclaim. Authenticate and idempotently bootstrap
+      owner-scoped initial execution/runtime state before process launch. On
+      redelivery, replay a matching durable completion/settlement/release before
+      starting Nautilus again. Preserve training-only selection, attempt and
+      payload identity, outbox ordering, and owner isolation. Do not modify
+      provider or frontend paths.
+    owned_paths:
+      - backend/app/strategy_lab_v2/worker_initial_state.py
+      - backend/app/strategy_lab_v2/worker_callbacks.py
+      - backend/app/strategy_lab_v2/worker_service.py
+      - backend/app/strategy_lab_v2/worker_recovery_application.py
+      - backend/app/strategy_lab_v2/worker_entrypoint.py
+      - backend/app/strategy_lab_v2/redis_application.py
+      - backend/app/strategy_lab_v2/tests/test_worker_initial_state.py
+      - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
+      - backend/app/strategy_lab_v2/tests/test_worker_service.py
+      - backend/app/strategy_lab_v2/tests/test_worker_entrypoint.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py
+      - backend/app/strategy_lab_v2/tests/test_search_dispatch_preparation.py
+      - backend/tests/integration/strategy_lab_v2/test_oos_terminal_postgres_redis.py
+      - backend/tests/integration/strategy_lab_v2/test_worker_recovery_postgres.py
+      - backend/tests/integration/strategy_lab_v2/test_walk_forward_phase_recovery_postgres.py
+    status: in_progress
+  current_blocker: >-
+    No Nautilus release or implementation dependency blocks the local backend:
+    exact-pinned Nautilus 2.0.0rc6 passed the required conformance scopes, and
+    the native OOS request now crosses PostgreSQL terminal settlement and Redis
+    crash-reclaim ACK with no second engine launch. Forward event/terminal
+    recovery, worker-fleet leases, and branch-owned security/isolation/scaling
+    slices are also green, and the authenticated live Compose curve transfer is
+    now proven against the real FastAPI/PostgreSQL stack and shared artifact
+    volume. Exact Strategy source c9723d2b3718b9d598e0d8d307c9fbbd1d943187
+    also passed hosted CI run 38907993948 (standard jobs including E2E passed;
+    Exhaustive was skipped). Remaining work is branch acceptance rather than an
+    engine-version wait: exact-tip local full-browser acceptance and
+    cross-workstream reconciliation. Provider-platform, ETF, and TC2000
+    contracts remain owned by their branches; shared router, migration, and
+    provider-decoder reconciliation must wait for their staged contracts.
+    Existing browser failures are in the parallel TC2000-owned surfaces, not
+    this backend package.
+  next_action: >-
+    Backend package, coverage, Compose API, and migration gates are green.
+    Continue with the exact-tip full-browser acceptance profile when the
+    parallel frontend workstream is ready, then perform line-level shared-path
+    reconciliation. Preserve engine-neutral
+    SDK boundaries, owner isolation, durable receipt-before-ACK semantics, and
+    fail-closed unsupported products. Reconcile shared router/migration,
+    provider-decoder, ETF, and TC2000 paths only after their approved branches
+    reach staging; do not duplicate those contracts here.

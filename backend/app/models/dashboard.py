@@ -65,3 +65,9 @@ class DashboardWidget(Base, TimestampMixin):
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     tab: Mapped["DashboardTab"] = relationship(back_populates="widgets")
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.user import User

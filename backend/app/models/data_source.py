@@ -74,3 +74,29 @@ class DataSource(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<DataSource name={self.name}>"
+
+
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from app.models.instrument_identity import InstrumentIdentifier, InstrumentProviderSymbol
+    from app.models.ohlcv import OHLCVBar
+    from app.models.provider_observation import (
+        InstrumentDatasetState,
+        InstrumentIdentifierSnapshot,
+        InstrumentProfileSnapshot,
+        InstrumentSearchSnapshot,
+        LatestPriceSnapshot,
+        MarketBarObservation,
+        OptionChainSnapshot,
+        OptionQuotePoint,
+        UniverseDiscoverySnapshot,
+    )
+    from app.models.provider_runtime import (
+        ProviderAccountUsageObservation,
+        ProviderEntitlement,
+        ProviderEntitlementRevision,
+        ProviderHealthState,
+        ProviderPolicy,
+        ProviderRequestLog,
+    )
