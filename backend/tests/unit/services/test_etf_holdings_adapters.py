@@ -12347,6 +12347,30 @@ async def test_day_hagan_declared_airtable_adapter_parses_holdings(monkeypatch, 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("adapter_key", ["araq", "day_hagan"])
+async def test_day_hagan_declared_airtable_route_stays_held_before_transport(
+    monkeypatch, adapter_key
+):
+    adapter = get_holdings_adapter(adapter_key)
+    assert adapter is not None
+    transport_calls = []
+
+    def forbidden_transport(*args, **kwargs):
+        transport_calls.append((args, kwargs))
+        raise AssertionError("unreviewed Arax/Day Hagan route must not reach HTTP transport")
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters._requests.get", forbidden_transport)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters._httpx.AsyncClient", forbidden_transport
+    )
+
+    with pytest.raises(bridge.ETFHoldingsRouteHeldError, match="legacy requests transport"):
+        await adapter.fetch_latest(symbol="SSUS", identifiers={})
+
+    assert transport_calls == []
+
+
+@pytest.mark.asyncio
 async def test_estate_counselors_adapter_verifies_brinsmere_filepoint_holdings(monkeypatch):
     adapter = get_holdings_adapter("estate_counselors")
     assert adapter is not None

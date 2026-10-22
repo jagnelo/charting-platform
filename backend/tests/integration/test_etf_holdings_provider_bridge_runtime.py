@@ -743,7 +743,10 @@ async def test_nsi_real_adapter_submits_product_redirect_and_csv_to_shared_admis
             connection.execute(
                 select(quota_coordinator._reservations)
                 .where(quota_coordinator._reservations.c.provider_name == case.provider_name)
-                .order_by(quota_coordinator._reservations.c.reserved_at)
+                .order_by(
+                    quota_coordinator._reservations.c.created_at,
+                    quota_coordinator._reservations.c.id,
+                )
             )
             .mappings()
             .all()

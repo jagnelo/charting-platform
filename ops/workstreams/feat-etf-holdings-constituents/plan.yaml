@@ -660,6 +660,27 @@ current_blocker: >-
   no container was started and the existing claim is unchanged. Do not run a
   heavy local profile while Root owns the slot. Preserve all route holds,
   unresolved quarantines, roadmap criteria, and historical evidence.
+  Current bounded continuation at 2026-10-22 23:27Z: ETF branch HEAD and
+  origin remain c9aac760e3a62f82e28dca2605ee2fdffa68c8e3. Exact push CI
+  39869367875 is terminal RED: Frontend Unit passed; backend unit passed;
+  backend integration reported 1 failed, 497 passed, 2 skipped, 57 warnings
+  in 625.23s; later jobs were skipped. Its sole failure is
+  test_nsi_real_adapter_submits_product_redirect_and_csv_to_shared_admission:
+  the test orders Provider-owned reservation rows by nonexistent
+  `reserved_at`; the actual shared table defines `created_at` and integer `id`.
+  The scoped test-only correction orders by those existing columns, preserving
+  the three-reservation, settled-state, settled-timestamp and one-unit checks.
+  It is unrun against the DB fixture because Root retains the heavy local slot.
+  The new Arax/Day Hagan entry-point held-route regression remains uncommitted;
+  its two held cases plus two existing fixture-parser cases passed4/4 before
+  this correction, with both underlying transports tripwired and untouched.
+  Preserve red run39869367875 and older history. Run bounded no-network checks,
+  count sentinel and workstream validation, then publish this coherent
+  test-only correction and inspect its exact own-branch CI. Root's staging
+  repair4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is still running and is not
+  released; do not adopt or poll it. Preserve full AC1–AC14, 15 Tier-0 and
+  156 Tier-1, quarantines, route/data holds, and the post-integration 30-day
+  observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -1668,31 +1689,34 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    Exact Actions run 39857543318 is in_progress on published source
-    4823bcf889b5ef0a51808fbfa39aa83ed6359953 and includes ETF Architect but
-    not the current shared-CSV change. The focused three route contracts, full
-    adapter module and declared offline branch suite pass locally with live
-    flags explicitly 0. A fresh exact-head CI is required after coherent
-    publication. Prior cancelled, partial and red runs remain historical and
-    are not upgraded to green.
+    Exact Actions run39869367875 on c9aac760e3a62f82e28dca2605ee2fdffa68c8e3
+    is terminal RED. Frontend Unit and backend unit passed; backend integration
+    had1 failed,497 passed,2 skipped,57 warnings in625.23s; later jobs skipped.
+    Sole failure was the NSI real-adapter test ordering Provider reservations
+    by nonexistent reserved_at; actual shared schema uses created_at and id.
+    The test-only correction now orders by those real fields and preserves all
+    reservation/settlement assertions. It has not yet run against DB. Preserve
+    this exact red receipt; no rerun. Arax/Day Hagan held-route regression is
+    uncommitted and absent from this CI. Root staging repair
+    4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live and unreleased; do not
+    poll/adopt it. Prior red, partial and cancelled results remain historical.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Complete the bounded touched-module tests and static checks, including the
-  fixed NSI fixture and Cohen caller-path MockTransport case; preserve the
-  exact CI39867753554 red receipt (5,215 backend passes, the stale NSI fixture
-  failure, frontend pass, downstream skips) without replay. Run Ruff/format,
-  exact narrative-count sentinel, workstream validator, JSON/JSONL and plan
-  hash checks; then publish this substantive test/fixture correction and
-  evidence coherently and inspect only its exact own-branch CI. The Cohen test
-  verifies actual adapter/refresh/facade and worker-local HTTPX requests, but
-  not canonical DB admission, durable ledger or settlement. The Docker socket
-  denied canonical full-profile preflight after180 seconds; no local fixture
-  started and the existing owner claim remains. Root owns staging CI and the
-  heavy local slot; do not poll Root CI, adopt unreleased staging, or start the
-  DB/browser/full profile. Keep Arax/Day Hagan held; preserve full AC1–AC14,
-  15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all prior
-  history/holds, and the 30-day gate. No issuer/SEC/Provider requests, quota,
-  paid/trial/unknown activation, data cleanup, cross-worktree write, promotion
-  or deployment.
+  Preserve exact red CI39869367875 on c9aac760e3a62f82e28dca2605ee2fdffa68c8e3
+  (backend integration1 failed/497 passed/2 skipped; stale test ordering used
+  nonexistent reservation reserved_at, while actual Provider schema has
+  created_at,id). The test now orders by those real columns and keeps all
+  reservation/settlement assertions. Run bounded no-network unit/static checks,
+  count sentinel and workstream/JSON/plan-hash/diff validation; then commit and
+  push this substantive test-only correction together with the prepared
+  Arax/Day Hagan zero-transport denial regression and inspect only the new
+  exact-source ETF CI. Do not rerun the historical red run or start a local
+  DB/browser/full profile while Root owns the heavy slot. Root staging repair
+  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live, not released; do not
+  poll/adopt. Keep Arax/Day Hagan held pending reviewed publisher/account/terms
+  evidence. Preserve full AC1–AC14, 15 Tier-0 and 156 Tier-1, quarantines,
+  history, disabled unknown/quota-held/paid/trial/unsafe routes and the
+  30-day observation. No external requests/quota, data cleanup, cross-worktree
+  write, promotion or deployment.

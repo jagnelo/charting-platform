@@ -150,10 +150,10 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22 23:02Z: exact own CI39867753554 on published92e58ed4106f8ab8a9a9f86f637074e0277b3609 is terminal RED: frontend passed; backend had5,215 passed,1 failed,1 skipped,37 warnings; downstream jobs skipped. Sole failure was an old NSI unit test patching raw requests after NSI migrated to guarded HTTPX. The real fail-closed facade correctly denied its missing NSI binding before transport. Fixed the test-only fixture to use fake HTTPX, exact bound adapter/profile/instrument/symbol/latest operation and a requests tripwire; all original cash/row/identity/date/URL assertions retained. Focused 3 NSI tests pass3/3. Cohen real adapter-refresh worker-local MockTransport test and the16-test bridge module pass, but mock Provider policy/executor and DB persistence; no canonical admission/settlement proof. Workstream records and tests remain uncommitted; no new CI has this fix. Docker full-profile preflight had recorded permission denied after180s; no container started. Root staging CI remains unreleased; do not poll/adopt. No external requests/quota, heavy profile, cleanup or cross-worktree changes. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds, all historical evidence, and30-day gate.",
+  "current_blocker_latest": "2026-10-22 23:27Z: local/origin branch HEAD c9aac760e3a62f82e28dca2605ee2fdffa68c8e3; exact CI39869367875 terminal RED. Frontend Unit and backend unit passed; backend integration 1 failed,497 passed,2 skipped,57 warnings in625.23s; later jobs skipped. Sole failure test_nsi_real_adapter_submits_product_redirect_and_csv_to_shared_admission ordered the Provider reservation table by nonexistent reserved_at; canonical schema defines created_at and integer id. The test now orders by those actual fields and preserves 3 reservations, settled state/timestamps and unit assertions; no DB rerun because Root holds the heavy local slot. Arax/Day Hagan held-route regression remains uncommitted and absent from that CI; previous focused denial/parser selection was4/4 with transport tripwires untouched. Preserve this red exact run and all earlier history. Root staging repair4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live but not released; do not poll/adopt. No external requests/quota, local DB/browser profile, cleanup, or cross-worktree changes. Preserve all AC1-AC14, 15 Tier-0 and156 Tier-1, quarantines/holds and30-day gate.",
   "dirty_paths": [
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
     "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -183,8 +183,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "92e58ed4106f8ab8a9a9f86f637074e0277b3609",
-  "implementation_sha": "92e58ed4106f8ab8a9a9f86f637074e0277b3609",
+  "head": "c9aac760e3a62f82e28dca2605ee2fdffa68c8e3",
+  "implementation_sha": "c9aac760e3a62f82e28dca2605ee2fdffa68c8e3",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -332,8 +332,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run the bounded touched-adapter and full provider-bridge unit checks plus Ruff/format, count sentinel and workstream validation, then publish the substantive NSI stale-fixture correction together with the Cohen real-adapter MockTransport test and updated evidence. Preserve exact CI39867753554 RED on92e58ed4106f8ab8a9a9f86f637074e0277b3609; do not rerun it. The NSI correction retains all row/cash/identity/date/URL assertions and only binds the migrated HTTPX unit fixture. Cohen test verifies actual adapter/refresh/facade worker-local requests but mocks Provider policy/executor and persistence: not canonical DB admission, durable ledger or settlement. Exact resulting ETF CI is required. Do not poll Root CI, adopt unreleased staging, or start local DB/browser/full profile while Root owns the slot. Keep Arax held, all external/quota/route holds and full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/history, and 30-day observation.",
-  "plan_hash": "64a04a786fc1185b4836f5d22c4e06797e5b9cbd376f5958b1fad9d597b8a002",
+  "next_action": "Run bounded no-network focused/static checks for the NSI reservation ordering correction and Arax/Day Hagan denial regression; then run the exact narrative-count sentinel and workstream/JSON/plan-hash/diff validation. Publish this coherent test-only context and inspect only its exact-source ETF CI. Do not replay red CI39869367875 or start DB/browser/full profile while Root holds the heavy slot; do not poll/adopt Root staging repair until an exact green release arrives. Preserve all route/quota/data holds, quarantines, full roadmap, 15 Tier-0 and 156 Tier-1, and30-day observation.",
+"plan_hash": "5c37ae7c0decd750c9fbf642ff7cf41a7422616ed689a94d310e425ceecab790",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -384,11 +384,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Published ETF92e58ed4106f8ab8a9a9f86f637074e0277b3609 has exact CI39867753554 terminal RED: 5,215 backend passed, the stale NSI fixture failed, frontend passed, and downstream jobs skipped. Fixed the test harness to use HTTPX fake plus bound NSI context and forbid raw requests; three NSI success/403 cases pass locally without changing parser or safety assertions. The Cohen real adapter/refresh MockTransport path passes and the full16-test bridge unit module passes, but mocks Provider policy/executor and persistence, so this is not DB admission/durable settlement. Canonical Docker full-profile preflight denied socket access after180s; no container started. Current test/workstream diff is uncommitted and absent from the red CI. Root staging remains unreleased; no external calls/quota, heavy profile, cleanup or cross-worktree action. Preserve full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds/history, and30-day gate.",
+    "current_blocker": "At2026-10-22 23:27Z published HEAD/origin c9aac760e3a62f82e28dca2605ee2fdffa68c8e3 exact CI39869367875 is terminal RED: frontend and backend unit passed; backend integration1 failed/497 passed/2 skipped/57 warnings in625.23s; later jobs skipped. Sole failure was test_nsi_real_adapter_submits_product_redirect_and_csv_to_shared_admission ordering the Provider reservation table by nonexistent reserved_at; canonical table uses created_at,id. The test now uses actual fields and retains all reservation/settlement assertions; no DB rerun while Root owns the heavy local slot. Arax/Day Hagan held-route regression is uncommitted and absent from this run; focused denial/parser selection previously passed4/4 with neither underlying transport invoked. Preserve exact red and prior history. Root staging repair4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live, not released; do not poll/adopt. No external requests/quota, heavy profile, cleanup or cross-worktree action. Preserve full roadmap, 15 Tier-0 and 156 Tier-1, quarantines/holds/history and30-day gate.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Complete bounded tests/static validation for the NSI stale-fixture correction and Cohen caller-path MockTransport test; publish both as one coherent ETF-owned test change with updated evidence. Preserve exact CI39867753554 RED on92e58ed and do not rerun it. Do not poll Root CI or run heavy local fixtures before slot release. Keep Arax held and preserve all AC1-AC14, route/quota/data boundaries, 15 Tier-0 and156 Tier-1, quarantines and30-day observation.",
-    "total": 14,
-    "updated_at": "2026-10-22T23:03:08Z"
+    "next_action": "Run bounded no-network focused/static checks for the NSI reservation ordering correction and Arax/Day Hagan denial regression; run the narrative-count sentinel and workstream/JSON/plan-hash/diff validation. Publish the coherent test-only context and inspect only its exact-source ETF CI. Do not replay CI39869367875 or start DB/browser/full profile while Root holds the slot; do not poll/adopt Root staging repair until exact green release. Preserve all route/quota/data holds, quarantines, full roadmap and30-day observation.",
+    "updated_at": "2026-10-22T23:27:52Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -400,8 +399,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "92e58ed4106f8ab8a9a9f86f637074e0277b3609",
-  "remote_sha": "92e58ed4106f8ab8a9a9f86f637074e0277b3609",
+  "remote": "c9aac760e3a62f82e28dca2605ee2fdffa68c8e3",
+  "remote_sha": "c9aac760e3a62f82e28dca2605ee2fdffa68c8e3",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

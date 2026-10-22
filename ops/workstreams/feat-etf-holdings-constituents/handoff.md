@@ -14066,3 +14066,59 @@ inspect only its new exact-source CI. Root owns its separate staging run; do
 not poll/adopt staging or launch the reserved local DB/browser/full profile.
 All external request, quota, route activation, quarantine and roadmap
 boundaries remain unchanged.
+
+## Arax/Day Hagan transport-denial regression — 2026-10-22 23:16Z
+
+The published ETF tip `c9aac760e3a62f82e28dca2605ee2fdffa68c8e3` is clean and
+synchronized. Its exact push CI `39869367875` is still active: Frontend Unit
+Tests passed and Backend Tests remain in the unit phase. Do not treat this as a
+terminal result or interrupt it with a new push; the workflow cancels prior
+same-branch CI when a newer push arrives.
+
+While that exact run executes, added one bounded, test-only negative contract
+for the remaining Arax/Day Hagan adapter path. The existing fixture-based
+success contract replaces its transport and proves parsing only; it is not
+evidence that the production route is admitted. The new parameterized case
+invokes both registered adapter entry points using the real fail-closed
+requests namespace while tripwiring the underlying requests and HTTPX clients.
+Both raise `ETFHoldingsRouteHeldError` before either underlying transport is
+called. The earlier fixture parsing contract remains unchanged. Four cases
+(two adapter keys across the held-path and fixture-parser contracts) passed;
+Ruff check/format and `git diff --check` passed. No HTTP, quota, database,
+provider policy, route activation, or source behavior was changed.
+
+The new test and workstream evidence are not part of CI `39869367875`. After
+that exact run is terminal, preserve its outcome, validate these owned records
+and the count sentinel, then publish the combined test-only context and
+inspect only the resulting own-branch CI. Keep the route held pending reviewed
+publisher/account/terms evidence; unknown, quota-held, paid/trial, and unsafe
+routes remain disabled. Preserve all AC1–AC14, `15 Tier-0 and 156 Tier-1`,
+MSMR/QQQ and Militia/GOOG quarantines, full-profile requirements, historical
+failures, and the post-integration 30-day gate. Root's staging CI is separate
+and remains unreleased; do not poll or adopt staging.
+
+## Reservation-schema test correction and terminal CI receipt — 2026-10-22 23:27Z
+
+Exact own-branch Actions run `39869367875` on
+`c9aac760e3a62f82e28dca2605ee2fdffa68c8e3` is terminal RED. Frontend Unit and
+backend unit passed; backend integration reported 1 failed, 497 passed, 2
+skipped and 57 warnings in 625.23 seconds; later jobs were skipped. Its sole
+failure was `test_nsi_real_adapter_submits_product_redirect_and_csv_to_shared_admission`:
+the assertion ordered Provider-owned reservation rows by nonexistent
+`reserved_at`. Direct source inspection confirms the canonical table has
+`created_at` and integer primary key `id`, and no `reserved_at`. The narrow
+test-only correction orders by `created_at,id`; the three-reservation,
+settled-state, settled-timestamp and one-unit assertions remain unchanged.
+This DB-backed correction has not been rerun locally because Root owns the
+heavy fixture slot; preserve the exact red CI without replay.
+
+The prepared Arax/Day Hagan adapter-entry denial regression is unchanged: its
+four-case parser/held-route selection passed with Requests and HTTPX transports
+tripwired and untouched. The combined coherent change contains tests and
+workstream evidence only; no production behavior or route eligibility changed.
+After bounded no-network checks and workstream validation, publish once and
+inspect only the resulting exact ETF CI. Root's staging repair
+`4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is still live and unreleased; do
+not poll or adopt it. Keep unknown/quota-held/paid/trial/unsafe routes disabled,
+preserve all AC1–AC14, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
+quarantines, all history, and the 30-day observation gate.
