@@ -1,12 +1,15 @@
 schema: 4
 branch: fix/strategy-staging-quality
-base_sha: 5178b414b426ec61bdcb22257b4f956581c25d0c
+base_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
+previous_checkpoint_sha: b1934946f9863a6a0b2ca3b18516e45bac6d48e8
+previous_checkpoint_staging_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
 parent_branch: staging
-parent_sha: 5178b414b426ec61bdcb22257b4f956581c25d0c
+parent_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
 dependency_authorization: "Under the human standing authorization recorded on 2026-10-20, the coordinator authorizes this narrow formatting and readiness-fixture quality remediation directly from exact degraded staging 5178b414b426ec61bdcb22257b4f956581c25d0c; no production behavior change, gate weakening, provider requests or retained-resource changes."
 human_intent_authorization: "Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting and readiness-fixture quality repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md."
 planning_state: ready
-human_closure_authorization: >-
+human_closure_authorization: pending
+previous_checkpoint_human_closure_authorization: >-
   Human explicitly delegated careful technical-repair closure without individual
   acceptance: Yes I approve, and you do not need my acceptance to close it off,
   it is a waste of time for me to individually verify each individual fix in all
@@ -17,7 +20,8 @@ human_closure_authorization: >-
   d32151b3e67243592c05aed6429607b51c706b59 after actual local validation and exact
   cleanup, subject to mandatory exact FINAL branch CI green before guarded
   integration. This does not assert that pending hosted checks pass.
-closure_summary: >-
+closure_summary: pending
+previous_checkpoint_closure_summary: >-
   Implementationd32151b3e67243592c05aed6429607b51c706b59 repairs exact degraded
   staging5178b414b426ec61bdcb22257b4f956581c25d0c exhaustive119901336420 lint
   failure with Ruff0.4.7 formatting. Exactly139Pythonfiles have unchanged
@@ -55,13 +59,20 @@ local_validation_reason: >-
   functional/visual gates before acceptance/release. No live provider calls.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: Repair the four-feature staging formatting gate and readiness-provenance browser setup without weakening behavior, assertions or validation, then return the tested checkpoint for guarded remediation integration.
+goal: Continue the accepted four-feature quality repair from synchronized green staging to diagnose and fix the exact master Market Map selection regression and scoped image-cleanup failure, preserving all prior checkpoint evidence and all tests, then validate a new checkpoint for guarded staging and master release.
 scope:
+  - Diagnose first-failure master39845561267 artifacts and repair the proven Market Map initialization/interaction cause without weakening the unchanged dense-map contract.
+  - Diagnose and repair owned image cleanup with shared backend/worker tags; never force-remove foreign references or globally prune.
   - Apply only pinned Ruff 0.4.7 formatting to the 139 reported Python files.
   - Prove every changed Python file matches formatter output and preserves its AST.
   - Validate lint and focused unit contracts; preserve all gates and original feature roadmaps.
   - Wait explicitly for the readiness fixture response before the existing adjacent provenance assertions; preserve all text, timeouts, retries and visual oracles.
 owned_paths:
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/tests/unit/components/test_market_map_tool.test.ts
+  - frontend/tests/e2e/workstation_performance.spec.ts
+  - scripts/agent-session.py
+  - tests/workflow/test_agent_session.py
   - backend/app/strategy_lab_v2/
   - backend/tests/integration/strategy_lab_v2/test_oos_terminal_postgres_redis.py
   - backend/tests/unit/strategy_lab_v2/test_app_migration_startup.py
@@ -69,8 +80,12 @@ owned_paths:
   - ops/workstreams/fix-strategy-staging-quality/
   - frontend/tests/e2e/flows.spec.ts
 dependencies:
+  - Accepted M2 staging0e342512 is green; its independent master39845561267 fails the Market Map selection contract and scoped shared-image cleanup. This new repair is not covered by previous acceptance.
   - Exact degraded staging 5178b414b426ec61bdcb22257b4f956581c25d0c contains all four accepted feature checkpoints; exhaustive lint failed before its remaining stages.
 acceptance_criteria:
+  - {id: MAP1, text: "Deterministic regressions reproduce the proven delayed-initialization selection reset on the accepted source and pass after the smallest product correction."}
+  - {id: MAP2, text: "The unchanged actual dense-map browser flow passes with zero retries; full exact branch CI and new staging/master exhaustive functional/visual gates remain mandatory."}
+  - {id: CLN1, text: "Owned shared-tag images clean completely, while foreign resources/tags and retained datasets remain protected; workflow regressions and actual bounded cleanup proof pass."}
   - {id: FMT1, text: Pinned backend code and formatting checks pass without policy changes.}
   - {id: FMT2, text: "All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes."}
   - {id: FMT3, text: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.}
@@ -82,14 +97,14 @@ branch_tests_reason: Full hosted backend CI already executes all backend unit an
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: ready_for_integration
+status: in_progress
 remaining_gaps:
   - Exact final pushed repair branch CI remains mandatory before guarded remediation integration; no hosted pass is claimed yet.
   - Exact repaired staging exhaustive gate remains mandatory before owner backmerge/release, master promotion or deployment.
   - Historical source4fd11ebd CI39806090414 remains RED from one flaky provenance case; its retry pass was not accepted. Corrected implementationd32151b3 has actual local browser proof; final closing HEAD still requires full exact CI.
 progress:
-  completed: [FMT1, FMT2, PROV1, PROV2]
-  total: 5
-  current_phase: accepted-quality-checkpoint-awaiting-final-ci
+  completed: [FMT1, FMT2, FMT3, PROV1, PROV2]
+  total: 8
+  current_phase: master-first-failure-causal-repair
   current_blocker: none
-  next_action: Freeze final closing HEAD and require its full exact branch CI green before guarded remediation integration; then require the new exact staging exhaustive functional and visual gate before owner release.
+  next_action: Add failing delayed-initialization regression before changing product code; review exact artifacts and shared-image cleanup, then validate the new repair without reusing old checkpoint acceptance.

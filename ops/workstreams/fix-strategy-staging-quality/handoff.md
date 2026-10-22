@@ -1,5 +1,34 @@
 # fix/strategy-staging-quality
 
+## ACTIVE NEW CHECKPOINT — 2026-10-22 21:31 UTC
+
+Previous B193 checkpoint is accepted in green M2 staging0e342512; its exact SHA,
+closure narrative and evidence below remain historical, immutable acceptance.
+Root resumed this SAME clean repair worktree/claim706a780f and fast-forwarded to
+M2 for the NEW master39845561267 failure. Context/status preflight verified exact
+implementation role and same existing writer. `start` correctly refuses a second
+claim; no takeover/new writer was attempted. Native original Root production goal
+remains active/unbudgeted, covering this repair; no duplicate or accounting reset.
+
+Master EIG120064856919: all104 backend shards,497integration (2 existing skips),
+1330frontend pass; functional193pass107skip1fail, no strict visual execution.
+The 10k Market Map search SPY selection assertion failed after5s; performance
+budget itself passed. Exact first-failure ZIP12460156125 hash
+ffc2292a4a189d3a537289401f8f64b40e6a990c371f92722034470b4534ca68, retained
+/tmp/master-39845561267-exhaustive.zip. Video shows a painted map at6.4s followed
+by Loading at6.6s; search SPY/hint later present with no selection. This proves a
+second loading transition, not yet exact request timing. Source onMounted awaits
+other initialization then unconditionally runs, even after a user/source run.
+Add a deterministic delayed-snapshot initialization regression before changing
+code. No assertion, timeout, retry, performance budget or oracle changes.
+
+Separate cleanup error retains OWNED image1025eea5dde4. Build log independently
+shows backend and worker export the same exact image config ID; current cleanup
+removes by ID and ignores individual removal failures. Confirm shared-tag cause
+and test safe tag-based cleanup without force/global prune/foreign deletion.
+No new feature/production acceptance or deployment start. Keep master/staging
+source untouched while this existing Root-owned repair is validated.
+
 Created from `staging` at `5178b414b426ec61bdcb22257b4f956581c25d0c`.
 
 ## Human authorization
