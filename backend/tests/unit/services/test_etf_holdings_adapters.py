@@ -22387,6 +22387,158 @@ def test_cohen_steers_adapter_parses_public_fund_payload():
 
 
 @pytest.mark.asyncio
+async def test_cohen_steers_fund_api_uses_bound_httpx_client(monkeypatch):
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    payload = {
+        "meta": {
+            "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
+            "fullHoldings": [
+                {
+                    "holdingName": "Acadia Realty Trust",
+                    "ticker": "AKR",
+                    "cusip": "004239109",
+                    "securityType": "Common Stock",
+                    "accountWeight": "4.152700",
+                    "shares": "922081.0",
+                    "marketValue": "19594221.25",
+                    "asOfDate": "2026-07-10T00:00:00",
+                }
+            ],
+        }
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url=adapter.fund_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("Cohen & Steers must use shared HTTPX transport"),
+    )
+
+    with bridge.bind_etf_holdings_request_context(
+        db=object(),
+        adapter=adapter,
+        profile_id=11,
+        instrument_id=23,
+        provider_symbol="CSRE",
+        operation="fetch_etf_holdings_latest",
+    ):
+        result = await adapter.fetch_latest(symbol="CSRE", issuer_product_id="15098")
+
+    assert len(FakeAsyncClient.requested) == 1
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert request_url == adapter.fund_url
+    assert request_kwargs["params"] == {"action": "load_fund", "id": "15098"}
+    assert request_kwargs["follow_redirects"] is True
+    assert request_kwargs["headers"]["Accept"] == "application/json,*/*"
+    assert result.rows[0].symbol == "AKR"
+    assert result.rows[0].cusip == "004239109"
+    assert result.legal_metadata["route_resolution"] == "cohen_steers_public_fund_api"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
+@pytest.mark.asyncio
+async def test_cohen_steers_sitemap_discovery_keeps_every_request_on_httpx(monkeypatch):
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    sitemap_url = adapter.fund_sitemap_url
+    irrelevant_page = "https://www.cohenandsteers.com/funds/other/"
+    target_page = "https://www.cohenandsteers.com/funds/csre/"
+    sitemap = f"<urlset><url><loc>{irrelevant_page}</loc></url><url><loc>{target_page}</loc></url></urlset>"
+    pages = [
+        FakeResponse(
+            text="<section data-id='15097' data-fund-type='etf' data-default-symbol='CNS'>"
+        ),
+        FakeResponse(
+            text='<section data-id="15098" data-fund-type="etf" data-default-symbol="CSRE">',
+            url=target_page,
+        ),
+    ]
+    payload = {
+        "meta": {
+            "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
+            "fullHoldings": [
+                {
+                    "holdingName": "Acadia Realty Trust",
+                    "ticker": "AKR",
+                    "securityType": "Common Stock",
+                    "accountWeight": "4.152700",
+                    "asOfDate": "2026-07-10T00:00:00",
+                }
+            ],
+        }
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=sitemap, url=sitemap_url),
+        *pages,
+        FakeResponse(
+            text=json.dumps(payload), content_type="application/json", url=adapter.fund_url
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("Cohen & Steers must use shared HTTPX transport"),
+    )
+
+    with bridge.bind_etf_holdings_request_context(
+        db=object(),
+        adapter=adapter,
+        profile_id=11,
+        instrument_id=23,
+        provider_symbol="CSRE",
+        operation="fetch_etf_holdings_latest",
+    ):
+        result = await adapter.fetch_latest(symbol="CSRE")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        sitemap_url,
+        irrelevant_page,
+        target_page,
+        adapter.fund_url,
+    ]
+    assert FakeAsyncClient.requested[-1][1]["params"] == {
+        "action": "load_fund",
+        "id": "15098",
+    }
+    assert result.rows[0].symbol == "AKR"
+    assert result.source_identifier == "15098"
+
+
+@pytest.mark.asyncio
+async def test_cohen_steers_rejects_unbound_and_mismatched_adapter_context(monkeypatch):
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+
+    with pytest.raises(bridge.ETFHoldingsRouteHeldError, match="no bound shared-admission"):
+        await adapter.fetch_latest(symbol="CSRE", issuer_product_id="15098")
+
+    with bridge.bind_etf_holdings_request_context(
+        db=object(),
+        adapter=SimpleNamespace(source_provider="other", adapter_key="other"),
+        profile_id=11,
+        instrument_id=23,
+        provider_symbol="CSRE",
+        operation="fetch_etf_holdings_latest",
+    ):
+        with pytest.raises(
+            bridge.ETFHoldingsRouteHeldError,
+            match="does not match the bound shared-admission context",
+        ):
+            await adapter.fetch_latest(symbol="CSRE", issuer_product_id="15098")
+
+    assert FakeAsyncClient.requested == []
+
+
+@pytest.mark.asyncio
 async def test_capital_impact_adapter_fetches_issuer_ssnc_full_holdings(monkeypatch):
     adapter = get_holdings_adapter("capital_impact")
     assert adapter is not None

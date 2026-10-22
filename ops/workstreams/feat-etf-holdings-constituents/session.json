@@ -150,9 +150,10 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22 22:39Z: ETF local HEAD/origin remains synchronized at6d08854c81ea6892011a98b3711a9233b59c401b with the existing seven-path owned dirty context; the current worktree diff additionally migrates the KraneShares/Quadratic/CICC/Man Group dated CSV family from raw requests to one shared Provider-backed HTTPX client per fetch. Six mocked contracts pass6/6, including 404-then-next-date lookback; Ruff check/format, Python compilation and diff-check pass. This is not route eligibility, publisher evidence or DB-backed shared admission. NSI real-adapter shared-admission test remains collected only. The two remaining raw adapter requests.get callsites are Cohen & Steers and Arax/Day Hagan, held by the fail-closed namespace; Arax account/token/terms remain unreviewed. Root's new staging repair is still in CI, NOT released green; do not adopt it or poll Root CI. Do not run the DB/browser/full profile while Root owns the slot. No external HTTP/quota, route-state change, data cleanup or sibling/staging write. Preserve historical red/partial evidence, AC1-AC14, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, unknown/quota-held/unreviewed/paid/trial/unsafe holds, full_stack_browser and the 30-day observation.",
+  "current_blocker_latest": "2026-10-22 22:47Z: local ETF HEAD/origin is 62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f, clean and synchronized before this new owned diff. Cohen & Steers API, sitemap, and each discovered fund-page request now route through one Provider-backed HTTPX client; exact bound-adapter identity is checked before client creation so a different adapter cannot borrow the ambient binding. Four Cohen-focused unit contracts and the combined changed-adapter selection pass4/4 and17/17; Ruff check/format, compilation, and diff-check pass. The ambient-binding integration regression collected1/1 but was not DB-executed. This is not DB-backed shared-admission proof, publisher terms, source freshness, or route eligibility; per-attempt shared policy remains authoritative. One raw adapter requests site remains (Arax/Day Hagan), held due unreviewed token/account/terms. CI for published62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f cannot be queried through the private-repository connector, so no result is inferred. Root staging CI39866387942 on4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live, not accepted green; do not poll/adopt. No DB/browser/full profile, external HTTP/quota, cleanup, or staging/sibling/master/deployment change. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, historical red/partial evidence, all quarantines/holds, and the 30-day observation.",
   "dirty_paths": [
     "backend/app/services/etf_holdings_adapters.py",
+    "backend/app/services/etf_holdings_provider_bridge.py",
     "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
     "backend/tests/unit/services/test_etf_holdings_adapters.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
@@ -184,8 +185,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "6d08854c81ea6892011a98b3711a9233b59c401b",
-  "implementation_sha": "6d08854c81ea6892011a98b3711a9233b59c401b",
+  "head": "62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f",
+  "implementation_sha": "62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -333,8 +334,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Complete the narrative-count sentinel, ETF workstream validator, JSON/JSONL and plan-hash checks, diff review, and final changed-file fast checks; then publish the coherent own-branch changeset and inspect only its exact ETF CI. The KraneShares/Quadratic/CICC/Man Group transport migration is offline unit-tested6/6 but has no DB-backed admission or live-route evidence. The NSI real-adapter shared-admission test is collected only pending Root's fixture-slot release. Do not monitor Root CI or adopt the new staging repair until its exact synchronized green receipt is released. Keep Cohen & Steers and Arax/Day Hagan raw request paths held; Arax's embedded token/account and terms remain unreviewed. Do not run DB/browser/full profile while Root owns the slot. No issuer/provider/SEC HTTP, quota, paid/trial/unknown activation, cleanup, or sibling/staging writes; preserve 15 Tier-0 and 156 Tier-1, all history/quarantines/holds, AC1-AC14, full_stack_browser, and the 30-day observation.",
-  "plan_hash": "3abccc4689ff66f00c407435c5ba88bde6895d59728aca985d26335e0a043074",
+  "next_action": "Complete the narrative-count sentinel, ETF workstream validator, JSON/JSONL and plan-hash checks, diff review and fast changed-file validation; publish the substantive Cohen & Steers guarded-transport/binding-identity change with its evidence, then inspect only its exact ETF branch CI. The Cohen focused contracts pass4/4 and combined changed-adapter contracts17/17 offline; the ambient-binding integration case is collection-only. NSI and Cohen database-backed shared-admission proof remain pending Root's fixture-slot release. Do not monitor Root CI or adopt the new staging repair before its exact synchronized green receipt is released. Arax/Day Hagan remains the sole raw requests path and is held due unreviewed token/account/terms. Do not run DB/browser/full profile while Root owns the slot. No issuer/provider/SEC HTTP, quota, paid/trial/unknown activation, cleanup, or sibling/staging writes; preserve 15 Tier-0 and 156 Tier-1, all history/quarantines/holds, AC1-AC14, full_stack_browser, and the 30-day observation.",
+  "plan_hash": "908d5a7fab8b424641738ff6f533a661d49251e5aa079fea25d15a354f238f92",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -385,11 +386,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "ETF local HEAD/origin remains synchronized at6d08854c81ea6892011a98b3711a9233b59c401b; the seven-path owned dirty context now includes a KraneShares/Quadratic/CICC/Man Group transport migration from raw requests to one shared Provider-backed HTTPX client per fetch. Six mocked contracts pass6/6, including 404-then-next-date lookback; Ruff check/format, Python compilation and diff-check pass. This is not route eligibility, publisher evidence or DB-backed shared admission. NSI real-adapter shared-admission test remains collected only. Two raw adapter requests.get callsites remain (Cohen & Steers and Arax/Day Hagan), held by the fail-closed namespace; Arax account/token/terms remain unreviewed. Root's new staging repair is still in CI, NOT released green; do not adopt it or poll Root CI. Do not run the DB/browser/full profile while Root owns the slot. No external HTTP/quota, route-state change, data cleanup or sibling/staging write. Preserve historical red/partial evidence, AC1-AC14, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, unknown/quota-held/unreviewed/paid/trial/unsafe holds, full_stack_browser, and the 30-day observation.",
+    "current_blocker": "Published local/origin ETF source is62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f, clean before the current four-source-file dirty diff. Cohen & Steers API/sitemap/page fetches now use the shared Provider-backed HTTPX facade after an exact bound-adapter identity check. Four Cohen unit contracts and17 combined changed-adapter contracts pass; changed-file Ruff/format and Python compilation pass. Integration test for mismatch denial collects1/1 but is not DB-executed. No DB-backed admission, publisher terms, live source, freshness, or route eligibility is proven. Only Arax/Day Hagan remains a raw `requests` source path, fail-closed due unreviewed token/account/terms. Exact CI status for62f is unavailable from the private-repository connector; no result is inferred. Root staging CI39866387942 on4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live, not accepted green; do not poll/adopt. Do not run DB/browser/full profile while Root owns the slot. No external HTTP/quota, cleanup, staging/sibling/master/deployment write. Preserve history, AC1-AC14, 15 Tier-0 and 156 Tier-1, all quarantines/holds, full_stack_browser, and the 30-day observation.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Complete narrative-count sentinel, workstream validator, JSON/JSONL and plan-hash checks, diff review and fast changed-file validation; publish the coherent ETF-only changeset and inspect its exact ETF CI. KraneShares-family transport tests pass6/6 offline but do not prove DB admission or live availability. NSI shared-admission integration is collection-only pending Root fixture release. Cohen & Steers and Arax/Day Hagan remain fail-closed; do not infer Arax credentials/terms. Do not monitor Root CI, adopt staging before its exact green receipt, or run the DB/browser/full profile while Root owns the slot. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, history, quarantines, holds, and the 30-day observation; no external HTTP, quota, unsafe activation, cleanup or cross-worktree write.",
+    "next_action": "Complete narrative-count sentinel, workstream validator, JSON/JSONL and plan-hash checks, diff review and fast changed-file validation, then publish the substantive Cohen & Steers guarded-transport/binding-identity change. Inspect only its exact ETF CI. NSI and Cohen shared-admission integration remain collection-only/unexecuted pending Root fixture release. Arax/Day Hagan is the only raw requests source left and stays fail-closed due unreviewed account/token/terms. Do not monitor Root CI, adopt staging before its exact green receipt, or run the DB/browser/full profile while Root owns the slot. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, history, quarantines, holds, and 30-day observation; no external HTTP, quota, unsafe activation, cleanup or cross-worktree write.",
     "total": 14,
-    "updated_at": "2026-10-22T22:39:30Z"
+    "updated_at": "2026-10-22T22:47:23Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -401,8 +402,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "6d08854c81ea6892011a98b3711a9233b59c401b",
-  "remote_sha": "6d08854c81ea6892011a98b3711a9233b59c401b",
+  "remote": "62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f",
+  "remote_sha": "62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

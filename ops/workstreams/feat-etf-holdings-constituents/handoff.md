@@ -13951,3 +13951,50 @@ branch-owned source and record update, then inspect only the resulting exact
 ETF branch CI. Continue with the two remaining raw transports only from
 retained evidence; do not make external calls, infer policy values, or reduce
 the full roadmap.
+
+## Cohen & Steers per-attempt transport and binding ownership — 2026-10-22 22:47Z
+
+After the prior substantive publication `62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f`,
+the remaining Cohen & Steers fund API/sitemap/page calls were traced to the
+fail-closed `requests` namespace. The route already existed in the adapter
+registry and retained issuer-route records, but no current runtime request
+could use it. Its optional sitemap resolution also gathers multiple fund-page
+requests, so moving the path to shared HTTPX must account for every such
+physical request and must not borrow another adapter's ambient binding.
+
+Added `require_bound_etf_holdings_adapter` and applied it before Cohen & Steers
+opens a client: an absent binding or a binding for another adapter is rejected
+before any transport. The API, sitemap, and each sitemap-listed page now use
+one Provider-backed HTTPX client, preserving timeout, redirects, JSON/parser
+behavior, endpoint parameters, and the existing page-discovery semantics.
+This does not create a policy, grant publisher/account/host entitlement, or
+assert that sitemap fan-out is quota-approved: the shared Provider runtime
+still decides each attempt, and any absent/held policy must remain a zero-HTTP
+denial. The existing integration negative now specifically verifies that a
+different adapter cannot reuse the current synthetic binding.
+
+The four Cohen & Steers parser/API/discovery/binding unit contracts passed,
+and the combined previously changed NSI, F/M, BondBloxx, KraneShares, Quadratic,
+CICC and Man Group selection passed17/17. Ruff check/format and Python
+compilation passed for all four changed Python modules. The updated ambient-
+binding integration test collected1/1; it was not executed against the
+database because Root retains the heavy fixture slot. No issuer/provider/SEC
+HTTP, quota operation, route-state change, paid/trial activation, or full
+profile occurred. Exact ETF CI status cannot be queried through the GitHub
+connector for this private repository; no CI result is inferred.
+
+Only Arax/Day Hagan's page-declared Airtable path still uses raw `requests` in
+the adapter module. Its embedded token/account and publisher terms remain
+unreviewed, so the route stays held and unchanged. The latest Root staging
+repair `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is running exact CI
+`39866387942`, not accepted green; do not adopt it until Root releases the
+exact synchronized green receipt. Preserve every historical partial/red
+result, all AC1–AC14 and the `15 Tier-0 and 156 Tier-1` investigations,
+MSMR/QQQ and Militia/GOOG quarantine, disabled unknown/quota-held/paid/trial/
+unsafe operations, and the 30-day observation gate. No Root CI polling,
+heavy local fixture, staging/sibling write, cleanup, or deployment was done.
+
+Next: finish exact workstream/hash/count/diff validation, publish this
+substantive ETF-only adapter/binding change, then verify only its own exact
+branch CI. Keep the Arax route held pending actual retained publisher/account/
+terms evidence; do not infer its credential rights or costs.

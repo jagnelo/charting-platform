@@ -116,6 +116,19 @@ def require_unbound_etf_holdings_context(operation: str) -> None:
         )
 
 
+def require_bound_etf_holdings_adapter(adapter: Any) -> ETFHoldingsRequestBinding:
+    """Require a request to use the exact adapter authorized by its caller."""
+
+    binding = _REQUEST_BINDING.get()
+    if binding is None:
+        raise ETFHoldingsRouteHeldError("ETF adapter request has no bound shared-admission context")
+    if binding.adapter is not adapter:
+        raise ETFHoldingsRouteHeldError(
+            "ETF adapter does not match the bound shared-admission context"
+        )
+    return binding
+
+
 class ProviderBackedHTTPXClient:
     """HTTPX-compatible GET/POST facade admitting every physical request."""
 

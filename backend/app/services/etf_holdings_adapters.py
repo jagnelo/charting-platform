@@ -28,6 +28,7 @@ from app.config import settings
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     ProviderBackedHTTPXClient,
+    require_bound_etf_holdings_adapter,
 )
 
 
@@ -29020,66 +29021,79 @@ class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
         normalized_symbol = symbol.strip().upper()
         if not normalized_symbol:
             raise ValueError("Cohen & Steers holdings require an ETF symbol.")
+        require_bound_etf_holdings_adapter(self)
         headers = _issuer_page_request_headers(accept="application/json,*/*")
         fund_id = issuer_product_id or _identifier(
             identifiers or {}, "issuer_product_id", "fund_id"
         )
-        if not fund_id:
-            fund_id = await self._resolve_fund_id(symbol=normalized_symbol, headers=headers)
-        response = await asyncio.to_thread(
-            requests.get,
-            self.fund_url,
-            params={"action": "load_fund", "id": fund_id},
-            headers=headers,
+        async with httpx.AsyncClient(
             timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        rows, composition_date = self._parse_fund_payload(payload, symbol=normalized_symbol)
-        if not rows:
-            raise ValueError(
-                f"Cohen & Steers fund API returned no complete holdings for {normalized_symbol}."
+            follow_redirects=True,
+        ) as client:
+            if not fund_id:
+                fund_id = await self._resolve_fund_id(
+                    client=client,
+                    symbol=normalized_symbol,
+                    headers=headers,
+                )
+            response = await client.get(
+                self.fund_url,
+                params={"action": "load_fund", "id": fund_id},
+                headers=headers,
+                follow_redirects=True,
             )
-        return HoldingsFetchResult(
-            rows=rows,
-            raw_text=response.text,
-            raw_json=payload,
-            source_url=f"{self.fund_url}?action=load_fund&id={fund_id}",
-            source_identifier=str(fund_id),
-            legal_metadata={
-                "source_access": self.config.source_access,
-                "source_provider": self.source_provider,
-                "adapter_key": self.adapter_key,
-                "source_format": "json",
-                "route_resolution": "cohen_steers_public_fund_api",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
-                "terms_note": self.config.terms_note,
-            },
-        )
+            response.raise_for_status()
+            payload = response.json()
+            rows, composition_date = self._parse_fund_payload(payload, symbol=normalized_symbol)
+            if not rows:
+                raise ValueError(
+                    f"Cohen & Steers fund API returned no complete holdings for {normalized_symbol}."
+                )
+            return HoldingsFetchResult(
+                rows=rows,
+                raw_text=response.text,
+                raw_json=payload,
+                source_url=f"{self.fund_url}?action=load_fund&id={fund_id}",
+                source_identifier=str(fund_id),
+                legal_metadata={
+                    "source_access": self.config.source_access,
+                    "source_provider": self.source_provider,
+                    "adapter_key": self.adapter_key,
+                    "source_format": "json",
+                    "route_resolution": "cohen_steers_public_fund_api",
+                    "composition_date": composition_date.isoformat() if composition_date else None,
+                    "as_of_date": composition_date.isoformat() if composition_date else None,
+                    "terms_note": self.config.terms_note,
+                },
+            )
 
-    async def _resolve_fund_id(self, *, symbol: str, headers: dict[str, str]) -> str:
-        sitemap_response = await asyncio.to_thread(
-            requests.get,
+    async def _resolve_fund_id(
+        self,
+        *,
+        client: httpx.AsyncClient,
+        symbol: str,
+        headers: dict[str, str],
+    ) -> str:
+        sitemap_response = await client.get(
             self.fund_sitemap_url,
             headers=headers,
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            follow_redirects=True,
         )
         sitemap_response.raise_for_status()
         page_urls = re.findall(r"<loc>(?P<url>.*?)</loc>", sitemap_response.text, re.IGNORECASE)
         if not page_urls:
             raise ValueError("Cohen & Steers fund sitemap did not expose fund pages.")
 
-        def _fetch_page(url: str) -> tuple[str, str]:
-            response = requests.get(
+        async def _fetch_page(url: str) -> tuple[str, str]:
+            response = await client.get(
                 html.unescape(url),
                 headers=headers,
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                follow_redirects=True,
             )
             response.raise_for_status()
             return str(response.url), response.text
 
-        pages = await asyncio.gather(*(asyncio.to_thread(_fetch_page, url) for url in page_urls))
+        pages = await asyncio.gather(*(_fetch_page(url) for url in page_urls))
         for page_url, page_text in pages:
             fund_id = self._extract_fund_id(page_text, symbol=symbol)
             if fund_id:

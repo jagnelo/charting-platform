@@ -608,6 +608,24 @@ current_blocker: >-
   No Root CI was polled and no heavy local profile or external HTTP was run.
   Preserve 15 Tier-0 and 156 Tier-1, all quarantines/holds, history, and the
   full fourteen-criterion roadmap.
+  Current continuation at 2026-10-22 22:47Z: Cohen & Steers API, sitemap,
+  and discovered fund-page requests now use the Provider-backed HTTPX client.
+  Its entrypoint requires the exact current bound adapter identity before
+  client creation, preventing another adapter from borrowing the ambient
+  request binding. Four focused Cohen contracts and the combined offline
+  changed-adapter selection pass4/4 and17/17 respectively; Ruff, format,
+  Python compilation, and the updated integration-case collection pass. This
+  proves neither DB-backed admission nor publisher terms, source freshness,
+  or route eligibility; the active Provider policy still decides each API,
+  sitemap, and page attempt. The adapter module now has one remaining raw
+  requests site: Arax/Day Hagan, held because token/account/terms remain
+  unreviewed. Exact CI for published ETF source 62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f
+  cannot be queried through the private-repository GitHub connector; do not
+  infer its result. Root's staging CI39866387942 on4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+  is still running, not an accepted green release; do not adopt it or poll Root
+  CI. No DB/browser/full profile, external HTTP, quota, cleanup, or cross-branch
+  write. Preserve the entire AC1–AC14 roadmap, 15 Tier-0 and 156 Tier-1, all
+  quarantines and holds, historical results, and the 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -1627,21 +1645,20 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Publish the coherent current ETF-only source/workstream changeset after the
-  focused verification: KraneShares-family guarded transport, NSI transport
-  and its collected-only real shared-admission case, plus the previously
-  validated FM Investments/BondBloxx fallback removal and Voya/REX/PeakShares/
-  Saracen/ETF Architect changes already represented by this dirty context.
-  Before publication, run the narrative-count sentinel, branch workstream
-  validator, JSON/JSONL/plan-hash and diff checks. Then inspect exact ETF
-  branch CI on the resulting SHA only; do not poll or infer Root's separate
-  staging repair CI. The new staging repair is not yet released green, so do
-  not merge it. The NSI DB-backed shared-admission case remains unexecuted
-  until Root releases the fixture slot; no DB/browser/full profile while Root
-  owns it. Two raw request sites remain (Cohen & Steers and Arax/Day Hagan),
-  both held; continue only from retained evidence. Keep all route states,
-  account/cost/quota policies, MSMR/QQQ and Militia/GOOG quarantines, the full
-  AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, and the post-integration 30-day
-  gate. No issuer/SEC/Provider HTTP, quota, paid/trial/unknown route
-  activation, data reset/cleanup, staging/sibling/master write, deployment, or
-  self-integration.
+  Complete the narrative-count sentinel, branch workstream validator, JSON/
+  JSONL/plan-hash, diff, and fast changed-file checks, then publish the
+  substantive own-branch changeset containing the Cohen & Steers guarded
+  transport/binding-identity correction and its evidence. Inspect only the
+  resulting exact ETF branch CI; do not poll Root CI. CI for prior published
+  source62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f is not accessible from the
+  private-repository connector, so no outcome is inferred. The NSI
+  DB-backed shared-admission case and changed-adapter shared-runtime proof
+  remain pending Root's fixture release; no DB/browser/full profile while Root
+  owns it. One raw request site remains (Arax/Day Hagan), held for missing
+  token/account/terms evidence; do not infer or activate it. Root's
+  `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` staging repair CI39866387942 is
+  not green/released; do not adopt it. Preserve all route policies, the full
+  AC1–AC14 roadmap, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG
+  quarantines, all history/holds, and the post-integration 30-day gate. No
+  issuer/SEC/Provider HTTP, quota, paid/trial/unknown activation, data cleanup,
+  staging/sibling/master write, deployment, or self-integration.

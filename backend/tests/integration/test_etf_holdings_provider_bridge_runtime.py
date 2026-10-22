@@ -2442,13 +2442,13 @@ async def test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_bind
                         forms={"NPORT-P"},
                         max_filings=1,
                     )
-                # Voya and NSI now use the HTTPX bridge; Cohen & Steers still
-                # uses the blocked requests namespace directly.
+                # A different native adapter cannot borrow the currently
+                # bound synthetic fixture's shared-admission identity.
                 legacy_adapter = get_holdings_adapter("cohen_steers")
                 assert legacy_adapter is not None
                 with pytest.raises(
                     ETFHoldingsRouteHeldError,
-                    match="legacy requests transport is not admitted",
+                    match="does not match the bound shared-admission context",
                 ):
                     await legacy_adapter.fetch_latest(
                         symbol=case.instrument_symbol,
