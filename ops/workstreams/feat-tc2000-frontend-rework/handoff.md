@@ -1,6 +1,6 @@
 # feat/tc2000-frontend-rework
 
-## Current continuation — 2026-10-22: Tag Columns coverage recovery
+## Current continuation — 2026-10-23: Tag Columns coverage recovery
 
 The current candidate was prepared on published TC base
 `fd567b418d9566310bafab9115cee067539b69ef`, whose exact branch CI
@@ -12,14 +12,21 @@ monolithic `WorkstationToolContent.vue`, adding hundreds of unrelated functions
 to the denominator. No coverage exclusion, threshold change, assertion waiver,
 or unrelated tests were used.
 
-The current candidate moves target resolution, configuration merge,
-and guarded membership toggling into `frontend/src/lib/workstation/tagColumns.ts`.
-Tests exercise the production helpers and statically verify all six parent
-`VirtualWatchlistTool` bindings without importing the large component. The
-three affected suites pass `103/103`, `vue-tsc --noEmit` exits `0`, the TC scope
-guard passes for 994 paths (858 byte-verified immutable imports and 29 exact
-adaptations), and all 35 scope self-tests pass. Full frontend coverage/build and
-exact candidate CI remain pending; no browser/Compose profile was launched.
+Local commit `45b1d09b8` moves target resolution, configuration merge, and
+guarded membership toggling into `frontend/src/lib/workstation/tagColumns.ts`.
+Tests exercise the production helpers and structurally verify all six parent
+`VirtualWatchlistTool` bindings without importing the large component. That
+template parse is supplementary only: these focused tests do not mount the
+parent or prove that a host event reaches the mutation handler. The required
+positive/negative parent-event runtime path remains pending; it must be covered
+by a real parent mount under the appropriate full coverage profile or an
+ordinary-click browser regression in the required full local profile after
+Root releases the fixture slot. No parent-event acceptance is claimed from
+template parsing. The three affected suites pass `103/103`, `vue-tsc --noEmit`
+exits `0`, the TC scope guard passes for 994 paths (858 byte-verified immutable
+imports and 29 exact adaptations), and all 35 scope self-tests pass. Full
+frontend coverage/build and exact candidate CI remain pending; no
+browser/Compose profile was launched.
 Root's latest repair at staging `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`
 was awaiting its exact CI and acceptance at the last coordinator update, so
 this source has not adopted it. The prior accepted `0e342512...` staging

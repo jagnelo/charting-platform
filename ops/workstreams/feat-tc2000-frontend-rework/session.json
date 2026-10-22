@@ -50,9 +50,6 @@
     "visuals": "No new browser result qualifies this source candidate; prior visual evidence remains qualified to its recorded test/product inputs."
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/lib/workstation/tagColumns.ts",
-    "frontend/tests/unit/components/test_workstation_tool_content_tag_columns.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -137,7 +134,7 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "fd567b418d9566310bafab9115cee067539b69ef",
+  "head": "45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -168,7 +165,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Qualify automatic exact-source branch CI for published Tag Columns commit 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74; full authenticated browser validation remains pending the Root-assigned existing runtime slot. Do not duplicate Root's unreleased Market Map repair or start a heavy local profile before release/explicit slot. Preserve Custom Date Sort relative-mode unavailability until a source-backed arbitrary-date comparator series exists; keep full AC1-AC9, official REF-HELP-V25, provider/live holds, and reference policy intact.",
+  "next_action": "Publish local Tag Columns commit 45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b for exact-source CI without changing the 70% coverage threshold. The helper tests and parent-template parse are not runtime parent-event proof; keep positive/negative host-to-mutation evidence pending until a real parent mount runs under the appropriate full coverage profile or an ordinary-click browser regression runs in the required full local profile after Root releases the fixture slot. Do not claim parent acceptance from structural parsing or start a heavy profile before release. Preserve the full AC1-AC9 roadmap, official REF-HELP-V25 gap, provider/live holds, and reference policy.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -201,29 +198,29 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "No upstream dependency blocks lightweight TC development. Tag Columns source 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74 is published and the connected GitHub comparison API confirms the feature ref matches. Its three focused suites pass 102/102 and Vue type-check passes; workstream/scope/record checks pass. Full frontend coverage/build do not qualify these final bytes. The automatic exact-source branch CI has not yet produced a receipt, and full functional/strict visual browser validation remains pending the reserved existing-runtime slot. Root's shared Market Map repair is not yet released into this branch; do not duplicate it or start a heavy local profile before release/explicit slot. Exact CI 39850573339 remains qualified only to record HEAD 23ba07a and skipped Exhaustive Integration Gate. Custom Date Sort relative modes remain unavailable because no arbitrary-date industry/sub-industry series contract was found. Broader AC1-AC9 and official REF-HELP-V25 remain open.",
-    "current_phase": "staging_0e342512_adopted;custom_date_sort_percent_change_destination_published_at_5ca3423;tag_columns_published_786ff4c9;focused_102_tests_and_current_vue_typecheck_pass;scope_workstream_json_diff_pass;prior_full_coverage_build_not_qualifying_latest_tag_change;exact_source_CI_and_authenticated_browser_pending;root_shared_market_map_release_pending_before_heavy_local_profile;custom_source_functional_strict104_visual_pending;relative_comparator_unavailable_without_source_contract;full_AC1_AC9_REF_HELP_V25_open",
-    "next_action": "Qualify automatic exact-source branch CI for Tag Columns commit 786ff4c9. Full local functional/strict104 browser gates require Root's release of the existing runtime slot; do not create a fixture or duplicate the Market Map repair. Preserve Custom Date Sort relative-mode unavailability, full AC1-AC9, official REF-HELP-V25 gap, provider/live holds, and screenshot policy.",
+    "current_blocker": "Tag Columns candidate 45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b is local and one commit ahead of origin; exact-source CI is pending. Focused helper tests/type/scope checks pass, but the parent SFC parse is only structural and does not exercise host-event delivery. Positive/negative parent-to-mutation runtime proof remains pending until a real parent mount runs under the appropriate full coverage profile or an ordinary-click browser regression runs in the required full local profile after Root releases the fixture slot. Preserve the 70% coverage threshold and existing behavior/assertions. Do not adopt Root's unreleased repair or start a heavy profile before slot release. Broader AC1-AC9, official REF-HELP-V25, and Custom Date Sort relative comparator remain open.",
+    "current_phase": "local_Tag_Columns_candidate_45b1d09b8_ahead_of_origin;focused_103_tests_typecheck_scope994_selftests35_green;parent_host_event_runtime_proof_pending;candidate_exact_CI_frontend_coverage_build_pending;no_local_browser_or_Compose;root_Market_Map_staging_repair_not_adopted;Custom_Date_Sort_relative_comparator_unavailable;full_AC1_AC9_and_official_REF_HELP_V25_open",
+    "next_action": "Publish local Tag Columns commit 45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b for exact-source CI without changing the 70% threshold. Keep positive/negative parent host-to-mutation runtime proof pending; satisfy it with a real parent mount under the full coverage profile or ordinary-click browser regression in the required full local profile after Root releases the fixture slot. Do not claim parent acceptance from template parsing.",
     "total": 5,
-    "updated_at": "2026-10-22T22:34:13Z"
+    "updated_at": "2026-10-22T23:04:14Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
-    "current_pending_range": "Product implementation 5ca3423 and Tag Columns commit 786ff4c9 are published on the synchronized feature ref. Focused Tag Columns102/type-check pass; exact-source branch CI and full local functional/strict104 visual profile remain pending. Earlier record-head CI39850573339 does not validate Tag Columns.",
+    "current_local_head": "45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b",
+    "current_pending_range": "Local Tag Columns helper extraction 45b1d09b8 is one commit ahead of origin/fd567b418d9566310bafab9115cee067539b69ef. Focused helper suites/type-check pass. Exact-source CI, full frontend coverage/build, and positive/negative parent host-to-mutation runtime proof remain pending; the structural template check is supplementary only.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
-    "status": "The exact coordinator-released staging M2 0e342512 is an ancestor. Normal branch push exited0, and GitHub confirms branch feat/tc2000-frontend-rework is identical to 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74. Exact-source CI for this commit remains pending; no rerun was requested."
+    "remote_tracking_sha": "fd567b418d9566310bafab9115cee067539b69ef",
+    "status": "The exact coordinator-released staging M2 0e342512 remains an ancestor. Current origin tracking is fd567b418d9566310bafab9115cee067539b69ef; local candidate 45b1d09b8 is not yet pushed. No runtime parent-event acceptance is claimed."
   },
-  "remote": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
-  "remote_sha": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
-  "remote_synchronized": true,
+  "remote": "fd567b418d9566310bafab9115cee067539b69ef",
+  "remote_sha": "fd567b418d9566310bafab9115cee067539b69ef",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
