@@ -708,15 +708,19 @@ progress:
     both materialized and streaming forward context construction carry it to StrategyContext. No
     reference preserves the old no-output behavior; missing or drifted resolution fails closed.
     Focused tests pass 23/23, Ruff and formatting pass, and touched production MyPy passes for two
-    files. Exact-source CI for this new changeset is not yet available. The full 18 criteria remain
+    files. The subsequent exact CI on 02bfcbc734dd5f9f552c3e5ba0fe83e5ca2b2720 (run 39867853423)
+    found one no-Study test double missing the new optional study_artifacts attribute; 5197 other
+    backend tests passed and frontend CI passed. A focused correction adds the explicit None field
+    and its existing failing node now passes 1/1 locally; a new exact-source CI is required.
+    The full 18 criteria remain
     in progress: full backend/combined database and runtime, browser/visual, and exact-pinned native
     qualification still require their assigned validation gates. Provider/live/quota, paid/trial,
     unknown/unsafe, broker/capital and deployment actions remain disabled or unauthorized; no
     provider, issuer or SEC HTTP was used.
   next_action: >-
-    Finish the current forward Study output changeset with workstream validation and exact-source
-    push CI. Then continue the full AC-WORKERS/AC-FORWARD and AC-NAUTILUS work using coordinator-
-    assigned database/runtime/native slots; do not start a heavy profile while held. Preserve all
+    Publish the narrowly corrected no-Study test double and inspect its exact-source CI once. Then
+    continue the full AC-WORKERS/AC-FORWARD and AC-NAUTILUS work using coordinator-assigned
+    database/runtime/native slots; do not start a heavy profile while held. Preserve all
     18 original criteria, exact-scope Nautilus authority, disabled provider/live/quota/paid/trial/
     unknown/unsafe/broker/capital boundaries, and the accepted checkpoint history.
 branch: feat/strategy-lab-v2

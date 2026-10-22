@@ -449,6 +449,7 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         binding=component_binding,
         strategy=strategy,
         package=package,
+        study_artifacts=None,
         resolved_package=SimpleNamespace(
             fingerprint=content_digest("resolved-package"),
             archive_manifest=SimpleNamespace(content_digest=content_digest("package-archive")),

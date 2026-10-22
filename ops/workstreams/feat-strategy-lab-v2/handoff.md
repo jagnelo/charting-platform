@@ -17161,3 +17161,18 @@ gates, and exact-pinned Nautilus qualification remain open under the full 18-cri
 The accepted SLICP1-SLICP5 checkpoint remains historical evidence only. Root's unreleased shared
 repair has not been adopted. Provider/live/quota, paid/trial, unknown/unsafe, broker/capital,
 promotion, deployment, and retained-data operations remain disabled or unauthorized.
+
+## Forward Study CI compatibility correction — 2026-10-22 23:03 UTC
+
+The exact push run 39867853423 for source `02bfcbc734dd5f9f552c3e5ba0fe83e5ca2b2720` finished
+with Backend Tests red and Frontend Unit Tests green; E2E, Branch-declared, and Exhaustive
+Integration jobs were skipped by feature-branch policy. The backend summary was 5,197 passed,
+1 skipped, and one failure in
+`test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape`: its `SimpleNamespace`
+test double represented a no-Study forward component but lacked the newly optional
+`study_artifacts` field. No production failure was reported.
+
+The narrow repair explicitly sets `study_artifacts=None` on that existing no-reference test double;
+it preserves the assertion and production no-reference behavior. The exact previously failing node
+passes 1/1 in 2.53s locally (offline, no DB/Docker/network). This does not repair every gate by
+itself; a new exact-source push CI is required. The earlier CI red remains preserved without replay.
