@@ -93,17 +93,22 @@ async def test_metric_adapter_registers_replays_and_scopes_summary() -> None:
     assert registered.record.metric_set_json == canonical_json(metric_set)
     replay = await adapter.ensure(principal="owner-a", metric_set=metric_set)
     assert replay.decision is MetricSetStateDecision.REPLAY_EXISTING
-    assert await adapter.load(
-        principal="owner-a", metric_set_fingerprint=metric_set.fingerprint
-    ) == registered.record
+    assert (
+        await adapter.load(principal="owner-a", metric_set_fingerprint=metric_set.fingerprint)
+        == registered.record
+    )
     assert await adapter.load_all(principal="owner-a") == (registered.record,)
-    assert await adapter.load_metric_set(
-        principal="owner-a", metric_set_fingerprint=metric_set.fingerprint
-    ) == metric_set
+    assert (
+        await adapter.load_metric_set(
+            principal="owner-a", metric_set_fingerprint=metric_set.fingerprint
+        )
+        == metric_set
+    )
     assert await adapter.load_all_metric_sets(principal="owner-a") == (metric_set,)
-    assert await adapter.load(
-        principal="owner-b", metric_set_fingerprint=metric_set.fingerprint
-    ) is None
+    assert (
+        await adapter.load(principal="owner-b", metric_set_fingerprint=metric_set.fingerprint)
+        is None
+    )
 
 
 @pytest.mark.asyncio
@@ -116,7 +121,9 @@ async def test_metric_adapter_conflicts_same_attempt_and_authenticates_rows() ->
     changed = replace(metric_set, metric_set_id="different-id")
     with pytest.raises(ValueError, match="already bound"):
         await adapter.ensure(principal="owner-a", metric_set=changed)
-    session.metrics[("owner-a", metric_set.fingerprint)]["record_fingerprint"] = content_digest("tampered")
+    session.metrics[("owner-a", metric_set.fingerprint)]["record_fingerprint"] = content_digest(
+        "tampered"
+    )
     with pytest.raises(ValueError, match="fingerprint"):
         await adapter.load(principal="owner-a", metric_set_fingerprint=metric_set.fingerprint)
 
@@ -133,9 +140,7 @@ async def test_metric_adapter_rejects_noncanonical_rehydration_payload() -> None
     root[2] = list(reversed(root[2]))
     payload = json.dumps(root, separators=(",", ":"), sort_keys=True)
     row["metric_set_json"] = payload
-    row["metric_set_fingerprint"] = "sha256:" + hashlib.sha256(
-        payload.encode("utf-8")
-    ).hexdigest()
+    row["metric_set_fingerprint"] = "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
     row["record_fingerprint"] = content_digest(
         {
             "attempt_id": registered.record.attempt_id,

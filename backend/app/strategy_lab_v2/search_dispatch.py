@@ -81,14 +81,17 @@ class SearchDispatchResolution:
             )
             if self.dispatch_resolution.decision is not expected:
                 raise ValueError("search dispatch decision must match dispatch evidence")
-        if self.decision in {
-            SearchDispatchDecision.CONFLICT,
-            SearchDispatchDecision.REJECT,
-        } and not self.rejection_reason:
-            raise ValueError("conflicting and rejected dispatches require a reason")
         if (
             self.decision
-            not in {SearchDispatchDecision.REJECT, SearchDispatchDecision.CONFLICT}
+            in {
+                SearchDispatchDecision.CONFLICT,
+                SearchDispatchDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
+            raise ValueError("conflicting and rejected dispatches require a reason")
+        if (
+            self.decision not in {SearchDispatchDecision.REJECT, SearchDispatchDecision.CONFLICT}
             and self.rejection_reason
         ):
             raise ValueError("successful or saturated dispatches cannot contain a reason")
@@ -127,7 +130,9 @@ def resolve_search_dispatch(
     if not isinstance(prior_dispatches, Sequence):
         raise TypeError("prior_dispatches must be a sequence")
     if dispatch_request.attempt_id != attempt_id:
-        return _reject(state, admission_ledger, pool, "dispatch request references a different attempt")
+        return _reject(
+            state, admission_ledger, pool, "dispatch request references a different attempt"
+        )
     prior_attempt_dispatches = tuple(
         item for item in prior_dispatches if item.attempt_id == attempt_id
     )
@@ -142,11 +147,15 @@ def resolve_search_dispatch(
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("dispatch time must be timezone-aware")
     if now < dispatch_request.created_at:
-        return _reject(state, admission_ledger, pool, "dispatch time cannot precede request creation")
+        return _reject(
+            state, admission_ledger, pool, "dispatch time cannot precede request creation"
+        )
 
     started = start_search_candidate(state, candidate_index, attempt_id=attempt_id, now=now)
     if started.decision is SearchStateDecision.REJECT:
-        return _reject(state, admission_ledger, pool, started.rejection_reason or "search candidate rejected")
+        return _reject(
+            state, admission_ledger, pool, started.rejection_reason or "search candidate rejected"
+        )
 
     admitted = resolve_execution_admission(
         admission_ledger,

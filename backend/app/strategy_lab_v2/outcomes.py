@@ -35,7 +35,12 @@ _ALLOWED_TRANSITIONS: dict[OutcomeStatus, frozenset[OutcomeStatus]] = {
         }
     ),
     OutcomeStatus.RUNNING: frozenset(
-        {OutcomeStatus.RUNNING, OutcomeStatus.SUCCEEDED, OutcomeStatus.FAILED, OutcomeStatus.CANCELLED}
+        {
+            OutcomeStatus.RUNNING,
+            OutcomeStatus.SUCCEEDED,
+            OutcomeStatus.FAILED,
+            OutcomeStatus.CANCELLED,
+        }
     ),
     OutcomeStatus.SUCCEEDED: frozenset({OutcomeStatus.SUCCEEDED}),
     OutcomeStatus.FAILED: frozenset({OutcomeStatus.FAILED}),
@@ -61,7 +66,11 @@ class OutcomeUpdate:
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"outcome {name} must not be empty")
         require_sha256_digest(self.submission_id, field_name="submission_id")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 1:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 1
+        ):
             raise ValueError("outcome sequence must be a positive integer")
         if not isinstance(self.status, OutcomeStatus):
             raise TypeError("status must be an OutcomeStatus")
@@ -158,9 +167,7 @@ def new_execution_outcome(
     )
 
 
-def apply_outcome_update(
-    state: ExecutionOutcome, update: OutcomeUpdate
-) -> OutcomeResolution:
+def apply_outcome_update(state: ExecutionOutcome, update: OutcomeUpdate) -> OutcomeResolution:
     """Apply a monotonic status update and make exact repeats idempotent."""
 
     if not isinstance(state, ExecutionOutcome):

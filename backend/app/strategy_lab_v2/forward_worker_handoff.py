@@ -59,9 +59,7 @@ class ForwardEventDispatchPayload:
         replay_plan_fingerprint = value["replay_plan_fingerprint"]
         if not isinstance(event_fingerprint, str):
             raise ValueError("forward event fingerprint is malformed")
-        if replay_plan_fingerprint is not None and not isinstance(
-            replay_plan_fingerprint, str
-        ):
+        if replay_plan_fingerprint is not None and not isinstance(replay_plan_fingerprint, str):
             raise ValueError("forward replay-plan fingerprint is malformed")
         parsed = cls(event_fingerprint, replay_plan_fingerprint)
         if payload.payload_digest != content_digest(
@@ -141,9 +139,7 @@ class AuthenticatedForwardEventDispatchMaterializer:
             raise TypeError("entry must be a RedisStreamEntry")
         if not isinstance(payload, DispatchPayload):
             raise TypeError("payload must be a DispatchPayload")
-        record = await self._dispatch_store.load_by_request_fingerprint(
-            entry.request_fingerprint
-        )
+        record = await self._dispatch_store.load_by_request_fingerprint(entry.request_fingerprint)
         if record is None:
             raise ValueError("forward dispatch record is not available")
         if not isinstance(record, ForwardEventDispatchRecord):

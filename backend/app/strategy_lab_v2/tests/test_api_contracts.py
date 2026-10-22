@@ -38,9 +38,13 @@ def test_cursor_tampering_and_malformed_tokens_fail_closed() -> None:
     raw = base64.urlsafe_b64decode(cursor.token + "=" * (-len(cursor.token) % 4))
     envelope = json.loads(raw.decode("utf-8"))
     envelope["payload"]["item_id"] = "other-trial"
-    tampered = base64.urlsafe_b64encode(
-        json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).decode("ascii").rstrip("=")
+    tampered = (
+        base64.urlsafe_b64encode(
+            json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        )
+        .decode("ascii")
+        .rstrip("=")
+    )
     with pytest.raises(ValueError, match="digest"):
         ApiCursor.from_token(tampered)
     with pytest.raises(ValueError, match="base64 JSON"):
@@ -49,25 +53,21 @@ def test_cursor_tampering_and_malformed_tokens_fail_closed() -> None:
 
 def test_cursor_token_rejects_duplicate_fields_and_non_finite_constants() -> None:
     duplicate = (
-        '{"digest":"sha256:'
-        + "0" * 64
-        + '","digest":"sha256:'
-        + "0" * 64
-        + '","payload":{}}'
+        '{"digest":"sha256:' + "0" * 64 + '","digest":"sha256:' + "0" * 64 + '","payload":{}}'
     )
-    duplicate_token = base64.urlsafe_b64encode(duplicate.encode("utf-8")).decode("ascii").rstrip("=")
+    duplicate_token = (
+        base64.urlsafe_b64encode(duplicate.encode("utf-8")).decode("ascii").rstrip("=")
+    )
     with pytest.raises(ValueError, match="base64 JSON"):
         ApiCursor.from_token(duplicate_token)
 
     non_finite = (
-        '{"digest":"sha256:'
-        + "0" * 64
-        + '","payload":{"item_id":"trial-1","resource":"trials",'
-        '"schema_version":1,"snapshot_digest":"sha256:'
-        + "0" * 64
-        + '","sort_value":NaN}}'
+        '{"digest":"sha256:' + "0" * 64 + '","payload":{"item_id":"trial-1","resource":"trials",'
+        '"schema_version":1,"snapshot_digest":"sha256:' + "0" * 64 + '","sort_value":NaN}}'
     )
-    non_finite_token = base64.urlsafe_b64encode(non_finite.encode("utf-8")).decode("ascii").rstrip("=")
+    non_finite_token = (
+        base64.urlsafe_b64encode(non_finite.encode("utf-8")).decode("ascii").rstrip("=")
+    )
     with pytest.raises(ValueError, match="base64 JSON"):
         ApiCursor.from_token(non_finite_token)
 

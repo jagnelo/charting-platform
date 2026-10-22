@@ -53,7 +53,9 @@ class ForwardWarmupReceipt:
         if self.final_event_id is not None:
             _nonempty(self.final_event_id, "final_event_id")
         if self.final_event_fingerprint is not None:
-            require_sha256_digest(self.final_event_fingerprint, field_name="final_event_fingerprint")
+            require_sha256_digest(
+                self.final_event_fingerprint, field_name="final_event_fingerprint"
+            )
             if self.final_event_id is None:
                 raise ValueError("final_event_fingerprint requires final_event_id")
         elif self.final_event_id is not None:
@@ -86,20 +88,32 @@ class ForwardWarmupResolution:
             raise TypeError("instance must be a ForwardInstance")
         if self.receipt is not None and not isinstance(self.receipt, ForwardWarmupReceipt):
             raise TypeError("receipt must be a ForwardWarmupReceipt")
-        if self.decision in {
-            ForwardWarmupDecision.COMPLETE,
-            ForwardWarmupDecision.REPLAY_EXISTING,
-        } and self.receipt is None:
+        if (
+            self.decision
+            in {
+                ForwardWarmupDecision.COMPLETE,
+                ForwardWarmupDecision.REPLAY_EXISTING,
+            }
+            and self.receipt is None
+        ):
             raise ValueError("completed warm-up resolutions require a receipt")
-        if self.decision in {
-            ForwardWarmupDecision.CONFLICT,
-            ForwardWarmupDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ForwardWarmupDecision.CONFLICT,
+                ForwardWarmupDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("rejected warm-up resolutions require a reason")
-        if self.decision not in {
-            ForwardWarmupDecision.CONFLICT,
-            ForwardWarmupDecision.REJECT,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            not in {
+                ForwardWarmupDecision.CONFLICT,
+                ForwardWarmupDecision.REJECT,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful warm-up resolutions cannot contain a reason")
 
 
@@ -115,9 +129,7 @@ def resolve_forward_warmup(
         raise TypeError("instance must be a ForwardInstance")
     if not isinstance(receipt, ForwardWarmupReceipt):
         raise TypeError("receipt must be a ForwardWarmupReceipt")
-    if existing_receipt is not None and not isinstance(
-        existing_receipt, ForwardWarmupReceipt
-    ):
+    if existing_receipt is not None and not isinstance(existing_receipt, ForwardWarmupReceipt):
         raise TypeError("existing_receipt must be a ForwardWarmupReceipt")
     if existing_receipt is not None:
         if existing_receipt.fingerprint == receipt.fingerprint:

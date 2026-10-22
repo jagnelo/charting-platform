@@ -71,16 +71,24 @@ class ExecutionEventTransactionResolution:
             self.audit_outbox_decision, AuditOutboxDecision
         ):
             raise TypeError("audit_outbox_decision must be an AuditOutboxDecision")
-        if self.decision in {
-            ExecutionEventTransactionDecision.GAP,
-            ExecutionEventTransactionDecision.CONFLICT,
-            ExecutionEventTransactionDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ExecutionEventTransactionDecision.GAP,
+                ExecutionEventTransactionDecision.CONFLICT,
+                ExecutionEventTransactionDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("failed resolutions require a rejection reason")
-        if self.decision in {
-            ExecutionEventTransactionDecision.COMMITTED,
-            ExecutionEventTransactionDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ExecutionEventTransactionDecision.COMMITTED,
+                ExecutionEventTransactionDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful resolutions cannot contain a rejection reason")
 
     @property
@@ -126,9 +134,13 @@ def resolve_execution_event_transaction(
     audit_entry_id = entry.entry_id
     message_id = message.message_id
 
-    def reject(reason: str, *, decision: ExecutionEventTransactionDecision = ExecutionEventTransactionDecision.REJECT,
-               append_decision: EventAppendDecision = EventAppendDecision.CONFLICT,
-               outbox_decision: AuditOutboxDecision | None = None) -> ExecutionEventTransactionResolution:
+    def reject(
+        reason: str,
+        *,
+        decision: ExecutionEventTransactionDecision = ExecutionEventTransactionDecision.REJECT,
+        append_decision: EventAppendDecision = EventAppendDecision.CONFLICT,
+        outbox_decision: AuditOutboxDecision | None = None,
+    ) -> ExecutionEventTransactionResolution:
         return ExecutionEventTransactionResolution(
             decision,
             cursor,

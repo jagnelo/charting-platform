@@ -130,16 +130,24 @@ class WorkerEntryResolution:
         if self.decision is WorkerEntryDecision.ACKNOWLEDGEMENT_FAILED:
             if self.acknowledgement is None or self.acknowledgement.acknowledged:
                 raise ValueError("failed acknowledgements require unsuccessful evidence")
-        if self.decision in {
-            WorkerEntryDecision.RETRY,
-            WorkerEntryDecision.REJECT,
-        } and self.acknowledgement is not None:
+        if (
+            self.decision
+            in {
+                WorkerEntryDecision.RETRY,
+                WorkerEntryDecision.REJECT,
+            }
+            and self.acknowledgement is not None
+        ):
             raise ValueError("retry and reject entries cannot contain acknowledgement evidence")
-        if self.decision in {
-            WorkerEntryDecision.RETRY,
-            WorkerEntryDecision.REJECT,
-            WorkerEntryDecision.ACKNOWLEDGEMENT_FAILED,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                WorkerEntryDecision.RETRY,
+                WorkerEntryDecision.REJECT,
+                WorkerEntryDecision.ACKNOWLEDGEMENT_FAILED,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("non-acknowledged entries require a reason")
         if self.decision is WorkerEntryDecision.ACKNOWLEDGED and self.rejection_reason:
             raise ValueError("acknowledged entries cannot contain a rejection reason")
@@ -199,7 +207,11 @@ class RedisDispatchWorker:
             raise TypeError("transport must be a RedisDispatchTransport")
         if not isinstance(queue_name, str) or not queue_name.strip():
             raise ValueError("queue_name must not be empty")
-        if not isinstance(reclaim_idle_ms, int) or isinstance(reclaim_idle_ms, bool) or reclaim_idle_ms < 0:
+        if (
+            not isinstance(reclaim_idle_ms, int)
+            or isinstance(reclaim_idle_ms, bool)
+            or reclaim_idle_ms < 0
+        ):
             raise ValueError("reclaim_idle_ms must be a non-negative integer")
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size < 1:
             raise ValueError("batch_size must be a positive integer")
@@ -281,9 +293,7 @@ class RedisDispatchWorker:
             if result.decision is not WorkerHandleDecision.COMPLETE:
                 results.append(
                     WorkerEntryResolution(
-                        WorkerEntryDecision(
-                            result.decision.value
-                        ),
+                        WorkerEntryDecision(result.decision.value),
                         entry,
                         result,
                         rejection_reason=result.rejection_reason,

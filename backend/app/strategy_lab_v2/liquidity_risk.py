@@ -199,9 +199,7 @@ class LiquidityRiskDecision:
             raise TypeError("upstream_risk_limits_satisfied must be a bool")
         if not isinstance(self.risk_limits_satisfied, bool):
             raise TypeError("risk_limits_satisfied must be a bool")
-        if self.risk_limits_satisfied != (
-            self.kind is LiquidityRiskDecisionKind.APPROVED
-        ):
+        if self.risk_limits_satisfied != (self.kind is LiquidityRiskDecisionKind.APPROVED):
             raise ValueError("decision kind must match risk_limits_satisfied")
         if self.risk_limits_satisfied and not self.upstream_risk_limits_satisfied:
             raise ValueError("liquidity approval requires upstream risk approval")
@@ -243,7 +241,10 @@ def apply_liquidity_risk_gate(
 
     if stress_decision.portfolio_fingerprint != liquidity_snapshot.portfolio_fingerprint:
         raise ValueError("liquidity snapshot does not belong to the stress portfolio")
-    if stress_decision.exposure_snapshot_fingerprint != liquidity_snapshot.exposure_snapshot_fingerprint:
+    if (
+        stress_decision.exposure_snapshot_fingerprint
+        != liquidity_snapshot.exposure_snapshot_fingerprint
+    ):
         raise ValueError("liquidity snapshot does not belong to the stress exposure snapshot")
     if stress_decision.event_time != liquidity_snapshot.event_time:
         raise ValueError("liquidity snapshot event time does not match the stress decision")
@@ -306,4 +307,3 @@ def apply_liquidity_risk_gate(
         max_notional_participation=max(notional_participations, default=Decimal(0)),
         max_estimated_slippage_bps=max(slippages, default=Decimal(0)),
     )
-

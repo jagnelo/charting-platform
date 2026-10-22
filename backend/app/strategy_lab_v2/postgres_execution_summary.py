@@ -182,10 +182,7 @@ class PostgresExecutionSummaryAdapter:
                         "attempt_id": attempt_id,
                     },
                 )
-                summaries = tuple(
-                    _authenticate_row(row, owner_id)
-                    for row in result.mappings()
-                )
+                summaries = tuple(_authenticate_row(row, owner_id) for row in result.mappings())
                 if not summaries:
                     return None
                 return summaries[0]
@@ -365,9 +362,7 @@ def _state_key(summary: ExecutionSummary) -> str:
     )
 
 
-def _summary_values(
-    owner_id: str, state_key: str, summary: ExecutionSummary
-) -> dict[str, Any]:
+def _summary_values(owner_id: str, state_key: str, summary: ExecutionSummary) -> dict[str, Any]:
     return {
         "owner_id": owner_id,
         "submission_id": summary.submission_id,

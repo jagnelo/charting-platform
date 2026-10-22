@@ -130,25 +130,41 @@ class WorkerSettlementResolution:
             raise TypeError("record must be a WorkerSettlementRecord")
         if self.observation is not None and not isinstance(self.observation, LeaseObservation):
             raise TypeError("observation must be a LeaseObservation")
-        if self.decision in {
-            WorkerSettlementDecision.RELEASED,
-            WorkerSettlementDecision.REPLAY_EXISTING,
-        } and self.record is None:
+        if (
+            self.decision
+            in {
+                WorkerSettlementDecision.RELEASED,
+                WorkerSettlementDecision.REPLAY_EXISTING,
+            }
+            and self.record is None
+        ):
             raise ValueError("released resolutions require a settlement record")
-        if self.decision in {
-            WorkerSettlementDecision.CONFLICT,
-            WorkerSettlementDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                WorkerSettlementDecision.CONFLICT,
+                WorkerSettlementDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision in {
-            WorkerSettlementDecision.RELEASED,
-            WorkerSettlementDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                WorkerSettlementDecision.RELEASED,
+                WorkerSettlementDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("released resolutions cannot contain a rejection reason")
-        if self.decision in {
-            WorkerSettlementDecision.RELEASED,
-            WorkerSettlementDecision.REPLAY_EXISTING,
-        } and self.observation is None:
+        if (
+            self.decision
+            in {
+                WorkerSettlementDecision.RELEASED,
+                WorkerSettlementDecision.REPLAY_EXISTING,
+            }
+            and self.observation is None
+        ):
             raise ValueError("released resolutions require the lease observation")
 
 
@@ -186,21 +202,52 @@ def settle_worker_execution(
 
     plan = execution.orchestration_plan
     if plan.admission_fingerprint != admission.fingerprint:
-        return _reject(ledger, pool, "orchestration plan is not bound to the admission", lease_state=lease_state)
+        return _reject(
+            ledger,
+            pool,
+            "orchestration plan is not bound to the admission",
+            lease_state=lease_state,
+        )
     if plan.attempt_id != admission.attempt_id:
-        return _reject(ledger, pool, "orchestration plan and admission reference different attempts", lease_state=lease_state)
+        return _reject(
+            ledger,
+            pool,
+            "orchestration plan and admission reference different attempts",
+            lease_state=lease_state,
+        )
     if plan.worker_id != admission.worker_id:
-        return _reject(ledger, pool, "orchestration plan and admission reference different workers", lease_state=lease_state)
+        return _reject(
+            ledger,
+            pool,
+            "orchestration plan and admission reference different workers",
+            lease_state=lease_state,
+        )
     if admission.worker_id != pool.profile.worker_id:
-        return _reject(ledger, pool, "admission is bound to a different worker pool", lease_state=lease_state)
+        return _reject(
+            ledger, pool, "admission is bound to a different worker pool", lease_state=lease_state
+        )
     if admission.worker_kind is not pool.profile.kind:
-        return _reject(ledger, pool, "admission kind does not match the worker pool", lease_state=lease_state)
+        return _reject(
+            ledger, pool, "admission kind does not match the worker pool", lease_state=lease_state
+        )
     if admission.worker_profile_fingerprint != pool.profile.runtime_profile_fingerprint:
-        return _reject(ledger, pool, "admission profile does not match the worker pool", lease_state=lease_state)
+        return _reject(
+            ledger,
+            pool,
+            "admission profile does not match the worker pool",
+            lease_state=lease_state,
+        )
     if lease_state.lease.attempt_id != admission.attempt_id:
-        return _reject(ledger, pool, "lease and admission reference different attempts", lease_state=lease_state)
+        return _reject(
+            ledger,
+            pool,
+            "lease and admission reference different attempts",
+            lease_state=lease_state,
+        )
     if lease_state.lease.worker_id != admission.worker_id:
-        return _reject(ledger, pool, "lease and admission reference different workers", lease_state=lease_state)
+        return _reject(
+            ledger, pool, "lease and admission reference different workers", lease_state=lease_state
+        )
 
     reservation = next(
         (
@@ -212,9 +259,13 @@ def settle_worker_execution(
         None,
     )
     if reservation is None:
-        return _reject(ledger, pool, "admission has no matching worker reservation", lease_state=lease_state)
+        return _reject(
+            ledger, pool, "admission has no matching worker reservation", lease_state=lease_state
+        )
     if released_at < reservation.acquired_at:
-        return _reject(ledger, pool, "release cannot precede reservation acquisition", lease_state=lease_state)
+        return _reject(
+            ledger, pool, "release cannot precede reservation acquisition", lease_state=lease_state
+        )
     settlement_fingerprint = content_digest(
         {
             "admission_fingerprint": admission.fingerprint,
@@ -266,7 +317,7 @@ def settle_worker_execution(
                 pool,
                 "settlement receipt exists but lease release observation is missing",
                 lease_state=lease_state,
-        )
+            )
         return WorkerSettlementResolution(
             WorkerSettlementDecision.REPLAY_EXISTING,
             ledger,
@@ -289,13 +340,18 @@ def settle_worker_execution(
     except (TypeError, ValueError) as exc:
         return _reject(ledger, pool, str(exc), lease_state=lease_state)
     if lease_status is AttemptLeaseStatus.EXPIRED:
-        return _reject(ledger, pool, "expired leases require worker recovery", lease_state=lease_state)
+        return _reject(
+            ledger, pool, "expired leases require worker recovery", lease_state=lease_state
+        )
     if lease_status is AttemptLeaseStatus.RELEASED:
-        return _reject(ledger, pool, "lease is already released without a settlement receipt", lease_state=lease_state)
+        return _reject(
+            ledger,
+            pool,
+            "lease is already released without a settlement receipt",
+            lease_state=lease_state,
+        )
 
-    release_observation = _release_observation(
-        lease_state, settlement_fingerprint, released_at
-    )
+    release_observation = _release_observation(lease_state, settlement_fingerprint, released_at)
     lease_observation_fingerprint = release_observation.fingerprint
 
     lease_resolution = apply_lease_observation(lease_state, release_observation)

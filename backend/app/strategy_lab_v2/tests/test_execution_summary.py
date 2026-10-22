@@ -31,9 +31,7 @@ ATTEMPT = "attempt-1"
 
 
 def _receipt():
-    request = SubmissionRequest(
-        "idem-1", "backtest", ATTEMPT, content_digest("payload"), NOW
-    )
+    request = SubmissionRequest("idem-1", "backtest", ATTEMPT, content_digest("payload"), NOW)
     return create_submission_receipt(request, accepted_at=NOW)
 
 
@@ -44,7 +42,12 @@ def _progress(phase: ProgressPhase = ProgressPhase.QUEUED, *, sequence: int = 0)
     return apply_progress_update(
         state,
         ExecutionProgressUpdate(
-            ATTEMPT, sequence, phase, 10 if phase is ProgressPhase.SUCCEEDED else 1, 10, NOW + timedelta(seconds=sequence)
+            ATTEMPT,
+            sequence,
+            phase,
+            10 if phase is ProgressPhase.SUCCEEDED else 1,
+            10,
+            NOW + timedelta(seconds=sequence),
         ),
     )
 
@@ -144,7 +147,10 @@ def test_status_and_progress_mismatch_is_rejected() -> None:
     with pytest.raises(ValueError, match="inconsistent"):
         outcome = _outcome(OutcomeStatus.SUCCEEDED)
         build_execution_summary(
-            _receipt(), outcome, _progress(ProgressPhase.RUNNING, sequence=1), _publication(outcome.result_digest or "")
+            _receipt(),
+            outcome,
+            _progress(ProgressPhase.RUNNING, sequence=1),
+            _publication(outcome.result_digest or ""),
         )
 
 
@@ -162,11 +168,29 @@ def test_summary_contract_rejects_invalid_digest_and_counts() -> None:
 
     with pytest.raises(ValueError, match="submission_id"):
         ExecutionSummary(
-            "bad", ATTEMPT, "backtest", OutcomeStatus.ACCEPTED, 0, ProgressPhase.QUEUED,
-            0, 0, 10, False, NOW,
+            "bad",
+            ATTEMPT,
+            "backtest",
+            OutcomeStatus.ACCEPTED,
+            0,
+            ProgressPhase.QUEUED,
+            0,
+            0,
+            10,
+            False,
+            NOW,
         )
     with pytest.raises(ValueError, match="completed_units"):
         ExecutionSummary(
-            content_digest("submission"), ATTEMPT, "backtest", OutcomeStatus.ACCEPTED, 0,
-            ProgressPhase.QUEUED, 0, 11, 10, False, NOW,
+            content_digest("submission"),
+            ATTEMPT,
+            "backtest",
+            OutcomeStatus.ACCEPTED,
+            0,
+            ProgressPhase.QUEUED,
+            0,
+            11,
+            10,
+            False,
+            NOW,
         )

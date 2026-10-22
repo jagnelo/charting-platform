@@ -36,7 +36,7 @@ dependencies:
   - Exact degraded staging 5178b414b426ec61bdcb22257b4f956581c25d0c contains all four accepted feature checkpoints; exhaustive lint failed before its remaining stages.
 acceptance_criteria:
   - {id: FMT1, text: Pinned backend code and formatting checks pass without policy changes.}
-  - {id: FMT2, text: All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes.}
+  - {id: FMT2, text: "All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes."}
   - {id: FMT3, text: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.}
 branch_tests:
   - make lint-backend
@@ -44,11 +44,13 @@ branch_tests_reason: Full hosted backend CI already executes all backend unit an
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
-remaining_gaps: []
+status: ready_for_human_review
+remaining_gaps:
+  - Exact final pushed repair branch CI remains mandatory before guarded remediation integration; no hosted pass is claimed yet.
+  - Exact repaired staging exhaustive gate remains mandatory before owner backmerge/release, master promotion or deployment.
 progress:
-  completed: []
+  completed: [FMT1, FMT2]
   total: 3
-  current_phase: pinned-formatting-repair
+  current_phase: local-validation-green-awaiting-exact-source-ci
   current_blocker: none
-  next_action: Apply only the pinned formatter, prove equivalence, and run local lint, focused unit and isolated PostgreSQL/Redis tests under the existing active unbudgeted coordinator goal.
+  next_action: Commit and push the locally validated formatter changeset; exact final branch CI remains mandatory before integration.

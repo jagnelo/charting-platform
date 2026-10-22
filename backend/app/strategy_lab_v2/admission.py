@@ -170,21 +170,33 @@ class ExecutionAdmissionResolution:
         require_sha256_digest(self.request_fingerprint, field_name="request_fingerprint")
         if self.admission is not None and not isinstance(self.admission, ExecutionAdmission):
             raise TypeError("admission must be an ExecutionAdmission")
-        if self.decision in {
-            ExecutionAdmissionDecision.ADMIT,
-            ExecutionAdmissionDecision.REPLAY_EXISTING,
-        } and self.admission is None:
+        if (
+            self.decision
+            in {
+                ExecutionAdmissionDecision.ADMIT,
+                ExecutionAdmissionDecision.REPLAY_EXISTING,
+            }
+            and self.admission is None
+        ):
             raise ValueError("admitted resolutions require an admission receipt")
-        if self.decision in {
-            ExecutionAdmissionDecision.CONFLICT,
-            ExecutionAdmissionDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ExecutionAdmissionDecision.CONFLICT,
+                ExecutionAdmissionDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision in {
-            ExecutionAdmissionDecision.SATURATED,
-            ExecutionAdmissionDecision.ADMIT,
-            ExecutionAdmissionDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ExecutionAdmissionDecision.SATURATED,
+                ExecutionAdmissionDecision.ADMIT,
+                ExecutionAdmissionDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("non-rejected admission resolutions cannot contain a reason")
 
 
@@ -228,9 +240,13 @@ def resolve_execution_admission(
         requested_at=now,
     )
     if now < authorization.authorized_at:
-        return _reject(ledger, pool, request.fingerprint, "admission time cannot precede authorization")
+        return _reject(
+            ledger, pool, request.fingerprint, "admission time cannot precede authorization"
+        )
     if now < runtime_request.submitted_at:
-        return _reject(ledger, pool, request.fingerprint, "admission time cannot precede runtime submission")
+        return _reject(
+            ledger, pool, request.fingerprint, "admission time cannot precede runtime submission"
+        )
     if authorization.attempt_id != runtime_request.attempt_id:
         return _reject(
             ledger,
@@ -239,15 +255,31 @@ def resolve_execution_admission(
             "authorization and runtime request reference different attempts",
         )
     if authorization.source_digest != runtime_request.source_digest:
-        return _reject(ledger, pool, request.fingerprint, "authorization and runtime source digests differ")
+        return _reject(
+            ledger, pool, request.fingerprint, "authorization and runtime source digests differ"
+        )
     if authorization.lease_worker_id != pool.profile.worker_id:
-        return _reject(ledger, pool, request.fingerprint, "authorization lease is bound to a different worker")
+        return _reject(
+            ledger, pool, request.fingerprint, "authorization lease is bound to a different worker"
+        )
     if runtime_request.runtime_profile_fingerprint != pool.profile.runtime_profile_fingerprint:
-        return _reject(ledger, pool, request.fingerprint, "runtime request profile does not match worker profile")
+        return _reject(
+            ledger,
+            pool,
+            request.fingerprint,
+            "runtime request profile does not match worker profile",
+        )
     if runtime_preflight.request_fingerprint != runtime_request.fingerprint:
-        return _reject(ledger, pool, request.fingerprint, "runtime preflight references a different request")
+        return _reject(
+            ledger, pool, request.fingerprint, "runtime preflight references a different request"
+        )
     if runtime_preflight.profile_fingerprint != pool.profile.runtime_profile_fingerprint:
-        return _reject(ledger, pool, request.fingerprint, "runtime preflight profile does not match worker profile")
+        return _reject(
+            ledger,
+            pool,
+            request.fingerprint,
+            "runtime preflight profile does not match worker profile",
+        )
     if not runtime_preflight.accepted:
         return _reject(ledger, pool, request.fingerprint, "runtime preflight is not accepted")
     existing = next(

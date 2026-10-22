@@ -22,9 +22,7 @@ from app.strategy_lab_v2.order_routing import (
     RoutedOrder,
 )
 
-MARGIN_RISK_DEFINITION_VERSION = (
-    f"strategy-lab.margin-risk.v1.decimal{DECIMAL_PRECISION}-half-even"
-)
+MARGIN_RISK_DEFINITION_VERSION = f"strategy-lab.margin-risk.v1.decimal{DECIMAL_PRECISION}-half-even"
 
 
 def _positive(value: Decimal, field_name: str) -> None:
@@ -38,12 +36,7 @@ def _nonnegative(value: Decimal, field_name: str) -> None:
 
 
 def _currency(value: str, field_name: str) -> str:
-    if (
-        not isinstance(value, str)
-        or len(value) != 3
-        or not value.isascii()
-        or not value.isalpha()
-    ):
+    if not isinstance(value, str) or len(value) != 3 or not value.isascii() or not value.isalpha():
         raise ValueError(f"{field_name} must be a three-letter currency code")
     return value.upper()
 
@@ -168,9 +161,7 @@ class MarginRiskDecision:
             raise TypeError("upstream_risk_limits_satisfied must be a bool")
         if not isinstance(self.risk_limits_satisfied, bool):
             raise TypeError("risk_limits_satisfied must be a bool")
-        if self.risk_limits_satisfied != (
-            self.kind is MarginRiskDecisionKind.APPROVED
-        ):
+        if self.risk_limits_satisfied != (self.kind is MarginRiskDecisionKind.APPROVED):
             raise ValueError("decision kind must match risk_limits_satisfied")
         if self.risk_limits_satisfied and not self.upstream_risk_limits_satisfied:
             raise ValueError("margin approval requires upstream order risk approval")
@@ -211,7 +202,10 @@ def apply_margin_risk_gate(
 
     if routing_decision.portfolio_fingerprint != margin_snapshot.portfolio_fingerprint:
         raise ValueError("margin snapshot does not belong to the routing portfolio")
-    if routing_decision.exposure_snapshot_fingerprint != margin_snapshot.exposure_snapshot_fingerprint:
+    if (
+        routing_decision.exposure_snapshot_fingerprint
+        != margin_snapshot.exposure_snapshot_fingerprint
+    ):
         raise ValueError("margin snapshot does not belong to the routing exposure snapshot")
     if routing_decision.event_time != margin_snapshot.event_time:
         raise ValueError("margin snapshot event time does not match the routing decision")
@@ -220,9 +214,7 @@ def apply_margin_risk_gate(
     if not isinstance(policy, MarginRiskPolicy):
         raise TypeError("policy must be a MarginRiskPolicy")
 
-    initial_utilization = (
-        margin_snapshot.initial_requirement / margin_snapshot.initial_capacity
-    )
+    initial_utilization = margin_snapshot.initial_requirement / margin_snapshot.initial_capacity
     maintenance_utilization = (
         margin_snapshot.maintenance_requirement / margin_snapshot.maintenance_capacity
     )
@@ -247,11 +239,7 @@ def apply_margin_risk_gate(
         policy_fingerprint=policy.fingerprint,
         event_time=routing_decision.event_time,
         event_sequence=routing_decision.event_sequence,
-        kind=(
-            MarginRiskDecisionKind.APPROVED
-            if risk_ok
-            else MarginRiskDecisionKind.RISK_REJECTED
-        ),
+        kind=(MarginRiskDecisionKind.APPROVED if risk_ok else MarginRiskDecisionKind.RISK_REJECTED),
         upstream_risk_limits_satisfied=upstream_ok,
         risk_limits_satisfied=risk_ok,
         proposed_orders=routing_decision.proposed_orders,

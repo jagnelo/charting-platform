@@ -113,6 +113,4 @@ def test_event_contract_rejects_invalid_identity_and_cursor_values() -> None:
     with pytest.raises(ValueError, match="empty cursor"):
         EventStreamCursor("trial-1", "attempt-1", last_event_id="sha256:" + "0" * 64)
     with pytest.raises(ValueError, match="positive"):
-        resolve_event_append(
-            _event(0), EventStreamCursor("trial-1", "attempt-1")
-        )
+        resolve_event_append(_event(0), EventStreamCursor("trial-1", "attempt-1"))

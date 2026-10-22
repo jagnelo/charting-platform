@@ -71,7 +71,13 @@ def _fixture():
     submission = _receipt()
     outcome = _outcome(OutcomeStatus.SUCCEEDED)
     progress = _progress(ProgressPhase.SUCCEEDED, sequence=1)
-    return submission, outcome, progress, _runtime_success(), _publication(outcome.result_digest or "")
+    return (
+        submission,
+        outcome,
+        progress,
+        _runtime_success(),
+        _publication(outcome.result_digest or ""),
+    )
 
 
 def _artifact_manifest(payload: bytes) -> ArtifactManifest:
@@ -173,7 +179,10 @@ def test_any_artifact_conflict_rolls_back_the_entire_commit_ledger() -> None:
         completed_at=NOW + timedelta(seconds=3),
     )
     assert resolution.decision is ResultCompletionDecision.CONFLICT
-    assert resolution.rejection_reason == "storage key is already committed to different manifest content"
+    assert (
+        resolution.rejection_reason
+        == "storage key is already committed to different manifest content"
+    )
     assert resolution.artifact_commit_ledger == ArtifactCommitLedger()
     assert resolution.completion_ledger == ResultCompletionLedger()
 
@@ -181,7 +190,9 @@ def test_any_artifact_conflict_rolls_back_the_entire_commit_ledger() -> None:
 def test_completion_requires_terminal_evidence_and_existing_replays() -> None:
     submission, outcome, progress, runtime, publication = _fixture()
     plans = (artifact_plan(),)
-    running_runtime = replace(runtime, phase=RuntimeExecutionPhase.RUNNING, output_digest=None, output_bytes=None)
+    running_runtime = replace(
+        runtime, phase=RuntimeExecutionPhase.RUNNING, output_digest=None, output_bytes=None
+    )
     rejected = finalize_execution_result(
         ResultCompletionLedger(),
         ArtifactCommitLedger(),
@@ -226,7 +237,9 @@ def test_completion_requires_terminal_evidence_and_existing_replays() -> None:
 def test_completion_rejects_unpublished_or_mismatched_terminal_identity() -> None:
     submission, outcome, progress, runtime, publication = _fixture()
     plans = (artifact_plan(),)
-    replay_without_receipt = replace(publication, decision=ResultPublicationDecision.REPLAY_EXISTING)
+    replay_without_receipt = replace(
+        publication, decision=ResultPublicationDecision.REPLAY_EXISTING
+    )
     rejected_replay = finalize_execution_result(
         ResultCompletionLedger(),
         ArtifactCommitLedger(),
@@ -239,7 +252,9 @@ def test_completion_rejects_unpublished_or_mismatched_terminal_identity() -> Non
         completed_at=NOW + timedelta(seconds=3),
     )
     assert rejected_replay.decision is ResultCompletionDecision.REJECT
-    assert rejected_replay.rejection_reason == "published-result replay requires a completion receipt"
+    assert (
+        rejected_replay.rejection_reason == "published-result replay requires a completion receipt"
+    )
 
     wrong_result = replace(publication, result_fingerprint=content_digest("other-result"))
     mismatched = finalize_execution_result(

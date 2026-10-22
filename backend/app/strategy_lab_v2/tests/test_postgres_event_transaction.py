@@ -76,7 +76,8 @@ class FakeSession:
             rows = [
                 row
                 for row in self.events.values()
-                if row["trial_id"] == values["trial_id"] and row["attempt_id"] == values["attempt_id"]
+                if row["trial_id"] == values["trial_id"]
+                and row["attempt_id"] == values["attempt_id"]
             ]
             return FakeResult(sorted(rows, key=lambda row: row["sequence"]))
         if sql.lstrip().startswith("SELECT entry_id"):

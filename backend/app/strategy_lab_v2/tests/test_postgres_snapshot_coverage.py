@@ -76,7 +76,10 @@ async def test_snapshot_coverage_adapter_registers_replays_and_scopes() -> None:
     assert registered.decision is SnapshotCoverageStateDecision.REGISTERED
     replay = await adapter.ensure(principal="owner-a", resolution=resolution)
     assert replay.decision is SnapshotCoverageStateDecision.REPLAY_EXISTING
-    assert await adapter.load(principal="owner-a", snapshot_fingerprint=snapshot.fingerprint) == resolution
+    assert (
+        await adapter.load(principal="owner-a", snapshot_fingerprint=snapshot.fingerprint)
+        == resolution
+    )
     assert await adapter.load_all(principal="owner-b") == ()
 
 
@@ -113,7 +116,9 @@ async def test_snapshot_coverage_adapter_rejects_tampered_rows() -> None:
     session = FakeSession()
     adapter = PostgresSnapshotCoverageAdapter(lambda: session)
     await adapter.ensure(principal="owner-a", resolution=resolution)
-    session.resolutions[("owner-a", snapshot.fingerprint)]["resolution_fingerprint"] = content_digest("tampered")
+    session.resolutions[("owner-a", snapshot.fingerprint)]["resolution_fingerprint"] = (
+        content_digest("tampered")
+    )
     with pytest.raises(ValueError, match="fingerprint"):
         await adapter.load(principal="owner-a", snapshot_fingerprint=snapshot.fingerprint)
 

@@ -14,7 +14,9 @@ from app.strategy_lab_v2.tests.test_forward_corrections import _event, _state
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
-def _command(base_checkpoint_fingerprint: str, *, reason: str = "audit correction") -> ForwardCorrectionCommand:
+def _command(
+    base_checkpoint_fingerprint: str, *, reason: str = "audit correction"
+) -> ForwardCorrectionCommand:
     return ForwardCorrectionCommand(
         content_digest("correction-command"),
         "forward-1",

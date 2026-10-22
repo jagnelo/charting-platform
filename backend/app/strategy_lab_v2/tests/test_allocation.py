@@ -133,7 +133,9 @@ def test_target_intents_are_scaled_by_component_budget_and_netted_after_gross_ri
     assert decision.net_exposure_fraction == Decimal("0.20")
     assert len(decision.proposed_component_exposures) == 2
     assert decision.proposed_instrument_targets[0].target_fraction_of_equity == Decimal("0.20")
-    assert decision.proposed_instrument_targets[0].target_signed_base_notional == Decimal("20000.00")
+    assert decision.proposed_instrument_targets[0].target_signed_base_notional == Decimal(
+        "20000.00"
+    )
     assert decision.risk_approved_instrument_targets == decision.proposed_instrument_targets
 
 
@@ -223,9 +225,7 @@ def test_flat_target_is_preserved_as_an_explicit_zero_instrument_target() -> Non
         portfolio,
         _snapshot(
             portfolio,
-            positions=(
-                ComponentPositionExposure("alpha", "US.AAPL", Decimal("20000")),
-            ),
+            positions=(ComponentPositionExposure("alpha", "US.AAPL", Decimal("20000")),),
         ),
         (_request("alpha", "US.AAPL", "0"),),
     )
@@ -253,12 +253,8 @@ def test_allocation_decisions_ignore_ambient_decimal_context() -> None:
 
 def test_component_capital_weights_do_not_leverage_without_an_explicit_cap() -> None:
     components = (
-        PortfolioComponent(
-            "small", content_digest("small"), ("US.AAPL",), Decimal("0.10")
-        ),
-        PortfolioComponent(
-            "large", content_digest("large"), ("US.MSFT",), Decimal("0.90")
-        ),
+        PortfolioComponent("small", content_digest("small"), ("US.AAPL",), Decimal("0.10")),
+        PortfolioComponent("large", content_digest("large"), ("US.MSFT",), Decimal("0.90")),
     )
     portfolio = _portfolio(SharedRiskPolicy(), components=components)
     request = (_request("small", "US.AAPL", "2.0"),)
@@ -273,9 +269,7 @@ def test_component_capital_weights_do_not_leverage_without_an_explicit_cap() -> 
         SharedRiskPolicy(max_component_leverage=Decimal("2.0")),
         components=components,
     )
-    leveraged_decision = allocate_component_targets(
-        leveraged, _snapshot(leveraged), request
-    )
+    leveraged_decision = allocate_component_targets(leveraged, _snapshot(leveraged), request)
     assert leveraged_decision.risk_limits_satisfied
     assert leveraged_decision.gross_exposure_fraction == Decimal("0.20")
 
@@ -382,9 +376,7 @@ def test_allocator_rejects_wrong_event_or_portfolio_and_undeclared_current_instr
             portfolio,
             _snapshot(
                 portfolio,
-                positions=(
-                    ComponentPositionExposure("alpha", "US.MSFT", Decimal("1000")),
-                ),
+                positions=(ComponentPositionExposure("alpha", "US.MSFT", Decimal("1000")),),
             ),
             (),
         )

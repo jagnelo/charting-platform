@@ -48,12 +48,7 @@ def _aware(value: datetime, field_name: str) -> None:
 
 
 def _currency(value: str, field_name: str) -> str:
-    if (
-        not isinstance(value, str)
-        or len(value) != 3
-        or not value.isascii()
-        or not value.isalpha()
-    ):
+    if not isinstance(value, str) or len(value) != 3 or not value.isascii() or not value.isalpha():
         raise ValueError(f"{field_name} must be a three-letter currency code")
     return value.upper()
 
@@ -104,7 +99,9 @@ class InstrumentOrderEconomics:
             _positive_decimal(self.price_tick, "price_tick")
         object.__setattr__(self, "quote_currency", _currency(self.quote_currency, "quote_currency"))
         object.__setattr__(self, "base_currency", _currency(self.base_currency, "base_currency"))
-        require_sha256_digest(self.valuation_evidence_digest, field_name="valuation_evidence_digest")
+        require_sha256_digest(
+            self.valuation_evidence_digest, field_name="valuation_evidence_digest"
+        )
 
     @property
     def fingerprint(self) -> str:
@@ -205,7 +202,10 @@ class OrderRoutingDecision:
         approved = tuple(self.risk_approved_orders)
         if any(not isinstance(item, RoutedOrder) for item in (*proposed, *approved)):
             raise TypeError("orders must contain RoutedOrder values")
-        if tuple(sorted(proposed, key=lambda item: (item.component_id, item.fingerprint))) != proposed:
+        if (
+            tuple(sorted(proposed, key=lambda item: (item.component_id, item.fingerprint)))
+            != proposed
+        ):
             raise ValueError("proposed orders must be deterministically ordered")
         if not set(approved).issubset(set(proposed)):
             raise ValueError("approved orders must be a subset of proposed orders")
@@ -282,7 +282,10 @@ def route_order_intents(
         raise ValueError("exposure snapshot does not belong to this portfolio version")
     if exposure_snapshot.base_currency != portfolio.base_currency:
         raise ValueError("exposure snapshot base currency does not match the portfolio")
-    if exposure_snapshot.event_time != event_time or exposure_snapshot.event_sequence != event_sequence:
+    if (
+        exposure_snapshot.event_time != event_time
+        or exposure_snapshot.event_sequence != event_sequence
+    ):
         raise ValueError("order intents must match the exposure snapshot event")
 
     components = {item.component_id: item for item in portfolio.components}
@@ -295,7 +298,9 @@ def route_order_intents(
         if model not in SUPPORTED_PRODUCT_RISK_MODELS:
             raise ValueError(f"instrument {instrument_id!r} uses an unsupported order risk model")
         if allowed_models.get(model.product_class) != model:
-            raise ValueError(f"instrument {instrument_id!r} risk model is not allowed by the portfolio policy")
+            raise ValueError(
+                f"instrument {instrument_id!r} risk model is not allowed by the portfolio policy"
+            )
 
     resolved: dict[tuple[str, str], Decimal] = {}
     for position in exposure_snapshot.positions:

@@ -18,9 +18,7 @@ from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_de
 from app.strategy_lab_v2.margin_risk import MarginRiskDecision
 from app.strategy_lab_v2.order_routing import RoutedOrder
 
-STRESS_RISK_DEFINITION_VERSION = (
-    f"strategy-lab.stress-risk.v1.decimal{DECIMAL_PRECISION}-half-even"
-)
+STRESS_RISK_DEFINITION_VERSION = f"strategy-lab.stress-risk.v1.decimal{DECIMAL_PRECISION}-half-even"
 
 
 def _finite(value: Decimal, field_name: str) -> None:
@@ -196,9 +194,7 @@ class StressRiskDecision:
             raise TypeError("upstream_risk_limits_satisfied must be a bool")
         if not isinstance(self.risk_limits_satisfied, bool):
             raise TypeError("risk_limits_satisfied must be a bool")
-        if self.risk_limits_satisfied != (
-            self.kind is StressRiskDecisionKind.APPROVED
-        ):
+        if self.risk_limits_satisfied != (self.kind is StressRiskDecisionKind.APPROVED):
             raise ValueError("decision kind must match risk_limits_satisfied")
         if self.risk_limits_satisfied and not self.upstream_risk_limits_satisfied:
             raise ValueError("stress approval requires upstream risk approval")
@@ -245,7 +241,10 @@ def apply_stress_risk_gate(
 
     if margin_decision.portfolio_fingerprint != stress_snapshot.portfolio_fingerprint:
         raise ValueError("stress snapshot does not belong to the margin portfolio")
-    if margin_decision.exposure_snapshot_fingerprint != stress_snapshot.exposure_snapshot_fingerprint:
+    if (
+        margin_decision.exposure_snapshot_fingerprint
+        != stress_snapshot.exposure_snapshot_fingerprint
+    ):
         raise ValueError("stress snapshot does not belong to the margin exposure snapshot")
     if margin_decision.event_time != stress_snapshot.event_time:
         raise ValueError("stress snapshot event time does not match the margin decision")
@@ -287,4 +286,3 @@ def apply_stress_risk_gate(
         worst_loss_fraction=worst_loss,
         worst_stressed_equity=worst_equity,
     )
-

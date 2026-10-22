@@ -164,13 +164,16 @@ def test_legacy_and_search_state_timestamps_normalize_before_replay_identity() -
 
     assert legacy_record.observed_at == START
     assert legacy_request.requested_at == START
-    assert legacy_record.fingerprint == LegacyRecord(
-        "legacy-1",
-        LegacyRecordKind.RESULT,
-        "legacy-v1",
-        content_digest("legacy-payload"),
-        START,
-    ).fingerprint
+    assert (
+        legacy_record.fingerprint
+        == LegacyRecord(
+            "legacy-1",
+            LegacyRecordKind.RESULT,
+            "legacy-v1",
+            content_digest("legacy-payload"),
+            START,
+        ).fingerprint
+    )
     assert search.updated_at == START
     assert search.candidates[0].updated_at == START
     assert search.fingerprint == equivalent_search.fingerprint

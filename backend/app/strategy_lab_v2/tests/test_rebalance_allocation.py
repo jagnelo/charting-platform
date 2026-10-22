@@ -102,9 +102,7 @@ def _snapshot(
         account_cash_balance=Decimal("100000"),
         base_currency="USD",
         valuation_evidence_digest=content_digest("valuation"),
-        instrument_risk_models=(
-            InstrumentRiskBinding("US.AAPL", CASH_EQUITY_NOTIONAL_RISK_MODEL),
-        ),
+        instrument_risk_models=(InstrumentRiskBinding("US.AAPL", CASH_EQUITY_NOTIONAL_RISK_MODEL),),
     )
 
 
@@ -126,7 +124,9 @@ def test_exact_boundary_applies_targets_through_existing_risk_allocator() -> Non
     assert result.reason is RebalanceApplicationReason.EXACT_BOUNDARY
     assert result.request_count == 1
     assert result.allocation is not None
-    assert result.allocation.proposed_instrument_targets[0].target_fraction_of_equity == Decimal("0.5")
+    assert result.allocation.proposed_instrument_targets[0].target_fraction_of_equity == Decimal(
+        "0.5"
+    )
     assert result.allocation.risk_limits_satisfied
 
 

@@ -18,7 +18,9 @@ SNAPSHOT = content_digest("snapshot-1")
 
 def _trial(trial_id: str = "trial-1") -> ResourceDocument:
     return ResourceDocument(
-        ResourceIdentifier(ApiResourceType.TRIAL, trial_id, revision_digest=content_digest(trial_id)),
+        ResourceIdentifier(
+            ApiResourceType.TRIAL, trial_id, revision_digest=content_digest(trial_id)
+        ),
         attributes={"name": "mean-reversion", "enabled": True},
         relationships={
             "experiment": (ResourceIdentifier(ApiResourceType.EXPERIMENT, "experiment-1"),)
@@ -65,12 +67,19 @@ def test_collection_binds_resource_type_and_snapshot_to_cursor() -> None:
 
 def test_collection_rejects_foreign_items_and_cursor_snapshots() -> None:
     with pytest.raises(ValueError, match="collection resource type"):
-        ResourceCollection("request-1", ApiResourceType.TRIAL, SNAPSHOT, (
-            ResourceDocument(ResourceIdentifier(ApiResourceType.ATTEMPT, "attempt-1")),
-        ))
+        ResourceCollection(
+            "request-1",
+            ApiResourceType.TRIAL,
+            SNAPSHOT,
+            (ResourceDocument(ResourceIdentifier(ApiResourceType.ATTEMPT, "attempt-1")),),
+        )
     with pytest.raises(ValueError, match="collection snapshot"):
         ResourceCollection(
-            "request-1", ApiResourceType.TRIAL, SNAPSHOT, (_trial(),), True,
+            "request-1",
+            ApiResourceType.TRIAL,
+            SNAPSHOT,
+            (_trial(),),
+            True,
             ApiCursor("trials", content_digest("other"), "sort", "trial-1"),
         )
 

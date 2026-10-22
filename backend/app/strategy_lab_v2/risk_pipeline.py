@@ -69,7 +69,10 @@ class TradeRiskAdmission:
             raise ValueError("stress decision is not chained to the margin decision")
         if self.liquidity_decision.stress_risk_fingerprint != self.stress_decision.fingerprint:
             raise ValueError("liquidity decision is not chained to the stress decision")
-        if self.settlement_decision.liquidity_risk_fingerprint != self.liquidity_decision.fingerprint:
+        if (
+            self.settlement_decision.liquidity_risk_fingerprint
+            != self.liquidity_decision.fingerprint
+        ):
             raise ValueError("settlement decision is not chained to the liquidity decision")
         if self.event_time.tzinfo is None or self.event_time.utcoffset() is None:
             raise ValueError("event_time must be timezone-aware")

@@ -156,7 +156,9 @@ class PostgresAcquisitionAdapter:
                 receipts = tuple(_authenticate_row(row, owner_id) for row in result.mappings())
                 ordered = tuple(sorted(receipts, key=lambda item: item.request_fingerprint))
                 if receipts != ordered:
-                    raise ValueError("PostgreSQL acquisition receipts are not deterministically ordered")
+                    raise ValueError(
+                        "PostgreSQL acquisition receipts are not deterministically ordered"
+                    )
                 return receipts
 
     async def _load_one(

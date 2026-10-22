@@ -221,9 +221,15 @@ class LegacyImportResolution:
             raise TypeError("registry must be a LegacyImportRegistry")
         if not isinstance(self.report, LegacyImportReport):
             raise TypeError("report must be a LegacyImportReport")
-        if self.decision in {LegacyImportDecision.CONFLICT, LegacyImportDecision.REJECT} and not self.rejection_reason:
+        if (
+            self.decision in {LegacyImportDecision.CONFLICT, LegacyImportDecision.REJECT}
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision not in {LegacyImportDecision.CONFLICT, LegacyImportDecision.REJECT} and self.rejection_reason:
+        if (
+            self.decision not in {LegacyImportDecision.CONFLICT, LegacyImportDecision.REJECT}
+            and self.rejection_reason
+        ):
             raise ValueError("successful import resolutions cannot contain a reason")
 
 
@@ -243,11 +249,16 @@ def resolve_legacy_import(
     original = request.original
     if not request.preserve_original:
         report = LegacyImportReport(
-            LegacyImportDecision.REJECT, original, False, None,
+            LegacyImportDecision.REJECT,
+            original,
+            False,
+            None,
             ("preserving the original legacy record is mandatory",),
         )
         return LegacyImportResolution(
-            LegacyImportDecision.REJECT, registry, report,
+            LegacyImportDecision.REJECT,
+            registry,
+            report,
             "preserving the original legacy record is mandatory",
         )
     existing = next(
@@ -266,7 +277,9 @@ def resolve_legacy_import(
                 assessment.notes,
             )
             return LegacyImportResolution(
-                LegacyImportDecision.CONFLICT, registry, report,
+                LegacyImportDecision.CONFLICT,
+                registry,
+                report,
                 "legacy id is already bound to different import content",
             )
         report = LegacyImportReport(
@@ -281,8 +294,14 @@ def resolve_legacy_import(
     next_registry = LegacyImportRegistry(
         tuple(sorted((*registry.records, record), key=lambda item: item.original.legacy_id))
     )
-    decision = LegacyImportDecision.ACCEPT if assessment.supported else LegacyImportDecision.UNSUPPORTED
+    decision = (
+        LegacyImportDecision.ACCEPT if assessment.supported else LegacyImportDecision.UNSUPPORTED
+    )
     report = LegacyImportReport(
-        decision, original, assessment.supported, assessment.conversion_fingerprint, assessment.notes
+        decision,
+        original,
+        assessment.supported,
+        assessment.conversion_fingerprint,
+        assessment.notes,
     )
     return LegacyImportResolution(decision, next_registry, report)

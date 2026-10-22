@@ -28,11 +28,23 @@ SOURCE = content_digest("source")
 
 def _state():
     warming = ForwardInstance(
-        "forward-1", content_digest("portfolio"), SNAPSHOT, CarryInMode.FLAT,
-        ForwardState.WARMING_UP, None, 0, 0, NOW, NOW,
+        "forward-1",
+        content_digest("portfolio"),
+        SNAPSHOT,
+        CarryInMode.FLAT,
+        ForwardState.WARMING_UP,
+        None,
+        0,
+        0,
+        NOW,
+        NOW,
     )
     receipt = ForwardWarmupReceipt(
-        "forward-1", SNAPSHOT, CarryInMode.FLAT, content_digest("warmup"), NOW + timedelta(minutes=1)
+        "forward-1",
+        SNAPSHOT,
+        CarryInMode.FLAT,
+        content_digest("warmup"),
+        NOW + timedelta(minutes=1),
     )
     active = resolve_forward_warmup(warming, receipt).instance
     from app.strategy_lab_v2.forward_admission import ForwardLiveAdmissionState
@@ -54,7 +66,9 @@ def _event(event_id: str, sequence: int, *, correction_of: str | None = None):
 def _admitted_correction():
     state = _state()
     original = _event("live-0", 0)
-    accepted = admit_forward_event(state, original, observe_forward_event(ForwardCursor(), original))
+    accepted = admit_forward_event(
+        state, original, observe_forward_event(ForwardCursor(), original)
+    )
     correction = _event("correction-1", 1, correction_of="live-0")
     observation = observe_forward_event(
         ForwardCursor(last_sequence=0, last_event_id="live-0", last_event_time=original.event_time),
@@ -156,9 +170,13 @@ def test_wrong_original_and_noncorrection_observation_fail_closed() -> None:
 
 def test_correction_command_requires_valid_digest_and_reason() -> None:
     with pytest.raises(ValueError, match="command_id"):
-        ForwardCorrectionCommand("bad", "forward-1", "correction", "original", content_digest("base"), NOW, "reason")
+        ForwardCorrectionCommand(
+            "bad", "forward-1", "correction", "original", content_digest("base"), NOW, "reason"
+        )
     with pytest.raises(ValueError, match="base_checkpoint"):
-        ForwardCorrectionCommand(content_digest("command"), "forward-1", "correction", "original", "bad", NOW, "reason")
+        ForwardCorrectionCommand(
+            content_digest("command"), "forward-1", "correction", "original", "bad", NOW, "reason"
+        )
 
 
 def test_correction_command_and_plan_times_normalize_to_utc() -> None:

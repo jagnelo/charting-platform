@@ -195,7 +195,9 @@ class PostgresExecutionEventTransactionAdapter:
                         {"message_id": message_id},
                     )
                     if getattr(result, "rowcount", 0) != 1:
-                        raise ValueError("PostgreSQL outbox publication compare-and-set lost a race")
+                        raise ValueError(
+                            "PostgreSQL outbox publication compare-and-set lost a race"
+                        )
                 return resolution
 
     async def append(

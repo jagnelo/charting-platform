@@ -15,7 +15,9 @@ NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
 class FakeRedis:
-    def __init__(self, result=1, *, stream_response=None, claim_response=None, ack_result=1) -> None:
+    def __init__(
+        self, result=1, *, stream_response=None, claim_response=None, ack_result=1
+    ) -> None:
         self.result = result
         self.stream_response = stream_response
         self.claim_response = claim_response
@@ -140,9 +142,7 @@ async def test_consumer_group_creation_is_idempotent_and_decodes_entries() -> No
     assert len(entries) == 1
     assert entries[0].message_id == _envelope().message_id
     assert entries[0].stream_id == "1-0"
-    reclaimed = await transport.reclaim_pending(
-        "backtest", "workers", "worker-1", min_idle_ms=1000
-    )
+    reclaimed = await transport.reclaim_pending("backtest", "workers", "worker-1", min_idle_ms=1000)
     assert reclaimed[0].stream_id == "1-1"
     ack = await transport.acknowledge("backtest", "workers", "1-0")
     assert ack.acknowledged

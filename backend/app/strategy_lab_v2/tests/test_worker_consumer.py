@@ -222,6 +222,7 @@ async def test_missing_materialized_payload_remains_pending_for_retry() -> None:
         group_name="workers",
         consumer_name="worker-1",
     )
+
     async def handler(received_entry, received_payload):
         del received_payload
         return _handler_result(received_entry)
@@ -235,9 +236,7 @@ async def test_missing_materialized_payload_remains_pending_for_retry() -> None:
 @pytest.mark.asyncio
 async def test_group_setup_failure_returns_typed_empty_poll() -> None:
     worker = RedisDispatchWorker(
-        RedisDispatchTransport(
-            FakeRedis(group_result=RuntimeError("Redis unavailable"))
-        ),
+        RedisDispatchTransport(FakeRedis(group_result=RuntimeError("Redis unavailable"))),
         queue_name="backtest",
         group_name="workers",
         consumer_name="worker-1",
@@ -288,6 +287,7 @@ def test_worker_scheduler_rejects_invalid_configuration() -> None:
         group_name="workers",
         consumer_name="worker-1",
     )
+
     async def sleep(_: float) -> None:
         return None
 

@@ -108,32 +108,36 @@ async def test_runtime_receipt_adapter_registers_replays_and_scopes() -> None:
             principal="owner-a",
             request=replace(request, source_digest=content_digest("different-source")),
         )
-    assert await adapter.load_request(
-        principal="owner-a", request_fingerprint=request.fingerprint
-    ) == request_registered.receipt
-    assert await adapter.load_request(
-        principal="owner-b", request_fingerprint=request.fingerprint
-    ) is None
+    assert (
+        await adapter.load_request(principal="owner-a", request_fingerprint=request.fingerprint)
+        == request_registered.receipt
+    )
+    assert (
+        await adapter.load_request(principal="owner-b", request_fingerprint=request.fingerprint)
+        is None
+    )
 
-    preflight_registered = await adapter.ensure_preflight(
-        principal="owner-a", preflight=preflight
-    )
+    preflight_registered = await adapter.ensure_preflight(principal="owner-a", preflight=preflight)
     assert preflight_registered.decision is RuntimeReceiptDecision.REGISTERED
-    preflight_replay = await adapter.ensure_preflight(
-        principal="owner-a", preflight=preflight
-    )
+    preflight_replay = await adapter.ensure_preflight(principal="owner-a", preflight=preflight)
     assert preflight_replay.decision is RuntimeReceiptDecision.REPLAY_EXISTING
     with pytest.raises(ValueError, match="already bound"):
         await adapter.ensure_preflight(
             principal="owner-a",
             preflight=replace(preflight, profile_fingerprint=content_digest("different-profile")),
         )
-    assert await adapter.load_preflight(
-        principal="owner-a", preflight_fingerprint=preflight.fingerprint
-    ) == preflight_registered.receipt
-    assert await adapter.load_preflight_contract(
-        principal="owner-a", preflight_fingerprint=preflight.fingerprint
-    ) == preflight
+    assert (
+        await adapter.load_preflight(
+            principal="owner-a", preflight_fingerprint=preflight.fingerprint
+        )
+        == preflight_registered.receipt
+    )
+    assert (
+        await adapter.load_preflight_contract(
+            principal="owner-a", preflight_fingerprint=preflight.fingerprint
+        )
+        == preflight
+    )
 
 
 @pytest.mark.asyncio
@@ -172,9 +176,7 @@ async def test_runtime_receipt_adapter_rejects_noncanonical_preflight_contract()
     raw[2] = list(reversed(raw[2]))
     payload = json.dumps(raw, separators=(",", ":"), sort_keys=True)
     row["preflight_json"] = payload
-    row["preflight_fingerprint"] = "sha256:" + hashlib.sha256(
-        payload.encode("utf-8")
-    ).hexdigest()
+    row["preflight_fingerprint"] = "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
     row["record_fingerprint"] = content_digest(
         {
             "decision": registered.receipt.decision,
@@ -209,7 +211,9 @@ async def test_runtime_receipt_adapter_authenticates_tampered_payload_and_record
     session = FakeSession()
     adapter = PostgresRuntimeReceiptAdapter(lambda: session)
     await adapter.ensure_preflight(principal="owner-a", preflight=preflight)
-    session.preflights[("owner-a", preflight.fingerprint)]["record_fingerprint"] = content_digest("tampered")
+    session.preflights[("owner-a", preflight.fingerprint)]["record_fingerprint"] = content_digest(
+        "tampered"
+    )
     with pytest.raises(ValueError, match="fingerprint"):
         await adapter.load_preflight(
             principal="owner-a", preflight_fingerprint=preflight.fingerprint

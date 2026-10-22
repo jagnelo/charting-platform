@@ -124,12 +124,20 @@ def build_execution_summary(
         raise TypeError("publication must be a ResultPublicationPlan")
     if receipt.submission_id != outcome.submission_id:
         raise ValueError("submission receipt and outcome identities must match")
-    if receipt.request.attempt_id != outcome.attempt_id or progress.attempt_id != outcome.attempt_id:
+    if (
+        receipt.request.attempt_id != outcome.attempt_id
+        or progress.attempt_id != outcome.attempt_id
+    ):
         raise ValueError("submission, outcome, and progress attempts must match")
     allowed_progress = {
         OutcomeStatus.ACCEPTED: frozenset({ProgressPhase.QUEUED}),
         OutcomeStatus.RUNNING: frozenset(
-            {ProgressPhase.QUEUED, ProgressPhase.PREPARING, ProgressPhase.RUNNING, ProgressPhase.FINALIZING}
+            {
+                ProgressPhase.QUEUED,
+                ProgressPhase.PREPARING,
+                ProgressPhase.RUNNING,
+                ProgressPhase.FINALIZING,
+            }
         ),
         OutcomeStatus.SUCCEEDED: frozenset({ProgressPhase.SUCCEEDED}),
         OutcomeStatus.FAILED: frozenset({ProgressPhase.FAILED}),

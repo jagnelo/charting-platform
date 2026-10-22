@@ -24,7 +24,9 @@ def test_dispatch_payload_round_trips_immutable_canonical_values() -> None:
 def test_dispatch_payload_rejects_tampered_bytes_and_non_object_roots() -> None:
     record = DispatchPayload.from_mapping({"symbol": "AAPL"})
     with pytest.raises(ValueError, match="digest"):
-        DispatchPayload(record.payload_digest, canonical_json({"symbol": "MSFT"}), record.byte_length)
+        DispatchPayload(
+            record.payload_digest, canonical_json({"symbol": "MSFT"}), record.byte_length
+        )
 
     list_json = canonical_json(["not", "an", "object"])
     with pytest.raises(ValueError, match="root must be a mapping"):

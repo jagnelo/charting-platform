@@ -50,8 +50,7 @@ def verify_run_result_artifacts(
         raise TypeError("artifact receipts must use ArtifactIntegrityReceipt records")
 
     expected = {
-        artifact.content_digest: content_digest(artifact)
-        for artifact in result.output_artifacts
+        artifact.content_digest: content_digest(artifact) for artifact in result.output_artifacts
     }
     receipt_digests = tuple(item.expected_digest for item in receipt_values)
     if len(receipt_digests) != len(set(receipt_digests)):

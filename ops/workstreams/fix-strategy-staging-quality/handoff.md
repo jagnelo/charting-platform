@@ -28,3 +28,26 @@ the proposed unit profile; the required docker_integration minimum is retained,
 with actual isolated PostgreSQL/Redis contracts and exact cleanup. No exception
 or validation weakening is recorded. No Compose/browser fixture is needed for
 the proven formatter-only scope; exact full hosted/staging gates remain required.
+
+## Local validation complete — 2026-10-22 15:26 UTC
+
+- Ruff0.4.7 format changed exactly139files/745unchanged. Backend Ruff check passed;
+  format --check now884alreadyformatted. No policy/dependency/assertion change.
+- Read-only /tmp/strategy-format-equivalence-20261022.py proves all139runtimeASTs
+  equal exact degraded5178b414 baseline and every file matches pinned formatter
+  bytes. No unexpected changed source path.
+- Formatted startup/schema unit modules:8passed9.14s.
+- Actual isolated Provider local mapped-FK/read-revoke and Forward persisted
+  receipt/Redis replay integration:3passed4.03s. Clean environment/no provider
+  credentials/requests; verified internalnetwork/no publishedports, PostgreSQL
+  768MiB/Redis256MiB,1CPUeach/pids128/noextraswap. Exactowned containers, volume
+  and network removed; all global container/volume/network differences empty.
+- First private setup failed before tests because internalnetwork did not publish
+  ports. Own temporary Redis/data anonymous volume was attributed and removed.
+  Corrected harness uses internalbridgeIPs/Redis tmpfs; no assertion/retry change.
+- Mandatory scoped agent-resource-cleanup passed,0remainingimages/volumes/containers,
+  no host-wide prune and no retainedresource change.
+
+Exact final hosted CI and repaired staging exhaustive gate are still pending.
+FMT3 remains incomplete until exact hosted success. No staging release,
+production/deployment or full feature-roadmap completion is inferred.

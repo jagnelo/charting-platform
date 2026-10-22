@@ -169,7 +169,10 @@ class PostgresCommandAdapter:
                     session, owner_id, command.attempt_id
                 )
                 prior_for_key = by_idempotency.get(idempotency_key)
-                if prior_for_key is not None and prior_for_key.command_fingerprint != command.fingerprint:
+                if (
+                    prior_for_key is not None
+                    and prior_for_key.command_fingerprint != command.fingerprint
+                ):
                     raise ApiAdapterError(
                         _api_error(
                             ApiErrorCode.IDEMPOTENCY_CONFLICT,
@@ -178,7 +181,9 @@ class PostgresCommandAdapter:
                             status_code=409,
                         )
                     )
-                context = await _resolve(self._state_reader(principal=principal, attempt_id=command.attempt_id))
+                context = await _resolve(
+                    self._state_reader(principal=principal, attempt_id=command.attempt_id)
+                )
                 if context is None:
                     raise ApiAdapterError(
                         _api_error(

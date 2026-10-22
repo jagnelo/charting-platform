@@ -28,8 +28,7 @@ def _aware(value: datetime, field_name: str) -> None:
 def _entrypoint(value: str) -> None:
     parts = value.split(":")
     if len(parts) != 2 or any(
-        not part or any(not token.isidentifier() for token in part.split("."))
-        for part in parts
+        not part or any(not token.isidentifier() for token in part.split(".")) for part in parts
     ):
         raise ValueError("entrypoint must use module.path:callable syntax")
 
@@ -176,7 +175,11 @@ class RuntimeExecutionUpdate:
     def __post_init__(self) -> None:
         require_sha256_digest(self.request_fingerprint, field_name="request_fingerprint")
         _nonempty(self.attempt_id, "attempt_id")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 1:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 1
+        ):
             raise ValueError("runtime sequence must be a positive integer")
         if not isinstance(self.phase, RuntimeExecutionPhase):
             raise TypeError("phase must be a RuntimeExecutionPhase")
@@ -193,12 +196,24 @@ class RuntimeExecutionUpdate:
         if self.error_digest is not None:
             require_sha256_digest(self.error_digest, field_name="error_digest")
         if self.phase is RuntimeExecutionPhase.SUCCEEDED:
-            if self.output_digest is None or self.output_bytes is None or self.error_digest is not None:
+            if (
+                self.output_digest is None
+                or self.output_bytes is None
+                or self.error_digest is not None
+            ):
                 raise ValueError("successful runtime updates require output identity and size")
         elif self.phase is RuntimeExecutionPhase.FAILED:
-            if self.error_digest is None or self.output_digest is not None or self.output_bytes is not None:
+            if (
+                self.error_digest is None
+                or self.output_digest is not None
+                or self.output_bytes is not None
+            ):
                 raise ValueError("failed runtime updates require an error and no output")
-        elif self.output_digest is not None or self.output_bytes is not None or self.error_digest is not None:
+        elif (
+            self.output_digest is not None
+            or self.output_bytes is not None
+            or self.error_digest is not None
+        ):
             raise ValueError("non-terminal runtime updates cannot contain output or error")
 
     @property
@@ -223,9 +238,17 @@ class RuntimeExecutionState:
         require_sha256_digest(self.request_fingerprint, field_name="request_fingerprint")
         _nonempty(self.attempt_id, "attempt_id")
         require_sha256_digest(self.profile_fingerprint, field_name="profile_fingerprint")
-        if not isinstance(self.output_limit_bytes, int) or isinstance(self.output_limit_bytes, bool) or self.output_limit_bytes <= 0:
+        if (
+            not isinstance(self.output_limit_bytes, int)
+            or isinstance(self.output_limit_bytes, bool)
+            or self.output_limit_bytes <= 0
+        ):
             raise ValueError("output_limit_bytes must be a positive integer")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 0
+        ):
             raise ValueError("runtime state sequence must be non-negative")
         if not isinstance(self.phase, RuntimeExecutionPhase):
             raise TypeError("phase must be a RuntimeExecutionPhase")
@@ -241,14 +264,26 @@ class RuntimeExecutionState:
         ):
             raise ValueError("runtime output exceeds the declared limit")
         if self.phase is RuntimeExecutionPhase.SUCCEEDED:
-            if self.output_digest is None or self.output_bytes is None or self.error_digest is not None:
+            if (
+                self.output_digest is None
+                or self.output_bytes is None
+                or self.error_digest is not None
+            ):
                 raise ValueError("successful runtime state requires output identity and size")
             require_sha256_digest(self.output_digest, field_name="output_digest")
         elif self.phase is RuntimeExecutionPhase.FAILED:
-            if self.error_digest is None or self.output_digest is not None or self.output_bytes is not None:
+            if (
+                self.error_digest is None
+                or self.output_digest is not None
+                or self.output_bytes is not None
+            ):
                 raise ValueError("failed runtime state requires an error and no output")
             require_sha256_digest(self.error_digest, field_name="error_digest")
-        elif self.output_digest is not None or self.output_bytes is not None or self.error_digest is not None:
+        elif (
+            self.output_digest is not None
+            or self.output_bytes is not None
+            or self.error_digest is not None
+        ):
             raise ValueError("non-terminal runtime state cannot contain output or error")
 
     @property
@@ -270,7 +305,11 @@ def new_runtime_execution_state(
     if preflight.decision is not StrategyRuntimeDecision.ALLOW:
         raise ValueError("runtime execution requires an allowed preflight")
     _nonempty(attempt_id, "attempt_id")
-    if not isinstance(output_limit_bytes, int) or isinstance(output_limit_bytes, bool) or output_limit_bytes <= 0:
+    if (
+        not isinstance(output_limit_bytes, int)
+        or isinstance(output_limit_bytes, bool)
+        or output_limit_bytes <= 0
+    ):
         raise ValueError("output_limit_bytes must be a positive integer")
     _aware(accepted_at, "accepted_at")
     return RuntimeExecutionState(
@@ -311,7 +350,10 @@ def apply_runtime_execution_update(
         raise TypeError("state must be a RuntimeExecutionState")
     if not isinstance(update, RuntimeExecutionUpdate):
         raise TypeError("update must be a RuntimeExecutionUpdate")
-    if update.request_fingerprint != state.request_fingerprint or update.attempt_id != state.attempt_id:
+    if (
+        update.request_fingerprint != state.request_fingerprint
+        or update.attempt_id != state.attempt_id
+    ):
         raise ValueError("runtime update must reference the same request and attempt")
     if update.observed_at < state.updated_at:
         raise ValueError("runtime update time cannot move backwards")

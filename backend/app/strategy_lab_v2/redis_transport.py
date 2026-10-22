@@ -123,15 +123,23 @@ class RedisTransportResolution:
         require_sha256_digest(self.request_fingerprint, field_name="request_fingerprint")
         if not isinstance(self.stream_key, str) or not self.stream_key.strip():
             raise ValueError("stream_key must not be empty")
-        if self.decision in {
-            RedisTransportDecision.CONFLICT,
-            RedisTransportDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                RedisTransportDecision.CONFLICT,
+                RedisTransportDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("failed Redis resolutions require a reason")
-        if self.decision in {
-            RedisTransportDecision.ENQUEUED,
-            RedisTransportDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                RedisTransportDecision.ENQUEUED,
+                RedisTransportDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful Redis resolutions cannot contain a reason")
 
     @property
@@ -378,7 +386,11 @@ class RedisDispatchTransport:
             count = int(result)
         except (TypeError, ValueError):
             return RedisAckResolution(
-                stream_key, group, stream_id, False, "Redis acknowledgement returned an invalid result"
+                stream_key,
+                group,
+                stream_id,
+                False,
+                "Redis acknowledgement returned an invalid result",
             )
         return RedisAckResolution(stream_key, group, stream_id, count == 1)
 

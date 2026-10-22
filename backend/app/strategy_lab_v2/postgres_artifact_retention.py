@@ -74,7 +74,10 @@ class PostgresArtifactRetentionSchema:
     pin_table: str = "strategy_lab_v2_artifact_retention_pins"
 
     def __post_init__(self) -> None:
-        for name, value in (("retention_table", self.retention_table), ("pin_table", self.pin_table)):
+        for name, value in (
+            ("retention_table", self.retention_table),
+            ("pin_table", self.pin_table),
+        ):
             if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
                 raise ValueError(f"{name} must be a safe SQL identifier")
 

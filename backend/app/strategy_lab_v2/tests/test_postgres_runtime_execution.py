@@ -76,10 +76,7 @@ class FakeSession:
                 for (owner, attempt, sequence), row in self.updates.items()
                 if owner == values["owner_id"]
                 and attempt == values["attempt_id"]
-                and (
-                    "sequence = :sequence" not in sql
-                    or sequence == values["sequence"]
-                )
+                and ("sequence = :sequence" not in sql or sequence == values["sequence"])
             ]
             return FakeResult(sorted(rows, key=lambda row: row["sequence"]))
         if normalized.startswith("INSERT INTO") and "runtime_execution" in sql:
@@ -114,9 +111,12 @@ async def test_runtime_adapter_initializes_replays_and_scopes_state() -> None:
     replay = await adapter.initialize(principal="owner-a", state=state)
     assert replay.decision is RuntimeStateDecision.REPLAY_EXISTING
     assert await adapter.load(principal="owner-a", attempt_id=state.attempt_id) == state
-    assert await adapter.load_for_request(
-        principal="owner-a", request_fingerprint=state.request_fingerprint
-    ) == state
+    assert (
+        await adapter.load_for_request(
+            principal="owner-a", request_fingerprint=state.request_fingerprint
+        )
+        == state
+    )
     assert await adapter.load(principal="owner-b", attempt_id=state.attempt_id) is None
 
 
@@ -157,7 +157,9 @@ async def test_runtime_adapter_applies_exact_updates_and_retains_history() -> No
         content_digest("stdout"),
         6,
     )
-    assert (await adapter.apply_update(principal="owner-a", update=terminal)).decision is RuntimeStateDecision.APPLIED
+    assert (
+        await adapter.apply_update(principal="owner-a", update=terminal)
+    ).decision is RuntimeStateDecision.APPLIED
     assert await adapter.load_updates(principal="owner-a", attempt_id=state.attempt_id) == (
         running,
         terminal,
@@ -229,7 +231,9 @@ async def test_runtime_adapter_authenticates_tampered_state_and_update_rows() ->
         NOW,
     )
     await adapter.apply_update(principal="owner-a", update=update)
-    session.updates[("owner-a", state.attempt_id, 1)]["update_fingerprint"] = content_digest("tampered")
+    session.updates[("owner-a", state.attempt_id, 1)]["update_fingerprint"] = content_digest(
+        "tampered"
+    )
     with pytest.raises(ValueError, match="fingerprint"):
         await adapter.load_updates(principal="owner-a", attempt_id=state.attempt_id)
 

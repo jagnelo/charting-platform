@@ -24,30 +24,43 @@
     "volume_count": 0,
     "worktree_id": "fix-strategy-staging-quality-a3afbefe16"
   },
+  "docker_ready": {
+    "ready": true,
+    "started_desktop": false,
+    "wait_seconds": 0
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance fix/strategy-staging-quality: Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting-only repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance fix/strategy-staging-quality: Repair the exact four-feature staging formatting failure without semantic changes, then return the clean validated repair for delegated coordinator acceptance and guarded remediation integration.. Acceptance criteria: FMT1: Pinned backend code and formatting checks pass without policy changes.; FMT2: All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic; FMT3: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-22T15:18:41.993498+00:00",
   "goal_request": {
-    "objective": "Advance fix/strategy-staging-quality: Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting-only repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Advance fix/strategy-staging-quality: Repair the exact four-feature staging formatting failure without semantic changes, then return the clean validated repair for delegated coordinator acceptance and guarded remediation integration.. Acceptance criteria: FMT1: Pinned backend code and formatting checks pass without policy changes.; FMT2: All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic; FMT3: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "This repair is executed inside the original active unbudgeted coordinator native goal, which covers the staging remediation. A second native goal in this same thread is unavailable; preserve original context, objective and accounting, and continue the recorded repair plan.",
   "head": "6f48c86df1ccd02fe93aa10535fcb6f14d8c41ed",
-  "implementation_sha": "5178b414b426ec61bdcb22257b4f956581c25d0c",
+  "implementation_sha": "d4945edd8f5597cf000d68276637d7c5700c24d7",
+  "last_human_progress_update": "2026-10-22T15:29:06.358728+00:00",
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "e5d426240bf0cb165fa59d263bc3f15ab8b980fb1b4d7e05958e41c731d7bfd8",
+  "plan_hash": "8e8d084a4ccc891d73ce0447b36646a205b3260ab5693517da26afcbc64794f2",
   "planning_required": true,
-  "planning_state": "draft",
+  "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
-    "completed": [],
+    "completed": [
+      "FMT1",
+      "FMT2"
+    ],
     "current_blocker": "none",
-    "current_phase": "plan",
-    "total": 0
+    "current_phase": "local-validation-green-awaiting-exact-source-ci",
+    "next_action": "Commit and push the locally validated formatter changeset; exact final branch CI remains mandatory before integration.",
+    "total": 3,
+    "updated_at": "2026-10-22T15:29:06.358710+00:00"
   },
   "remote": "6f48c86df1ccd02fe93aa10535fcb6f14d8c41ed",
-  "remote_sha": "6f48c86df1ccd02fe93aa10535fcb6f14d8c41ed",
+  "remote_sha": "d4945edd8f5597cf000d68276637d7c5700c24d7",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
