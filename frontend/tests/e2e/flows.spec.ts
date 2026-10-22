@@ -7484,6 +7484,84 @@ test.describe('Dashboard', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8y-tag-columns — ordinary row action reaches the selected WatchList mutation through its parent host', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    await page.goto('/chart/SPY')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    page.once('dialog', dialog => dialog.accept())
+    await Promise.all([
+      page.waitForResponse(response => response.url().includes('/reset-factory') && response.request().method() === 'POST' && response.status() === 200),
+      page.getByRole('button', { name: 'Reset', exact: true }).click(),
+    ])
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    const toolMenu = page.locator('.workstation__tool-library-menu')
+    await expect(toolMenu).toBeVisible({ timeout: 10_000 })
+    await toolMenu.getByRole('menuitem', { name: 'WatchList', exact: true }).click()
+    const watchlistTab = page.locator('.lm_tab').filter({ hasText: 'WatchList' }).last()
+    await expect(watchlistTab).toBeVisible({ timeout: 10_000 })
+    if (!(await watchlistTab.evaluate(tab => tab.classList.contains('lm_active')))) await watchlistTab.click()
+    const personal = page.locator('.tool-window--active .personal-watchlist-tool').last()
+    await expect(personal).toBeVisible({ timeout: 10_000 })
+    await expect(personal).toHaveAttribute('aria-busy', 'false')
+
+    const suffix = crypto.randomUUID()
+    const sourceName = `E2E Tag source ${suffix}`
+    const targetName = `E2E Tag target ${suffix}`
+    const controlName = `E2E Tag control ${suffix}`
+    const listName = personal.getByRole('textbox', { name: 'Personal watchlist name', exact: true })
+    const watchlistSelect = personal.getByRole('combobox', { name: 'Personal watchlist', exact: true })
+    const createList = personal.getByRole('button', { name: 'Create personal watchlist', exact: true })
+
+    await listName.fill(sourceName)
+    await createList.click()
+    await expect(watchlistSelect).toHaveValue(/\d+/)
+    const sourceId = await watchlistSelect.inputValue()
+
+    await listName.fill(targetName)
+    await createList.click()
+    await expect(watchlistSelect).not.toHaveValue(sourceId)
+    const targetId = await watchlistSelect.inputValue()
+
+    await listName.fill(controlName)
+    await createList.click()
+    await expect(watchlistSelect).not.toHaveValue(targetId)
+    const controlId = await watchlistSelect.inputValue()
+
+    await watchlistSelect.selectOption(sourceId)
+    const symbolInput = personal.getByRole('textbox', { name: 'Add symbol to personal watchlist', exact: true })
+    await symbolInput.fill('XLE')
+    await Promise.all([
+      page.waitForResponse(response => response.url().includes(`/watchlists/${sourceId}/items`) && response.request().method() === 'POST' && response.ok()),
+      personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click(),
+    ])
+    const sourceRow = personal.locator('.watchlist__row').filter({ hasText: 'XLE' })
+    await expect(sourceRow).toBeVisible({ timeout: 10_000 })
+
+    await personal.getByRole('button', { name: 'Columns', exact: true }).click()
+    const editor = personal.getByRole('dialog', { name: 'Column editor', exact: true })
+    const targetSelect = editor.getByRole('combobox', { name: 'Tag Column target WatchList', exact: true })
+    await targetSelect.selectOption(targetId)
+    await editor.getByRole('button', { name: 'Add Tag Column', exact: true }).click()
+    await expect(personal.locator('.watchlist__header')).toContainText(`Tag · ${targetName}`, { timeout: 10_000 })
+    await personal.getByRole('button', { name: 'Columns', exact: true }).click()
+
+    await sourceRow.click({ button: 'right' })
+    const addAction = personal.getByRole('menuitem', { name: `Add XLE to Tag · ${targetName}`, exact: true })
+    await expect(addAction).toBeEnabled()
+    await Promise.all([
+      page.waitForResponse(response => response.url().includes(`/watchlists/${targetId}/items`) && response.request().method() === 'POST' && response.ok()),
+      addAction.click(),
+    ])
+
+    await watchlistSelect.selectOption(controlId)
+    await expect(personal.locator('.watchlist__row')).toHaveCount(0)
+    await watchlistSelect.selectOption(targetId)
+    await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLE' })).toBeVisible({ timeout: 10_000 })
+    await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLE' })).toContainText('In')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8y-combo — personal watchlists compose into a persisted union/exclusion combo list', async ({ page, browserDiagnostics }) => {
     test.setTimeout(90_000)
     await page.goto('/chart/SPY')

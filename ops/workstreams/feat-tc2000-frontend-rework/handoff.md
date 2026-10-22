@@ -1,6 +1,28 @@
 # feat/tc2000-frontend-rework
 
-## Current continuation — 2026-10-23: Tag Columns coverage recovery
+## Current candidate — 2026-10-23: parent-path E2E added, runtime pending
+
+Published HEAD is `45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b`, clean and
+origin-matched before this candidate. The older exact CI `39866293985` reports
+69.08% function coverage against the unchanged 70% threshold on source
+`fd567b418d9566310bafab9115cee067539b69ef`; do not rebind it to 45b or this
+candidate. The focused Tag Columns helper/component suites passed 103/103 and
+Vue type-check passed on the prior 45b source.
+
+`frontend/tests/e2e/flows.spec.ts` now adds an ordinary-click case through the
+actual workstation parent: it creates source, target, and control personal
+WatchLists, configures the target Tag Column, clicks its row context-menu action,
+observes the target-list POST, and checks the separate control list remains
+empty. Playwright `--list` collected one case with exit 0; the scope
+self-tests/guard, workstream validator, and diff check pass. The case has NOT
+run in a browser, so positive/negative host-to-mutation runtime proof remains
+pending until Root releases the full local fixture slot and the required
+profile executes it. No parent acceptance is claimed from collection or the
+earlier SFC parser. Exact candidate CI, full frontend coverage/build, and browser
+execution remain pending; the 70% threshold and all existing behavior/assertions
+are unchanged.
+
+## Previous candidate — 2026-10-23: Tag Columns coverage recovery
 
 The current candidate was prepared on published TC base
 `fd567b418d9566310bafab9115cee067539b69ef`, whose exact branch CI

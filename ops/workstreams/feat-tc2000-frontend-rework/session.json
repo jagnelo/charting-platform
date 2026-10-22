@@ -46,10 +46,11 @@
       "frontend_unit": "failed: function coverage 69.08 percent below unchanged 70 percent threshold"
     },
     "run_id": 39866293985,
-    "status": "frontend unit failed on published source fd567b418d9566310bafab9115cee067539b69ef; backend was still in progress at last observation; no full-run conclusion claimed",
-    "visuals": "No new browser result qualifies this source candidate; prior visual evidence remains qualified to its recorded test/product inputs."
+    "status": "Historical run 39866293985 applies only to published source fd567b418d9566310bafab9115cee067539b69ef; backend was still in progress at last observation, so no whole-run result is claimed. No exact CI is recorded for 45b or the current E2E candidate.",
+    "visuals": "No browser result qualifies published HEAD 45b or the current E2E candidate; the new parent-event runtime regression is unexecuted and pending the released full local fixture slot. Prior visual evidence remains qualified to its recorded test/product inputs."
   },
   "dirty_paths": [
+    "frontend/tests/e2e/flows.spec.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -165,7 +166,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish local Tag Columns commit 45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b for exact-source CI without changing the 70% coverage threshold. The helper tests and parent-template parse are not runtime parent-event proof; keep positive/negative host-to-mutation evidence pending until a real parent mount runs under the appropriate full coverage profile or an ordinary-click browser regression runs in the required full local profile after Root releases the fixture slot. Do not claim parent acceptance from structural parsing or start a heavy profile before release. Preserve the full AC1-AC9 roadmap, official REF-HELP-V25 gap, provider/live holds, and reference policy.",
+  "next_action": "After Root releases the full local fixture slot, run the new ordinary-click F8y-tag-columns parent-event case within the required full local profile. Playwright collection passed but no browser executed it, so keep runtime proof pending. Preserve the 70% coverage threshold, complete AC1-AC9 roadmap, official REF-HELP-V25 gap, provider/live holds, and reference policy.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -178,7 +179,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "88d05a712f5b67cc1623c03cacb40038e24c60550f1ea92a0510607ee8b4c67b",
+  "plan_hash": "02420a74026e5b0e657d657ee47d3228e1e369ece8e60a95cd5246f2422467e5",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -198,29 +199,29 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "Tag Columns candidate 45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b is local and one commit ahead of origin; exact-source CI is pending. Focused helper tests/type/scope checks pass, but the parent SFC parse is only structural and does not exercise host-event delivery. Positive/negative parent-to-mutation runtime proof remains pending until a real parent mount runs under the appropriate full coverage profile or an ordinary-click browser regression runs in the required full local profile after Root releases the fixture slot. Preserve the 70% coverage threshold and existing behavior/assertions. Do not adopt Root's unreleased repair or start a heavy profile before slot release. Broader AC1-AC9, official REF-HELP-V25, and Custom Date Sort relative comparator remain open.",
-    "current_phase": "local_Tag_Columns_candidate_45b1d09b8_ahead_of_origin;focused_103_tests_typecheck_scope994_selftests35_green;parent_host_event_runtime_proof_pending;candidate_exact_CI_frontend_coverage_build_pending;no_local_browser_or_Compose;root_Market_Map_staging_repair_not_adopted;Custom_Date_Sort_relative_comparator_unavailable;full_AC1_AC9_and_official_REF_HELP_V25_open",
-    "next_action": "Publish local Tag Columns commit 45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b for exact-source CI without changing the 70% threshold. Keep positive/negative parent host-to-mutation runtime proof pending; satisfy it with a real parent mount under the full coverage profile or ordinary-click browser regression in the required full local profile after Root releases the fixture slot. Do not claim parent acceptance from template parsing.",
+    "current_blocker": "Published HEAD 45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b is clean and origin-matched; the dirty flows.spec.ts candidate adds one ordinary-click parent-to-mutation regression. Playwright collects it, and lightweight scope/workstream/diff checks pass, but browser runtime proof remains pending until Root releases the full local fixture slot. The 69.08% Frontend coverage failure is qualified to older fd567 source, not 45b. Exact CI for 45b/current candidate and full local coverage/build/browser remain pending. Preserve the 70% threshold, existing assertions, and full roadmap; Root's Market Map repair has not been adopted.",
+    "current_phase": "dirty_ordinary_click_Tag_Column_parent_mutation_E2E_candidate_on_45b;Playwright_collection1_exit0;scope994_858immutable_29adaptations_selftests35_workstream_diff_green;browser_parent_event_runtime_pending_fixture_slot;exact_CI_and_full_coverage_build_pending;no_browser_or_Compose;Root_repair_not_adopted;full_AC1_AC9_and_official_REF_HELP_V25_open",
+    "next_action": "After Root releases the full local fixture slot, execute the new F8y-tag-columns case within the required full local functional profile. Preserve all assertions and zero-retry policy; do not claim parent runtime acceptance from collection or helper/parser tests.",
     "total": 5,
-    "updated_at": "2026-10-22T23:04:14Z"
+    "updated_at": "2026-10-22T23:16:40Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
     "current_local_head": "45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b",
-    "current_pending_range": "Local Tag Columns helper extraction 45b1d09b8 is one commit ahead of origin/fd567b418d9566310bafab9115cee067539b69ef. Focused helper suites/type-check pass. Exact-source CI, full frontend coverage/build, and positive/negative parent host-to-mutation runtime proof remain pending; the structural template check is supplementary only.",
+    "current_pending_range": "Published HEAD 45b1d09b8 is clean and origin-matched. The current working-tree delta is one ordinary-click F8y-tag-columns E2E regression; collection passes, but runtime has not executed. Exact candidate CI, full frontend coverage/build, and positive/negative parent host-to-mutation runtime proof remain pending.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "fd567b418d9566310bafab9115cee067539b69ef",
-    "status": "The exact coordinator-released staging M2 0e342512 remains an ancestor. Current origin tracking is fd567b418d9566310bafab9115cee067539b69ef; local candidate 45b1d09b8 is not yet pushed. No runtime parent-event acceptance is claimed."
+    "remote_tracking_sha": "45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b",
+    "status": "The exact coordinator-released staging 0e342512 remains an ancestor. Origin is synchronized at published HEAD 45b1d09b8; the current E2E regression is uncommitted. No runtime parent-event acceptance is claimed."
   },
-  "remote": "fd567b418d9566310bafab9115cee067539b69ef",
-  "remote_sha": "fd567b418d9566310bafab9115cee067539b69ef",
-  "remote_synchronized": false,
+  "remote": "45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b",
+  "remote_sha": "45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

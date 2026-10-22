@@ -70,14 +70,20 @@ current_blocker: >-
   branch CI 39866293985 has a Frontend Unit
   failure at 69.08% function coverage versus the unchanged 70% threshold; the
   backend job was still in progress at last observation, so no whole-run result
-  is claimed. The failure is attributable to the focused Tag Columns suite
+  is claimed. This 69.08% failure is qualified to source
+  fd567b418d9566310bafab9115cee067539b69ef, not published commit 45b1d09b8 or
+  the current candidate. The failure is attributable to the focused Tag Columns suite
   importing the large WorkstationToolContent component and adding unrelated
   component functions to the coverage denominator. Local commit 45b1d09b8
   extracts production Tag Columns target/configuration/membership logic into
   the tested tagColumns seam. Its six-host SFC binding parse is supplementary
   only: the focused tests do NOT mount WorkstationToolContent or prove the
-  parent event-to-mutation path. That positive/negative runtime proof remains
-  explicitly PENDING and must be supplied by a real parent mount under the
+  parent event-to-mutation path. The new ordinary-click F8y-tag-columns E2E
+  case creates source/target/control lists, invokes the actual row context-menu
+  action, observes the target-list POST, and checks that the control remains
+  empty; Playwright collection passes, but the case has NOT run in a browser.
+  Positive/negative runtime proof remains explicitly PENDING and must be
+  supplied by a real parent mount under the
   appropriate full coverage profile or an ordinary-click browser regression
   in the required full local profile after the reserved fixture slot is
   released. Do not claim parent runtime acceptance from helper tests or
@@ -105,12 +111,12 @@ current_checkpoint_status: >-
   Tag Columns configuration and mutation behavior into the focused
   `tagColumns.ts` seam, tests the same guards/errors/in-flight coalescing, and
   parses the parent SFC to assert all six direct host bindings. That parser
-  check is supplementary, not runtime evidence: no test currently mounts the
-  parent to prove a host event reaches mutation, so the required positive and
-  negative parent-event path remains pending. Cover it with a real parent mount
-  under the appropriate full coverage profile or an ordinary-click browser
-  regression in the required full local profile after Root releases the
-  fixture slot. The three affected suites pass 103/103 and `vue-tsc --noEmit`
+  check is supplementary. The new ordinary-click F8y-tag-columns E2E case
+  collects successfully but has not executed in a browser; the required
+  positive and negative parent-event path remains pending. Run the case in the
+  required full local profile after Root releases the fixture slot (or prove
+  the same path with a real parent mount under the appropriate full coverage
+  profile). The three affected suites pass 103/103 and `vue-tsc --noEmit`
   exits0. No full frontend coverage/build or browser profile has yet qualified
   this candidate. Root's later staging repair remains unaccepted until its
   exact CI is green and Root releases it; no merge or shared-source import is
