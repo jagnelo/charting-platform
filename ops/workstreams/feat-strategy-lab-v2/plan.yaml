@@ -1,7 +1,8 @@
 schema: 4
-goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap.
-  Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider,
-  ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.
+goal: Continue the original full 18-criterion Strategy Lab v2 roadmap in the existing branch and worktree.
+  The accepted strategy-lab-v2-integration-1 checkpoint is historical evidence, not full-topic or
+  native-v2 SPA/execution completion. Continue bounded work against the integrated Provider, ETF,
+  and TC2000 contracts while preserving every original criterion and all disabled-scope boundaries.
 integration_checkpoint:
   id: strategy-lab-v2-integration-1
   completed_changesets:
@@ -23,7 +24,7 @@ integration_checkpoint:
     base_source_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
     released_staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
     strategy_merge_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
-    phase: checkpoint_accepted_ready_for_integration
+    phase: checkpoint_accepted_and_green_four_feature_baseline_adopted
     reconciled_alembic_head: slv2_0011
     integration_capture: exact branch HEAD
     intent: >-
@@ -695,32 +696,26 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: strategy-lab-v2-integration-1-accepted-ready-for-integration
+  current_phase: full-roadmap-selected-study-runtime-input-materialization
   current_blocker: >-
-    Root accepted this exact bounded checkpoint at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91
-    under the human-delegated decision. The exact-source hosted CI 39779005214 passed Backend,
-    Frontend Unit, Branch-declared and E2E Playwright; the feature-branch Exhaustive Integration Gate
-    was skipped by policy and is not staging evidence. The final local application profile passed:
-    real registered API and default DB/Redis worker readiness/restart; functional browser 195 passed
-    with two existing live-opt-in skips in 20.8 minutes; strict visual 104/104 in 13.4 minutes;
-    both used zero retries and unchanged assertions/references/tolerances/masks. The full local
-    backend collector evidence remains input-qualified to earlier source; its integration wrapper
-    did not capture a separate pytest exit, so a clean full-backend pass on P is not claimed. The
-    fresh/previous-release migration gate passed at B b96d456 and the reviewed B-to-P migration/model
-    input diff is empty; migration was not separately rerun on P. Exact owned profile cleanup passed,
-    all three global inventory diffs are zero bytes, and own project/browser resources are absent.
-    Two browser-start preflight failures (missing pinned image, then missing nested mountpoint) are
-    retained as no-test failures; the corrected attempt ran the full suite once without retries.
-    The checkpoint is accepted and ready for the coordinator's canonical staging integration;
-    the original 18-criterion roadmap remains open and the owner must not self-integrate. No live
-    provider/quota, job dispatch, native execution, broker, real-capital, paid/trial or deployment
-    operation occurred. Nautilus authority remains exact-build/scope qualified; generic Study output
-    is not native execution proof. The current native goal remains active and unbudgeted.
+    No upstream-contract wait remains for the released four-feature baseline. Exact green staging
+    0e342512e53ba2268425294d61c50e219eaafa4f (CI 39827786248, including Exhaustive Integration
+    Gate 120006510572) is adopted in Strategy merge 05acff1aa624b2f6ba9e1085a796e17b664ed87a and
+    independently verified equal to the feature remote. The accepted SLICP1-SLICP5 checkpoint and
+    its exact source/runtime/CI evidence remain historical; they do not close the original 18
+    criteria or prove native-v2 SPA/execution. Current technical boundary: selected TC Study
+    references are authenticated and immutable, but runtime assembly does not materialize their
+    payload. The active change therefore rejects a selected Study reference before any runtime
+    artifact is published; no-reference assembly compatibility is retained. Provider/live/quota,
+    paid/trial, unknown/unsafe, broker, and capital-bearing actions remain disabled; no provider,
+    issuer, or SEC HTTP was used. Full backend/combined DB, runtime, browser, visual, native and
+    exact-source gates remain open for later coordinator-assigned validation.
   next_action: >-
-    Hand off the clean closure-record commit to Root for guarded canonical staging integration.
-    After Root releases the exact synchronized green staging result, continue the full original
-    18-criterion roadmap in this same worktree without changing its criteria or enabling unsupported
-    scopes.
+    Define the supported immutable Study payload representation and bind its authenticated content
+    into the frozen native-runtime input bundle. Revalidate owner, source lineage, payload digest,
+    and version at preparation and worker restart; until that implementation and evidence exist,
+    keep selected Study inputs fail-closed and do not claim native execution. Continue the unchanged
+    18-criterion roadmap and preserve the human-selected local/production safety boundaries.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1063,7 +1058,7 @@ deployment_impact: >-
   Add local Compose backtest/forward worker services and a persistent artifact
   volume with conservative defaults. No deployment, worker activation against
   real data, provider secret distribution, or broker connectivity is authorized.
-status: ready_for_integration
+status: in_progress
 remaining_gaps:
   # These accumulated entries are dated implementation snapshots, not the live
   # gate list. Use current_blocker/next_action for active work; stable Nautilus
@@ -1604,58 +1599,30 @@ roadmap_progress_history:
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
   total: 18
-  current_phase: oos-native-terminal-receipt-first-recovery-v1
+  current_phase: strategy-lab-v2-selected-study-runtime-input-materialization-v1
   active_changeset:
-    id: strategy-lab-v2-oos-native-terminal-receipt-first-recovery-v1
+    id: strategy-lab-v2-selected-study-runtime-input-materialization-v1
     scope: >-
-      Close the recovered walk-forward OOS dispatch through exact-pinned native
-      Nautilus execution, PostgreSQL terminal result settlement, and Redis
-      consumer acknowledgement/reclaim. Authenticate and idempotently bootstrap
-      owner-scoped initial execution/runtime state before process launch. On
-      redelivery, replay a matching durable completion/settlement/release before
-      starting Nautilus again. Preserve training-only selection, attempt and
-      payload identity, outbox ordering, and owner isolation. Do not modify
-      provider or frontend paths.
+      Prevent a frozen Strategy input that pins an authenticated TC Study artifact from being
+      silently ignored by Nautilus runtime assembly. Until a producer-supported immutable payload
+      codec and worker-bundle binding are implemented, reject such selected inputs before writing
+      runtime artifacts. Preserve legacy no-reference assembly/fingerprints, exact owner-scoped
+      Study identity and digest checks, exact-pinned Nautilus authority, and all forward/broker/
+      capital/paid/trial/provider safety holds. Next work is the payload contract and immutable
+      bundle/restart revalidation, not broader engine or UI expansion.
     owned_paths:
-      - backend/app/strategy_lab_v2/worker_initial_state.py
-      - backend/app/strategy_lab_v2/worker_callbacks.py
-      - backend/app/strategy_lab_v2/worker_service.py
-      - backend/app/strategy_lab_v2/worker_recovery_application.py
-      - backend/app/strategy_lab_v2/worker_entrypoint.py
-      - backend/app/strategy_lab_v2/redis_application.py
-      - backend/app/strategy_lab_v2/tests/test_worker_initial_state.py
-      - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
-      - backend/app/strategy_lab_v2/tests/test_worker_service.py
-      - backend/app/strategy_lab_v2/tests/test_worker_entrypoint.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py
-      - backend/app/strategy_lab_v2/tests/test_search_dispatch_preparation.py
-      - backend/tests/integration/strategy_lab_v2/test_oos_terminal_postgres_redis.py
-      - backend/tests/integration/strategy_lab_v2/test_worker_recovery_postgres.py
-      - backend/tests/integration/strategy_lab_v2/test_walk_forward_phase_recovery_postgres.py
+      - backend/app/strategy_lab_v2/nautilus_trial_assembly.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_trial_assembly.py
     status: in_progress
   current_blocker: >-
-    No Nautilus release or implementation dependency blocks the local backend:
-    exact-pinned Nautilus 2.0.0rc6 passed the required conformance scopes, and
-    the native OOS request now crosses PostgreSQL terminal settlement and Redis
-    crash-reclaim ACK with no second engine launch. Forward event/terminal
-    recovery, worker-fleet leases, and branch-owned security/isolation/scaling
-    slices are also green, and the authenticated live Compose curve transfer is
-    now proven against the real FastAPI/PostgreSQL stack and shared artifact
-    volume. Exact Strategy source c9723d2b3718b9d598e0d8d307c9fbbd1d943187
-    also passed hosted CI run 38907993948 (standard jobs including E2E passed;
-    Exhaustive was skipped). Remaining work is branch acceptance rather than an
-    engine-version wait: exact-tip local full-browser acceptance and
-    cross-workstream reconciliation. Provider-platform, ETF, and TC2000
-    contracts remain owned by their branches; shared router, migration, and
-    provider-decoder reconciliation must wait for their staged contracts.
-    Existing browser failures are in the parallel TC2000-owned surfaces, not
-    this backend package.
+    No staging dependency blocks this bounded source slice. TC Study references are owner-scoped
+    and digest-verified, but current native runtime assembly has no supported payload materializer;
+    the guard prevents false-success execution. Do not invent payload semantics or infer native
+    proof from generic Study output. Full roadmap gates remain to be reassessed against actual
+    source and coordinator resource slots after this source context closes.
   next_action: >-
-    Backend package, coverage, Compose API, and migration gates are green.
-    Continue with the exact-tip full-browser acceptance profile when the
-    parallel frontend workstream is ready, then perform line-level shared-path
-    reconciliation. Preserve engine-neutral
-    SDK boundaries, owner isolation, durable receipt-before-ACK semantics, and
-    fail-closed unsupported products. Reconcile shared router/migration,
-    provider-decoder, ETF, and TC2000 paths only after their approved branches
-    reach staging; do not duplicate those contracts here.
+    After this fail-closed guard is published and exact-source CI is observed, implement a typed,
+    immutable Study payload binding in the runtime bundle only from the accepted TC producer schema.
+    Add content-digest, owner/lineage/version, tamper, missing/deleted-source, and reconstructed-worker
+    restart rejection tests. Then request coordinator assignment for real PostgreSQL/worker/native
+    qualification; do not run heavy profiles or enable any live/broker/capital scope independently.

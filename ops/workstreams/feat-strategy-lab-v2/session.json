@@ -45,8 +45,8 @@
     "wait_seconds": 0
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: Reconcile dependency-ordered accepted green staging incrementally: Provider canonical identity/local series/coverage/freshness/provenance now; ETF known-at point-in-time membership and TC2000 immutable CodeVersion/Study outputs only after their releases; then prove the full combined consumer contract without completing this criterion early.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-20T21:20:08.900149+00:00",
+  "goal_objective": "Continue the original full 18-criterion Strategy Lab v2 roadmap in the same branch, worktree, and owner thread. Preserve the accepted strategy-lab-v2-integration-1 checkpoint as historical evidence, continue bounded work against the integrated Provider, ETF, and TC2000 contracts, and preserve all exact-scope Nautilus and disabled provider/live/quota/paid/trial/broker/capital boundaries. Validate exact-source changes and obtain coordinator-assigned heavy gates; stop the full topic only at ready_for_human_review.",
+  "goal_recorded_at": "2026-10-22T19:55:30Z",
   "goal_request": {
     "objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
@@ -58,17 +58,23 @@
       "observed_at": "2026-10-22T04:23:00Z",
       "source": "Root live snapshot for existing thread 01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b; no goal recreation or accounting reset.",
       "status": "active"
+    },
+    {
+      "budget": "unbounded",
+      "observed_at": "2026-10-22T19:55:36Z",
+      "source": "The prior integration-checkpoint objective was accepted and completed. Created the authorized next full-roadmap goal in the same original thread 01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b; no replacement of an unfinished objective or accounting reset.",
+      "status": "active"
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "079cab275f2b3250971a3a240022f689eddf080c",
-  "implementation_sha": "197ea15a9a90fbc76089a38fe67013c00a722d91",
-  "last_checkpoint": "2026-10-22T13:42:38Z",
+  "head": "c1237e9baf83e2d5872e9f886eb2ea4054660fd1",
+  "implementation_sha": "c1237e9baf83e2d5872e9f886eb2ea4054660fd1",
+  "last_checkpoint": "2026-10-22T19:54:36Z",
   "last_human_progress_update": "2026-10-20T21:20:08.693731+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Checkpoint strategy-lab-v2-integration-1 is accepted at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91 and ready for integration; this four-record closure push is the owner handoff. Root owns canonical staging integration and Exhaustive staging validation; do not self-integrate. After the exact synchronized green staging release, resume this same owner/worktree and continue the unchanged full 18-criterion roadmap.",
+  "next_action": "Publish and obtain exact-source CI for the current fail-closed selected-Study runtime-assembly change. Then define a typed immutable Study payload binding from the accepted TC schema, revalidate its owner/lineage/digest/version through worker reconstruction, and continue the unchanged full 18-criterion roadmap; request coordinator slots before heavy DB/runtime/browser/native validation.",
   "parent_branch": "staging",
-  "plan_hash": "6608dfb3b34881467ee1786fabbfa6dd7536b2a0db131a30b13a3fc2989579a1",
+  "plan_hash": "bd3fbec881130cfb7506ce34d35871cbafd46fff9c8afe42ce2a05178817a9cb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -98,14 +104,14 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Root accepted the exact tested checkpoint at 197ea15a9a90fbc76089a38fe67013c00a722d91 under delegated acceptance. Exact-source CI 39779005214 is green for all required feature jobs; Exhaustive was skipped by feature policy. The final local API/worker DB+Redis restart, functional browser (195 pass/2 existing opt-in skips), strict visual (104 pass), and exact owned cleanup/global diffs all passed. Local full-backend and migration evidence remains input-qualified as recorded; no full-backend run on P or separate P migration replay is claimed. The four-record closure commit is the owner handoff; Root alone performs coordinator staging integration and Exhaustive validation. The full 18-criterion roadmap remains open and the goal active/unbudgeted.",
-    "current_phase": "strategy-lab-v2-integration-1-accepted-ready-for-integration",
-    "next_action": "Hand off the clean closure-record commit to Root for guarded canonical staging integration. After Root releases the exact synchronized green staging result, continue the full original 18-criterion roadmap in this same worktree.",
+    "current_blocker": "The accepted 18-criterion roadmap has resumed after adoption of exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f in merge 05acff1aa624b2f6ba9e1085a796e17b664ed87a. The bounded current source change prevents a selected authenticated Study reference from being silently ignored by native-runtime assembly; its focused tests and Ruff pass, but exact-source CI and all full combined gates remain open. No runtime Study payload materializer is yet supported. Provider/live/quota, paid/trial/unknown/unsafe, broker, capital and deployment scopes remain disabled or unauthorized.",
+    "current_phase": "full-roadmap-selected-study-runtime-input-materialization",
+    "next_action": "Close and publish the current fail-closed assembly boundary, inspect exact-source CI once, then implement typed immutable Study payload binding and restart revalidation from the accepted TC producer schema. Keep native/worker claims qualified and request a coordinator slot before heavy validation.",
     "total": 5,
-    "updated_at": "2026-10-22T13:42:38+00:00"
+    "updated_at": "2026-10-22T19:54:36+00:00"
   },
-  "remote": "079cab275f2b3250971a3a240022f689eddf080c",
-  "remote_sha": "079cab275f2b3250971a3a240022f689eddf080c",
+  "remote": "c1237e9baf83e2d5872e9f886eb2ea4054660fd1",
+  "remote_sha": "c1237e9baf83e2d5872e9f886eb2ea4054660fd1",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

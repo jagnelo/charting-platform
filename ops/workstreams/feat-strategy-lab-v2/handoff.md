@@ -16825,3 +16825,63 @@ full-topic completion; all original criteria, native-v2 proof, and explicit
 forward/broker/capital safety boundaries remain in force. No new Compose,
 browser, database, or native-execution matrix is authorized without a separately
 assigned safe slot.
+
+## Green four-feature baseline adopted; full roadmap resumed — 2026-10-22
+
+The pre-merge note above is preserved as the exact state at that earlier boundary;
+its “fast-forward pending” sentence was superseded by the actions below. The
+released baseline is exactly
+`0e342512e53ba2268425294d61c50e219eaafa4f` (M2), with canonical green receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`
+and exact CI `39827786248`, including Exhaustive Integration Gate
+`120006510572`. I verified the release document and receipt, then reconciled
+both histories in this worktree: current Strategy tip
+`05acff1aa624b2f6ba9e1085a796e17b664ed87a` has first parent
+`f197a6ada55f51aa57fdd786c84ac0d5c398d45e` (the preserved owner preflight
+receipt) and second parent the exact M2 release. No reset, rebase, sibling write,
+or staging write occurred. The feature remote was independently verified at
+the same `05acff1...` SHA; local `origin/staging` is the exact M2 SHA. The
+earlier local-refusal/DNS notes remain historical and do not describe the
+verified current state.
+
+The accepted `strategy-lab-v2-integration-1` checkpoint remains accepted at
+tested source `197ea15...`; it is not full-topic completion and does not establish
+a native-v2 SPA/execution milestone. The original 18 roadmap criterion IDs and
+texts remain unchanged. The same original owner claim and worktree continue.
+The native goal API returned no active goal after the accepted checkpoint
+objective ended, so the authorized next unbudgeted full-roadmap goal was created
+in the same original thread `01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b`; it is active.
+No unfinished objective was replaced, no accounting was reset, and no new
+claim/thread was created. No provider/issuer/SEC request, quota replay,
+paid/trial/unknown/unsafe activation, broker/capital action, dataset reset,
+service cleanup, sibling/staging/master/deployment write, or new heavy profile
+occurred.
+
+### Active bounded changeset: selected Study runtime-input boundary
+
+The integrated API/worker path authenticates immutable owner-scoped TC Study
+references, but `assemble_nautilus_trial_runtime_input` currently does not
+materialize the referenced Study payload into native runtime inputs. Silently
+continuing would risk reporting a run that ignored a pinned input. The current
+two-file source slice therefore fails closed before writing artifacts when a
+component selects a Study reference, while preserving the no-reference path.
+Regression coverage asserts the error and that no artifact output is written.
+The focused assembly module passed `14` tests in `0.65s` on the final source;
+the new negative case also passed alone earlier (`1` test in `0.35s`). Ruff
+passed on the two touched files.
+These are bounded offline tests, not PostgreSQL/worker/native proof and not
+full-roadmap acceptance. Implementation commit
+`c1237e9baf83e2d5872e9f886eb2ea4054660fd1` contains only the two source/test
+files and has been pushed; actual remote comparison is identical/ahead 0/behind
+0. Exact-source push CI `39844035289` is pending as of 2026-10-22 19:53 UTC;
+do not claim a terminal result or replay it.
+
+Next, derive a typed immutable Study-output payload representation from the
+accepted TC producer schema and bind it into the frozen runtime bundle only
+after re-verifying owner, artifact identity, lineage, content digest and version.
+Add tamper, missing/deleted source, restart/reconstruction and no-second-dispatch
+tests. Until then, selected Study references remain deliberately unavailable to
+runtime assembly. Preserve exact-pinned Nautilus scope qualification and all
+provider, live, quota, paid/trial, broker, capital, and unsafe-operation holds.
+Full backend/combined DB, migration, worker, native, browser/strict-visual, exact
+source CI, and the remainder of the unchanged 18-criterion roadmap stay open.
