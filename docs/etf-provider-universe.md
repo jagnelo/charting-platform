@@ -2699,9 +2699,9 @@ derived snapshot. No vendor account, credential, payment, or activation was
 used.
 
 The Tier-0 runtime symbol audit and YAML ledger now carry this dated evidence
-and the same outcomes/next steps. Provider counts remain 496 registered, 421
-native/live-backed, and 75 fallback-only; no native promotion or budget change
-occurred. Evidence refs:
+and the same outcomes/next steps. At that 2026-10-05 evidence checkpoint, counts
+were then 496 registered, 421 native/live-backed, and 75 fallback-only; no
+native promotion or budget change was recorded. Evidence refs:
 `web:wisdomtree-dxj-product-page-2026-10-05-top-ten`,
 `web:wisdomtree-ntsx-product-page-2026-10-05-top-ten`,
 `live:wisdomtree-dxj-ntsx-canary-2026-10-05-dns-failure`,

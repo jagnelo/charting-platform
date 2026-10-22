@@ -88,9 +88,9 @@
     }
   ],
   "active_changeset": {
-    "baseline": "c5a8df29583631950c5b74e6fb9a59519eb9fe68",
-    "intent": "Reconcile stale current 421/75 provider-universe prose with current 422/74 runtime and ledger counts, preserve 421/75 as historical checkpoint data, and enforce the distinction with a regression sentinel.",
-    "name": "Provider-universe current-count chronology",
+    "baseline": "281368f979361003edd153e5b19251922e30f6ba",
+    "intent": "Ensure all present-tense provider-universe count wording agrees with current 422/74 runtime and ledger counts, preserve 421/75 as explicitly dated historical evidence, and enforce current-versus-historical distinctions with a regression sentinel.",
+    "name": "Provider-universe dated-count chronology follow-up",
     "owned_paths": [
       "backend/tests/unit/services/test_etf_holdings_adapters.py",
       "docs/etf-provider-universe.md",
@@ -99,7 +99,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
     ],
-    "state": "AC1_docs_and_test_change_uncommitted;focused_ledger_and_narrative_tests_2_passed;Ruff_format_diff_passed;owner_packet_and_exact_source_CI_pending;prior_535f_date_parity_source_and_c5_publication_preserved;full_local_profile_waits_for_Root_slot;no_external_http_or_quota;MSMR_QQQ_and_Militia_GOOG_quarantined"
+    "state": "published_AC1_current_count_correction_at_281368f;follow_up_dates_second_2026_10_05_historical_421_75_sentence;focused_tests_2_passed_in_8_12s_Ruff_format_diff_passed;run_39848752641_pending_on_base_281_and_does_not_validate_current_diff;full_local_profile_waits_for_Root_slot;no_external_HTTP_quota_or_profile;MSMR_QQQ_and_Militia_GOOG_quarantined"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -150,7 +150,7 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22: The accepted EICP checkpoint remains at synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f; the full roadmap remains open. Source 535f8928da53da9c20838007336d71b6e627e4c9 reconciles dates for all 74 runtime fallback identities with their current durable audit rows; 108 capability/parity/count-sentinel tests and static checks passed. Published workstream source c5a8df29583631950c5b74e6fb9a59519eb9fe68 is verified at origin. A substantive AC1 follow-up labels the stale 421/75 provider-universe count as historical at checkpoint a696 and keeps 422/74 as current; the focused ledger/narrative tests passed 2/2, Ruff/format/diff passed. Prior run 39845969811 on ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 is terminal cancelled after Frontend and backend unit success; it does not validate c5 or this diff. The combined-status lookup for c5 returned no entries, so exact CI is unverified, not green. Full local full_stack_browser awaits Root's safe slot. Preserve all prior partial/red evidence, the 15 Tier-0 and 156 Tier-1 audit phrase, MSMR/QQQ and Militia/GOOG quarantines, and disabled unknown/quota-held/unreviewed/paid/trial/unsafe routes. No issuer/provider/SEC HTTP, quota replay, data reset, retained-resource cleanup, deployment, or sibling/staging write.",
+  "current_blocker_latest": "2026-10-22: The accepted ETF checkpoint remains synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f; the full AC1-AC14 roadmap remains open. Published substantive commit 281368f979361003edd153e5b19251922e30f6ba corrected the current 422/74 provider split versus the historical 421/75 implementation checkpoint; exact remote parity is verified. Exact Actions run 39848752641 is pending on 281368f. An offline sweep found a second 421/75 statement in the dated 2026-10-05 Tier-0 report whose present tense could be mistaken for current status; that wording now explicitly dates the historical counts, and the regression sentinel covers both historical contexts and current 422/74. The two focused tests passed 2/2 in 8.12s; Ruff/format/diff passed. This follow-up is local/uncommitted and not covered by run 39848752641. Prior 39845969811 remains terminal cancelled history. Full local full_stack_browser awaits Root's safe slot. Preserve all prior partial/red evidence, 15 Tier-0 and 156 Tier-1, unresolved/quarantined MSMR/QQQ and Militia/GOOG, and disabled unknown/quota-held/unreviewed/paid/trial/unsafe routes. No issuer/provider/SEC HTTP, quota replay, data reset, cleanup, deployment, or sibling/staging write.",
   "dirty_paths": [
     "backend/tests/unit/services/test_etf_holdings_adapters.py",
     "docs/etf-provider-universe.md",
@@ -183,7 +183,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "c5a8df29583631950c5b74e6fb9a59519eb9fe68",
+  "head": "281368f979361003edd153e5b19251922e30f6ba",
   "implementation_sha": "535f8928da53da9c20838007336d71b6e627e4c9",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -294,9 +294,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-22T20:24:38Z",
+  "last_checkpoint": "2026-10-22T20:29:42Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-22: The EICP checkpoint remains accepted at synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f; the original roadmap remains open. Source 535f8928da53da9c20838007336d71b6e627e4c9 reconciles the dates of all 74 fallback identities with durable audit rows without status changes; 108 capability, ledger-parity, and narrative-sentinel cases passed with Ruff/format/diff/workstream validation. The coherent packet was published at c5a8df29583631950c5b74e6fb9a59519eb9fe68 and independently verified at origin. Exact staging release 0e342512e53ba2268425294d61c50e219eaafa4f was rechecked as an ancestor of c5, so the existing branch already includes it and no merge/rebase was needed. Offline AC1 follow-up corrects the provider-universe text: 421/75 is historical at checkpoint a696; 422/74 is current. Two focused doc/ledger tests passed in 4.38s with Ruff, format, workstream validator, and diff checks; this substantive follow-up and its tests are local/uncommitted. Prior CI 39845969811 on ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 is terminal cancelled after frontend/backend unit success, and is not source validation. The GitHub combined-status lookup for c5 returned no entries; exact CI remains unverified. The full_stack_browser profile remains required and awaits Root's safe slot. Preserve all fourteen criteria, issuer onboarding, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, disabled unsafe/unknown/paid/trial routes, and the 30-day observation. No live HTTP, quota, cleanup, deployment, or self-integration occurred.",
+  "latest_checkpoint": "2026-10-22: The EICP checkpoint remains accepted at synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f; the original roadmap remains open. Source 535f8928da53da9c20838007336d71b6e627e4c9 reconciles all 74 fallback identity dates with durable audit rows; 108 capability/ledger/count-sentinel cases passed. AC1 current-count correction was published at 281368f979361003edd153e5b19251922e30f6ba, exact remote parity was verified, and accepted staging 0e342512e53ba2268425294d61c50e219eaafa4f is its ancestor. Exact CI run 39848752641 is pending on 281368f. Follow-up offline scan found that a second 2026-10-05 Tier-0 report described then-current 421/75 counts in present tense; it now explicitly time-bounds that historical statement, with a regression assertion. The focused tests passed 2/2 in 8.12s with Ruff/format/diff; this substantive follow-up is local/uncommitted and not covered by run 39848752641. Earlier run 39845969811 remains terminal cancelled historical evidence. Full_stack_browser remains required and awaits Root's safe slot. Preserve all fourteen criteria, issuer onboarding, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/unsafe/paid/trial routes, and the 30-day observation. No live HTTP, quota, cleanup, deployment, or self-integration occurred.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -332,8 +332,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the substantive AC1 provider-universe current-count correction with its workstream evidence, verify exact origin parity and exact-source CI without calling the canceled older run green. Then continue offline evidence-backed AC2/AC4/AC5 issuer-audit and capability work in relevance order without refreshing blocked routes absent new retained evidence. Obtain Root's safe slot before the required full_stack_browser matrix. Preserve all fourteen criteria, histories, quarantines, route/cost holds, and 30-day observation; no live HTTP, quota action, unsafe activation, data reset, retained-resource cleanup, sibling/staging/master write, deployment, or self-integration.",
-  "plan_hash": "b6e132984596f5c8fbc0bf5500b4e9ee0a1425ef57c9d1d8f42fc361c0dc332f",
+  "next_action": "Publish the completed AC1 provider-universe current-versus-historical count correction with its evidence, verify exact remote parity and exact-source CI, then continue offline evidence-backed AC2/AC4/AC5 issuer audit and Tier-0 capability work in relevance order. Do not refresh blocked routes without new retained evidence. Obtain Root's safe slot before the required full_stack_browser matrix. Preserve all fourteen criteria, histories, quarantines, route/cost holds, and 30-day observation; no live HTTP, quota action, unsafe activation, data reset, retained-resource cleanup, sibling/staging/master write, deployment, or self-integration.",
+  "plan_hash": "0de83b411d88523bb68eb671269ef9148ab97e5011e3b9f27ef1168c31cd215d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -384,11 +384,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The accepted initial checkpoint and exact staging baseline 0e342512e53ba2268425294d61c50e219eaafa4f are complete; the full roadmap remains open with 15 Tier-0 and 156 Tier-1 investigations preserved. Source 535f8928 reconciles all 74 fallback audit dates without changing route status, and its 108-case capability/parity/count profile passed. Published c5a8df29583631950c5b74e6fb9a59519eb9fe68 is verified at origin. The next AC1 change labels 421/75 as historical and asserts current 422/74; its two focused tests and static checks pass locally. Prior CI 39845969811 is cancelled on old ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 and does not validate this work; combined-status lookup for c5 returned no entries, so exact CI remains unverified. MSMR/QQQ and Militia/GOOG remain quarantined; unsafe/unknown/paid/trial routes stay disabled. Full_stack_browser still awaits Root's safe slot.",
+    "current_blocker": "The accepted initial checkpoint remains exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f and is already in branch history. The complete roadmap remains open with 15 Tier-0 and 156 Tier-1 investigations preserved. Published AC1 correction 281368f has exact remote parity and run 39848752641 pending. The current local follow-up fixes a second dated 2026-10-05 historical 421/75 statement; 2 focused tests passed in 8.12s with Ruff/format/diff. This local diff is not covered by run 39848752641. MSMR/QQQ and Militia/GOOG remain quarantined, and unsafe/unknown/paid/trial routes stay disabled. Full_stack_browser still awaits Root's safe slot.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Publish and verify the substantive AC1 provider-universe current-count correction and its owner packet, then inspect exact-source CI and continue offline AC2/AC4/AC5 issuer audit and Tier-0 capability work in relevance order. Do not refresh blocked routes without new retained evidence. Obtain Root's safe slot before the required full_stack_browser matrix. Preserve all fourteen criteria, history, quarantines, route/cost holds, and the 30-day observation.",
+    "next_action": "Publish and verify the completed AC1 current-versus-historical provider-count correction, inspect its exact-source CI, then continue offline AC2/AC4/AC5 issuer audit and Tier-0 capability work in relevance order. Do not refresh blocked routes without new retained evidence. Obtain Root's safe slot before the required full_stack_browser matrix. Preserve all fourteen criteria, history, quarantines, route/cost holds, and the 30-day observation.",
     "total": 14,
-    "updated_at": "2026-10-22T20:20:58Z"
+    "updated_at": "2026-10-22T20:29:42Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -400,8 +400,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "c5a8df29583631950c5b74e6fb9a59519eb9fe68",
-  "remote_sha": "c5a8df29583631950c5b74e6fb9a59519eb9fe68",
+  "remote": "281368f979361003edd153e5b19251922e30f6ba",
+  "remote_sha": "281368f979361003edd153e5b19251922e30f6ba",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

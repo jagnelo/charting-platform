@@ -13402,6 +13402,28 @@ criteria, `15 Tier-0 and 156 Tier-1`, unresolved/quarantined MSMR/QQQ and
 Militia/GOOG, route and cost holds, and the 30-day observation. The required
 full `full_stack_browser` profile still needs Root's safe slot.
 
+## Dated provider-count context follow-up — 2026-10-22
+
+A repository-wide count-phrase scan found another `421/75` statement inside
+the dated 2026-10-05 Tier-0 source-availability report. It described that
+historical checkpoint, but present-tense “Provider counts remain” could be read
+as a current claim. The text now explicitly says those were the counts at that
+2026-10-05 evidence checkpoint; the current 422/74 statement and dated report
+history are retained. The narrative sentinel now checks this time boundary.
+
+The focused provider-ledger and narrative tests passed 2/2 in 8.12s; Ruff,
+format, and `git diff --check` passed. This follow-up is substantive but
+uncommitted. Exact push run `39848752641` is pending on commit
+`281368f979361003edd153e5b19251922e30f6ba`; that run cannot validate this newer
+working diff, and no status is inferred from it. The next publication must
+trigger and retain exact-source CI. No external HTTP, quota, full-stack profile,
+or resource cleanup occurred.
+
+Next after this correction is published: continue the offline AC2/AC4/AC5
+audit/capability work in relevance order. Preserve all fourteen criteria,
+`15 Tier-0 and 156 Tier-1`, the unresolved MSMR/QQQ and Militia/GOOG
+quarantines, verified-free-only routing, and the 30-day observation gate.
+
 After completing this workstream packet, the same focused source profile plus
 the mandatory narrative-count sentinel was rerun on unchanged implementation
 `535f8928da53da9c20838007336d71b6e627e4c9`: 108 tests passed in 5.14s. Ruff,

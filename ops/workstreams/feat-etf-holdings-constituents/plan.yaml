@@ -548,19 +548,17 @@ current_blocker: >-
   not route eligibility or current holdings claims. The deterministic capability
   module, exact provider-ledger parity test, and narrative-count sentinel
   passed 108 combined cases, as did changed-file Ruff, format, and diff checks.
-  Follow-on AC1 documentation review found a stale historical paragraph still
-  calling 421/75 the current split despite code/ledger and Repo Coverage being
-  422/74. The provider-universe narrative now labels 421/75 as the older
-  checkpoint and retains 422/74 as current; two focused ledger/narrative tests
-  passed with Ruff/format/diff. This documentation/test correction is locally
-  uncommitted and awaits its coherent owner packet. Exact CI 39845969811 on
-  preceding workstream-only source ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3
-  is terminal cancelled (Frontend passed; backend unit passed, integration was
-  cancelled; later jobs cancelled). It does not validate 535f8928 or the current
-  docs/test diff. The GitHub combined-status lookup for published source
-  c5a8df29583631950c5b74e6fb9a59519eb9fe68 returned no status entries; do not
-  claim exact CI green. A fresh exact-head CI remains required after the next
-  push. The full local integration/browser profile
+  AC1 provider-universe chronology work now labels 421/75 as historical at the
+  older implementation checkpoint while retaining 422/74 as the current code-
+  and ledger-derived split. A subsequent scan found the dated 2026-10-05 Tier-0
+  report also used present-tense wording for its then-current 421/75 counts; it
+  now explicitly dates that historical statement. The two focused ledger and
+  narrative tests passed 2/2 in 8.12s; Ruff, format, and diff checks passed.
+  This follow-up is local/uncommitted atop pushed source
+  281368f979361003edd153e5b19251922e30f6ba. Exact Actions run 39848752641 is
+  pending on 281368f and cannot validate this newer diff. Earlier run 39845969811
+  on ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 is terminal cancelled and remains
+  historical; it does not validate any newer source. The full local integration/browser profile
   remains mandatory and awaits Root's safe slot. Preserve the original
   monolithic partial attempt, earlier visual failure, all setup receipts, exact
   investigation counts `15 Tier-0 and 156 Tier-1`, and unresolved/quarantined
@@ -1586,8 +1584,9 @@ latest_green_staging_adoption:
 
 next_action: >-
   Continue the original full ETF roadmap in this same branch and goal lineage.
-  Publish the current provider-universe count correction and its test/evidence
-  packet, verify exact remote parity and inspect exact-head CI. Then continue
+  Publish the completed provider-universe current-versus-historical count
+  correction and its test/evidence packet, verify exact remote parity and
+  inspect exact-head CI. Then continue
   offline evidence-backed AC2/AC4/AC5 issuer audit and Tier-0 consumer work in
   relevance order. Treat audit dates as evidence chronology only; do not change
   source statuses or refresh blocked routes without new retained evidence or

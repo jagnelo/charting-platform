@@ -30106,6 +30106,11 @@ def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
         "At the older provider-repair implementation checkpoint `a696277b6efed719cc40051e010f5e6a5b542f3e`, "
         "the then-current split was 421 native and 75 fallback-only."
     ) in normalized_provider_universe
+    assert (
+        "At that 2026-10-05 evidence checkpoint, counts were then 496 registered, "
+        "421 native/live-backed, and 75 fallback-only; no native promotion or "
+        "budget change was recorded."
+    ) in normalized_provider_universe
     assert len(ledger["symbol_priority_ledger"]["symbols"]) == tier_zero_count
     assert len(ledger["symbol_audit_ledger"]["symbols"]) == tier_one_count
 
