@@ -13392,15 +13392,16 @@ confirmed at origin. The prior run `39845969811` on
 `ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3` is terminal cancelled after
 Frontend and backend unit success; it does not validate `c5`. The combined-status
 lookup for `c5` returned no entries, so its exact CI is unverified, not green.
-This AC1 documentation/test correction is locally uncommitted pending its
-coherent owner packet.
+At this historical handoff checkpoint, the AC1 documentation/test correction
+was still local. It was subsequently published as commit
+`281368f979361003edd153e5b19251922e30f6ba`; its exact run
+`39848752641` is now terminal-cancelled and does not validate later source.
 
-Next: validate and publish only the two-file documentation/test change plus
-its owner records, inspect exact-head CI, then continue evidence-backed
-AC2/AC4/AC5 issuer audit and Tier-0 capability work offline. Preserve all 14
-criteria, `15 Tier-0 and 156 Tier-1`, unresolved/quarantined MSMR/QQQ and
-Militia/GOOG, route and cost holds, and the 30-day observation. The required
-full `full_stack_browser` profile still needs Root's safe slot.
+Next at that checkpoint: finish the two-file change with its owner records and
+continue evidence-backed AC2/AC4/AC5 audit offline. Preserve all 14 criteria,
+`15 Tier-0 and 156 Tier-1`, unresolved/quarantined MSMR/QQQ and Militia/GOOG,
+route and cost holds, and the 30-day observation. The required full
+`full_stack_browser` profile still needs Root's safe slot.
 
 ## Dated provider-count context follow-up — 2026-10-22
 
@@ -13412,17 +13413,41 @@ as a current claim. The text now explicitly says those were the counts at that
 history are retained. The narrative sentinel now checks this time boundary.
 
 The focused provider-ledger and narrative tests passed 2/2 in 8.12s; Ruff,
-format, and `git diff --check` passed. This follow-up is substantive but
-uncommitted. Exact push run `39848752641` is pending on commit
-`281368f979361003edd153e5b19251922e30f6ba`; that run cannot validate this newer
-working diff, and no status is inferred from it. The next publication must
-trigger and retain exact-source CI. No external HTTP, quota, full-stack profile,
-or resource cleanup occurred.
+format, and `git diff --check` passed. This substantive follow-up was published
+at `f11a798406f42dfbb769f8f5d96685c49a689b38`; exact push run `39849423269` is
+in progress on f11. Earlier run `39848752641` for 281 is terminal-cancelled.
+Neither run validates the later AC2 working diff. No external HTTP, quota,
+full-stack profile, or resource cleanup occurred.
 
-Next after this correction is published: continue the offline AC2/AC4/AC5
-audit/capability work in relevance order. Preserve all fourteen criteria,
+Next after that correction: continue the offline AC2/AC4/AC5 audit/capability
+work in relevance order. Preserve all fourteen criteria,
 `15 Tier-0 and 156 Tier-1`, the unresolved MSMR/QQQ and Militia/GOOG
 quarantines, verified-free-only routing, and the 30-day observation gate.
+
+## Fallback audit queue baseline preservation — 2026-10-22
+
+The AC2 ledger contract says `starting_status` preserves the original queue
+classification and the baseline queue is ordered by status priority, then
+`adapter_key`. A read-only comparison against the original ledger commit
+`212207ca35ca055bab5283a15ccfa695d387fb93` found exactly one overwritten
+starting status: RiverFront was originally `needs_first_party_route_discovery`
+at rank 104, but a later issuer review replaced that field with its terminal
+`provider_not_a_portfolio_publisher` disposition. The rank itself never moved.
+Restoring the original starting status makes all 140 records match the declared
+deterministic baseline order; its current non-publisher disposition, evidence,
+and next action remain unchanged.
+
+The provider-ledger regression now checks contiguous queue ranks and the full
+status-priority/adapter-key order. The focused ledger and narrative tests passed
+2/2 in 8.02s; Ruff, format, and `git diff --check` passed. Exact run
+`39849423269` is still in progress on prior source f11 and cannot validate this
+AC2 diff. This is branch-owned offline AC2 work only: no issuer/SEC/provider
+HTTP, quota, route promotion, data cleanup, or change to unresolved
+MSMR/QQQ/Militia/GOOG evidence. Exact current-source CI remains required.
+
+Next: publish this AC2 ledger/test correction and continue offline AC2/AC4/AC5
+work using retained evidence. Do not infer new issuer availability, alter route
+holds, or start the unassigned full-stack profile.
 
 After completing this workstream packet, the same focused source profile plus
 the mandatory narrative-count sentinel was rerun on unchanged implementation

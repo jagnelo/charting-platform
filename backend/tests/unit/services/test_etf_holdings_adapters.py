@@ -29946,7 +29946,24 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "vistashares",
     }
     assert set(record_keys) == fallback_keys | native_promoted
-    assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
+    ranked_records = sorted(records, key=lambda record: record["queue_rank"])
+    assert [record["queue_rank"] for record in ranked_records] == list(range(1, len(records) + 1))
+    baseline_status_priority = {
+        "issuer_access_blocked": 0,
+        "needs_first_party_route_discovery": 1,
+        "non_executable_public_source": 2,
+        "provider_not_a_portfolio_publisher": 3,
+    }
+    expected_baseline_order = sorted(
+        records,
+        key=lambda record: (
+            baseline_status_priority[record["starting_status"]],
+            record["adapter_key"].casefold(),
+        ),
+    )
+    assert [record["adapter_key"] for record in ranked_records] == [
+        record["adapter_key"] for record in expected_baseline_order
+    ]
 
     allowed_statuses = {
         "issuer_access_blocked",

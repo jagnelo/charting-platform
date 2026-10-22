@@ -548,17 +548,23 @@ current_blocker: >-
   not route eligibility or current holdings claims. The deterministic capability
   module, exact provider-ledger parity test, and narrative-count sentinel
   passed 108 combined cases, as did changed-file Ruff, format, and diff checks.
-  AC1 provider-universe chronology work now labels 421/75 as historical at the
-  older implementation checkpoint while retaining 422/74 as the current code-
-  and ledger-derived split. A subsequent scan found the dated 2026-10-05 Tier-0
-  report also used present-tense wording for its then-current 421/75 counts; it
-  now explicitly dates that historical statement. The two focused ledger and
-  narrative tests passed 2/2 in 8.12s; Ruff, format, and diff checks passed.
-  This follow-up is local/uncommitted atop pushed source
-  281368f979361003edd153e5b19251922e30f6ba. Exact Actions run 39848752641 is
-  pending on 281368f and cannot validate this newer diff. Earlier run 39845969811
-  on ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 is terminal cancelled and remains
-  historical; it does not validate any newer source. The full local integration/browser profile
+  AC1 provider-universe chronology work labels 421/75 as historical at the
+  older implementation checkpoint and retains 422/74 as the current code- and
+  ledger-derived split. The dated 2026-10-05 Tier-0 count sentence is also
+  explicitly historical. These documentation/test changes were published at
+  281368f979361003edd153e5b19251922e30f6ba and
+  f11a798406f42dfbb769f8f5d96685c49a689b38. Run 39848752641 for 281 is
+  terminal-cancelled; run 39849423269 for f11 is in progress. Neither validates
+  the current working diff. Focused ledger/narrative tests pass 2/2, Ruff,
+  format, and diff checks pass. The next AC2 audit found that RiverFront's
+  original queue status was overwritten by its later terminal disposition; the
+  committed baseline shows `needs_first_party_route_discovery`, while its
+  current disposition remains `provider_not_a_portfolio_publisher`. The ledger
+  now preserves the original value and the regression asserts deterministic
+  status-priority/adapter-key ranking; two focused tests pass in 8.02s. This
+  AC2 correction is local/uncommitted atop f11, and neither prior CI run covers
+  it. Earlier run 39845969811 on ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 is
+  terminal-cancelled history. The full local integration/browser profile
   remains mandatory and awaits Root's safe slot. Preserve the original
   monolithic partial attempt, earlier visual failure, all setup receipts, exact
   investigation counts `15 Tier-0 and 156 Tier-1`, and unresolved/quarantined
@@ -1584,9 +1590,8 @@ latest_green_staging_adoption:
 
 next_action: >-
   Continue the original full ETF roadmap in this same branch and goal lineage.
-  Publish the completed provider-universe current-versus-historical count
-  correction and its test/evidence packet, verify exact remote parity and
-  inspect exact-head CI. Then continue
+  Publish the AC2 starting-status/queue-order preservation fix with its
+  evidence, verify exact remote parity and inspect exact-head CI. Then continue
   offline evidence-backed AC2/AC4/AC5 issuer audit and Tier-0 consumer work in
   relevance order. Treat audit dates as evidence chronology only; do not change
   source statuses or refresh blocked routes without new retained evidence or
