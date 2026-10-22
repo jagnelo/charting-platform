@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -12,6 +12,7 @@ from app.models.market_data_foundation import (
     MarketEventScanState,
     SecIssuerDirectoryCandidate,
 )
+from app.models.provider_runtime import ProviderCapability, ProviderRequestLog
 from app.services import market_event_edgar_scan
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -140,6 +141,16 @@ async def test_edgar_issuer_scan_commits_each_cik_and_restart_skips_committed_ci
         calls.append(list(ciks))
         if ciks == ["0000000022"] and calls.count(["0000000022"]) == 1:
             raise asyncio.CancelledError
+        _db.add(
+            ProviderRequestLog(
+                capability=ProviderCapability.MARKET_EVENTS,
+                operation="fetch_ipo_pipeline_events",
+                operation_family="market_events",
+                requested_at=datetime.now(UTC),
+                success=True,
+                provider_symbol=f"CIK:{ciks[0]}",
+            )
+        )
         return {
             "status": "no_events",
             "events": 0,
@@ -168,6 +179,10 @@ async def test_edgar_issuer_scan_commits_each_cik_and_restart_skips_committed_ci
     state = db.execute(select(MarketEventScanState)).scalar_one()
     assert state.cursor_issuer_id == 1
     assert state.scanned_count == 1
+    assert state.provenance["last_batch_results"][0]["cik"] == "0000000021"
+    assert [row.provider_symbol for row in db.execute(select(ProviderRequestLog)).scalars()] == [
+        "CIK:0000000021"
+    ]
     assert calls == [["0000000021"], ["0000000022"]]
 
     resumed = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
