@@ -1635,26 +1635,32 @@ roadmap_progress_history:
     The owner-scoped resolver, hydration graph and bounded runtime context streams now carry the
     exact typed immutable producer payload; no-reference fingerprint/wire compatibility is
     preserved and focused offline tests, Ruff and changed-boundary MyPy pass. The added real
-    PostgreSQL API/reconstructed-worker test module now collects 30 cases, including post-dispatch
-    run/evaluation, owner, version, dataset and artifact ambiguity/content/identity drift denials.
+    PostgreSQL API/reconstructed-worker test module now collects 31 cases, including post-dispatch
+    run/evaluation, restart owner, version, dataset and artifact ambiguity/content/identity drift
+    denials. Exact CI39856591934 on published485bea63f314cdffcd6d4cf571d6158a215ef2c5 is terminal
+    red: its integration step reports495 passed,10 failed,2 skipped. The10 reconstructed-restart
+    cases fail during fixture construction because the selected strategy reference had no matching
+    resolved Study output in HydratedNautilusTrial; the test helper now resolves and binds that
+    output from the real fixture rows before persisting the graph. Two existing I/O-free hydrator
+    owner-denial/resolver-principal unit tests pass locally, but no database body has run after this
+    repair; persisted row-level owner isolation still awaits a bounded PG slot.
     I/O-free regressions directly prove deep freezing against source mutation and reject constructing
     a payload whose canonical digest differs from its typed reference. Protocol coverage mutates
     serialized Study payload bytes while retaining the reference digest; both direct decoding and
     the worker CLI reject the request before creating a result file. The resolver module passes30
     focused tests, and the full runtime protocol module passes24; focused MyPy, Ruff, format, and diff
-    checks pass. No PostgreSQL fixture has
-    run locally for this source. Persisted restart revalidation and the complete accepted runtime path
-    are therefore not yet locally database-proven. Exact CI39856591934 remains in progress for
-    published source485bea63f314cdffcd6d4cf571d6158a215ef2c5; it includes the prior 28-case module,
-    not the two latest restart denials or the direct output-integrity regressions. Native
+    checks pass. No PostgreSQL fixture has run locally for this source. Persisted restart
+    revalidation and the complete accepted runtime path are therefore not yet locally
+    database-proven. Exact CI39856591934 is terminal failed for published source
+    485bea63f314cdffcd6d4cf571d6158a215ef2c5; its failure is preserved and is not replaced by
+    collection-only or static evidence. Native
     execution is not inferred from generic Study output; heavier PostgreSQL/combined runtime/browser/
     native gates remain open.
   next_action: >-
-    Keep source and owned records frozen only while a released full gate executes. The current
-    published-source CI39856591934 on485bea63f314cdffcd6d4cf571d6158a215ef2c5 is still in progress;
-    finish the locally validated restart-denial and output-integrity regressions as one coherent
-    unpublished source boundary, then publish after that exact run is terminal. Run the resulting
-    30-case persisted API/reconstructed-hydrator matrix in the coordinator-assigned PostgreSQL slot
-    if hosted integration does not establish it, and record actual fixture evidence. Continue the
-    remaining combined runtime and full local/full_stack_browser/native gates under coordinator
+    The prior exact CI is terminal red and no longer occupies a run; do not replay the full suite
+    while the coordinator owns the heavy local slot. Continue only bounded source/static work. Run
+    the corrected 31-case persisted API/reconstructed-hydrator matrix in the coordinator-assigned
+    PostgreSQL slot, preserving the hosted fixture failure and recording actual fixture evidence.
+    Publish the coherent source after focused repair validation, then obtain exact-source CI. Continue
+    the remaining combined runtime and full local/full_stack_browser/native gates under coordinator
     resource assignment. Keep all provider/live/quota/paid/trial/broker/capital holds.

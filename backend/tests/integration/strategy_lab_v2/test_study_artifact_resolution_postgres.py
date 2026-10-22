@@ -643,7 +643,14 @@ async def test_study_resolver_rejects_persisted_run_version_and_output_drift(
         await resolver(principal="1", reference=reference)
 
 
-def _strategy_graph_with_reference(graph: Any, reference: SelectedStudyArtifactReference) -> Any:
+async def _strategy_graph_with_reference(
+    graph: Any,
+    reference: SelectedStudyArtifactReference,
+    sessions: async_sessionmaker[AsyncSession],
+) -> Any:
+    resolved_output = await create_resolved_study_artifact_output_resolver(sessions)(
+        principal="1", reference=reference
+    )
     old_strategy: StrategyVersion = graph.strategies[0]
     strategy = replace(old_strategy, selected_study_artifact=reference)
     old_package: StrategyPackage = graph.packages[old_strategy.fingerprint]
@@ -683,6 +690,7 @@ def _strategy_graph_with_reference(graph: Any, reference: SelectedStudyArtifactR
         snapshot=graph.snapshot,
         strategies=(strategy,),
         packages={strategy.fingerprint: package},
+        study_artifacts={strategy.fingerprint: resolved_output},
     )
 
 
@@ -730,6 +738,7 @@ async def _persist_graph(adapter: PostgresStrategyLabV2Adapter, graph: Any, suff
         "changed_artifact_type",
         "ambiguous_artifact_name",
         "deleted_artifact",
+        "foreign_restart_owner",
     ),
 )
 async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drift(
@@ -743,7 +752,7 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drif
     graph, _artifacts, _package_resolver, _materializer, _context, _worker_state = _setup(
         tmp_path / "study-worker"
     )
-    graph = _strategy_graph_with_reference(graph, reference)
+    graph = await _strategy_graph_with_reference(graph, reference, sessions)
     adapter, store = _adapter(sessions, storage_schema)
     await _persist_graph(adapter, graph, uuid.uuid4().hex)
 
@@ -834,7 +843,7 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drif
                         payload={"type": "series", "value": [3.0]},
                     )
                 )
-            else:
+            elif post_dispatch_drift == "deleted_artifact":
                 await session.execute(delete(ResearchArtifact).where(ResearchArtifact.id == 40))
         restarted_hydrator = NautilusTrialDomainHydrator(
             PostgresResourceReader(restarted_store),
@@ -842,6 +851,16 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drif
                 fresh_sessions
             ),
         )
+        if post_dispatch_drift == "foreign_restart_owner":
+            with pytest.raises(
+                TrialDomainHydrationError,
+                match="run attempt is missing or unavailable to this owner",
+            ):
+                await restarted_hydrator.hydrate_attempt(
+                    principal="2", attempt_resource_id=graph.attempt.attempt_id
+                )
+            return
+
         with pytest.raises(TrialDomainHydrationError, match="unavailable for restart validation"):
             await restarted_hydrator.hydrate_attempt(
                 principal="1", attempt_resource_id=graph.attempt.attempt_id

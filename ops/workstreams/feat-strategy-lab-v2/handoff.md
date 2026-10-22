@@ -17095,3 +17095,31 @@ and that the worker CLI creates no result file. Focused MyPy and Ruff/format che
 protocol test file passed; no database, Docker, browser, native, network, or provider work ran. Exact
 CI39856591934 remains in progress on `485bea63f314cdffcd6d4cf571d6158a215ef2c5`; it does not cover
 this local branch tip.
+
+### Persisted Study restart fixture and foreign-owner denial — 2026-10-22 21:44 UTC
+
+The exact hosted run `39856591934` on published source `485bea63f314cdffcd6d4cf571d6158a215ef2c5`
+has now terminated red: Frontend Unit Tests passed; Backend integration reported 495 passed, 10
+failed, and 2 skipped; later branch-declared, E2E, and exhaustive jobs were skipped. All 10 failures
+occurred before restart assertions because `_strategy_graph_with_reference` attached a selected
+Study reference without the corresponding `ResolvedStudyArtifactOutput`, violating the hydrated
+graph invariant. The helper now resolves that output from the real seeded Study rows and binds it to
+the strategy fingerprint before persistence. This is a test-fixture repair, not a production change;
+no full suite or database test was replayed locally.
+
+Added a `foreign_restart_owner` case to the existing persisted restart matrix: after an owner-valid
+hydration, the reconstructed hydrator must refuse the same persisted attempt when requested as
+principal `2`, with the existing owner-scoped unavailable error. After the helper repair, the
+integration module collected 31 cases in 1.54s; collection does not execute its PostgreSQL fixture or
+test bodies. Ruff check, Ruff format check, and `git diff --check` pass for the changed test file. A
+first chained validation stopped after collection because a later Ruff invocation used the shared
+read-only uv cache; Ruff/format passed on retry with the private offline cache. The workstream
+validator passed for 45 records with its existing private quota-directory and sed-path warnings. A
+database-backed run remains subject to coordinator slot assignment. Preserve the hosted red, keep the
+full roadmap/open runtime gates, and do not infer native execution from generic Study output.
+
+The existing pure hydrator tests `test_hydrator_fails_closed_when_attempt_is_not_owner_visible`
+and `test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_reference` passed 2/2 in
+0.42s after correcting the repository-relative invocation. These exercise the existing owner-denial
+and principal-forwarding contract without database I/O; they do not prove the new persisted
+PostgreSQL restart case.
