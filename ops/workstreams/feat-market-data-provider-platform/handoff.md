@@ -1,5 +1,39 @@
 # feat/market-data-provider-platform
 
+## 2026-10-22 — Green staging adoption and SEC scan continuation
+
+- Adopted the exact canonical four-feature staging release
+  `0e342512e53ba2268425294d61c50e219eaafa4f` by guarded fast-forward from the
+  clean ancestor Provider tip `74d114aa6a174c723b01da25d83e7a49470bdc93`.
+  Only `feat/market-data-provider-platform` was pushed. Independent remote
+  lookup confirmed both the Provider branch and `staging` at the release SHA;
+  the release record is
+  `/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`
+  and records green exact CI `39827786248`. This is accepted initial
+  integration scope only; the full Provider roadmap remains open.
+- The next owned roadmap item is the per-CIK durability requirement in
+  `AC-UNIVERSE-COMPLETE` / `AC-SEC-PRELISTING-POLICY`. The issuer-universe scan
+  now executes one CIK at a time and commits that result/request-log state with
+  the next cursor; a failed CIK is retained and stops the batch, so restart
+  retries that CIK without replaying prior successes. Between commits it
+  re-locks and verifies the cursor before the next call, preventing a stale
+  worker from issuing duplicate work after another worker advances the scan.
+- Deterministic no-network coverage proves interruption/resume, failed-CIK
+  retention/retry, and stop-on-concurrent-cursor-advance. The complete
+  `test_market_event_edgar_scan.py` module passes 24/24; focused Ruff,
+  formatting, and diff checks pass. No provider/issuer/SEC HTTP, quota
+  reservation/spend/reset, paid/trial activation, fixture, or data cleanup
+  occurred. Full exact-source profile/CI, review, and the remaining roadmap
+  gates are still pending.
+- This coherent checkpoint changes only:
+  `backend/app/services/market_event_edgar_scan.py`,
+  `backend/tests/unit/services/test_market_event_edgar_scan.py`,
+  `ops/workstreams/feat-market-data-provider-platform/plan.yaml`,
+  `ops/workstreams/feat-market-data-provider-platform/handoff.md`,
+  `ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md`,
+  `ops/workstreams/feat-market-data-provider-platform/validation.jsonl`, and
+  `ops/workstreams/feat-market-data-provider-platform/session.json`.
+
 ## 2026-10-20 — Three-case continuation preparation (offline only)
 
 - Current published source is `2e1e63593b1083cfc38be3eba4b2071fe799170c`,

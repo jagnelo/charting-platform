@@ -1,3 +1,4 @@
+import asyncio
 from datetime import date
 from types import SimpleNamespace
 
@@ -40,7 +41,17 @@ async def test_edgar_issuer_scan_advances_durable_cursor_and_marks_cycles_comple
             "status": "no_events",
             "events": 0,
             "failures": 0,
-            "issuers": [],
+            "issuers": [
+                {
+                    "cik": cik,
+                    "status": "refreshed",
+                    "events": 0,
+                    "linked": 0,
+                    "unlinked": 0,
+                    "error": None,
+                }
+                for cik in ciks
+            ],
         }
 
     monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
@@ -57,8 +68,10 @@ async def test_edgar_issuer_scan_advances_durable_cursor_and_marks_cycles_comple
     assert first["issuers_considered"] == 2
     assert first["cursor_issuer_id"] == 2
     assert state.status == "partial"
-    assert calls[0][0] == ["0000000001", "0000000002"]
+    assert calls[0][0] == ["0000000001"]
     assert calls[0][1]["commit"] is False
+    assert calls[1][0] == ["0000000002"]
+    assert calls[1][1]["commit"] is False
 
     second = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
         AsyncSessionAdapter(db), max_issuers=2
@@ -69,7 +82,7 @@ async def test_edgar_issuer_scan_advances_durable_cursor_and_marks_cycles_comple
     assert second["issuers_considered"] == 1
     assert state.status == "complete"
     assert state.cycle_count == 1
-    assert calls[1][0] == ["0000000003"]
+    assert calls[2][0] == ["0000000003"]
 
 
 @pytest.mark.asyncio
@@ -80,7 +93,22 @@ async def test_edgar_issuer_scan_wraps_after_end_and_records_failures(db, monkey
 
     async def fake_refresh(_db, ciks, **_kwargs):
         calls.append(list(ciks))
-        return {"status": "failed", "events": 1, "failures": 1, "issuers": []}
+        return {
+            "status": "no_events",
+            "events": 0,
+            "failures": 0,
+            "issuers": [
+                {
+                    "cik": cik,
+                    "status": "refreshed",
+                    "events": 0,
+                    "linked": 0,
+                    "unlinked": 0,
+                    "error": None,
+                }
+                for cik in ciks
+            ],
+        }
 
     monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
     await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
@@ -92,14 +120,174 @@ async def test_edgar_issuer_scan_wraps_after_end_and_records_failures(db, monkey
     state = db.execute(select(MarketEventScanState)).scalar_one()
     assert calls == [["0000000011"], ["0000000012"]]
     assert state.status == "complete"
-    assert state.last_failure_count == 1
-    assert state.last_event_count == 1
+    assert state.last_failure_count == 0
+    assert state.last_event_count == 0
 
     wrapped = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
         AsyncSessionAdapter(db), max_issuers=1
     )
     assert wrapped["wrapped"] is True
     assert calls[-1] == ["0000000011"]
+
+
+@pytest.mark.asyncio
+async def test_edgar_issuer_scan_commits_each_cik_and_restart_skips_committed_ciks(db, monkeypatch):
+    db.add_all([_issuer(21), _issuer(22), _issuer(23)])
+    db.flush()
+    calls = []
+
+    async def fake_refresh(_db, ciks, **_kwargs):
+        calls.append(list(ciks))
+        if ciks == ["0000000022"] and calls.count(["0000000022"]) == 1:
+            raise asyncio.CancelledError
+        return {
+            "status": "no_events",
+            "events": 0,
+            "failures": 0,
+            "issuers": [
+                {
+                    "cik": cik,
+                    "status": "refreshed",
+                    "events": 0,
+                    "linked": 0,
+                    "unlinked": 0,
+                    "error": None,
+                }
+                for cik in ciks
+            ],
+        }
+
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+    adapter = AsyncSessionAdapter(db)
+    with pytest.raises(asyncio.CancelledError):
+        await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+            adapter, max_issuers=3
+        )
+
+    db.expire_all()
+    state = db.execute(select(MarketEventScanState)).scalar_one()
+    assert state.cursor_issuer_id == 1
+    assert state.scanned_count == 1
+    assert calls == [["0000000021"], ["0000000022"]]
+
+    resumed = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+        adapter, max_issuers=3
+    )
+    assert resumed["cycle_complete"] is True
+    assert calls == [
+        ["0000000021"],
+        ["0000000022"],
+        ["0000000022"],
+        ["0000000023"],
+    ]
+
+
+@pytest.mark.asyncio
+async def test_edgar_issuer_scan_stops_at_failed_cik_and_retries_without_replaying_success(
+    db, monkeypatch
+):
+    db.add_all([_issuer(31), _issuer(32), _issuer(33)])
+    db.flush()
+    calls = []
+    failed_once = False
+
+    async def fake_refresh(_db, ciks, **_kwargs):
+        nonlocal failed_once
+        cik = ciks[0]
+        calls.append(cik)
+        failed = cik == "0000000032" and not failed_once
+        if failed:
+            failed_once = True
+        issuer_result = {
+            "cik": cik,
+            "status": "failed" if failed else "refreshed",
+            "events": 0,
+            "linked": 0,
+            "unlinked": 0,
+            "error": {"error_type": "TemporaryFailure"} if failed else None,
+        }
+        return {
+            "status": "failed" if failed else "no_events",
+            "events": 0,
+            "failures": int(failed),
+            "issuers": [issuer_result],
+        }
+
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+    adapter = AsyncSessionAdapter(db)
+    first = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+        adapter, max_issuers=3
+    )
+    db.expire_all()
+    state = db.execute(select(MarketEventScanState)).scalar_one()
+    assert first["status"] == "failed"
+    assert first["issuers"][-1]["error"]["error_type"] == "TemporaryFailure"
+    assert calls == ["0000000031", "0000000032"]
+    assert state.cursor_issuer_id == 1
+    assert state.scanned_count == 1
+    assert state.provenance["last_batch_results"][-1]["status"] == "failed"
+    assert state.provenance["last_batch_results"][-1]["error"]["error_type"] == "TemporaryFailure"
+    assert state.provenance["last_batch_failed_ciks"] == ["0000000032"]
+
+    resumed = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+        adapter, max_issuers=3
+    )
+    assert resumed["cycle_complete"] is True
+    assert calls == ["0000000031", "0000000032", "0000000032", "0000000033"]
+
+
+@pytest.mark.asyncio
+async def test_edgar_issuer_scan_rechecks_cursor_before_next_cik_after_commit(db, monkeypatch):
+    db.add_all([_issuer(41), _issuer(42), _issuer(43)])
+    db.flush()
+    calls = []
+
+    async def fake_refresh(_db, ciks, **_kwargs):
+        calls.extend(ciks)
+        return {
+            "status": "no_events",
+            "events": 0,
+            "failures": 0,
+            "issuers": [
+                {
+                    "cik": cik,
+                    "status": "refreshed",
+                    "events": 0,
+                    "linked": 0,
+                    "unlinked": 0,
+                    "error": None,
+                }
+                for cik in ciks
+            ],
+        }
+
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+    adapter = AsyncSessionAdapter(db)
+    commit_count = 0
+    commit = adapter.commit
+
+    async def commit_with_competing_progress():
+        nonlocal commit_count
+        await commit()
+        commit_count += 1
+        if commit_count == 1:
+            # Model a second worker committing the next cursor in the gap
+            # after this worker's per-CIK commit and before its next request.
+            state = db.execute(select(MarketEventScanState)).scalar_one()
+            state.cursor_issuer_id = 2
+            state.status = "partial"
+            db.commit()
+
+    monkeypatch.setattr(adapter, "commit", commit_with_competing_progress)
+    result = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+        adapter, max_issuers=3
+    )
+
+    assert calls == ["0000000041"]
+    assert result["status"] == "superseded"
+    assert result["scan_superseded"] is True
+    assert result["cycle_complete"] is False
+    assert result["cursor_issuer_id"] == 2
 
 
 @pytest.mark.asyncio

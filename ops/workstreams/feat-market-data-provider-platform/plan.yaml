@@ -1,4 +1,14 @@
 schema: 4
+# 2026-10-22 continuation after initial checkpoint acceptance: the exact
+# synchronized four-feature staging baseline 0e342512e53ba2268425294d61c50e219eaafa4f
+# is adopted on this branch; its canonical green release and CI 39827786248
+# are recorded in the coordinator release receipt. This closes only the
+# initial integration checkpoint. The original roadmap below remains open.
+# Current continuation targets AC-UNIVERSE-COMPLETE / AC-SEC-PRELISTING-POLICY:
+# commit each SEC issuer-universe CIK result or failure with its resume cursor,
+# stopping and resuming without replaying already committed CIKs. Focused
+# no-network restart/failure/concurrent-cursor tests pass; full branch gates,
+# exact-source CI, review, and all remaining roadmap work are still pending.
 # Corrected exact-source plan — 2026-10-20 02:00+01:00. Implementation
 # Three-case continuation preparation (2026-10-20): current source is
 # 2e1e63593b1083cfc38be3eba4b2071fe799170c, synchronized with origin. The
@@ -728,7 +738,7 @@ local_validation_reason: backend application, database migrations, provider adap
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 roadmap_goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
-goal: "Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized."
+goal: "Continue the full Provider roadmap after acceptance of provider-platform-integration-1 at staging baseline 0e342512e53ba2268425294d61c50e219eaafa4f. First close the SEC issuer-universe durability gap: persist each CIK's retained result/failure and next cursor atomically so worker restart does not replay completed CIKs. Preserve every original market-data requirement, all provider/quota holds, and coordinator-only staging integration; no paid/trial activation, provider HTTP, deployment, or retained-data cleanup. Stop at ready_for_human_review."
 roadmap_scope:
   - canonical FIGI-domain identity, issuer/legal-entity separation, effective-dated listings and provider symbols, and unresolved-identity quarantine
   - market-series scoped OHLCV observations and canonical bars with session, feed, adjustment, local aggregation, and coverage provenance
@@ -1602,7 +1612,7 @@ branch_tests_reason: Application models, migrations, providers, workers, Redis q
 live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
-status: ready_for_integration
+status: in_progress
 approved_execution_decisions:
   provider_use:
     rule: Use every eligible provider for every capability it supports, ranked dynamically by capability, history, freshness, health, entitlement, exact cost, and remaining usage.
@@ -4035,6 +4045,23 @@ remaining_gaps:
     https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html.
 progress:
   history:
+    - >-
+      2026-10-22 accepted-baseline adoption and SEC issuer-universe durability
+      continuation: the Provider branch was clean and ancestor-compatible at
+      `74d114aa6a174c723b01da25d83e7a49470bdc93`; it fast-forwarded only to the
+      exact synchronized staging release
+      `0e342512e53ba2268425294d61c50e219eaafa4f` and pushed only
+      `feat/market-data-provider-platform`. `git ls-remote` independently
+      confirmed both this branch and staging at that SHA. Staging CI
+      `39827786248` is the accepted green four-feature baseline; this is the
+      initial checkpoint only, not full roadmap/live/native completion. The
+      next owned gap is AC-UNIVERSE-COMPLETE / AC-SEC-PRELISTING-POLICY:
+      issuer-universe SEC scans must commit each CIK outcome and cursor
+      together, stop on failure, and resume without repeating successful CIKs.
+      The implementation and deterministic unit coverage are in progress;
+      24/24 `test_market_event_edgar_scan.py` tests pass, Ruff and format checks
+      pass, and no provider/issuer/SEC HTTP or quota operation was performed.
+      Full roadmap criteria and all existing provider holds remain unchanged.
     - >-
       2026-10-16 10:14Z exact CI terminal result: after restoring the prior
       MarketData.app diagnostic wording, candidate
