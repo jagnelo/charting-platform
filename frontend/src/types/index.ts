@@ -374,8 +374,13 @@ export interface ETFHoldingsDate {
   composition_date: string
   as_of_date?: string | null
   known_at?: string | null
+  published_at?: string | null
+  cadence?: string | null
+  parser_version?: string | null
+  timing_provenance?: Record<string, string>
   provenance: string
   source_provider: string
+  source_identifier?: string | null
   row_count: number
   resolved_count: number
   unresolved_count: number
@@ -385,9 +390,18 @@ export interface ETFHoldingsDate {
 export interface ETFHoldingsWeightEvolutionPoint {
   snapshot_id: number
   composition_date: string
+  as_of_date?: string | null
+  known_at?: string | null
+  published_at?: string | null
   weight?: number | string | null
   shares?: number | string | null
   market_value?: number | string | null
+  source_provider: string
+  source_identifier?: string | null
+  cadence?: string | null
+  parser_version?: string | null
+  timing_provenance?: Record<string, string>
+  provenance: string
 }
 
 export interface ETFHoldingsWeightEvolutionSeries {
@@ -458,6 +472,13 @@ export interface OHLCVBar {
   volume?: number
   vwap?: number
   is_adjusted: boolean
+  is_derived?: boolean
+  source_timeframe?: string | null
+  derivation_method?: string | null
+  derived_at?: string | null
+  source_bar_count?: number | null
+  source_start?: string | null
+  source_end?: string | null
 }
 
 export interface ChartComparisonSeries {
@@ -766,6 +787,8 @@ export interface IndicatorAlert {
 export interface IndicatorConfig {
   type: IndicatorType
   params: Record<string, unknown>
+  /** Explicit output for multi-output indicators when a downstream surface needs one series. */
+  output?: string
   style: { color: string; lineWidth: number }
   pane?: 'main' | 'separate'
   /** Hidden plots remain configured and template-serializable but are not rendered. */
@@ -793,6 +816,7 @@ export type IndicatorType =
   | 'pivot_points'
 
 export type ChartBarType =
+  | 'hlc'
   | 'candles'
   | 'line'
   | 'ohlc'
@@ -804,6 +828,7 @@ export type ChartBarType =
   | 'point_figure'
 
 export const CHART_BAR_TYPES: { value: ChartBarType; label: string }[] = [
+  { value: 'hlc',           label: 'HLC Bars' },
   { value: 'candles',      label: 'Candles' },
   { value: 'line',         label: 'Line' },
   { value: 'ohlc',         label: 'OHLC Bars' },
@@ -833,6 +858,15 @@ export interface WatchlistItem {
   position: number
   flagged?: boolean
   left_screener_at?: string | null
+}
+
+export interface FavoriteInstrument {
+  id: number
+  instrument_id: number
+  position: number
+  added_at: string
+  symbol: string
+  name: string
 }
 
 export interface Watchlist {
@@ -977,6 +1011,9 @@ export interface MarketMap {
   color_metric: MarketMapColorMetric
   condition?: Record<string, unknown> | null
   python_run_id?: number | null
+  python_code_version_id?: number | null
+  python_output_name?: string | null
+  python_output_contract?: string | null
   reference_symbol?: string | null
   reference_source?: WatchlistSource
   reference_source_id?: string | null
@@ -1612,6 +1649,10 @@ export interface WsMessage {
   entered?: string[]
   left?: string[]
   symbol?: string
+  indicator?: string
+  indicator_b?: string
+  output_a?: string
+  output_b?: string
   condition?: string
   threshold?: number
   current_price?: number

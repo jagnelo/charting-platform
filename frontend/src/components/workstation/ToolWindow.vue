@@ -1,10 +1,11 @@
 <template>
-  <section class="tool-window" :data-window-key="windowKey" :class="{ 'tool-window--active': active }" @keydown.escape="closeMenuToTrigger">
+  <section class="tool-window" role="group" :data-window-key="windowKey" :data-tool-key="windowKey" :class="{ 'tool-window--active': active }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
     <header class="tool-window__header">
       <span class="tool-window__drag-handle" draggable="true" aria-label="Drag tool" title="Drag tool" @dragstart="emit('dragstart', $event)"><span class="tool-window__drag-glyph" aria-hidden="true" /></span>
-      <strong class="tool-window__title">{{ title }}</strong>
+      <strong :id="titleId" class="tool-window__title">{{ title }}</strong>
       <span v-if="symbol" class="tool-window__symbol">{{ symbol }}</span>
       <div class="tool-window__actions">
+        <button v-if="favoriteAvailable" type="button" :aria-label="favoriteActive ? `Remove ${symbol} from My Favorites` : `Add ${symbol} to My Favorites`" :aria-pressed="favoriteActive" :title="favoriteActive ? 'Remove from My Favorites' : 'Add to My Favorites'" @click.stop="emit('toggleFavorite')">{{ favoriteActive ? '★' : '☆' }}</button>
         <span v-if="timeframe" class="tool-window__link-swatch" :style="{ background: dashboardLinkGroupColor(timeframeLinkGroup) }" :title="`${dashboardLinkGroupLabel(timeframeLinkGroup)} timeframe link`" aria-hidden="true" />
         <select v-if="timeframe" :value="timeframeLinkGroup" class="tool-window__timeframe-link" :aria-label="title + ' timeframe link group'" @change="emit('update:timeframeLinkGroup', ($event.target as HTMLSelectElement).value as LinkGroup)">
           <option v-for="group in groups" :key="group" :value="group">{{ dashboardLinkGroupLabel(group) }}</option>
@@ -22,8 +23,8 @@
           <option v-for="group in groups" :key="group" :value="group">{{ dashboardLinkGroupLabel(group) }}</option>
         </select>
         <div ref="menuRoot" class="tool-window__menu-wrap">
-          <button ref="menuTrigger" type="button" title="Tool menu" aria-label="Open tool menu" aria-haspopup="menu" :aria-expanded="menuOpen" @click.stop="toggleMenu" @keydown="handleMenuTriggerKeydown"><span class="tool-window__menu-glyph" aria-hidden="true" /></button>
-          <div v-if="menuOpen" class="tool-window__menu" role="menu" :aria-label="`${title} tool menu`" :style="menuStyle" @click.stop @keydown="handleMenuKeydown">
+          <button ref="menuTrigger" type="button" title="Tool menu" aria-label="Open tool menu" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-controls="menuId" @click.stop="toggleMenu" @keydown="handleMenuTriggerKeydown"><span class="tool-window__menu-glyph" aria-hidden="true" /></button>
+          <div v-if="menuOpen" :id="menuId" class="tool-window__menu" role="menu" :aria-label="`${title} tool menu`" :style="menuStyle" @click.stop @keydown="handleMenuKeydown">
             <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('maximize')">Maximize</button>
             <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('float')">Float</button>
             <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('close')">Close</button>
@@ -41,9 +42,9 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { LinkGroup } from '@/stores/workspace'
-import { dashboardLinkGroupColor, dashboardLinkGroupLabel } from '@/stores/dashboardLinks'
+import { dashboardLinkGroupColor, dashboardLinkGroupLabel, WORKSTATION_LINK_GROUPS } from '@/stores/dashboardLinks'
 
 withDefaults(defineProps<{
   windowKey?: string
@@ -53,24 +54,36 @@ withDefaults(defineProps<{
   timeframeLinkGroup?: LinkGroup
   timeframe?: string
   active?: boolean
+  favoriteAvailable?: boolean
+  favoriteActive?: boolean
 }>(), {
   symbol: '',
   linkGroup: 'blue',
   timeframeLinkGroup: 'blue',
   timeframe: '',
   active: false,
+  favoriteAvailable: false,
+  favoriteActive: false,
 })
 
 const emit = defineEmits<{
   'update:linkGroup': [value: LinkGroup]
   'update:timeframeLinkGroup': [value: LinkGroup]
   'update:timeframe': [value: string]
+  toggleFavorite: []
   dragstart: [event: DragEvent]
   maximize: []
   float: []
   close: []
 }>()
 
+// Golden Layout renders each tool into a detached Vue root. Vue's useId()
+// intentionally derives IDs from the root's inherited SSR counter, so every
+// detached root would otherwise receive the same value (for example, v-0).
+// Component UIDs remain globally unique across those roots and keep the
+// labelled tool relationship valid without changing visible layout.
+const titleId = `tool-window-title-${getCurrentInstance()?.uid ?? 0}`
+const menuId = `${titleId}-menu`
 const menuOpen = ref(false)
 const menuRoot = ref<HTMLElement | null>(null)
 const menuTrigger = ref<HTMLButtonElement | null>(null)
@@ -83,7 +96,8 @@ function menuItems() {
 function focusMenuItem(index: number) {
   const items = menuItems()
   if (!items.length) return
-  items[Math.max(0, Math.min(index, items.length - 1))]?.focus()
+  const resolvedIndex = index < 0 ? items.length - 1 : Math.min(index, items.length - 1)
+  items[Math.max(0, resolvedIndex)]?.focus()
 }
 
 function setMenuOpen(open: boolean, focusIndex = 0) {
@@ -185,7 +199,7 @@ function runMenuAction(action: 'maximize' | 'float' | 'close') {
   else emit('close')
 }
 
-const groups: LinkGroup[] = ['blue', 'red', 'green', 'purple', 'orange', 'cyan', 'pink', 'brown', 'yellow', 'grey']
+const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
 </script>
 
 <style scoped>

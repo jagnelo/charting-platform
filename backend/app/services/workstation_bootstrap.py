@@ -22,17 +22,21 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+from app.lib.time_utils import wire_datetime
+from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.errors import bounded_redact_provider_message
 from app.services.etf_holdings import ensure_etf_profile
+from app.services.etf_holdings_adapters import known_etf_route_metadata
 from app.services.etf_holdings_refresh import (
     USABLE_HOLDINGS_COMPLETENESS,
     bootstrap_etf_holdings_profile,
+    holdings_snapshot_is_bootstrap_ready,
 )
 from app.services.instrument_mastering import ensure_instrument_type, register_provider_symbol
 from app.services.market_data import fetch_ohlcv
@@ -53,6 +57,13 @@ CORE_WORKSTATION_REGISTRY = "curated_workstation_registry_v1"
 # configurable, but this lower bound keeps readiness tied to the actual
 # technical contract rather than row existence.
 MIN_CORE_D1_BARS = 252
+
+
+def _wire_datetime(value: datetime | None) -> str | None:
+    """Serialize bootstrap provenance timestamps on the canonical UTC timeline."""
+
+    return wire_datetime(value)
+
 
 _BENCHMARK_PROXY_NAMES = {
     str(mapping["symbol"]): f"{mapping.get('label') or symbol}"
@@ -127,13 +138,13 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
                 field_provenance={
                     "symbol": {
                         "source": CORE_WORKSTATION_REGISTRY,
-                        "observed_at": observed_at.isoformat(),
+                        "observed_at": _wire_datetime(observed_at),
                         "selection_reason": "required by immutable US Top Down layout",
                         "provider_claim": "curated identity only; not an exchange listing assertion",
                     },
                     "name": {
                         "source": CORE_WORKSTATION_REGISTRY,
-                        "observed_at": observed_at.isoformat(),
+                        "observed_at": _wire_datetime(observed_at),
                         "selection_reason": "human-readable product label",
                     },
                 },
@@ -148,7 +159,7 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
             registry.update(
                 {
                     "source": CORE_WORKSTATION_REGISTRY,
-                    "observed_at": observed_at.isoformat(),
+                    "observed_at": _wire_datetime(observed_at),
                     "selection_reason": "required by immutable US Top Down layout",
                 }
             )
@@ -193,6 +204,15 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
                 )
             ).scalar_one_or_none()
             existing_legal_metadata = profile_exists.legal_metadata if profile_exists else {}
+            existing_provider_aliases = profile_exists.provider_aliases if profile_exists else {}
+            route_metadata = known_etf_route_metadata(symbol)
+            route_aliases = route_metadata.get("provider_aliases") or {}
+            provider_aliases = {
+                **(
+                    existing_provider_aliases if isinstance(existing_provider_aliases, dict) else {}
+                ),
+                **(route_aliases if isinstance(route_aliases, dict) else {}),
+            }
             legal_metadata = {
                 **(existing_legal_metadata or {}),
                 "identity_bootstrap": CORE_WORKSTATION_REGISTRY,
@@ -201,6 +221,8 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
             await ensure_etf_profile(
                 db,
                 instrument,
+                issuer=route_metadata.get("issuer"),
+                provider_aliases=provider_aliases or None,
                 legal_metadata=legal_metadata,
             )
             if profile_exists is None:
@@ -222,35 +244,56 @@ async def queue_core_family_member_history(db: AsyncSession, redis) -> dict:
     """Queue member history after provider-backed core ETF snapshots are committed."""
 
     if redis is None:
-        return {"status": "not_queued", "reason": "Redis worker queue unavailable"}
+        return {
+            "status": "not_queued",
+            "reason": "Redis worker queue unavailable",
+            "queued": 0,
+            "already_queued": 0,
+            "queue_errors": [],
+            "queue_error_count": 0,
+        }
 
     from app.services.benchmark_family_history import (
         canonical_history_job_id,
+        history_end_iso,
         plan_benchmark_family_history_refresh,
     )
 
     plan = await plan_benchmark_family_history_refresh(db)
     queued = already_queued = 0
+    queue_errors: list[dict[str, str | int]] = []
     for instrument_id in plan["instrument_ids"]:
         job_args = ["task_bulk_fetch_instrument", instrument_id, plan["timeframes"]]
         if plan.get("as_of") is not None:
-            job_args.extend([None, plan["as_of"].isoformat()])
-        job = await redis.enqueue_job(
-            *job_args,
-            _job_id=canonical_history_job_id(
-                instrument_id,
-                plan["timeframes"],
-                plan.get("as_of"),
-            ),
-        )
+            job_args.extend([None, history_end_iso(plan["as_of"])])
+        try:
+            job = await redis.enqueue_job(
+                *job_args,
+                _job_id=canonical_history_job_id(
+                    instrument_id,
+                    plan["timeframes"],
+                    plan.get("as_of"),
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001 - retain bounded per-member queue evidence.
+            queue_errors.append(
+                {
+                    "status": "queue_error",
+                    "instrument_id": int(instrument_id),
+                    "error": str(exc)[:500] or "Core family history queue failed.",
+                }
+            )
+            continue
         if job is None:
             already_queued += 1
         else:
             queued += 1
     return {
-        "status": "queued",
+        "status": "queue_error" if queue_errors else "queued",
         "queued": queued,
         "already_queued": already_queued,
+        "queue_errors": queue_errors,
+        "queue_error_count": len(queue_errors),
         "available_instrument_count": plan["available_instrument_count"],
         "selected_instrument_count": plan["selected_instrument_count"],
         "limited": plan["limited"],
@@ -346,19 +389,30 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
         if instrument is None:
             holdings[symbol] = {"status": "error", "error_type": "missing_identity"}
             continue
-        usable_snapshot_count = (
-            await db.execute(
-                select(func.count(ETFHoldingsSnapshot.id))
-                .join(ETFProfile, ETFProfile.id == ETFHoldingsSnapshot.etf_profile_id)
-                .where(
-                    ETFProfile.instrument_id == instrument.id,
-                    ETFHoldingsSnapshot.provenance != "controlled_fixture",
-                    ETFHoldingsSnapshot.source_provider != "e2e_reference",
-                    ETFHoldingsSnapshot.completeness_status.in_(USABLE_HOLDINGS_COMPLETENESS),
-                    ETFHoldingsSnapshot.resolved_count > 0,
+        candidate_snapshots = (
+            (
+                await db.execute(
+                    select(ETFHoldingsSnapshot)
+                    .options(
+                        selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                            ETFHolding.constituent_instrument
+                        )
+                    )
+                    .join(ETFProfile, ETFProfile.id == ETFHoldingsSnapshot.etf_profile_id)
+                    .where(
+                        ETFProfile.instrument_id == instrument.id,
+                        ETFHoldingsSnapshot.provenance != "controlled_fixture",
+                        ETFHoldingsSnapshot.source_provider != "e2e_reference",
+                        ETFHoldingsSnapshot.completeness_status.in_(USABLE_HOLDINGS_COMPLETENESS),
+                    )
                 )
             )
-        ).scalar_one()
+            .scalars()
+            .all()
+        )
+        usable_snapshot_count = sum(
+            holdings_snapshot_is_bootstrap_ready(snapshot) for snapshot in candidate_snapshots
+        )
         if usable_snapshot_count:
             holdings[symbol] = {
                 "status": "ready",

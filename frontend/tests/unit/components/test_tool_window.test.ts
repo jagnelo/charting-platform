@@ -4,11 +4,22 @@ import { describe, expect, it, vi } from 'vitest'
 import ToolWindow from '@/components/workstation/ToolWindow.vue'
 
 describe('ToolWindow', () => {
+  it('exposes the instance key used by workstation tool activation readiness', () => {
+    const wrapper = mount(ToolWindow, { props: { windowKey: 'breadth-instance-1', title: 'Market Breadth' } })
+
+    expect(wrapper.find('.tool-window').attributes('data-tool-key')).toBe('breadth-instance-1')
+  })
+
   it('publishes actual maximize, float, close, and link-group actions without inert header controls', async () => {
     const wrapper = mount(ToolWindow, { props: { title: 'Chart', symbol: 'SPY', linkGroup: 'blue' } })
 
     expect(wrapper.find('[aria-label="Drag tool"]').attributes('draggable')).toBe('true')
+    const titleId = wrapper.find('.tool-window__title').attributes('id')
+    expect(titleId).toBeTruthy()
+    expect(wrapper.find('.tool-window').attributes('role')).toBe('group')
+    expect(wrapper.find('.tool-window').attributes('aria-labelledby')).toBe(titleId)
     expect(wrapper.find('[aria-label="Open tool menu"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Open tool menu"]').attributes('aria-controls')).toBeTruthy()
     expect(wrapper.find('[aria-label="Maximize tool"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="Float tool"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="Close tool"]').exists()).toBe(true)
@@ -35,6 +46,49 @@ describe('ToolWindow', () => {
     expect(wrapper.emitted('update:linkGroup')?.[0]).toEqual(['yellow'])
     expect(wrapper.find('.tool-window__link-swatch').attributes('style')).toContain('background')
     expect(wrapper.find('[aria-label="Chart symbol link group"] option[value="yellow"]').text()).toBe('Yellow')
+  })
+
+  it('keeps labelled-region ids unique across detached tool roots', () => {
+    const first = mount(ToolWindow, { props: { title: 'Chart' } })
+    const second = mount(ToolWindow, { props: { title: 'Chart' } })
+
+    const firstId = first.find('.tool-window__title').attributes('id')
+    const secondId = second.find('.tool-window__title').attributes('id')
+    expect(firstId).toBeTruthy()
+    expect(secondId).toBeTruthy()
+    expect(firstId).not.toBe(secondId)
+    expect(first.find('.tool-window').attributes('aria-labelledby')).toBe(firstId)
+    expect(second.find('.tool-window').attributes('aria-labelledby')).toBe(secondId)
+
+    first.unmount()
+    second.unmount()
+  })
+
+  it('keeps each detached tool menu trigger linked to its own menu', async () => {
+    const first = mount(ToolWindow, { props: { title: 'Chart' } })
+    const second = mount(ToolWindow, { props: { title: 'Chart' } })
+
+    const firstTrigger = first.find('[aria-label="Open tool menu"]')
+    const secondTrigger = second.find('[aria-label="Open tool menu"]')
+    const firstMenuId = firstTrigger.attributes('aria-controls')
+    const secondMenuId = secondTrigger.attributes('aria-controls')
+
+    expect(firstMenuId).toBeTruthy()
+    expect(secondMenuId).toBeTruthy()
+    expect(firstMenuId).not.toBe(secondMenuId)
+    expect(firstTrigger.attributes('aria-expanded')).toBe('false')
+    expect(secondTrigger.attributes('aria-expanded')).toBe('false')
+
+    await firstTrigger.trigger('click')
+    await secondTrigger.trigger('click')
+
+    expect(first.find(`#${firstMenuId}`).exists()).toBe(true)
+    expect(second.find(`#${secondMenuId}`).exists()).toBe(true)
+    expect(firstTrigger.attributes('aria-expanded')).toBe('true')
+    expect(secondTrigger.attributes('aria-expanded')).toBe('true')
+
+    first.unmount()
+    second.unmount()
   })
 
   it('keeps timeframe linking distinct from symbol linking and uses MN for monthly bars', async () => {
@@ -107,6 +161,18 @@ describe('ToolWindow', () => {
     await wrapper.find('[role="menuitem"]').trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('[role="menu"]').exists()).toBe(false)
     expect(document.activeElement).toBe(trigger.element)
+    wrapper.unmount()
+  })
+
+  it('opens the menu on the last item when ArrowUp is pressed on its trigger', async () => {
+    const wrapper = mount(ToolWindow, { attachTo: document.body, props: { title: 'Chart' } })
+    const trigger = wrapper.find('[aria-label="Open tool menu"]')
+
+    await trigger.trigger('keydown', { key: 'ArrowUp' })
+
+    const items = wrapper.findAll('[role="menuitem"]')
+    expect(items).toHaveLength(3)
+    expect(document.activeElement).toBe(items.at(-1)!.element)
     wrapper.unmount()
   })
 

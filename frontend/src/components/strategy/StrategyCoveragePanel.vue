@@ -1,8 +1,8 @@
 <template>
   <div class="coverage-panel">
-    <div v-if="loading" class="coverage-panel__empty">Refreshing coverage…</div>
-    <div v-else-if="error" class="coverage-panel__empty coverage-panel__empty--error">{{ error }}</div>
-    <div v-else-if="!coverage" class="coverage-panel__empty">{{ emptyLabel }}</div>
+    <div v-if="loading" class="coverage-panel__empty" role="status" aria-live="polite" aria-atomic="true">Refreshing coverage…</div>
+    <div v-else-if="error" class="coverage-panel__empty coverage-panel__empty--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</div>
+    <div v-else-if="!coverage" class="coverage-panel__empty" role="status" aria-live="polite" aria-atomic="true">{{ emptyLabel }}</div>
     <template v-else>
       <div class="coverage-summary-grid">
         <div class="coverage-summary-card">
@@ -53,6 +53,7 @@
           type="button"
           class="coverage-list-toggle"
           :aria-expanded="instrumentListExpanded ? 'true' : 'false'"
+          :aria-controls="coverageTimelineId"
           @click="instrumentListExpanded = !instrumentListExpanded"
         >
           <span class="coverage-list-toggle__icon" :class="{ 'coverage-list-toggle__icon--expanded': instrumentListExpanded }">▸</span>
@@ -60,7 +61,7 @@
           <small>{{ issueCoverageRows.length }} issues</small>
         </button>
 
-        <div v-if="instrumentListExpanded" class="coverage-timeline-panel">
+        <div v-if="instrumentListExpanded" :id="coverageTimelineId" class="coverage-timeline-panel">
           <div class="coverage-timeline-axis">
             <span>{{ formatShortDate(coverageDomain.start) }}</span>
             <span>Requested strategy range</span>
@@ -101,7 +102,13 @@
               </div>
               <p v-if="row.note" class="coverage-timeline-row__note">{{ row.note }}</p>
             </div>
-            <div v-if="!issueCoverageRows.length" class="coverage-timeline-empty">
+            <div
+              v-if="!issueCoverageRows.length"
+              class="coverage-timeline-empty"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               Requested range is fully covered by every selected instrument and benchmark.
             </div>
           </div>
@@ -143,6 +150,12 @@ const props = withDefaults(defineProps<{
 })
 
 const instrumentListExpanded = ref(false)
+const coverageTimelineId = (() => {
+  const scope = globalThis as typeof globalThis & { __tc2000StrategyCoveragePanelSequence?: number }
+  const next = (scope.__tc2000StrategyCoveragePanelSequence ?? 0) + 1
+  scope.__tc2000StrategyCoveragePanelSequence = next
+  return `strategy-coverage-${next}-timeline`
+})()
 
 const sortedInstruments = computed(() => {
   if (!props.coverage) return []

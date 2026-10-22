@@ -312,6 +312,21 @@ export function indicatorDisplayName(ind: Pick<IndicatorConfig, 'type' | 'params
   return params ? `${label.toUpperCase()}(${params})` : label.toUpperCase()
 }
 
+/**
+ * Format an indicator series for downstream summaries and promotions.
+ *
+ * ``output`` is transport metadata for single-output indicators, but it is
+ * the user's selected series for multi-output indicators. Keep that choice
+ * visible anywhere an alert or study is summarized.
+ */
+export function indicatorSeriesDisplayName(
+  ind: Pick<IndicatorConfig, 'type' | 'params'>,
+): string {
+  const label = indicatorDisplayName(ind)
+  const output = typeof ind.params?.output === 'string' ? ind.params.output.trim() : ''
+  return output ? `${label} [${output}]` : label
+}
+
 export function indicatorDefaultPane(type: IndicatorType): 'main' | 'separate' {
   return INDICATOR_BY_TYPE[type]?.defaultConfig.pane ?? 'main'
 }

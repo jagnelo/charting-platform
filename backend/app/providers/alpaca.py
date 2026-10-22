@@ -754,6 +754,26 @@ def _safe_decimal(v: Any) -> Decimal | None:
         return None
 
 
+def _explicit_adjustment_factor(payload: dict[str, Any]) -> Decimal | None:
+    """Read only the provider-labelled factor fields recognized by TC."""
+
+    keys = ("adjustment_factor", "adjustmentFactor")
+    present = [key for key in keys if key in payload]
+    if not present:
+        return None
+
+    value = _safe_decimal(payload[present[0]])
+    if value is None or value <= 0:
+        raise ProviderResponseError("alpaca", "Alpaca returned an invalid adjustment factor")
+    for key in present[1:]:
+        alias_value = _safe_decimal(payload[key])
+        if alias_value is None or alias_value <= 0:
+            raise ProviderResponseError("alpaca", "Alpaca returned an invalid adjustment factor")
+        if alias_value != value:
+            raise ProviderResponseError("alpaca", "Alpaca returned conflicting adjustment factors")
+    return value
+
+
 def _safe_ratio(new_rate: Any, old_rate: Any) -> Decimal | None:
     try:
         if new_rate is not None and old_rate is not None:
@@ -820,6 +840,7 @@ def _parse_corporate_action_events(
         ex_dt = _parse_date(row.get("ex_date") or "")
         pay_dt = _parse_date(row.get("payable_date") or row.get("pay_date") or "")
         amount = _safe_decimal(row.get("rate"))
+        adjustment_factor = _explicit_adjustment_factor(row)
         if row.get("rate") is not None and amount is None:
             raise ProviderResponseError("alpaca", "Alpaca returned an invalid cash-dividend rate")
         if ex_dt is None and pay_dt is None:
@@ -836,6 +857,7 @@ def _parse_corporate_action_events(
                     source_event_key=f"alpaca_exdiv_{row.get('id', ex_dt.date())}",
                     fetched_at=fetched,
                     dividend_amount=amount,
+                    adjustment_factor=adjustment_factor,
                     raw_payload=str(row),
                 )
             )
@@ -849,6 +871,7 @@ def _parse_corporate_action_events(
                     source_event_key=f"alpaca_div_{row.get('id', pay_dt.date())}",
                     fetched_at=fetched,
                     dividend_amount=amount,
+                    adjustment_factor=adjustment_factor,
                     raw_payload=str(row),
                 )
             )

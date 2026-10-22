@@ -64,6 +64,9 @@ class InstrumentEvent(Base, TimestampMixin):
     eps_surprise_pct: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     dividend_amount: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     split_ratio: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
+    # Optional explicit factor evidence; the existing ff2a migration already
+    # created this nullable column. It is never inferred from amount or split.
+    adjustment_factor: Mapped[Decimal | None] = mapped_column(Numeric(24, 12), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
     source: Mapped[str] = mapped_column(String(50), nullable=False, default="unknown")

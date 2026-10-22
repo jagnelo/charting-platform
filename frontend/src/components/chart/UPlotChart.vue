@@ -1,5 +1,6 @@
 <template>
-  <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :data-linked-timestamp="props.linkedTimestamp || undefined" @keydown.esc="handleChartEscape">
+  <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :aria-describedby="`${chartControlId}-provenance`" :aria-busy="chartStore.isLoading || (chartStore.bars.length > 0 && !chartReady) ? 'true' : 'false'" :data-linked-timestamp="props.linkedTimestamp || undefined" :data-date-pointer-mode="datePointerMode" @keydown="handleDatePointerKeydown" @keydown.esc="handleChartEscape">
+    <span :id="`${chartControlId}-provenance`" class="sr-only">{{ chartAriaLabel }}</span>
 
     <!-- Main price chart -->
     <div class="uplot-wrapper" ref="wrapperRef"
@@ -10,7 +11,7 @@
       <div ref="chartRef" />
 
       <!-- TradingView-style OHLCV info — fixed top-left, not cursor-following -->
-      <div class="ohlcv-info" v-if="tooltip.hasData">
+      <div class="ohlcv-info" v-if="tooltip.hasData && datePointerMode === 'on_with_values'" :aria-label="tooltip.ariaLabel">
         <span class="tt-date">{{ tooltip.date }}</span>
         <span class="tt-item">O <b>{{ fmt(tooltip.o) }}</b></span>
         <span class="tt-item">H <b>{{ fmt(tooltip.h) }}</b></span>
@@ -111,8 +112,10 @@
       <div v-if="showShortcuts" ref="shortcutsDialogRef" :id="`${chartControlId}-shortcuts`" class="shortcuts-overlay" role="dialog" aria-modal="true" :aria-labelledby="`${chartControlId}-shortcuts-title`" @click="closeShortcuts" @keydown.esc.prevent="closeShortcuts">
         <div class="shortcuts-box" @click.stop>
           <div :id="`${chartControlId}-shortcuts-title`" class="sc-title">Keyboard Shortcuts</div>
-          <div class="sc-row"><kbd>+</kbd><kbd>-</kbd> Zoom in / out</div>
+          <div class="sc-row"><kbd>Ctrl+=</kbd><kbd>Ctrl+-</kbd> Zoom in / out</div>
           <div class="sc-row"><kbd>←</kbd><kbd>→</kbd> Pan 5 bars</div>
+          <div class="sc-row"><kbd>[</kbd><kbd>]</kbd> Pan 1 bar; Shift for 5 bars</div>
+          <div class="sc-row"><kbd>Shift+=</kbd><kbd>Shift+-</kbd> Increase / decrease vertical projection space</div>
           <div class="sc-row"><kbd>Alt</kbd><kbd>R</kbd> Go to latest</div>
           <div class="sc-row"><kbd>L</kbd> Toggle log scale</div>
           <div class="sc-row"><kbd>?</kbd> This help</div>
@@ -198,6 +201,11 @@ import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useQuery } from '@tanstack/vue-query'
 import { isEditorTarget } from '@/lib/workstation/keyboard'
+import {
+  adjustChartProjectionRange,
+  isChartRangeAtLatest,
+  normalizeChartProjectionSteps,
+} from '@/lib/workstation/chart-projection'
 import { candlestickPlugin }       from '@/lib/uplot/plugins/candlestick'
 import { ohlcBarsPlugin }          from '@/lib/uplot/plugins/ohlc-bars'
 import { baselinePlugin }          from '@/lib/uplot/plugins/baseline'
@@ -238,9 +246,18 @@ import {
   mergeChartIndicatorsWithRadar,
   radarIndicatorSignature,
 } from '@/lib/radar/visuals'
+import { watchIndicatorStack } from '@/lib/uplot/indicatorLifecycle'
+import {
+  clearRenderedRenderer,
+  createRendererLifecycleState,
+  initializeRenderer,
+  invalidateRendererLifecycle,
+  rendererConfigurationSignature,
+} from '@/lib/uplot/rendererLifecycle'
 import type { DrawingPoint }   from '@/lib/drawings/types'
 import type { ChartComparisonSeries, ChartDrawing, ChartPythonSeries, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType, OHLCVBar } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
+import { describeOhlcvBarProvenance, summarizeOhlcvProvenance } from '@/lib/workstation/ohlcvProvenance'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
@@ -295,6 +312,47 @@ const userSettingsStore  = useUserSettingsStore()
 const optionsExposureStore = useOptionsExposureStore()
 const workspaceStore = useWorkspaceStore()
 const effectiveChartType = computed(() => props.chartType ?? userSettingsStore.chartType)
+type DatePointerMode = 'off' | 'on' | 'on_with_values'
+const DATE_POINTER_MODE_ORDER: readonly DatePointerMode[] = ['off', 'on', 'on_with_values']
+const localDatePointerMode = ref<DatePointerMode>('on_with_values')
+const projectionSteps = ref(normalizeChartProjectionSteps(props.chartSettings?.projection_space))
+watch(() => props.chartSettings?.projection_space, value => {
+  projectionSteps.value = normalizeChartProjectionSteps(value)
+})
+function setProjectionSteps(next: number) {
+  const normalized = normalizeChartProjectionSteps(next)
+  if (normalized === projectionSteps.value) return
+  projectionSteps.value = normalized
+  if (props.chartSettings) emit('configuration', { projection_space: normalized })
+  refreshScalesPreservingX()
+}
+function handleProjectionSpaceKeydown(event: KeyboardEvent) {
+  if (!event.shiftKey || event.ctrlKey || event.metaKey || event.altKey || isEditorTarget(event.target)) return
+  if (event.code !== 'Equal' && event.code !== 'Minus') return
+  const chartPanel = rootRef.value?.closest('.chart-panel')
+  if (chartPanel && !chartPanel.classList.contains('is-active')) return
+  event.preventDefault()
+  setProjectionSteps(projectionSteps.value + (event.code === 'Equal' ? 1 : -1))
+}
+const datePointerMode = computed<DatePointerMode>(() => {
+  const configured = props.chartSettings?.date_pointer_mode
+  return configured === 'off' || configured === 'on' || configured === 'on_with_values'
+    ? configured
+    : localDatePointerMode.value
+})
+function cycleDatePointerMode() {
+  const current = DATE_POINTER_MODE_ORDER.indexOf(datePointerMode.value)
+  const next = DATE_POINTER_MODE_ORDER[(current + 1) % DATE_POINTER_MODE_ORDER.length]
+  if (props.chartSettings) emit('configuration', { date_pointer_mode: next })
+  else localDatePointerMode.value = next
+}
+function handleDatePointerKeydown(event: KeyboardEvent) {
+  if (event.key !== '.' || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || isEditorTarget(event.target)) return
+  const chartPanel = rootRef.value?.closest('.chart-panel')
+  if (chartPanel && !chartPanel.classList.contains('is-active')) return
+  event.preventDefault()
+  cycleDatePointerMode()
+}
 function configuredBoolean(key: string, fallback: boolean) {
   const value = props.chartSettings?.[key]
   return typeof value === 'boolean' ? value : fallback
@@ -326,6 +384,13 @@ function setChartTransformNumber(key: ChartTransformParamKey, raw: string) {
 const overlaysEnabled    = computed(() => props.showOverlays)
 const overlayInteractionsEnabled = computed(() => overlaysEnabled.value && props.enableOverlayInteractions)
 const keyboardEnabled    = computed(() => props.enableKeyboard)
+let activeKeyboardListener: ((event: KeyboardEvent) => void) | null = null
+watch(keyboardEnabled, enabled => {
+  const listener = activeKeyboardListener
+  if (!listener) return
+  if (enabled) window.addEventListener('keydown', listener)
+  else window.removeEventListener('keydown', listener)
+})
 const controlsEnabled    = computed(() => props.showControls)
 const baseVisibleIndicators = computed(() =>
   props.showIndicators ? chartStore.activeIndicators : []
@@ -385,6 +450,7 @@ let activeDrawingPaneKey: string | null = null  // null = main chart; indicator 
 let resizeObserver: ResizeObserver | null = null
 let lastSeriesCount = 0
 let firstRenderedBarTs: string | null = null
+const rendererLifecycle = createRendererLifecycleState()
 // Reactive bars, indicators, overlays, and visibility can request overlapping
 // async rebuilds. Older generations must not add sub-panels after a newer
 // renderer has replaced them.
@@ -414,9 +480,10 @@ interface TooltipState {
   date: string
   o: number; h: number; l: number; c: number; v: number
   chg: number | null
+  ariaLabel: string
 }
 const tooltip = ref<TooltipState>({
-  hasData: false, date: '', o: 0, h: 0, l: 0, c: 0, v: 0, chg: null,
+  hasData: false, date: '', o: 0, h: 0, l: 0, c: 0, v: 0, chg: null, ariaLabel: '',
 })
 
 interface InstrumentEvent {
@@ -479,12 +546,20 @@ function updateTooltip(u: uPlot, idx: number | null | undefined) {
   const v = d[5]?.[idx] ?? 0
   const prevClose = idx > 0 ? d[4]?.[idx - 1] ?? null : null
   const chg = prevClose != null && prevClose !== 0 ? ((c - prevClose) / prevClose) * 100 : null
+  const bar = chartStore.bars[idx]
   tooltip.value = {
     hasData: true,
     date: formatDate(ts, chartStore.timeframe),
     o, h, l, c, v, chg,
+    ariaLabel: `${formatDate(ts, chartStore.timeframe)}. Open ${fmt(o)}, high ${fmt(h)}, low ${fmt(l)}, close ${fmt(c)}. ${describeOhlcvBarProvenance(bar)}`,
   }
 }
+
+const chartAriaLabel = computed(() => summarizeOhlcvProvenance(
+  chartStore.bars,
+  chartStore.timeframe,
+  effectiveChartType.value,
+))
 
 // ── UI state ──────────────────────────────────────────────────────────────────
 const isAtLatest        = ref(true)
@@ -853,6 +928,18 @@ let snapGuard = false
 let syncGuard = false
 let lastPublishedWorkspaceCursor: string | null = null
 let suppressNextMouseDown = false
+// A linked occurrence moves the cursor programmatically. uPlot may emit its
+// initial/latest-bar cursor callback on a later turn, after syncGuard has been
+// released; keep that late callback from replacing the explicit occurrence
+// until the user actually moves the pointer over this chart.
+let linkedCursorProgrammatic = Boolean(props.linkedTimestamp)
+watch(
+  () => workspaceStore.hasExplicitLinkedTimestamp(props.workspaceLinkGroup),
+  hasExplicitTimestamp => {
+    if (hasExplicitTimestamp) linkedCursorProgrammatic = true
+  },
+  { flush: 'sync' },
+)
 
 interface ViewSnapshot {
   xMin?: number
@@ -877,8 +964,7 @@ function restoreView(view: ViewSnapshot | null, xOffset = 0) {
     uplot.setScale('x', { min: view.xMin + xOffset, max: view.xMax + xOffset })
   }
   if (!autoY.value && view.yMin != null && view.yMax != null) {
-    manualYMin = view.yMin
-    manualYMax = view.yMax
+    ;[manualYMin, manualYMax] = adjustChartProjectionRange(view.yMin, view.yMax, -projectionSteps.value, isLogScale.value)
     uplot.setScale('y', { min: view.yMin, max: view.yMax })
   }
 }
@@ -1152,15 +1238,24 @@ const hasVolumeIndicator = computed(() =>
 )
 
 // ── Y-scale range ─────────────────────────────────────────────────────────────
+function storeManualYRange(displayMin: number, displayMax: number) {
+  ;[manualYMin, manualYMax] = adjustChartProjectionRange(
+    displayMin,
+    displayMax,
+    -projectionSteps.value,
+    isLogScale.value,
+  )
+}
+
 function yRangeFn(u: uPlot): [number, number] {
   // Manual lock: user has dragged/scrolled the Y axis
   if (!autoY.value && manualYMin !== null && manualYMax !== null) {
     // Log scale: clamp to strictly positive
     if (isLogScale.value) {
       const safeMin = Math.max(manualYMin, manualYMax * 1e-6)
-      return [safeMin, manualYMax]
+      return adjustChartProjectionRange(safeMin, manualYMax, projectionSteps.value, true)
     }
-    return [manualYMin, manualYMax]
+    return adjustChartProjectionRange(manualYMin, manualYMax, projectionSteps.value)
   }
   // Auto-fit to visible bars
   const [x, , highs, lows] = u.data as number[][]
@@ -1188,8 +1283,8 @@ function yRangeFn(u: uPlot): [number, number] {
   const yMin = lo - pad
   const yMax = hi + pad
   // Log scale: floor must be strictly positive — use actual data min, not zero
-  if (isLogScale.value) return [Math.max(yMin, lo * 0.92), yMax]
-  return [yMin, yMax]
+  if (isLogScale.value) return adjustChartProjectionRange(Math.max(yMin, lo * 0.92), yMax, projectionSteps.value, true)
+  return adjustChartProjectionRange(yMin, yMax, projectionSteps.value)
 }
 
 // ── Log scale toggle ──────────────────────────────────────────────────────────
@@ -1661,8 +1756,44 @@ function getDrawingProjection(drawing: AnyDrawing): boolean {
 }
 
 // ── Init chart ────────────────────────────────────────────────────────────────
+function rendererSignature(): string {
+  return rendererConfigurationSignature({
+    symbol: chartStore.symbol,
+    timeframe: chartStore.timeframe,
+    barType: chartStore.barType,
+    localOnly: chartStore.localOnlyMode,
+    transform: chartStore.transformParams,
+    chartType: effectiveChartType.value,
+    logScale: isLogScale.value,
+    volumeProfile: showApproxVolumeProfile.value,
+    indicators: visibleActiveIndicators.value,
+    subPanes: subPanes.value.map(pane => ({ key: pane.key, label: pane.label })),
+    series: buildSeries().map(series => ({
+      label: series.label,
+      scale: series.scale,
+      show: series.show,
+      stroke: series.stroke,
+      width: series.width,
+      fill: series.fill,
+      points: series.points,
+    })),
+  })
+}
+
 async function initChart() {
   if (!chartRef.value || !wrapperRef.value) return
+  const signature = rendererSignature()
+  await initializeRenderer(
+    rendererLifecycle,
+    signature,
+    uplot !== null,
+    () => rebuildChart(),
+    updateData,
+  )
+}
+
+async function rebuildChart(): Promise<boolean> {
+  if (!chartRef.value || !wrapperRef.value) return false
   const generation = ++initGeneration
 
   // Snapshot the current viewport before destroying so we can restore it after
@@ -1679,7 +1810,7 @@ async function initChart() {
   // (log toggle, indicator changes). Only explicit user actions reset them.
 
   const data = chartStore.uplotData as number[][]
-  if (!data[0]?.length) return
+  if (!data[0]?.length) return false
 
   const w = wrapperRef.value.clientWidth || 900
   const totalSubPaneH = subPanes.value.reduce((sum, p) => sum + (subPaneHeights[p.key] ?? SUB_PANE_DEFAULT_H), 0)
@@ -1708,8 +1839,8 @@ async function initChart() {
     optionsLevelsPlugin(() => optionsExposureStore.data?.key_levels ?? null),
   ]
 
-  if (effectiveChartType.value === 'ohlc') {
-    plugins.unshift(ohlcBarsPlugin({ upColor: '#26a69a', downColor: '#ef5350' }))
+  if (effectiveChartType.value === 'ohlc' || effectiveChartType.value === 'hlc') {
+    plugins.unshift(ohlcBarsPlugin({ upColor: '#26a69a', downColor: '#ef5350', showOpenTick: effectiveChartType.value !== 'hlc' }))
   } else if (effectiveChartType.value === 'baseline') {
     plugins.unshift(baselinePlugin())
   } else if (effectiveChartType.value === 'renko' || effectiveChartType.value === 'kagi' || effectiveChartType.value === 'point_figure') {
@@ -1796,11 +1927,11 @@ async function initChart() {
         // Broadcast cursor timestamp for cross-panel sync
         // Snap crosshair to nearest bar centre — guard against re-entrancy
         if (snapGuard) return
-        if (u.cursor.idx != null && layoutStore.panelCount > 1 && !syncGuard) {
+        if (u.cursor.idx != null && layoutStore.panelCount > 1 && !syncGuard && !linkedCursorProgrammatic) {
           const ts = chartStore.bars[u.cursor.idx]?.ts
           if (ts) layoutStore.setSyncedTs(ts, panelId)
         }
-        if (u.cursor.idx != null && !syncGuard) {
+        if (u.cursor.idx != null && !syncGuard && !linkedCursorProgrammatic) {
           const ts = chartStore.bars[u.cursor.idx]?.ts
           if (ts && ts !== lastPublishedWorkspaceCursor) {
             // The workstation bus carries cursor positions across docked windows and
@@ -1853,16 +1984,17 @@ async function initChart() {
     const [xArr] = uplot.data as number[][]
     if (xArr?.length) {
       const span = savedView.xMax - savedView.xMin
-      isAtLatest.value = savedView.xMax >= xArr[xArr.length - 1] - span * 0.08
+      isAtLatest.value = isChartRangeAtLatest(savedView.xMax, xArr[xArr.length - 1], span)
     }
   } else {
     setInitialView(uplot)
   }
   syncCanvasSize(w, h)
   await buildSubPanes(generation)
-  if (generation !== initGeneration) return
+  if (generation !== initGeneration) return false
   applyLinkedTimestamp(props.linkedTimestamp)
   chartReady.value = true
+  return true
 }
 
 // ── Initial view: last DEFAULT_BARS_VISIBLE bars ──────────────────────────────
@@ -1934,13 +2066,6 @@ function setupInteraction(u: uPlot) {
   const isOnYAxis   = (cx: number) => cx > getRect().right
   const isOnXAxis   = (cy: number) => cy > getRect().bottom
 
-  const updateAtLatest = () => {
-    const [x] = u.data as number[][]
-    if (!x?.length) { isAtLatest.value = true; return }
-    const span = u.scales.x.max! - u.scales.x.min!
-    isAtLatest.value = u.scales.x.max! >= x[x.length - 1] - span * 0.08
-  }
-
   const setXRange = (min: number, max: number) => {
     const [x] = u.data as number[][]
     if (!x?.length) return
@@ -1950,7 +2075,11 @@ function setupInteraction(u: uPlot) {
     if (min < lBound) { min = lBound; max = min + span }
     if (max > rBound) { max = rBound; min = max - span }
     u.setScale('x', { min, max })
-    updateAtLatest()
+    // uPlot batches scale commits. Reading u.scales.x here can therefore
+    // observe the previous frame and leave the return-to-latest affordance
+    // stale after a real wheel/trackpad pan. The clamped requested range is
+    // the authoritative interaction state for this turn.
+    isAtLatest.value = isChartRangeAtLatest(max, x[x.length - 1], span)
     // Note: drawings are re-rendered via the draw hook after uPlot commits the canvas.
     // An explicit renderVisualOverlays() here would draw at the new scale while the chart
     // canvas is still at the old scale (uPlot batches canvas updates), causing drawings to float.
@@ -1971,6 +2100,22 @@ function setupInteraction(u: uPlot) {
     const xMax = u.scales.x.max!
     const isPinch = e.ctrlKey
 
+    // TC2000 Shift+wheel pans chart history. Use the vertical wheel delta as
+    // the pan axis, matching the existing horizontal-trackpad gesture while
+    // leaving ordinary wheel zoom and Ctrl+wheel timeframe navigation intact.
+    if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX
+      if (delta === 0) return
+      const span = xMax - xMin
+      const pxWidth = getRect().width || 1
+      const panDelta = delta * WHEEL_PAN_SENSITIVITY
+      setXRange(
+        xMin + (panDelta / pxWidth) * span,
+        xMax + (panDelta / pxWidth) * span,
+      )
+      return
+    }
+
     // Price axis — zoom Y
     if (isOnYAxis(e.clientX)) {
       const yMin = u.scales.y.min!, yMax = u.scales.y.max!
@@ -1978,9 +2123,10 @@ function setupInteraction(u: uPlot) {
       const half = (yMax - yMin) / 2
       const f    = e.deltaY > 0 ? 1.08 : 1 / 1.08
       autoY.value = false
-      manualYMin  = isLogScale.value ? Math.max(mid - half * f, yMax * 1e-6) : mid - half * f
-      manualYMax  = mid + half * f
-      u.setScale('y', { min: manualYMin, max: manualYMax })
+      const displayMin = isLogScale.value ? Math.max(mid - half * f, yMax * 1e-6) : mid - half * f
+      const displayMax = mid + half * f
+      storeManualYRange(displayMin, displayMax)
+      u.setScale('y', { min: displayMin, max: displayMax })
       renderVisualOverlays()
       return
     }
@@ -2063,9 +2209,10 @@ function setupInteraction(u: uPlot) {
       const mid  = (priceStartMin + priceStartMax) / 2
       const half = (priceStartMax - priceStartMin) / 2 * f
       autoY.value = false
-      manualYMin  = isLogScale.value ? Math.max(mid - half, mid * 1e-6) : mid - half
-      manualYMax  = mid + half
-      u.setScale('y', { min: manualYMin, max: manualYMax })
+      const displayMin = isLogScale.value ? Math.max(mid - half, mid * 1e-6) : mid - half
+      const displayMax = mid + half
+      storeManualYRange(displayMin, displayMax)
+      u.setScale('y', { min: displayMin, max: displayMax })
       renderVisualOverlays()
       return
     }
@@ -2105,6 +2252,10 @@ function setupInteraction(u: uPlot) {
   }
 
   const onHoverMove = (e: MouseEvent) => {
+    // A real pointer move is an explicit user cursor action. Programmatic
+    // linked-timestamp updates never dispatch this event, so late renderer
+    // callbacks remain fenced until the user takes control of the cursor.
+    linkedCursorProgrammatic = false
     if (panActive || priceActive || xAxisActive || drawStore.activeToolType || drawStore.avwapDropActive) return
     if (isOnYAxis(e.clientX))   { wrapper.style.cursor = 'ns-resize'; return }
     if (isOnXAxis(e.clientY))   { wrapper.style.cursor = 'ew-resize'; return }
@@ -2155,7 +2306,9 @@ function setupInteraction(u: uPlot) {
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if (isEditorTarget(e.target)) return
+    if (!keyboardEnabled.value || isEditorTarget(e.target)) return
+    handleProjectionSpaceKeydown(e)
+    if (e.defaultPrevented) return
     const [ts] = u.data as number[][]
     if (!ts?.length) return
     const xMin   = u.scales.x.min!
@@ -2163,6 +2316,13 @@ function setupInteraction(u: uPlot) {
     const span   = xMax - xMin
     const mid    = (xMin + xMax) / 2
     const barDur = ts.length > 1 ? ts[1] - ts[0] : 86400
+    if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
+      const bars = e.shiftKey ? 5 : 1
+      const direction = e.code === 'BracketLeft' ? -1 : 1
+      e.preventDefault()
+      setXRange(xMin + barDur * bars * direction, xMax + barDur * bars * direction)
+      return
+    }
     switch (e.key) {
       case '=': case '+': e.preventDefault(); setXRange(mid - span/2/ZOOM_FACTOR, mid + span/2/ZOOM_FACTOR); break
       case '-':           e.preventDefault(); setXRange(mid - span/2*ZOOM_FACTOR, mid + span/2*ZOOM_FACTOR); break
@@ -2200,6 +2360,7 @@ function setupInteraction(u: uPlot) {
   wrapper.addEventListener('contextmenu', onContextMenu)
   window.addEventListener('mousemove',    onMouseMove)
   window.addEventListener('mouseup',      onMouseUp)
+  activeKeyboardListener = onKeyDown
   if (keyboardEnabled.value) window.addEventListener('keydown', onKeyDown)
 
   interactionCleanup = () => {
@@ -2211,7 +2372,8 @@ function setupInteraction(u: uPlot) {
     wrapper.removeEventListener('contextmenu', onContextMenu)
     window.removeEventListener('mousemove',    onMouseMove)
     window.removeEventListener('mouseup',      onMouseUp)
-    if (keyboardEnabled.value) window.removeEventListener('keydown', onKeyDown)
+    window.removeEventListener('keydown', onKeyDown)
+    if (activeKeyboardListener === onKeyDown) activeKeyboardListener = null
     _overDblClickCleanup()
     wrapper.style.cursor = ''
   }
@@ -3195,7 +3357,12 @@ function handleResize() {
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────────
 function destroyAll(invalidate = true) {
-  if (invalidate) initGeneration += 1
+  if (invalidate) {
+    initGeneration += 1
+    invalidateRendererLifecycle(rendererLifecycle)
+  } else {
+    clearRenderedRenderer(rendererLifecycle)
+  }
   chartReady.value = false
   if (interactionCleanup) { interactionCleanup(); interactionCleanup = null }
   uplot?.destroy(); uplot = null
@@ -3266,7 +3433,7 @@ watch([() => chartStore.symbol, () => chartStore.timeframe, () => chartStore.bar
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadInstrumentEvents() })
 watch(() => chartStore.instrument?.id, () => { if (!chartStore.instrument?.is_synthetic) loadAlertFiringEvents() })
 watch([visibleComparisonSeries, visiblePythonSeries], () => { if (uplot) updateData(); else initChart() }, { deep: true })
-watch(visibleActiveIndicators, async () => { await nextTick(); initChart() }, { deep: true })
+watchIndicatorStack(() => visibleActiveIndicators.value, () => initChart())
 watch(effectiveChartType, async (type) => {
   if (chartStore.symbol && chartStore.barType !== type) {
     await chartStore.loadBars(chartStore.symbol, chartStore.timeframe, type, chartStore.localOnlyMode, {
@@ -3326,7 +3493,6 @@ watch(() => chartStore.indicators.map(i => i.showYProjection), () => { redrawVis
 watch(() => visibleAlerts.value.map(a => `${a.id}:${a.show_projection}`).join('|'), () => { redrawVisuals() })
 watch(() => drawStore.drawingProjections,  () => { redrawVisuals() })
 watch(() => props.overlayDrawings, () => { redrawVisuals() }, { deep: true })
-watch(() => props.overlayIndicators, async () => { await nextTick(); initChart() }, { deep: true })
 watch(showCurrentPriceProjection, () => { redrawVisuals() })
 watch(showHighLowProjection,      () => { redrawVisuals() })
 watch(showApproxVolumeProfile,    () => { initChart() })
@@ -3354,12 +3520,27 @@ function applyLinkedTimestamp(timestamp: string | null) {
   if (timestamp) jumpToTs(timestamp)
 }
 
-watch(() => props.linkedTimestamp, applyLinkedTimestamp)
+watch(() => props.linkedTimestamp, (timestamp) => {
+  linkedCursorProgrammatic = Boolean(timestamp)
+  applyLinkedTimestamp(timestamp)
+})
 
 defineExpose({ jumpToTs })
 </script>
 
 <style scoped>
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .chart-root {
   position: relative;
   display: flex;
@@ -3387,6 +3568,9 @@ defineExpose({ jumpToTs })
 .drawing-canvas.cursor-crosshair { pointer-events: none; cursor: crosshair; }
 
 .cursor-crosshair-wrapper { cursor: crosshair; }
+
+.chart-root[data-date-pointer-mode="off"] :deep(.u-cursor-x),
+.chart-root[data-date-pointer-mode="off"] :deep(.u-cursor-y) { display: none; }
 
 /* TradingView-style OHLCV overlay — top-left, small, semi-transparent */
 .ohlcv-info {

@@ -19,6 +19,8 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 
+from app.lib.time_utils import wire_datetime
+
 
 @dataclass(frozen=True)
 class BreadthMember:
@@ -49,6 +51,13 @@ class BreadthMemberResult:
     observation_time: datetime | None
     exclusion_code: str | None = None
     diagnostics: tuple[BreadthConditionDiagnostic, ...] = ()
+
+
+def _as_utc(value: datetime) -> datetime:
+    """Normalize breadth timestamps before IDs and API projections are built."""
+
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC)
 
 
 def build_equal_reference_series(
@@ -462,6 +471,15 @@ def _event_condition_metric(
         event_time = event_time.astimezone(UTC)
         if event_time < start or event_time > as_of_utc:
             continue
+        raw_fetched_at = getattr(event, "fetched_at", None)
+        if isinstance(raw_fetched_at, datetime):
+            fetched_at = (
+                raw_fetched_at
+                if raw_fetched_at.tzinfo is not None
+                else raw_fetched_at.replace(tzinfo=UTC)
+            ).astimezone(UTC)
+            if fetched_at > as_of_utc:
+                continue
         raw_type = getattr(getattr(event, "event_type", None), "value", None)
         raw_type = raw_type or getattr(event, "event_type", None)
         actual_type = str(raw_type or "").lower()
@@ -1663,6 +1681,7 @@ def detect_breadth_occurrences(points: list[Mapping[str, Any]]) -> list[dict[str
     occurrences: list[dict[str, Any]] = []
     for point in points:
         timestamp = point.get("timestamp")
+        timestamp_value = _as_utc(timestamp) if isinstance(timestamp, datetime) else timestamp
         percentage = point.get("percentage")
         pass_count = int(point.get("pass_count", 0))
         eligible_count = int(point.get("eligible_count", 0))
@@ -1683,14 +1702,16 @@ def detect_breadth_occurrences(points: list[Mapping[str, Any]]) -> list[dict[str
             if prior is not None and current is not None and prior is not current:
                 kind = "member_entered" if current else "member_exited"
                 occurrence_timestamp = (
-                    timestamp.isoformat() if hasattr(timestamp, "isoformat") else str(timestamp)
+                    wire_datetime(timestamp_value)
+                    if hasattr(timestamp_value, "isoformat")
+                    else str(timestamp_value)
                 )
                 occurrences.append(
                     {
                         "occurrence_id": (
-                            f"{instrument_id}:{occurrence_timestamp if timestamp else 'unknown'}:{kind}"
+                            f"{instrument_id}:{occurrence_timestamp if timestamp_value else 'unknown'}:{kind}"
                         ),
-                        "timestamp": timestamp,
+                        "timestamp": timestamp_value,
                         "kind": kind,
                         "instrument_id": instrument_id,
                         "symbol": symbol,

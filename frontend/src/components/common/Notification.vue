@@ -42,10 +42,14 @@ function remove(id: number) {
 
 function handleAlertEvent(e: Event) {
   const detail = (e as CustomEvent).detail
-  const title = `${detail.symbol} alert`
+  const indicatorLabel = detail.indicator
+    ? `${String(detail.indicator).toUpperCase()}${detail.output_a ? ` [${detail.output_a}]` : ''}${detail.indicator_b ? ` vs ${String(detail.indicator_b).toUpperCase()}${detail.output_b ? ` [${detail.output_b}]` : ''}` : ''}`
+    : ''
+  const title = `${detail.symbol}${indicatorLabel ? ` — ${indicatorLabel}` : ''} alert`
+  const condition = detail.condition?.replace(/_/g, ' ') ?? ''
   const message = detail.alert_kind === 'screener'
     ? detail.condition
-    : `${detail.condition?.replace(/_/g, ' ')} ${detail.threshold ?? ''} — current: ${detail.current_price?.toFixed?.(4) ?? detail.value_a?.toFixed?.(4) ?? 'n/a'}`
+    : `${indicatorLabel ? `${indicatorLabel} ` : ''}${condition} ${detail.threshold ?? ''} — current: ${detail.current_price?.toFixed?.(4) ?? detail.value_a?.toFixed?.(4) ?? 'n/a'}`
   add({
     type: 'alert',
     title,

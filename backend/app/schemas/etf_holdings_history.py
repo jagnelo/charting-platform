@@ -1,6 +1,8 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+from app.lib.time_utils import wire_datetime
 
 
 class BenchmarkFamilyHistoryRefreshRequest(BaseModel):
@@ -22,7 +24,12 @@ class BenchmarkFamilyHistoryRefreshLegOut(BaseModel):
     selected_count: int = 0
     deduplicated_count: int = 0
     excluded_count: int = 0
+    member_disposition: dict[str, int] = Field(default_factory=dict)
     membership_version: str | None = None
+    history_route_status: str = "not_reported"
+    history_route_provider: str | None = None
+    history_route_policy: str | None = None
+    history_route_source_url: str | None = None
     message: str | None = None
 
 
@@ -37,9 +44,15 @@ class BenchmarkFamilyHistoryRefreshSummary(BaseModel):
     limited: bool
     queued: int
     already_queued: int = 0
+    queue_errors: list[dict[str, object]] = Field(default_factory=list)
+    queue_error_count: int = 0
     queue_unavailable: bool = False
     legs: list[BenchmarkFamilyHistoryRefreshLegOut] = Field(default_factory=list)
     message: str | None = None
+
+    @field_serializer("as_of")
+    def serialize_timestamp(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class BenchmarkFamilyHoldingsRefreshRunRequest(BaseModel):
@@ -74,3 +87,7 @@ class BenchmarkFamilyHoldingsRefreshRunOut(BaseModel):
     finished_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("started_at", "finished_at", "created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)

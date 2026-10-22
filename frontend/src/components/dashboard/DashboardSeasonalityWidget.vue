@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 
 type Metric = 'performance' | 'range' | 'volatility' | 'volume'
@@ -121,6 +121,7 @@ const selectedMonth = ref<SeasonalityMonth | null>(null)
 const loading = ref(false)
 const error = ref('')
 let loadSeq = 0
+let mounted = false
 
 async function load() {
   const seq = ++loadSeq
@@ -135,17 +136,17 @@ async function load() {
     const data = await api.get<SeasonalityResponse>(
       `/instruments/${encodeURIComponent(symbol.value)}/seasonality/monthly`,
     )
-    if (seq !== loadSeq) return
+    if (!mounted || seq !== loadSeq) return
     months.value = data.months
     selectedMonth.value = data.months[new Date().getMonth()] ?? data.months[0] ?? null
   } catch (e: any) {
-    if (seq === loadSeq) {
+    if (mounted && seq === loadSeq) {
       error.value = e?.message ?? 'Seasonality unavailable'
       months.value = []
       selectedMonth.value = null
     }
   } finally {
-    if (seq === loadSeq) loading.value = false
+    if (mounted && seq === loadSeq) loading.value = false
   }
 }
 
@@ -187,8 +188,17 @@ function formatCompact(value: number | null | undefined) {
   return value.toFixed(0)
 }
 
-watch(symbol, load)
-onMounted(load)
+watch(symbol, () => {
+  if (mounted) void load()
+})
+onMounted(() => {
+  mounted = true
+  void load()
+})
+onBeforeUnmount(() => {
+  mounted = false
+  loadSeq += 1
+})
 </script>
 
 <style scoped>

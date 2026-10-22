@@ -1,4 +1,4 @@
-import { defineComponent } from 'vue'
+import { defineComponent, nextTick } from 'vue'
 import { flushPromises, mount as rawMount, type MountingOptions } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -36,7 +36,7 @@ const harness = vi.hoisted(() => {
     workspace: { id: 1, is_default: false, name: 'US Top Down', tabs: [tab], settings: { factory_id: 'us-top-down' } },
     workspaces: [{ id: 1, name: 'US Top Down', is_default: false, position: 0, revision: 1 }],
     activeTabKey: 'us-top-down',
-    activeTab: tab as typeof tab | null,
+    activeTab: tab,
     linkedSymbol: 'SPY',
     linkedTimeframe: 'D1',
     isPersistenceLeader: true,
@@ -44,6 +44,9 @@ const harness = vi.hoisted(() => {
     error: null,
     constituentETF: null,
     marketGroups: { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } },
+    groupSnapshots: {},
+    breadth: {},
+    breadthHistory: {},
     marketAnalysisRefreshing: false,
     connect: vi.fn(),
     disconnect: vi.fn(),
@@ -62,6 +65,9 @@ const harness = vi.hoisted(() => {
     setActiveWindow: vi.fn(),
     updateToolLinkGroup: vi.fn(),
     updateToolTimeframe: vi.fn(),
+    timeframeLinkGroupForTool: vi.fn((_tool: unknown) => 'blue'),
+    timeframeForTool: vi.fn((_windowKey: string) => 'D1'),
+    timeframeForLinkGroup: vi.fn((_group: string, isolatedTimeframe?: string | null) => isolatedTimeframe ?? 'D1'),
     updateToolTimeframeLinkGroup: vi.fn(),
     selectIndustryProxy: vi.fn(),
     selectIndustry: vi.fn(),
@@ -74,17 +80,24 @@ const harness = vi.hoisted(() => {
   const recent = {
     recent: [{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', viewedAt: 2 }],
     add: vi.fn(),
+    previous: vi.fn(),
     clear: vi.fn(),
   }
-  return { workspace, recent, popoutWindow, chartWindow, ratioWindow }
+  const drawings = {
+    activeToolType: null as string | null,
+    setActiveTool: vi.fn(),
+  }
+  return { workspace, recent, drawings, popoutWindow, chartWindow, ratioWindow }
 })
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
+const openableTools = vi.hoisted(() => [
+  { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
+  { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
+])
 
 vi.mock('@/stores/workspace', () => ({
-  OPENABLE_WORKSTATION_TOOLS: [
-    { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
-  ],
+  OPENABLE_WORKSTATION_TOOLS: openableTools,
   useWorkspaceStore: () => harness.workspace,
 }))
 vi.mock('@/stores/chart', () => ({
@@ -93,6 +106,7 @@ vi.mock('@/stores/chart', () => ({
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ logout: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ reorderItems: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('@/stores/recentInstruments', () => ({ useRecentInstrumentsStore: () => harness.recent }))
+vi.mock('@/stores/drawings', () => ({ useDrawingsStore: () => harness.drawings }))
 vi.mock('@/lib/instruments', () => ({
   ensureKnownInstrumentSymbol: vi.fn((symbol: string) => Promise.resolve(symbol)),
   resolveKnownInstrument: vi.fn((symbol: string) => Promise.resolve({ symbol, id: 77 })),
@@ -118,6 +132,17 @@ function mount(component: typeof WorkstationView, options: MountingOptions<typeo
       ],
     },
   })
+}
+
+function appendChartPlotTarget(parent: Element, windowKey: string) {
+  const toolWindow = document.createElement('section')
+  toolWindow.className = 'tool-window'
+  toolWindow.dataset.windowKey = windowKey
+  const plot = document.createElement('div')
+  plot.className = 'uplot'
+  toolWindow.append(plot)
+  parent.append(toolWindow)
+  return plot
 }
 
 const ToolStub = defineComponent({
@@ -146,20 +171,28 @@ describe('WorkstationView pop-out bindings', () => {
     routeState.path = '/popout/benchmark-list'
     routeState.params = { windowKey: 'benchmark-list' }
     routeState.query = {}
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
     apiGet.mockReset()
     apiGet.mockResolvedValue([])
+    harness.workspace.linkedTimeframe = 'D1'
+    harness.workspace.publishTimeframe = vi.fn()
     harness.workspace.loadDefault = vi.fn().mockResolvedValue(undefined)
     harness.workspace.activeTab = harness.workspace.workspace.tabs[0]
     harness.workspace.openTool.mockReset()
     harness.workspace.marketGroups = { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } }
+    harness.workspace.groupSnapshots = {}
+    harness.workspace.breadth = {}
+    harness.workspace.breadthHistory = {}
     harness.recent.recent = [{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', viewedAt: 2 }]
+    harness.drawings.activeToolType = null
+    harness.drawings.setActiveTool.mockClear()
   })
 
   it('acknowledges a cold tool command immediately and applies it exactly once after hydration', async () => {
     routeState.path = '/chart'
     routeState.params = {}
     const tab = harness.workspace.activeTab
-    harness.workspace.activeTab = null
+    ;(harness.workspace as { activeTab: typeof tab | null }).activeTab = null
     let finishLoad!: () => void
     harness.workspace.loadDefault.mockImplementation(() => new Promise<void>(resolve => { finishLoad = resolve }))
     const wrapper = mount(WorkstationView, {
@@ -187,7 +220,7 @@ describe('WorkstationView pop-out bindings', () => {
     routeState.path = '/chart'
     routeState.params = {}
     const tab = harness.workspace.activeTab
-    harness.workspace.activeTab = null
+    ;(harness.workspace as { activeTab: typeof tab | null }).activeTab = null
     let finishLoad!: () => void
     harness.workspace.loadDefault.mockImplementation(() => new Promise<void>(resolve => { finishLoad = resolve }))
     const wrapper = mount(WorkstationView, {
@@ -268,6 +301,120 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('names and focuses the pop-out landmark for keyboard users', async () => {
+    let finishWorkspaceLoad!: () => void
+    harness.workspace.loadDefault.mockReturnValue(new Promise<void>(resolve => { finishWorkspaceLoad = resolve }))
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const popout = wrapper.get('.workstation__popout')
+    expect(popout.attributes('aria-label')).toBe('TC2000 Benchmarks pop-out')
+    expect(popout.attributes('tabindex')).toBe('-1')
+    const popoutContextId = popout.attributes('aria-describedby')
+    expect(popoutContextId).toMatch(/-popout-context$/)
+    expect(popoutContextId).not.toBe('workstation-popout-context')
+    expect(popout.get(`#${popoutContextId}`).text()).toContain('browser-managed pop-out window')
+    expect(popout.get(`#${popoutContextId}`).text()).toContain('controlled by the browser and operating system')
+    await nextTick()
+    expect(harness.workspace.loadDefault).toHaveBeenCalled()
+    expect(document.activeElement).toBe(popout.element)
+    finishWorkspaceLoad()
+    await flushPromises()
+    wrapper.unmount()
+  })
+
+  it('gives the compact clone-layout control an explicit accessible name', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const cloneButton = wrapper.get('button[aria-label="Clone active layout"]')
+    expect(cloneButton.text()).toBe('+')
+    expect(await cloneButton.attributes('title')).toBe('Clone active layout')
+    await cloneButton.trigger('click')
+    expect(harness.workspace.cloneActiveTab).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('gives the compact factory-reset control an explicit accessible name', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const resetButton = wrapper.get('button[aria-label="Reset factory workspace"]')
+    expect(resetButton.text()).toBe('')
+    expect(await resetButton.attributes('title')).toBe('Reset factory workspace')
+    await resetButton.trigger('click')
+    expect(confirm).toHaveBeenCalledWith('Reset this factory workspace? Your current layout changes will be replaced.')
+    expect(harness.workspace.resetFactoryWorkspace).toHaveBeenCalledTimes(1)
+    confirm.mockRestore()
+    wrapper.unmount()
+  })
+
+  it('announces an unavailable pop-out tool as an assertive recovery alert', async () => {
+    routeState.params = { windowKey: 'missing-tool' }
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const recovery = wrapper.get('.workstation__missing-tool')
+    expect(recovery.text()).toBe('The requested tool is unavailable. It remains in the source workspace.')
+    expect(recovery.attributes('role')).toBe('alert')
+    expect(recovery.attributes('aria-live')).toBe('assertive')
+    wrapper.unmount()
+  })
+
+  it('hydrates missing shared market analysis when a pop-out opens after the leader refresh', async () => {
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalledTimes(1))
+    wrapper.unmount()
+  })
+
+  it('does not refetch shared market analysis when a pop-out already has the canonical inputs', async () => {
+    harness.workspace.marketGroups = {
+      'us-benchmarks': { members: [] },
+      'sp500-sectors': { members: [] },
+    }
+    harness.workspace.groupSnapshots = {
+      'us-benchmarks': { rows: [] },
+      'sp500-sectors': { rows: [] },
+    }
+    harness.workspace.breadth = { 'sp500-sectors': {} }
+    harness.workspace.breadthHistory = { 'sp500-sectors': {} }
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(harness.workspace.refreshMarketAnalysis).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('does not hydrate market analysis for a chart pop-out', async () => {
+    routeState.path = '/popout/chart-main'
+    routeState.params = { windowKey: 'chart-main' }
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(harness.workspace.refreshMarketAnalysis).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
   it('resolves a canonical identity when a proxy action does not include a row id', async () => {
     routeState.path = '/popout/benchmark-list'
     routeState.params = { windowKey: 'benchmark-list' }
@@ -303,11 +450,324 @@ describe('WorkstationView pop-out bindings', () => {
     await input.setValue('xl')
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'xl', canonical_only: true }))
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
+    const listbox = wrapper.get('[role="listbox"]')
+    const resultsId = listbox.attributes('id')
+    const searchStateId = wrapper.get('.workstation__symbol-search-state').attributes('id')
+    expect(resultsId).toMatch(/-symbol-results$/)
+    expect(resultsId).not.toBe('workstation-symbol-results')
+    expect(searchStateId).toMatch(/-symbol-search-state$/)
+    expect(searchStateId).not.toBe('workstation-symbol-search-state')
+    expect(input.attributes('aria-controls')).toBe(resultsId)
+    expect(input.attributes('aria-describedby')).toBe(searchStateId)
     expect(wrapper.findAll('[role="option"]')[0].text()).toContain('XLK')
+    const firstOptionId = wrapper.findAll('[role="option"]')[0].attributes('id')
+    expect(firstOptionId).toMatch(/-symbol-option-0$/)
+    expect(input.attributes('aria-activedescendant')).toBe(firstOptionId)
     await input.trigger('keydown', { key: 'ArrowDown' })
+    const secondOptionId = wrapper.findAll('[role="option"]')[1].attributes('id')
+    expect(input.attributes('aria-activedescendant')).toBe(secondOptionId)
     await input.trigger('keydown', { key: 'Enter' })
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', instrumentId: 89, group: 'blue' }))
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('uses Backspace for viewed-symbol history when the workstation owns focus', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.recent.previous.mockReturnValueOnce('XLK').mockReturnValueOnce(null)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const event = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+    wrapper.find('.workstation').element.dispatchEvent(event)
+    await flushPromises()
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(harness.recent.previous).toHaveBeenCalledOnce()
+    expect(harness.recent.add).toHaveBeenCalledWith('XLK', undefined, false)
+    expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLK', group: 'blue' }))
+    const oldestEntryEvent = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+    wrapper.find('.workstation').element.dispatchEvent(oldestEntryEvent)
+    expect(oldestEntryEvent.defaultPrevented).toBe(true)
+    expect(harness.recent.previous).toHaveBeenCalledTimes(2)
+    wrapper.unmount()
+  })
+
+  it('uses Shift+L to maximize only the selected tool and leaves editor shortcuts alone', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+    const selectedTool = document.createElement('section')
+    selectedTool.className = 'tool-window'
+    selectedTool.dataset.windowKey = 'benchmark-list'
+    const maximize = document.createElement('button')
+    maximize.setAttribute('aria-label', 'Maximize tool')
+    const maximizeClick = vi.fn()
+    maximize.addEventListener('click', maximizeClick)
+    selectedTool.append(maximize)
+    workstation.appendChild(selectedTool)
+    expect(workstation.isConnected).toBe(true)
+    expect(document.querySelector('.tool-window[data-window-key="benchmark-list"]')).not.toBeNull()
+
+    const event = new KeyboardEvent('keydown', { key: 'L', shiftKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(maximizeClick).toHaveBeenCalledOnce()
+
+    const editor = document.createElement('input')
+    workstation.appendChild(editor)
+    harness.workspace.isEditorTarget.mockImplementation(target => target === editor)
+    const editorEvent = new KeyboardEvent('keydown', { key: 'L', shiftKey: true, bubbles: true, cancelable: true })
+    editor.dispatchEvent(editorEvent)
+    expect(editorEvent.defaultPrevented).toBe(false)
+    expect(maximizeClick).toHaveBeenCalledOnce()
+    harness.workspace.isEditorTarget.mockImplementation(() => false)
+    wrapper.unmount()
+  })
+
+  it('uses Shift+N to open active-symbol notes from the shell and yields to interactive controls', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.openTool.mockReturnValue({ instance_key: 'notes-new', tool_type: 'notes' })
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+    await wrapper.find('.workstation').trigger('keydown', { key: 'N', shiftKey: true })
+    expect(harness.workspace.openTool).toHaveBeenCalledWith(
+      expect.objectContaining({ tool_type: 'notes', configuration: { scope: 'active-instrument' } }),
+      {},
+    )
+
+    const editor = document.createElement('input')
+    workstation.appendChild(editor)
+    harness.workspace.isEditorTarget.mockImplementation(target => target === editor)
+    await wrapper.find('input[aria-label="Active symbol"]').trigger('keydown', { key: 'n', shiftKey: true })
+
+    const button = document.createElement('button')
+    workstation.appendChild(button)
+    await wrapper.find('button[title="Keyboard shortcuts"]').trigger('keydown', { key: 'n', shiftKey: true })
+    expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
+    harness.workspace.isEditorTarget.mockImplementation(() => false)
+    wrapper.unmount()
+  })
+
+  it('uses Shift+D to toggle Trend Line only when a chart is active', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    const watchlistEvent = new KeyboardEvent('keydown', { key: 'D', shiftKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(watchlistEvent)
+    expect(watchlistEvent.defaultPrevented).toBe(false)
+    expect(harness.drawings.setActiveTool).not.toHaveBeenCalled()
+
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    const chartEvent = new KeyboardEvent('keydown', { key: 'D', shiftKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(chartEvent)
+    expect(chartEvent.defaultPrevented).toBe(true)
+    expect(harness.drawings.setActiveTool).toHaveBeenLastCalledWith('trendline')
+
+    harness.drawings.activeToolType = 'trendline'
+    const toggleOffEvent = new KeyboardEvent('keydown', { key: 'D', shiftKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(toggleOffEvent)
+    expect(harness.drawings.setActiveTool).toHaveBeenLastCalledWith(null)
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    wrapper.unmount()
+  })
+
+  it('maps supported Ctrl+number shortcuts to direct active-chart timeframes', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    harness.workspace.updateToolTimeframe.mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    for (const [key, timeframe] of [['1', 'M1'], ['3', 'M5'], ['4', 'M15'], ['5', 'M30'], ['6', 'H1']] as const) {
+      const event = new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true, cancelable: true })
+      workstation.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+      expect(harness.workspace.updateToolTimeframe).toHaveBeenLastCalledWith('chart-main', timeframe)
+    }
+
+    harness.workspace.updateToolTimeframe.mockClear()
+    const unsupportedInterval = new KeyboardEvent('keydown', { key: '2', ctrlKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(unsupportedInterval)
+    expect(unsupportedInterval.defaultPrevented).toBe(false)
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChart = new KeyboardEvent('keydown', { key: '1', ctrlKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChart)
+    expect(nonChart.defaultPrevented).toBe(false)
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    wrapper.unmount()
+  })
+
+  it('maps supported plain number shortcuts to daily and weekly active-chart intervals', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    harness.workspace.updateToolTimeframe.mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    for (const [key, timeframe] of [['1', 'D1'], ['5', 'W1']] as const) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+      workstation.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+      expect(harness.workspace.updateToolTimeframe).toHaveBeenLastCalledWith('chart-main', timeframe)
+    }
+
+    harness.workspace.updateToolTimeframe.mockClear()
+    const unsupportedInterval = new KeyboardEvent('keydown', { key: '2', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(unsupportedInterval)
+    expect(unsupportedInterval.defaultPrevented).toBe(true) // remains type-to-search
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChart = new KeyboardEvent('keydown', { key: '1', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChart)
+    expect(nonChart.defaultPrevented).toBe(true) // symbol search retains ownership
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('leaves the period key to the active chart date pointer and keeps symbol search elsewhere', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    const chartEvent = new KeyboardEvent('keydown', { key: '.', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(chartEvent)
+    expect(chartEvent.defaultPrevented).toBe(false)
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChartEvent = new KeyboardEvent('keydown', { key: '.', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChartEvent)
+    expect(nonChartEvent.defaultPrevented).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('routes unmodified F1-F12 shortcuts to the active chart template control only', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    const received: CustomEvent[] = []
+    const listener = (event: Event) => received.push(event as CustomEvent)
+    window.addEventListener('tc2000:chart-template-key', listener)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    const chartEvent = new KeyboardEvent('keydown', { key: 'F5', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(chartEvent)
+    expect(chartEvent.defaultPrevented).toBe(true)
+    expect(received).toHaveLength(1)
+    expect(received[0].detail).toEqual({ windowKey: 'chart-main', functionKey: 'F5' })
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChartEvent = new KeyboardEvent('keydown', { key: 'F5', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChartEvent)
+    expect(nonChartEvent.defaultPrevented).toBe(false)
+    expect(received).toHaveLength(1)
+
+    const modifiedEvent = new KeyboardEvent('keydown', { key: 'F5', ctrlKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(modifiedEvent)
+    expect(received).toHaveLength(1)
+    window.removeEventListener('tc2000:chart-template-key', listener)
+    wrapper.unmount()
+  })
+
+  it('cycles supported Ctrl+B chart styles only on the active chart', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    harness.chartWindow.configuration = { bar_type: 'ohlc', marker: 'preserved' }
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+
+    for (const expected of ['candles', 'line', 'hlc', 'ohlc']) {
+      const event = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true, cancelable: true })
+      workstation.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+      expect(harness.chartWindow.configuration.bar_type).toBe(expected)
+      expect(harness.chartWindow.configuration.marker).toBe('preserved')
+    }
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChart = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChart)
+    expect(nonChart.defaultPrevented).toBe(false)
+    expect(harness.chartWindow.configuration.bar_type).toBe('ohlc')
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    wrapper.unmount()
+
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    harness.chartWindow.configuration = {}
+    const defaultStyleWrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const defaultStyleEvent = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true, cancelable: true })
+    defaultStyleWrapper.find('.workstation').element.dispatchEvent(defaultStyleEvent)
+    expect(defaultStyleEvent.defaultPrevented).toBe(true)
+    expect(harness.chartWindow.configuration.bar_type).toBe('line')
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    defaultStyleWrapper.unmount()
+  })
+
+  it('opens the active chart plot library with slash but leaves other windows untouched', () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const workstation = wrapper.find('.workstation').element
+    const toolWindow = document.createElement('section')
+    toolWindow.className = 'tool-window'
+    toolWindow.dataset.windowKey = 'chart-main'
+    const trigger = document.createElement('button')
+    trigger.setAttribute('aria-label', 'Chart plot library')
+    const click = vi.fn()
+    trigger.addEventListener('click', click)
+    toolWindow.append(trigger)
+    document.body.append(toolWindow)
+
+    const event = new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(click).toHaveBeenCalledOnce()
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const nonChart = new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true })
+    workstation.dispatchEvent(nonChart)
+    expect(nonChart.defaultPrevented).toBe(false)
+    expect(click).toHaveBeenCalledOnce()
+
+    toolWindow.remove()
     wrapper.unmount()
   })
 
@@ -330,12 +790,61 @@ describe('WorkstationView pop-out bindings', () => {
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
-    await wrapper.find('.workstation').trigger('keydown', { key: ' ', shiftKey: true })
+    await wrapper.find('.workstation').trigger('keydown', { key: ' ', ctrlKey: true })
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'IWM', group: 'blue' }))
 
     releaseHydration()
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenLastCalledWith(expect.objectContaining({ symbol: 'IWM', group: 'blue' })))
     wrapper.unmount()
+  })
+
+  it('replays a linked timeframe selected before initial workspace hydration', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    let releaseHydration!: () => void
+    harness.workspace.loadDefault = vi.fn(() => new Promise<void>(resolve => {
+      releaseHydration = () => {
+        // Simulate the persisted snapshot replacing a choice made from the
+        // shell while its request was still in flight.
+        harness.workspace.linkedTimeframe = 'D1'
+        resolve()
+      }
+    }))
+    harness.workspace.publishTimeframe = vi.fn((timeframe: string) => {
+      harness.workspace.linkedTimeframe = timeframe
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await wrapper.get('select[aria-label="Linked timeframe"]').setValue('H1')
+    expect(harness.workspace.linkedTimeframe).toBe('H1')
+    expect(harness.workspace.publishTimeframe).toHaveBeenCalledTimes(1)
+
+    releaseHydration()
+    await vi.waitFor(() => {
+      expect(harness.workspace.publishTimeframe).toHaveBeenLastCalledWith('H1', 'blue', 'workstation')
+      expect(harness.workspace.linkedTimeframe).toBe('H1')
+    })
+    expect(harness.workspace.publishTimeframe).toHaveBeenCalledTimes(2)
+    wrapper.unmount()
+  })
+
+  it('does not continue initial hydration after the workstation unmounts', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    let releaseHydration!: () => void
+    harness.workspace.loadDefault = vi.fn(() => new Promise<void>(resolve => { releaseHydration = resolve }))
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    expect(harness.workspace.loadDefault).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+    releaseHydration()
+    await flushPromises()
+
+    expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
   })
 
   it('exposes an explicit loading state while canonical symbol search is pending', async () => {
@@ -482,7 +991,11 @@ describe('WorkstationView pop-out bindings', () => {
 
     await wrapper.get('button[title="Keyboard shortcuts"]').trigger('click')
     expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
-    expect(wrapper.get('.workstation__help-popover').attributes('role')).toBe('menu')
+    expect(wrapper.get('.workstation__help-popover').attributes('role')).toBe('dialog')
+    expect(wrapper.get('button[title="Keyboard shortcuts"]').attributes('aria-haspopup')).toBe('dialog')
+    expect(wrapper.get('.workstation__help-popover').attributes('aria-labelledby')).toBe('keyboard-help-title')
+    expect(wrapper.get('.workstation__help-popover').text()).toContain("/Open the active chart's plot library and search indicators")
+    expect(wrapper.get('.workstation__help-popover').text()).toContain('Ctrl+BCycle HLC and OHLC bars, candles, and line style on the active chart')
 
     await wrapper.find('.workstation__tabs').trigger('pointerdown')
     expect(wrapper.find('.workstation__help-popover').exists()).toBe(false)
@@ -516,6 +1029,56 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('does not reposition the open tool menu between an interior pointer press and release', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    let triggerLeft = 120
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const trigger = wrapper.get('.workstation__tool-library > button')
+    vi.spyOn(trigger.element, 'getBoundingClientRect').mockImplementation(() => ({
+      x: triggerLeft,
+      y: 32,
+      left: triggerLeft,
+      top: 32,
+      right: triggerLeft + 72,
+      bottom: 56,
+      width: 72,
+      height: 24,
+      toJSON: () => ({}),
+    }) as DOMRect)
+
+    await trigger.trigger('click')
+    await nextTick()
+    const menu = wrapper.get('.workstation__tool-library-menu')
+    const positionedBeforePress = menu.attributes('style')
+    expect(positionedBeforePress).toContain('left: 120px')
+
+    triggerLeft = 420
+    const item = menu.get('[role="menuitem"]')
+    await item.trigger('pointerdown', { button: 0 })
+    await nextTick()
+
+    // A shell-level interior press must not move the fixed hit target before
+    // the browser delivers the corresponding pointerup/click.
+    expect(menu.attributes('style')).toBe(positionedBeforePress)
+    await item.trigger('focusin')
+    await nextTick()
+    expect(menu.attributes('style')).toBe(positionedBeforePress)
+    await item.trigger('pointerup', { button: 0 })
+
+    // Geometry still follows the trigger on actual viewport changes.
+    window.dispatchEvent(new Event('resize'))
+    await nextTick()
+    expect(menu.attributes('style')).toContain('left: 420px')
+
+    await item.trigger('click')
+    expect(wrapper.find('.workstation__tool-library-menu').exists()).toBe(false)
+    expect(harness.workspace.openTool).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
   it('opens shell menus from the keyboard, navigates items, and restores trigger focus', async () => {
     routeState.path = '/'
     routeState.params = {}
@@ -526,7 +1089,7 @@ describe('WorkstationView pop-out bindings', () => {
     const help = wrapper.get('button[title="Keyboard shortcuts"]')
     await help.trigger('keydown', { key: 'ArrowDown' })
     const helpMenu = wrapper.get('.workstation__help-popover')
-    await vi.waitFor(() => expect(document.activeElement).toBe(helpMenu.get('[role="menuitem"]').element))
+    await vi.waitFor(() => expect(document.activeElement).toBe(helpMenu.element))
     await helpMenu.trigger('keydown', { key: 'Escape' })
     expect(wrapper.find('.workstation__help-popover').exists()).toBe(false)
     expect(document.activeElement).toBe(help.element)
@@ -549,6 +1112,61 @@ describe('WorkstationView pop-out bindings', () => {
     expect(document.activeElement).toBe(reopenedWorkspaceMenu.findAll('[role="menuitem"]').at(-1)!.element)
     await reopenedWorkspaceMenu.trigger('keydown', { key: 'Escape' })
     expect(document.activeElement).toBe(workspace.element)
+    wrapper.unmount()
+  })
+
+  it('keeps each shell menu trigger linked to its controlled menu', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+      attachTo: document.body,
+    })
+
+    const triggers = [
+      wrapper.get('button[title="Manage workspace layouts"]'),
+      wrapper.get('button[title="Keyboard shortcuts"]'),
+      wrapper.get('button[aria-label="Recent symbols"]'),
+      wrapper.get('button[title="Open a workstation tool"]'),
+    ]
+    const menuIds = triggers.map(trigger => trigger.attributes('aria-controls'))
+
+    expect(menuIds.every(Boolean)).toBe(true)
+    expect(new Set(menuIds).size).toBe(menuIds.length)
+    expect(triggers.every(trigger => trigger.attributes('aria-expanded') === 'false')).toBe(true)
+
+    const menuSelectors = [
+      '.workstation__workspace-popover',
+      '.workstation__help-popover',
+      '.workstation__recent-symbols',
+      '.workstation__tool-library-menu',
+    ]
+    for (let index = 0; index < triggers.length; index += 1) {
+      await triggers[index].trigger('click')
+      const menu = wrapper.get(menuSelectors[index])
+      expect(menu.attributes('id')).toBe(menuIds[index])
+      expect(triggers[index].attributes('aria-expanded')).toBe('true')
+      await triggers[index].trigger('click')
+      expect(wrapper.find(menuSelectors[index]).exists()).toBe(false)
+    }
+
+    wrapper.unmount()
+  })
+
+  it('opens the recent-symbol menu at its last item when ArrowUp is pressed', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+      attachTo: document.body,
+    })
+    const trigger = wrapper.get('button[aria-label="Recent symbols"]')
+
+    await trigger.trigger('keydown', { key: 'ArrowUp' })
+
+    const items = wrapper.findAll('.workstation__recent-symbols [role="menuitem"]')
+    expect(items.length).toBeGreaterThan(1)
+    await vi.waitFor(() => expect(document.activeElement).toBe(items.at(-1)!.element))
     wrapper.unmount()
   })
 
@@ -591,29 +1209,80 @@ describe('WorkstationView pop-out bindings', () => {
     harness.workspace.activeTabKey = 'us-top-down'
   })
 
-  it('traverses the canonical workstation universe with Ctrl+wheel outside editors', async () => {
-    harness.workspace.marketGroups = {
-      'us-benchmarks': { members: [{ instrument: { symbol: 'SPY' } }, { instrument: { symbol: 'QQQ' } }, { instrument: { symbol: 'DIA' } }] },
-      'sp500-sectors': { members: [] },
-    }
+  it('routes Ctrl+wheel over a chart plot to its live timeframe update', async () => {
     routeState.path = '/'
     routeState.params = {}
+    harness.chartWindow.configuration = { timeframe: 'D1', timeframe_link_group: 'green' }
+    harness.workspace.timeframeLinkGroupForTool.mockReturnValue('green')
+    harness.workspace.timeframeForTool.mockReturnValueOnce('D1').mockReturnValueOnce('W1')
+    harness.workspace.updateToolTimeframe.mockReturnValue(true)
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     harness.workspace.publishSymbol.mockClear()
 
-    wrapper.element.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true }))
-    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'QQQ', group: 'blue' })))
+    const plot = appendChartPlotTarget(wrapper.element, 'chart-main')
+    const plotWheel = vi.fn()
+    plot.addEventListener('wheel', plotWheel)
+    const nextEvent = new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true })
+    plot.dispatchEvent(nextEvent)
+    expect(nextEvent.defaultPrevented).toBe(true)
+    expect(plotWheel).not.toHaveBeenCalled()
+    expect(harness.workspace.timeframeForTool).toHaveBeenNthCalledWith(1, 'chart-main')
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenNthCalledWith(1, 'chart-main', 'W1')
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Control' }))
+    const previousEvent = new WheelEvent('wheel', { deltaY: -1, bubbles: true, cancelable: true })
+    plot.dispatchEvent(previousEvent)
+    expect(harness.workspace.timeframeForTool).toHaveBeenNthCalledWith(2, 'chart-main')
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenNthCalledWith(2, 'chart-main', 'D1')
+    expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Control' }))
     wrapper.unmount()
   })
 
-  it('retains Ctrl+wheel traversal when the wheel event omits ctrlKey', async () => {
-    harness.workspace.marketGroups = {
-      'us-benchmarks': { members: [{ instrument: { symbol: 'SPY' } }, { instrument: { symbol: 'QQQ' } }] },
-      'sp500-sectors': { members: [] },
+  it('cycles only the active chart timeframe with equals and minus', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    harness.workspace.timeframeForTool.mockReturnValueOnce('D1').mockReturnValueOnce('W1')
+    harness.workspace.updateToolTimeframe.mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const chart = appendChartPlotTarget(wrapper.element, 'chart-main')
+    chart.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    expect(harness.workspace.setActiveWindow).toHaveBeenCalledWith('chart-main')
+    harness.workspace.activeTab.active_window_key = 'chart-main'
+
+    const next = new KeyboardEvent('keydown', { key: '=', bubbles: true, cancelable: true })
+    wrapper.element.dispatchEvent(next)
+    expect(next.defaultPrevented).toBe(true)
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenNthCalledWith(1, 'chart-main', 'W1')
+
+    const previous = new KeyboardEvent('keydown', { key: '-', bubbles: true, cancelable: true })
+    wrapper.element.dispatchEvent(previous)
+    expect(previous.defaultPrevented).toBe(true)
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenNthCalledWith(2, 'chart-main', 'D1')
+
+    for (const key of ['=', '-']) {
+      const projectionShortcut = new KeyboardEvent('keydown', { key, shiftKey: true, bubbles: true, cancelable: true })
+      wrapper.element.dispatchEvent(projectionShortcut)
+      expect(projectionShortcut.defaultPrevented).toBe(false)
     }
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenCalledTimes(2)
+
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+    const watchlistShortcut = new KeyboardEvent('keydown', { key: '=', bubbles: true, cancelable: true })
+    wrapper.element.dispatchEvent(watchlistShortcut)
+    expect(harness.workspace.updateToolTimeframe).toHaveBeenCalledTimes(2)
+    expect(watchlistShortcut.defaultPrevented).toBe(true)
+
+    wrapper.unmount()
+    harness.workspace.activeTab.active_window_key = 'benchmark-list'
+  })
+
+  it('leaves Ctrl+wheel on non-chart surfaces to their local owner', async () => {
     routeState.path = '/'
     routeState.params = {}
     const wrapper = mount(WorkstationView, {
@@ -622,10 +1291,21 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
     harness.workspace.publishSymbol.mockClear()
 
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Control' }))
-    wrapper.element.dispatchEvent(new WheelEvent('wheel', { deltaY: 1, bubbles: true, cancelable: true }))
-    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'QQQ', group: 'blue' })))
-    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Control' }))
+    const toolWindow = document.createElement('section')
+    toolWindow.className = 'tool-window'
+    toolWindow.dataset.windowKey = 'benchmark-list'
+    const watchlistScroll = document.createElement('div')
+    watchlistScroll.className = 'watchlist__scroll'
+    toolWindow.append(watchlistScroll)
+    wrapper.element.append(toolWindow)
+    const localWheel = vi.fn()
+    watchlistScroll.addEventListener('wheel', localWheel)
+    const event = new WheelEvent('wheel', { ctrlKey: true, deltaY: 1, bubbles: true, cancelable: true })
+    watchlistScroll.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(false)
+    expect(localWheel).toHaveBeenCalledOnce()
+    expect(harness.workspace.updateToolTimeframe).not.toHaveBeenCalled()
+    expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 
@@ -668,6 +1348,9 @@ describe('WorkstationView pop-out bindings', () => {
 
     const status = wrapper.find('.workstation__footer span:nth-child(3)')
     expect(status.text()).toBe(expected)
+    expect(status.attributes('role')).toBe('status')
+    expect(status.attributes('aria-live')).toBe('polite')
+    expect(status.attributes('aria-atomic')).toBe('true')
     expect(status.attributes('title')).toContain('API GET /market-groups/etf/SPY/industries')
     harness.workspace.error = null
   })

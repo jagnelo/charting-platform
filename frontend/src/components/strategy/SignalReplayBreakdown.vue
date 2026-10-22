@@ -16,6 +16,8 @@
         type="button"
         class="signal-replay__row"
         :class="{ 'signal-replay__row--active': activeKey === row.key }"
+        :aria-label="`${row.label}: ${row.count} signals, ${row.shareLabel}`"
+        :aria-pressed="activeKey === row.key ? 'true' : 'false'"
         @mouseenter="hoveredKey = row.key"
         @mouseleave="hoveredKey = null"
         @focus="hoveredKey = row.key"
@@ -49,7 +51,7 @@
       </p>
     </div>
   </div>
-  <div v-else class="signal-replay__empty">
+  <div v-else class="signal-replay__empty" role="status" aria-live="polite" aria-atomic="true">
     {{ emptyLabel }}
   </div>
 </template>

@@ -561,12 +561,51 @@ describe('StrategyLabView', () => {
     )
     expect(panel).toBeTruthy()
     if (!panel!.find('.panel-body').exists()) {
-      await panel!.get('.panel-head-heading').trigger('click')
+      await panel!.get('.panel-head-heading__button').trigger('click')
       await flushPromises()
     }
     expect(panel!.find('.panel-body').exists()).toBe(true)
     return panel!
   }
+
+  it('supports keyboard toggling for strategy section headings', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    const heading = wrapper.findAll('.panel-head-heading').find(node => node.text().trim() === 'Strategy profile')
+    expect(heading).toBeTruthy()
+    const control = heading!.get('.panel-head-heading__button')
+    expect(control.element.tagName).toBe('BUTTON')
+    expect(control.attributes('type')).toBe('button')
+    expect(control.attributes('role')).toBeUndefined()
+    const profilePanelId = control.attributes('aria-controls')
+    expect(profilePanelId).toMatch(/-profile-panel$/)
+
+    const initialExpanded = control.attributes('aria-expanded')
+    await control.trigger('click')
+    expect(control.attributes('aria-expanded')).toBe(initialExpanded === 'true' ? 'false' : 'true')
+
+    const afterClick = control.attributes('aria-expanded')
+    await control.trigger('click')
+    expect(control.attributes('aria-expanded')).toBe(afterClick === 'true' ? 'false' : 'true')
+  })
+
+  it('scopes strategy disclosure ids within the mounted view instance', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const profileHeading = wrapper.findAll('.panel-head-heading').find(node => node.text().trim() === 'Strategy profile')
+    expect(profileHeading).toBeTruthy()
+
+    const profilePanelId = profileHeading!.get('.panel-head-heading__button').attributes('aria-controls')
+    const disclosureIds = wrapper.findAll('.panel-head-heading__button')
+      .map(node => node.attributes('aria-controls'))
+      .filter((id): id is string => Boolean(id))
+    expect(profilePanelId).toMatch(/-profile-panel$/)
+    expect(profilePanelId).not.toBe('strategy-profile-panel')
+    expect(new Set(disclosureIds).size).toBe(disclosureIds.length)
+
+    wrapper.unmount()
+  })
 
   function findFieldByLabel(wrapper: ReturnType<typeof mount>, label: string) {
     return wrapper.findAll('.field').find(node =>
@@ -646,10 +685,16 @@ describe('StrategyLabView', () => {
         expect(point.value).toBeLessThanOrEqual(0)
       }
     }
+    expect(wrapper.get('button.mode-pill').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.findAll('button.mode-pill')[1].attributes('aria-pressed')).toBe('false')
+    expect(wrapper.get('button[aria-label="Show position evolution in currency"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('button[aria-label="Show position evolution in percent"]').attributes('aria-pressed')).toBe('false')
     await wrapper.get('button[aria-label="Show position evolution in percent"]').trigger('click')
     await nextTick()
     expect(positionEvolutionChart!.props('currency')).toBe(false)
     expect(positionEvolutionChart!.props('percent')).toBe(true)
+    expect(wrapper.get('button[aria-label="Show position evolution in currency"]').attributes('aria-pressed')).toBe('false')
+    expect(wrapper.get('button[aria-label="Show position evolution in percent"]').attributes('aria-pressed')).toBe('true')
     expect(wrapper.findAll('button[aria-label="Export"]')).toHaveLength(1)
     expect(wrapper.find('button[aria-label="Export summary"]').exists()).toBe(false)
     expect(wrapper.find('button[aria-label="Export trades CSV"]').exists()).toBe(false)
@@ -659,6 +704,39 @@ describe('StrategyLabView', () => {
     expect(wrapper.find('button[aria-label="Show monthly returns"]').exists()).toBe(true)
     expect(wrapper.find('button[aria-label="Show quarterly returns"]').exists()).toBe(true)
     expect(wrapper.find('button[aria-label="Show yearly returns"]').exists()).toBe(true)
+    expect(wrapper.get('button[aria-label="Show monthly returns"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('button[aria-label="Show quarterly returns"]').attributes('aria-pressed')).toBe('false')
+    expect(wrapper.get('button[aria-label="Show yearly returns"]').attributes('aria-pressed')).toBe('false')
+  })
+
+  it('shows the current strategy revision in the sidebar regardless of API version order', async () => {
+    const versionedDefinition = clone(definition)
+    versionedDefinition.versions = [
+      { ...clone(definition.versions[0]), id: 7, version_number: 1, is_current: false },
+      { ...clone(definition.versions[0]), id: 8, version_number: 2, is_current: true },
+    ]
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([versionedDefinition])
+      if (path === '/strategy-lab/definitions/4') return Promise.resolve(versionedDefinition)
+      return Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Momentum Pilot'))
+
+    const item = wrapper.find('.definition-item')
+    expect(item.text()).toContain('v2')
+    expect(item.text()).not.toContain('v1')
+  })
+
+  it('exposes the selected strategy and names the new-strategy action', async () => {
+    const wrapper = mountView()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Momentum Pilot'))
+
+    const item = wrapper.get('button.definition-item:not(.sidebar-new-btn)')
+    expect(item.attributes('aria-label')).toBe('Open strategy Momentum Pilot')
+    expect(item.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('button.sidebar-new-btn').attributes('aria-label')).toBe('Create new strategy')
   })
 
   it('filters and sorts the execution log by individual columns', async () => {
@@ -742,11 +820,19 @@ describe('StrategyLabView', () => {
 
     await flushPromises()
 
-    await wrapper.get('.sidebar-toggle-strip').trigger('click')
-    expect(wrapper.get('.strategy-sidebar').classes()).toContain('strategy-sidebar--collapsed')
+    const toggle = wrapper.get('.sidebar-toggle-strip')
+    expect(toggle.attributes('aria-label')).toBe('Collapse strategy list')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
 
-    await wrapper.get('.sidebar-toggle-strip').trigger('click')
+    await toggle.trigger('click')
+    expect(wrapper.get('.strategy-sidebar').classes()).toContain('strategy-sidebar--collapsed')
+    expect(toggle.attributes('aria-label')).toBe('Expand strategy list')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+
+    await toggle.trigger('click')
     expect(wrapper.get('.strategy-sidebar').classes()).not.toContain('strategy-sidebar--collapsed')
+    expect(toggle.attributes('aria-label')).toBe('Collapse strategy list')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
   })
 
   it('shows the benchmark coverage note with an explicit year when benchmark data starts later', async () => {
@@ -842,11 +928,50 @@ describe('StrategyLabView', () => {
     const resultsPanel = wrapper.findAll('.panel')[5]
     expect(resultsPanel.find('.panel-body').exists()).toBe(true)
 
-    await resultsPanel.get('.panel-head-heading').trigger('click')
+    await resultsPanel.get('.panel-head-heading__button').trigger('click')
     await flushPromises()
 
     expect(resultsPanel.find('.panel-body').exists()).toBe(false)
     expect(resultsPanel.get('.panel-toggle').attributes('aria-expanded')).toBe('false')
+  })
+
+  it('associates the run history disclosure with its controlled list', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    const runsHeading = wrapper.findAll('.panel-head-heading').find(node => node.text().trim() === 'Research runs')
+    expect(runsHeading).toBeTruthy()
+    await runsHeading!.get('.panel-head-heading__button').trigger('click')
+
+    const toggle = wrapper.get('.scroll-list-toggle')
+    const runHistoryId = toggle.attributes('aria-controls')
+    expect(runHistoryId).toMatch(/-run-history$/)
+    if (!wrapper.find(`#${runHistoryId}`).exists()) {
+      await toggle.trigger('click')
+    }
+    expect(wrapper.find(`#${runHistoryId}`).exists()).toBe(true)
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find(`#${runHistoryId}`).exists()).toBe(false)
+  })
+
+  it('exposes selected run history batch and run state', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Research runs')
+    const historyToggle = wrapper.get('.scroll-list-toggle')
+    if (historyToggle.attributes('aria-expanded') !== 'true') await historyToggle.trigger('click')
+
+    const batch = wrapper.get('.run-batch__head')
+    const run = wrapper.get('.run-item')
+    expect(batch.attributes('aria-pressed')).toBe('false')
+    expect(run.attributes('aria-pressed')).toBe('false')
+    await run.trigger('click')
+    expect(batch.attributes('aria-pressed')).toBe('true')
+    expect(run.attributes('aria-pressed')).toBe('true')
   })
 
   it('does not preselect a comparison run by default', async () => {
@@ -940,6 +1065,22 @@ describe('StrategyLabView', () => {
         universe_config: { symbols: ['NVDA', 'AMD'] },
       }),
     }))
+  })
+
+  it('names manual-universe symbol removal controls and removes the selected symbol', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await commitPicker(wrapper, 'Add symbol (e.g. AAPL)', 'NVDA')
+
+    const removeButton = wrapper.get('button[aria-label="Remove NVDA"]')
+    expect(removeButton.text()).toBe('×')
+    await removeButton.trigger('click')
+
+    expect(wrapper.find('button[aria-label="Remove NVDA"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('No symbols added yet.')
   })
 
   it('can save an ETF holdings snapshot as the strategy universe', async () => {
@@ -1322,6 +1463,81 @@ describe('StrategyLabView', () => {
     }))
   })
 
+  it('links radar filter disclosures to their controlled groups', async () => {
+    const wrapper = mountView()
+
+    await flushPromises()
+    await wrapper.get('.sidebar-new-btn').trigger('click')
+    await wrapper.find('input[placeholder="Momentum Continuation"]').setValue('Radar filters')
+    await wrapper.findAll('select')[0].setValue('radar')
+    await flushPromises()
+
+    const triggers = wrapper.findAll('.multi-select-trigger')
+    expect(triggers).toHaveLength(2)
+    const setupTrigger = triggers[0]
+    const stateTrigger = triggers[1]
+    const setupMenuId = setupTrigger.attributes('aria-controls')
+    const stateMenuId = stateTrigger.attributes('aria-controls')
+    expect(setupMenuId).toMatch(/-radar-setup-menu$/)
+    expect(stateMenuId).toMatch(/-radar-state-menu$/)
+    expect(setupMenuId).not.toBe(stateMenuId)
+    expect(setupTrigger.attributes('aria-label')).toBe('Setup families')
+    expect(stateTrigger.attributes('aria-label')).toBe('States')
+    expect(setupTrigger.attributes('aria-expanded')).toBe('false')
+    expect(stateTrigger.attributes('aria-expanded')).toBe('false')
+
+    await setupTrigger.trigger('click')
+    expect(setupTrigger.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get(`#${setupMenuId}`).attributes('role')).toBe('group')
+    expect(wrapper.get(`#${setupMenuId}`).attributes('aria-label')).toBe('Setup families')
+    expect(wrapper.find(`#${stateMenuId}`).exists()).toBe(false)
+
+    await stateTrigger.trigger('click')
+    expect(setupTrigger.attributes('aria-expanded')).toBe('false')
+    expect(stateTrigger.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find(`#${setupMenuId}`).exists()).toBe(false)
+    expect(wrapper.get(`#${stateMenuId}`).attributes('role')).toBe('group')
+    expect(wrapper.get(`#${stateMenuId}`).attributes('aria-label')).toBe('States')
+  })
+
+  it('supports keyboard navigation and focus recovery for result exports', async () => {
+    const wrapper = mount(StrategyLabView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+
+    await flushPromises()
+    const trigger = wrapper.get('[aria-label="Export"]')
+    const menuId = trigger.attributes('aria-controls')
+    expect(menuId).toMatch(/-export-menu$/)
+    expect(trigger.attributes('aria-haspopup')).toBe('menu')
+    expect(trigger.attributes('aria-expanded')).toBe('false')
+
+    await trigger.trigger('keydown', { key: 'ArrowDown' })
+    expect(trigger.attributes('aria-expanded')).toBe('true')
+    const menu = wrapper.get(`#${menuId}`)
+    expect(menu.attributes('role')).toBe('menu')
+    expect(menu.attributes('aria-label')).toBe('Export options')
+    const items = menu.findAll('[role="menuitem"]')
+    expect(items).toHaveLength(2)
+    expect(document.activeElement).toBe(items[0].element)
+
+    await items[0].trigger('keydown', { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(items[1].element)
+    await items[1].trigger('keydown', { key: 'Home' })
+    expect(document.activeElement).toBe(items[0].element)
+    await items[0].trigger('keydown', { key: 'Escape' })
+    await nextTick()
+    expect(wrapper.find(`#${menuId}`).exists()).toBe(false)
+    expect(document.activeElement).toBe(trigger.element)
+
+    wrapper.unmount()
+  })
+
   it('publishes only resolved benchmark symbols and limits subset runs to selected universe symbols', async () => {
     const wrapper = mountView()
 
@@ -1345,7 +1561,13 @@ describe('StrategyLabView', () => {
     const subsetWrapper = mountView()
     await flushPromises()
     await ensurePanelExpanded(subsetWrapper, 'Research runs')
-    ;(subsetWrapper.get('.advanced-toggle').element as HTMLButtonElement).click()
+    const advancedToggle = subsetWrapper.get('.advanced-toggle')
+    expect(advancedToggle.attributes('aria-expanded')).toBe('false')
+    const advancedRunOptionsId = advancedToggle.attributes('aria-controls')
+    expect(advancedRunOptionsId).toMatch(/-advanced-run-options$/)
+    await advancedToggle.trigger('click')
+    expect(advancedToggle.attributes('aria-expanded')).toBe('true')
+    expect(subsetWrapper.get(`#${advancedRunOptionsId}`).exists()).toBe(true)
     await flushPromises()
 
     const subsetToggle = subsetWrapper.get('.advanced-panel .field--checkbox input[type="checkbox"]')
@@ -1354,13 +1576,23 @@ describe('StrategyLabView', () => {
 
     const subsetTrigger = subsetWrapper.findAll('button').find(button => button.text().includes('Select at least one symbol'))
     expect(subsetTrigger).toBeTruthy()
+    expect(subsetTrigger!.attributes('aria-expanded')).toBe('false')
+    expect(subsetTrigger!.attributes('aria-label')).toBe('Run subset symbols')
+    const subsetMenuId = subsetTrigger!.attributes('aria-controls')
+    expect(subsetMenuId).toBeTruthy()
     await subsetTrigger!.trigger('click')
+    expect(subsetTrigger!.attributes('aria-expanded')).toBe('true')
+    const subsetMenu = subsetWrapper.get(`#${subsetMenuId}`)
+    expect(subsetMenu.attributes('role')).toBe('group')
+    expect(subsetMenu.attributes('aria-label')).toBe('Run subset symbols')
+    expect(subsetMenu.exists()).toBe(true)
     await flushPromises()
 
     const subsetOptions = subsetWrapper.findAll('.multi-select-option')
     expect(subsetOptions.map(node => node.text())).toEqual(expect.arrayContaining(['AAPL', 'MSFT']))
     const msftOption = subsetOptions.find(node => node.text().includes('MSFT'))
     expect(msftOption).toBeTruthy()
+    expect(msftOption!.get('input').attributes('aria-label')).toBe('Include MSFT in run subset')
     await msftOption!.get('input').setValue(true)
     await flushPromises()
 
@@ -1415,6 +1647,85 @@ describe('StrategyLabView', () => {
         commission_value: null,
         close_open_positions_at_end: false,
       }),
+    }))
+  })
+
+  it('preserves promoted Python signal lineage during profile edits and runs its immutable version', async () => {
+    let pythonSignal = clone(definition)
+    pythonSignal.definition_type = 'python'
+    pythonSignal.metadata = {
+      origin: 'study_lab_promotion',
+      code_asset_id: 41,
+      code_version_id: 1205,
+      output_contract: 'boolean',
+    }
+    pythonSignal.versions[0].definition_snapshot = {
+      kind: 'python_signal',
+      code_version_id: 1205,
+      output_contract: 'boolean',
+    }
+    pythonSignal.versions[0].universe_config = {}
+
+    const originalGet = (api.get as ReturnType<typeof vi.fn>).getMockImplementation()!
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: any) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([clone(pythonSignal)])
+      if (path === '/strategy-lab/definitions/4') return Promise.resolve(clone(pythonSignal))
+      return originalGet(path, params)
+    })
+    ;(api.patch as ReturnType<typeof vi.fn>).mockImplementation((path: string, payload?: any) => {
+      if (path === '/strategy-lab/definitions/4') {
+        pythonSignal = { ...pythonSignal, ...payload }
+        return Promise.resolve(clone(pythonSignal))
+      }
+      return Promise.resolve(clone(pythonSignal).versions[0])
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await ensurePanelExpanded(wrapper, 'Strategy profile')
+
+    expect(wrapper.get('[data-testid="python-signal-lineage"]').text()).toContain('Executable code version')
+    expect(wrapper.get('[data-testid="python-signal-lineage"]').text()).toContain('1205')
+    expect(wrapper.get('[data-testid="python-signal-lineage"]').text()).toContain('boolean')
+    expect(wrapper.text()).not.toContain('Entry logic')
+    expect(wrapper.text()).not.toContain('Risk')
+    expect(wrapper.text()).not.toContain('Exits')
+    expect(wrapper.find('.detail-actions .btn-primary').exists()).toBe(false)
+
+    await commitPicker(wrapper, 'Add symbol (e.g. AAPL)', 'SPY')
+    expect(wrapper.text()).toContain('SPY')
+    await wrapper.get('input[placeholder="Momentum Continuation"]').setValue('Renamed Study signal')
+    await wrapper.get('textarea[placeholder="What market behaviour is this strategy trying to capture?"]').setValue('Keep the promoted Study lineage.')
+    await wrapper.get('button[aria-label="Save profile"]').trigger('click')
+    await flushPromises()
+
+    expect(api.patch).toHaveBeenCalledWith('/strategy-lab/definitions/4', {
+      name: 'Renamed Study signal',
+      description: 'Keep the promoted Study lineage.',
+      is_active: true,
+      tags: ['momentum'],
+    })
+    expect(api.patch).not.toHaveBeenCalledWith('/strategy-lab/versions/8', expect.anything())
+    expect(api.post).not.toHaveBeenCalledWith('/strategy-lab/definitions/4/versions', expect.anything())
+    expect(wrapper.text()).toContain('SPY')
+
+    await (wrapper.vm as any).publishStrategy()
+    await flushPromises()
+    expect(api.patch).not.toHaveBeenCalledWith('/strategy-lab/versions/8', expect.anything())
+    expect(api.post).not.toHaveBeenCalledWith('/strategy-lab/definitions/4/versions', expect.anything())
+    expect(wrapper.text()).toContain('Python signal code and version lineage are immutable in Strategy Lab')
+
+    await ensurePanelExpanded(wrapper, 'Research runs')
+    const runButton = wrapper.findAll('button').find(button => button.text() === 'Run backtest')
+    expect(runButton).toBeTruthy()
+    expect((runButton!.element as HTMLButtonElement).disabled).toBe(false)
+    await runButton!.trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledWith('/strategy-lab/versions/8/runs', expect.objectContaining({
+      timeframe: 'D1',
+      universe_config: { symbols: ['SPY'] },
+      parameter_grid: null,
     }))
   })
 
@@ -1740,5 +2051,26 @@ describe('StrategyLabView', () => {
     await flushPromises()
 
     expect(api.delete).toHaveBeenCalledWith('/strategy-lab/definitions/4')
+  })
+
+  it('does not publish late universe options after the view unmounts', async () => {
+    let resolveWatchlists!: (value: any[]) => void
+    const watchlistsPromise = new Promise<any[]>((resolve) => {
+      resolveWatchlists = resolve
+    })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/strategy-lab/definitions') return Promise.resolve([])
+      if (path === '/watchlists') return watchlistsPromise
+      if (path === '/screeners' || path === '/baskets' || path === '/etf-holdings') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+
+    const wrapper = mountView()
+    await Promise.resolve()
+    wrapper.unmount()
+    resolveWatchlists([{ id: 99, name: 'Detached universe' }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).availableWatchlists).toEqual([])
   })
 })

@@ -1,0 +1,300 @@
+schema: 1
+workstream: feat/tc2000-frontend-rework
+snapshot:
+  staging_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+  tc_branch: feat/tc2000-frontend-rework
+  tc_worktree: .ai/worktrees/feat-tc2000-frontend-rework
+  tc_head: e93de4af43766a85242958e30702d32f231df8ee
+  provider_branch: feat/market-data-provider-platform
+  provider_worktree: .ai/worktrees/feat-market-data-provider-platform
+  provider_head: da06e560b1aaa0e5399e1e9565f174abe925bda8
+  provider_status: ready_for_human_review_not_in_staging
+  etf_branch: feat/etf-holdings-constituents
+  etf_worktree: .ai/worktrees/feat-etf-holdings-constituents
+  etf_head: 52814f95bd0ef62968ba1af4018ff9ef5049d3d6
+  etf_status: waiting_for_provider_platform_to_reach_staging
+  ignored_strategy_lab_branch: feat/strategy-lab
+  strategy_lab_overlap_count: 0
+  strategy_lab_disposition: not_a_tc_dependency; preserve_tc_study_strategy_engine
+market_data_provider_platform:
+  measured_count: 78
+  classification_note: >-
+    Path intersection is provisional, not proof of duplicate behavior. Complete
+    line-level semantic review after this branch's changes reach staging; classify
+    each item as TC-owned, upstream duplicate, transfer required, or shared seam.
+  paths:
+  - path: ".env.example"
+    disposition: shared_reconciliation
+  - path: "backend/.env.example"
+    disposition: shared_reconciliation
+  - path: "backend/app/config.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/main.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/models/__init__.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/models/ohlcv.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/providers/__init__.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/providers/alpaca.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/providers/base.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/providers/edgar.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/providers/registry.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/analysis.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/calendar.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/instruments.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/ohlcv.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/providers.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/research.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/schemas/analysis.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/schemas/code.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/schemas/instrument.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/schemas/market_map.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/schemas/radar.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/alert_engine.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/breadth.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/bulk_fetch.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/indicators.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/instrument_events.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/instrument_mastering.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/instrument_sync.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/market_data.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/market_map.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/options_data.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/options_exposure.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/provider_availability.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/provider_runtime.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/provider_usage.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/research_jobs.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/risk_free_rate.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/screener_engine.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/strategy_lab.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/strategy_lab_nautilus.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/workstation_bootstrap.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/tasks/alert_tasks.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/tasks/data_tasks.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/workers/arq_worker.py"
+    disposition: shared_reconciliation
+  - path: "backend/research_runner/runner.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/api/test_code.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/api/test_instruments_ohlcv.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/api/test_strategy_lab.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/api/test_watchlists.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/api/test_workspaces.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/tasks/test_background_tasks.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/providers/test_new_providers.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/routers/test_analysis_router.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/routers/test_ohlcv_router.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/routers/test_providers_router.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_breadth.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_bulk_fetch.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_indicators.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_instrument_events.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_instrument_sync_metadata.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_market_data.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_market_map.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_options_data.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_provider_availability.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_provider_persistence.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_provider_registry.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_provider_support.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_provider_usage.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_research_jobs.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_research_runner.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_risk_free_rate.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_strategy_lab_nautilus.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_workstation_bootstrap.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/workers/test_arq_worker.py"
+    disposition: shared_reconciliation
+  - path: "docker-compose.yml"
+    disposition: shared_reconciliation
+  - path: "docs/data-providers.md"
+    disposition: shared_reconciliation
+  - path: "docs/project-todos.md"
+    disposition: shared_reconciliation
+etf_holdings_constituents:
+  measured_count: 35
+  classification_note: >-
+    Path intersection is provisional, not proof of duplicate behavior. Complete
+    line-level semantic review after this branch's changes reach staging; classify
+    each item as TC-owned, upstream duplicate, transfer required, or shared seam.
+  paths:
+  - path: "backend/.env.example"
+    disposition: shared_reconciliation
+  - path: "backend/app/config.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/analysis.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/etf_holdings.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/market_groups.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/routers/research.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/schemas/etf_holdings.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/baskets.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/e2e_seed.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/etf_holdings.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/etf_holdings_adapters.py"
+    disposition: upstream_transfer_required
+  - path: "backend/app/services/etf_holdings_refresh.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/market_map.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/strategy_lab.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/services/watchlist_sources.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/tasks/etf_holdings_tasks.py"
+    disposition: shared_reconciliation
+  - path: "backend/app/workers/arq_worker.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/api/test_etf_holdings.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/api/test_strategy_lab.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/api/test_watchlists.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/integration/api/test_workspaces.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/live/test_etf_holdings_live_providers.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_etf_holdings_adapters.py"
+    disposition: upstream_transfer_required
+  - path: "backend/tests/unit/services/test_etf_holdings_refresh.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/services/test_etf_holdings_resolution.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/tasks/test_etf_holdings_tasks.py"
+    disposition: shared_reconciliation
+  - path: "backend/tests/unit/workers/test_arq_worker.py"
+    disposition: shared_reconciliation
+  - path: "frontend/src/components/etf/ETFHoldingsPanel.vue"
+    disposition: shared_reconciliation
+  - path: "frontend/src/components/workstation/MarketMapTool.vue"
+    disposition: shared_reconciliation
+  - path: "frontend/src/components/workstation/WorkstationToolContent.vue"
+    disposition: shared_reconciliation
+  - path: "frontend/src/types/index.ts"
+    disposition: shared_reconciliation
+  - path: "frontend/src/views/ETFHoldingsView.vue"
+    disposition: shared_reconciliation
+  - path: "frontend/tests/unit/components/test_etf_holdings_panel.test.ts"
+    disposition: shared_reconciliation
+  - path: "frontend/tests/unit/components/test_market_map_tool.test.ts"
+    disposition: shared_reconciliation
+  - path: "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
+    disposition: shared_reconciliation
+known_semantic_findings:
+  - path: backend/app/services/etf_holdings_adapters.py
+    disposition: upstream_transfer_required
+    evidence: >-
+      TC history modifies this ETF-owned provider adapter in 93 commits since
+      staging. In particular, bb70fff14 and b375a4782 add dated-source behavior.
+      Preserve history; reconcile the adapter implementation with the ETF owner
+      after its branch reaches staging rather than continue provider/adapter work in TC.
+  - path: backend/tests/unit/services/test_etf_holdings_adapters.py
+    disposition: upstream_transfer_required
+    evidence: Tests for the same ETF-owned adapter behavior; reconcile with the ETF owner after staging.
+  - path: backend/app/services/etf_holdings_sec.py
+    disposition: upstream_transfer_required
+    evidence: >-
+      Not committed in the measured branch intersection. An uncommitted parser
+      investigation found the QQQE SEC N-PORT Dreyfus row: Item C.4 identifies
+      DGCXX as a short-term investment vehicle and Item C.1 identifies a
+      registered fund. Reported pctVal 0.8313234437 percent normalizes to
+      0.008313234437. The focused exploratory parser suite passed 9/9. No parser
+      fix is retained in TC; ETF-domain owner handoff/acceptance is required and
+      has not yet been sent or acknowledged.
+integration_order:
+  - step: provider_platform
+    rule: Promote feat/market-data-provider-platform through the staging coordinator; TC does not merge it directly.
+  - step: etf_holdings
+    rule: After provider-platform is in staging, promote feat/etf-holdings-constituents through the coordinator.
+  - step: tc_consumer
+    rule: Synchronize TC from the resulting staging tip through the prescribed workflow, review semantic conflicts, then run the exact-tip TC gate.
+  - step: review_boundary
+    rule: Stop TC at ready_for_human_review; no direct branch merge, deployment, or other-worktree mutation.
+contract_ownership:
+  provider_platform:
+    owns: [instrument_identity, listings, ohlcv, provider_capability, entitlements, health, evaluator_preflight, generic_coverage_state, refresh_dispatch]
+    tc_consumes: [status, source_or_provider_evidence, capability, coverage, freshness, eligibility]
+    tc_must_not: [provider_selection, credential_management, live_provider_probes, retry_or_repair, generic_ingestion, refresh_workers]
+  etf_holdings:
+    owns: [etf_adapter_registry, holdings_acquisition, constituent_resolution, holdings_refresh, holdings_audit, holdings_capability]
+    tc_consumes: [availability, usable_for_current_analysis, displayable_last_known, source_tier, provider, dates, completeness, failure_reason, audit_lineage]
+    tc_must_not: [etf_provider_adapter, provider_probe, holdings_refresh_worker, constituent_resolution]
+  tc:
+    owns: [workstation_ui, visual_parity, tc_readiness_composition, market_map_and_breadth_consumers, python_dsl, study, strategy, compatible_artifact_promotion, tc_user_workflows]
+    exclusion_rule: "TC composite readiness is derived only from explicit upstream evidence plus TC analytic requirements; stale displayable holdings are never current analysis input."

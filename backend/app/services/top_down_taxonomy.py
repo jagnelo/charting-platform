@@ -46,6 +46,147 @@ _SP500_IDENTITY = {
     "official_series_policy": "use_only_when_entitled",
 }
 
+# iShares exposes an explicit ``asOfDate`` parameter on the same public product
+# data endpoint used by the canonical holdings adapter.  Keep this declaration
+# beside the family registry so dated refresh planning can distinguish a
+# verified issuer-as-of route from roles whose provider only exposes current
+# holdings.  The route proves capability, not that any dated snapshot has been
+# fetched or is complete.
+_ISHARES_HISTORY_ROUTE = {
+    "status": "issuer_as_of_date",
+    "provider": "ishares",
+    "policy": "issuer_public_json_api_as_of_date",
+    "source_url": (
+        "https://www.blackrock.com/varnish-api/blk-one01-product-data/"
+        "product-data/api/v2/get-product-data"
+    ),
+}
+
+# State Street's verified SPDR adapter exposes a fund-scoped daily workbook for
+# current holdings, but no supported dated/as-of route. Preserve that
+# limitation explicitly in family-history evidence instead of reporting an
+# ambiguous ``not_reported`` state or implying that current membership can be
+# replayed for a historical date.
+_SPDR_HISTORY_ROUTE = {
+    "status": "issuer_current_only",
+    "provider": "spdr",
+    "policy": "issuer_daily_workbook_current_snapshot_only",
+    "source_url": (
+        "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
+        "products/fund-data/etfs/us/holdings-daily-us-en-{symbol_lower}.xlsx"
+    ),
+}
+
+# SPDR's trust-level SPY CIK exposes a registrant identity while the shared
+# series-trust CIK exposes verified N-PORT identities for SPYV, SPYG, MDYG, and
+# MDYV. The legacy MDY trust has a separate CIK and a stable series-name
+# identity. Keep these dated SEC routes explicit until equivalent identities and
+# live evidence exist for the remaining SPDR family roles.
+_SPDR_SPYV_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
+_SPDR_SPY_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0000884394.json",
+}
+
+_SPDR_SLYV_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
+_SPDR_SLYG_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
+_SPDR_SPTM_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
+_SPDR_SPYG_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
+_SPDR_MDYG_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
+_SPDR_MDYV_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
+_SPDR_MDY_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0000936958.json",
+}
+
+
+def _spdr_history_route(symbol: str) -> dict[str, str]:
+    """Return the verified SPDR history route for a mapped symbol."""
+
+    normalized_symbol = symbol.strip().upper()
+    if normalized_symbol == "SPY":
+        return dict(_SPDR_SPY_HISTORY_ROUTE)
+    if normalized_symbol == "SLYV":
+        return dict(_SPDR_SLYV_HISTORY_ROUTE)
+    if normalized_symbol == "SLYG":
+        return dict(_SPDR_SLYG_HISTORY_ROUTE)
+    if normalized_symbol == "SPTM":
+        return dict(_SPDR_SPTM_HISTORY_ROUTE)
+    if normalized_symbol == "SPYV":
+        return dict(_SPDR_SPYV_HISTORY_ROUTE)
+    if normalized_symbol == "SPYG":
+        return dict(_SPDR_SPYG_HISTORY_ROUTE)
+    if normalized_symbol == "MDYG":
+        return dict(_SPDR_MDYG_HISTORY_ROUTE)
+    if normalized_symbol == "MDYV":
+        return dict(_SPDR_MDYV_HISTORY_ROUTE)
+    if normalized_symbol == "MDY":
+        return dict(_SPDR_MDY_HISTORY_ROUTE)
+
+    return {
+        **_SPDR_HISTORY_ROUTE,
+        "source_url": _SPDR_HISTORY_ROUTE["source_url"].format(symbol_lower=symbol.strip().lower()),
+    }
+
+
+# Invesco's issuer endpoint is current/monthly only, but the SEC filing identity
+# for RSP is independently verified.  Use the SEC route for dated reconstruction
+# and keep the issuer route's current-only limitation explicit in the adapter
+# metadata instead of implying that current holdings can be replayed.
+_INVESCO_RSP_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001209466.json",
+}
+
+
 # The family registry is deliberately metadata-first.  A configured ETF ticker
 # is an identity candidate, not proof that the ETF is an official constituent
 # source or that its holdings are complete at every historical date.  The
@@ -65,24 +206,28 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P 500 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-500-etf-trust-spy",
+            "history_route": _spdr_history_route("SPY"),
         },
         "equal_weight": {
             "symbol": "RSP",
             "label": "S&P 500 equal-weight ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.invesco.com/us/en/etf/rsp",
+            "history_route": dict(_INVESCO_RSP_HISTORY_ROUTE),
         },
         "value": {
             "symbol": "SPYV",
             "label": "S&P 500 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/state-street-spdr-portfolio-sp-500-value-etf-spyv",
+            "history_route": _spdr_history_route("SPYV"),
         },
         "growth": {
             "symbol": "SPYG",
             "label": "S&P 500 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-portfolio-sp-500-growth-etf-spyg",
+            "history_route": _spdr_history_route("SPYG"),
         },
         "derived_equal_weight": {"allowed": False, "method": None},
     },
@@ -96,6 +241,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P MidCap 400 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-midcap-400-etf-trust-mdy",
+            "history_route": _spdr_history_route("MDY"),
         },
         "equal_weight": {
             "symbol": None,
@@ -108,12 +254,14 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P MidCap 400 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-400-mid-cap-value-etf-mdyv",
+            "history_route": _spdr_history_route("MDYV"),
         },
         "growth": {
             "symbol": "MDYG",
             "label": "S&P MidCap 400 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-400-mid-cap-growth-etf-mdyg",
+            "history_route": _spdr_history_route("MDYG"),
         },
         "derived_equal_weight": {
             "allowed": True,
@@ -130,6 +278,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P SmallCap 600 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239774/ishares-core-sp-smallcap-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "equal_weight": {
             "symbol": None,
@@ -142,12 +291,14 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P SmallCap 600 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-600-small-cap-value-etf-slyv",
+            "history_route": _spdr_history_route("SLYV"),
         },
         "growth": {
             "symbol": "SLYG",
             "label": "S&P SmallCap 600 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-600-small-cap-growth-etf-slyg",
+            "history_route": _spdr_history_route("SLYG"),
         },
         "derived_equal_weight": {
             "allowed": True,
@@ -164,6 +315,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P Composite 1500 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/state-street-spdr-portfolio-sp-1500-composite-stock-market-etf-sptm",
+            "history_route": _spdr_history_route("SPTM"),
         },
         "equal_weight": {
             "symbol": None,
@@ -198,6 +350,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 1000 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "equal_weight": {
             "symbol": None,
@@ -210,12 +363,14 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 1000 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239708/ishares-russell-1000-value-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "growth": {
             "symbol": "IWF",
             "label": "Russell 1000 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239706/ishares-russell-1000-growth-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "derived_equal_weight": {
             "allowed": True,
@@ -232,6 +387,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 2000 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239710/ishares-russell-2000-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "equal_weight": {
             "symbol": None,
@@ -244,12 +400,14 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 2000 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239712/ishares-russell-2000-value-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "growth": {
             "symbol": "IWO",
             "label": "Russell 2000 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239709/ishares-russell-2000-growth-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "derived_equal_weight": {
             "allowed": True,
@@ -266,6 +424,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 3000 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239714/ishares-russell-3000-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "equal_weight": {
             "symbol": None,
@@ -300,12 +459,24 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Nasdaq-100 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.invesco.com/qqq-etf/en/about.html",
+            "history_route": {
+                "status": "sec_filing_reconstruction",
+                "provider": "sec",
+                "policy": "latest_sec_filing_report_on_or_before_requested_date",
+                "source_url": "https://data.sec.gov/submissions/CIK0001067839.json",
+            },
         },
         "equal_weight": {
             "symbol": "QQQE",
             "label": "Nasdaq-100 equal-weight ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf",
+            "history_route": {
+                "status": "sec_filing_reconstruction",
+                "provider": "sec",
+                "policy": "latest_sec_filing_report_on_or_before_requested_date",
+                "source_url": "https://data.sec.gov/submissions/CIK0001424958.json",
+            },
         },
         "value": {
             "symbol": None,
@@ -420,6 +591,8 @@ def source_classification_for_as_of(
     evidence = metadata.get("industry") or {}
     system = str(evidence.get("classification_system") or "unknown")
     if as_of is not None:
+        evaluation_at = as_of if as_of.tzinfo is not None else as_of.replace(tzinfo=UTC)
+        evaluation_at = evaluation_at.astimezone(UTC)
         observed_text = evidence.get("observed_at") or evidence.get("known_at")
         if not observed_text:
             return None, system
@@ -429,7 +602,7 @@ def source_classification_for_as_of(
             return None, system
         if observed_at.tzinfo is None:
             observed_at = observed_at.replace(tzinfo=UTC)
-        if observed_at > as_of:
+        if observed_at > evaluation_at:
             return None, system
     return label, system
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -10,9 +11,12 @@ from app.services.etf_holdings import ensure_lightweight_etf_instrument
 from app.services.etf_holdings_refresh import (
     ETFHoldingsBootstrapResult,
     _apply_known_route_metadata,
+    _bootstrap_from_sec_filings,
     _issuer_product_identifier,
+    _refresh_adapter_route,
     bootstrap_etf_holdings_profile,
     holdings_snapshot_is_bootstrap_ready,
+    refresh_etf_holdings_for_date,
 )
 from app.services.instrument_mastering import ensure_internal_identifier
 
@@ -55,6 +59,7 @@ class FakeBootstrapDB:
         self.nested_enters = 0
         self.nested_exits = 0
         self.flush_calls = 0
+        self.is_active = True
 
     def begin_nested(self):
         return _AsyncNestedContext(self)
@@ -162,6 +167,101 @@ def test_holdings_snapshot_readiness_requires_resolved_complete_evidence(
     assert holdings_snapshot_is_bootstrap_ready(snapshot) is expected
 
 
+def test_holdings_snapshot_readiness_uses_present_rows_instead_of_summary_count():
+    snapshot = SimpleNamespace(
+        completeness_status="complete",
+        resolved_count=8,
+        rows=[],
+    )
+
+    assert holdings_snapshot_is_bootstrap_ready(snapshot) is False
+
+
+@pytest.mark.asyncio
+async def test_sec_bootstrap_does_not_treat_non_equity_rows_as_ready(monkeypatch):
+    """A materialized cash-only snapshot must still allow SEC fallback."""
+
+    profile = SimpleNamespace(
+        id=7,
+        instrument_id=101,
+        instrument=SimpleNamespace(symbol="QQQ", name="Invesco QQQ Trust"),
+        sec_cik="0001067839",
+    )
+    non_equity_snapshot = SimpleNamespace(
+        completeness_status="complete",
+        resolved_count=1,
+        rows=[
+            SimpleNamespace(
+                row_type="cash",
+                holding_type="cash",
+                is_resolved=True,
+                constituent_instrument_id=None,
+                constituent_instrument=None,
+            )
+        ],
+    )
+    ready_snapshot = SimpleNamespace(
+        completeness_status="filing_reconstructed",
+        resolved_count=1,
+        rows=[
+            SimpleNamespace(
+                row_type="security",
+                holding_type="equity",
+                is_resolved=True,
+                constituent_instrument_id=42,
+                constituent_instrument=SimpleNamespace(symbol="AAPL"),
+            )
+        ],
+    )
+    latest_calls = 0
+    nport_calls = 0
+    legacy_calls = 0
+
+    async def fake_get_latest_snapshot(
+        db, instrument_id, *, include_holdings=True, include_controlled_fixture=True
+    ):
+        nonlocal latest_calls
+        assert include_holdings is True
+        assert include_controlled_fixture is False
+        latest_calls += 1
+        return non_equity_snapshot if latest_calls == 1 else ready_snapshot
+
+    async def fake_nport(db, *, profile, max_filings, requested_by_user_id):
+        nonlocal nport_calls
+        nport_calls += 1
+        assert max_filings == 3
+        assert requested_by_user_id is None
+        return {"discovered": 1, "ingested": 1, "skipped": 0, "failed": 0}
+
+    async def fake_legacy(db, *, profile, max_filings, requested_by_user_id):
+        nonlocal legacy_calls
+        legacy_calls += 1
+        return {"discovered": 0, "ingested": 0, "skipped": 0, "failed": 0}
+
+    probe = SimpleNamespace(status="ready")
+
+    async def fake_probe(db, profile):
+        return probe
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_latest_snapshot", fake_get_latest_snapshot
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.probe_etf_holdings_adapter_route", fake_probe
+    )
+    monkeypatch.setattr("app.services.etf_holdings_edgar.backfill_sec_nport_holdings", fake_nport)
+    monkeypatch.setattr("app.services.etf_holdings_edgar.backfill_sec_legacy_holdings", fake_legacy)
+
+    result = await _bootstrap_from_sec_filings(object(), profile=profile)
+
+    assert result is not None
+    assert result.refresh_attempted is True
+    assert result.refresh_succeeded is True
+    assert "SEC N-PORT" in (result.message or "")
+    assert nport_calls == 1
+    assert legacy_calls == 0
+
+
 @pytest.mark.asyncio
 async def test_ensure_lightweight_etf_instrument_only_creates_one_internal_identifier(db):
     async_db = AsyncSessionAdapter(db)
@@ -247,6 +347,7 @@ async def test_bootstrap_uses_async_nested_transaction_for_ready_routes(monkeypa
     db = FakeBootstrapDB()
     instrument = SimpleNamespace(id=101, symbol="NIKL", name="Sprott Nickel Miners ETF")
     profile = SimpleNamespace(
+        id=301,
         instrument=instrument,
         issuer=None,
         fund_family=None,
@@ -333,6 +434,145 @@ async def test_bootstrap_uses_async_nested_transaction_for_ready_routes(monkeypa
     assert result.refresh_succeeded is True
     assert db.nested_enters == 1
     assert db.nested_exits == 1
+
+
+@pytest.mark.asyncio
+async def test_dated_refresh_preserves_provider_snapshot_metadata(monkeypatch):
+    """Dated routes must retain their completeness/provenance contract on persistence."""
+
+    db = FakeBootstrapDB()
+    instrument = SimpleNamespace(id=101, symbol="QQQ", name="Invesco QQQ Trust")
+    profile = SimpleNamespace(
+        id=302,
+        instrument=instrument,
+        adapter_key="invesco",
+        provider_aliases={},
+        issuer=None,
+        sponsor=None,
+        fund_family=None,
+        product_url=None,
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
+    )
+    snapshot = SimpleNamespace(id=501)
+    captured: dict = {}
+
+    class FakeAdapter:
+        adapter_key = "invesco"
+
+        async def fetch_for_date(self, **kwargs):
+            assert kwargs["symbol"] == "QQQ"
+            assert kwargs["requested_date"].isoformat() == "2026-06-30"
+            return SimpleNamespace(
+                rows=[SimpleNamespace(symbol="AAPL")],
+                raw_text="AAPL",
+                raw_json={"rows": ["AAPL"]},
+                source_url="https://sec.example/qqq.xml",
+                source_identifier="000001",
+                legal_metadata={
+                    "route_resolution": "sec_edgar_filing_fallback",
+                    "source_provider": "sec",
+                    "source_format": "xml",
+                    "snapshot_provenance": "sec_nport_reconstructed_holdings",
+                    "source_quality": "filing_reconstructed_holdings",
+                    "completeness_status": "filing_reconstructed",
+                    "parser_version": "invesco-sec-v2",
+                    "known_at": "2026-06-01T13:45:30Z",
+                    "published_at": "2026-06-01T13:45:30Z",
+                },
+            )
+
+    async def fake_ingest(_db, **kwargs):
+        captured.update(kwargs)
+        return snapshot
+
+    async def fake_record_success(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter",
+        lambda key: FakeAdapter() if key == "invesco" else None,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh.ingest_holdings_snapshot", fake_ingest)
+    monkeypatch.setattr("app.services.etf_holdings_refresh._record_success", fake_record_success)
+
+    result = await refresh_etf_holdings_for_date(
+        db,
+        profile,
+        requested_date=date(2026, 6, 30),
+    )
+
+    assert result is snapshot
+    assert captured["provenance"] == "sec_nport_reconstructed_holdings"
+    assert captured["source_provider"] == "sec"
+    assert captured["source_quality"] == "filing_reconstructed_holdings"
+    assert captured["completeness_status"] == "filing_reconstructed"
+    assert captured["parser_version"] == "invesco-sec-v2"
+    assert captured["known_at"] == datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC)
+    assert captured["published_at"] == datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC)
+    assert captured["legal_metadata"]["timing_provenance"] == {
+        "composition_date": "requested_date_fallback",
+        "as_of_date": "requested_date",
+        "known_at": "provider_reported",
+        "published_at": "provider_reported",
+    }
+    assert "SEC EDGAR holdings filings" in captured["notes"]
+
+
+@pytest.mark.asyncio
+async def test_latest_refresh_preserves_profile_declared_source_quality(monkeypatch):
+    """Latest-route refreshes must retain curated profile source-quality evidence."""
+
+    db = FakeBootstrapDB()
+    instrument = SimpleNamespace(id=101, symbol="SPY", name="SPDR S&P 500 ETF Trust")
+    profile = SimpleNamespace(
+        id=303,
+        instrument=instrument,
+        adapter_key="spdr",
+        provider_aliases={"holdings_source_quality": "issuer_reported_dated_complete_holdings"},
+        issuer=None,
+        sponsor=None,
+        fund_family=None,
+        product_url=None,
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
+    )
+    captured: dict = {}
+
+    class FakeAdapter:
+        adapter_key = "spdr"
+        source_provider = "spdr"
+
+        def probe(self, **_kwargs):
+            return SimpleNamespace(status="ready", reason=None, confidence=0.95)
+
+        async def fetch_latest(self, **_kwargs):
+            return SimpleNamespace(
+                rows=[SimpleNamespace(symbol="AAPL")],
+                raw_text="AAPL",
+                raw_json={"rows": ["AAPL"]},
+                source_url="https://spdr.example/spy.csv",
+                source_identifier="SPY",
+                legal_metadata={"completeness_status": "complete"},
+            )
+
+    async def fake_ingest(_db, **kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(completeness_status=kwargs["completeness_status"])
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter",
+        lambda key: FakeAdapter() if key == "spdr" else None,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh.ingest_holdings_snapshot", fake_ingest)
+
+    result = await _refresh_adapter_route(db, profile)
+
+    assert result.completeness_status == "complete"
+    assert captured["source_quality"] == "issuer_reported_dated_complete_holdings"
+    assert captured["completeness_status"] == "complete"
 
 
 @pytest.mark.asyncio

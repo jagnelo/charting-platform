@@ -7,12 +7,18 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 import numpy as np
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.models.basket import Basket, BasketMember, BasketSnapshot
-from app.models.etf_holdings import ETFHoldingsAdapterState, ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.radar import (
@@ -30,6 +36,11 @@ from app.models.strategy import (
     StrategyVersion,
 )
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.services.etf_consumer_types import (
+    is_equity_holding_type,
+    is_placeholder_symbol,
+    normalize_holding_type,
+)
 from app.services.etf_holdings_capability import evaluate_capability
 from app.services.evaluator_preflight import EvaluatorPreflight, preflight_ohlcv
 from app.services.research_jobs import collect_research_result, enqueue_research_run
@@ -55,6 +66,27 @@ SHORT_BIASED_RADAR_SETUPS = {
     RadarSetupType.COMPRESSION_RESISTANCE,
     RadarSetupType.FAILED_RECLAIM,
 }
+
+
+def _etf_snapshot_visibility_conditions() -> list[object]:
+    """Keep Strategy Lab ETF universes on the same fixture/canonical boundary.
+
+    Seeded browser runs must select the exact controlled fixture pair. Normal
+    research reads must exclude that pair so deterministic holdings cannot
+    replace canonical provider disclosures merely because the fixture is newer.
+    """
+
+    if settings.E2E_SEED_MARKET_DATA:
+        return [
+            ETFHoldingsSnapshot.provenance == "controlled_fixture",
+            ETFHoldingsSnapshot.source_provider == "e2e_reference",
+        ]
+    return [
+        or_(
+            ETFHoldingsSnapshot.provenance != "controlled_fixture",
+            ETFHoldingsSnapshot.source_provider != "e2e_reference",
+        )
+    ]
 
 
 @dataclass(frozen=True)
@@ -112,6 +144,38 @@ def _resolve_engine_for_version(
     )
 
 
+def _promotion_lineage_from_diagnostics(diagnostics: object) -> dict[str, object]:
+    """Normalize canonical and legacy promotion diagnostics for Strategy runs.
+
+    Older breadth adapters stored ``promotion_lineage`` as a top-level key and
+    stored executable adapter fields in a neighboring diagnostic object.  Newer
+    code assets use the canonical ``code``/``lineage`` envelope.  Reading both
+    shapes keeps immutable historical assets executable without rewriting them.
+    """
+    if not isinstance(diagnostics, list):
+        return {}
+    lineage: dict[str, object] = {}
+    for item in diagnostics:
+        if not isinstance(item, dict):
+            continue
+        canonical = item.get("lineage")
+        if item.get("code") == "promotion_lineage" and isinstance(canonical, dict):
+            lineage.update(canonical)
+        legacy = item.get("promotion_lineage")
+        if isinstance(legacy, dict):
+            lineage.update(legacy)
+        for key in (
+            "output_adapter",
+            "series_target",
+            "condition_tree",
+            "source_output_name",
+        ):
+            value = item.get(key)
+            if value is not None:
+                lineage[key] = value
+    return lineage
+
+
 async def _queue_python_signal_research(
     db: AsyncSession,
     *,
@@ -150,6 +214,24 @@ async def _queue_python_signal_research(
             **(run.parameter_values or {}),
         },
     }
+    # Study-result signal promotions may use an explicit adapter (for example a
+    # thresholded series or range-center value).  Carry that immutable lineage
+    # into the queued research configuration so the isolated runner receives the
+    # same adapter and target relation as the authored CodeVersion.
+    promotion_lineage = _promotion_lineage_from_diagnostics(code_version.diagnostics)
+    if promotion_lineage:
+        output_adapter = promotion_lineage.get("output_adapter")
+        if isinstance(output_adapter, str) and output_adapter:
+            run_config["output_adapter"] = output_adapter
+        series_target = promotion_lineage.get("series_target")
+        if isinstance(series_target, dict):
+            run_config["series_target"] = series_target
+        condition_tree = promotion_lineage.get("condition_tree")
+        if isinstance(condition_tree, dict):
+            run_config["condition_tree"] = condition_tree
+        output_name = promotion_lineage.get("source_output_name")
+        if isinstance(output_name, str) and output_name:
+            run_config["output_name"] = output_name
     if run.timeframe:
         run_config["timeframe"] = run.timeframe
     if run.date_from:
@@ -626,14 +708,10 @@ async def _build_universe_coverage_summary(
             {
                 "instrument_id": instrument.id,
                 "symbol": instrument.symbol,
-                "available_from": available_from.isoformat() if available_from else None,
-                "available_to": available_to.isoformat() if available_to else None,
-                "requested_first_bar_at": requested_first_bar_at.isoformat()
-                if requested_first_bar_at
-                else None,
-                "requested_last_bar_at": requested_last_bar_at.isoformat()
-                if requested_last_bar_at
-                else None,
+                "available_from": _wire_datetime(available_from),
+                "available_to": _wire_datetime(available_to),
+                "requested_first_bar_at": _wire_datetime(requested_first_bar_at),
+                "requested_last_bar_at": _wire_datetime(requested_last_bar_at),
                 "total_bars": total_bars,
                 "requested_bars": requested_bars,
                 "requested_status": requested_status,
@@ -693,16 +771,14 @@ async def _build_universe_coverage_summary(
         "instruments_with_partial_requested_coverage": instruments_with_partial_requested_coverage,
         "instruments_without_requested_coverage": instruments_without_requested_coverage,
         "total_bars": sum(int(row["requested_bars"]) for row in instrument_summaries),
-        "requested_first_bar_at": min(requested_starts).isoformat() if requested_starts else None,
-        "requested_last_bar_at": max(requested_ends).isoformat() if requested_ends else None,
-        "any_coverage_from": any_coverage_from.isoformat() if any_coverage_from else None,
-        "any_coverage_to": any_coverage_to.isoformat() if any_coverage_to else None,
-        "collective_coverage_from": collective_coverage_from.isoformat()
-        if collective_coverage_from
+        "requested_first_bar_at": _wire_datetime(min(requested_starts))
+        if requested_starts
         else None,
-        "collective_coverage_to": collective_coverage_to.isoformat()
-        if collective_coverage_to
-        else None,
+        "requested_last_bar_at": _wire_datetime(max(requested_ends)) if requested_ends else None,
+        "any_coverage_from": _wire_datetime(any_coverage_from),
+        "any_coverage_to": _wire_datetime(any_coverage_to),
+        "collective_coverage_from": _wire_datetime(collective_coverage_from),
+        "collective_coverage_to": _wire_datetime(collective_coverage_to),
         "requested_fits_collective_range": _requested_range_fits(
             date_from=date_from,
             date_to=date_to,
@@ -1001,17 +1077,30 @@ async def _resolve_universe_instruments(
         )
         snapshot_stmt = (
             select(ETFHoldingsSnapshot)
-            .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
-            .options(selectinload(ETFHoldingsSnapshot.rows))
+            .where(
+                ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                *_etf_snapshot_visibility_conditions(),
+            )
+            .options(
+                selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                    ETFHolding.constituent_instrument
+                )
+            )
         )
         if snapshot_date is not None:
             snapshot_stmt = snapshot_stmt.where(
-                ETFHoldingsSnapshot.composition_date <= snapshot_date
+                ETFHoldingsSnapshot.composition_date <= snapshot_date,
+                or_(
+                    ETFHoldingsSnapshot.known_at.is_(None),
+                    ETFHoldingsSnapshot.known_at
+                    <= datetime.combine(snapshot_date, datetime.max.time(), tzinfo=UTC),
+                ),
             )
         snapshot = (
             await db.execute(
                 snapshot_stmt.order_by(
                     ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
                     ETFHoldingsSnapshot.id.desc(),
                 ).limit(1)
             )
@@ -1034,10 +1123,17 @@ async def _resolve_universe_instruments(
         unresolved_count = 0
         non_security_count = 0
         for row in snapshot.rows:
-            if row.row_type != "security":
+            if normalize_holding_type(row.row_type) != "security" or not is_equity_holding_type(
+                row.holding_type
+            ):
                 non_security_count += 1
                 continue
-            if row.constituent_instrument_id is None:
+            if (
+                not row.is_resolved
+                or row.constituent_instrument_id is None
+                or row.constituent_instrument is None
+                or is_placeholder_symbol(row.constituent_instrument.symbol)
+            ):
                 unresolved_count += 1
                 continue
             if row.constituent_instrument_id in seen_holding_ids:
@@ -1189,8 +1285,13 @@ async def _resolve_dynamic_etf_universe(
 
     snapshot_stmt = (
         select(ETFHoldingsSnapshot)
-        .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
-        .options(selectinload(ETFHoldingsSnapshot.rows))
+        .where(
+            ETFHoldingsSnapshot.etf_profile_id == profile.id,
+            *_etf_snapshot_visibility_conditions(),
+        )
+        .options(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
         .order_by(
             ETFHoldingsSnapshot.composition_date.asc(),
             ETFHoldingsSnapshot.known_at.asc().nullsfirst(),
@@ -1198,8 +1299,13 @@ async def _resolve_dynamic_etf_universe(
         )
     )
     if date_to is not None:
+        known_by_cutoff = date_to.astimezone(UTC)
         snapshot_stmt = snapshot_stmt.where(
-            ETFHoldingsSnapshot.composition_date <= date_to.astimezone(UTC).date()
+            ETFHoldingsSnapshot.composition_date <= known_by_cutoff.date(),
+            or_(
+                ETFHoldingsSnapshot.known_at.is_(None),
+                ETFHoldingsSnapshot.known_at <= known_by_cutoff,
+            ),
         )
     etf_snapshots = tuple((await db.execute(snapshot_stmt)).scalars().all())
     if not etf_snapshots:
@@ -1216,10 +1322,17 @@ async def _resolve_dynamic_etf_universe(
     for snapshot in etf_snapshots:
         snapshot_member_ids: set[int] = set()
         for row in snapshot.rows:
-            if row.row_type != "security":
+            if normalize_holding_type(row.row_type) != "security" or not is_equity_holding_type(
+                row.holding_type
+            ):
                 non_security_count += 1
                 continue
-            if row.constituent_instrument_id is None:
+            if (
+                not row.is_resolved
+                or row.constituent_instrument_id is None
+                or row.constituent_instrument is None
+                or is_placeholder_symbol(row.constituent_instrument.symbol)
+            ):
                 unresolved_count += 1
                 continue
             snapshot_member_ids.add(row.constituent_instrument_id)
@@ -1680,11 +1793,39 @@ def _dynamic_snapshot_fields(snapshot: DynamicUniverseSnapshot | None) -> dict[s
     return {
         "universe_snapshot_id": snapshot.id,
         "universe_snapshot_composition_date": snapshot.composition_date.isoformat(),
-        "universe_snapshot_known_at": snapshot.known_at.isoformat()
-        if snapshot.known_at is not None
-        else None,
+        "universe_snapshot_known_at": _wire_datetime(snapshot.known_at),
         "universe_snapshot_source_type": snapshot.source_type,
     }
+
+
+def _wire_datetime(value: datetime | None) -> str | None:
+    """Serialize Study Lab provenance timestamps on the canonical UTC timeline."""
+
+    if value is None:
+        return None
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _study_fallback_timestamp(value: date | datetime | None) -> str:
+    """Return a canonical timeline fallback for runs without a start date."""
+
+    if isinstance(value, datetime):
+        return _wire_datetime(value) or ""
+    if value is not None:
+        return value.isoformat()
+    return _wire_datetime(datetime.now(UTC)) or ""
+
+
+def _canonical_timeline_timestamp(value: str | None) -> str:
+    """Normalize timestamp-bearing timeline values without changing date-only fields."""
+
+    if not value or "T" not in value:
+        return value or ""
+    try:
+        return _wire_datetime(_parse_iso_datetime(value)) or value
+    except (TypeError, ValueError):
+        return value
 
 
 def _annotate_dynamic_universe_execution_log(
@@ -1845,8 +1986,8 @@ def _trade_excursion_rows(
         row: dict[str, float | int | str | None] = {
             "instrument_id": trade.instrument_id,
             "instrument_symbol": trade.instrument_symbol,
-            "entry_at": trade.entry_at,
-            "exit_at": trade.exit_at,
+            "entry_at": _canonical_timeline_timestamp(trade.entry_at),
+            "exit_at": _canonical_timeline_timestamp(trade.exit_at),
             "side": trade.side,
             "mae_pct": None,
             "mfe_pct": None,
@@ -1930,13 +2071,19 @@ def _build_portfolio_equity_curve(
     initial_capital: float,
     fallback_ts: str,
 ) -> list[dict[str, float | str]]:
+    fallback_ts = _canonical_timeline_timestamp(fallback_ts)
     if not trades:
         return [{"ts": fallback_ts, "equity": round(initial_capital, 4)}]
     running_equity = initial_capital
     grouped: dict[str, float] = defaultdict(float)
     for trade in trades:
-        grouped[trade.exit_at] += float(trade.pnl)
-    curve = [{"ts": trades[0].entry_at or fallback_ts, "equity": round(initial_capital, 4)}]
+        grouped[_canonical_timeline_timestamp(trade.exit_at)] += float(trade.pnl)
+    curve = [
+        {
+            "ts": _canonical_timeline_timestamp(trades[0].entry_at) or fallback_ts,
+            "equity": round(initial_capital, 4),
+        }
+    ]
     for ts in sorted(grouped.keys()):
         running_equity += grouped[ts]
         curve.append({"ts": ts, "equity": round(running_equity, 4)})
@@ -1952,12 +2099,9 @@ def _build_dense_portfolio_history(
     fallback_ts: str,
 ) -> dict[str, list[dict[str, float | int | str]]]:
     open_positions = open_positions or []
+    fallback_ts = _canonical_timeline_timestamp(fallback_ts)
     all_timestamps = sorted(
-        {
-            bar.ts.astimezone(UTC).isoformat()
-            for bars in bars_by_instrument.values()
-            for bar in bars
-        },
+        {_wire_datetime(bar.ts) or "" for bars in bars_by_instrument.values() for bar in bars},
         key=_parse_iso_datetime,
     )
     if not all_timestamps:
@@ -1979,11 +2123,13 @@ def _build_dense_portfolio_history(
     bars_by_ts: dict[str, list[tuple[int, float]]] = defaultdict(list)
     for instrument_id, bars in bars_by_instrument.items():
         for bar in bars:
-            bars_by_ts[bar.ts.astimezone(UTC).isoformat()].append((instrument_id, float(bar.close)))
+            bars_by_ts[_wire_datetime(bar.ts) or ""].append((instrument_id, float(bar.close)))
 
     entry_events: dict[str, list[dict[str, Any]]] = defaultdict(list)
     exit_events: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for trade in trades:
+        entry_at = _canonical_timeline_timestamp(trade.entry_at)
+        exit_at = _canonical_timeline_timestamp(trade.exit_at)
         direction = 1.0 if str(trade.side).lower() == "long" else -1.0
         event_payload = {
             "position_id": f"{trade.instrument_symbol}-{trade.entry_at}",
@@ -1995,12 +2141,13 @@ def _build_dense_portfolio_history(
             "side": str(trade.side).lower(),
             "direction": direction,
         }
-        entry_events[trade.entry_at].append(event_payload)
-        exit_events[trade.exit_at].append(event_payload)
+        entry_events[entry_at].append(event_payload)
+        exit_events[exit_at].append(event_payload)
 
     for position in open_positions:
+        entry_at = _canonical_timeline_timestamp(position.entry_at)
         direction = 1.0 if str(position.side).lower() == "long" else -1.0
-        entry_events[position.entry_at].append(
+        entry_events[entry_at].append(
             {
                 "position_id": f"{position.instrument_symbol}-{position.entry_at}",
                 "instrument_id": position.instrument_id,
@@ -2118,7 +2265,7 @@ def _build_position_timelines(
 
         points: list[dict[str, Any]] = [
             {
-                "ts": trade.entry_at,
+                "ts": _canonical_timeline_timestamp(trade.entry_at),
                 "value": 0.0,
                 "detail": (
                     f"Entry · {trade.instrument_symbol} {trade.side.upper()} · "
@@ -2133,7 +2280,7 @@ def _build_position_timelines(
             pnl_value = (close_price - float(trade.entry_price)) * float(trade.quantity) * direction
             points.append(
                 {
-                    "ts": bar.ts.astimezone(UTC).isoformat(),
+                    "ts": _wire_datetime(bar.ts) or "",
                     "value": round(pnl_value, 4),
                     "detail": None,
                     "marker": None,
@@ -2142,7 +2289,7 @@ def _build_position_timelines(
 
         points.append(
             {
-                "ts": trade.exit_at,
+                "ts": _canonical_timeline_timestamp(trade.exit_at),
                 "value": round(float(trade.pnl), 4),
                 "detail": (
                     f"Exit · {str(trade.exit_reason).replace('_', ' ')} · "
@@ -2165,8 +2312,8 @@ def _build_position_timelines(
                 "label": f"{trade.instrument_symbol} #{symbol_counts[trade.instrument_symbol]}",
                 "symbol": trade.instrument_symbol,
                 "side": trade.side,
-                "entry_at": trade.entry_at,
-                "exit_at": trade.exit_at,
+                "entry_at": _canonical_timeline_timestamp(trade.entry_at),
+                "exit_at": _canonical_timeline_timestamp(trade.exit_at),
                 "entry_price": trade.entry_price,
                 "exit_price": trade.exit_price,
                 "quantity": trade.quantity,
@@ -2196,7 +2343,7 @@ def _build_position_timelines(
 
         points: list[dict[str, Any]] = [
             {
-                "ts": position.entry_at,
+                "ts": _canonical_timeline_timestamp(position.entry_at),
                 "value": 0.0,
                 "detail": (
                     f"Entry · {position.instrument_symbol} {position.side.upper()} · "
@@ -2213,7 +2360,7 @@ def _build_position_timelines(
             )
             points.append(
                 {
-                    "ts": bar.ts.astimezone(UTC).isoformat(),
+                    "ts": _wire_datetime(bar.ts) or "",
                     "value": round(pnl_value, 4),
                     "detail": None,
                     "marker": None,
@@ -2222,7 +2369,7 @@ def _build_position_timelines(
 
         points.append(
             {
-                "ts": position.current_at,
+                "ts": _canonical_timeline_timestamp(position.current_at),
                 "value": round(float(position.unrealized_pnl), 4),
                 "detail": (
                     f"Open · mark {position.current_price:.2f} · "
@@ -2245,11 +2392,11 @@ def _build_position_timelines(
                 "label": f"{position.instrument_symbol} #{symbol_counts[position.instrument_symbol]}",
                 "symbol": position.instrument_symbol,
                 "side": position.side,
-                "entry_at": position.entry_at,
+                "entry_at": _canonical_timeline_timestamp(position.entry_at),
                 "exit_at": None,
                 "entry_price": position.entry_price,
                 "exit_price": None,
-                "current_at": position.current_at,
+                "current_at": _canonical_timeline_timestamp(position.current_at),
                 "current_price": position.current_price,
                 "quantity": position.quantity,
                 "pnl": position.unrealized_pnl,
@@ -2380,7 +2527,7 @@ def _apply_portfolio_constraints(
         exit_price = float(trade.exit_price)
         execution_events.append(
             {
-                "ts": trade.entry_at,
+                "ts": _canonical_timeline_timestamp(trade.entry_at),
                 "event_type": "entry",
                 "position_id": position_id,
                 "symbol": trade.instrument_symbol,
@@ -2396,7 +2543,7 @@ def _apply_portfolio_constraints(
         )
         execution_events.append(
             {
-                "ts": trade.exit_at,
+                "ts": _canonical_timeline_timestamp(trade.exit_at),
                 "event_type": "exit",
                 "position_id": position_id,
                 "symbol": trade.instrument_symbol,
@@ -2426,7 +2573,7 @@ def _apply_portfolio_constraints(
         current_price = float(position.current_price)
         execution_events.append(
             {
-                "ts": position.entry_at,
+                "ts": _canonical_timeline_timestamp(position.entry_at),
                 "event_type": "entry",
                 "position_id": position_id,
                 "symbol": position.instrument_symbol,
@@ -2442,7 +2589,7 @@ def _apply_portfolio_constraints(
         )
         execution_events.append(
             {
-                "ts": position.current_at,
+                "ts": _canonical_timeline_timestamp(position.current_at),
                 "event_type": "open_at_end",
                 "position_id": position_id,
                 "symbol": position.instrument_symbol,
@@ -2460,7 +2607,7 @@ def _apply_portfolio_constraints(
     for row in rejected:
         execution_events.append(
             {
-                "ts": row["entry_at"],
+                "ts": _canonical_timeline_timestamp(row["entry_at"]),
                 "event_type": "rejected",
                 "position_id": f"{row['instrument_symbol']}-{row['entry_at']}",
                 "symbol": row["instrument_symbol"],
@@ -2816,7 +2963,7 @@ async def _run_rules_backtest(
         max_concurrent_positions=max_concurrent_positions,
         max_portfolio_risk_pct=max_portfolio_risk_pct,
         max_symbol_allocation_pct=max_symbol_allocation_pct,
-        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+        fallback_ts=_study_fallback_timestamp(run.date_from),
     )
     trades = list(portfolio_view["accepted_trades"])
     open_positions = list(portfolio_view["accepted_open_positions"])
@@ -2832,7 +2979,7 @@ async def _run_rules_backtest(
         open_positions=open_positions,
         bars_by_instrument=bars_by_instrument,
         initial_capital=initial_capital,
-        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+        fallback_ts=_study_fallback_timestamp(run.date_from),
     )
     equity_curve = list(dense_history["equity_curve"])
     portfolio_timeline = list(dense_history["portfolio_timeline"])
@@ -2983,9 +3130,7 @@ async def _run_rules_backtest(
                 {
                     "id": snapshot.id,
                     "composition_date": snapshot.composition_date.isoformat(),
-                    "known_at": snapshot.known_at.isoformat()
-                    if snapshot.known_at is not None
-                    else None,
+                    "known_at": _wire_datetime(snapshot.known_at),
                     "source_type": snapshot.source_type,
                 }
                 for snapshot in dynamic_universe.snapshots
@@ -3004,8 +3149,8 @@ async def _run_rules_backtest(
                 "instrument_id": position.instrument_id,
                 "instrument_symbol": position.instrument_symbol,
                 "side": position.side,
-                "entry_at": position.entry_at,
-                "current_at": position.current_at,
+                "entry_at": _canonical_timeline_timestamp(position.entry_at),
+                "current_at": _canonical_timeline_timestamp(position.current_at),
                 "entry_price": position.entry_price,
                 "current_price": position.current_price,
                 "stop_price": position.stop_price,
@@ -3030,8 +3175,8 @@ async def _run_rules_backtest(
                 "instrument_id": trade.instrument_id,
                 "instrument_symbol": trade.instrument_symbol,
                 "side": trade.side,
-                "entry_at": trade.entry_at,
-                "exit_at": trade.exit_at,
+                "entry_at": _canonical_timeline_timestamp(trade.entry_at),
+                "exit_at": _canonical_timeline_timestamp(trade.exit_at),
                 "entry_price": trade.entry_price,
                 "exit_price": trade.exit_price,
                 "stop_price": trade.stop_price,
@@ -3188,7 +3333,7 @@ async def _run_rules_paper_forward(
     recent_curve = curve[-forward_bars:] if forward_bars > 0 else curve
     latest_equity = recent_curve[-1]["equity"] if recent_curve else None
     snapshot = {
-        "snapshot_at": datetime.now(UTC).isoformat(),
+        "snapshot_at": _wire_datetime(datetime.now(UTC)),
         "latest_equity": latest_equity,
         "trade_count": base.get("performance", {}).get("trade_count"),
         "window_bars": forward_bars,
@@ -3492,7 +3637,7 @@ async def _run_radar_signal_research(
         max_concurrent_positions=max_concurrent_positions,
         max_portfolio_risk_pct=max_portfolio_risk_pct,
         max_symbol_allocation_pct=max_symbol_allocation_pct,
-        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+        fallback_ts=_study_fallback_timestamp(run.date_from),
     )
     trades = list(portfolio_view["accepted_trades"])
     open_positions = list(portfolio_view["accepted_open_positions"])
@@ -3502,7 +3647,7 @@ async def _run_radar_signal_research(
         open_positions=open_positions,
         bars_by_instrument=bars_by_instrument,
         initial_capital=initial_capital,
-        fallback_ts=run.date_from.isoformat() if run.date_from else datetime.now(UTC).isoformat(),
+        fallback_ts=_study_fallback_timestamp(run.date_from),
     )
     equity_curve = list(dense_history["equity_curve"])
     portfolio_timeline = list(dense_history["portfolio_timeline"])
@@ -3650,8 +3795,8 @@ async def _run_radar_signal_research(
                 "instrument_id": position.instrument_id,
                 "instrument_symbol": position.instrument_symbol,
                 "side": position.side,
-                "entry_at": position.entry_at,
-                "current_at": position.current_at,
+                "entry_at": _canonical_timeline_timestamp(position.entry_at),
+                "current_at": _canonical_timeline_timestamp(position.current_at),
                 "entry_price": position.entry_price,
                 "current_price": position.current_price,
                 "stop_price": position.stop_price,
@@ -3675,8 +3820,8 @@ async def _run_radar_signal_research(
                 "instrument_id": trade.instrument_id,
                 "instrument_symbol": trade.instrument_symbol,
                 "side": trade.side,
-                "entry_at": trade.entry_at,
-                "exit_at": trade.exit_at,
+                "entry_at": _canonical_timeline_timestamp(trade.entry_at),
+                "exit_at": _canonical_timeline_timestamp(trade.exit_at),
                 "entry_price": trade.entry_price,
                 "exit_price": trade.exit_price,
                 "stop_price": trade.stop_price,
@@ -3969,7 +4114,7 @@ async def _build_benchmark_summary(
 
     curve = [
         {
-            "ts": bar.ts.isoformat(),
+            "ts": _wire_datetime(bar.ts) or "",
             "equity": round(initial_capital * (float(bar.close) / first_close), 4),
         }
         for bar in bars
@@ -3981,9 +4126,9 @@ async def _build_benchmark_summary(
         "label": f"{benchmark_symbol} buy & hold",
         "symbol": benchmark_symbol,
         "side": "long",
-        "entry_at": bars[0].ts.isoformat(),
+        "entry_at": _wire_datetime(bars[0].ts),
         "exit_at": None,
-        "current_at": bars[-1].ts.isoformat(),
+        "current_at": _wire_datetime(bars[-1].ts),
         "entry_price": round(first_close, 4),
         "current_price": round(float(bars[-1].close), 4),
         "quantity": quantity,
@@ -4014,7 +4159,7 @@ async def _build_benchmark_summary(
     }
     execution_log = [
         {
-            "ts": bars[0].ts.isoformat(),
+            "ts": _wire_datetime(bars[0].ts),
             "event_type": "entry",
             "position_id": f"{benchmark_symbol}-buy-hold",
             "symbol": benchmark_symbol,
@@ -4028,7 +4173,7 @@ async def _build_benchmark_summary(
             "reason": "buy_and_hold_entry",
         },
         {
-            "ts": bars[-1].ts.isoformat(),
+            "ts": _wire_datetime(bars[-1].ts),
             "event_type": "open_at_end",
             "position_id": f"{benchmark_symbol}-buy-hold",
             "symbol": benchmark_symbol,

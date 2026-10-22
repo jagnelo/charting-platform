@@ -1,7 +1,7 @@
 <template>
   <div class="rule-node" :class="[`rule-node--${node.kind}`, `depth-${depth}`]">
     <template v-if="node.kind === 'condition'">
-      <div class="condition-card">
+      <div class="condition-card" role="group" :aria-label="`${label || 'Condition'} rule`">
         <div class="condition-head">
           <strong>{{ label || 'Condition' }}</strong>
           <button
@@ -25,7 +25,7 @@
     </template>
 
     <template v-else-if="node.kind === 'not'">
-      <div class="group-card">
+      <div class="group-card" role="group" aria-label="NOT rule group">
         <div class="group-head">
           <div>
             <strong>NOT group</strong>
@@ -75,7 +75,7 @@
     </template>
 
     <template v-else>
-      <div class="group-card">
+      <div class="group-card" role="group" :aria-label="`${depth === 0 ? 'Root logic' : 'Rule group'} (${node.type === 'all' ? 'all' : 'any'})`">
         <div class="group-head">
           <div>
             <strong>{{ depth === 0 ? 'Root logic' : 'Rule group' }}</strong>

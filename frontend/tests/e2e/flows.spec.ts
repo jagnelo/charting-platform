@@ -154,25 +154,57 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8 — timeframe selector switches timeframe', async ({ page, browserDiagnostics }) => {
-    await page.goto('/chart')
-    // Click H1
-    const h1btn = page.locator('button:has-text("H1"), .tf-btn:has-text("H1")')
-    if (await h1btn.count() > 0) {
-      await h1btn.first().click()
-      // Verify active state
-      await expect(h1btn.first()).toHaveClass(/active|selected/)
+  test('F8 — linked timeframe selector switches the chart timeframe', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const timeframe = page.getByRole('combobox', { name: 'Linked timeframe' })
+    await expect(timeframe).toBeVisible()
+    await expect(timeframe).toHaveValue('D1')
+    await timeframe.selectOption('H1')
+    await expect(timeframe).toHaveValue('H1')
+    await expect(page.locator('.workstation__footer')).toContainText('H1')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8b — linked timeframe choice survives delayed workspace hydration', async ({ page, browserDiagnostics }) => {
+    let markWorkspaceRequestObserved!: () => void
+    let releaseWorkspaceRequest!: () => void
+    const workspaceRequestObserved = new Promise<void>(resolve => { markWorkspaceRequestObserved = resolve })
+    const workspaceRequestRelease = new Promise<void>(resolve => { releaseWorkspaceRequest = resolve })
+    await page.route('**/api/v1/workspaces/default', async route => {
+      markWorkspaceRequestObserved()
+      await workspaceRequestRelease
+      await route.continue()
+    })
+
+    try {
+      await page.goto('/chart/SPY')
+      await workspaceRequestObserved
+      const timeframe = page.getByRole('combobox', { name: 'Linked timeframe' })
+      await expect(timeframe).toBeVisible()
+      await expect(timeframe).toHaveValue('D1')
+      await timeframe.selectOption('H1')
+      await expect(timeframe).toHaveValue('H1')
+    } finally {
+      releaseWorkspaceRequest()
     }
+
+    const timeframe = page.getByRole('combobox', { name: 'Linked timeframe' })
+    await expect(timeframe).toHaveValue('H1')
+    await expect(page.locator('.workstation__footer')).toContainText('H1')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
   test('F9 — drawing toolbar is visible and tools are clickable', async ({ page, browserDiagnostics }) => {
-    await page.goto('/chart')
-    // Drawing toolbar should exist
-    const toolbar = page.locator('.drawing-toolbar, [class*="toolbar"]')
-    if (await toolbar.count() > 0) {
-      await expect(toolbar.first()).toBeVisible()
-    }
+    await page.goto('/chart/SPY')
+    const toolbar = page.locator('.drawing-toolbar')
+    await expect(toolbar).toBeVisible()
+    const lines = toolbar.getByRole('button', { name: 'Lines' })
+    await lines.click()
+    const menu = toolbar.getByRole('menu', { name: 'Lines drawing tools' })
+    await expect(menu).toBeVisible()
+    await menu.getByRole('menuitem', { name: 'Trend Line' }).click()
+    await expect(lines).toHaveAttribute('aria-expanded', 'false')
+    await expect(lines).toHaveClass(/active/)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -225,12 +257,24 @@ test.describe('Chart', () => {
 
   test('F9c-transform — alternative chart settings control server transform parameters', async ({ page, browserDiagnostics }) => {
     let releaseRenkoRequest: (() => void) | null = null
+    let markRenkoRequestContinued!: () => void
+    let markRenkoRequestFailed!: (error: unknown) => void
     const renkoRequestHeld = new Promise<void>(resolve => { releaseRenkoRequest = resolve })
+    const renkoRequestContinued = new Promise<void>((resolve, reject) => {
+      markRenkoRequestContinued = resolve
+      markRenkoRequestFailed = reject
+    })
     const transformedPath = /\/api\/v1\/ohlcv(?:\/local)?\/SPY\/D1\/transformed/
     await page.route(transformedPath, async route => {
       if (!route.request().url().includes('bar_type=renko')) return route.continue()
       await renkoRequestHeld
-      await route.continue()
+      try {
+        await route.continue()
+        markRenkoRequestContinued()
+      } catch (error) {
+        markRenkoRequestFailed(error)
+        throw error
+      }
     })
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByTitle('Chart settings') }).first()
@@ -246,6 +290,7 @@ test.describe('Chart', () => {
     await expect(brickSize).toBeVisible()
     await expect(chart.locator('canvas')).toHaveCount(0)
     releaseRenkoRequest?.()
+    await renkoRequestContinued
     await page.unroute(transformedPath)
     await expect(chart.locator('canvas')).toHaveCount(2, { timeout: 15_000 })
     await brickSize.fill('12')
@@ -314,7 +359,7 @@ test.describe('Chart', () => {
     await menu.getByRole('textbox', { name: 'Chart template name' }).fill(transformTemplateName)
     await menu.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(menu.locator('.chart-template__apply').first()).toBeVisible({ timeout: 15_000 })
-    await menu.locator('footer button').click()
+    await menu.getByRole('button', { name: 'Reset chart defaults' }).click()
     await expect(menu.getByRole('combobox', { name: 'Chart bar type' })).toHaveValue('candles')
     const savedTemplate = menu.locator('.chart-template__apply').filter({ hasText: transformTemplateName })
     await savedTemplate.click()
@@ -338,8 +383,8 @@ test.describe('Chart', () => {
     const templateName = `Comparison ${Date.now()}`
     await menu.getByRole('combobox', { name: 'Chart bar type' }).selectOption('line')
     await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
-    await chart.getByTitle('Add comparison').click()
-    await expect(chart.getByTitle('Remove RSP')).toBeVisible()
+    await chart.getByRole('button', { name: 'Add comparison' }).click()
+    await expect(chart.getByRole('button', { name: 'Remove RSP' })).toBeVisible()
     await menu.getByRole('textbox', { name: 'Chart template name' }).fill(templateName)
     const saveRequest = page.waitForRequest(request => request.url().includes('/workspaces/library/items/chart_template/') && request.method() === 'PUT')
     await menu.getByRole('button', { name: 'Save', exact: true }).click()
@@ -353,17 +398,37 @@ test.describe('Chart', () => {
     // conceal the desktop hit-target regression. Exercise both ordinary
     // controls while the populated chip and Plots trigger coexist.
     await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
-    await chart.getByRole('button', { name: 'Chart plot library' }).click()
+    await chart.getByRole('button', { name: 'Chart plot library', exact: true }).click()
     const plotsMenu = chart.locator('.chart-plots__menu:visible')
     await expect(plotsMenu).toBeVisible()
     await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
-    await chart.getByTitle('Remove RSP').click()
-    await expect(chart.getByTitle('Remove RSP')).toHaveCount(0)
-    await chart.getByTitle('Chart templates').click()
+    await chart.getByRole('button', { name: 'Remove RSP' }).click()
+    await expect(chart.getByRole('button', { name: 'Remove RSP' })).toHaveCount(0)
+    await chart.getByRole('button', { name: 'Chart templates', exact: true }).click()
     await expect(saved).toBeVisible({ timeout: 15_000 })
     await saved.click()
     await expect(comparisonChip).toHaveCount(1, { timeout: 15_000 })
     await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    // The restored populated chip must leave both ordinary pointer actions
+    // available, not merely visible/actionable under trial mode.
+    await chart.getByRole('button', { name: 'Chart plot library', exact: true }).click()
+    await expect(plotsMenu).toBeVisible()
+    await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
+    await chart.getByRole('button', { name: 'Remove RSP' }).click()
+    await expect(chart.getByRole('button', { name: 'Remove RSP' })).toHaveCount(0)
+
+    // Repeat the populated-chip ordinary-action check at the narrow profile;
+    // the compact layout may reflow controls but must preserve both actions.
+    await page.setViewportSize({ width: 390, height: 800 })
+    await chart.getByRole('textbox', { name: 'Comparison symbol', exact: true }).fill('RSP')
+    await chart.getByRole('button', { name: 'Add comparison' }).click()
+    await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
+    await chart.getByRole('button', { name: 'Chart plot library', exact: true }).click()
+    const narrowPlotsMenu = chart.locator('.chart-plots__menu:visible')
+    await expect(narrowPlotsMenu).toBeVisible()
+    await narrowPlotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
+    await chart.getByRole('button', { name: 'Remove RSP' }).click()
+    await expect(chart.getByRole('button', { name: 'Remove RSP' })).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -436,18 +501,26 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F9c-keyboard — chart templates support keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
+  test('F9c-keyboard — chart templates support bidirectional keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart templates' }) }).first()
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const trigger = chart.getByRole('button', { name: 'Chart templates' })
     await trigger.press('ArrowDown')
-    const menu = chart.locator('[role="menu"]')
-    await expect(menu).toBeVisible()
-    const editor = menu.getByRole('textbox', { name: 'Chart template name' })
+    const panel = chart.getByRole('dialog', { name: 'Chart templates panel' })
+    await expect(panel).toBeVisible()
+    const editor = panel.getByRole('textbox', { name: 'Chart template name' })
     await expect(editor).toBeFocused()
     await editor.press('Escape')
-    await expect(menu).toHaveCount(0)
+    await expect(panel).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+
+    await trigger.press('ArrowUp')
+    await expect(panel).toBeVisible()
+    const lastControl = panel.locator('button:not(:disabled), input:not(:disabled):not([type="hidden"]):not([type="file"]), select:not(:disabled), textarea:not(:disabled)').last()
+    await expect(lastControl).toBeFocused()
+    await lastControl.press('Escape')
+    await expect(panel).toHaveCount(0)
     await expect(trigger).toBeFocused()
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -460,13 +533,13 @@ test.describe('Chart', () => {
 
     const templateTrigger = chart.getByRole('button', { name: 'Chart templates' })
     await templateTrigger.click()
-    const templateMenu = chart.locator('.chart-template__menu:visible')
-    await expect(templateMenu).toBeVisible()
-    const templateBox = await templateMenu.boundingBox()
+    const templatePanel = chart.getByRole('dialog', { name: 'Chart templates panel' })
+    await expect(templatePanel).toBeVisible()
+    const templateBox = await templatePanel.boundingBox()
     expect(templateBox).not.toBeNull()
     expect(templateBox!.x).toBeGreaterThanOrEqual(0)
     expect(templateBox!.x + templateBox!.width).toBeLessThanOrEqual(390)
-    await templateMenu.getByRole('button', { name: 'Close chart templates' }).click()
+    await templatePanel.getByRole('button', { name: 'Close chart templates' }).click()
 
     const plotTrigger = chart.getByRole('button', { name: 'Chart plot library' })
     await plotTrigger.click()
@@ -588,6 +661,104 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9d-modifier-resize — Shift/Ctrl-drag evenly resizes the chosen pane side and persists after reload', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const host = page.locator('.workspace-layout-host')
+    await expect(host).toBeVisible({ timeout: 15_000 })
+    const splitters = page.locator('.workspace-layout-host .lm_splitter.lm_vertical')
+    await expect.poll(() => splitters.count(), { timeout: 15_000 }).toBeGreaterThan(0)
+
+    const candidateIndex = await splitters.evaluateAll(elements => elements.findIndex(element => {
+      const parent = element.parentElement
+      if (!parent) return false
+      const siblings = Array.from(parent.children)
+      const splitterPosition = siblings.indexOf(element)
+      const paneCountBefore = siblings.slice(0, splitterPosition).filter(child => child.classList.contains('lm_item')).length
+      const paneCountAfter = siblings.slice(splitterPosition + 1).filter(child => child.classList.contains('lm_item')).length
+      return paneCountBefore >= 2 && paneCountAfter >= 1
+    }))
+    expect(candidateIndex, 'factory workspace should expose a stacked three-pane column').toBeGreaterThanOrEqual(0)
+    const splitter = splitters.nth(candidateIndex)
+    const measure = () => splitter.evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesBefore = siblings.slice(0, position).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      const panesAfter = siblings.slice(position + 1).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      const heights = (panes: HTMLElement[]) => panes.map(pane => pane.getBoundingClientRect().height)
+      return { above: heights(panesBefore), below: heights(panesAfter), y: element.getBoundingClientRect().y, x: element.getBoundingClientRect().x, width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height }
+    })
+    const before = await measure()
+    const movement = 48
+    const layoutSaved = page.waitForResponse(response =>
+      response.url().includes('/api/v1/workspaces/')
+      && response.url().includes('/snapshot')
+      && response.request().method() === 'PUT'
+      && response.status() === 200,
+    { timeout: 10_000 })
+    await page.keyboard.down('Shift')
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2 + movement, { steps: 8 })
+    await page.mouse.up()
+    await page.keyboard.up('Shift')
+
+    await expect.poll(async () => {
+      const measured = await measure()
+      return measured.above.reduce((sum, size) => sum + size, 0)
+    }, { timeout: 5_000 }).toBeGreaterThan(before.above.reduce((sum, size) => sum + size, 0) + movement - 5)
+    const resized = await measure()
+    expect(Math.max(...resized.above) - Math.min(...resized.above)).toBeLessThan(3)
+    expect(resized.below[0]).toBeLessThan(before.below[0] - movement + 5)
+
+    await layoutSaved
+    await page.reload()
+    await expect(host).toBeVisible({ timeout: 15_000 })
+    await expect.poll(() => splitters.count(), { timeout: 15_000 }).toBeGreaterThan(candidateIndex)
+    const restored = await splitters.nth(candidateIndex).evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesBefore = siblings.slice(0, position).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      return panesBefore.map(pane => pane.getBoundingClientRect().height)
+    })
+    expect(Math.max(...restored) - Math.min(...restored)).toBeLessThan(3)
+    expect(restored.reduce((sum, size) => sum + size, 0)).toBeGreaterThan(before.above.reduce((sum, size) => sum + size, 0) + movement - 5)
+
+    const beforeCtrl = await measure()
+    const ctrlLayoutSaved = page.waitForResponse(response =>
+      response.url().includes('/api/v1/workspaces/')
+      && response.url().includes('/snapshot')
+      && response.request().method() === 'PUT'
+      && response.status() === 200,
+    { timeout: 10_000 })
+    await page.keyboard.down('Control')
+    await page.mouse.move(beforeCtrl.x + beforeCtrl.width / 2, beforeCtrl.y + beforeCtrl.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(beforeCtrl.x + beforeCtrl.width / 2, beforeCtrl.y + beforeCtrl.height / 2 + movement, { steps: 8 })
+    await page.mouse.up()
+    await page.keyboard.up('Control')
+    await expect.poll(async () => {
+      const measured = await measure()
+      return measured.below.reduce((sum, size) => sum + size, 0)
+    }, { timeout: 5_000 }).toBeLessThan(beforeCtrl.below.reduce((sum, size) => sum + size, 0) - movement + 5)
+    const ctrlResized = await measure()
+    expect(Math.max(...ctrlResized.below) - Math.min(...ctrlResized.below)).toBeLessThan(3)
+    await ctrlLayoutSaved
+    await page.reload()
+    await expect(host).toBeVisible({ timeout: 15_000 })
+    const restoredBelow = await splitters.nth(candidateIndex).evaluate(element => {
+      const parent = element.parentElement!
+      const siblings = Array.from(parent.children)
+      const position = siblings.indexOf(element)
+      const panesAfter = siblings.slice(position + 1).filter(child => child.classList.contains('lm_item')) as HTMLElement[]
+      return panesAfter.map(pane => pane.getBoundingClientRect().height)
+    })
+    expect(Math.max(...restoredBelow) - Math.min(...restoredBelow)).toBeLessThan(3)
+    expect(restoredBelow.reduce((sum, size) => sum + size, 0)).toBeLessThan(beforeCtrl.below.reduce((sum, size) => sum + size, 0) - movement + 5)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F9d-workspaces — persisted workspaces can be created, cloned, renamed, switched, and deleted', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
@@ -668,6 +839,8 @@ test.describe('Chart', () => {
   test('F9e-keyboard — workspace tabs support roving focus and keyboard activation', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await expect(activeSymbol).toHaveValue('SPY')
     const tabs = page.locator('.workstation__tabs [role="tab"]')
     await expect.poll(() => tabs.count(), { timeout: 10_000 }).toBeGreaterThan(1)
     const first = tabs.nth(0)
@@ -676,12 +849,23 @@ test.describe('Chart', () => {
     await expect(first).toHaveAttribute('tabindex', '0')
     await first.press('ArrowRight')
     await expect(second).toBeFocused()
+    await expect.poll(() => second.evaluate(tab => {
+      const style = getComputedStyle(tab)
+      return { outlineStyle: style.outlineStyle, outlineColor: style.outlineColor }
+    })).toEqual({ outlineStyle: 'solid', outlineColor: 'rgb(238, 243, 251)' })
     await second.press('Enter')
     await expect(second).toHaveAttribute('aria-selected', 'true')
     await second.press('Home')
     await expect(first).toBeFocused()
     await first.press(' ')
     await expect(first).toHaveAttribute('aria-selected', 'true')
+    await expect(activeSymbol).toHaveValue('SPY')
+
+    const studyButton = page.getByRole('button', { name: 'Study', exact: true })
+    await studyButton.press('Space')
+    await expect(page.locator('.study-lab-tool:visible').last()).toBeVisible()
+    await expect(activeSymbol).toHaveValue('SPY')
+    await page.locator('.workstation__tabs > button').filter({ hasText: 'US Top Down' }).click()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -705,7 +889,7 @@ test.describe('Chart', () => {
     const group = editor.locator('.watchlist__group-input')
     await group.fill('Momentum')
     await group.press('Tab')
-    await editor.getByRole('button', { name: 'Stack', exact: true }).click()
+    await editor.getByRole('button', { name: 'Stack Symbol column', exact: true }).click()
     await expect(watchlist.locator('.watchlist__header')).toContainText('Momentum')
 
     await watchlist.getByRole('button', { name: 'Columns', exact: true }).click()
@@ -714,8 +898,8 @@ test.describe('Chart', () => {
     const setMenu = watchlist.locator('.watchlist__column-set-menu')
     await expect(setMenu).toBeVisible({ timeout: 10_000 })
     await setMenu.getByRole('textbox', { name: 'Column set name' }).fill(setName)
-    await setMenu.getByRole('button', { name: 'Save set', exact: true }).click()
-    const savedSet = setMenu.getByRole('button', { name: `${setName} v1`, exact: true })
+    await setMenu.getByRole('button', { name: 'Save column set', exact: true }).click()
+    const savedSet = setMenu.getByRole('button', { name: `Apply column set ${setName} version 1`, exact: true })
     await expect(savedSet).toBeVisible({ timeout: 15_000 })
     await savedSet.click()
     await expect(watchlist.locator('.watchlist__header')).toContainText('Momentum')
@@ -771,7 +955,11 @@ test.describe('Chart', () => {
     await templateMenu.getByRole('button', { name: `Delete ${templateName}` }).click()
     await expect(savedTemplate).toHaveCount(0)
 
-    await templateMenu.locator('input[type="file"]').setInputFiles(exportPath!)
+    const importButton = templateMenu.getByRole('button', { name: 'Import chart template' })
+    const fileChooserPromise = page.waitForEvent('filechooser')
+    await importButton.press('Enter')
+    const fileChooser = await fileChooserPromise
+    await fileChooser.setFiles(exportPath!)
     await expect(templateMenu.locator('.chart-template__apply').filter({ hasText: templateName })).toBeVisible({ timeout: 15_000 })
     await templateMenu.locator('.chart-template__apply').filter({ hasText: templateName }).click()
     await expect(symbolEntry).toHaveValue('SPY')
@@ -798,21 +986,58 @@ test.describe('Chart', () => {
     await items.last().press('Escape')
     await expect(menu).toHaveCount(0)
     await expect(row).toBeFocused()
+
+    await row.press('Shift+F10')
+    await expect(menu).toBeVisible()
+    await expect(items.first()).toBeFocused()
+    await items.first().press('Escape')
+    await expect(menu).toHaveCount(0)
+    await expect(row).toBeFocused()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F9e-plot-library-keyboard — chart plot library supports keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
+  test('F9e-plot-library-keyboard — chart plot library supports bidirectional keyboard opening and focus recovery', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart plot library' }) }).first()
     await expect(chart).toBeVisible({ timeout: 15_000 })
     const trigger = chart.getByRole('button', { name: 'Chart plot library' })
     await trigger.press('ArrowDown')
-    const menu = page.getByRole('menu', { name: 'Chart plot library menu' })
+    const menu = page.getByRole('dialog', { name: 'Chart plot library panel' })
     await expect(menu).toBeVisible()
-    await expect(menu.getByRole('combobox', { name: 'Add indicator plot' })).toBeFocused()
+    await expect(menu.getByRole('searchbox', { name: 'Filter indicators' })).toBeFocused()
     await menu.press('Escape')
     await expect(menu).toHaveCount(0)
     await expect(trigger).toBeFocused()
+
+    await trigger.press('ArrowUp')
+    await expect(menu).toBeVisible()
+    const lastControl = menu.locator('button:not(:disabled), input:not(:disabled):not([type="hidden"]):not([type="file"]), select:not(:disabled), textarea:not(:disabled)').last()
+    await expect(lastControl).toBeFocused()
+    await lastControl.press('Escape')
+    await expect(menu).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F9e-plot-library-search — chart plot library filters indicators and announces empty results', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart plot library' }) }).first()
+    await expect(chart).toBeVisible({ timeout: 15_000 })
+    await chart.getByRole('button', { name: 'Chart plot library' }).click()
+
+    const panel = page.getByRole('dialog', { name: 'Chart plot library panel' }).last()
+    const search = panel.getByRole('searchbox', { name: 'Filter indicators' })
+    const pickerOptions = panel.getByRole('combobox', { name: 'Add indicator plot' }).locator('option')
+    await expect(panel).toBeVisible()
+    await expect(search).toBeFocused()
+
+    await search.fill('relative strength index')
+    await expect(pickerOptions).toHaveText(['Add indicator plot…', 'RSI - Relative Strength Index'])
+
+    await search.fill('no-such-indicator-tc2000')
+    const noMatchStatus = panel.getByText('No indicators match “no-such-indicator-tc2000”.', { exact: true })
+    await expect(noMatchStatus).toHaveAttribute('role', 'status')
+    await expect(noMatchStatus).toBeVisible()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -822,7 +1047,7 @@ test.describe('Chart', () => {
     const chart = page.locator('.chart-tool').filter({ has: page.getByRole('button', { name: 'Chart plot library' }) }).first()
     const trigger = chart.getByRole('button', { name: 'Chart plot library' })
     await trigger.click()
-    const menu = page.getByRole('menu', { name: 'Chart plot library menu' }).last()
+    const menu = page.getByRole('dialog', { name: 'Chart plot library panel' }).last()
     await expect(menu).toBeVisible()
     const bounds = await menu.boundingBox()
     expect(bounds).not.toBeNull()
@@ -854,12 +1079,87 @@ test.describe('Chart', () => {
 
     const helpTrigger = page.getByRole('button', { name: 'Help', exact: true })
     await helpTrigger.press('ArrowDown')
-    const helpMenu = page.getByRole('menu', { name: 'Keyboard shortcuts' })
-    await expect(helpMenu).toBeVisible()
-    await expect(helpMenu.getByRole('menuitem').first()).toBeFocused()
-    await helpMenu.press('Escape')
-    await expect(helpMenu).toHaveCount(0)
+    const helpDialog = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
+    await expect(helpDialog).toBeVisible()
+    await expect(helpDialog).toBeFocused()
+    const scrollMetrics = await helpDialog.evaluate(element => ({ clientHeight: element.clientHeight, scrollHeight: element.scrollHeight }))
+    expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight)
+    const settleNativeHelpScroll = (previousTop: number, direction: 'up' | 'down') => helpDialog.evaluate(async (element, state) => {
+      const deadline = performance.now() + 2_000
+      let lastTop = element.scrollTop
+      let movementObserved = state.direction === 'up' ? lastTop < state.previousTop : lastTop > state.previousTop
+      let stableFrames = 0
+      while (performance.now() < deadline && stableFrames < 3) {
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+        const currentTop = element.scrollTop
+        if (currentTop !== lastTop) {
+          movementObserved = movementObserved || (state.direction === 'up'
+            ? currentTop < state.previousTop
+            : currentTop > state.previousTop)
+          stableFrames = 0
+        } else if (movementObserved) {
+          stableFrames += 1
+        }
+        lastTop = currentTop
+      }
+      if (!movementObserved || stableFrames < 3) {
+        throw new Error(`Help ${state.direction === 'up' ? 'PageUp' : 'PageDown'} did not produce a settled native scroll within 2 seconds`)
+      }
+      return lastTop
+    }, { previousTop, direction })
+    let previousScrollTop = await helpDialog.evaluate(element => element.scrollTop)
+    await helpDialog.press('PageDown')
+    await settleNativeHelpScroll(previousScrollTop, 'down')
+    await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
+    previousScrollTop = await helpDialog.evaluate(element => element.scrollTop)
+    await helpDialog.press('PageUp')
+    await settleNativeHelpScroll(previousScrollTop, 'up')
+    await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBe(0)
+    let bottomMetrics = await helpDialog.evaluate(element => {
+      const bounds = element.getBoundingClientRect()
+      const lastRow = element.querySelector('dl > div:last-child')?.getBoundingClientRect()
+      const remaining = element.scrollHeight - element.clientHeight - element.scrollTop
+      return {
+        // scrollTop may be fractional in Chromium; require the native bottom
+        // within one CSS pixel and independently prove the final shortcut row
+        // is fully visible in the scrollport.
+        atBottom: remaining >= 0 && remaining <= 1,
+        lastRowVisible: !!lastRow && lastRow.top >= bounds.top && lastRow.bottom <= bounds.bottom,
+        scrollTop: element.scrollTop,
+      }
+    })
+    for (let page = 0; page < 10 && !bottomMetrics.atBottom; page += 1) {
+      previousScrollTop = bottomMetrics.scrollTop
+      await helpDialog.press('PageDown')
+      await settleNativeHelpScroll(previousScrollTop, 'down')
+      bottomMetrics = await helpDialog.evaluate(element => {
+        const bounds = element.getBoundingClientRect()
+        const lastRow = element.querySelector('dl > div:last-child')?.getBoundingClientRect()
+        const remaining = element.scrollHeight - element.clientHeight - element.scrollTop
+        return {
+          atBottom: remaining >= 0 && remaining <= 1,
+          lastRowVisible: !!lastRow && lastRow.top >= bounds.top && lastRow.bottom <= bounds.bottom,
+          scrollTop: element.scrollTop,
+        }
+      })
+    }
+    expect(bottomMetrics.atBottom).toBe(true)
+    expect(bottomMetrics.lastRowVisible).toBe(true)
+    await helpDialog.press('Home')
+    await expect.poll(() => helpDialog.evaluate(element => element.scrollTop)).toBe(0)
+    await page.keyboard.press('Tab')
+    await expect(helpDialog.getByRole('button', { name: 'Close keyboard shortcuts' })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(helpDialog).toHaveCount(0)
     await expect(helpTrigger).toBeFocused()
+
+    await helpTrigger.click()
+    await expect(helpDialog).toBeVisible()
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbol.focus()
+    await expect(helpDialog).toHaveCount(0)
+    await expect(helpTrigger).toHaveAttribute('aria-expanded', 'false')
+    await expect(activeSymbol).toBeFocused()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -872,6 +1172,15 @@ test.describe('Chart', () => {
     const editor = watchlist.getByRole('dialog', { name: 'Column editor' })
     await expect(editor).toBeVisible()
     await expect(editor.locator('input,select,button').first()).toBeFocused()
+    const columnLabel = editor.locator('.watchlist__label-input').first()
+    const labelValue = await columnLabel.inputValue()
+    await columnLabel.focus()
+    await columnLabel.evaluate(input => {
+      const field = input as HTMLInputElement
+      field.setSelectionRange(field.value.length, field.value.length)
+    })
+    await page.keyboard.press('ArrowLeft')
+    await expect.poll(() => columnLabel.evaluate(input => (input as HTMLInputElement).selectionStart)).toBe(labelValue.length - 1)
     await editor.press('Escape')
     await expect(editor).toHaveCount(0)
     await expect(columns).toBeFocused()
@@ -897,7 +1206,9 @@ test.describe('Chart', () => {
     await expect(scan).toBeVisible({ timeout: 15_000 })
     const toggle = scan.locator('button.easy-scan__advanced-toggle')
     await toggle.press('Enter')
-    const advanced = scan.locator('#easy-scan-advanced-conditions')
+    const advancedId = await toggle.getAttribute('aria-controls')
+    expect(advancedId).toBeTruthy()
+    const advanced = scan.locator(`#${advancedId}`)
     await expect(advanced).toBeVisible()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(advanced.locator('select, input, button').first()).toBeFocused()
@@ -918,6 +1229,12 @@ test.describe('Chart', () => {
 
     const study = page.locator('.study-lab-tool:visible').last()
     await expect(study).toBeVisible({ timeout: 10_000 })
+    const universeSource = study.getByRole('combobox', { name: 'Study universe source' })
+    const universeSourceList = universeSource.getAttribute('list')
+    await expect(universeSource).toHaveAttribute('list', /^study-universe-sources-\d+$/)
+    const sourceSuggestions = study.locator(`#${await universeSourceList} option`)
+    await expect.poll(() => sourceSuggestions.count(), { timeout: 15_000 }).toBeGreaterThan(0)
+    await expect(sourceSuggestions.first()).toHaveAttribute('label', / · /)
     const sourceEditor = study.getByRole('textbox', { name: 'Study Python source' })
     await expect(sourceEditor).toHaveAttribute('aria-haspopup', 'listbox')
     await expect(sourceEditor).toHaveAttribute('aria-expanded', 'false')
@@ -926,7 +1243,7 @@ test.describe('Chart', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('reusable_value', 7)")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await study.getByRole('button', { name: 'Save as column' }).click()
     await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 15_000 })
@@ -945,8 +1262,33 @@ test.describe('Chart', () => {
     const assetValue = await assetOption.getAttribute('value')
     expect(assetValue).toBeTruthy()
     await pythonColumnAsset.selectOption(assetValue!)
-    await target.getByRole('button', { name: 'Add', exact: true }).click()
+    await target.getByRole('button', { name: 'Add selected Python column', exact: true }).click()
     await expect(target.locator('.watchlist__header button').filter({ hasText: studyName })).toBeVisible({ timeout: 30_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F9g-series-shape — an unaligned Study series stays scalar-promotable but cannot become a chart plot', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
+    const studyName = `E2E unaligned series ${Date.now()}`
+    await page.goto('/chart/SPY')
+    const target = page.getByRole('region', { name: 'Major US benchmarks' })
+    await expect(target).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+
+    const study = page.locator('.study-lab-tool:visible').last()
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('textbox', { name: 'Study name' }).fill(studyName)
+    await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('unaligned_history', [0.4, 0.5])")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
+
+    await expect(study).toContainText('Chart plot unavailable: this series has no aligned timestamp axis.')
+    await expect(study.getByRole('button', { name: 'Save as chart plot' })).toHaveCount(0)
+    await study.getByRole('button', { name: 'Save latest column' }).click()
+    await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -990,7 +1332,7 @@ test.describe('Chart', () => {
     const assetPicker = chart.getByRole('combobox', { name: 'Python plot asset' })
     await expect(assetPicker).toBeVisible({ timeout: 10_000 })
     await assetPicker.selectOption('99101')
-    await chart.getByRole('button', { name: 'Add', exact: true }).click()
+    await chart.getByRole('button', { name: 'Add selected Python plot', exact: true }).click()
     const plot = chart.locator('.chart-plots__python-item').filter({ hasText: plotName }).first()
     await expect(plot).toBeVisible({ timeout: 15_000 })
     const visibilityButton = plot.locator('button').first()
@@ -1061,6 +1403,7 @@ test.describe('Chart', () => {
   test('F9i — a Study Lab series becomes a reusable chart plot', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     const studyName = `E2E reusable series ${Date.now()}`
+    await page.goto('about:blank')
     await page.goto('/chart/SPY')
     await page.getByRole('button', { name: 'Study', exact: true }).click()
     const studyLayoutTab = page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last()
@@ -1071,13 +1414,16 @@ test.describe('Chart', () => {
     await expect(study).toBeVisible({ timeout: 10_000 })
     await study.getByRole('textbox', { name: 'Study name' }).fill(studyName)
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
-    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('reusable_series', [1, 2, 3, 4])")
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('reusable_series', {'timestamps': ['2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', '2026-01-03T00:00:00Z', '2026-01-04T00:00:00Z'], 'values': [1, 2, 3, 4]})")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await study.getByRole('button', { name: 'Save as chart plot' }).click()
     await expect(study).toContainText('Saved as a reusable chart plot.', { timeout: 15_000 })
+    await expect(study.getByRole('button', { name: 'Save latest column', exact: true })).toBeVisible()
+    await study.getByRole('button', { name: 'Save latest column', exact: true }).click()
+    await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 15_000 })
 
     await page.locator('.workstation__tabs > button').filter({ hasText: 'US Top Down' }).click()
     // Returning from Study Lab can leave the chart component mounted in a
@@ -1098,8 +1444,153 @@ test.describe('Chart', () => {
     const optionValue = await option.getAttribute('value')
     expect(optionValue).toBeTruthy()
     await pythonPlot.selectOption(optionValue!)
-    await chart.getByRole('button', { name: 'Add', exact: true }).click()
+    await chart.getByRole('button', { name: 'Add selected Python plot', exact: true }).click()
     await expect(chart.locator('.chart-plots__python-item').filter({ hasText: studyName })).toBeVisible({ timeout: 30_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F9j — a primary Study Lab series promotes through an explicit threshold', async ({ page, browserDiagnostics }) => {
+    let codeAssetPosts = 0
+    await page.route('**/api/v1/code/validate', async route => {
+      expect(route.request().method()).toBe('POST')
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['series'] }) })
+    })
+    await page.route('**/api/v1/code/assets', async route => {
+      if (route.request().method() === 'GET') return route.continue()
+      const body = route.request().postDataJSON() as { kind?: string; initial_version?: { output_contract?: string; output_name?: string; lineage?: Record<string, unknown> } }
+      codeAssetPosts += 1
+      if (codeAssetPosts === 1) {
+        expect(body).toMatchObject({ kind: 'study', initial_version: { output_contract: 'series' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1201, versions: [{ id: 1201 }] }) })
+        return
+      }
+      if (codeAssetPosts === 2) {
+        expect(body).toMatchObject({ kind: 'condition', initial_version: { output_contract: 'boolean', output_name: 'reusable_series', lineage: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 3 } } } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1202, versions: [{ id: 1202 }] }) })
+        return
+      }
+      expect(body).toMatchObject({ kind: 'signal', initial_version: { output_contract: 'boolean', output_name: 'reusable_series', lineage: { target: 'signal', output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 3 }, semantics: 'study_series_threshold_as_strategy_signal' } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1205, versions: [{ id: 1205 }] }) })
+    })
+    await page.route('**/api/v1/research/runs', async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      expect(route.request().postDataJSON()).toMatchObject({ code_version_id: 1201, run_config: { symbol: 'SPY', timeframe: 'D1' } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({
+        id: 1203,
+        code_version_id: 1201,
+        status: 'completed',
+        run_config: { symbol: 'SPY', timeframe: 'D1' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        reproducibility_hash: 'sha256:study-series-threshold',
+        artifacts: [{ id: 1, name: 'reusable_series', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [2, 4] } } }],
+      }) })
+    })
+    await page.route('**/api/v1/screeners/from-python-condition/1202', async route => {
+      expect(route.request().method()).toBe('POST')
+      expect(route.request().postDataJSON()).toMatchObject({ universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 3 } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1204, name: 'Reusable series threshold' }) })
+    })
+    await page.route('**/api/v1/strategy-lab/signals/from-code/1205', async route => {
+      expect(route.request().method()).toBe('POST')
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1206, name: 'Reusable series Strategy signal' }) })
+    })
+    await page.goto('/chart/SPY')
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+    const studyLayoutTab = page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last()
+    if (await studyLayoutTab.count()) await studyLayoutTab.click()
+    const studyTab = page.locator('.lm_tab:visible').filter({ hasText: 'Study Lab' }).last()
+    if (await studyTab.count()) await studyTab.click()
+    const study = page.locator('.study-lab-tool:visible').last()
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('textbox', { name: 'Study name' }).fill('E2E direct threshold')
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('reusable_series', [2, 4])")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 15_000 })
+    await expect(study.getByRole('group', { name: 'Study series threshold condition' })).toBeVisible()
+    await study.getByRole('combobox', { name: 'Study series condition operator' }).selectOption('gte')
+    await study.getByRole('spinbutton', { name: 'Study series condition threshold' }).fill('3')
+    await study.getByRole('button', { name: 'Save watchlist filter', exact: true }).click()
+    await expect(study).toContainText('Saved series artifact “reusable_series” as a thresholded watchlist filter.', { timeout: 15_000 })
+    await study.getByRole('button', { name: 'Save as Strategy signal', exact: true }).click()
+    await expect(study).toContainText('Saved thresholded series “reusable_series” as Strategy signal “Reusable series Strategy signal” (#1206).', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F9j-range — a direct Study Lab range promotes its center with preserved lineage', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
+    const studyName = `E2E direct range ${Date.now()}`
+    let codeAssetPosts = 0
+    await page.route('**/api/v1/code/validate', async route => {
+      expect(route.request().method()).toBe('POST')
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['range'] }) })
+    })
+    await page.route('**/api/v1/code/assets', async route => {
+      if (route.request().method() === 'GET') return route.continue()
+      const body = route.request().postDataJSON() as { kind?: string; initial_version?: { output_contract?: string; output_name?: string; lineage?: Record<string, unknown> } }
+      codeAssetPosts += 1
+      if (codeAssetPosts === 1) {
+        // Range is a structured Study result; the runner keeps the source
+        // asset's execution contract as `study` and the UI applies the
+        // explicit center adapters only when a target is selected.
+        expect(body).toMatchObject({ kind: 'study', initial_version: { output_contract: 'study' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1211, versions: [{ id: 1211 }] }) })
+        return
+      }
+      if (codeAssetPosts === 2) {
+        expect(body).toMatchObject({
+          kind: 'plot',
+          initial_version: {
+            output_contract: 'series',
+            output_name: 'confidence',
+            lineage: { output_adapter: 'range_center_to_series', semantics: 'study_range_center_result_as_chart_plot' },
+          },
+        })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1212, versions: [{ id: 1212 }] }) })
+        return
+      }
+      expect(body).toMatchObject({
+        kind: 'column',
+        initial_version: {
+          output_contract: 'scalar',
+          output_name: 'confidence',
+          lineage: { output_adapter: 'range_center_to_scalar', semantics: 'study_range_center_result_as_latest_watchlist_column' },
+        },
+      })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1213, versions: [{ id: 1213 }] }) })
+    })
+    await page.route('**/api/v1/research/runs', async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      expect(route.request().postDataJSON()).toMatchObject({ code_version_id: 1211, run_config: { symbol: 'SPY', timeframe: 'D1' } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({
+        id: 1214,
+        code_version_id: 1211,
+        status: 'completed',
+        run_config: { symbol: 'SPY', timeframe: 'D1' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        reproducibility_hash: 'sha256:study-range-center',
+        artifacts: [{ id: 1, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } }],
+      }) })
+    })
+    await page.goto('/chart/SPY')
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+    const studyLayoutTab = page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last()
+    if (await studyLayoutTab.count()) await studyLayoutTab.click()
+    const studyTab = page.locator('.lm_tab:visible').filter({ hasText: 'Study Lab' }).last()
+    if (await studyTab.count()) await studyTab.click()
+    const study = page.locator('.study-lab-tool:visible').last()
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('textbox', { name: 'Study name' }).fill(studyName)
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.range('confidence', [1, 2], [3, 4], [2, 3])")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 15_000 })
+    await study.getByRole('button', { name: 'Save center as chart plot' }).click()
+    await expect(study).toContainText('Saved as a reusable chart plot.', { timeout: 15_000 })
+    await study.getByRole('button', { name: 'Save latest center column' }).click()
+    await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -1133,6 +1624,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('factory layouts render without recovery state or core header collisions', async ({ page, browserDiagnostics }) => {
+    await page.goto('about:blank')
     await page.goto('/chart')
     const layouts = ['US Top Down', 'TC Classic', 'Drill Down', 'Sector by Year', '1 Chart', '4 Timeframe', 'Fundamentals', 'Study Lab']
     for (const layout of layouts) {
@@ -1161,6 +1653,59 @@ test.describe('TC2000 workstation', () => {
       })
       expect(collisions).toEqual([])
     }
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('all-family readiness exposes canonical provider probe evidence', async ({ page, browserDiagnostics }) => {
+    await page.route('**/api/v1/analysis/benchmark-families/readiness*', async route => {
+      const response = await route.fetch()
+      const payload = await response.json()
+      payload.provider_probe_evidence = [
+        {
+          provider: 'fixture',
+          capability: 'price_history',
+          classification: 'healthy',
+          success: true,
+          consecutive_failures: 0,
+          recovered: false,
+          observed_at: '2026-08-01T12:00:00Z',
+        },
+        {
+          provider: 'fixture',
+          capability: 'universe_discovery',
+          classification: 'recovered',
+          success: true,
+          consecutive_failures: 1,
+          recovered: true,
+          observed_at: '2026-08-02T12:00:00Z',
+        },
+      ]
+      await route.fulfill({ response, body: JSON.stringify(payload) })
+    })
+    await page.goto('/chart')
+    const benchmarkSurface = page.locator('.benchmark-surface').first()
+    await expect(benchmarkSurface).toBeVisible({ timeout: 10_000 })
+    await expect(benchmarkSurface.getByLabel('Benchmark provider probe evidence')).toContainText('Provider probes: 2/2 passed · 1 recovered · latest 2026-08-02')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('all-family readiness exposes canonical universe provenance', async ({ page, browserDiagnostics }) => {
+    await page.route('**/api/v1/analysis/benchmark-families/readiness*', async route => {
+      const response = await route.fetch()
+      const payload = await response.json()
+      payload.universe_provenance = {
+        registry: 'top_down_taxonomy',
+        family_keys: ['sp500', 'nasdaq100'],
+        point_in_time: true,
+        missing_families: ['russell2000'],
+        provider_calls: false,
+      }
+      await route.fulfill({ response, body: JSON.stringify(payload) })
+    })
+    await page.goto('/chart')
+    const benchmarkSurface = page.locator('.benchmark-surface').first()
+    await expect(benchmarkSurface).toBeVisible({ timeout: 10_000 })
+    await expect(benchmarkSurface.getByLabel('Benchmark family universe provenance')).toContainText('Universe: top_down_taxonomy · 2 families · point-in-time · missing 1 · provider calls none')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -1206,14 +1751,69 @@ test.describe('TC2000 workstation', () => {
     await popup.waitForLoadState('domcontentloaded')
     await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
 
-    // A persisted-layout refresh can close the browser-owned pop-out between the
-    // geometry read and cleanup. Treat that already-closed state as successful cleanup;
-    // otherwise close it through the user-facing control and await the browser event.
+    // A concurrent revisioned workspace refresh may close the disposable popup
+    // between geometry inspection and the ordinary Close click. Share the guarded
+    // cleanup used by the other popup flows; it accepts only an already-closed popup
+    // as successful cleanup and propagates other click failures.
     await closePopupWhenOpen(popup)
 
     // The docked window is the durable source of truth; a disposable pop-out cannot
     // remove it from the parent layout.
     await expect(page.locator('button[title="Float"]').first()).toBeVisible()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8b-hydration — Add tool remains actionable while the saved workspace is loading', async ({ page, browserDiagnostics }) => {
+    let markWorkspaceRequestObserved!: () => void
+    let releaseWorkspaceRequest!: () => void
+    const workspaceRequestObserved = new Promise<void>(resolve => { markWorkspaceRequestObserved = resolve })
+    const workspaceRequestRelease = new Promise<void>(resolve => { releaseWorkspaceRequest = resolve })
+    await page.route('**/api/v1/workspaces/default', async route => {
+      markWorkspaceRequestObserved()
+      await workspaceRequestRelease
+      await route.continue()
+    })
+
+    try {
+      await page.goto('/chart/SPY')
+      await workspaceRequestObserved
+      await page.getByRole('button', { name: 'Add tool' }).click()
+      await page.getByRole('menuitem', { name: 'Relative Rotation', exact: true }).click()
+    } finally {
+      releaseWorkspaceRequest()
+    }
+
+    const rotation = page.locator('.tool-window:visible').filter({ has: page.locator('.rotation-tool') }).last()
+    await expect(rotation).toBeVisible({ timeout: 15_000 })
+    // This test mutates the shared authenticated workspace; restore its known
+    // factory layout so later serial flows do not inherit the added tool.
+    page.once('dialog', dialog => dialog.accept())
+    await page.getByTitle('Reset factory workspace').first().click()
+    await expect(rotation).toHaveCount(0)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8b-a — a benchmark pop-out hydrates shared market analysis when opened late', async ({ page, context, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const sourceTool = page.locator('.tool-window').filter({ has: page.getByRole('region', { name: 'Major US benchmarks' }) }).first()
+    await expect(sourceTool).toBeVisible({ timeout: 15_000 })
+    if (process.env.E2E_SEED_MARKET_DATA === 'true') {
+      await expect(sourceTool.locator('.watchlist__row')).toHaveCount(5, { timeout: 15_000 })
+    }
+
+    const popupPromise = context.waitForEvent('page')
+    await sourceTool.locator('button[title="Float"]').click()
+    const popup = await popupPromise
+    await popup.waitForLoadState('domcontentloaded')
+    const popoutTool = popup.locator('.workstation__popout .tool-window')
+    await expect(popoutTool).toBeVisible({ timeout: 25_000 })
+    await expect(popoutTool.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible()
+    if (process.env.E2E_SEED_MARKET_DATA === 'true') {
+      await expect(popoutTool.locator('.watchlist__row')).toHaveCount(5, { timeout: 25_000 })
+    }
+
+    await closePopupWhenOpen(popup)
+    await expect(sourceTool).toBeVisible()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -1371,7 +1971,7 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart/SPY')
     const checks = [
       [page.getByRole('button', { name: 'Workspace', exact: true }), page.getByRole('menu', { name: 'Workspace layouts' })],
-      [page.getByRole('button', { name: 'Help', exact: true }), page.getByRole('menu', { name: 'Keyboard shortcuts' })],
+      [page.getByRole('button', { name: 'Help', exact: true }), page.getByRole('dialog', { name: 'Keyboard shortcuts' })],
       [page.getByRole('button', { name: 'Add tool', exact: true }), page.getByRole('menu', { name: 'Workstation tools' })],
     ] as const
     for (const [trigger, menu] of checks) {
@@ -1441,11 +2041,16 @@ test.describe('TC2000 workstation', () => {
     await expect(results).toBeVisible({ timeout: 10_000 })
     await expect(input).toHaveAttribute('aria-expanded', 'true')
     await expect(results).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
-    await expect(input).toHaveAttribute('aria-activedescendant', 'workstation-symbol-option-0')
+    const firstOption = results.getByRole('option').nth(0)
+    const firstOptionId = await firstOption.getAttribute('id')
+    expect(firstOptionId).toMatch(/-symbol-option-0$/)
+    await expect(input).toHaveAttribute('aria-activedescendant', firstOptionId!)
     await input.press('ArrowDown')
-    await expect(input).toHaveAttribute('aria-activedescendant', 'workstation-symbol-option-1')
+    const secondOptionId = await results.getByRole('option').nth(1).getAttribute('id')
+    expect(secondOptionId).toMatch(/-symbol-option-1$/)
+    await expect(input).toHaveAttribute('aria-activedescendant', secondOptionId!)
     await input.press('ArrowUp')
-    await expect(input).toHaveAttribute('aria-activedescendant', 'workstation-symbol-option-0')
+    await expect(input).toHaveAttribute('aria-activedescendant', firstOptionId!)
     await input.press('Enter')
     await expect(input).toHaveValue('XLK', { timeout: 15_000 })
     await expect(results).toHaveCount(0)
@@ -1576,7 +2181,8 @@ test.describe('TC2000 workstation', () => {
 
   test('F8j — floated geometry is persisted through the workspace API', async ({ page, context, browserDiagnostics }) => {
     test.setTimeout(90_000)
-    await page.goto('/chart')
+    // The loggedIn fixture has already loaded the chart; avoid a second
+    // navigation that would cancel its still-active workstation requests.
     const sourceTool = page.locator('.tool-window').first()
     const floatButton = sourceTool.locator('button[title="Float"]')
     await expect(floatButton).toBeVisible({ timeout: 10_000 })
@@ -1705,9 +2311,14 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8k-a — blocked browser pop-out keeps the tool docked and reports recovery guidance', async ({ page, browserDiagnostics }) => {
+  test('F8k-a — blocked browser pop-out can be retried and recovers after close', async ({ page, context, browserDiagnostics }) => {
+    test.setTimeout(90_000)
     await page.addInitScript(() => {
-      window.open = (() => null) as typeof window.open
+      const nativeOpen = window.open
+      window.open = (() => {
+        window.open = nativeOpen
+        return null
+      }) as typeof window.open
     })
     await page.goto('/chart')
     const sourceTool = page.locator('.tool-window').first()
@@ -1716,6 +2327,36 @@ test.describe('TC2000 workstation', () => {
     await expect(page.locator('.workstation__footer')).toContainText(/Browser blocked the pop-out/i, { timeout: 5_000 })
     await expect(sourceTool).toBeVisible()
     await expect(page.locator('.workstation__popout')).toHaveCount(0)
+
+    const popupPromise = context.waitForEvent('page')
+    await sourceTool.locator('button[title="Float"]').click()
+    const popup = await popupPromise
+    await popup.waitForLoadState('domcontentloaded')
+    await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 25_000 })
+    await expect(page.locator('.workstation__footer')).not.toContainText(/Browser blocked the pop-out/i)
+
+    const windowKey = decodeURIComponent(new URL(popup.url()).pathname.split('/').at(-1) ?? '')
+    await expect.poll(async () => page.evaluate(async key => {
+      const token = localStorage.getItem('access_token')
+      const response = await fetch('/api/v1/workspaces/default', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      if (!response.ok) return undefined
+      const body = await response.json()
+      const windows = body.tabs.flatMap((tab: { windows: Array<Record<string, unknown>> }) => tab.windows)
+      const persisted = windows.find((window: Record<string, unknown>) => window.instance_key === key)
+      return (persisted?.style as { popout?: unknown } | undefined)?.popout
+    }, windowKey), { timeout: 10_000, intervals: [250, 500, 1_000] }).toMatchObject({
+      left: expect.any(Number),
+      top: expect.any(Number),
+      width: expect.any(Number),
+      height: expect.any(Number),
+    })
+
+    const closed = popup.waitForEvent('close')
+    await popup.close()
+    await closed
+    await expect.poll(() => context.pages().length).toBe(1)
+    await expect(sourceTool.locator('button[title="Float"]')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('.workstation__footer')).not.toContainText(/Browser blocked the pop-out/i)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -1743,7 +2384,11 @@ test.describe('TC2000 workstation', () => {
     await expect(sectorList).toBeVisible({ timeout: 10_000 })
     const sectorSymbols = sectorList.getByRole('listbox', { name: 'Relative to SPY symbols' })
     await expect(sectorSymbols).toBeVisible({ timeout: 10_000 })
-    await expect(sectorSymbols.getByRole('option').first()).toBeVisible({ timeout: 25_000 })
+    const firstSectorOption = sectorSymbols.getByRole('option').first()
+    await expect(firstSectorOption).toBeVisible({ timeout: 25_000 })
+    await expect(firstSectorOption).toHaveAttribute('aria-setsize', /\d+/)
+    await expect(firstSectorOption).toHaveAttribute('aria-posinset', '1')
+    await expect(firstSectorOption).toHaveAttribute('aria-label', /Position 1 of \d+/)
     await expect(sectorList.getByRole('option', { name: /XLK/ }).first()).toBeVisible({ timeout: 25_000 })
 
     // The opt-in deterministic market fixture may hydrate the data-dependent tools;
@@ -1822,10 +2467,75 @@ test.describe('TC2000 workstation', () => {
     // store event to settle before publishing the next linked symbol.
     await page.waitForTimeout(250)
     const wildcardTarget = isolatedTarget === 'XLK' ? 'XLE' : 'XLK'
+    const savedWildcard = page.waitForResponse(response => {
+      const request = response.request()
+      if (request.method() !== 'PUT' || !/\/api\/v1\/workspaces\/\d+\/snapshot$/.test(response.url()) || !response.ok()) return false
+      try {
+        const settings = request.postDataJSON()?.settings
+        return settings?.linked_symbols?.blue?.symbol === wildcardTarget
+          && settings?.linked_symbols?.yellow?.symbol === wildcardTarget
+          && settings?.linked_symbols?.yellow?.source_group === 'blue'
+      } catch {
+        return false
+      }
+    }, { timeout: 15_000 })
     await sectors.getByRole('option', { name: new RegExp(wildcardTarget) }).first().click({ position: { x: 8, y: 14 } })
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(wildcardTarget)
+    await savedWildcard
+    await page.reload()
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(wildcardTarget, { timeout: 15_000 })
+    await expect(chartSymbol).toHaveText(wildcardTarget, { timeout: 15_000 })
     // The shell's canonical wildcard publication is the cross-window contract;
-    // chart-level resolution is covered by the workspace-store unit matrix.
+    // both the persisted shell symbol and chart-level wildcard value must
+    // survive a full workspace reload.
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8m-chart-panels — eight symbol groups, yellow wildcard, and grey isolation', async ({ page, browserDiagnostics }) => {
+    await page.goto('/legacy/chart/SPY')
+    await expect(page.locator('.chart-view')).toBeVisible()
+    await page.getByRole('button', { name: 'Two columns', exact: true }).click()
+
+    const panels = page.locator('.chart-panel')
+    await expect(panels).toHaveCount(2)
+    const source = panels.nth(0)
+    const wildcard = panels.nth(1)
+    const sourceLink = source.getByRole('button', { name: /Symbol link group/ })
+    const wildcardLink = wildcard.getByRole('button', { name: /Symbol link group/ })
+
+    await sourceLink.click()
+    await page.getByRole('menuitemradio', { name: 'Purple', exact: true }).click()
+    await wildcardLink.click()
+    await expect(wildcardLink).toHaveAttribute('aria-expanded', 'true')
+    const wildcardMenu = wildcard.getByRole('menu', { name: 'Symbol link group' })
+    const yellowOption = wildcardMenu.getByRole('menuitemradio', { name: 'Yellow', exact: true })
+    await expect(yellowOption).toBeVisible()
+    await yellowOption.click()
+    await expect(sourceLink).toHaveAttribute('aria-label', 'Symbol link group: purple')
+    await expect(wildcardLink).toHaveAttribute('aria-label', 'Symbol link group: yellow')
+
+    async function selectPanelSymbol(panel: typeof source, from: string, to: string) {
+      await panel.getByRole('button', { name: `Change chart symbol from ${from}` }).click()
+      const search = panel.getByRole('combobox', { name: 'Search chart symbol' })
+      await search.fill(to)
+      const result = panel.getByRole('option', { name: new RegExp(`^${to}\\b`) }).first()
+      await expect(result).toBeVisible({ timeout: 10_000 })
+      await result.click()
+    }
+
+    await selectPanelSymbol(source, 'SPY', 'QQQ')
+    await expect(source.locator('.psym')).toHaveText('QQQ', { timeout: 10_000 })
+    await expect(wildcard.locator('.psym')).toHaveText('QQQ', { timeout: 10_000 })
+
+    await wildcardLink.click()
+    await expect(wildcardLink).toHaveAttribute('aria-expanded', 'true')
+    const isolationMenu = wildcard.getByRole('menu', { name: 'Symbol link group' })
+    const greyOption = isolationMenu.getByRole('menuitemradio', { name: 'Grey', exact: true })
+    await expect(greyOption).toBeVisible()
+    await greyOption.click()
+    await selectPanelSymbol(source, 'QQQ', 'SPY')
+    await expect(source.locator('.psym')).toHaveText('SPY', { timeout: 10_000 })
+    await expect(wildcard.locator('.psym')).toHaveText('QQQ', { timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -1889,10 +2599,17 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart/SPY')
     const chart = page.locator('.chart-tool:visible').first()
     await expect(chart.locator('.uplot')).toBeVisible({ timeout: 20_000 })
-    const over = chart.locator('.u-over').first()
-    await expect(over).toBeVisible({ timeout: 10_000 })
-    const box = await over.boundingBox()
-    expect(box).not.toBeNull()
+    const chartRoot = chart.locator('.chart-root')
+    const over = chart.locator('.uplot:visible .u-over:visible').first()
+    const movePointerToLivePlot = async () => {
+      // Route hydration can replace the initially painted chart. Target the
+      // terminal live overlay through ordinary actionability so a detached
+      // pre-hydration surface cannot satisfy readiness or receive a gesture.
+      await expect(chartRoot).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
+      await expect(over).toBeVisible({ timeout: 10_000 })
+      await over.hover()
+    }
+    await movePointerToLivePlot()
 
     // Keep the actual uPlot element identity as the renderer invariant. The
     // gestures below must change its view, not replace the chart instance.
@@ -1913,10 +2630,25 @@ test.describe('TC2000 workstation', () => {
       return `${canvas.width}x${canvas.height}:${checksum}`
     })
 
-    await page.mouse.move(box!.x + box!.width * 0.52, box!.y + box!.height * 0.42)
     const beforeZoom = await fingerprint()
     await page.mouse.wheel(0, -180)
     await expect.poll(fingerprint, { timeout: 10_000 }).not.toBe(beforeZoom)
+
+    // TC2000 Shift+wheel pans chart history without changing the zoom span.
+    // Repeated bounded gestures should move away from the latest edge and
+    // expose the existing return-to-latest affordance.
+    await page.keyboard.down('Shift')
+    try {
+      for (let i = 0; i < 8 && !(await chart.locator('.go-to-latest').count()); i += 1) {
+        await page.mouse.wheel(0, -420)
+        await page.waitForTimeout(120)
+      }
+    } finally {
+      await page.keyboard.up('Shift')
+    }
+    await expect(chart.locator('.go-to-latest')).toBeVisible({ timeout: 10_000 })
+    await chart.getByRole('button', { name: 'Go to latest bar' }).click()
+    await expect(chart.locator('.go-to-latest')).toHaveCount(0)
 
     const beforePan = await fingerprint()
     // A horizontal wheel delta is the browser-level equivalent of a
@@ -1927,6 +2659,10 @@ test.describe('TC2000 workstation', () => {
     // Repeat bounded trackpad-style gestures with a short browser turn between
     // them. Chromium may coalesce adjacent wheel events; the recovery affordance
     // is the authoritative observable that the chart has entered history.
+    // Clicking the recovery button moves the browser pointer off the uPlot
+    // overlay. Move it back through the live overlay before emitting the real
+    // horizontal wheel gesture; otherwise the wheel targets chart chrome.
+    await movePointerToLivePlot()
     for (let i = 0; i < 8 && !(await chart.locator('.go-to-latest').count()); i += 1) {
       await page.mouse.wheel(-420, 0)
       await page.waitForTimeout(120)
@@ -1941,6 +2677,46 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8k-ctrl-chart-zoom — Ctrl+= and Ctrl+- zoom the active chart without changing timeframe', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const chart = page.locator('.chart-tool:visible').first()
+    const plot = chart.locator('.uplot').first()
+    await expect(plot).toBeVisible({ timeout: 20_000 })
+    await expect(chart.locator('.chart-root')).toHaveAttribute('aria-busy', 'false', { timeout: 20_000 })
+    const chartWindow = page.locator('.tool-window').filter({ has: chart })
+    const timeframe = chartWindow.locator('select[aria-label$=" timeframe"]').first()
+    await expect(timeframe).toHaveValue('D1')
+
+    const fingerprint = () => plot.locator('canvas').first().evaluate(canvas => {
+      const ctx = canvas.getContext('2d')
+      if (!ctx || canvas.width === 0 || canvas.height === 0) return 'empty'
+      const sample = Math.max(1, Math.floor(Math.min(canvas.width, canvas.height) / 12))
+      let checksum = 0
+      for (let y = sample; y < canvas.height; y += sample) {
+        for (let x = sample; x < canvas.width; x += sample) {
+          const pixel = ctx.getImageData(x, y, 1, 1).data
+          checksum = (checksum * 33 + pixel[0] * 3 + pixel[1] * 5 + pixel[2] * 7 + pixel[3]) >>> 0
+        }
+      }
+      return `${canvas.width}x${canvas.height}:${checksum}`
+    })
+    const box = await plot.boundingBox()
+    expect(box).not.toBeNull()
+    await plot.click({ position: { x: box!.width * 0.5, y: box!.height * 0.45 } })
+    await expect(chartWindow).toHaveClass(/tool-window--active/)
+
+    const beforeZoomIn = await fingerprint()
+    await page.keyboard.press('Control+=')
+    await expect.poll(fingerprint, { timeout: 10_000 }).not.toBe(beforeZoomIn)
+    await expect(timeframe).toHaveValue('D1')
+
+    const beforeZoomOut = await fingerprint()
+    await page.keyboard.press('Control+-')
+    await expect.poll(fingerprint, { timeout: 10_000 }).not.toBe(beforeZoomOut)
+    await expect(timeframe).toHaveValue('D1')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8n-cross-window — linked crosshair timestamps propagate through a chart pop-out', async ({ page, context, browserDiagnostics }) => {
     await page.goto('/chart')
     const sourceWindow = page.locator('.tool-window').filter({ has: page.locator('.chart-tool') }).first()
@@ -1948,6 +2724,7 @@ test.describe('TC2000 workstation', () => {
     const target = targetWindow.locator('.ratio-chart')
     await expect(sourceWindow.locator('.chart-tool .uplot')).toBeVisible({ timeout: 20_000 })
     await expect(target.locator('.uplot')).toBeVisible({ timeout: 20_000 })
+    await expect(target).toHaveAttribute('aria-busy', 'false', { timeout: 20_000 })
     await sourceWindow.locator('select[aria-label="Chart symbol link group"]').selectOption('blue')
     await targetWindow.locator('select[aria-label="Relative Strength symbol link group"]').selectOption('blue')
 
@@ -1960,8 +2737,12 @@ test.describe('TC2000 workstation', () => {
     await popup.waitForLoadState('domcontentloaded')
     const popupChart = popup.locator('.chart-tool')
     await expect(popupChart.locator('.uplot')).toBeVisible({ timeout: 20_000 })
+    // Visibility can precede the chart's ready hook, which installs the real
+    // pointer interaction handlers. Do not send the one cross-window cursor
+    // event until the source chart reports that initialization is complete.
+    await expect(popupChart.locator('.chart-root')).toHaveAttribute('aria-busy', 'false', { timeout: 20_000 })
     // Pop-out hydration can recreate an initially visible uPlot while loading
-    // settles. Wait for the actual drawable box, not a one-shot DOM snapshot.
+    // settles. Re-resolve its drawable geometry after the tool has mounted.
     const popupGeometry: { box: { x: number; y: number; width: number; height: number } | null } = { box: null }
     await expect.poll(async () => {
       const loading = await popupChart.locator('.tool-state').count()
@@ -1969,9 +2750,23 @@ test.describe('TC2000 workstation', () => {
       return loading === 0 && popupGeometry.box !== null
         && popupGeometry.box.width > 0 && popupGeometry.box.height > 0
     }, { timeout: 20_000 }).toBe(true)
-    const popupBox = popupGeometry.box
-    expect(popupBox).not.toBeNull()
-    await popup.mouse.move(popupBox!.x + popupBox!.width * 0.63, popupBox!.y + popupBox!.height * 0.45)
+    const popupReadoutDate = popupChart.locator('.ohlcv-info .tt-date')
+    await expect(popupReadoutDate).toBeVisible()
+    const sourceDateBefore = (await popupReadoutDate.textContent())?.trim()
+    const popupChartRoot = popupChart.locator('.chart-root')
+    const sourceTimestampBefore = await popupChartRoot.getAttribute('data-linked-timestamp')
+    const popupOver = popupChart.locator('.u-over').first()
+    await expect(popupOver).toBeVisible()
+    const popupOverBox = await popupOver.boundingBox()
+    expect(popupOverBox).not.toBeNull()
+    await popup.mouse.move(popupOverBox!.x + popupOverBox!.width * 0.63, popupOverBox!.y + popupOverBox!.height * 0.45)
+    // Prove the ordinary pointer reached a historical bar in the source chart
+    // before treating a missing target update as a cross-window problem.
+    await expect.poll(() => popupReadoutDate.textContent().then(value => value?.trim()), { timeout: 10_000 }).not.toBe(sourceDateBefore)
+    await expect.poll(() => popupChartRoot.getAttribute('data-linked-timestamp'), { timeout: 10_000 }).not.toBe(sourceTimestampBefore)
+    const publishedTimestamp = await popupChartRoot.getAttribute('data-linked-timestamp')
+    expect(publishedTimestamp).toBeTruthy()
+    await expect(target).toHaveAttribute('data-linked-timestamp', publishedTimestamp!)
     await expect.poll(() => targetCursor.evaluate(element => ({ transform: (element as HTMLElement).style.transform, off: element.classList.contains('u-off') })), { timeout: 10_000 }).not.toEqual(before)
     await expect(targetCursor).not.toHaveClass(/u-off/)
 
@@ -2010,25 +2805,185 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8k — Ctrl+wheel traverses the workstation symbol universe', async ({ page, browserDiagnostics }) => {
+  test('F8k — Ctrl+wheel over a chart changes its timeframe and follows timeframe links', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
-    // Establish the starting symbol explicitly; persisted workspace hydration may leave
-    // the route-less input blank even though the canonical active symbol is SPY.
     await activeSymbol.fill('SPY')
     await page.getByRole('button', { name: 'Go', exact: true }).click()
     await expect(activeSymbol).toHaveValue('SPY')
-    await page.locator('.workstation').hover()
-    // Exercise the browser's real modifier + wheel path rather than dispatching a
-    // synthetic event with an implementation-specific target.
+
+    await page.getByRole('tab', { name: '4 Timeframe', exact: true }).click()
+    const windows = page.locator('.tool-window')
+    await expect(windows).toHaveCount(4)
+    const daily = windows.nth(1)
+    const monthly = windows.nth(3)
+    const dailyTimeframe = daily.locator('select[aria-label="Daily timeframe"]')
+    const dailyLink = daily.locator('select[aria-label="Daily timeframe link group"]')
+    const monthlyTimeframe = monthly.locator('select[aria-label="Monthly timeframe"]')
+    const monthlyLink = monthly.locator('select[aria-label="Monthly timeframe link group"]')
+
+    await dailyLink.selectOption('blue')
+    await monthlyLink.selectOption('blue')
+    await dailyTimeframe.selectOption('D1')
+    await monthlyTimeframe.selectOption('D1')
+    await expect(dailyTimeframe).toHaveValue('D1')
+    await expect(monthlyTimeframe).toHaveValue('D1')
+
+    const plot = daily.locator('.uplot').first()
+    await expect(plot).toBeVisible({ timeout: 20_000 })
+    await plot.click()
+    const workstation = page.locator('.workstation').last()
+    await workstation.focus()
+    await page.keyboard.press('=')
+    await expect(dailyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await page.keyboard.press('-')
+    await expect(dailyTimeframe).toHaveValue('D1', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('D1', { timeout: 15_000 })
+    await expect(plot).toBeVisible({ timeout: 20_000 })
+
+    const box = await plot.boundingBox()
+    expect(box).not.toBeNull()
+    await plot.evaluate(element => {
+      (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot = false
+      element.addEventListener('wheel', () => {
+        (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot = true
+      }, { capture: true })
+    })
+    await page.evaluate(() => {
+      const pageWindow = window as Window & { __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }> }
+      pageWindow.__ctrlWheelProbe = []
+      window.addEventListener('wheel', event => {
+        if (!event.ctrlKey) return
+        const target = event.target instanceof Element ? event.target : null
+        const plotTarget = target?.closest('.uplot') ?? null
+        const toolWindow = plotTarget?.closest<HTMLElement>('.tool-window[data-window-key]') ?? null
+        pageWindow.__ctrlWheelProbe?.push({
+          ctrlKey: event.ctrlKey,
+          plot: plotTarget !== null,
+          windowKey: toolWindow?.dataset.windowKey ?? null,
+          prevented: event.defaultPrevented,
+        })
+      }, { capture: true })
+    })
+    await page.mouse.move(box!.x + box!.width * 0.5, box!.y + box!.height * 0.5)
     await page.keyboard.down('Control')
     await page.mouse.wheel(0, 100)
     await page.keyboard.up('Control')
-    await expect.poll(() => activeSymbol.inputValue()).not.toBe('SPY')
+    const wheelProbe = await page.evaluate(() => (window as Window & { __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }> }).__ctrlWheelProbe?.at(-1))
+    expect(wheelProbe).toMatchObject({ ctrlKey: true, plot: true, prevented: true })
+    await expect(dailyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await expect(activeSymbol).toHaveValue('SPY')
+    expect(await page.evaluate(() => (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot)).toBe(false)
+
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8k-shift — Shift+Space traverses backward and editor focus owns the shortcut', async ({ page, browserDiagnostics }) => {
+  test('F8k-grey — Ctrl+wheel over an isolated chart leaves linked charts unchanged', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbol.fill('SPY')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('SPY')
+    await page.getByRole('tab', { name: '4 Timeframe', exact: true }).click()
+
+    const windows = page.locator('.tool-window')
+    await expect(windows).toHaveCount(4)
+    const daily = windows.nth(1)
+    const monthly = windows.nth(3)
+    const dailyTimeframe = daily.locator('select[aria-label="Daily timeframe"]')
+    const dailyLink = daily.locator('select[aria-label="Daily timeframe link group"]')
+    const monthlyTimeframe = monthly.locator('select[aria-label="Monthly timeframe"]')
+    const monthlyLink = monthly.locator('select[aria-label="Monthly timeframe link group"]')
+    await dailyLink.selectOption('blue')
+    await monthlyLink.selectOption('blue')
+    await dailyTimeframe.selectOption('D1')
+    await monthlyTimeframe.selectOption('D1')
+    await dailyLink.selectOption('grey')
+    await expect(dailyLink).toHaveValue('grey')
+    await expect(monthlyLink).toHaveValue('blue')
+    await expect(dailyTimeframe).toHaveValue('D1')
+    await expect(monthlyTimeframe).toHaveValue('D1')
+
+    const plot = daily.locator('.uplot').first()
+    await expect(plot).toBeVisible({ timeout: 20_000 })
+    // The timeframe fan-out can leave uPlot visible while its resized box is
+    // momentarily zero-sized. Wait for a real hit target and install the probes
+    // in that same DOM turn so the subsequent wheel assertion tests the chart.
+    let targetPoint: { x: number; y: number } | null = null
+    await expect.poll(async () => {
+      targetPoint = await plot.evaluate(element => {
+        const bounds = element.getBoundingClientRect()
+        if (!element.isConnected || bounds.width <= 0 || bounds.height <= 0) return null
+
+        const pageWindow = window as Window & {
+          __ctrlWheelReachedPlot?: boolean
+          __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }>
+        }
+        pageWindow.__ctrlWheelReachedPlot = false
+        pageWindow.__ctrlWheelProbe = []
+        element.addEventListener('wheel', () => {
+          pageWindow.__ctrlWheelReachedPlot = true
+        }, { capture: true })
+        window.addEventListener('wheel', event => {
+          if (!event.ctrlKey) return
+          const target = event.target instanceof Element ? event.target : null
+          const plotTarget = target?.closest('.uplot') ?? null
+          const toolWindow = plotTarget?.closest<HTMLElement>('.tool-window[data-window-key]') ?? null
+          pageWindow.__ctrlWheelProbe?.push({
+            ctrlKey: event.ctrlKey,
+            plot: plotTarget !== null,
+            windowKey: toolWindow?.dataset.windowKey ?? null,
+            prevented: event.defaultPrevented,
+          })
+        }, { capture: true })
+        return { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.5 }
+      })
+      return targetPoint
+    }, { timeout: 20_000 }).not.toBeNull()
+    expect(targetPoint).not.toBeNull()
+    await page.mouse.move(targetPoint!.x, targetPoint!.y)
+    await page.keyboard.down('Control')
+    await page.mouse.wheel(0, 100)
+    await page.keyboard.up('Control')
+    const wheelProbe = await page.evaluate(() => (window as Window & { __ctrlWheelProbe?: Array<{ ctrlKey: boolean; plot: boolean; windowKey: string | null; prevented: boolean }> }).__ctrlWheelProbe?.at(-1))
+    expect(wheelProbe).toMatchObject({ ctrlKey: true, plot: true, prevented: true })
+    await expect(dailyTimeframe).toHaveValue('W1', { timeout: 15_000 })
+    await expect(monthlyTimeframe).toHaveValue('D1')
+    await expect(activeSymbol).toHaveValue('SPY')
+    expect(await page.evaluate(() => (window as Window & { __ctrlWheelReachedPlot?: boolean }).__ctrlWheelReachedPlot)).toBe(false)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-watchlist — Ctrl+wheel over a WatchList traverses its own symbols', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await expect(activeSymbol).toHaveValue('SPY')
+    const watchlist = page.getByRole('region', { name: 'Relative to SPY' }).filter({ has: page.locator('.watchlist__row') }).first()
+    const listbox = watchlist.getByRole('listbox', { name: 'Relative to SPY symbols' })
+    await expect(listbox).toBeVisible({ timeout: 15_000 })
+    const options = listbox.getByRole('option')
+    const optionCount = await options.count()
+    expect(optionCount).toBeGreaterThan(1)
+    const firstSymbol = await options.nth(0).getAttribute('aria-label').then(label => label?.split(/\s+/, 1)[0])
+    const secondSymbol = await options.nth(1).getAttribute('aria-label').then(label => label?.split(/\s+/, 1)[0])
+    expect(firstSymbol).toBeTruthy()
+    expect(secondSymbol).toBeTruthy()
+    expect(secondSymbol).not.toBe(firstSymbol)
+    await options.nth(0).click()
+    await expect(activeSymbol).toHaveValue(firstSymbol!)
+    const box = await listbox.boundingBox()
+    expect(box).not.toBeNull()
+    await page.mouse.move(box!.x + box!.width * 0.5, box!.y + box!.height * 0.5)
+    await page.keyboard.down('Control')
+    await page.mouse.wheel(0, 100)
+    await page.keyboard.up('Control')
+    await expect(activeSymbol).toHaveValue(secondSymbol!, { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-ctrl-space — Ctrl+Space traverses backward and editor focus owns literal spaces', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
     await activeSymbol.fill('SPY')
@@ -2036,9 +2991,13 @@ test.describe('TC2000 workstation', () => {
     await expect(activeSymbol).toHaveValue('SPY')
 
     const workstation = page.locator('.workstation:visible').last()
-    await workstation.press('Shift+Space')
+    await workstation.press('Control+Space')
     await expect.poll(() => activeSymbol.inputValue()).not.toBe('SPY')
     const traversedBackwardTo = await activeSymbol.inputValue()
+
+    // Shift+Space is no longer a traversal command.
+    await workstation.press('Shift+Space')
+    await expect(activeSymbol).toHaveValue(traversedBackwardTo)
 
     // A focused editor must retain the keystroke rather than publishing another
     // symbol through the workstation-level keyboard handler.
@@ -2046,6 +3005,47 @@ test.describe('TC2000 workstation', () => {
     await activeSymbol.press('Space')
     await expect(activeSymbol).toHaveValue('SPY ')
     await expect(page.locator('.workstation__footer span').first()).toHaveText(traversedBackwardTo)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-backspace — Backspace walks viewed-symbol history but remains editing inside the symbol field', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    const go = page.getByRole('button', { name: 'Go', exact: true })
+    const footerSymbol = page.locator('.workstation__footer span').first()
+    const workstation = page.locator('.workstation:visible').last()
+
+    await activeSymbol.fill('SPY')
+    await go.click()
+    await expect(footerSymbol).toHaveText('SPY')
+    await activeSymbol.fill('QQQ')
+    await go.click()
+    await expect(footerSymbol).toHaveText('QQQ')
+
+    await workstation.press('Backspace')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(footerSymbol).toHaveText('SPY')
+    // Reaching the oldest entry is a no-op rather than wrapping to the future.
+    await workstation.press('Backspace')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(page).toHaveURL(/\/chart$/)
+
+    // Native editor focus retains Backspace and must not navigate the history.
+    await activeSymbol.fill('QQQ')
+    await activeSymbol.press('Backspace')
+    await expect(activeSymbol).toHaveValue('QQ')
+    await expect(footerSymbol).toHaveText('SPY')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-shift-l — Shift+L maximizes the selected window and restores the layout', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.tool-window:visible').first()).toBeVisible({ timeout: 15_000 })
+    const workstation = page.locator('.workstation:visible').last()
+    await workstation.press('Shift+L')
+    await expect(page.locator('.lm_maximised')).toHaveCount(1)
+    await workstation.press('Shift+L')
+    await expect(page.locator('.lm_maximised')).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -2121,12 +3121,21 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart')
     const workstation = page.locator('.workstation')
     const helpButton = page.getByRole('button', { name: 'Help', exact: true })
-    const helpMenu = page.getByRole('menu', { name: 'Keyboard shortcuts' })
+    const helpMenu = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
 
     await helpButton.click()
     await expect(helpMenu).toBeVisible()
-    await expect(helpMenu).toContainText('Shift+Space')
-    await expect(helpMenu).toContainText('Ctrl+wheel')
+    await expect(helpMenu).toContainText('Ctrl+Space')
+    await expect(helpMenu).toContainText('Backspace')
+    await expect(helpMenu).toContainText('Shift+L')
+    await expect(helpMenu).toContainText('Shift+F')
+    await expect(helpMenu).toContainText('Shift+N')
+    await expect(helpMenu).toContainText('Shift+D')
+    await expect(helpMenu).toContainText('[ / ]')
+    await expect(helpMenu).toContainText('Previous symbol in viewed history')
+    await expect(helpMenu).toContainText('Over a chart: change timeframe')
+    await expect(helpMenu).toContainText('over a WatchList: move through symbols')
+    await expect(helpMenu).toContainText('= / -')
 
     // Shell menus are mutually exclusive so a fixed popover cannot cover the
     // next menu or intercept a dock interaction underneath it.
@@ -2153,6 +3162,149 @@ test.describe('TC2000 workstation', () => {
     await activeSymbol.press('F1')
     await expect(helpMenu).toBeHidden()
     await expect(activeSymbol).toHaveValue('SPY')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-shift-n — Shift+N opens a note for the active WatchList symbol', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const listbox = page.getByRole('listbox', { name: /symbols$/ }).first()
+    await expect(listbox).toBeVisible({ timeout: 10_000 })
+    const row = listbox.getByRole('option').first()
+    await expect(row).toBeVisible()
+    const symbol = (await row.getAttribute('aria-label'))?.split(' ')[0]
+    expect(symbol).toBeTruthy()
+    await row.click()
+    await listbox.press('Shift+n')
+    const noteTool = page.locator('.tool-window:visible').filter({ has: page.locator('.note-tool') }).last()
+    await expect(noteTool).toBeVisible({ timeout: 10_000 })
+    await expect(noteTool.locator('.note-tool')).toHaveAttribute('aria-label', `${symbol} notes`, { timeout: 10_000 })
+    await expect(noteTool.getByRole('textbox', { name: 'Instrument note' })).toBeEnabled({ timeout: 10_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-shift-n-shell — Shift+N opens active-symbol notes outside a WatchList and yields to editors', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.locator('.workstation').focus()
+    await page.keyboard.press('Shift+n')
+    const noteTool = page.locator('.tool-window:visible').filter({ has: page.locator('.note-tool') }).last()
+    await expect(noteTool).toBeVisible({ timeout: 10_000 })
+    await expect(noteTool.locator('.note-tool')).toHaveAttribute('aria-label', 'SPY notes', { timeout: 10_000 })
+
+    await page.getByRole('combobox', { name: 'Active symbol' }).fill('SPY')
+    await page.getByRole('combobox', { name: 'Active symbol' }).press('Shift+n')
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPYn')
+    await expect(page.locator('.tool-window:visible').filter({ has: page.locator('.note-tool') })).toHaveCount(1)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-shift-d — Shift+D toggles Trend Line on the active chart only', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const linesButton = chart.locator('.drawing-toolbar button[aria-label="Lines"]')
+    await expect(linesButton).toBeVisible()
+    await expect(linesButton).not.toHaveClass(/\bactive\b/)
+    await chart.locator('.uplot').first().click({ position: { x: 12, y: 12 } })
+    await page.keyboard.press('Shift+d')
+    await expect(linesButton).toHaveClass(/\bactive\b/)
+    await page.keyboard.press('Shift+d')
+    await expect(linesButton).not.toHaveClass(/\bactive\b/)
+
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbol.fill('')
+    await activeSymbol.press('Shift+d')
+    await expect(linesButton).not.toHaveClass(/\bactive\b/)
+    await expect(activeSymbol).toHaveValue('d')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-chart-brackets — bracket keys pan the active chart by one or five bars', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plot = chart.locator('.uplot').first()
+    await expect(plot).toBeVisible()
+    await plot.click({ position: { x: 12, y: 12 } })
+    await chart.locator('.tool-window__header').click({ position: { x: 20, y: 20 } })
+    await expect(chart).toHaveClass(/tool-window--active/)
+    await chart.locator('.drawing-toolbar button[aria-label="Lines"]').focus()
+    const plotBox = await plot.boundingBox()
+    expect(plotBox).not.toBeNull()
+    await page.mouse.move(plotBox!.x + plotBox!.width * 0.9, plotBox!.y + plotBox!.height * 0.5)
+    for (let index = 0; index < 3; index += 1) await page.mouse.wheel(0, -180)
+    const goToLatest = chart.getByRole('button', { name: 'Go to latest bar' })
+    if (await goToLatest.isVisible()) await goToLatest.click()
+
+    for (let index = 0; index < 3; index += 1) await page.keyboard.press('BracketLeft')
+    await expect(chart.getByRole('button', { name: 'Go to latest bar' })).toBeHidden()
+    // The latest-bar recovery affordance uses an 8% viewport tolerance and
+    // bar durations can include weekends; use enough steps to cross it robustly.
+    for (let index = 0; index < 10; index += 1) await page.keyboard.press('Shift+BracketLeft')
+    await expect(chart.getByRole('button', { name: 'Go to latest bar' })).toBeVisible()
+    for (let index = 0; index < 10; index += 1) await page.keyboard.press('Shift+BracketRight')
+    await expect(chart.getByRole('button', { name: 'Go to latest bar' })).toBeHidden()
+
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbol.fill('')
+    await activeSymbol.press('BracketLeft')
+    await expect(activeSymbol).toHaveValue('[')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-direct-timeframe — supported Ctrl+number shortcuts select active-chart intervals', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const workstation = page.locator('.workstation:visible').last()
+    const chart = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).first()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const timeframe = chart.locator('select.tool-window__timeframe')
+    const original = await timeframe.inputValue()
+    await chart.locator('.chart-root').click({ position: { x: 20, y: 20 } })
+    await expect(chart).toHaveClass(/tool-window--active/)
+
+    for (const [shortcut, expected] of [['Control+1', 'M1'], ['Control+3', 'M5'], ['Control+4', 'M15'], ['Control+5', 'M30'], ['Control+6', 'H1']] as const) {
+      await workstation.press(shortcut)
+      await expect(timeframe).toHaveValue(expected)
+    }
+
+    await timeframe.selectOption(original)
+    await expect(timeframe).toHaveValue(original)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8k-direct-chart-style — Ctrl+B cycles the active chart through supported standard styles', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    const workstation = page.locator('.workstation:visible').last()
+    const chart = page.locator('.tool-window:visible').filter({ has: page.locator('.chart-tool') }).first()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const settings = chart.getByRole('button', { name: 'Chart settings' })
+    const chartType = page.getByLabel('Primary rendering')
+    await settings.click()
+    const original = await chartType.inputValue()
+    await page.keyboard.press('Escape')
+    await chart.locator('.chart-root').click({ position: { x: 20, y: 20 } })
+    await expect(chart).toHaveClass(/tool-window--active/)
+
+    const supportedStyles = ['hlc', 'ohlc', 'candles', 'line']
+    let styleIndex = supportedStyles.indexOf(original)
+    for (let index = 0; index < supportedStyles.length; index += 1) {
+      styleIndex = (styleIndex + 1) % supportedStyles.length
+      await workstation.press('Control+b')
+      await settings.click()
+      await expect(chartType).toHaveValue(supportedStyles[styleIndex])
+      await page.keyboard.press('Escape')
+      await chart.locator('.chart-root').click({ position: { x: 20, y: 20 } })
+    }
+
+    await settings.click()
+    await chartType.selectOption(original)
+    await page.keyboard.press('Escape')
+
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -2322,6 +3474,8 @@ test.describe('TC2000 workstation', () => {
     const semiconductors = industries.locator('.industry-list__row').filter({ hasText: 'Semiconductors' })
     await expect(semiconductors).toBeVisible()
     await expect(semiconductors.locator('.industry-list__classification')).toHaveText('controlled_fixture')
+    await expect(semiconductors).toHaveAttribute('aria-pressed', 'false')
+    await expect(semiconductors).toHaveAttribute('aria-label', /Semiconductors, .* constituents resolved/)
     await expect(industries.locator('.industry-list__provenance')).toContainText('controlled_fixture')
     // Proxy data is intentionally fetched after the constituent response, and
     // may already be cached by the time the row becomes clickable. Assert the
@@ -2329,6 +3483,7 @@ test.describe('TC2000 workstation', () => {
     // contract through the request context instead of relying on a response
     // listener registered across that asynchronous boundary.
     await semiconductors.click()
+    await expect(semiconductors).toHaveAttribute('aria-pressed', 'true')
 
     const token = await page.evaluate(() => localStorage.getItem('access_token'))
     expect(token).toBeTruthy()
@@ -2561,6 +3716,57 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8e.native-indicator-selection — chart-item selection uses native keyboard controls without swallowing row actions', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
+    await page.goto('about:blank')
+    await page.goto('/legacy/chart/SPY')
+    // The legacy chart exposes its panel before instrument metadata finishes
+    // loading. Wait for the active instrument before interacting so its load
+    // watcher cannot overwrite the user's panel-toggle action.
+    await expect(page.locator('.symbol-info .sym-name')).not.toBeEmpty({ timeout: 20_000 })
+
+    const panelToggle = page.getByRole('button', { name: /^(Hide|Show) indicator panel$/ }).last()
+    await expect(panelToggle).toBeVisible()
+    if (await panelToggle.getAttribute('aria-expanded') === 'false') await panelToggle.click()
+    await expect(panelToggle).toHaveAttribute('aria-expanded', 'true')
+
+    const indicatorPanel = page.locator('.side-panel').last()
+    const indicatorsHeader = indicatorPanel.getByRole('button', { name: /Indicators/ })
+    if (await indicatorsHeader.getAttribute('aria-expanded') === 'false') await indicatorsHeader.click()
+
+    const addIndicator = indicatorPanel.getByRole('button', { name: /^\+ Add$/ })
+    for (const label of ['SMA - Simple Moving Average', 'EMA - Exponential Moving Average']) {
+      await addIndicator.click()
+      await indicatorPanel.getByRole('button', { name: label, exact: true }).click()
+    }
+
+    const selections = indicatorPanel.locator('.list-row__select[aria-label^="Select indicator "]')
+    await expect.poll(async () => selections.count()).toBeGreaterThanOrEqual(2)
+    const states = () => selections.evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-pressed')))
+
+    const firstStates = await states()
+    const enterIndex = firstStates.findIndex(state => state === 'false')
+    expect(enterIndex).toBeGreaterThanOrEqual(0)
+    const enterSelection = selections.nth(enterIndex)
+    await enterSelection.focus()
+    await enterSelection.press('Enter')
+    await expect(enterSelection).toHaveAttribute('aria-pressed', 'true')
+
+    const secondStates = await states()
+    const spaceIndex = secondStates.findIndex((state, index) => state === 'false' && index !== enterIndex)
+    expect(spaceIndex).toBeGreaterThanOrEqual(0)
+    const spaceSelection = selections.nth(spaceIndex)
+    await spaceSelection.focus()
+    await spaceSelection.press('Space')
+    await expect(spaceSelection).toHaveAttribute('aria-pressed', 'true')
+
+    const selectedRow = spaceSelection.locator('xpath=..')
+    await selectedRow.getByRole('button', { name: /^More options for / }).click()
+    await expect(page.getByRole('group', { name: /^Actions for / }).last()).toBeVisible()
+    await expect(spaceSelection).toHaveAttribute('aria-pressed', 'true')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8g — Study Lab validates, runs an isolated Python study, and renders its result', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     const studyName = `E2E scalar study ${Date.now()}`
@@ -2576,7 +3782,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
 
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run')).toBeVisible({ timeout: 10_000 })
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'smoke' })).toContainText('1')
@@ -2599,7 +3805,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.boolean('qualifies', True)")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
     // A Boolean run has both the reusable condition actions and the explicit
@@ -2623,7 +3829,7 @@ test.describe('TC2000 workstation', () => {
     const assetValue = await assetOption.getAttribute('value')
     expect(assetValue).toBeTruthy()
     await pythonColumnAsset.selectOption(assetValue!)
-    await target.getByRole('button', { name: 'Add', exact: true }).click()
+    await target.getByRole('button', { name: 'Add selected Python column', exact: true }).click()
     await expect(target.locator('.watchlist__header button').filter({ hasText: studyName })).toBeVisible({ timeout: 30_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -2671,16 +3877,31 @@ test.describe('TC2000 workstation', () => {
     await expect(sourceEditor).toHaveValue(structuredSource)
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'event_count' })).toContainText('4')
     await expect(study.locator('.study-bars-uplot, [class*="study-bars"]').first()).toBeVisible()
     await expect(study.locator('.study-histogram-uplot, [class*="study-histogram"]').first()).toBeVisible()
     await expect(study.locator('table').filter({ hasText: 'positive_close' })).toBeVisible()
-    const occurrence = study.locator('.study-lab-tool__events button').filter({ hasText: 'positive_close' })
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    const eventList = study.getByRole('list', { name: 'occurrences occurrences' })
+    const occurrence = eventList.getByRole('listitem').filter({ hasText: 'positive_close' }).getByRole('button')
     await expect(occurrence).toBeVisible()
-    await occurrence.click()
-    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPY')
+    await expect(occurrence).toHaveAccessibleName('SPY 2026-01-02T00:00:00+00:00 positive_close')
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await occurrence.focus()
+    await expect(occurrence).toBeFocused()
+    await occurrence.press('Enter')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await occurrence.focus()
+    await expect(occurrence).toBeFocused()
+    await occurrence.press('Space')
+    await expect(activeSymbol).toHaveValue('SPY')
     await expect(study.getByRole('button', { name: 'Save filter: qualifies' })).toBeVisible()
     await expect(study.getByRole('button', { name: 'Use Gauge: qualifies' })).toBeVisible()
     await study.getByRole('button', { name: 'Save filter: qualifies' }).click()
@@ -2691,6 +3912,19 @@ test.describe('TC2000 workstation', () => {
     await expect(study).toContainText('Available as a Market Gauge from the saved EasyScan.', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Promote alert: qualifies' }).click()
     await expect(study).toContainText('Promoted to an active scan alert.', { timeout: 30_000 })
+    // A structured Study Lab run must require an explicit named events output
+    // before adapting it to current-data filter/alert semantics. Exercise both
+    // actions through the real API so the multi-output boundary is browser-
+    // covered rather than only unit/integration tested.
+    await expect(study.getByRole('button', { name: 'Save filter: occurrences' })).toBeVisible()
+    await expect(study.getByRole('button', { name: 'Promote alert: occurrences' })).toBeVisible()
+    await expect(study.getByRole('button', { name: 'Save signal: occurrences' })).toBeVisible()
+    await study.getByRole('button', { name: 'Save signal: occurrences' }).click()
+    await expect(study).toContainText('Saved event artifact “occurrences” as a reusable Strategy Lab signal.', { timeout: 30_000 })
+    await study.getByRole('button', { name: 'Save filter: occurrences' }).click()
+    await expect(study).toContainText('Saved event artifact “occurrences” as a reusable watchlist filter.', { timeout: 30_000 })
+    await study.getByRole('button', { name: 'Promote alert: occurrences' }).click()
+    await expect(study).toContainText('Promoted event artifact “occurrences” to an active alert.', { timeout: 30_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -2707,7 +3941,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'current_streak' })).toBeVisible()
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'longest_streak' })).toBeVisible()
@@ -2727,7 +3961,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
     const metricExportButton = study.getByRole('button', { name: 'Export current_streak' })
@@ -2758,7 +3992,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'historical_sample_size' })).toBeVisible()
     await expect(study.locator('.study-histogram-uplot, [class*="study-histogram"]').first()).toBeVisible()
@@ -2779,7 +4013,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study universe', exact: true }).fill('SPY, XLK, XLE')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'percent_price_advancing' })).toBeVisible()
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'percent_volume_advancing' })).toBeVisible()
@@ -2801,7 +4035,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study universe', exact: true }).fill('SPY, XLK, XLE')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-series').first()).toBeVisible()
     await expect(study.locator('.study-histogram')).toHaveCount(2)
@@ -2833,7 +4067,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.getByRole('status', { name: /new_high_count metric/ })).toBeVisible()
     await expect(study.getByRole('status', { name: /new_low_count metric/ })).toBeVisible()
@@ -2875,7 +4109,7 @@ test.describe('TC2000 workstation', () => {
     await plots.getByRole('button', { name: 'Load EasyScan plots' }).click()
     await expect(plots.getByText('2 historical scan plots available')).toBeVisible({ timeout: 10_000 })
     await plots.getByRole('combobox', { name: 'EasyScan plot asset' }).selectOption({ label: 'Fixture breadth scan · percentage' })
-    await plots.getByRole('button', { name: 'Add' }).click()
+    await plots.getByRole('button', { name: 'Add selected EasyScan plot', exact: true }).click()
     const scanPlot = plots.locator('.chart-plots__scan-item').filter({ hasText: 'Fixture breadth scan' })
     await expect(scanPlot).toHaveCount(1)
     await expect(scanPlot).toContainText('percentage')
@@ -2903,7 +4137,7 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.boolean('qualifies', True)")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution', { timeout: 30_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await expect(study.locator('.study-lab-tool__metrics article').filter({ hasText: 'qualifies' })).toHaveClass(/study-lab-tool__metric--true/)
     await study.getByRole('button', { name: 'Save as watchlist filter' }).click()
@@ -2918,6 +4152,11 @@ test.describe('TC2000 workstation', () => {
     // the promotion controls settle under the full serial matrix. Retry the
     // real click against the currently mounted control instead of holding a
     // detached element handle.
+    const signalPromotionResponse = page.waitForResponse(response =>
+      response.request().method() === 'POST'
+      && response.url().includes('/strategy-lab/signals/from-code/'),
+      { timeout: 45_000 },
+    )
     await expect.poll(async () => {
       const button = page.locator('.study-lab-tool:visible').last().getByRole('button', { name: 'Save as Strategy signal' })
       if (await button.count() !== 1) return false
@@ -2934,6 +4173,33 @@ test.describe('TC2000 workstation', () => {
     // assertion bounded by the enclosing test timeout without treating a
     // transient database queue as a false product failure.
     await expect(study).toContainText('Saved as a reusable Strategy Lab signal.', { timeout: 45_000 })
+    const promotion = await signalPromotionResponse
+    const promotedSignal = await promotion.json()
+
+    await page.goto('/legacy/strategy-lab')
+    const strategySignalTile = page.locator('.strategy-sidebar .definition-item').filter({ hasText: promotedSignal.name })
+    await expect(strategySignalTile).toHaveCount(1, { timeout: 30_000 })
+    await strategySignalTile.click()
+    const lineage = page.getByTestId('python-signal-lineage')
+    if (!(await lineage.isVisible())) {
+      await page.getByTitle('Expand Strategy profile').click()
+    }
+    await expect(lineage).toContainText(String(promotedSignal.versions[0].definition_snapshot.code_version_id))
+    await expect(lineage).toContainText(promotedSignal.versions[0].definition_snapshot.output_contract)
+    await expect(page.getByRole('button', { name: 'Publish revision' })).toHaveCount(0)
+
+    await page.getByRole('textbox', { name: 'Name' }).fill(`${promotedSignal.name} profile edit`)
+    const profilePatchPromise = page.waitForRequest(request =>
+      request.method() === 'PATCH'
+      && request.url().endsWith(`/strategy-lab/definitions/${promotedSignal.id}`),
+      { timeout: 30_000 },
+    )
+    await page.getByRole('button', { name: 'Save profile' }).click()
+    const profilePatch = await profilePatchPromise
+    expect(Object.keys(profilePatch.postDataJSON()).sort()).toEqual(['description', 'is_active', 'name', 'tags'])
+    await expect(lineage).toContainText(String(promotedSignal.versions[0].definition_snapshot.code_version_id))
+    await expect(page.getByRole('button', { name: 'Run backtest' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Run backtest' })).toHaveAttribute('title', 'Choose a run universe before running this Python signal.')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -2945,22 +4211,90 @@ test.describe('TC2000 workstation', () => {
 
     const study = page.locator('.study-lab-tool')
     await expect(study).toBeVisible({ timeout: 10_000 })
+    const parameterSchema = study.getByRole('textbox', { name: 'Study parameter schema' })
+    await parameterSchema.fill('{')
+    await expect(parameterSchema).toHaveAttribute('aria-invalid', 'true')
+    const parameterSchemaErrorId = await parameterSchema.getAttribute('aria-describedby')
+    expect(parameterSchemaErrorId).toBeTruthy()
+    await expect(study.locator(`#${parameterSchemaErrorId}`)).toHaveText('Parameter schema must be a JSON object.')
+    await parameterSchema.fill('')
+    await expect(parameterSchema).not.toHaveAttribute('aria-invalid')
+    await expect(parameterSchema).not.toHaveAttribute('aria-describedby')
+
     await study.getByRole('textbox', { name: 'Study name' }).fill('E2E Study validation recovery')
     await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('broken'")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study.locator('.study-lab-tool__validation')).toContainText('Validation errors', { timeout: 30_000 })
+    const source = study.getByRole('textbox', { name: 'Study Python source' })
+    await expect(source).toHaveAttribute('aria-invalid', 'true')
+    const sourceValidationId = await source.getAttribute('aria-describedby')
+    expect(sourceValidationId).toBeTruthy()
+    await expect(study.locator(`#${sourceValidationId}`)).toContainText('Validation errors')
     await expect(study.locator('.study-lab-tool__validation--bad pre')).toBeVisible()
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('role', 'alert')
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('aria-live', 'assertive')
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveAttribute('aria-atomic', 'true')
 
-    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('recovered', 1)")
+    await source.fill("output.scalar('recovered', 1)")
+    await expect(source).not.toHaveAttribute('aria-invalid')
+    await expect(study.locator(`#${sourceValidationId}`)).toContainText('source changed since validation')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution', { timeout: 30_000 })
+    await expect(source).not.toHaveAttribute('aria-invalid')
+    await expect(source).not.toHaveAttribute('aria-describedby')
     await expect(study.locator('.study-lab-tool__validation--bad')).toHaveCount(0)
     await expect(study.locator('.study-lab-tool__validation[role="status"]')).toBeVisible()
     await expect(study.locator('.study-lab-tool__validation[role="status"]')).toHaveAttribute('aria-live', 'polite')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8t-source-freshness — Study Lab requires validation of the edited source before running', async ({ page, browserDiagnostics }) => {
+    const validatedSources: string[] = []
+    let assetCreates = 0
+    let runCreates = 0
+    await page.route(/\/api\/v1\/code\/validate$/, async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      validatedSources.push(route.request().postDataJSON().source)
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, output_contracts: ['scalar'], diagnostics: [], dependencies: ['output'], lookback_hint: null }) })
+    })
+    await page.route(/\/api\/v1\/code\/assets$/, async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      assetCreates += 1
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 9903, versions: [{ id: 9903 }] }) })
+    })
+    await page.route(/\/api\/v1\/research\/runs$/, async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      runCreates += 1
+      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ id: 9904, status: 'completed', code_version_id: 9903, run_config: { symbol: 'SPY' }, artifacts: [] }) })
+    })
+
+    await page.goto('/chart')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+    const study = page.locator('.study-lab-tool')
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    const source = study.getByRole('textbox', { name: 'Study Python source' })
+    const run = study.getByRole('button', { name: 'Run study', exact: true })
+    await source.fill("output.scalar('first', 1)")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution')
+    await expect(run).toBeEnabled()
+
+    await source.fill("output.scalar('edited', 2)")
+    await expect(run).toBeDisabled()
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Study source changed since validation. Validate the current source before running.')
+    expect(assetCreates).toBe(0)
+    expect(runCreates).toBe(0)
+
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study.locator('.study-lab-tool__validation')).toContainText('Validated for isolated execution')
+    await expect(run).toBeEnabled()
+    await run.click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible()
+    expect(validatedSources).toEqual(["output.scalar('first', 1)", "output.scalar('edited', 2)"])
+    expect(assetCreates).toBe(1)
+    expect(runCreates).toBe(1)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -3001,11 +4335,11 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('queued', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--queued')).toBeVisible({ timeout: 10_000 })
-    await study.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await study.getByRole('button', { name: 'Cancel study run', exact: true }).click()
     await expect(study.locator('.study-lab-tool__run-status--canceled')).toBeVisible({ timeout: 10_000 })
-    await expect(study.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(0)
+    await expect(study.getByRole('button', { name: 'Cancel study run', exact: true })).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -3046,17 +4380,18 @@ test.describe('TC2000 workstation', () => {
     await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.scalar('failed', 1)")
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
-    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await study.getByRole('button', { name: 'Run study', exact: true }).click()
     await expect(study.locator('[data-status="failed"]')).toHaveText('Failed', { timeout: 10_000 })
     await expect(study.locator('.study-lab-tool__run-guidance')).toContainText('Inspect diagnostics and execution logs')
-    await expect(study.getByRole('button', { name: 'Rerun snapshot' })).toBeVisible()
-    await expect(study.getByRole('button', { name: 'Rerun latest' })).toBeVisible()
-    await study.getByRole('button', { name: 'Rerun snapshot' }).click()
+    await expect(study.getByRole('button', { name: 'Rerun study snapshot' })).toBeVisible()
+    await expect(study.getByRole('button', { name: 'Rerun study with latest data' })).toBeVisible()
+    await study.getByRole('button', { name: 'Rerun study snapshot' }).click()
     await expect(study.locator('[data-status="queued"]')).toHaveText('Queued', { timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
   test('F8t-results — Study Results exposes selected runs and structured results semantically', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(120_000)
     await page.route(/\/api\/v1\/research\/runs(?:\?.*)?$/, async route => {
       if (route.request().method() !== 'GET') return route.continue()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{
@@ -3086,7 +4421,84 @@ test.describe('TC2000 workstation', () => {
         reproducibility_hash: 'sha256:breadth-plot',
         artifact_count: 0,
         artifacts: [],
+      }, {
+        id: 884,
+        status: 'completed',
+        code_version_id: 884,
+        run_config: { execution_mode: 'study', output_contract: 'events', symbol: 'SPY' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+        reproducibility_hash: 'sha256:event-signal',
+        artifact_count: 1,
+        artifacts: [{ id: 4, name: 'breakout_events', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } }],
+      }, {
+        id: 885,
+        status: 'completed',
+        code_version_id: 885,
+        output_contract: 'study',
+        run_config: { execution_mode: 'study', output_contract: 'study', symbol: 'SPY', timeframe: 'D1' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        reproducibility_hash: 'sha256:structured-event-results',
+        artifact_count: 7,
+        artifacts: [
+          { id: 5, name: 'occurrences', artifact_type: 'events', payload: { value: [
+            { symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' },
+            { symbol: 'SPY', timestamp: '2026-01-04T00:00:00Z', kind: 'breakdown' },
+          ] } },
+          { id: 6, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
+          { id: 7, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
+          { id: 8, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
+          { id: 9, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } },
+          { id: 10, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: {
+            points: [{ timestamp: '2026-01-03T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }],
+            occurrences: [{ occurrence_id: '7:2026-01-03T00:00:00Z:member_entered', timestamp: '2026-01-03T00:00:00Z', kind: 'member_entered', instrument_id: 7, symbol: 'SPY', name: 'SPY', value: true, metric: 0.04, percentage: 1, pass_count: 1, eligible_count: 1 }],
+          } } },
+          { id: 11, name: 'overview', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'occurrences', title: 'Recent occurrences', span: 12 }] } } },
+        ],
       }]) })
+    })
+    await page.route(/\/api\/v1\/code\/assets$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ name: 'Structured study 885', versions: [{ id: 885, source: "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])\noutput.boolean('qualifies', True)\noutput.range('confidence', [1, 2], [3, 4], [2, 3])", output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }]) })
+        return
+      }
+      expect(route.request().method()).toBe('POST')
+      const body = route.request().postDataJSON()
+      expect(body).toMatchObject({ initial_version: { source: "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])\noutput.boolean('qualifies', True)\noutput.range('confidence', [1, 2], [3, 4], [2, 3])" } })
+      const outputName = body?.initial_version?.output_name
+      if (body?.kind === 'condition') {
+        if (body?.initial_version?.lineage?.output_adapter === 'range_center_target_to_boolean') {
+          expect(body?.initial_version).toMatchObject({ output_contract: 'boolean', output_name: 'confidence', lineage: { output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gte', threshold: 2.5 }, semantics: 'study_range_center_threshold_as_boolean' } })
+          await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 55, name: 'Confidence range condition', versions: [{ id: 55, output_contract: 'boolean' }] }) })
+          return
+        }
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 49, name: 'Qualifies condition', versions: [{ id: 49, output_contract: 'boolean' }] }) })
+        return
+      }
+      if (outputName === 'confidence' && body?.kind === 'column') expect(body?.initial_version).toMatchObject({ output_contract: 'scalar', output_name: 'confidence', lineage: { output_adapter: 'range_center_to_scalar', semantics: 'study_range_center_result_as_latest_watchlist_column' } })
+      if (outputName === 'confidence' && body?.kind === 'plot') expect(body?.initial_version).toMatchObject({ output_contract: 'series', output_name: 'confidence', lineage: { output_adapter: 'range_center_to_series', semantics: 'study_range_center_result_as_chart_plot' } })
+      if (outputName === 'trend' && body?.kind === 'column') expect(body?.initial_version).toMatchObject({ output_contract: 'scalar', output_name: 'trend', lineage: { output_adapter: 'latest_series_to_scalar', semantics: 'study_series_latest_result_as_watchlist_column' } })
+      if (body?.kind === 'signal' && outputName === 'occurrences') {
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 52, name: 'Occurrences signal asset', versions: [{ id: 52 }] }) })
+        return
+      }
+      if (body?.kind === 'signal' && outputName === 'qualifies') {
+        expect(body?.initial_version).toMatchObject({ output_contract: 'boolean', output_name: 'qualifies', lineage: { target: 'signal', semantics: 'study_boolean_result_as_strategy_signal' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 57, name: 'Qualifies signal asset', versions: [{ id: 57 }] }) })
+        return
+      }
+      if (body?.kind === 'signal' && outputName === 'trend') {
+        expect(body?.initial_version).toMatchObject({ output_contract: 'boolean', output_name: 'trend', lineage: { target: 'signal', output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 1.5 }, semantics: 'study_series_threshold_as_strategy_signal' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 59, name: 'Trend signal asset', versions: [{ id: 59 }] }) })
+        return
+      }
+      if (body?.kind === 'signal' && outputName === 'confidence') {
+        expect(body?.initial_version).toMatchObject({ output_contract: 'boolean', output_name: 'confidence', lineage: { target: 'signal', output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gte', threshold: 2.5 }, semantics: 'study_range_center_threshold_as_strategy_signal' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 61, name: 'Confidence signal asset', versions: [{ id: 61 }] }) })
+        return
+      }
+      const id = outputName === 'sample_size' ? 46 : outputName === 'trend' ? (body?.kind === 'column' ? 49 : 47) : outputName === 'confidence' ? (body?.kind === 'column' ? 54 : 48) : 50
+      const name = outputName === 'sample_size' ? 'Sample size column' : outputName === 'trend' ? (body?.kind === 'column' ? 'Trend latest column' : 'Trend plot') : outputName === 'confidence' ? (body?.kind === 'column' ? 'Confidence latest column' : 'Confidence center plot') : 'Qualifies column'
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id, name, versions: [{ id }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs\/883$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
@@ -3100,11 +4512,64 @@ test.describe('TC2000 workstation', () => {
         artifacts: [],
       }) })
     })
+    await page.route(/\/api\/v1\/research\/runs\/884$/, async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        id: 884,
+        status: 'completed',
+        code_version_id: 884,
+        run_config: { execution_mode: 'study', output_contract: 'events', symbol: 'SPY' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+        reproducibility_hash: 'sha256:event-signal',
+        artifact_count: 1,
+        artifacts: [{ id: 4, name: 'breakout_events', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } }],
+      }) })
+    })
     await page.route(/\/api\/v1\/analysis\/breadth\/python\/runs\/883\/promote-plot$/, async route => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 41, name: 'Member breadth plot 883', kind: 'plot', versions: [{ id: 41, output_contract: 'series', diagnostics: [] }] }) })
     })
     await page.route(/\/api\/v1\/analysis\/breadth\/python\/runs\/883\/promote-column$/, async route => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 42, name: 'Member breadth column 883', kind: 'column', versions: [{ id: 42, output_contract: 'scalar', diagnostics: [{ output_adapter: 'latest_series_to_scalar' }] }] }) })
+    })
+    await page.route(/\/api\/v1\/research\/runs\/884\/promote-event-signal$/, async route => {
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 43, name: 'Breakout events signal' }) })
+    })
+    await page.route(/\/api\/v1\/strategy-lab\/signals\/from-code\/52$/, async route => {
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 53, name: 'Occurrences Strategy Signal' }) })
+    })
+    await page.route(/\/api\/v1\/strategy-lab\/signals\/from-code\/(57|59|61)$/, async route => {
+      const codeVersionId = route.request().url().match(/from-code\/(\d+)/)?.[1]
+      const names: Record<string, string> = { '57': 'Qualifies Strategy Signal', '59': 'Trend Strategy Signal', '61': 'Confidence Strategy Signal' }
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: Number(codeVersionId) + 1, name: names[codeVersionId ?? ''] }) })
+    })
+    await page.route(/\/api\/v1\/research\/runs\/885\/promote-event-filter$/, async route => {
+      expect(route.request().method()).toBe('POST')
+      expect(await route.request().postDataJSON()).toEqual({ artifact_name: 'occurrences' })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 44, name: 'Structured occurrences filter' }) })
+    })
+    await page.route(/\/api\/v1\/screeners\/from-python-condition\/49$/, async route => {
+      expect(route.request().method()).toBe('POST')
+      expect(await route.request().postDataJSON()).toMatchObject({ name: 'qualifies Filter 885', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { source_run_id: 885, source_output_name: 'qualifies' } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 50, name: 'Qualifies scan' }) })
+    })
+    await page.route(/\/api\/v1\/screeners\/from-python-condition\/55$/, async route => {
+      expect(route.request().method()).toBe('POST')
+      expect(await route.request().postDataJSON()).toMatchObject({ name: 'confidence gte 2.5 Filter 885', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gte', threshold: 2.5 } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 56, name: 'Confidence threshold filter' }) })
+    })
+    await page.route(/\/api\/v1\/alerts\/screener$/, async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      const body = route.request().postDataJSON()
+      if (body?.screener_id === 44) {
+        expect(body).toMatchObject({ screener_id: 44, trigger_type: 'both', repeat: true, notes: 'Created from structured event research run 885' })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 45 }) })
+        return
+      }
+      if (body?.screener_id === 50) {
+        expect(body).toMatchObject({ screener_id: 50, trigger_type: 'entered', repeat: true, notes: 'Created from structured Boolean research run 885 (qualifies)' })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 51 }) })
+        return
+      }
+      await route.continue()
     })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
@@ -3120,15 +4585,189 @@ test.describe('TC2000 workstation', () => {
     await expect(results.locator('[aria-label="current_streak scalar result"]')).toBeVisible()
     await results.getByRole('checkbox', { name: 'Compare run 881' }).check()
     await results.getByRole('checkbox', { name: 'Compare run 882' }).check()
+    await expect(results.locator('.research-results-tool__run[aria-current="true"]')).toContainText('Run #881')
     await results.getByRole('button', { name: 'Compare', exact: true }).click()
     await expect(results.locator('.research-results-tool__comparison')).toContainText('Run 881 vs 882')
     await expect(results.locator('.research-results-tool__comparison')).toContainText('lookback')
-    await results.locator('.research-results-tool__run').filter({ hasText: 'Run #883' }).click()
+    await expect(results.getByRole('region', { name: 'Study output comparison' })).toContainText('current_streak')
+    await expect(results.locator('.research-results-tool__comparison-table')).toContainText('Changed')
+    await expect(results.locator('.research-results-tool__comparison-table')).toContainText('Change (run 881 → 882): +2')
+    const run883 = results.locator('.research-results-tool__run').filter({ hasText: 'Run #883' })
+    await expect(run883.getByRole('button')).toHaveAttribute('aria-pressed', 'false')
+    await run883.getByRole('button').press('Enter')
+    await expect(run883).toHaveAttribute('aria-current', 'true')
+    await expect(run883.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
     await expect(results.getByRole('button', { name: 'Save as chart plot' })).toBeVisible()
     await results.getByRole('button', { name: 'Save as chart plot' }).click()
     await expect(results).toContainText('Chart plot “Member breadth plot 883” (#41) created')
     await results.getByRole('button', { name: 'Save as watchlist column' }).click()
     await expect(results).toContainText('Watchlist column “Member breadth column 883” (#42) created')
+    const run884 = results.locator('.research-results-tool__run').filter({ hasText: 'Run #884' })
+    await run884.getByRole('button').press('Space')
+    await expect(run884).toHaveAttribute('aria-current', 'true')
+    await expect(run884.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
+    await expect(run883.getByRole('button')).toHaveAttribute('aria-pressed', 'false')
+    await expect(results.getByRole('button', { name: 'Save events as Strategy signal' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save events as Strategy signal' }).click()
+    await expect(results).toContainText('Saved event artifact as Strategy signal “Breakout events signal” (#43)')
+    const run885 = results.locator('.research-results-tool__run').filter({ hasText: 'Run #885' })
+    await run885.getByRole('button').click()
+    await expect(run885).toHaveAttribute('aria-current', 'true')
+    await expect(run885.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
+    await expect(run884.getByRole('button')).toHaveAttribute('aria-pressed', 'false')
+    const eventList = results.getByRole('list', { name: 'occurrences filtered occurrences' })
+    const eventOccurrence = eventList.getByRole('listitem').getByRole('button', { name: 'SPY 2026-01-02 occurrence' })
+    await expect(eventOccurrence).toBeVisible()
+    await expect(eventOccurrence).toHaveAccessibleName('SPY 2026-01-02 occurrence')
+    const breadthList = results.getByRole('list', { name: 'Historical breadth occurrences' })
+    const breadthOccurrence = breadthList.getByRole('listitem').getByRole('button', { name: 'SPY entered 2026-01-03T00:00:00Z' })
+    await expect(breadthOccurrence).toBeVisible()
+    await expect(breadthOccurrence).toHaveAccessibleName('SPY entered 2026-01-03T00:00:00Z')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    const linkedChart = page.getByRole('region', { name: 'Chart workspace' }).first()
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await eventOccurrence.focus()
+    await eventOccurrence.press('Enter')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(linkedChart).toHaveAttribute('data-linked-timestamp', '2026-01-02')
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await breadthOccurrence.focus()
+    await breadthOccurrence.press('Space')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(linkedChart).toHaveAttribute('data-linked-timestamp', '2026-01-03T00:00:00Z')
+    const dashboardOccurrence = results.locator('.study-dashboard__events button').filter({ hasText: '2026-01-04T00:00:00Z' })
+    await expect(dashboardOccurrence).toBeVisible()
+    await expect(dashboardOccurrence).toHaveAccessibleName('SPY 2026-01-04T00:00:00Z breakdown')
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await dashboardOccurrence.focus()
+    await dashboardOccurrence.press('Space')
+    await expect(activeSymbol).toHaveValue('SPY')
+    await expect(linkedChart).toHaveAttribute('data-linked-timestamp', '2026-01-04T00:00:00Z')
+    await expect(results.getByRole('button', { name: 'Save filter: occurrences' })).toBeVisible()
+    await expect(results.getByRole('button', { name: 'Promote alert: occurrences' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save filter: occurrences' }).click()
+    await expect(results).toContainText('Saved event artifact “occurrences” as a reusable watchlist filter.')
+    await results.getByRole('button', { name: 'Promote alert: occurrences' }).click()
+    await expect(results).toContainText('Promoted event artifact “occurrences” to an active alert.')
+    await results.getByRole('button', { name: 'Save Strategy signal: occurrences' }).click()
+    await expect(results).toContainText('Saved event artifact “occurrences” as Strategy signal “Occurrences Strategy Signal” (#53).')
+    await expect(results.getByRole('button', { name: 'Save column: sample_size' })).toBeVisible()
+    await expect(results.getByRole('button', { name: 'Save chart plot: trend' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save column: sample_size' }).click()
+    await expect(results).toContainText('Saved scalar artifact “sample_size” as watchlist column “Sample size column”.')
+    await results.getByRole('button', { name: 'Save chart plot: trend' }).click()
+    await expect(results).toContainText('Saved series artifact “trend” as chart plot “Trend plot”.')
+    await results.getByRole('button', { name: 'Save latest column: trend' }).click()
+    await expect(results).toContainText('Saved series artifact “trend” as watchlist column “Trend latest column”.')
+    await results.getByRole('combobox', { name: 'Series condition operator: trend' }).selectOption('gte')
+    await results.getByRole('spinbutton', { name: 'Series condition threshold: trend' }).fill('1.5')
+    await results.getByRole('button', { name: 'Save Strategy signal: trend' }).click()
+    await expect(results).toContainText('Saved thresholded series “trend” as Strategy signal “Trend Strategy Signal” (#60).')
+    await expect(results.getByRole('button', { name: 'Save center chart plot: confidence' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save center chart plot: confidence' }).click()
+    await expect(results).toContainText('Saved range center “confidence” as chart plot “Confidence center plot”.')
+    await expect(results.getByRole('button', { name: 'Save latest center column: confidence' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save latest center column: confidence' }).click()
+    await expect(results).toContainText('Saved range center “confidence” as watchlist column “Confidence latest column”.')
+    await expect(results.getByRole('combobox', { name: 'Range center condition operator: confidence' })).toBeVisible()
+    await results.getByRole('combobox', { name: 'Range center condition operator: confidence' }).selectOption('gte')
+    await results.getByRole('spinbutton', { name: 'Range center condition threshold: confidence' }).fill('2.5')
+    await results.getByRole('button', { name: 'Save filter: confidence' }).click()
+    await expect(results).toContainText('Saved range center “confidence” as a thresholded watchlist filter.')
+    await results.getByRole('button', { name: 'Save Strategy signal: confidence' }).click()
+    await expect(results).toContainText('Saved thresholded range center “confidence” as Strategy signal “Confidence Strategy Signal” (#62).')
+    for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies', 'Save Strategy signal: qualifies']) await expect(results.getByRole('button', { name: label })).toBeVisible()
+    await results.getByRole('button', { name: 'Save column: qualifies' }).click()
+    await expect(results).toContainText('Saved Boolean artifact “qualifies” as watchlist column “Qualifies column”.')
+    await results.getByRole('button', { name: 'Save filter: qualifies' }).click()
+    await expect(results).toContainText('Saved Boolean artifact “qualifies” as a reusable watchlist filter through EasyScan.')
+    await results.getByRole('button', { name: 'Promote scan: qualifies' }).click()
+    await expect(results).toContainText('Promoted Boolean artifact “qualifies” to a reusable scan.')
+    await results.getByRole('button', { name: 'Use Gauge: qualifies' }).click()
+    await expect(results).toContainText('Boolean artifact “qualifies” is available as a Market Gauge')
+    await results.getByRole('button', { name: 'Promote alert: qualifies' }).click()
+    await expect(results).toContainText('Promoted Boolean artifact “qualifies” to an active scan alert.')
+    await results.getByRole('button', { name: 'Save Strategy signal: qualifies' }).click()
+    await expect(results).toContainText('Saved Boolean artifact “qualifies” as Strategy signal “Qualifies Strategy Signal” (#58).')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8t-results-series-threshold — structured output thresholds stay independent through promotion', async ({ page, browserDiagnostics }) => {
+    await page.route(/\/api\/v1\/research\/runs(?:\?.*)?$/, async route => {
+      if (route.request().method() !== 'GET') return route.continue()
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{
+        id: 901,
+        status: 'completed',
+        code_version_id: 901,
+        output_contract: 'study',
+        run_config: { execution_mode: 'study', output_contract: 'study', timeframe: 'D1' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        reproducibility_hash: 'sha256:series-threshold',
+        artifact_count: 2,
+        artifacts: [
+          { id: 1, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [10, 12] } } },
+          { id: 2, name: 'momentum', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [6, 9] } } },
+        ],
+      }]) })
+    })
+    await page.route(/\/api\/v1\/code\/assets$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ name: 'Series threshold study', versions: [{ id: 901, source: "output.series('trend', market.close())\noutput.series('momentum', market.close())", output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }]) })
+        return
+      }
+      const body = route.request().postDataJSON()
+      if (body?.kind === 'signal') {
+        expect(body).toMatchObject({ kind: 'signal', initial_version: { output_contract: 'boolean', output_name: 'trend', lineage: { target: 'signal', output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 }, semantics: 'study_series_threshold_as_strategy_signal' } } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 904, name: 'Trend threshold signal asset', versions: [{ id: 904 }] }) })
+        return
+      }
+      if (body?.initial_version?.output_name === 'trend') {
+        expect(body).toMatchObject({ kind: 'condition', initial_version: { output_contract: 'boolean', output_name: 'trend', lineage: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 } } } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 902, name: 'Trend threshold condition', versions: [{ id: 902 }] }) })
+        return
+      }
+      expect(body).toMatchObject({ kind: 'condition', initial_version: { output_contract: 'boolean', output_name: 'momentum', lineage: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'lt', threshold: 8 } } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 906, name: 'Momentum threshold condition', versions: [{ id: 906 }] }) })
+    })
+    await page.route(/\/api\/v1\/screeners\/from-python-condition\/(902|906)$/, async route => {
+      expect(route.request().method()).toBe('POST')
+      const body = await route.request().postDataJSON()
+      const isTrend = new URL(route.request().url()).pathname.endsWith('/902')
+      expect(body).toMatchObject(isTrend
+        ? { name: 'trend gte 11 Filter 901', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 } } }
+        : { name: 'momentum lt 8 Filter 901', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'lt', threshold: 8 } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(isTrend ? { id: 903, name: 'Trend threshold filter' } : { id: 907, name: 'Momentum threshold filter' }) })
+    })
+    await page.route(/\/api\/v1\/strategy-lab\/signals\/from-code\/904$/, async route => {
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 905, name: 'Trend threshold Strategy Signal' }) })
+    })
+    await page.goto('/chart')
+    await expect(page.locator('.workstation')).toBeVisible()
+    await page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last().click()
+    const results = page.locator('.research-results-tool')
+    await expect(results).toBeVisible({ timeout: 10_000 })
+    await expect(results.getByRole('button', { name: 'Save filter: trend' })).toBeVisible()
+    await expect(results.getByRole('button', { name: 'Save filter: momentum' })).toBeVisible()
+    await results.getByRole('combobox', { name: 'Series condition operator: trend' }).selectOption('gte')
+    await results.getByRole('spinbutton', { name: 'Series condition threshold: trend' }).fill('11')
+    await results.getByRole('combobox', { name: 'Series condition operator: momentum' }).selectOption('lt')
+    await results.getByRole('spinbutton', { name: 'Series condition threshold: momentum' }).fill('8')
+    await expect(results.getByRole('combobox', { name: 'Series condition operator: trend' })).toHaveValue('gte')
+    await expect(results.getByRole('spinbutton', { name: 'Series condition threshold: trend' })).toHaveValue('11')
+    await expect(results.getByRole('combobox', { name: 'Series condition operator: momentum' })).toHaveValue('lt')
+    await expect(results.getByRole('spinbutton', { name: 'Series condition threshold: momentum' })).toHaveValue('8')
+    await results.getByRole('button', { name: 'Save filter: trend' }).click()
+    await expect(results).toContainText('Saved series artifact “trend” as a thresholded watchlist filter.')
+    await results.getByRole('button', { name: 'Save filter: momentum' }).click()
+    await expect(results).toContainText('Saved series artifact “momentum” as a thresholded watchlist filter.')
+    await results.getByRole('button', { name: 'Save Strategy signal: trend' }).click()
+    await expect(results).toContainText('Saved thresholded series “trend” as Strategy signal “Trend threshold Strategy Signal” (#905).')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -3250,6 +4889,16 @@ test.describe('TC2000 workstation', () => {
   test('F8r-rotation-narrow — Relative Rotation controls and plot remain usable in a narrow desktop dock', async ({ page, browserDiagnostics }) => {
     await page.setViewportSize({ width: 390, height: 800 })
     await page.goto('/chart/SPY')
+    // This serial suite shares a persisted workspace. Start from the canonical
+    // factory layout so previous flows cannot leave a saturated stack that
+    // changes where a newly opened tool is mounted.
+    await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 15_000 })
+    const reset = page.getByTitle('Reset factory workspace').first()
+    if (await reset.count()) {
+      page.once('dialog', dialog => dialog.accept())
+      await reset.click()
+      await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 15_000 })
+    }
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('menuitem', { name: 'Relative Rotation', exact: true }).click()
     const rotation = page.locator('.tool-window:visible').filter({ has: page.locator('.rotation-tool') }).last()
@@ -3279,7 +4928,12 @@ test.describe('TC2000 workstation', () => {
 
   test('F8r-easyscan-narrow — EasyScan builders remain contained in a narrow desktop dock', async ({ page, browserDiagnostics }) => {
     await page.setViewportSize({ width: 390, height: 800 })
+    await page.goto('about:blank')
     await page.goto('/chart/SPY')
+    // The shell is interactive before Golden Layout finishes restoring its
+    // active tab; wait for a live dock window before asking it to add another.
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('.tool-window:visible').first()).toBeVisible({ timeout: 20_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('menuitem', { name: 'EasyScan', exact: true }).click()
     const scanWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.easy-scan') }).last()
@@ -3309,9 +4963,15 @@ test.describe('TC2000 workstation', () => {
   test('F8r-breadth-narrow — Market Breadth controls remain contained in a narrow desktop dock', async ({ page, browserDiagnostics }) => {
     await page.setViewportSize({ width: 390, height: 800 })
     await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('menuitem', { name: 'Market Breadth', exact: true }).click()
-    const breadthWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.breadth-tool') }).last()
+    // Observe shell creation/activation separately from the tool body mount so
+    // a missing component is distinguishable from a failed Add-tool action.
+    const breadthWindow = page.locator('.tool-window').filter({
+      has: page.locator('.tool-window__title', { hasText: /^Market Breadth$/ }),
+    }).last()
+    await expect(breadthWindow).toBeAttached({ timeout: 15_000 })
     await expect(breadthWindow).toBeVisible({ timeout: 15_000 })
     const breadth = breadthWindow.locator('.breadth-tool')
     await expect(breadth).toBeVisible({ timeout: 15_000 })
@@ -3367,6 +5027,11 @@ test.describe('TC2000 workstation', () => {
   test('F8r-python-library-narrow — Python Library creation controls remain contained in a narrow desktop dock', async ({ page, browserDiagnostics }) => {
     await page.setViewportSize({ width: 390, height: 800 })
     await page.goto('/chart/SPY')
+    // The shell is visible before Golden Layout has restored a live dock tab.
+    // Establish the same mounted-window precondition as the neighboring
+    // EasyScan flow before exercising Add-tool on a cold route navigation.
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.tool-window:visible').first()).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
     await page.getByRole('menuitem', { name: 'Python Library', exact: true }).click()
     const libraryWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.code-library-tool') }).last()
@@ -3561,7 +5226,7 @@ test.describe('TC2000 workstation', () => {
         const historySourceId = decodeURIComponent(pathname.split('/history-status/').pop() ?? '')
         if (['market-group:us-benchmarks', 'watchlist:7', 'combo:analysis-combo'].includes(historySourceId)) {
           const historySource = sources.find(item => item.source_id === historySourceId) ?? sources[0]
-          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: historySource.source_id, source_kind: historySource.source_kind, name: historySource.name, locked: historySource.locked, membership_version: historySource.membership_version, max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, bar_count: 4, in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: historySource.source_id, source_kind: historySource.source_kind, name: historySource.name, locked: historySource.locked, membership_version: historySource.membership_version, max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, analysis_ready_member_count: 0, analysis_ready_percent: 0, required_bar_count: 252, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z', in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
           return
         }
       }
@@ -3622,12 +5287,13 @@ test.describe('TC2000 workstation', () => {
     const universe = mapWindow.getByRole('combobox', { name: 'Market Map universe' })
     await expect(universe).toHaveValue('market-group:us-benchmarks')
     await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
+    await expect(mapWindow.locator('[aria-label="Market Map history readiness"]')).toContainText('analysis-ready 0/2 (floor 252)', { timeout: 15_000 })
     await mapWindow.getByRole('button', { name: 'Clone US benchmark constituents snapshot' }).click()
     await expect(mapWindow.locator('[aria-label="Market Map source preferences"] [role="status"]')).toContainText('1/2 members cloned', { timeout: 15_000 })
     await mapWindow.getByRole('button', { name: 'Retry failed source clone members' }).click()
     await expect(mapWindow.locator('[aria-label="Market Map source preferences"] [role="status"]')).toContainText('2/2 members cloned', { timeout: 15_000 })
     await universe.selectOption('watchlist:7')
-    await mapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await mapWindow.getByRole('button', { name: 'Refresh Market Map', exact: true }).click()
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('watchlist:7')
     await expect(mapWindow).toContainText('Swing candidates')
     await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
@@ -3668,16 +5334,35 @@ test.describe('TC2000 workstation', () => {
         tool.instance_key === studyMapKey && tool.tool_type === 'market_map'
         && tool.configuration?.source_id === 'watchlist:7')) ?? false
     })
-    await studyMapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('watchlist:7')
-    // Existing tiles can belong to the preceding refresh. Wait for this
-    // request and terminal render before selecting a member for publication;
-    // a late refresh otherwise replaces the selected tile/action mid-click.
-    const watchlistRequestCount = requestedSources.length
-    const studyMapRefresh = studyMapWindow.getByRole('button', { name: 'Refresh', exact: true })
-    await studyMapRefresh.click()
-    await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(watchlistRequestCount)
+    // A source change starts an automatic map refresh. Make the preceding
+    // state explicit so the request-count assertion cannot mistake selecting
+    // an already-current value for a new request.
+    const studyUniverse = studyMapWindow.getByRole('combobox', { name: 'Market Map universe' })
+    const studyMapRefresh = studyMapWindow.getByRole('button', { name: 'Refresh Market Map', exact: true })
+    if (await studyUniverse.inputValue() === 'watchlist:7') {
+      const beforeDistinctSourceChange = requestedSources.length
+      await studyUniverse.selectOption('market-group:us-benchmarks')
+      await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(beforeDistinctSourceChange)
+      await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('market-group:us-benchmarks')
+      await expect(studyMapRefresh).toBeEnabled()
+      await expect(studyMapWindow.locator('.market-map-tool')).toHaveAttribute('aria-busy', 'false')
+    }
+    const beforeUniverseChange = requestedSources.length
+    await studyUniverse.selectOption('watchlist:7')
+    await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(beforeUniverseChange)
     await expect(studyMapRefresh).toBeEnabled()
     await expect(studyMapWindow.locator('.market-map-tool')).toHaveAttribute('aria-busy', 'false')
+    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('watchlist:7')
+
+    // Existing tiles can belong to the preceding refresh. Confirm the
+    // explicit action issues its own request and reaches a terminal render
+    // before selecting a member for publication.
+    const beforeManualRefresh = requestedSources.length
+    await studyMapRefresh.click()
+    await expect.poll(() => requestedSources.length, { timeout: 15_000 }).toBeGreaterThan(beforeManualRefresh)
+    await expect(studyMapRefresh).toBeEnabled()
+    await expect(studyMapWindow.locator('.market-map-tool')).toHaveAttribute('aria-busy', 'false')
+    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('watchlist:7')
     await studySourceSaved
     await expect(studyMapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('watchlist:7')
     await expect(studyMapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
@@ -3686,7 +5371,7 @@ test.describe('TC2000 workstation', () => {
     await studyMapWindow.getByRole('button', { name: 'Open selected members in Study Lab' }).click()
     const studyLab = page.locator('.study-lab-tool:visible').last()
     await expect(studyLab).toBeVisible({ timeout: 15_000 })
-    await expect(studyLab.getByRole('textbox', { name: 'Study universe source' })).toHaveValue(/^explicit:\d+$/)
+    await expect(studyLab.getByRole('combobox', { name: 'Study universe source' })).toHaveValue(/^explicit:\d+$/)
     await expect(studyLab.getByRole('status', { name: 'Study source lineage' })).toContainText('Parent source watchlist:7')
 
     // Derived combo watchlists are another locked source kind, not a separate map
@@ -3697,10 +5382,141 @@ test.describe('TC2000 workstation', () => {
     const comboMapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
     await expect(comboMapWindow).toBeVisible({ timeout: 15_000 })
     await comboMapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('combo:analysis-combo')
-    await comboMapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
+    const comboMapRefresh = comboMapWindow.getByRole('button', { name: 'Refresh Market Map', exact: true })
+    await comboMapRefresh.click()
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('combo:analysis-combo')
+    await expect(comboMapRefresh).toHaveText('Refresh')
+    await expect(comboMapRefresh).toBeEnabled()
     await expect(comboMapWindow).toContainText('Combo watchlists')
     await expect(comboMapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8s-market-map-python-output — named Python lineage survives a saved snapshot', async ({ page, browserDiagnostics }) => {
+    const source = {
+      source_id: 'watchlist:7', source_kind: 'personal', name: 'Swing candidates',
+      locked: false, can_follow: true, can_clone: true, can_edit_membership: true, member_count: 1,
+      membership_version: 'watchlist:7:v3', provenance: { availability: 'available' },
+    }
+    const versions = [{
+      kind: 'condition', name: 'Momentum score', versions: [
+        { id: 5101, version_number: 1, output_contract: 'series', output_name: 'fast' },
+        { id: 5102, version_number: 2, output_contract: 'series', output_name: 'slow' },
+        { id: 5103, version_number: 3, output_contract: 'boolean', output_name: 'qualifies' },
+      ],
+    }, {
+      kind: 'condition', name: 'Archived condition', is_archived: true,
+      versions: [{ id: 5199, version_number: 1, output_contract: 'series', output_name: 'archived' }],
+    }]
+    let selectedCodeVersionId: number | null = null
+    let marketMapRequestBody: Record<string, unknown> | null = null
+    let lastMap: Record<string, unknown> | null = null
+    let savedSnapshotName = ''
+    const snapshot = () => ({
+      id: 91, name: savedSnapshotName || 'Slow output snapshot', source_id: source.source_id,
+      membership_version: source.membership_version, cache_key: 'a'.repeat(64), snapshot_hash: 'b'.repeat(64),
+      created_at: '2026-09-15T10:00:00Z', updated_at: '2026-09-15T10:00:00Z', map: lastMap,
+    })
+
+    await page.route('**/api/v1/watchlists/sources**', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      if (pathname.includes('/history-status/')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          source_id: source.source_id, source_kind: source.source_kind, name: source.name, locked: false,
+          membership_version: source.membership_version, max_instruments: 5000, available_instrument_count: 1,
+          selected_instrument_count: 1, limited: false, excluded_count: 0, overall_status: 'ready',
+          timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100,
+            analysis_ready_member_count: 1, analysis_ready_percent: 100, required_bar_count: 252, bar_count: 300,
+            oldest: '2025-01-01T00:00:00Z', newest: '2026-09-14T00:00:00Z', in_progress_count: 0,
+            complete_count: 1, failed_count: 0, pending_count: 0 }],
+        }) })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([source]) })
+    })
+    await page.route('**/api/v1/watchlists', async route => {
+      if (route.request().method() === 'GET') await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      else await route.continue()
+    })
+    await page.route('**/api/v1/code/assets', async route => {
+      if (route.request().method() !== 'GET') return route.continue()
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(versions) })
+    })
+    await page.route('**/api/v1/analysis/breadth/python', async route => {
+      const body = route.request().postDataJSON() as { code_version_id?: number }
+      selectedCodeVersionId = Number(body.code_version_id ?? 0)
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ run_id: 777 }) })
+    })
+    await page.route('**/api/v1/analysis/breadth/python/runs/777', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'completed' }) })
+    })
+    await page.route('**/api/v1/analysis/market-map/snapshots**', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      if (route.request().method() === 'POST') {
+        const body = route.request().postDataJSON() as { name?: string }
+        savedSnapshotName = String(body.name ?? '')
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(snapshot()) })
+      } else if (pathname.endsWith('/snapshots/91')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(snapshot()) })
+      } else {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      }
+    })
+    await page.route('**/api/v1/analysis/market-map', async route => {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      marketMapRequestBody = body
+      const hasPythonRun = Number(body.python_run_id ?? 0) > 0
+      lastMap = {
+        source, group_by: 'sector_industry', period: '1D', period_start: '2026-09-14T00:00:00Z',
+        period_end: '2026-09-15T00:00:00Z', timeframe: 'D1', adjustment: 'split_adjusted',
+        area_metric: body.area_metric ?? 'market_cap', color_metric: body.color_metric ?? 'return',
+        membership_version: source.membership_version, calculation_version: 'market-map-v1',
+        cache_key: 'a'.repeat(64), cache_hit: false, freshness: 'current',
+        freshness_detail: { requested: 1, current: 1, stale: 0, other: 0 },
+        requested_count: 1, evaluated_count: 1, coverage: 1, color_coverage: 1, area_coverage: 1,
+        warnings: [], exclusions: [], python_run_id: hasPythonRun ? body.python_run_id : null,
+        python_code_version_id: hasPythonRun ? selectedCodeVersionId : null,
+        python_output_name: hasPythonRun ? 'slow' : null,
+        python_output_contract: hasPythonRun ? 'series' : null,
+        nodes: [{ node_id: 'root', level: 'root', label: 'All members', group_path: [], member_count: 1,
+          covered_count: 1, area_total: 1, color_value: 0.02, coverage: 1, color_coverage: 1,
+          area_coverage: 1, aggregation_method: 'equal_member_mean', warnings: [] }],
+        cells: [{ instrument_id: 1, symbol: 'NVDA', name: 'NVIDIA', sector: 'Technology',
+          industry: 'Semiconductors', group_path: ['Technology', 'Semiconductors'], area_value: 1,
+          color_value: 0.05, return_value: 0.05, coverage: 1, color_coverage: 1,
+          area_coverage: 1, warnings: [] }],
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(lastMap) })
+    })
+
+    await page.goto('/chart/SPY')
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('menuitem', { name: 'Market Map' }).click()
+    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    await expect(mapWindow).toBeVisible({ timeout: 15_000 })
+    await mapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('watchlist:7')
+    await mapWindow.getByRole('combobox', { name: 'Market Map colour metric' }).selectOption('python')
+    const outputPicker = mapWindow.getByRole('combobox', { name: 'Market Map Python colour asset' })
+    await expect(outputPicker).toContainText('Momentum score · slow · v2 · series', { timeout: 15_000 })
+    await expect(outputPicker).not.toContainText('Archived condition')
+    await outputPicker.selectOption('5103')
+    await mapWindow.getByRole('combobox', { name: 'Market Map area metric' }).selectOption('python')
+    await expect(outputPicker).toHaveValue('Select a named Boolean or numeric-series output')
+    await expect(mapWindow.getByRole('status').filter({ hasText: 'Tile area requires a numeric-series output' })).toBeVisible()
+    await outputPicker.selectOption('5102')
+    await mapWindow.getByRole('button', { name: 'Refresh Market Map', exact: true }).click()
+    await expect.poll(() => selectedCodeVersionId, { timeout: 15_000 }).toBe(5102)
+    await expect(mapWindow.locator('[aria-label="Market Map Python output lineage"]')).toContainText('slow · series · version #5102 · run #777', { timeout: 15_000 })
+
+    expect(marketMapRequestBody).toEqual(expect.objectContaining({
+      source_id: 'watchlist:7', color_metric: 'python', python_run_id: 777,
+    }))
+    await mapWindow.getByRole('textbox', { name: 'Market Map snapshot name' }).fill('Slow output snapshot')
+    await mapWindow.getByRole('button', { name: 'Save Market Map snapshot' }).click()
+    const snapshotPicker = mapWindow.getByRole('combobox', { name: 'Market Map snapshot' })
+    await expect(snapshotPicker).toHaveValue('91', { timeout: 15_000 })
+    await expect(outputPicker).toHaveValue('5102')
+    await expect(mapWindow.locator('[aria-label="Market Map Python output lineage"]')).toContainText('slow · series · version #5102 · run #777')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -3732,6 +5548,14 @@ test.describe('TC2000 workstation', () => {
     await page.route('**/api/v1/analysis/benchmark-families/sp500/overview*', async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ family_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', mappings: [{ role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }, { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }], rows: [], exclusions: [] }) })
     })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/coverage*', async route => {
+      const role = (name: string, symbol: string | null, status: string, readiness: string) => ({
+        role: name, symbol, label: name.replace('_', ' '), available: Boolean(symbol), status,
+        member_bar_history: { status: readiness, placeholder_member_count: 0, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z' }] },
+        point_in_time_supported: Boolean(symbol), member_count: symbol ? 1 : 0, placeholder_member_count: 0, weighted_member_count: symbol ? 1 : 0, weights_status: symbol ? 'ready' : 'unavailable', classified_member_count: symbol ? 1 : 0, classification_status: symbol ? 'ready' : 'unavailable', history_ready: Boolean(symbol), composite_readiness_status: readiness, composite_readiness_reasons: symbol ? [] : ['benchmark_role_mapping_unavailable'],
+      })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ family_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', coverage: 0.5, freshness: 'coverage_limited', roles: [role('cap_weight', 'SPY', 'available', 'ready'), role('equal_weight', 'RSP', 'available', 'ready'), role('value', null, 'mapping_unavailable', 'unavailable'), role('growth', null, 'mapping_unavailable', 'unavailable')] }) })
+    })
     await page.route('**/api/v1/analysis/etf/SPY/constituents/snapshot*', async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         group_key: 'etf:SPY',
@@ -3756,7 +5580,7 @@ test.describe('TC2000 workstation', () => {
     await page.route('**/api/v1/watchlists/sources**', async route => {
       const pathname = new URL(route.request().url()).pathname
       if (pathname.includes('/history-status/')) {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100 }] }) })
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z' }] }) })
         return
       }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ source_id: 'benchmark-family:sp500:cap_weight', source_kind: 'index_membership', name: 'S&P 500 constituents', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: 'sp500:cap:v1', provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }, { source_id: 'benchmark-family:sp500:equal_weight', source_kind: 'index_membership', name: 'S&P 500 equal-weight constituents', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: 'sp500:equal:v1', provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }]) })
@@ -3781,7 +5605,17 @@ test.describe('TC2000 workstation', () => {
     await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('benchmark-family:sp500:equal_weight')
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:sp500:equal_weight')
     await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
+    await expect(mapWindow.locator('[aria-label="Benchmark family canonical readiness"]')).toContainText('50% of roles have dated holdings', { timeout: 15_000 })
+    await expect(mapWindow.locator('[aria-label="Benchmark family canonical readiness"]')).toContainText('History: D1 1/1 ready · 1 covered · 4 bars · range 2025-01-01 → 2026-06-30', { timeout: 15_000 })
     await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
+    const marketMapTile = mapWindow.locator('.market-map-tool__tile').first()
+    await expect(marketMapTile).toHaveAttribute('aria-pressed', 'false')
+    await marketMapTile.focus()
+    await marketMapTile.press('ArrowRight')
+    await expect(marketMapTile).toBeFocused()
+    await expect(marketMapTile).toHaveCSS('box-shadow', /rgb\(255, 255, 255\)/)
+    await marketMapTile.click()
+    await expect(marketMapTile).toHaveAttribute('aria-pressed', 'true')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -3859,7 +5693,7 @@ test.describe('TC2000 workstation', () => {
     await page.route('**/api/v1/watchlists/sources**', async route => {
       const pathname = new URL(route.request().url()).pathname
       if (pathname.includes('/history-status/')) {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100 }] }) })
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z' }] }) })
         return
       }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(families.map(family => ({ source_id: `benchmark-family:${family.key}:cap_weight`, source_kind: 'index_membership', name: `${family.name} constituents`, locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: `${family.key}:v1`, provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }))) })
@@ -3888,6 +5722,7 @@ test.describe('TC2000 workstation', () => {
       await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue(`benchmark-family:${family.key}:cap_weight`)
       await expect.poll(() => selectedSources.at(-1), { timeout: 15_000 }).toBe(`benchmark-family:${family.key}:cap_weight`)
       await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
+      await expect(mapWindow.locator('[aria-label="Market Map history readiness"]')).toContainText('1/1 D1 members covered · 4 bars · range 2025-01-01 → 2026-06-30', { timeout: 15_000 })
       await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
       await mapWindow.getByRole('button', { name: 'Close tool' }).click()
       await expect(mapWindow).toBeHidden()
@@ -3920,11 +5755,15 @@ test.describe('TC2000 workstation', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 99, stable_key: 'breadth-sp500', name: 'SPY breadth', versions: [{ id: 99, version_number: 1, output_contract: 'study' }] }) })
     })
     await page.route('**/api/v1/analysis/breadth', async route => {
-      if (route.request().method() === 'POST') customBreadthRequests.push(JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>)
+      const request = route.request().method() === 'POST'
+        ? JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>
+        : {}
+      if (route.request().method() === 'POST') customBreadthRequests.push(request)
+      const referenceUniverse = request.reference_universe as Record<string, unknown> | undefined
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP' }, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, percentage: 1, coverage: 1, members: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.12, observation_time: '2026-06-27T00:00:00Z', diagnostics: [{ path: '$', kind: 'all', status: 'pass', value: true, metric: 0.12 }, { path: '$.conditions[0]', kind: 'comparison', status: 'pass', value: true, metric: 0.12 }] }], exclusions: [] }),
+        body: JSON.stringify({ calculation_version: 'analysis-v1', data_provenance: 'canonical_local_database', refreshed_at: '2026-06-28T00:00:00Z', freshness: 'partial', freshness_detail: { bars_ready: 1, bars_missing: 1 }, definition_version: 1, definition_hash: 'family-breadth', universe: { kind: 'benchmark_family', family_key: 'sp500', role: 'equal_weight', proxy_symbol: 'RSP', membership_version: 42 }, condition: referenceUniverse ? { reference_universe: referenceUniverse, reference_target: { target: 'equal_weight_member_return_index', method: 'derived_equal_weight_return_index', universe: { kind: 'market_group', stable_key: 'sp500-sectors' }, membership_version: 55, member_count: 6, point_count: 4, covered_member_points: 20, mean_covered_members: 5, alignment: 'exact_timestamp_no_forward_fill' } } : {}, timeframe: 'D1', adjustment: 'split_adjusted', as_of: '2026-06-27T00:00:00Z', requested_count: 2, eligible_count: 1, pass_count: 1, excluded_count: 1, percentage: 1, coverage: 0.5, members: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', value: true, metric: 0.12, observation_time: '2026-06-27T00:00:00Z', diagnostics: [{ path: '$', kind: 'all', status: 'pass', value: true, metric: 0.12 }, { path: '$.conditions[0]', kind: 'comparison', status: 'pass', value: true, metric: 0.12 }] }], exclusions: [{ code: 'missing_bars', message: 'One member has no aligned D1 bars.', instrument_id: 2 }] }),
       })
     })
     await page.route('**/api/v1/analysis/breadth/history', async route => {
@@ -4003,25 +5842,27 @@ test.describe('TC2000 workstation', () => {
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/ranking*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          family_key: 'sp500', official_index_symbol: 'SPX', benchmark: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M',
+          family_key: 'sp500', official_index_symbol: 'SPX', benchmark: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod,
           roles: [
-            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, rank: 1, performance: { '1M': 0.12 }, relative_performance: { '1M': 0.03 }, warnings: [] },
-            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, rank: 2, performance: { '1M': 0.09 }, relative_performance: { '1M': 0 }, warnings: [] },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, rank: 1, performance: { [rankPeriod]: rankPeriod === '3M' ? 0.34 : 0.12 }, relative_performance: { [rankPeriod]: rankPeriod === '3M' ? 0.08 : 0.03 }, warnings: [] },
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, rank: 2, performance: { [rankPeriod]: rankPeriod === '3M' ? 0.26 : 0.09 }, relative_performance: { [rankPeriod]: 0 }, warnings: [] },
           ], exclusions: [],
         }),
       })
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/concentration/history*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', top_n: 10, limit: 500,
+          family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod, top_n: 10, limit: 500,
           roles: [
             { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, points: [{ timestamp: '2026-01-02T00:00:00Z', snapshot_id: 1, composition_date: '2026-01-01', known_at: '2026-01-02T00:00:00Z', membership_version: 1, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n_weight: 0.34, hhi: 0.04, effective_constituents: 25, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.04, median_return: 0.03, dispersion: 0.02, warnings: [] }], exclusions: [] },
             { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, points: [{ timestamp: '2026-01-02T00:00:00Z', snapshot_id: 2, composition_date: '2026-01-01', known_at: '2026-01-02T00:00:00Z', membership_version: 2, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n_weight: 0.02, hhi: 0.002, effective_constituents: 500, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.05, median_return: 0.05, dispersion: 0.015, warnings: [] }], exclusions: [] },
@@ -4031,11 +5872,12 @@ test.describe('TC2000 workstation', () => {
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/concentration?rank_period*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', top_n: 10,
+          family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod, top_n: 10,
           roles: [
             { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n: 10, top_n_weight: 0.34, hhi: 0.04, effective_constituents: 25, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.04, median_return: 0.03, dispersion: 0.02, members: [], warnings: [] },
             { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n: 10, top_n_weight: 0.02, hhi: 0.002, effective_constituents: 500, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.05, median_return: 0.05, dispersion: 0.015, members: [], warnings: [] },
@@ -4045,23 +5887,25 @@ test.describe('TC2000 workstation', () => {
     })
     await page.route('**/api/v1/analysis/benchmark-families/ranking/history*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', limit: 500, benchmark: null,
-          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: '2026-01-02T00:00:00Z', rank: 1, performance: { '1M': 0.1 }, relative_performance: { '1M': 0 } }], warnings: [] }], exclusions: [],
+          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod, limit: 500, benchmark: null,
+          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: '2026-01-02T00:00:00Z', rank: 1, performance: { [rankPeriod]: 0.1 }, relative_performance: { [rankPeriod]: 0 } }], warnings: [] }], exclusions: [],
         }),
       })
     })
     await page.route('**/api/v1/analysis/benchmark-families/ranking*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', benchmark: null,
-          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, rank: 1, performance: { '1M': 0.1 }, relative_performance: { '1M': 0 }, warnings: [] }], exclusions: [],
+          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod, benchmark: null,
+          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, rank: 1, performance: { [rankPeriod]: 0.1 }, relative_performance: { [rankPeriod]: 0 }, warnings: [] }], exclusions: [],
         }),
       })
     })
@@ -4139,10 +5983,10 @@ test.describe('TC2000 workstation', () => {
           universe_provenance: { coverage_semantics: 'role_independent_dated_holdings_snapshots' },
           coverage: 0.5,
           roles: [
-            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, status: 'available', snapshots: [{ snapshot_id: 1, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }], member_bar_history: { status: 'ready', snapshot_id: 1, composition_date: '2026-06-27', timeframes: [{ timeframe: 'D1', required_bar_count: 252, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 252 }] } },
-            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, status: 'available', snapshots: [{ snapshot_id: 2, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }], member_bar_history: { status: 'ready', snapshot_id: 2, composition_date: '2026-06-27', timeframes: [{ timeframe: 'D1', required_bar_count: 252, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 252 }] } },
-            { role: 'value', symbol: 'SPYV', label: 'SPYV', verification_state: 'verified', available: true, status: 'no_snapshot', snapshots: [] },
-            { role: 'growth', symbol: 'SPYG', label: 'SPYG', verification_state: 'verified', available: true, status: 'no_snapshot', snapshots: [] },
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, status: 'available', holdings_route_adapter_key: 'fixture_holdings', holdings_route_provider: 'fixture', holdings_route_status: 'configured', holdings_refresh_status: 'partial', holdings_refresh_provider: 'fixture', holdings_refresh_last_checked_at: '2026-07-03T12:00:00Z', entitlement_status: 'verified', entitlement_provider: 'fixture', entitlement_live_probe_status: 'passed', entitlement_revision: 7, entitlement_effective_at: '2026-07-01T00:00:00Z', entitlement_review_due_at: '2026-10-01T00:00:00Z', holdings_refresh_last_failure_at: '2026-07-04T12:00:00Z', holdings_refresh_composition_date: '2026-06-27', holdings_refresh_failure_reason: 'issuer endpoint unavailable', point_in_time_supported: true, member_count: 1, placeholder_member_count: 0, weighted_member_count: 1, weights_status: 'ready', classified_member_count: 1, classification_status: 'ready', history_ready: true, composite_readiness_status: 'ready', composite_readiness_reasons: ['canonical_snapshot', 'member_bars_ready'], snapshots: [{ snapshot_id: 1, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }], member_bar_history: { status: 'ready', snapshot_id: 1, composition_date: '2026-06-27', timeframes: [{ timeframe: 'D1', required_bar_count: 252, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 252 }, { timeframe: 'W1', required_bar_count: 52, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 52 }, { timeframe: 'MN', required_bar_count: 24, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 24 }] } },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, status: 'available', point_in_time_supported: true, member_count: 1, placeholder_member_count: 0, weighted_member_count: 1, weights_status: 'ready', classified_member_count: 1, classification_status: 'ready', history_ready: true, composite_readiness_status: 'ready', composite_readiness_reasons: ['canonical_snapshot', 'member_bars_ready'], snapshots: [{ snapshot_id: 2, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }], member_bar_history: { status: 'ready', snapshot_id: 2, composition_date: '2026-06-27', timeframes: [{ timeframe: 'D1', required_bar_count: 252, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 252 }, { timeframe: 'W1', required_bar_count: 52, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 52 }, { timeframe: 'MN', required_bar_count: 24, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 24 }] } },
+            { role: 'value', symbol: 'SPYV', label: 'SPYV', verification_state: 'verified', available: true, status: 'no_snapshot', composite_readiness_status: 'unavailable', composite_readiness_reasons: ['no_dated_holdings'], snapshots: [] },
+            { role: 'growth', symbol: 'SPYG', label: 'SPYG', verification_state: 'verified', available: true, status: 'no_snapshot', composite_readiness_status: 'unavailable', composite_readiness_reasons: ['no_dated_holdings'], snapshots: [] },
           ],
           exclusions: [],
         }),
@@ -4179,14 +6023,43 @@ test.describe('TC2000 workstation', () => {
     const familyPanel = breadth.locator('[aria-label="Benchmark family relative strength"]')
     await expect(familyPanel).toBeVisible({ timeout: 10_000 })
     await expect(familyPanel).toContainText('RSP/SPY', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family relative strength history"]')).toBeVisible({ timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family technicals"]')).toContainText('Cap weight SPY · 600.00 · RSI 55.00', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family participation"]')).toContainText('Cap weight SPY · >20 70% · near 52w 40% · trend 65%', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('#1 Equal weight RSP', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('Cap weight SPY · top 34.0% · HHI 0.04 · effective 25.00 · σ 2.0% · 100.0% covered', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('History · 1 points · point-in-time snapshots', { timeout: 15_000 })
+    await expect(breadth.locator('.breadth-tool__family-coverage-roles')).toContainText('latest 2026-06-27 · as of 2026-06-30 · known 2026-06-28T20:00:00Z · 1/1 resolved · fixture', { timeout: 15_000 })
+    await expect(breadth.locator('.breadth-tool__family-coverage-roles')).toContainText('readiness ready · reasons canonical_snapshot · member_bars_ready', { timeout: 15_000 })
+    await expect(breadth.locator('.breadth-tool__family-coverage-roles')).toContainText('refresh partial · fixture · reason issuer endpoint unavailable', { timeout: 15_000 })
+    await expect(breadth.locator('.breadth-tool__family-coverage-roles')).toContainText('route configured · fixture · adapter fixture_holdings', { timeout: 15_000 })
+    await expect(breadth.locator('.breadth-tool__family-coverage-roles')).toContainText('refresh partial · fixture · reason issuer endpoint unavailable · checked 2026-07-03 · failed 2026-07-04 · composition 2026-06-27', { timeout: 15_000 })
+    await expect(breadth.locator('.breadth-tool__family-coverage-roles')).toContainText('entitlement verified · fixture · probe passed · rev 7 · effective 2026-07-01 · review due 2026-10-01', { timeout: 15_000 })
+    await expect(breadth.locator('.breadth-tool__family-coverage-roles')).toContainText('readiness unavailable · reasons no_dated_holdings', { timeout: 15_000 })
+    await expect(breadth.getByLabel('Benchmark family canonical role evidence')).toContainText('Cap weight SPY · verification verified · adapter unmapped · members 1 · weighted 1 (ready) · classified 1 (ready) · point-in-time supported · history ready · readiness ready · snapshot 2026-06-27 · as-of 2026-06-30 · known 2026-06-28 · provenance issuer snapshot · source quality issuer_disclosed · completeness complete · rows 1 · resolved 1 · unresolved 0', { timeout: 15_000 })
+    await expect(breadth.getByLabel('Benchmark family canonical role evidence')).toContainText('Equal weight RSP · verification verified · adapter unmapped · members 1 · weighted 1 (ready) · classified 1 (ready) · point-in-time supported · history ready · readiness ready · snapshot 2026-06-27 · as-of 2026-06-30 · known 2026-06-28 · provenance issuer snapshot · source quality issuer_disclosed · completeness complete · rows 1 · resolved 1 · unresolved 0', { timeout: 15_000 })
+    await expect(breadth.getByLabel('Benchmark family canonical role evidence')).toContainText('continuity not reported', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family historical dispersion"]')).toBeVisible({ timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family historical concentration metrics"]')).toBeVisible({ timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('#1 S&P 500 SPY', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('History · 1 points', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Cross-family historical relative performance"]')).toBeVisible({ timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Cross-family historical rank"]')).toBeVisible({ timeout: 15_000 })
+    const ma20DrilldownControls = breadth.locator('.metrics .breadth-tool__actions').first()
+    await expect(ma20DrilldownControls.locator('button').first()).toHaveAttribute('aria-pressed', 'false')
+    await ma20DrilldownControls.locator('button').first().click()
+    await expect(ma20DrilldownControls.locator('button').first()).toHaveAttribute('aria-pressed', 'true')
+    await expect(breadth.locator('[aria-label="Breadth member drilldown"]')).toContainText('Passing 20-day MA members')
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
+    const familyRankingPeriod = familyPanel.getByRole('combobox', { name: 'Family ranking period' })
+    await expect(familyRankingPeriod).toHaveValue('1M')
+    await familyRankingPeriod.selectOption('3M')
+    await expect(familyRankingPeriod).toHaveValue('3M')
+    await expect.poll(() => familyAsOfRequests.some(url => url.includes('rank_period=3M'))).toBe(true)
+    await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('Role ranking · 3M', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('RSP · 34% · Δ 8%', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('· 3M dispersion', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('US family ranking · 3M', { timeout: 15_000 })
     const familyOverview = breadth.locator('[aria-label="Benchmark family analysis"]')
     await expect(familyOverview).toBeVisible({ timeout: 15_000 })
     await expect(familyOverview).toContainText('S&P 500 · SPX')
@@ -4194,7 +6067,9 @@ test.describe('TC2000 workstation', () => {
     await expect(familyOverview).toContainText('NVDA')
     await expect(familyOverview).toContainText('Dated holdings coverage')
     await expect(familyOverview).toContainText('Cap weight SPY · available · 1 date')
-    await expect(familyOverview).toContainText('bars ready 1/1 · ready 1/1')
+    await expect(familyOverview).toContainText('bars ready · D1 1/1 ready · floor 252 · 1/1 covered · W1 1/1 ready · floor 52 · 1/1 covered · MN 1/1 ready · floor 24 · 1/1 covered')
+    await expect(familyOverview.locator('.breadth-tool__family-leg--selected button')).toHaveAttribute('aria-pressed', 'true')
+    await expect(familyOverview.locator('.breadth-tool__family-leg:not(.breadth-tool__family-leg--selected) button').first()).toHaveAttribute('aria-pressed', 'false')
     const familyAsOf = familyOverview.getByRole('combobox', { name: 'Family analysis as of' })
     await expect(familyAsOf).toHaveValue('')
     await familyAsOf.selectOption('2026-06-27T23:59:59Z')
@@ -4211,6 +6086,17 @@ test.describe('TC2000 workstation', () => {
     await customUniverse.selectOption('benchmark_family')
     const initialRequest = await evaluateCustomBreadth()
     expect(initialRequest?.universe).toMatchObject({ kind: 'benchmark_family', key: 'sp500', role: 'equal_weight' })
+    await expect(breadth.locator('.breadth-tool__custom-result')).toContainText('1 excluded · 2 requested · 50.0% coverage')
+    const evidence = breadth.locator('[aria-label="Generic breadth result evidence"]')
+    await evidence.locator('summary').click()
+    await expect(evidence).toContainText('benchmark family · sp500 · equal weight · proxy RSP')
+    await expect(evidence.locator('dt').filter({ hasText: 'Membership version' })).toBeVisible()
+    await expect(evidence.locator('dd').filter({ hasText: /^42$/ })).toBeVisible()
+    await expect(evidence).toContainText('2026-06-27 · 1 member observation')
+    await expect(evidence).toContainText('Canonical local database')
+    await expect(evidence).toContainText('Partial coverage')
+    await expect(evidence).toContainText('bars missing: 1')
+    await expect(evidence.locator('[aria-label="Generic breadth excluded member reasons"]')).toContainText('One member has no aligned D1 bars.')
     await breadth.getByLabel('Breadth reusable definition name').fill('SPY breadth participation')
     await breadth.getByRole('button', { name: 'Save as Study Lab definition' }).click()
     await expect(breadth).toContainText('Saved immutable Study Lab definition.', { timeout: 10_000 })
@@ -4226,12 +6112,25 @@ test.describe('TC2000 workstation', () => {
     })
     expect(JSON.stringify(savedBreadthDefinitions[0].initial_version)).toContain('benchmark_family')
     await expect(breadth.locator('[aria-label="Generic breadth clause diagnostics"]')).toContainText('$.conditions[0] comparison pass')
+    const genericDrilldown = breadth.locator('[aria-label="Generic breadth member drilldown"]')
+    await expect(genericDrilldown.getByRole('button', { name: /^Pass/ })).toHaveAttribute('aria-pressed', 'true')
+    await expect(genericDrilldown.getByRole('button', { name: /^Fail/ })).toHaveAttribute('aria-pressed', 'false')
+    const failMembers = genericDrilldown.getByRole('button', { name: /^Fail/ })
+    await failMembers.focus()
+    await failMembers.press('Enter')
+    await expect(genericDrilldown.getByRole('button', { name: /^Pass/ })).toHaveAttribute('aria-pressed', 'false')
+    await expect(genericDrilldown.getByRole('button', { name: /^Fail/ })).toHaveAttribute('aria-pressed', 'true')
     const occurrencePanel = breadth.locator('[aria-label="Generic breadth historical occurrences"]')
     await expect(occurrencePanel).toBeVisible({ timeout: 15_000 })
     const occurrence = occurrencePanel.getByRole('button', { name: /SPY Entered condition/ })
     await expect(occurrence).toBeVisible()
-    await occurrence.click()
-    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('SPY')
+    const activeSymbol = page.getByRole('combobox', { name: 'Active symbol' })
+    await activeSymbol.fill('QQQ')
+    await page.getByRole('button', { name: 'Go', exact: true }).click()
+    await expect(activeSymbol).toHaveValue('QQQ')
+    await occurrence.focus()
+    await occurrence.press('Space')
+    await expect(activeSymbol).toHaveValue('SPY')
     await expect(page.locator('.chart-root[data-linked-timestamp]')).toHaveAttribute('data-linked-timestamp', '2026-06-27T00:00:00Z')
     const condition = breadth.locator('select[aria-label="Breadth condition"]')
     await condition.selectOption('rsi')
@@ -4294,7 +6193,16 @@ test.describe('TC2000 workstation', () => {
     expect(groupReferenceRequest?.benchmark).toBeUndefined()
     expect(groupReferenceRequest?.reference_universe).toMatchObject({ kind: 'group', key: 'sp500-sectors', point_in_time: true })
     expect(groupReferenceRequest?.condition).toMatchObject({ kind: 'series_comparison', params: { relation: 'ratio' } })
-    await breadth.getByLabel('Breadth reference target').selectOption('symbol')
+    const referenceEvidence = evidence.getByLabel('Generic breadth reference target evidence')
+    await expect(referenceEvidence).toContainText('Equal-weight group aggregate · sp500-sectors')
+    await expect(referenceEvidence).toContainText('Derived equal weight return index')
+    await expect(referenceEvidence).toContainText('version 55 · 6 members')
+    await expect(referenceEvidence).toContainText('83.3% average · 5.0/6 members per point')
+    await expect(referenceEvidence).toContainText('4 aligned points · 20 covered member-points')
+    await expect(referenceEvidence).toContainText('Exact timestamp · no forward fill')
+    await expect(evidence).toContainText('Input freshness')
+    await expect(evidence).toContainText('Run input freshness includes evaluated members and reference-universe members.')
+    await breadth.getByLabel('Breadth reference target', { exact: true }).selectOption('symbol')
     await breadth.locator('select[aria-label="Breadth condition composition"]').selectOption('any')
     const anyRequest = await evaluateCustomBreadth()
     expect(anyRequest?.condition).toMatchObject({ kind: 'any', params: { conditions: expect.any(Array) } })
@@ -4320,8 +6228,9 @@ test.describe('TC2000 workstation', () => {
     await conditionTree.getByRole('combobox', { name: 'Breadth condition type 1.1' }).selectOption('percentile')
     await conditionTree.getByRole('combobox', { name: 'Breadth percentile scope 1.1' }).selectOption('cross_sectional')
     await conditionTree.getByRole('button', { name: '+ Group' }).click()
-    const nestedGroup = conditionTree.locator('.breadth-condition-tree--nested').last()
+    const nestedGroup = conditionTree.locator('.breadth-condition-tree--nested').nth(1)
     await expect(nestedGroup).toBeVisible()
+    await expect(nestedGroup.getByRole('combobox', { name: 'Breadth group operator 1.2' })).toHaveValue('all')
     await conditionTree.getByRole('combobox', { name: 'Breadth group operator 1.2' }).selectOption('any')
     await conditionTree.getByRole('combobox', { name: 'Breadth condition type 1.2.1' }).selectOption('new_high_low')
     const treeRequest = await evaluateCustomBreadth()
@@ -4331,6 +6240,36 @@ test.describe('TC2000 workstation', () => {
         conditions: [
           expect.objectContaining({ kind: 'percentile', target_scope: 'cross_sectional' }),
           { kind: 'any', params: { conditions: [expect.objectContaining({ kind: 'new_high_low' })] } },
+        ],
+      },
+    })
+    await nestedGroup.getByRole('button', { name: '+ Condition' }).click()
+    await conditionTree.getByRole('combobox', { name: 'Breadth condition type 1.2.2' }).selectOption('rsi')
+    await conditionTree.getByRole('spinbutton', { name: 'Breadth threshold 1.2.2' }).fill('60')
+    await conditionTree.getByRole('spinbutton', { name: 'Breadth threshold 1.2.2' }).press('Tab')
+    await conditionTree.getByRole('combobox', { name: 'Breadth group operator 1.2' }).selectOption('not')
+    const negatedTreeRequest = await evaluateCustomBreadth()
+    expect(negatedTreeRequest?.condition).toMatchObject({
+      kind: 'all',
+      params: {
+        conditions: [
+          expect.objectContaining({ kind: 'percentile', target_scope: 'cross_sectional' }),
+          {
+            kind: 'not',
+            params: {
+              conditions: [
+                {
+                  kind: 'any',
+                  params: {
+                    conditions: [
+                      expect.objectContaining({ kind: 'new_high_low' }),
+                      expect.objectContaining({ kind: 'rsi', params: expect.objectContaining({ threshold: 60 }) }),
+                    ],
+                  },
+                },
+              ],
+            },
+          },
         ],
       },
     })
@@ -4492,6 +6431,38 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s-rotation-keyboard — Relative Rotation plot supports keyboard point inspection and selection', async ({ page, browserDiagnostics }) => {
+    await page.route('**/api/v1/analysis/groups/sp500-sectors/relative-rotation*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ benchmark: 'SPY', freshness: 'current', rows: [
+          { instrument_id: 101, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.03, distance: 0.12, coverage: 1, tail: [{ timestamp: '2026-09-29T00:00:00Z', trend: 0.09, momentum: 0.02 }, { timestamp: '2026-09-30T00:00:00Z', trend: 0.1, momentum: 0.03 }] },
+          { instrument_id: 102, symbol: 'XLE', state: 'lagging', trend: -0.1, momentum: -0.03, distance: 0.12, coverage: 1, tail: [{ timestamp: '2026-09-30T00:00:00Z', trend: -0.1, momentum: -0.03 }] },
+        ] }),
+      })
+    })
+    await page.goto('/chart/SPY')
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('menuitem', { name: 'Relative Rotation', exact: true }).click()
+    const rotation = page.locator('.tool-window:visible').filter({ has: page.locator('.rotation-tool') }).last()
+    const region = rotation.locator('[role="region"][aria-label="Relative rotation vs SPY"]')
+    await expect(region).toBeVisible({ timeout: 10_000 })
+    await expect(region).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
+
+    const plot = region.getByRole('group', { name: 'Relative rotation trend and momentum plane' })
+    await plot.focus()
+    const tooltip = region.locator('.rotation-tool__tooltip')
+    await expect(tooltip).toContainText('XLK')
+    await expect(tooltip).toContainText('2026-09-30')
+    await plot.press('ArrowRight')
+    await expect(tooltip).toContainText('XLE')
+    await plot.press('Enter')
+    await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue('XLE', { timeout: 10_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8s-rotation-family — Relative Rotation exposes family cap/equal/style legs', async ({ page, browserDiagnostics }) => {
     let historyRequested = false
     await page.route('**/api/v1/analysis/benchmark-families/sp400/relative-rotation*', async route => {
@@ -4533,7 +6504,7 @@ test.describe('TC2000 workstation', () => {
     const report = page.locator('.tool-window:visible').filter({ has: page.locator('.info-section') }).last()
     await expect(report).toBeVisible({ timeout: 10_000 })
     const region = report.locator('[role="region"][aria-label="SPY instrument report"]')
-    const header = region.locator('.section-header[role="button"]')
+    const header = region.getByRole('button').first()
     await expect(header).toHaveAttribute('aria-expanded', 'true')
     await header.press('Enter')
     await expect(header).toHaveAttribute('aria-expanded', 'false')
@@ -4569,7 +6540,10 @@ test.describe('TC2000 workstation', () => {
     // Start from the user-facing label, not the row center: the center can
     // land on a line-width input and prevent Chromium from starting a native
     // drag from the draggable plot row.
-    const plotDragSource = plot.locator('span').filter({ hasText: /^RSI/ }).first()
+    // The visible label is also the indicator-settings button. It remains a
+    // descendant of the draggable plot row, so start the real drag from that
+    // current user-facing label instead of the removed pre-settings span.
+    const plotDragSource = plot.getByRole('button', { name: /^Edit RSI.* settings$/ }).first()
     await expect(plotDragSource).toBeVisible({ timeout: 10_000 })
     const target = page.getByRole('region', { name: 'Major US benchmarks' })
     // The benchmark watchlist can still be replacing its initial analysis
@@ -4582,6 +6556,238 @@ test.describe('TC2000 workstation', () => {
     // the row-reordering drop listener and targets the column-header surface.
     await plotDragSource.dragTo(target.locator('.watchlist__header'), { steps: 8 })
     await expect(droppedHeader).toBeVisible({ timeout: 10_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8u-boolean — chart indicators promote into a persisted Boolean watchlist column', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    await page.goto('/chart/SPY')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    const plot = chart.locator('.chart-plots li').filter({ hasText: 'RSI' }).last()
+    await expect(plot).toBeVisible({ timeout: 10_000 })
+    await chart.getByRole('combobox', { name: 'Promotion plot' }).selectOption({ index: 1 })
+
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('column')
+    const targetPicker = page.getByRole('combobox', { name: 'Plot promotion watchlist' })
+    await expect(targetPicker).toBeVisible({ timeout: 10_000 })
+    const targetOption = targetPicker.locator('option').nth(1)
+    const targetKey = await targetOption.getAttribute('value')
+    expect(targetKey).toBeTruthy()
+    await targetPicker.selectOption(targetKey!)
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('65')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('RSI Boolean column')
+
+    const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/rsi-boolean-column') && response.ok())
+    const scanCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/screeners/from-condition/rsi-boolean-column') && response.ok())
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
+    await Promise.all([conditionSave, scanCreate])
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('Boolean column', { timeout: 15_000 })
+
+    // The selected target is keyed by the live Golden Layout window above.
+    // Depending on whether that window is exposed as a named outer tool region
+    // or as its nested watchlist region, the accessible label can differ (for
+    // example, “Benchmarks” vs “Major US benchmarks”). Assert the newly
+    // persisted header on the visible watchlist surface rather than coupling
+    // the proof to that wrapper's label.
+    const promotedHeader = page.locator('.watchlist__header button').filter({ hasText: 'RSI Boolean column' }).last()
+    await expect(promotedHeader).toBeVisible({ timeout: 15_000 })
+    await expect(promotedHeader).toHaveAttribute('aria-pressed', 'false')
+    await promotedHeader.click({ button: 'right' })
+    const pinMenu = page.getByRole('menu', { name: 'Column actions for RSI Boolean column' })
+    await expect(pinMenu).toBeVisible()
+    const pinMenuId = await pinMenu.getAttribute('id')
+    expect(pinMenuId).toBeTruthy()
+    await expect(promotedHeader).toHaveAttribute('aria-controls', pinMenuId!)
+    await pinMenu.getByRole('menuitem', { name: 'Pin to Top (ctrl-click)' }).click()
+    await expect(promotedHeader).not.toHaveAttribute('aria-controls')
+    await expect(promotedHeader).toHaveAttribute('aria-label', /pinned to top/)
+    await expect(promotedHeader.locator('.workstation-glyph--pin')).toBeVisible()
+    await expect(promotedHeader).toHaveAttribute('aria-pressed', 'false')
+    await promotedHeader.click({ modifiers: ['Control'] })
+    await expect(promotedHeader).toHaveAttribute('aria-label', 'Sort by RSI Boolean column')
+    await expect(promotedHeader.locator('.workstation-glyph--pin')).toHaveCount(0)
+    await expect(promotedHeader).toHaveAttribute('aria-pressed', 'false')
+
+    await promotedHeader.press('Shift+F10')
+    await expect(promotedHeader).toHaveAttribute('aria-expanded', 'true')
+    const keyboardPinMenu = page.getByRole('menu', { name: 'Column actions for RSI Boolean column' })
+    await expect(keyboardPinMenu).toBeVisible()
+    await expect(keyboardPinMenu).toHaveAttribute('id', pinMenuId!)
+    await expect(promotedHeader).toHaveAttribute('aria-controls', pinMenuId!)
+    const keyboardPinAction = keyboardPinMenu.getByRole('menuitem', { name: 'Pin to Top (ctrl-click)' })
+    await expect(keyboardPinAction).toBeFocused()
+    await keyboardPinAction.press('ArrowDown')
+    await expect(keyboardPinAction).toBeFocused()
+    await keyboardPinAction.press('Enter')
+    await expect(promotedHeader).toHaveAttribute('aria-expanded', 'false')
+    await expect(promotedHeader).not.toHaveAttribute('aria-controls')
+    await expect(promotedHeader).toBeFocused()
+    await expect(promotedHeader).toHaveAttribute('aria-label', /pinned to top/)
+    await expect(promotedHeader.locator('.workstation-glyph--pin')).toBeVisible()
+    await expect(promotedHeader).toHaveAttribute('aria-pressed', 'false')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8u-signal — single-output chart indicators promote into a Strategy signal', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    const instrumentLoaded = page.waitForResponse(response => response.request().method() === 'GET' && response.url().includes('/api/v1/instruments/SPY') && response.ok())
+    await page.goto('/chart/SPY')
+    await instrumentLoaded
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    // The persisted Golden Layout can mount a chart root before its panel-scoped
+    // instrument hydration completes. Promotion resolves the selected chart's
+    // canonical identity itself, so this flow also covers that mount race.
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('signal')
+    await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('70')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('RSI Strategy signal')
+    const assetCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/code/assets') && response.ok())
+    const signalCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/strategy-lab/signals/from-code/') && response.ok())
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
+    await Promise.all([assetCreate, signalCreate])
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('Strategy signal', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8u-filter — chart indicators promote into a persisted watchlist filter', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    await page.goto('/chart/SPY')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('filter')
+    const targetPicker = page.getByRole('combobox', { name: 'Plot promotion watchlist' })
+    await expect(targetPicker).toBeVisible({ timeout: 10_000 })
+    const targetOption = targetPicker.locator('option').nth(1)
+    const targetKey = await targetOption.getAttribute('value')
+    const targetTitle = (await targetOption.textContent())?.trim() || ''
+    expect(targetKey).toBeTruthy()
+    await targetPicker.selectOption(targetKey!)
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('65')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('RSI watchlist filter')
+    const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/rsi-watchlist-filter') && response.ok())
+    const scanCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/screeners/from-condition/rsi-watchlist-filter') && response.ok())
+    const snapshotSave = page.waitForResponse(async response => {
+      if (response.request().method() !== 'PUT' || !response.url().includes('/api/v1/workspaces/') || !response.url().endsWith('/snapshot') || !response.ok()) return false
+      const body = response.request().postDataJSON?.() as { tabs?: Array<{ windows?: Array<{ instance_key?: string; configuration?: Record<string, unknown> }> }> } | undefined
+      const target = body?.tabs?.flatMap(tab => tab.windows ?? []).find(window => window.instance_key === targetKey)
+      return target?.configuration?.condition_filter_mode === 'active' && Number.isInteger(target?.configuration?.condition_screener_id)
+    })
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
+    await Promise.all([conditionSave, scanCreate, snapshotSave])
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('filter', { timeout: 15_000 })
+    await expect(page.getByRole('region', { name: targetTitle })).toBeVisible({ timeout: 10_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8u-alert — chart indicators promote into an indicator alert for the active instrument', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    await page.goto('about:blank')
+    const instrumentLoaded = page.waitForResponse(response => response.request().method() === 'GET' && response.url().includes('/api/v1/instruments/SPY') && response.ok())
+    await page.goto('/chart/SPY')
+    await instrumentLoaded
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    // The persisted Golden Layout can mount the chart before its panel-scoped
+    // instrument hydration completes. Give the canonical active instrument
+    // state the same bounded settling window as the signal promotion flow.
+    await page.waitForTimeout(2_000)
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('ema')
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('alert')
+    await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('100')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('EMA indicator alert')
+
+    const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/ema-indicator-alert') && response.ok())
+    const alertCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/alerts/indicator'))
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
+    const [, alertResponse] = await Promise.all([conditionSave, alertCreate])
+    expect(alertResponse.ok()).toBeTruthy()
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('indicator alert', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8u-scan — chart indicators promote into a reusable EasyScan', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    await page.goto('about:blank')
+    const instrumentLoaded = page.waitForResponse(response => response.request().method() === 'GET' && response.url().includes('/api/v1/instruments/SPY') && response.ok())
+    await page.goto('/chart/SPY')
+    await instrumentLoaded
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('sma')
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('scan')
+    await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('50')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('SMA EasyScan')
+    const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/sma-easyscan') && response.ok())
+    const scanCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/screeners/from-condition/sma-easyscan') && response.ok())
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
+    await Promise.all([conditionSave, scanCreate])
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('EasyScan', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8u-gauge — chart indicators promote into a Market Gauge through EasyScan', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    const instrumentLoaded = page.waitForResponse(response => response.request().method() === 'GET' && response.url().includes('/api/v1/instruments/SPY') && response.ok())
+    await page.goto('/chart/SPY')
+    await instrumentLoaded
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    const indicatorSave = page.waitForResponse(response => {
+      const path = new URL(response.url()).pathname
+      return response.request().method() === 'PUT' && /^\/api\/v1\/instrument-indicators\/\d+$/.test(path) && response.ok()
+    })
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await indicatorSave
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('gauge')
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('70')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('RSI Market Gauge')
+    const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/rsi-market-gauge') && response.ok())
+    const scanCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/screeners/from-condition/rsi-market-gauge') && response.ok())
+    await page.getByRole('button', { name: 'Copy plot to selected promotion target', exact: true }).click()
+    await Promise.all([conditionSave, scanCreate])
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('Market Gauge', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -4706,6 +6912,23 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8x-capabilities — authenticated Add tool menu exposes only supported workstation surfaces', async ({ page, browserDiagnostics }) => {
+    await page.goto('/chart/SPY')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+
+    const menu = page.getByRole('menu', { name: 'Workstation tools' })
+    await expect(menu).toBeVisible()
+    await expect(menu.getByRole('menuitem')).toHaveText([
+      'Chart', 'WatchList', 'My Favorites', 'Notes', 'Alerts', 'EasyScan', 'Market Gauge', 'Study Lab',
+      'Study Results', 'Relative Rotation', 'Market Breadth', 'Market Map',
+      'Technical Summary', 'Coverage', 'Instrument Report', 'Python Library',
+    ])
+    await expect(menu.getByRole('menuitem', { disabled: true })).toHaveCount(0)
+    await expect(menu).not.toContainText(/coming soon|not available|requires entitlement/i)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8x-library — Python study assets support version, clone, and archive lifecycle', async ({ page, browserDiagnostics }) => {
     test.setTimeout(90_000)
     const studyName = `E2E library study ${Date.now()}`
@@ -4734,8 +6957,9 @@ test.describe('TC2000 workstation', () => {
 
     await asset.getByRole('button', { name: 'Clone', exact: true }).click()
     await expect(library.locator('.code-library-tool__asset').filter({ hasText: `${studyName} copy` })).toBeVisible({ timeout: 15_000 })
-    await asset.getByRole('button', { name: 'Archive', exact: true }).click()
-    await expect(asset).toContainText('archived')
+    const originalAsset = library.locator('.code-library-tool__asset').filter({ has: page.locator('strong').getByText(studyName, { exact: true }) }).first()
+    await originalAsset.getByRole('button', { name: 'Archive asset', exact: true }).click()
+    await expect(originalAsset).toContainText('archived')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -4942,6 +7166,7 @@ test.describe('Drawing tools', () => {
     await menu.getByRole('menuitem', { name: 'Horizontal Line' }).press('Enter')
     await expect(menu).toHaveCount(0)
     await expect(linesButton).toHaveClass(/active/)
+    await expect(linesButton).toBeFocused()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -4976,6 +7201,27 @@ test.describe('Drawing tools', () => {
   })
 
   test('F14-context-keyboard — selected drawing actions expose a scoped menu', async ({ page, browserDiagnostics }) => {
+    // This flow covers drawing interactions, not backend market-data latency.
+    // Give uPlot deterministic local OHLC rows so a delayed seeded-store read
+    // cannot leave the chart shell in its loading state before the keyboard
+    // contract is exercised.
+    const chartBars = Array.from({ length: 80 }, (_, index) => {
+      const close = 500 + index * 0.25
+      return {
+        ts: new Date(Date.UTC(2025, 0, index + 1)).toISOString(),
+        open: close - 0.2,
+        high: close + 1,
+        low: close - 1,
+        close,
+        volume: 1_000_000 + index * 1_000,
+        is_adjusted: true,
+      }
+    })
+    await page.route(/\/api\/v1\/ohlcv\/local\/SPY\/D1(?:\?.*)?$/, route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(chartBars),
+    }))
     const drawing = {
       id: 901,
       instrument_id: 1,
@@ -5106,7 +7352,7 @@ test.describe('Dashboard', () => {
     await expect(personal).toBeVisible({ timeout: 10_000 })
     await expect(personal).toHaveAttribute('role', 'region')
     await expect(personal).toHaveAttribute('aria-busy', 'false')
-    await expect(personal.getByRole('button', { name: 'New', exact: true })).toBeVisible()
+    await expect(personal.getByRole('button', { name: 'Create personal watchlist', exact: true })).toBeVisible()
     await expect(personal.getByRole('combobox', { name: 'Personal watchlist', exact: true })).toBeVisible()
     await expect(personal.boundingBox()).resolves.toMatchObject({ width: expect.any(Number) })
     const suffix = crypto.randomUUID()
@@ -5114,7 +7360,7 @@ test.describe('Dashboard', () => {
     const listName = personal.getByLabel('Personal watchlist name')
     const watchlistSelect = personal.getByRole('combobox', { name: 'Personal watchlist', exact: true })
     await listName.fill(sourceName)
-    await personal.getByRole('button', { name: 'New', exact: true }).click()
+    await personal.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
     await expect(watchlistSelect).toHaveValue(/\d+/)
     await expect(personal).toBeVisible()
 
@@ -5122,23 +7368,23 @@ test.describe('Dashboard', () => {
     // the direct add control.  This closes the browser-coverage gap around
     // copying and moving a canonical instrument between personal lists.
     const sourceId = await watchlistSelect.inputValue()
-    const symbolInput = personal.getByLabel('Add symbol to personal watchlist')
+    const symbolInput = personal.getByRole('textbox', { name: 'Add symbol to personal watchlist', exact: true })
     await symbolInput.fill('XLE')
-    await personal.getByRole('button', { name: 'Add', exact: true }).click()
+    await personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLE' })).toBeVisible({ timeout: 10_000 })
     await expect(personal).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
     await symbolInput.fill('XLK')
-    await expect(personal.getByRole('button', { name: 'Add', exact: true })).toBeEnabled({ timeout: 10_000 })
-    await personal.getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true })).toBeEnabled({ timeout: 10_000 })
+    await personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLK' })).toBeVisible({ timeout: 10_000 })
 
 
     await listName.fill(`E2E target ${suffix}`)
-    await personal.getByRole('button', { name: 'New', exact: true }).click()
+    await personal.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
     await expect(watchlistSelect).not.toHaveValue(sourceId)
     const copyTargetId = await watchlistSelect.inputValue()
     await listName.fill(`E2E move target ${suffix}`)
-    await personal.getByRole('button', { name: 'New', exact: true }).click()
+    await personal.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
     await expect(watchlistSelect).not.toHaveValue(copyTargetId)
     const moveTargetId = await watchlistSelect.inputValue()
     expect(moveTargetId).not.toBe(sourceId)
@@ -5153,16 +7399,32 @@ test.describe('Dashboard', () => {
     await sourceRow.click()
     await secondSourceRow.click({ modifiers: [process.platform === 'darwin' ? 'Meta' : 'Control'] })
     await expect(personal.locator('.watchlist__row--selected')).toHaveCount(2)
-    await sourceRow.click({ button: 'right' })
-    // The menu is positioned outside the watchlist bounds, so scope it to the
-    // visible global menu rather than the last DOM watchlist instance.
+    const rowListbox = personal.getByRole('listbox', { name: /symbols$/ })
+    await rowListbox.press('Shift+F')
+    await expect(personal.locator('.watchlist__flag[aria-label="Flagged"]')).toHaveCount(2)
+    await rowListbox.press('Shift+F')
+    await expect(personal.locator('.watchlist__flag[aria-label="Flagged"]')).toHaveCount(0)
+    await expect(personal.locator('.watchlist__row--selected')).toHaveCount(2)
+    let membershipMutationRequests = 0
+    page.on('request', request => {
+      if (request.url().includes('/items/transfer-batch')) membershipMutationRequests += 1
+    })
+    await rowListbox.press('Control+m')
     const sourceMenu = page.locator('.watchlist__context-menu:visible').last()
     await expect(sourceMenu).toBeVisible()
-    await sourceMenu.getByLabel('Target watchlist').selectOption(copyTargetId)
+    const targetWatchlist = sourceMenu.getByLabel('Target watchlist')
+    await expect(targetWatchlist).toBeFocused()
+    await expect(sourceMenu.getByRole('menuitem', { name: 'Copy 2 selected to list' })).toBeDisabled()
+    expect(membershipMutationRequests).toBe(0)
+    await targetWatchlist.selectOption(copyTargetId)
+    await targetWatchlist.press('Tab')
+    const copyAction = sourceMenu.getByRole('menuitem', { name: 'Copy 2 selected to list' })
+    await expect(copyAction).toBeFocused()
     await Promise.all([
       page.waitForResponse(response => response.url().includes(`/watchlists/${copyTargetId}/items/transfer-batch`) && response.request().method() === 'POST' && response.ok()),
-      sourceMenu.getByRole('menuitem', { name: 'Copy 2 selected to list' }).click(),
+      copyAction.press('Enter'),
     ])
+    expect(membershipMutationRequests).toBe(1)
     await expect(sourceMenu).toHaveCount(0)
 
     await watchlistSelect.selectOption(copyTargetId)
@@ -5210,23 +7472,23 @@ test.describe('Dashboard', () => {
     const suffix = crypto.randomUUID()
     const listName = personal.getByLabel('Personal watchlist name')
     const watchlistSelect = personal.getByRole('combobox', { name: 'Personal watchlist', exact: true })
-    const symbolInput = personal.getByLabel('Add symbol to personal watchlist')
+    const symbolInput = personal.getByRole('textbox', { name: 'Add symbol to personal watchlist', exact: true })
 
     const listAName = `E2E combo union A ${suffix}`
     await listName.fill(listAName)
-    await personal.getByRole('button', { name: 'New', exact: true }).click()
+    await personal.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
     await expect(watchlistSelect.locator('option', { hasText: listAName })).toHaveCount(1, { timeout: 15_000 })
     await watchlistSelect.selectOption({ label: listAName })
     const listA = await watchlistSelect.inputValue()
     await expect(watchlistSelect).toHaveValue(listA)
     await symbolInput.fill('SPY')
-    await personal.getByRole('button', { name: 'Add', exact: true }).click()
+    await personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'SPY' })).toBeVisible({ timeout: 10_000 })
     await expect(personal).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
 
     const listBName = `E2E combo union B ${suffix}`
     await listName.fill(listBName)
-    await personal.getByRole('button', { name: 'New', exact: true }).click()
+    await personal.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
     await expect(watchlistSelect.locator('option', { hasText: listBName })).toHaveCount(1, { timeout: 15_000 })
     await watchlistSelect.selectOption({ label: listBName })
     const listB = await watchlistSelect.inputValue()
@@ -5234,14 +7496,14 @@ test.describe('Dashboard', () => {
     await symbolInput.fill('XLK')
     await expect(watchlistSelect).toHaveValue(listB)
     await expect(personal).toContainText(listBName, { timeout: 10_000 })
-    await expect(personal.getByRole('button', { name: 'Add', exact: true })).toBeEnabled({ timeout: 10_000 })
-    await personal.getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true })).toBeEnabled({ timeout: 10_000 })
+    await personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLK' })).toBeVisible({ timeout: 10_000 })
     await expect(personal).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
 
     const exclusionName = `E2E combo exclusion ${suffix}`
     await listName.fill(exclusionName)
-    await personal.getByRole('button', { name: 'New', exact: true }).click()
+    await personal.getByRole('button', { name: 'Create personal watchlist', exact: true }).click()
     await expect(watchlistSelect.locator('option', { hasText: exclusionName })).toHaveCount(1, { timeout: 15_000 })
     await watchlistSelect.selectOption({ label: exclusionName })
     const exclusionList = await watchlistSelect.inputValue()
@@ -5249,8 +7511,8 @@ test.describe('Dashboard', () => {
     expect(exclusionList).not.toBe(listB)
     await symbolInput.fill('XLK')
     await expect(watchlistSelect).toHaveValue(exclusionList)
-    await expect(personal.getByRole('button', { name: 'Add', exact: true })).toBeEnabled({ timeout: 10_000 })
-    await personal.getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true })).toBeEnabled({ timeout: 10_000 })
+    await personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLK' })).toBeVisible({ timeout: 10_000 })
 
     // Creating/selecting lists can hand the active Golden Layout root to a
@@ -5269,14 +7531,14 @@ test.describe('Dashboard', () => {
     await exclude.selectOption([exclusionList])
     const comboName = `E2E combo ${suffix}`
     await comboEditor.getByLabel('Combo list name').fill(comboName)
-    await comboEditor.getByRole('button', { name: 'New combo', exact: true }).click()
+    await comboEditor.getByRole('button', { name: 'Create combo list', exact: true }).click()
     const comboWatchlistSelect = comboPersonal.getByRole('combobox', { name: 'Personal watchlist', exact: true })
     await expect(comboWatchlistSelect.locator('option', { hasText: comboName })).toHaveCount(1, { timeout: 15_000 })
     // A+B is two symbols, then the exclusion list removes XLK, leaving SPY.
     await expect(comboPersonal).toContainText(new RegExp(`1 symbols · ${comboName}`), { timeout: 10_000 })
     await expect(comboPersonal.locator('.watchlist__row').filter({ hasText: 'SPY' })).toBeVisible()
     await expect(comboPersonal.locator('.watchlist__row').filter({ hasText: 'XLK' })).toHaveCount(0)
-    await comboEditor.getByRole('button', { name: 'Delete combo', exact: true }).click()
+    await comboEditor.getByRole('button', { name: 'Delete combo list', exact: true }).click()
     await expect(comboWatchlistSelect.locator('option', { hasText: comboName })).toHaveCount(0, { timeout: 10_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -5300,6 +7562,39 @@ test.describe('Dashboard', () => {
     await expect(personal).toHaveAttribute('role', 'region')
     await expect(personal).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 })
     await expect(personal.locator('[role="alert"]')).toContainText('API GET', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F8aa-favorites — My Favorites persists chart membership and opens as a Quick List', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(45_000)
+    await page.goto('/chart/SPY')
+
+    const chartTool = page.locator('.tool-window').filter({ has: page.locator('.chart-tool') }).first()
+    const addFavorite = chartTool.getByRole('button', { name: 'Add SPY to My Favorites', exact: true })
+    await expect(addFavorite).toBeVisible({ timeout: 15_000 })
+    const addResponse = page.waitForResponse(response => {
+      const path = new URL(response.url()).pathname
+      return response.request().method() === 'PUT' && /^\/api\/v1\/favorites\/instruments\/\d+$/.test(path)
+    })
+    await addFavorite.click()
+    expect((await addResponse).status()).toBe(200)
+    const removeFavorite = chartTool.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true })
+    await expect(removeFavorite).toHaveAttribute('aria-pressed', 'true')
+
+    // The favorite is a user-owned persisted collection, independent of the
+    // current chart/workspace mount. A normal page reload must restore it.
+    await page.reload()
+    await expect(chartTool.getByRole('button', { name: 'Remove SPY from My Favorites', exact: true }))
+      .toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 })
+
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    const toolMenu = page.locator('.workstation__tool-library-menu')
+    await expect(toolMenu).toBeVisible({ timeout: 10_000 })
+    await toolMenu.getByRole('menuitem', { name: 'My Favorites', exact: true }).click()
+    const favorites = page.getByRole('region', { name: 'My Favorites Quick List' })
+    await expect(favorites).toBeVisible({ timeout: 10_000 })
+    await expect(favorites).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
+    await expect(favorites.locator('.watchlist__row').filter({ hasText: 'SPY' })).toBeVisible()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

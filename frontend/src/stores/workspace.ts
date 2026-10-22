@@ -3,8 +3,9 @@ import { computed, ref } from 'vue'
 import { api } from '@/lib/api'
 import { isEditorTarget as isWorkstationEditorTarget } from '@/lib/workstation/keyboard'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
+import type { LinkGroup } from '@/stores/dashboardLinks'
 
-export type LinkGroup = 'blue' | 'red' | 'green' | 'purple' | 'orange' | 'cyan' | 'pink' | 'brown' | 'yellow' | 'grey'
+export type { LinkGroup } from '@/stores/dashboardLinks'
 
 export interface WorkspaceWindowState {
   id: number
@@ -62,6 +63,7 @@ export interface OpenableToolDefinition {
 export const OPENABLE_WORKSTATION_TOOLS: readonly OpenableToolDefinition[] = [
   { tool_type: 'chart', title: 'Chart', instance_prefix: 'chart', configuration: { symbol: 'SPY', timeframe: 'D1' } },
   { tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true, watchlist_id: null } },
+  { tool_type: 'watchlist', title: 'My Favorites', instance_prefix: 'favorites', configuration: { personal: true, favorites: true } },
   { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
   { tool_type: 'alerts', title: 'Alerts', instance_prefix: 'alerts', configuration: { scope: 'active-instrument' } },
   { tool_type: 'scan', title: 'EasyScan', instance_prefix: 'easy-scan', configuration: { scope: 'saved-conditions' } },
@@ -279,6 +281,13 @@ export interface BenchmarkFamilyBreadthHistoryState {
     available: boolean
     membership_version?: number | null
     universe_provenance?: Record<string, unknown>
+    member_count: number
+    covered_member_count: number
+    coverage_percent: number
+    analysis_ready_member_count: number
+    analysis_ready_percent: number
+    required_bar_count?: number | null
+    analysis_ready_status?: string
     points: BreadthHistoryState['points']
     exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
   }>
@@ -508,8 +517,13 @@ export interface BenchmarkFamilyCoverageSnapshotState {
   composition_date: string
   as_of_date?: string | null
   known_at?: string | null
+  published_at?: string | null
+  cadence?: string | null
+  parser_version?: string | null
+  timing_provenance?: Record<string, string>
   provenance: string
   source_provider: string
+  source_identifier?: string | null
   source_quality: string
   completeness_status: string
   row_count: number
@@ -531,7 +545,26 @@ export interface BenchmarkFamilyMemberBarHistoryTimeframeState {
   coverage_percent: number
   analysis_ready_member_count: number
   analysis_ready_percent: number
+  analysis_ready_status?: 'ready' | 'partial' | 'pending' | 'unavailable' | string
   bar_count: number
+  provider_member_count?: number
+  derived_member_count?: number
+  provider_only_member_count?: number
+  derived_only_member_count?: number
+  mixed_member_count?: number
+  provider_bar_count?: number
+  derived_bar_count?: number
+  source_lineage?: 'provider_only' | 'derived_only' | 'provider_and_derived' | 'unavailable'
+  adjustment_provenance?: {
+    mode?: string
+    source_kind?: string
+    factor_status?: string
+    factor_version?: string | null
+    factor_versioned_member_count?: number
+    factor_opaque_member_count?: number
+    factor_unavailable_member_count?: number
+    contract_version?: number
+  }
   oldest?: string | null
   newest?: string | null
 }
@@ -540,6 +573,9 @@ export interface BenchmarkFamilyMemberBarHistoryState {
   status: string
   snapshot_id?: number | null
   composition_date?: string | null
+  member_disposition?: Record<string, number>
+  placeholder_member_count?: number
+  unresolved_member_count?: number
   timeframes: BenchmarkFamilyMemberBarHistoryTimeframeState[]
 }
 
@@ -549,15 +585,55 @@ export interface BenchmarkFamilyCoverageRoleState {
   label: string
   verification_state: string
   instrument_id?: number | null
+  adapter_key?: string | null
+  adapter_status?: string | null
+  adapter_confidence?: number | string | null
   available: boolean
   status: string
+  holdings_completeness_status?: string | null
+  holdings_route_adapter_key?: string | null
+  holdings_route_provider?: string | null
+  holdings_route_status?: string
+  history_route_status?: string | null
+  history_route_provider?: string | null
+  history_route_policy?: string | null
+  history_route_source_url?: string | null
   snapshots: BenchmarkFamilyCoverageSnapshotState[]
   continuity_status?: 'not_applicable' | 'no_snapshot' | 'single_snapshot' | 'observed_continuity' | 'gapped' | string
   continuity_gap_count?: number
   continuity_max_interval_days?: number | null
   continuity_gaps?: BenchmarkFamilyCoverageGapState[]
   continuity_snapshot_limit_reached?: boolean
+  observed_cadence_status?: 'not_applicable' | 'no_snapshot' | 'single_snapshot' | 'observed_cadence' | 'no_interval' | string
+  observed_cadence_sample_count?: number
+  observed_cadence_median_interval_days?: number | null
+  observed_cadence_min_interval_days?: number | null
+  observed_cadence_max_interval_days?: number | null
   member_bar_history?: BenchmarkFamilyMemberBarHistoryState
+  entitlement_status?: string
+  entitlement_provider?: string | null
+  entitlement_capabilities?: Record<string, string>
+  entitlement_revision?: number | null
+  entitlement_effective_at?: string | null
+  entitlement_review_due_at?: string | null
+  entitlement_live_probe_status?: string | null
+  holdings_refresh_status?: string
+  holdings_refresh_provider?: string | null
+  holdings_refresh_last_checked_at?: string | null
+  holdings_refresh_last_success_at?: string | null
+  holdings_refresh_last_failure_at?: string | null
+  holdings_refresh_failure_reason?: string | null
+  holdings_refresh_composition_date?: string | null
+  point_in_time_supported?: boolean
+  member_count?: number
+  placeholder_member_count?: number
+  weighted_member_count?: number
+  weights_status?: string
+  classified_member_count?: number
+  classification_status?: string
+  history_ready?: boolean
+  composite_readiness_status?: string
+  composite_readiness_reasons?: string[]
 }
 
 export interface BenchmarkFamilyCoverageState {
@@ -571,6 +647,29 @@ export interface BenchmarkFamilyCoverageState {
   coverage: number
   roles: BenchmarkFamilyCoverageRoleState[]
   exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
+export interface BenchmarkFamilyReadinessState {
+  as_of?: string | null
+  snapshot_limit: number
+  family_count: number
+  ready_family_count: number
+  role_count: number
+  ready_role_count: number
+  readiness_status: string
+  universe_provenance: Record<string, unknown>
+  provider_probe_evidence?: Array<{
+    provider: string
+    capability: string
+    classification: string
+    success: boolean
+    consecutive_failures: number
+    recovered: boolean
+    observed_at: string
+  }>
+  families: BenchmarkFamilyCoverageState[]
   freshness?: string
   freshness_detail?: Record<string, number>
 }
@@ -608,6 +707,8 @@ export interface BreadthHistoryState {
 export interface GenericBreadthState {
   definition_version: number
   definition_hash: string
+  calculation_version?: string
+  data_provenance?: string
   universe: Record<string, unknown>
   condition: Record<string, unknown>
   timeframe: string
@@ -993,6 +1094,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const benchmarkFamilyOverviewErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyCoverages = ref<Record<string, BenchmarkFamilyCoverageState | null>>({})
   const benchmarkFamilyCoverageErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyReadiness = ref<BenchmarkFamilyReadinessState | null>(null)
+  const benchmarkFamilyReadinessError = ref<string | null>(null)
   const benchmarkFamilyConstituents = ref<Record<string, BenchmarkFamilyConstituentsState | null>>({})
   const benchmarkFamilyConstituentErrors = ref<Record<string, string | null>>({})
   const breadth = ref<Record<string, BreadthState>>({})
@@ -1030,7 +1133,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let leaderTimer: ReturnType<typeof setInterval> | null = null
   let snapshotTimer: ReturnType<typeof setTimeout> | null = null
   let snapshotSavePromise: Promise<void> | null = null
-  let snapshotSaveGeneration = 0
+  let snapshotPersistingGeneration: number | null = null
   let lastLocalWorkspaceMutationAt = 0
   const recentLinkGroupOverrides = new Map<string, { group: LinkGroup; symbol: string; at: number }>()
   const recentActiveWindowOverrides = new Map<string, { windowKey: string; at: number }>()
@@ -1080,13 +1183,97 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return JSON.stringify(left) === JSON.stringify(right)
   }
 
+  type SettingEntry = { present: boolean; value?: unknown }
+
+  function settingEntry(settings: Record<string, unknown>, key: string): SettingEntry {
+    return Object.prototype.hasOwnProperty.call(settings, key)
+      ? { present: true, value: settings[key] }
+      : { present: false }
+  }
+
+  function sameSettingEntry(left: SettingEntry, right: SettingEntry) {
+    return left.present === right.present && (!left.present || sameJson(left.value, right.value))
+  }
+
+  function mergeSettingEntry(baseline: SettingEntry, local: SettingEntry, remote: SettingEntry): SettingEntry {
+    if (sameSettingEntry(local, baseline)) return remote
+    if (sameSettingEntry(remote, baseline) || sameSettingEntry(local, remote)) return local
+    // A conflict on one group's link state is resolved in favour of this
+    // workstation's latest local interaction, matching the same-window
+    // configuration tie-breaker used below.
+    return local
+  }
+
+  function isSettingsRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+  }
+
+  function mergeLinkSettingsMap(
+    baseline: SettingEntry,
+    local: SettingEntry,
+    remote: SettingEntry,
+  ): SettingEntry {
+    const values = [baseline, local, remote]
+    if (values.some(entry => !entry.present || !isSettingsRecord(entry.value))) {
+      return mergeSettingEntry(baseline, local, remote)
+    }
+    const baseMap = baseline.present ? baseline.value as Record<string, unknown> : {}
+    const localMap = local.present ? local.value as Record<string, unknown> : {}
+    const remoteMap = remote.present ? remote.value as Record<string, unknown> : {}
+    const merged: Record<string, unknown> = {}
+    const keys = new Set([...Object.keys(baseMap), ...Object.keys(localMap), ...Object.keys(remoteMap)])
+    for (const key of keys) {
+      const entry = mergeSettingEntry(
+        settingEntry(baseMap, key),
+        settingEntry(localMap, key),
+        settingEntry(remoteMap, key),
+      )
+      if (entry.present) merged[key] = entry.value
+    }
+    return { present: true, value: merged }
+  }
+
+  function mergeLinkSettings(
+    baseline: Record<string, unknown>,
+    local: Record<string, unknown>,
+    remote: Record<string, unknown>,
+  ): Record<string, unknown> | null {
+    const merged = cloneSerializable(remote)
+    const keys = new Set([...Object.keys(baseline), ...Object.keys(local), ...Object.keys(remote)])
+    for (const key of keys) {
+      const baseEntry = settingEntry(baseline, key)
+      const localEntry = settingEntry(local, key)
+      const remoteEntry = settingEntry(remote, key)
+      if (key === 'linked_symbols' || key === 'linked_timeframes') {
+        const entry = mergeLinkSettingsMap(baseEntry, localEntry, remoteEntry)
+        if (entry.present) merged[key] = entry.value
+        else delete merged[key]
+        continue
+      }
+      if (key === 'linked_timeframe') {
+        const entry = mergeSettingEntry(baseEntry, localEntry, remoteEntry)
+        if (entry.present) merged[key] = entry.value
+        else delete merged[key]
+        continue
+      }
+      // Unknown workspace settings are not inferred or merged. Preserve the
+      // existing recovery behavior if either side changed anything else.
+      if (!sameSettingEntry(localEntry, baseEntry) || !sameSettingEntry(remoteEntry, baseEntry)) return null
+    }
+    return merged
+  }
+
   function isEditorTarget(target: EventTarget | null) {
     return isWorkstationEditorTarget(target)
   }
 
   function applySharedSymbol(event: LinkEvent) {
     if (event.group === 'grey') return
-    linkedSymbols.value = { ...linkedSymbols.value, [event.group]: { ...event } }
+    linkedSymbols.value = {
+      ...linkedSymbols.value,
+      [event.group]: { ...event },
+      yellow: { ...event },
+    }
     wildcardSymbol.value = { ...event }
     linkedTimestamps.value = { ...linkedTimestamps.value, [event.group]: event.timestamp ?? null }
     wildcardTimestamp.value = event.timestamp ?? null
@@ -1109,7 +1296,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function applySharedTimeframe(timeframe: string, group: LinkGroup) {
     if (group === 'grey') return
     timeframe = normalizeWorkstationTimeframe(timeframe)
-    linkedTimeframes.value = { ...linkedTimeframes.value, [group]: timeframe }
+    linkedTimeframes.value = { ...linkedTimeframes.value, [group]: timeframe, yellow: timeframe }
     wildcardTimeframe.value = timeframe
     if (group === 'blue') linkedTimeframe.value = timeframe
   }
@@ -1310,6 +1497,25 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     locallyPublishedSymbols.value = { ...locallyPublishedSymbols.value, [event.group]: event.symbol }
     applySharedSymbol(event)
+    if (workspace.value) {
+      const existing = workspace.value.settings.linked_symbols
+      const linkedSymbols = existing && typeof existing === 'object' && !Array.isArray(existing)
+        ? existing as Record<string, unknown>
+        : {}
+      const persistedSymbol = {
+        symbol: event.symbol,
+        ...(typeof event.instrumentId === 'number' ? { instrument_id: event.instrumentId } : {}),
+      }
+      workspace.value.settings = {
+        ...workspace.value.settings,
+        linked_symbols: {
+          ...linkedSymbols,
+          [event.group]: persistedSymbol,
+          yellow: { ...persistedSymbol, source_group: event.group },
+        },
+      }
+      scheduleSnapshot()
+    }
     // Keep each concrete linked tool's serializable fallback current as the
     // shared symbol changes. This is important when a tool is moved to Grey:
     // the isolation boundary must capture the symbol the user was actually
@@ -1359,6 +1565,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return linkedTimeframes.value[group] ?? normalizeWorkstationTimeframe(isolatedTimeframe ?? 'D1')
   }
 
+  function timeframeForTool(windowKey: string) {
+    const tool = activeTab.value?.windows.find(window => window.instance_key === windowKey)
+    if (!tool || tool.tool_type !== 'chart') return 'D1'
+    const configuredTimeframe = typeof tool.configuration.timeframe === 'string' ? tool.configuration.timeframe : null
+    return timeframeForLinkGroup(timeframeLinkGroupForTool(tool), configuredTimeframe)
+  }
+
   function timeframeLinkGroupForTool(tool: WorkspaceWindowState) {
     return configuredLinkGroup(tool.configuration.timeframe_link_group, tool.link_group)
   }
@@ -1404,6 +1617,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const linked_timeframes = {
         ...(existing && typeof existing === 'object' && !Array.isArray(existing) ? existing as Record<string, string> : {}),
         [group]: timeframe,
+        yellow: timeframe,
       }
       workspace.value.settings = {
         ...workspace.value.settings,
@@ -1432,43 +1646,73 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       }]
       persistedWorkspace = cloneSerializable(workspace.value)
       activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
-      // Persisted tool configuration is the durable source of the active
-      // symbol. Hydrate the shared blue link before tools mount so a reload
-      // restores the user's last workstation symbol (and ratio legs) rather
-      // than defaulting every linked surface back to SPY.
-      const savedSymbol = workspace.value.tabs
-        .flatMap(tab => tab.windows)
-        .find(window => window.link_group === 'blue' && typeof window.configuration?.symbol === 'string')
-        ?.configuration.symbol
-      if (typeof savedSymbol === 'string' && savedSymbol.trim()) {
-        const normalizedSymbol = savedSymbol.trim().toUpperCase()
-        const configuredInstrumentId = workspace.value.tabs
-          .flatMap(tab => tab.windows)
-          .find(window => window.link_group === 'blue' && typeof window.configuration?.symbol === 'string' && window.configuration.symbol.trim().toUpperCase() === normalizedSymbol)
-          ?.configuration?.instrument_id
-        const event: LinkEvent = {
-          symbol: normalizedSymbol,
-          ...(typeof configuredInstrumentId === 'number' ? { instrumentId: configuredInstrumentId } : {}),
-          group: 'blue',
-          sourceWindowKey: 'workstation',
+      // Link selections are shared workspace state. Restore each concrete
+      // group's last symbol plus Yellow's last received symbol from settings;
+      // older workspaces fall back to the persisted symbols on their tools.
+      const tools = workspace.value.tabs.flatMap(tab => tab.windows)
+      const restoredSymbols: Partial<Record<LinkGroup, LinkEvent>> = {}
+      for (const tool of tools) {
+        const group = configuredLinkGroup(tool.link_group, 'blue')
+        if (group === 'grey' || group === 'yellow' || restoredSymbols[group]) continue
+        const symbol = typeof tool.configuration.symbol === 'string'
+          ? tool.configuration.symbol.trim().toUpperCase()
+          : ''
+        if (!symbol) continue
+        restoredSymbols[group] = {
+          symbol,
+          ...(typeof tool.configuration.instrument_id === 'number' ? { instrumentId: tool.configuration.instrument_id } : {}),
+          group,
+          sourceWindowKey: tool.instance_key,
         }
-        linkedSymbol.value = normalizedSymbol
-        linkedSymbols.value = { ...linkedSymbols.value, blue: event }
-        locallyPublishedSymbols.value = { ...locallyPublishedSymbols.value, blue: normalizedSymbol }
-        latestWorkstationSymbol.value = normalizedSymbol
-        latestWorkstationInstrumentId.value = typeof configuredInstrumentId === 'number' ? configuredInstrumentId : null
-        wildcardSymbol.value = event
       }
-      const savedTimeframe = workspace.value.settings.linked_timeframe
-      linkedTimeframe.value = typeof savedTimeframe === 'string' ? normalizeWorkstationTimeframe(savedTimeframe) : 'D1'
+      const persistedSymbols = workspace.value.settings.linked_symbols
+      if (persistedSymbols && typeof persistedSymbols === 'object' && !Array.isArray(persistedSymbols)) {
+        for (const [groupName, value] of Object.entries(persistedSymbols)) {
+          if (!(LINK_GROUPS as readonly string[]).includes(groupName) || groupName === 'grey') continue
+          if (!value || typeof value !== 'object' || Array.isArray(value)) continue
+          const persisted = value as Record<string, unknown>
+          const symbol = typeof persisted.symbol === 'string' ? persisted.symbol.trim().toUpperCase() : ''
+          if (!symbol) continue
+          const sourceGroup = groupName === 'yellow'
+            ? configuredLinkGroup(persisted.source_group, 'blue')
+            : groupName as LinkGroup
+          const eventGroup = sourceGroup === 'grey' ? 'blue' : sourceGroup
+          restoredSymbols[groupName as LinkGroup] = {
+            symbol,
+            ...(typeof persisted.instrument_id === 'number' ? { instrumentId: persisted.instrument_id } : {}),
+            group: eventGroup,
+            sourceWindowKey: 'workspace-restore',
+          }
+        }
+      }
+      const restoredBlue = restoredSymbols.blue ?? { symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' }
+      const restoredWildcard = restoredSymbols.yellow ?? restoredBlue
+      linkedSymbols.value = { blue: restoredBlue, ...restoredSymbols }
+      linkedSymbol.value = restoredBlue.symbol
+      locallyPublishedSymbols.value = Object.fromEntries(
+        Object.entries(restoredSymbols).map(([group, event]) => [group, event.symbol]),
+      ) as Partial<Record<LinkGroup, string>>
+      latestWorkstationSymbol.value = restoredBlue.symbol
+      latestWorkstationInstrumentId.value = restoredBlue.instrumentId ?? null
+      wildcardSymbol.value = restoredWildcard
+      linkedTimestamps.value = {}
+      wildcardTimestamp.value = null
+
       const savedTimeframes = workspace.value.settings.linked_timeframes
-      linkedTimeframes.value = {
-        blue: linkedTimeframe.value,
-        ...(savedTimeframes && typeof savedTimeframes === 'object' && !Array.isArray(savedTimeframes)
-          ? Object.fromEntries(Object.entries(savedTimeframes).map(([group, timeframe]) => [group, typeof timeframe === 'string' ? normalizeWorkstationTimeframe(timeframe) : timeframe])) as Partial<Record<LinkGroup, string>>
-          : {}),
+      const restoredTimeframes: Partial<Record<LinkGroup, string>> = {}
+      if (savedTimeframes && typeof savedTimeframes === 'object' && !Array.isArray(savedTimeframes)) {
+        for (const [group, timeframe] of Object.entries(savedTimeframes)) {
+          if ((LINK_GROUPS as readonly string[]).includes(group) && typeof timeframe === 'string') {
+            restoredTimeframes[group as LinkGroup] = normalizeWorkstationTimeframe(timeframe)
+          }
+        }
       }
-      wildcardTimeframe.value = linkedTimeframes.value.blue ?? 'D1'
+      const savedBlueTimeframe = workspace.value.settings.linked_timeframe
+      linkedTimeframe.value = typeof savedBlueTimeframe === 'string'
+        ? normalizeWorkstationTimeframe(savedBlueTimeframe)
+        : restoredTimeframes.blue ?? 'D1'
+      linkedTimeframes.value = { ...restoredTimeframes, blue: linkedTimeframe.value }
+      wildcardTimeframe.value = restoredTimeframes.yellow ?? linkedTimeframe.value
     } catch (cause: any) {
       error.value = cause?.message ?? 'Unable to load workstation'
     } finally {
@@ -1600,6 +1844,37 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  /**
+   * Return whether a serialized snapshot already contains a structural local
+   * edit relative to the last server-acknowledged workspace.  A save can pick
+   * up a late observational/configuration mutation while its request is in
+   * flight; that must not make the original user action look like an older
+   * snapshot.  Conversely, when the request started before a newly opened
+   * tool, the newer generation still needs the retry path so the tool is not
+   * recovered away by an older conflict.
+   */
+  function snapshotHasStructuralLocalChange(
+    payload: ReturnType<typeof snapshotPayload>,
+    baseline: WorkspaceState | null,
+  ) {
+    if (!baseline
+      || payload.name !== baseline.name
+      || payload.schema_version !== baseline.schema_version
+      || !sameJson(payload.settings, baseline.settings)
+      || payload.tabs.length !== baseline.tabs.length) return Boolean(baseline)
+    for (const baseTab of baseline.tabs) {
+      const tab = payload.tabs.find(candidate => candidate.stable_key === baseTab.stable_key)
+      if (!tab
+        || tab.name !== baseTab.name
+        || tab.position !== baseTab.position
+        || tab.windows.length !== baseTab.windows.length) return true
+      const baselineKeys = new Set(baseTab.windows.map(window => window.instance_key))
+      const payloadKeys = new Set(tab.windows.map(window => window.instance_key))
+      if (baselineKeys.size !== payloadKeys.size || [...baselineKeys].some(key => !payloadKeys.has(key))) return true
+    }
+    return false
+  }
+
   async function preserveConflictRecovery(current: WorkspaceState) {
     const { factory_id: _factoryId, factory_version: _factoryVersion, ...settings } = current.settings
     return api.post<WorkspaceState>('/workspaces', {
@@ -1617,9 +1892,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
    * a tool is mounting or a tab is becoming active. Treating every concurrent
    * layout/active-tab difference as unrecoverable would create a recovery copy for
    * a normal single-window interaction. In that narrow case the current window's
-   * latest layout wins; identity, settings, and tab membership still require
-   * recovery because they cannot be safely inferred. Same-window record
-   * conflicts use the explicit current-window-wins tie-breaker below.
+   * latest layout wins; identity, non-link settings, and tab membership still
+   * require recovery because they cannot be safely inferred. Known link-state
+   * settings merge per group, and same-window conflicts use the current-window
+   * tie-breaker below.
    */
   function mergeDisjointWindowChanges(
     baseline: WorkspaceState | null,
@@ -1627,8 +1903,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     remote: WorkspaceState,
   ): WorkspaceState | null {
     if (!baseline
-      || !sameJson(local.settings, baseline.settings)
-      || !sameJson(remote.settings, baseline.settings)
       || local.name !== baseline.name
       || remote.name !== baseline.name
       || local.schema_version !== baseline.schema_version
@@ -1636,6 +1910,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       || local.tabs.length !== baseline.tabs.length
       || remote.tabs.length !== baseline.tabs.length) return null
     const merged = cloneSerializable(remote)
+    const mergedSettings = mergeLinkSettings(baseline.settings, local.settings, remote.settings)
+    if (!mergedSettings) return null
+    merged.settings = mergedSettings
     for (const baseTab of baseline.tabs) {
       const localTab = local.tabs.find(tab => tab.stable_key === baseTab.stable_key)
       const remoteTab = remote.tabs.find(tab => tab.stable_key === baseTab.stable_key)
@@ -2154,6 +2431,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function loadBenchmarkFamilyReadiness(options: { as_of?: string; limit?: number } = {}) {
+    const requestKey = `top-down:family-readiness:${options.as_of ?? 'latest'}:${options.limit ?? 256}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyReadinessError.value = null
+    try {
+      const result = await api.get<BenchmarkFamilyReadinessState>('/analysis/benchmark-families/readiness', {
+        ...(options.as_of ? { as_of: options.as_of } : {}),
+        ...(options.limit ? { limit: options.limit } : {}),
+      })
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyReadiness.value = result
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyReadinessError.value = cause?.message ?? 'Unable to load benchmark family readiness'
+      benchmarkFamilyReadiness.value = null
+      return null
+    }
+  }
+
   async function loadBenchmarkFamilyConstituents(
     familyKey: string,
     role: BenchmarkFamilyMappingState['role'] = 'cap_weight',
@@ -2625,19 +2923,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function saveSnapshot() {
     if (snapshotSavePromise) {
-      const pendingGeneration = snapshotSaveGeneration
+      // A newer edit can arrive while this request is pending. Compare the
+      // live generation with the one owned by the in-flight request so that a
+      // waiting save retries instead of treating the newer edit as persisted.
+      const waitingGeneration = snapshotPersistingGeneration ?? snapshotGeneration
       await snapshotSavePromise
-      if (workspace.value && snapshotGeneration !== pendingGeneration) return saveSnapshot()
+      if (workspace.value && snapshotGeneration !== waitingGeneration) return saveSnapshot()
       return
     }
     if (!workspace.value) return
     const current = workspace.value
     const baseRevision = current.revision
     const generation = snapshotGeneration
-    snapshotSaveGeneration = generation
+    snapshotPersistingGeneration = generation
+    const payloadAtStart = snapshotPayload(current)
+    const startedWithStructuralLocalChange = snapshotHasStructuralLocalChange(payloadAtStart, persistedWorkspace)
     const persist = (async () => {
       try {
-        const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, snapshotPayload(current))
+        const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, payloadAtStart)
         if (workspace.value?.id !== current.id) return
         if (generation !== snapshotGeneration) {
           acknowledgeSupersededSnapshot(saved, current.id, baseRevision)
@@ -2654,7 +2957,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
           // newer local generation while the first PUT is in flight; abandoning
           // the conflict in that case silently loses the edit and leaves the
           // workspace permanently stale.
-          if (generation !== snapshotGeneration) {
+          // If the request started before a newly opened/closed tab or tool,
+          // defer to the newer generation so that edit is included in the
+          // retry.  If the request already contained the structural user edit,
+          // continue reconciliation against the live state; otherwise a late
+          // layout/configuration callback would incorrectly suppress the
+          // recovery copy that preserves the user's original mutation.
+          if (generation !== snapshotGeneration && !startedWithStructuralLocalChange) {
             scheduleSnapshot()
             return
           }
@@ -2693,7 +3002,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     try {
       await persist
     } finally {
-      if (snapshotSavePromise === persist) snapshotSavePromise = null
+      if (snapshotSavePromise === persist) {
+        snapshotSavePromise = null
+        snapshotPersistingGeneration = null
+      }
     }
   }
 
@@ -2853,21 +3165,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // symbol before detaching it from a shared group so a later linked selection
     // cannot overwrite the isolated view through the global active-symbol state.
     if (group === 'grey') {
-      const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null
-      const configuredInstrumentId = typeof tool.configuration.instrument_id === 'number'
-        ? tool.configuration.instrument_id
-        : tool.link_group === 'blue'
-          ? latestWorkstationInstrumentId.value
-          : linkedSymbols.value[tool.link_group]?.instrumentId
+      const configuredInstrumentId = tool.link_group === 'yellow'
+        ? wildcardSymbol.value.instrumentId
+        : typeof tool.configuration.instrument_id === 'number'
+          ? tool.configuration.instrument_id
+          : tool.link_group === 'blue'
+            ? latestWorkstationInstrumentId.value
+            : linkedSymbols.value[tool.link_group]?.instrumentId
       const isolatedSymbol = displayedSymbol
         ? (tool.link_group === 'blue' ? latestWorkstationSymbol.value : displayedSymbol.trim().toUpperCase())
         : locallyPublishedSymbols.value[tool.link_group]
-          || symbolForLinkGroup(tool.link_group, configuredSymbol)
-      tool.configuration = {
+          || symbolForLinkGroup(tool.link_group, typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null)
+      const configuration: Record<string, unknown> & { symbol: string } = {
         ...tool.configuration,
         symbol: isolatedSymbol,
-        ...(typeof configuredInstrumentId === 'number' ? { instrument_id: configuredInstrumentId } : {}),
       }
+      if (typeof configuredInstrumentId === 'number') configuration.instrument_id = configuredInstrumentId
+      else delete configuration.instrument_id
+      tool.configuration = configuration
       recentLinkGroupOverrides.set(windowKey, { group, symbol: isolatedSymbol, at: Date.now() })
     } else {
       const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : 'SPY'
@@ -3146,6 +3461,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     benchmarkFamilyOverviewErrors,
     benchmarkFamilyCoverages,
     benchmarkFamilyCoverageErrors,
+    benchmarkFamilyReadiness,
+    benchmarkFamilyReadinessError,
     benchmarkFamilyConstituents,
     benchmarkFamilyConstituentErrors,
     marketGroupErrors,
@@ -3188,6 +3505,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     symbolForLinkGroup,
     timestampForLinkGroup,
     timeframeForLinkGroup,
+    timeframeForTool,
     timeframeLinkGroupForTool,
     publishTimeframe,
     loadDefault,
@@ -3210,6 +3528,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadCrossFamilyRankingHistory,
     loadBenchmarkFamilyOverview,
     loadBenchmarkFamilyCoverage,
+    loadBenchmarkFamilyReadiness,
     loadBenchmarkFamilyConstituents,
     loadBreadth,
     loadBreadthHistory,

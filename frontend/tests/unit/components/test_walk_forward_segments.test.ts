@@ -4,6 +4,16 @@ import { describe, expect, it } from 'vitest'
 import WalkForwardSegments from '@/components/strategy/WalkForwardSegments.vue'
 
 describe('WalkForwardSegments', () => {
+  it('announces the empty state politely', () => {
+    const wrapper = mount(WalkForwardSegments, { props: { segments: [] } })
+    const empty = wrapper.get('.walk-forward-panel__empty')
+
+    expect(empty.text()).toBe('No walk-forward segments yet.')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+  })
+
   it('renders segment summaries and details', async () => {
     const wrapper = mount(WalkForwardSegments, {
       props: {
@@ -26,9 +36,12 @@ describe('WalkForwardSegments', () => {
     expect(wrapper.text()).toContain('1 segments')
     expect(wrapper.text()).toContain('Training 60%')
     expect(wrapper.text()).toContain('Avg OOS 2.25%')
+    expect(wrapper.get('button').attributes('aria-label')).toContain('Segment 1: 1.80% out-sample')
+    expect(wrapper.get('button').attributes('aria-pressed')).toBe('false')
 
     await wrapper.find('button').trigger('click')
     expect(wrapper.text()).toContain('Segment 1')
     expect(wrapper.text()).toContain('Out-sample 1.80%')
+    expect(wrapper.get('button').attributes('aria-pressed')).toBe('true')
   })
 })

@@ -11,14 +11,45 @@ are in tests/integration/api/test_screener.py.
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
 from app.services.screener_engine import (
     _compare,
+    _dispatch_screener_alert_event,
     _flush_indicator_cache,
 )
+
+
+@pytest.mark.asyncio
+async def test_screener_alert_event_serializes_triggered_at_as_utc_z(monkeypatch):
+    delivered: list[tuple[int, dict]] = []
+
+    async def broadcast_to_user(user_id: int, payload: dict) -> None:
+        delivered.append((user_id, payload))
+
+    monkeypatch.setattr(
+        "app.websocket.manager.ws_manager.broadcast_to_user",
+        broadcast_to_user,
+    )
+
+    _dispatch_screener_alert_event(
+        SimpleNamespace(
+            id=7,
+            user_id=11,
+            trigger_type="entered",
+            triggered_at=datetime.fromisoformat("2026-09-12T14:30:00+02:00"),
+        ),
+        SimpleNamespace(id=13, name="Momentum"),
+        {101},
+        {202},
+    )
+    await asyncio.sleep(0)
+
+    assert delivered[0][0] == 11
+    assert delivered[0][1]["triggered_at"] == "2026-09-12T12:30:00Z"
 
 
 class TestIndicatorCacheFlush:
@@ -371,6 +402,67 @@ class TestEvaluateConditionIndicatorAndPeriodBranches:
 
         assert matched is True
         assert computed["bb_bb_lower"] == pytest.approx(81.5)
+
+    def test_indicator_threshold_refuses_ambiguous_output_without_selection(self, monkeypatch):
+        async def fake_compute(*_args, **_kwargs):
+            return {
+                "bb_upper": np.array([np.nan, 120.0, 121.5]),
+                "bb_mid": np.array([np.nan, 100.0, 101.0]),
+                "bb_lower": np.array([np.nan, 80.0, 81.5]),
+            }
+
+        monkeypatch.setattr(
+            "app.services.screener_engine._compute_indicator_cached",
+            fake_compute,
+        )
+
+        matched, computed = self._eval(
+            {
+                "type": "indicator_threshold",
+                "indicator": "bb",
+                "params": {"period": 20, "std_dev": 2},
+                "op": "gt",
+                "value": 80,
+            },
+            self._make_ohlcv([100, 101, 102]),
+            monkeypatch,
+        )
+
+        assert matched is False
+        assert computed["_warning"] == {
+            "code": "explicit_indicator_output_required",
+            "message": "Indicator 'bb' returns multiple outputs; choose one of: bb_upper, bb_mid, bb_lower.",
+        }
+
+    def test_indicator_threshold_refuses_invalid_named_output(self, monkeypatch):
+        async def fake_compute(*_args, **_kwargs):
+            return {
+                "bb_upper": np.array([np.nan, 120.0, 121.5]),
+                "bb_mid": np.array([np.nan, 100.0, 101.0]),
+                "bb_lower": np.array([np.nan, 80.0, 81.5]),
+            }
+
+        monkeypatch.setattr(
+            "app.services.screener_engine._compute_indicator_cached",
+            fake_compute,
+        )
+
+        matched, computed = self._eval(
+            {
+                "type": "indicator_threshold",
+                "indicator": "bb",
+                "params": {"period": 20, "std_dev": 2},
+                "output": "bb_middle",
+                "op": "gt",
+                "value": 80,
+            },
+            self._make_ohlcv([100, 101, 102]),
+            monkeypatch,
+        )
+
+        assert matched is False
+        assert computed["_warning"]["code"] == "invalid_indicator_output"
+        assert "bb_middle" in computed["_warning"]["message"]
 
     def test_price_change_period_uses_calendar_window(self, monkeypatch):
         data = self._make_ohlcv([100.0, 110.0, 120.0], step_days=2)

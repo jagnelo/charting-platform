@@ -4,11 +4,11 @@
       <strong>Python Library</strong>
       <input v-model.trim="filter" aria-label="Filter Python assets" placeholder="Filter assets" />
       <button type="button" :disabled="loading" @click="refresh">{{ loading ? 'Loading…' : 'Refresh' }}</button>
-      <button type="button" @click="creating = !creating">{{ creating ? 'Close new' : 'New' }}</button>
+      <button type="button" :aria-expanded="creating ? 'true' : 'false'" :aria-controls="createFormId" @click="creating = !creating">{{ creating ? 'Close new' : 'New' }}</button>
       <button type="button" @click="fileInput?.click()">Import</button>
       <input ref="fileInput" class="code-library-tool__file" type="file" accept="application/json,.json" @change="importAsset" />
     </header>
-    <form v-if="creating" class="code-library-tool__create" aria-label="Create Python asset" @submit.prevent="createAsset">
+    <form v-if="creating" :id="createFormId" class="code-library-tool__create" aria-label="Create Python asset" @submit.prevent="createAsset">
       <input v-model.trim="newName" aria-label="New Python asset name" placeholder="Asset name" />
       <input v-model.trim="newStableKey" aria-label="New Python asset key" placeholder="stable-key" />
       <select v-model="newKind" aria-label="New Python asset kind" @change="newValidation = null"><option value="study">Study</option><option value="plot">Plot</option><option value="column">Column</option><option value="condition">Condition</option><option value="signal">Signal</option></select>
@@ -18,15 +18,15 @@
         <button type="button" :disabled="validatingNew || !newSource.trim()" @click="validateNewSource">{{ validatingNew ? 'Validating…' : 'Validate' }}</button>
         <button type="submit" :disabled="creatingBusy || validatingNew || !newName || !newStableKey || !newSource.trim()">{{ creatingBusy ? 'Creating…' : 'Create asset' }}</button>
       </div>
-      <div v-if="newValidation" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !newValidation.valid }">
+      <div v-if="newValidation" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !newValidation.valid }" :role="newValidation.valid ? 'status' : 'alert'" :aria-live="newValidation.valid ? 'polite' : 'assertive'" aria-atomic="true">
         <strong>{{ newValidation.valid ? 'Validated' : 'Validation errors' }}</strong>
         <pre v-if="newValidation.diagnostics.length">{{ formatDiagnostics(newValidation.diagnostics) }}</pre>
         <small v-else>Outputs: {{ newValidation.output_contracts.join(', ') || 'none' }} · Dependencies: {{ newValidation.dependencies.join(', ') || 'none' }}</small>
       </div>
     </form>
-    <p v-if="error" class="code-library-tool__error">{{ error }}</p>
-    <p v-else-if="loading && !assets.length" class="code-library-tool__notice">Loading user-owned assets…</p>
-    <p v-else-if="!filteredAssets.length" class="code-library-tool__notice">No matching Python assets.</p>
+    <p v-if="error" class="code-library-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-else-if="loading && !assets.length" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading user-owned assets…</p>
+    <p v-else-if="!filteredAssets.length" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">No matching Python assets.</p>
     <div v-else class="code-library-tool__assets" role="list">
       <article v-for="asset in filteredAssets" :key="asset.id" class="code-library-tool__asset" :class="{ 'code-library-tool__asset--archived': asset.is_archived }" role="listitem">
         <div class="code-library-tool__asset-main">
@@ -39,12 +39,19 @@
                 <option v-for="version in asset.versions" :key="version.version_number" :value="version.version_number">v{{ version.version_number }}</option>
               </select>
             </label>
+            <button
+              v-if="asset.kind === 'study'"
+              type="button"
+              :aria-label="`Open version ${selectedVersionNumber(asset)} of ${asset.name} in Study Lab`"
+              :disabled="!openableVersion(asset, selectedVersionNumber(asset))"
+              @click="openStudyVersion(asset, selectedVersionNumber(asset))"
+            >Open selected version in Study Lab</button>
             <PythonSourceEditor :model-value="drafts[asset.id] ?? latestVersion(asset)?.source ?? ''" :ariaLabel="`Python source for ${asset.name}`" @update:model-value="setDraft(asset.id, $event)" />
             <div class="code-library-tool__validation-actions">
               <button type="button" :disabled="validatingAsset === asset.id || !(drafts[asset.id] ?? latestVersion(asset)?.source ?? '').trim()" @click="validateVersionSource(asset)">{{ validatingAsset === asset.id ? 'Validating…' : 'Validate' }}</button>
               <button type="button" :disabled="savingVersion === asset.id || validatingAsset === asset.id || !(drafts[asset.id] ?? latestVersion(asset)?.source ?? '').trim()" @click="saveVersion(asset)">{{ savingVersion === asset.id ? 'Saving…' : 'Save as new version' }}</button>
             </div>
-            <div v-if="versionValidations[asset.id]" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !versionValidations[asset.id].valid }">
+            <div v-if="versionValidations[asset.id]" class="code-library-tool__validation" :class="{ 'code-library-tool__validation--bad': !versionValidations[asset.id].valid }" :role="versionValidations[asset.id].valid ? 'status' : 'alert'" :aria-live="versionValidations[asset.id].valid ? 'polite' : 'assertive'" aria-atomic="true">
               <strong>{{ versionValidations[asset.id].valid ? 'Validated' : 'Validation errors' }}</strong>
               <pre v-if="versionValidations[asset.id].diagnostics.length">{{ formatDiagnostics(versionValidations[asset.id].diagnostics) }}</pre>
               <small v-else>Outputs: {{ versionValidations[asset.id].output_contracts.join(', ') || 'none' }} · Dependencies: {{ versionValidations[asset.id].dependencies.join(', ') || 'none' }}</small>
@@ -53,9 +60,10 @@
           </details>
         </div>
         <div class="code-library-tool__asset-actions">
+          <button v-if="asset.kind === 'study'" type="button" :aria-label="`Open ${asset.name} in Study Lab`" title="Open in Study Lab" @click="openStudy(asset)">Open in Study Lab</button>
           <button type="button" title="Export asset" @click="exportAsset(asset)">Export</button>
           <button type="button" title="Clone asset" @click="cloneAsset(asset)">Clone</button>
-          <button type="button" :title="asset.is_archived ? 'Unarchive asset' : 'Archive asset'" @click="toggleArchive(asset)">{{ asset.is_archived ? 'Unarchive' : 'Archive' }}</button>
+          <button type="button" :title="asset.is_archived ? 'Unarchive asset' : 'Archive asset'" :aria-label="asset.is_archived ? 'Unarchive asset' : 'Archive asset'" :aria-pressed="asset.is_archived ? 'true' : 'false'" @click="toggleArchive(asset)">{{ asset.is_archived ? 'Unarchive' : 'Archive' }}</button>
         </div>
       </article>
     </div>
@@ -64,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -93,6 +101,16 @@ interface CodeAsset {
   is_archived: boolean
   versions: CodeVersion[]
 }
+interface StudyOpenPayload {
+  name: string
+  versionId: number
+  source: string
+  outputContract: string
+  parameterSchema: Record<string, unknown>
+  defaultParameters: Record<string, unknown>
+}
+
+const emit = defineEmits<{ 'open-study': [payload: StudyOpenPayload] }>()
 
 const assets = ref<CodeAsset[]>([])
 const queryClient = useQueryClient()
@@ -100,6 +118,9 @@ const filter = ref('')
 const loading = ref(false)
 const error = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
+// Golden Layout may mount separate Code Library tools in detached Vue roots;
+// useId() can restart at v-0 in each root, so use the globally unique instance UID.
+const createFormId = `code-library-create-${getCurrentInstance()?.uid ?? 0}`
 const drafts = ref<Record<number, string>>({})
 const selectedVersions = ref<Record<number, number>>({})
 const savingVersion = ref<number | null>(null)
@@ -114,17 +135,27 @@ const newValidation = ref<ValidationResult | null>(null)
 const validatingNew = ref(false)
 const versionValidations = ref<Record<number, ValidationResult>>({})
 const validatingAsset = ref<number | null>(null)
+let mounted = false
+let refreshGeneration = 0
 const filteredAssets = computed(() => {
   const needle = filter.value.toLowerCase()
   return assets.value.filter(asset => !needle || `${asset.name} ${asset.kind} ${asset.stable_key}`.toLowerCase().includes(needle))
 })
 
 async function refresh() {
+  const generation = ++refreshGeneration
   loading.value = true
   error.value = ''
-  try { assets.value = await queryClient.fetchQuery<CodeAsset[]>({ queryKey: ['workstation', 'code-assets'], queryFn: async () => (await api.get<CodeAsset[]>('/code/assets')) ?? [], staleTime: 30_000 }) }
-  catch (cause: any) { error.value = cause?.message ?? 'Unable to load Python assets' }
-  finally { loading.value = false }
+  try {
+    const nextAssets = await queryClient.fetchQuery<CodeAsset[]>({ queryKey: ['workstation', 'code-assets'], queryFn: async () => (await api.get<CodeAsset[]>('/code/assets')) ?? [], staleTime: 30_000 })
+    if (mounted && generation === refreshGeneration) assets.value = nextAssets
+  }
+  catch (cause: any) {
+    if (mounted && generation === refreshGeneration) error.value = cause?.message ?? 'Unable to load Python assets'
+  }
+  finally {
+    if (mounted && generation === refreshGeneration) loading.value = false
+  }
 }
 function newOutputContract() { return newKind.value === 'plot' ? 'series' : newKind.value === 'condition' ? newConditionContract.value : newKind.value === 'signal' ? 'boolean' : newKind.value === 'study' ? 'study' : 'scalar' }
 function reconcileOutputContract(validation: ValidationResult, declaredContract: string, outputName?: string | null): ValidationResult {
@@ -204,6 +235,28 @@ function exportAsset(asset: CodeAsset) {
   URL.revokeObjectURL(url)
 }
 function latestVersion(asset: CodeAsset) { return [...asset.versions].sort((left, right) => right.version_number - left.version_number)[0] }
+function selectedVersionNumber(asset: CodeAsset) {
+  return selectedVersions.value[asset.id] ?? latestVersion(asset)?.version_number ?? 0
+}
+function openableVersion(asset: CodeAsset, versionNumber: number) {
+  const version = asset.versions.find(item => item.version_number === versionNumber)
+  return typeof version?.id === 'number' && Number.isInteger(version.id)
+}
+function openStudyVersion(asset: CodeAsset, versionNumber: number) {
+  const version = asset.versions.find(item => item.version_number === versionNumber) ?? latestVersion(asset)
+  if (!version || typeof version.id !== 'number' || !Number.isInteger(version.id)) return
+  emit('open-study', {
+    name: asset.name,
+    versionId: version.id,
+    source: version.source,
+    outputContract: version.output_contract,
+    parameterSchema: version.parameter_schema ?? {},
+    defaultParameters: version.default_parameters ?? {},
+  })
+}
+function openStudy(asset: CodeAsset) {
+  openStudyVersion(asset, latestVersion(asset)?.version_number ?? 0)
+}
 function selectVersion(asset: CodeAsset) {
   const version = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
   if (!version) return
@@ -271,7 +324,14 @@ async function importAsset(event: Event) {
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to import Python asset' }
   finally { input.value = '' }
 }
-onMounted(() => { void refresh() })
+onMounted(() => {
+  mounted = true
+  void refresh()
+})
+onBeforeUnmount(() => {
+  mounted = false
+  refreshGeneration += 1
+})
 </script>
 
 <style scoped>

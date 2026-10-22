@@ -89,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { api } from '@/lib/api'
@@ -104,6 +104,9 @@ const selectedRowId = ref<number | null>(null)
 const selectedDetail = ref<RadarDetection | null>(null)
 const detailLoading = ref(false)
 const router = useRouter()
+let refreshSeq = 0
+let detailSeq = 0
+let mounted = false
 
 const stateLabel = computed(() => formatState(String(props.config.state || 'confirmed')))
 const timeframeLabel = computed(() => String(props.config.timeframe || 'D1'))
@@ -149,6 +152,7 @@ const selectedSummary = computed(() =>
 )
 
 async function refresh() {
+  const seq = ++refreshSeq
   loading.value = true
   error.value = null
   try {
@@ -165,6 +169,7 @@ async function refresh() {
         ...baseParams,
         setup_type: selectedSetupTypes.value[0] || undefined,
       })
+      if (!mounted || seq !== refreshSeq) return
       return
     }
     const batches = await Promise.all(
@@ -181,6 +186,7 @@ async function refresh() {
         merged.set(row.id, row)
       }
     }
+    if (!mounted || seq !== refreshSeq) return
     rows.value = [...merged.values()]
       .sort((left, right) => {
         if (left.score !== right.score) return right.score - left.score
@@ -196,28 +202,36 @@ async function refresh() {
       clearSelectedRow()
     }
   } catch (err: any) {
-    error.value = err?.message ?? 'Radar unavailable'
-    rows.value = []
+    if (mounted && seq === refreshSeq) {
+      error.value = err?.message ?? 'Radar unavailable'
+      rows.value = []
+    }
   } finally {
-    loading.value = false
+    if (mounted && seq === refreshSeq) loading.value = false
   }
 }
 
 async function selectRow(id: number) {
   if (selectedRowId.value === id && selectedDetail.value) return
+  const seq = ++detailSeq
   selectedRowId.value = id
   detailLoading.value = true
   try {
-    selectedDetail.value = await api.get<RadarDetection>(`/radar/detections/${id}`)
+    const detail = await api.get<RadarDetection>(`/radar/detections/${id}`)
+    if (!mounted || seq !== detailSeq || selectedRowId.value !== id) return
+    selectedDetail.value = detail
   } catch (err: any) {
-    error.value = err?.message ?? 'Radar detail unavailable'
-    selectedDetail.value = null
+    if (mounted && seq === detailSeq && selectedRowId.value === id) {
+      error.value = err?.message ?? 'Radar detail unavailable'
+      selectedDetail.value = null
+    }
   } finally {
-    detailLoading.value = false
+    if (mounted && seq === detailSeq && selectedRowId.value === id) detailLoading.value = false
   }
 }
 
 function clearSelectedRow() {
+  detailSeq += 1
   selectedRowId.value = null
   selectedDetail.value = null
   detailLoading.value = false
@@ -228,7 +242,15 @@ function openInChart(row: RadarDetection) {
 }
 
 watch(() => props.config, refresh, { deep: true })
-onMounted(refresh)
+onMounted(() => {
+  mounted = true
+  void refresh()
+})
+onBeforeUnmount(() => {
+  mounted = false
+  refreshSeq += 1
+  detailSeq += 1
+})
 </script>
 
 <style scoped>

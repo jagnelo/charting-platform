@@ -15,6 +15,111 @@ class TestWatchlistsAuth:
 
 
 class TestWatchlistsCrud:
+    def test_canonical_etf_source_reads_ignore_controlled_e2e_snapshot(
+        self, client, auth_headers, db, asset_class, instrument, monkeypatch
+    ):
+        """Normal source reads must not let the seeded fixture replace canonical holdings."""
+
+        from app.config import settings
+        from app.models.asset_class import InstrumentType
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+        etf_type = InstrumentType(name="ETF", asset_class_id=asset_class.id)
+        db.add(etf_type)
+        db.flush()
+        etf = Instrument(
+            symbol="VISIBILITY-ETF",
+            name="Visibility ETF",
+            currency="USD",
+            instrument_type_id=etf_type.id,
+            is_active=True,
+            is_synthetic=False,
+        )
+        db.add(etf)
+        db.flush()
+        profile = ETFProfile(instrument_id=etf.id, adapter_status="ready")
+        db.add(profile)
+        db.flush()
+
+        canonical = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="canonical_provider",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="visibility-canonical",
+        )
+        fixture = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 2, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 2, 2, tzinfo=UTC),
+            provenance="controlled_fixture",
+            source_provider="e2e_reference",
+            source_quality="deterministic",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="visibility-fixture",
+        )
+        db.add_all([canonical, fixture])
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=canonical.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=1.0,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="visibility-canonical-row",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=fixture.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=1.0,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="visibility-fixture-row",
+                    is_resolved=True,
+                ),
+            ]
+        )
+        db.flush()
+
+        listed = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert listed.status_code == 200, listed.text
+        source = next(
+            item for item in listed.json() if item["source_id"] == "etf-holdings:VISIBILITY-ETF"
+        )
+        assert source["provenance"]["snapshot_id"] == canonical.id
+        assert source["provenance"]["snapshot_source_identifier"] is None
+
+        resolved = client.get(
+            "/api/v1/watchlists/sources/etf-holdings:VISIBILITY-ETF",
+            headers=auth_headers,
+            params={"as_of": "2024-02-03T00:00:00Z"},
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert resolved.json()["source"]["composition_date"] == "2024-01-01"
+        assert [member["instrument_id"] for member in resolved.json()["members"]] == [instrument.id]
+
     def test_canonical_etf_without_profile_is_a_pending_locked_market_map_source(
         self, client, auth_headers, db, asset_class
     ):
@@ -144,6 +249,83 @@ class TestWatchlistsCrud:
         )
         assert history.status_code == 200, history.text
         assert history.json()["overall_status"] == "pending"
+
+    def test_materialized_non_equity_snapshot_is_pending_not_available(
+        self, client, auth_headers, db, asset_class, instrument
+    ):
+        """Raw resolved counters cannot publish a cash-only materialization."""
+
+        from app.models.asset_class import InstrumentType
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        etf_type = InstrumentType(name="ETF", asset_class_id=asset_class.id)
+        db.add(etf_type)
+        db.flush()
+        etf = Instrument(
+            symbol="NON-EQUITY-ONLY",
+            name="Non-equity-only ETF",
+            currency="USD",
+            instrument_type_id=etf_type.id,
+            is_active=True,
+            is_synthetic=False,
+        )
+        db.add(etf)
+        db.flush()
+        profile = ETFProfile(instrument_id=etf.id, adapter_status="ready")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="canonical_provider",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="non-equity-only-snapshot",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=0,
+                reported_symbol="CASH",
+                reported_name="Cash and cash equivalents",
+                weight=1.0,
+                holding_type="cash",
+                row_type="security",
+                source_row_hash="non-equity-only-row",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        listed = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert listed.status_code == 200, listed.text
+        source = next(
+            item for item in listed.json() if item["source_id"] == "etf-holdings:NON-EQUITY-ONLY"
+        )
+        assert source["locked"] is True
+        assert source["member_count"] == 0
+        assert source["provenance"]["availability"] == "holdings_snapshot_unresolved"
+        assert source["provenance"]["snapshot_row_count"] == 1
+        assert source["provenance"]["snapshot_resolved_count"] == 1
+
+        resolved = client.get(
+            "/api/v1/watchlists/sources/etf-holdings:NON-EQUITY-ONLY",
+            headers=auth_headers,
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert resolved.json()["members"] == []
+        assert resolved.json()["source"]["provenance"]["availability"] == (
+            "holdings_snapshot_unresolved"
+        )
 
     def test_market_map_accepts_personal_source_and_rolls_up_constituents(
         self, client, auth_headers, admin_headers, db, watchlist, instrument, instrument_b
@@ -845,6 +1027,164 @@ class TestWatchlistsCrud:
         assert body["coverage"] == 0
         assert body["cells"][0]["warnings"][0]["code"] == "no_bars"
 
+    def test_market_map_excludes_derived_period_not_closed_at_cutoff(
+        self, client, auth_headers, db, watchlist, instrument
+    ):
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.watchlist import WatchlistItem
+
+        watchlist.items.append(WatchlistItem(instrument_id=instrument.id, position=0))
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=datetime(2024, 1, 1, tzinfo=UTC),
+                    open=100,
+                    high=101,
+                    low=99,
+                    close=100,
+                    volume=1_000,
+                    is_adjusted=True,
+                    is_derived=True,
+                    source_timeframe=Timeframe.D1.value,
+                    source_end=datetime(2024, 1, 5, tzinfo=UTC),
+                ),
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=datetime(2024, 1, 8, tzinfo=UTC),
+                    open=120,
+                    high=121,
+                    low=119,
+                    close=120,
+                    volume=1_000,
+                    is_adjusted=True,
+                    is_derived=True,
+                    source_timeframe=Timeframe.D1.value,
+                    source_end=datetime(2024, 1, 12, tzinfo=UTC),
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "timeframe": "W1",
+                "area_metric": "equal",
+                "color_metric": "return",
+                "end": "2024-01-10T00:00:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        cell = response.json()["cells"][0]
+        assert cell["return_value"] is None
+        assert cell["observation_time"] == "2024-01-01T00:00:00Z"
+        assert any(item["code"] == "insufficient_history" for item in cell["warnings"])
+
+    def test_historical_market_map_does_not_use_current_area_metadata_fallback(
+        self, client, auth_headers, db, instrument
+    ):
+        from app.models.instrument_stats import InstrumentStats
+
+        evaluation = datetime(2024, 1, 3, tzinfo=UTC)
+        membership_at = datetime(2024, 1, 1, tzinfo=UTC)
+        group = MarketGroup(
+            stable_key="historical-area-no-profile",
+            group_type="test",
+            name="Historical area without profile",
+            source="controlled_fixture",
+            effective_at=membership_at,
+            known_at=membership_at,
+        )
+        db.add(group)
+        db.flush()
+        db.add_all(
+            [
+                MarketGroupMember(
+                    market_group_id=group.id,
+                    instrument_id=instrument.id,
+                    position=0,
+                    source="controlled_fixture",
+                    verification_state="verified",
+                    effective_at=membership_at,
+                    known_at=membership_at,
+                ),
+                InstrumentStats(
+                    instrument_id=instrument.id,
+                    market_cap=123,
+                    avg_volume_30d=456,
+                    field_provenance={
+                        "avg_volume_30d": {
+                            "kind": "current_metadata",
+                            "source": "controlled_fixture",
+                            "point_in_time": False,
+                        }
+                    },
+                ),
+            ]
+        )
+        db.flush()
+
+        market_cap = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "market-group:historical-area-no-profile",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "market_cap",
+                "color_metric": "return",
+                "end": evaluation.isoformat().replace("+00:00", "Z"),
+            },
+        )
+        assert market_cap.status_code == 200, market_cap.text
+        market_cap_body = market_cap.json()
+        market_cap_cell = market_cap_body["cells"][0]
+        assert market_cap_cell["area_value"] is None
+        assert market_cap_cell["area_provenance"]["kind"] == "point_in_time_unavailable"
+        assert market_cap_cell["area_coverage"] == 0
+        assert any(
+            item["code"] == "historical_market_cap_unavailable"
+            for item in market_cap_cell["warnings"]
+        )
+        assert any(
+            item["code"] == "historical_market_cap_unavailable"
+            for item in market_cap_body["warnings"]
+        )
+
+        field = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "market-group:historical-area-no-profile",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "field",
+                "area_field": "avg_volume_30d",
+                "color_metric": "return",
+                "end": evaluation.isoformat().replace("+00:00", "Z"),
+            },
+        )
+        assert field.status_code == 200, field.text
+        field_body = field.json()
+        field_cell = field_body["cells"][0]
+        assert field_cell["area_value"] is None
+        assert field_cell["area_provenance"]["kind"] == "point_in_time_unavailable"
+        assert field_cell["area_coverage"] == 0
+        assert any(
+            item["code"] == "historical_area_field_unavailable" for item in field_cell["warnings"]
+        )
+        assert any(
+            item["code"] == "historical_area_field_unavailable" for item in field_body["warnings"]
+        )
+
     def test_market_map_exposes_shared_coverage_preflight_for_breadth_history(
         self, client, auth_headers, db, watchlist, instrument
     ):
@@ -904,9 +1244,6 @@ class TestWatchlistsCrud:
             WatchlistItem(
                 instrument_id=instrument.id,
                 position=0,
-                # Make the membership known before the historical bars so the
-                # explicit point-in-time request tests data, not a future
-                # membership exclusion.
                 added_at=ohlcv_bars[0].ts,
             )
         )
@@ -1339,8 +1676,10 @@ class TestWatchlistsCrud:
             },
         )
         assert refreshed.status_code == 200, refreshed.text
-        assert refreshed.json()["cache_hit"] is False
-        assert refreshed.json()["cache_key"] != body["cache_key"]
+        # The newer event was fetched after the historical ``end`` cutoff, so
+        # it is future knowledge and must not invalidate the historical cache.
+        assert refreshed.json()["cache_hit"] is True
+        assert refreshed.json()["cache_key"] == body["cache_key"]
 
     def test_sources_unify_personal_and_locked_index_universes(
         self, client, auth_headers, db, watchlist, instrument
@@ -1521,9 +1860,9 @@ class TestWatchlistsCrud:
             instrument.id,
             ["D1"],
             historical_body["run_id"],
-            "2024-01-02T00:00:00+00:00",
+            "2024-01-02T00:00:00Z",
         )
-        assert "end=2024-01-02T00:00:00+00:00" in redis.calls[-1][1]["_job_id"]
+        assert "end=2024-01-02T00:00:00Z" in redis.calls[-1][1]["_job_id"]
 
         status = client.get(
             f"/api/v1/watchlists/history-refresh-runs/{body['run_id']}",
@@ -1588,7 +1927,26 @@ class TestWatchlistsCrud:
                 "member_count": 2,
                 "covered_member_count": 1,
                 "coverage_percent": 50.0,
+                "analysis_ready_member_count": 0,
+                "analysis_ready_percent": 0.0,
+                "required_bar_count": 252,
+                "analysis_ready_status": "partial",
                 "bar_count": len(ohlcv_bars),
+                "provider_member_count": 1,
+                "derived_member_count": 0,
+                "provider_only_member_count": 1,
+                "derived_only_member_count": 0,
+                "mixed_member_count": 0,
+                "provider_bar_count": len(ohlcv_bars),
+                "derived_bar_count": 0,
+                "source_lineage": "provider_only",
+                "adjustment_provenance": {
+                    "mode": "split_adjusted",
+                    "source_kind": "provider_observation",
+                    "factor_status": "provider_native_opaque",
+                    "factor_version": None,
+                    "contract_version": 1,
+                },
                 "oldest": ohlcv_bars[0].ts.isoformat().replace("+00:00", "Z"),
                 "newest": ohlcv_bars[-1].ts.isoformat().replace("+00:00", "Z"),
                 "in_progress_count": 1,
@@ -1614,7 +1972,14 @@ class TestWatchlistsCrud:
             instrument_type_id=instrument_type.id,
             is_active=True,
         )
-        db.add(mdy)
+        placeholder = Instrument(
+            symbol="HOLDING-MDY-PLACEHOLDER",
+            name="Unresolved MDY holding",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add_all([mdy, placeholder])
         db.flush()
         profile = ETFProfile(instrument_id=mdy.id, adapter_status="resolved")
         db.add(profile)
@@ -1627,8 +1992,8 @@ class TestWatchlistsCrud:
             source_provider="controlled_fixture",
             source_quality="issuer_disclosed",
             completeness_status="complete",
-            row_count=1,
-            resolved_count=1,
+            row_count=3,
+            resolved_count=3,
             unresolved_count=0,
             total_weight=1.0,
             snapshot_hash="family-derived-equal-source",
@@ -1642,10 +2007,38 @@ class TestWatchlistsCrud:
                 position=0,
                 reported_symbol=instrument.symbol,
                 reported_name=instrument.name,
-                weight=1.0,
+                weight=0.5,
+                holding_type="equity",
+                row_type="Security",
+                source_row_hash="family-derived-equal-row",
+                is_resolved=True,
+            )
+        )
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=instrument.id,
+                position=1,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                weight=0.25,
                 holding_type="equity",
                 row_type="security",
-                source_row_hash="family-derived-equal-row",
+                source_row_hash="family-derived-equal-duplicate-row",
+                is_resolved=True,
+            )
+        )
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=placeholder.id,
+                position=2,
+                reported_symbol=placeholder.symbol,
+                reported_name=placeholder.name,
+                weight=0.25,
+                holding_type="equity",
+                row_type="Security",
+                source_row_hash="family-derived-placeholder-row",
                 is_resolved=True,
             )
         )
@@ -1660,6 +2053,7 @@ class TestWatchlistsCrud:
         )
         assert source["locked"] is True
         assert source["symbol"] == "MDY"
+        assert source["member_count"] == 1
         assert source["provenance"]["derived"] is True
         assert source["provenance"]["availability"] == "unknown"
         assert source["provenance"]["membership_semantics"] == (
@@ -1674,11 +2068,18 @@ class TestWatchlistsCrud:
         assert resolved.status_code == 200, resolved.text
         resolved_payload = resolved.json()
         assert resolved_payload["source"]["provenance"]["derived"] is True
+        assert resolved_payload["source"]["member_count"] == 1
+        assert resolved_payload["source"]["provenance"]["canonical_member_count"] == 1
+        assert resolved_payload["source"]["provenance"]["placeholder_member_count"] == 1
+        assert resolved_payload["members"]
+        assert len(resolved_payload["members"]) == 1
         assert resolved_payload["members"][0]["instrument_id"] == instrument.id
         assert resolved_payload["members"][0]["weight"] == 1.0
         assert resolved_payload["members"][0]["relationship_type"] == (
             "derived_equal_weight_constituent"
         )
+        assert len(resolved_payload["exclusions"]) == 1
+        assert resolved_payload["exclusions"][0]["reason"] == "unresolved_holding"
 
         market_map = client.post(
             "/api/v1/analysis/market-map",
@@ -2138,27 +2539,41 @@ class TestWatchlistsCrud:
             source_provider="controlled_fixture",
             source_quality="issuer_disclosed",
             completeness_status="complete",
-            row_count=1,
-            resolved_count=1,
+            row_count=2,
+            resolved_count=2,
             unresolved_count=0,
             total_weight=1.0,
             snapshot_hash="watchlist-etf-source-fixture",
         )
         db.add(snapshot)
         db.flush()
-        db.add(
-            ETFHolding(
-                snapshot_id=snapshot.id,
-                constituent_instrument_id=instrument_b.id,
-                position=0,
-                reported_symbol=instrument_b.symbol,
-                reported_name=instrument_b.name,
-                weight=1.0,
-                holding_type="equity",
-                row_type="security",
-                source_row_hash="watchlist-etf-source-row",
-                is_resolved=True,
-            )
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=0,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.75,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="watchlist-etf-source-row",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=1,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.25,
+                    holding_type="equity",
+                    row_type="Security",
+                    source_row_hash="watchlist-etf-source-duplicate-row",
+                    is_resolved=True,
+                ),
+            ]
         )
         db.add_all(
             [
@@ -2199,8 +2614,8 @@ class TestWatchlistsCrud:
         assert Decimal(str(source["provenance"]["adapter_confidence"])) == Decimal("0.92")
         assert source["provenance"]["snapshot_source_quality"] == "issuer_disclosed"
         assert source["provenance"]["snapshot_completeness_status"] == "complete"
-        assert source["provenance"]["snapshot_row_count"] == 1
-        assert source["provenance"]["snapshot_resolved_count"] == 1
+        assert source["provenance"]["snapshot_row_count"] == 2
+        assert source["provenance"]["snapshot_resolved_count"] == 2
         assert source["provenance"]["snapshot_unresolved_count"] == 0
         assert "failure_class" in source["provenance"]
         assert "capability_reason" in source["provenance"]
@@ -2243,8 +2658,8 @@ class TestWatchlistsCrud:
             "last_success_at": None,
             "last_failure_at": None,
             "completeness_status": "complete",
-            "row_count": 1,
-            "resolved_count": 1,
+            "row_count": 2,
+            "resolved_count": 2,
             "unresolved_count": 0,
             "failure_class": None,
             "reason": "The latest holdings artifact has not passed explicit ETF identity verification.",
@@ -2300,6 +2715,103 @@ class TestWatchlistsCrud:
         assert body["source"]["locked"] is True
         assert body["cells"][0]["area_value"] == 1.0
         assert body["cells"][0]["area_provenance"]["kind"] == "point_in_time_membership"
+
+    def test_etf_holdings_resolver_excludes_internal_placeholder_members(
+        self, client, auth_headers, db, instrument, instrument_b, instrument_type
+    ):
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        placeholder = Instrument(
+            symbol="HOLDING-ETF-PLACEHOLDER",
+            name="Unresolved ETF holding",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(placeholder)
+        db.flush()
+        profile = ETFProfile(
+            instrument_id=instrument.id,
+            issuer="Controlled issuer",
+            adapter_key="controlled_fixture",
+            adapter_status="resolved",
+        )
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="controlled_fixture",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=3,
+            resolved_count=3,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="etf-placeholder-resolver-fixture",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=0,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.75,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="etf-placeholder-canonical-row",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=placeholder.id,
+                    position=1,
+                    reported_symbol=placeholder.symbol,
+                    reported_name=placeholder.name,
+                    weight=0.25,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="etf-placeholder-placeholder-row",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=2,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.25,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="etf-placeholder-canonical-duplicate-row",
+                    is_resolved=True,
+                ),
+            ]
+        )
+        db.flush()
+
+        source_id = f"etf-holdings:{instrument.symbol}"
+        resolved = client.get(
+            f"/api/v1/watchlists/sources/{source_id}",
+            headers=auth_headers,
+            params={"as_of": "2024-01-03T00:00:00Z"},
+        )
+        assert resolved.status_code == 200, resolved.text
+        payload = resolved.json()
+        assert payload["source"]["member_count"] == 1
+        assert payload["source"]["provenance"]["canonical_member_count"] == 1
+        assert payload["source"]["provenance"]["placeholder_member_count"] == 1
+        assert [member["instrument_id"] for member in payload["members"]] == [instrument_b.id]
+        assert payload["members"][0]["weight"] == 1.0
+        assert len(payload["exclusions"]) == 1
+        assert payload["exclusions"][0]["reason"] == "unresolved_holding"
 
     def test_combo_source_is_locked_derived_universe_for_the_same_market_map_contract(
         self, client, auth_headers, db, instrument, instrument_b
@@ -3173,6 +3685,7 @@ class TestWatchlistsCrud:
             version_number=1,
             source="return 1.0",
             output_contract="series",
+            output_name="momentum",
             parameter_schema={},
             default_parameters={},
         )
@@ -3182,7 +3695,7 @@ class TestWatchlistsCrud:
             user_id=user.id,
             code_version_id=version.id,
             status="completed",
-            run_config={"output_contract": "series"},
+            run_config={"output_contract": "series", "output_name": "momentum"},
             dataset_manifest={"dataset_version": "test"},
         )
         run.artifacts.append(
@@ -3222,8 +3735,29 @@ class TestWatchlistsCrud:
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["python_run_id"] == run.id
+        assert body["python_code_version_id"] == version.id
+        assert body["python_output_name"] == "momentum"
+        assert body["python_output_contract"] == "series"
         assert {cell["color_value"] for cell in body["cells"]} == {2.5, -0.5}
         assert body["coverage"] == 1
+
+        snapshot_response = client.post(
+            "/api/v1/analysis/market-map/snapshots",
+            headers=auth_headers,
+            json={"name": "Momentum output", "cache_key": body["cache_key"]},
+        )
+        assert snapshot_response.status_code == 200, snapshot_response.text
+        saved_map = snapshot_response.json()["map"]
+        assert saved_map["python_run_id"] == run.id
+        assert saved_map["python_code_version_id"] == version.id
+        assert saved_map["python_output_name"] == "momentum"
+        assert saved_map["python_output_contract"] == "series"
+        restored_response = client.get(
+            f"/api/v1/analysis/market-map/snapshots/{snapshot_response.json()['id']}",
+            headers=auth_headers,
+        )
+        assert restored_response.status_code == 200, restored_response.text
+        assert restored_response.json()["map"] == saved_map
 
         area_response = client.post(
             "/api/v1/analysis/market-map",
@@ -3245,11 +3779,22 @@ class TestWatchlistsCrud:
             item["code"] == "python_area_non_positive" for item in area_cells["MSFT"]["warnings"]
         )
 
+        boolean_version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=2,
+            source="return True",
+            output_contract="boolean",
+            output_name="qualifies",
+            parameter_schema={},
+            default_parameters={},
+        )
+        db.add(boolean_version)
+        db.flush()
         boolean_run = ResearchRun(
             user_id=user.id,
-            code_version_id=version.id,
+            code_version_id=boolean_version.id,
             status="completed",
-            run_config={"output_contract": "boolean"},
+            run_config={"output_contract": "boolean", "output_name": "qualifies"},
             dataset_manifest={"dataset_version": "test"},
         )
         boolean_run.artifacts.append(
@@ -3313,6 +3858,194 @@ class TestWatchlistsCrud:
             },
         )
         assert invalid.status_code == 404
+
+    def test_market_map_consumes_isolated_python_breadth_condition_tree(
+        self, client, auth_headers, db, user, watchlist, instrument, instrument_b
+    ):
+        from decimal import Decimal
+
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+        from app.models.watchlist import WatchlistItem
+
+        db.add_all(
+            [
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0),
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1),
+            ]
+        )
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="map-breadth-condition",
+            name="Map breadth",
+            kind="condition",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source="output.series('score', market.close())",
+            output_contract="series",
+            parameter_schema={},
+            default_parameters={},
+        )
+        db.add(version)
+        db.flush()
+        condition = {
+            "kind": "all",
+            "params": {
+                "conditions": [
+                    {
+                        "kind": "python_series",
+                        "params": {
+                            "code_version_id": version.id,
+                            "scope": "cross_sectional",
+                            "statistic": "median",
+                            "operator": "gte",
+                            "threshold": 0,
+                        },
+                    },
+                    {
+                        "kind": "comparison",
+                        "params": {"field": "close", "operator": "gte", "threshold": 100},
+                    },
+                ]
+            },
+        }
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={
+                "execution_mode": "breadth_current",
+                "output_contract": "boolean",
+                "condition_tree": {
+                    "kind": "all",
+                    "params": {
+                        "conditions": [
+                            {
+                                "kind": "python_series",
+                                "params": {
+                                    "code_version_id": version.id,
+                                    "source": version.source,
+                                    "output_name": None,
+                                    "scope": "cross_sectional",
+                                    "statistic": "median",
+                                    "operator": "gte",
+                                    "threshold": 0.0,
+                                    "parameters": {},
+                                },
+                            },
+                            {
+                                "kind": "comparison",
+                                "target_scope": "member",
+                                "params": {"field": "close", "operator": "gte", "threshold": 100},
+                            },
+                        ]
+                    },
+                },
+            },
+            dataset_manifest={"dataset_version": "test"},
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="batch",
+                name="batch_cells",
+                payload={
+                    "value": {
+                        "cells": [
+                            {
+                                "instrument_id": instrument.id,
+                                "status": "completed",
+                                "value": True,
+                                "metric": 0.5,
+                            },
+                            {
+                                "instrument_id": instrument_b.id,
+                                "status": "completed",
+                                "value": False,
+                                "metric": -0.5,
+                            },
+                        ]
+                    }
+                },
+            )
+        )
+        db.add(run)
+        observed_at = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+        latest_bar_at = observed_at - timedelta(days=1)
+        for current in (instrument, instrument_b):
+            for offset, close in ((1, Decimal("100")), (0, Decimal("101"))):
+                ts = latest_bar_at - timedelta(days=offset)
+                db.add(
+                    OHLCVBar(
+                        instrument_id=current.id,
+                        timeframe=Timeframe.D1,
+                        ts=ts,
+                        open=close,
+                        high=close + Decimal("1"),
+                        low=close - Decimal("1"),
+                        close=close,
+                        volume=Decimal("1000"),
+                        is_adjusted=True,
+                    )
+                )
+            db.add(
+                InstrumentDatasetState(
+                    instrument_id=current.id,
+                    data_source_id=None,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj",
+                    status=DatasetStatus.FRESH,
+                    coverage_start=latest_bar_at - timedelta(days=1),
+                    coverage_end=latest_bar_at,
+                    observed_at=observed_at,
+                    fetched_at=observed_at,
+                    stale_after=observed_at + timedelta(days=1),
+                    snapshot_hash="controlled-local-breadth-fixture",
+                )
+            )
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "breadth",
+                "condition": condition,
+                "python_run_id": run.id,
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        cells = {cell["instrument_id"]: cell for cell in body["cells"]}
+        assert cells[instrument.id]["condition_value"] is True
+        assert cells[instrument.id]["condition_metric"] == 0.5
+        assert cells[instrument.id]["color_value"] == 1
+        assert cells[instrument_b.id]["condition_value"] is False
+        assert cells[instrument_b.id]["color_value"] == -1
+
+        missing_run = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "color_metric": "breadth",
+                "condition": condition,
+            },
+        )
+        assert missing_run.status_code == 422
+        assert (
+            missing_run.json()["detail"]["code"]
+            == "breadth_python_condition_requires_python_run_id"
+        )
 
     def test_market_map_uses_provenance_aware_numeric_area_fields(
         self, client, auth_headers, db, user, watchlist, instrument, instrument_b, monkeypatch

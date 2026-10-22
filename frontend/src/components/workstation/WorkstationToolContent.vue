@@ -1,5 +1,5 @@
 <template>
-  <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+  <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
         <label>Family
@@ -14,6 +14,11 @@
           </select>
         </label>
         <span v-if="benchmarkFamilyKey" class="benchmark-surface__family-state">{{ activeBenchmarkLabel }} · locked family legs</span>
+        <span v-if="benchmarkFamilyKey && benchmarkFamilyReadinessLoading" role="status">Checking all-family readiness…</span>
+        <span v-else-if="benchmarkFamilyKey && benchmarkFamilyReadinessError" class="benchmark-surface__family-error" role="alert">Readiness unavailable: {{ benchmarkFamilyReadinessError }}</span>
+        <span v-else-if="benchmarkFamilyKey && benchmarkFamilyReadiness" class="benchmark-surface__family-readiness" aria-label="Benchmark family readiness">All-family readiness: {{ benchmarkFamilyReadiness.readiness_status }} · {{ benchmarkFamilyReadiness.ready_role_count }}/{{ benchmarkFamilyReadiness.role_count }} roles · {{ benchmarkFamilyReadiness.ready_family_count }}/{{ benchmarkFamilyReadiness.family_count }} families ready</span>
+        <span v-if="benchmarkFamilyReadiness" class="sr-only" aria-label="Benchmark provider probe evidence">{{ benchmarkFamilyProviderProbeLabel(benchmarkFamilyReadiness) }}</span>
+        <span v-if="benchmarkFamilyReadiness" class="sr-only" aria-label="Benchmark family universe provenance">{{ benchmarkFamilyUniverseProvenanceLabel(benchmarkFamilyReadiness) }}</span>
         <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>
         <span v-else-if="benchmarkFamilyError" class="benchmark-surface__family-error" role="alert">{{ benchmarkFamilyError }}</span>
       </div>
@@ -114,8 +119,12 @@
       @plot-drop="addPlotColumn"
       @condition-drop="addConditionColumn"
     />
-    <section v-else-if="tool.tool_type === 'watchlist' && tool.configuration.personal === true" class="personal-watchlist-tool" role="region" aria-label="Personal watchlists" :aria-busy="((watchlistStore.loading && !selectedPersonalWatchlist && !flaggedItemsSelected && !selectedCombo) || personalListBusy || personalWatchlistBusy) ? 'true' : 'false'">
-      <div class="personal-watchlist-tool__controls">
+    <section v-else-if="tool.tool_type === 'watchlist' && (tool.configuration.personal === true || isFavoritesTool)" class="personal-watchlist-tool" role="region" :aria-label="isFavoritesTool ? 'My Favorites Quick List' : 'Personal watchlists'" :aria-busy="(isFavoritesTool ? favoriteStore.loading : ((watchlistStore.loading && !selectedPersonalWatchlist && !flaggedItemsSelected && !selectedCombo) || personalListBusy || personalWatchlistBusy)) ? 'true' : 'false'">
+      <div v-if="isFavoritesTool" class="personal-watchlist-tool__controls">
+        <span>{{ favoriteStore.favorites.length }} symbols · My Favorites</span>
+        <span v-if="favoriteStore.error" class="personal-watchlist-tool__error" role="alert">{{ favoriteStore.error }}</span>
+      </div>
+      <div v-else class="personal-watchlist-tool__controls">
         <label>WatchList
             <select :value="flaggedItemsSelected ? 'flagged' : selectedComboKey ? `combo:${selectedComboKey}` : effectiveSelectedPersonalWatchlistId == null ? '' : String(effectiveSelectedPersonalWatchlistId)" aria-label="Personal watchlist" @change="selectPersonalWatchlist(($event.target as HTMLSelectElement).value)">
             <option value="flagged">Flagged Items</option>
@@ -125,18 +134,19 @@
           </select>
         </label>
         <input v-model="personalListNameDraft" aria-label="Personal watchlist name" placeholder="List name" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @input="markPersonalListNameEdited" @keydown.enter.prevent="selectedPersonalWatchlist ? renamePersonalWatchlist() : createPersonalWatchlist($event)" />
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @click="createPersonalWatchlist">New</button>
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
+        <button type="button" aria-label="Create personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo)" @click="createPersonalWatchlist">New</button>
+        <button type="button" aria-label="Rename personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || !personalListNameDraft.trim() || personalListBusy" @click="renamePersonalWatchlist">Rename</button>
+        <button type="button" aria-label="Copy personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || personalListBusy" @click="copyPersonalWatchlist">Copy</button>
+        <button type="button" aria-label="Delete personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || selectedPersonalWatchlist.is_managed || personalListBusy" @click="deletePersonalWatchlist">Delete</button>
         <input v-model="personalSymbolDraft" aria-label="Add symbol to personal watchlist" placeholder="Add symbol" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked" @keydown.enter.prevent="addPersonalSymbol" />
-        <button type="button" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
+        <button type="button" aria-label="Add symbol to personal watchlist" :disabled="flaggedItemsSelected || Boolean(selectedCombo) || !personalSymbolDraft.trim() || !selectedPersonalWatchlist || selectedPersonalWatchlist.is_locked || personalWatchlistBusy" @click="addPersonalSymbol">{{ personalWatchlistBusy ? 'Adding…' : 'Add' }}</button>
         <span v-if="flaggedItemsSelected">{{ flaggedWatchlistRows.length }} flagged symbols · select a row to inspect its source list</span>
         <span v-else-if="selectedCombo">{{ comboWatchlistRows.length }} symbols · {{ selectedCombo.name }} · union/intersection/exclusion</span>
         <span v-else-if="selectedPersonalWatchlist">{{ selectedPersonalWatchlist.items.length }} symbols · {{ selectedPersonalWatchlist.is_locked ? 'Locked' : 'Drag rows to reorder' }}</span>
         <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
         <span v-else>No personal watchlists available.</span>
         <span v-if="personalWatchlistError" class="personal-watchlist-tool__error">{{ personalWatchlistError }}</span>
+        <span v-if="favoriteStore.error" class="personal-watchlist-tool__error" role="alert">{{ favoriteStore.error }}</span>
         <span v-if="watchlistStore.loadError" class="personal-watchlist-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ watchlistStore.loadError }}</span>
         <section class="combo-editor" aria-label="Combo list editor">
           <header>Combo list</header>
@@ -156,16 +166,16 @@
               <option v-for="watchlist in personalWatchlists" :key="`exclude-${watchlist.id}`" :value="watchlist.id">{{ watchlist.name }}</option>
             </select>
           </label>
-          <button type="button" :disabled="flaggedItemsSelected || !comboNameDraft.trim() || (!comboUnionIds.length && !comboIntersectionIds.length) || comboBusy" @click="saveComboList">{{ selectedCombo ? 'Save combo' : 'New combo' }}</button>
-          <button v-if="selectedCombo" type="button" :disabled="comboBusy" @click="deleteComboList">Delete combo</button>
+          <button type="button" :aria-label="selectedCombo ? 'Save combo list' : 'Create combo list'" :disabled="flaggedItemsSelected || !comboNameDraft.trim() || (!comboUnionIds.length && !comboIntersectionIds.length) || comboBusy" @click="saveComboList">{{ selectedCombo ? 'Save combo' : 'New combo' }}</button>
+          <button v-if="selectedCombo" type="button" aria-label="Delete combo list" :disabled="comboBusy" @click="deleteComboList">Delete combo</button>
           <span v-if="comboError" class="personal-watchlist-tool__error">{{ comboError }}</span>
         </section>
       </div>
       <VirtualWatchlistTool
-        v-if="selectedPersonalWatchlist || flaggedItemsSelected || selectedCombo"
+        v-if="isFavoritesTool || selectedPersonalWatchlist || flaggedItemsSelected || selectedCombo"
         :timeframe="activeTimeframe"
-        :label="flaggedItemsSelected ? 'Flagged Items' : selectedCombo?.name ?? selectedPersonalWatchlist?.name ?? 'WatchList'"
-        :rows="flaggedItemsSelected ? flaggedWatchlistRows : selectedCombo ? comboWatchlistRows : personalWatchlistRows"
+        :label="isFavoritesTool ? 'My Favorites' : flaggedItemsSelected ? 'Flagged Items' : selectedCombo?.name ?? selectedPersonalWatchlist?.name ?? 'WatchList'"
+        :rows="isFavoritesTool ? favoriteRows : flaggedItemsSelected ? flaggedWatchlistRows : selectedCombo ? comboWatchlistRows : personalWatchlistRows"
         :selected="activeSymbol"
         :columns="personalWatchlistColumns"
         :visible-column-keys="configuredColumnKeys"
@@ -183,11 +193,12 @@
         :drop-error="conditionDropError"
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
-        :membership-targets="personalWatchlistTargets"
-        :source-watchlist-id="selectedPersonalWatchlist?.id"
-        :market-map-source-id="personalMarketMapSourceId"
-        :reorderable="Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
-        :allow-remove="Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
+        :membership-targets="isFavoritesTool ? [] : personalWatchlistTargets"
+        :source-watchlist-id="isFavoritesTool ? undefined : selectedPersonalWatchlist?.id"
+        :market-map-source-id="isFavoritesTool ? favoriteMarketMapSourceId : personalMarketMapSourceId"
+        :reorderable="!isFavoritesTool && Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
+        :allow-remove="isFavoritesTool || Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
+        :favorite-list="isFavoritesTool"
         @select="selectSymbol($event.symbol, $event.instrumentId)"
         @reorder="selectedPersonalWatchlist && emit('reorder', selectedPersonalWatchlist.id, $event)"
         @compare="emit('compare', $event)"
@@ -257,15 +268,15 @@
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar class="chart-tool__drawing-toolbar" />
         <div class="chart-tool__surface" :class="{ 'chart-tool__surface--comparisons': comparisonLegend.length > 0 }">
-        <ChartTemplateControl class="chart-tool__templates" :configuration="chartTemplateConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
+          <ChartTemplateControl class="chart-tool__templates" :source-window-key="tool.instance_key" :configuration="chartTemplateConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
         <!-- Use the literal kebab-case event contract so the virtual component
              listener and typed emitter remain identical after template
              compilation. -->
-        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="localLinkGroup" :python-plots="configuredPythonPlots" :scan-plots="configuredScanPlots" @update:python-plots="updatePythonPlots" @update:scan-plots="updateScanPlots" />
+        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="localLinkGroup" :python-plots="configuredPythonPlots" :scan-plots="configuredScanPlots" @update:python-plots="updatePythonPlots" @update:scan-plots="updateScanPlots" @configuration="(windowKey, configuration) => emit('configuration', windowKey, configuration)" />
         <div class="chart-tool__compare" aria-label="Chart comparisons">
           <input v-model="comparisonDraft" aria-label="Comparison symbol" placeholder="Compare" @keydown.enter.prevent="addComparisonSymbol(comparisonDraft)" />
-          <button type="button" title="Add comparison" @click="addComparisonSymbol(comparisonDraft)">＋</button>
-          <button v-for="target in comparisonLegend" :key="target.symbol" type="button" class="chart-tool__compare-chip" :title="`Remove ${target.label}`" @click="removeComparisonSymbol(target.symbol)">
+          <button type="button" title="Add comparison" aria-label="Add comparison" @click="addComparisonSymbol(comparisonDraft)">＋</button>
+          <button v-for="target in comparisonLegend" :key="target.symbol" type="button" class="chart-tool__compare-chip" :title="`Remove ${target.label}`" :aria-label="`Remove ${target.label}`" @click="removeComparisonSymbol(target.symbol)">
             <i :style="{ background: target.color }" />{{ target.symbol }} {{ target.percentChange == null ? '—' : `${target.percentChange >= 0 ? '+' : ''}${target.percentChange.toFixed(2)}%` }} ×
           </button>
         </div>
@@ -273,6 +284,7 @@
           v-if="chartStore.symbol && !chartStore.error"
           :chart-type="chartBarType"
           :chart-settings="liveChartConfiguration"
+          :enable-keyboard="isActiveToolWindow"
           :workspace-link-group="localLinkGroup"
           :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)"
           :comparison-series="comparisonSeries"
@@ -295,6 +307,8 @@
         type="button"
         :class="{ 'industry-list__row--active': item.industry === selectedIndustry }"
         class="industry-list__row"
+        :aria-pressed="item.industry === selectedIndustry ? 'true' : 'false'"
+        :aria-label="industryRowLabel(item)"
         @click="emit('selectIndustry', item.industry, industryETFContext)"
       >
         <strong>{{ item.industry }}</strong><span>{{ item.resolved_count }}/{{ item.constituent_count }}</span>
@@ -654,7 +668,42 @@
         <button type="button" :disabled="breadthWatchlistSourceNotCurrent || (breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && pythonLeafAnchorId(breadthTreePythonSeriesLeaf) == null)" @click="runGenericBreadth">Evaluate</button>
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
-        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
+        <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadth.excluded_count }} excluded · {{ genericBreadth.requested_count }} requested · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
+        <details v-if="genericBreadth" class="breadth-tool__generic-evidence" aria-label="Generic breadth result evidence">
+          <summary>Snapshot evidence</summary>
+          <dl>
+            <div><dt>Universe</dt><dd>{{ genericBreadthUniverseLabel }}</dd></div>
+            <div><dt>Membership version</dt><dd>{{ genericBreadthMembershipVersion }}</dd></div>
+            <div><dt>Observations</dt><dd>{{ genericBreadthObservationLabel }}</dd></div>
+            <div><dt>Sampling</dt><dd>{{ breadthTimeframeLabel }} · {{ breadthAdjusted ? 'split adjusted' : 'raw' }}</dd></div>
+            <div><dt>Data source</dt><dd>{{ genericBreadthProvenanceLabel }}</dd></div>
+            <div><dt>{{ genericBreadthReferenceTargetEvidence?.kind === 'aggregate' ? 'Input freshness' : 'Freshness' }}</dt><dd>{{ genericBreadthFreshnessLabel }}</dd></div>
+            <div v-if="genericBreadthFreshnessBreakdown"><dt>Freshness details</dt><dd>{{ genericBreadthFreshnessBreakdown }}</dd></div>
+            <div v-if="genericBreadth.calculation_version"><dt>Calculation</dt><dd>{{ genericBreadth.calculation_version }}</dd></div>
+            <div><dt>Definition</dt><dd><code>{{ genericBreadth.definition_hash }}</code></dd></div>
+          </dl>
+          <section v-if="genericBreadthReferenceTargetEvidence" aria-label="Generic breadth reference target evidence">
+            <strong>Reference-target lineage</strong>
+            <dl>
+              <div><dt>Target</dt><dd>{{ genericBreadthReferenceTargetEvidence.target }}</dd></div>
+              <template v-if="genericBreadthReferenceTargetEvidence.kind === 'aggregate'">
+                <div><dt>Derived method</dt><dd>{{ genericBreadthReferenceTargetEvidence.derivation ?? 'Not reported' }}</dd></div>
+                <div><dt>Membership</dt><dd>{{ genericBreadthReferenceTargetEvidence.membership ?? 'Not reported' }}</dd></div>
+                <div><dt>Mean member coverage</dt><dd>{{ genericBreadthReferenceTargetEvidence.coverage ?? 'Not reported' }}</dd></div>
+                <div><dt>Aligned series</dt><dd>{{ genericBreadthReferenceTargetEvidence.alignedSeries ?? 'Not reported' }}</dd></div>
+                <div><dt>Timestamp alignment</dt><dd>{{ genericBreadthReferenceTargetEvidence.alignment ?? 'Not reported' }}</dd></div>
+                <div><dt>Freshness scope</dt><dd>Run input freshness includes evaluated members and reference-universe members.</dd></div>
+              </template>
+            </dl>
+          </section>
+          <section aria-label="Generic breadth excluded member reasons">
+            <strong>Exclusions</strong>
+            <ul v-if="genericBreadthExclusionReasons.length">
+              <li v-for="reason in genericBreadthExclusionReasons" :key="reason.code + reason.message">{{ reason.message }} · {{ reason.count }} member{{ reason.count === 1 ? '' : 's' }}</li>
+            </ul>
+            <small v-else>No exclusion details were returned.</small>
+          </section>
+        </details>
         <div v-if="genericBreadth && !breadthUsesPython" class="breadth-tool__definition-actions" aria-label="Reusable breadth definition">
           <input v-model.trim="genericBreadthDefinitionName" aria-label="Breadth reusable definition name" placeholder="Definition name" maxlength="160" />
           <button type="button" :disabled="genericBreadthDefinitionSaving || !genericBreadthDefinitionName" @click="saveGenericBreadthDefinition">{{ genericBreadthDefinitionSaving ? 'Saving…' : 'Save as Study Lab definition' }}</button>
@@ -671,6 +720,9 @@
           <option value="cap_weight">Cap weight</option>
         </select>
         <label>Market <input :value="familyRatioMarket" aria-label="Family ratio market benchmark" maxlength="12" @change="setBreadthConfiguration({ family_ratio_market: ($event.target as HTMLInputElement).value.toUpperCase() })" /></label>
+        <label>Rank period <select :value="familyRankPeriod" aria-label="Family ranking period" @change="setBreadthConfiguration({ family_rank_period: ($event.target as HTMLSelectElement).value })">
+          <option v-for="period in familyRankPeriods" :key="period" :value="period">{{ period }}</option>
+        </select></label>
         <span v-if="familyRatioLoading" role="status">Loading…</span>
         <span v-else-if="familyRatioError" class="breadth-tool__status--error" role="alert">{{ familyRatioError }}</span>
         <template v-else-if="familyRatios?.ratios?.length">
@@ -680,8 +732,9 @@
             <small>{{ ratio.points.length }} points · {{ (ratio.coverage * 100).toFixed(0) }}%</small>
           </span>
         </template>
-        <span v-else class="breadth-tool__status">No aligned family ratio data.</span>
-      </div>
+          <span v-else class="breadth-tool__status">No aligned family ratio data.</span>
+          <BenchmarkFamilyRatioHistoryUPlot v-if="familyRatios" :ratios="familyRatios" />
+        </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__family-technicals" aria-label="Benchmark family technicals">
         <strong>Family technicals</strong>
         <span v-if="familyTechnicalsLoading" role="status">Loading…</span>
@@ -703,7 +756,8 @@
           </span>
         </template>
         <span v-else class="breadth-tool__status">Role participation unavailable.</span>
-        <span v-if="familyBreadthHistory" class="breadth-tool__family-breadth-history">History · {{ familyBreadthHistoryPointCount }} aligned points</span>
+        <span v-if="familyBreadthHistory" class="breadth-tool__family-breadth-history">History · {{ familyBreadthHistoryPointCount }} aligned points · {{ familyBreadthHistoryReadinessLabel }}</span>
+        <BenchmarkFamilyBreadthHistoryUPlot v-if="familyBreadthHistory" :history="familyBreadthHistory" />
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__family-ranking" aria-label="Benchmark family role ranking">
         <strong>Role ranking · {{ familyRanking?.rank_period ?? '1M' }}</strong>
@@ -711,7 +765,7 @@
         <span v-else-if="familyRankingError" class="breadth-tool__status--error" role="alert">{{ familyRankingError }}</span>
         <template v-else-if="familyRanking">
           <span v-for="role in familyRanking.roles" :key="role.role" class="breadth-tool__family-ranking-role">
-            <b>#{{ role.rank ?? '—' }}</b> {{ familyRoleLabel(role.role) }} {{ role.symbol ?? role.label }} · {{ familyBreadthPercentage({ percentage: role.performance['1M'] }) }} · Δ {{ familyBreadthPercentage({ percentage: role.relative_performance['1M'] }) }}
+            <b>#{{ role.rank ?? '—' }}</b> {{ familyRoleLabel(role.role) }} {{ role.symbol ?? role.label }} · {{ familyBreadthPercentage({ percentage: role.performance[familyRankPeriod] }) }} · Δ {{ familyBreadthPercentage({ percentage: role.relative_performance[familyRankPeriod] }) }}
           </span>
         </template>
         <span v-else class="breadth-tool__status">Role ranking unavailable.</span>
@@ -730,6 +784,8 @@
         <span v-if="familyConcentrationHistoryLoading" role="status">Loading history…</span>
         <span v-else-if="familyConcentrationHistoryError" class="breadth-tool__status--error" role="alert">{{ familyConcentrationHistoryError }}</span>
         <span v-else-if="familyConcentrationHistory" class="breadth-tool__family-concentration-history">History · {{ familyConcentrationHistoryPointCount }} points · {{ familyConcentrationHistoryMode }}</span>
+        <BenchmarkFamilyConcentrationHistoryUPlot v-if="familyConcentrationHistory" :history="familyConcentrationHistory" />
+        <BenchmarkFamilyConcentrationMetricsHistoryUPlot v-if="familyConcentrationHistory" :history="familyConcentrationHistory" />
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__cross-family-ranking" aria-label="Cross-family ranking">
         <strong>US family ranking · {{ crossFamilyRanking?.rank_period ?? '1M' }}</strong>
@@ -737,13 +793,15 @@
         <span v-else-if="crossFamilyRankingError" class="breadth-tool__status--error" role="alert">{{ crossFamilyRankingError }}</span>
         <template v-else-if="crossFamilyRanking">
           <span v-for="row in crossFamilyRanking.rows.filter(item => item.available).slice(0, 4)" :key="row.family_key" class="breadth-tool__cross-family-ranking-row">
-            <b>#{{ row.rank ?? '—' }}</b> {{ row.family_name }} {{ row.symbol ?? row.label }} · {{ familyBreadthPercentage({ percentage: row.performance['1M'] }) }}
+            <b>#{{ row.rank ?? '—' }}</b> {{ row.family_name }} {{ row.symbol ?? row.label }} · {{ familyBreadthPercentage({ percentage: row.performance[familyRankPeriod] }) }}
           </span>
         </template>
         <span v-else class="breadth-tool__status">Cross-family ranking unavailable.</span>
         <span v-if="crossFamilyRankingHistoryLoading" role="status">Loading history…</span>
         <span v-else-if="crossFamilyRankingHistoryError" class="breadth-tool__status--error" role="alert">{{ crossFamilyRankingHistoryError }}</span>
         <span v-if="crossFamilyRankingHistory" class="breadth-tool__cross-family-ranking-history">History · {{ crossFamilyRankingHistoryPointCount }} points</span>
+        <CrossFamilyRankingHistoryUPlot v-if="crossFamilyRankingHistory" :history="crossFamilyRankingHistory" />
+        <CrossFamilyRankHistoryUPlot v-if="crossFamilyRankingHistory" :history="crossFamilyRankingHistory" />
       </div>
       <section v-if="isBenchmarkFamily" class="breadth-tool__family-overview" aria-label="Benchmark family analysis">
         <header class="breadth-tool__family-overview-header">
@@ -757,7 +815,7 @@
           <article v-for="mapping in familyOverview.mappings" :key="mapping.role" class="breadth-tool__family-leg" :class="{ 'breadth-tool__family-leg--selected': mapping.role === familyRatioRole }">
             <div><b>{{ familyRoleLabel(mapping.role) }}</b><span>{{ mapping.symbol ?? mapping.label }}</span></div>
             <small>{{ familyMappingState(mapping) }}</small>
-            <button type="button" :disabled="!mapping.holdings_available" :aria-label="`Load ${familyRoleLabel(mapping.role)} constituents`" @click="setBreadthConfiguration({ family_ratio_role: mapping.role })">Constituents</button>
+            <button type="button" :disabled="!mapping.holdings_available" :aria-pressed="mapping.role === familyRatioRole ? 'true' : 'false'" :aria-label="`Load ${familyRoleLabel(mapping.role)} constituents`" @click="setBreadthConfiguration({ family_ratio_role: mapping.role })">Constituents</button>
           </article>
         </div>
         <div v-if="familyCoverage" class="breadth-tool__family-coverage" aria-label="Benchmark family historical coverage">
@@ -766,9 +824,10 @@
           <label>As of <select :value="familyAsOf" aria-label="Family analysis as of" @change="setBreadthConfiguration({ as_of: (($event.target as HTMLSelectElement).value || null) })"><option value="">Latest</option><option v-for="date in familyCoverageDates" :key="date" :value="familyAsOfValue(date)">{{ date }}</option></select></label>
           <div class="breadth-tool__family-coverage-roles">
             <span v-for="role in familyCoverage.roles" :key="role.role">
-              <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }}
+          <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · {{ familyLatestDisclosureLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }} · readiness {{ role.composite_readiness_status ?? 'unknown' }}{{ familyReadinessReasonsLabel(role) }} · route {{ familyRouteLabel(role) }} · entitlement {{ familyEntitlementLabel(role) }} · refresh {{ familyRefreshLabel(role) }} · weights {{ role.weights_status ?? 'unknown' }} · classification {{ role.classification_status ?? 'unknown' }}{{ role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : '' }}
             </span>
           </div>
+          <span class="sr-only" aria-label="Benchmark family canonical role evidence">{{ familyCanonicalRoleEvidenceLabel(familyCoverage) }}</span>
         </div>
         <p v-else-if="familyCoverageError" class="breadth-tool__status breadth-tool__status--error" role="alert">{{ familyCoverageError }}</p>
         <div v-if="familyConstituents" class="breadth-tool__family-constituents">
@@ -776,7 +835,7 @@
             <strong>{{ familyRoleLabel(familyRatioRole) }} constituents · {{ familyConstituents.etf_symbol }}</strong>
             <span>{{ familyConstituents.composition_date }} · {{ familyConstituents.source_provider }} · {{ familyConstituents.rows.length }} rows</span>
           </div>
-          <button v-for="row in familyConstituents.rows.slice(0, 100)" :key="row.instrument_id" type="button" @click="emit('select', row.symbol, row.instrument_id)">
+          <button v-for="row in familyConstituents.rows.slice(0, 100)" :key="row.instrument_id" type="button" :aria-label="`Select ${row.symbol} ${row.name}`" @click="emit('select', row.symbol, row.instrument_id)">
             <strong>{{ row.symbol }}</strong><span>{{ row.name }}</span><small v-if="row.weight != null">{{ Number(row.weight).toFixed(2) }}%</small>
           </button>
           <small v-if="!familyConstituents.rows.length">No resolved constituent rows are available.</small>
@@ -791,11 +850,11 @@
         <header>
           <strong>{{ genericBreadthMemberState === 'pass' ? 'Passing' : 'Failing' }} members</strong>
           <span class="breadth-tool__actions">
-            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'pass' }" @click="genericBreadthMemberState = 'pass'">Pass {{ genericBreadth.pass_count }}</button>
-            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'fail' }" @click="genericBreadthMemberState = 'fail'">Fail {{ genericBreadth.eligible_count - genericBreadth.pass_count }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'pass' }" :aria-pressed="genericBreadthMemberState === 'pass' ? 'true' : 'false'" @click="genericBreadthMemberState = 'pass'">Pass {{ genericBreadth.pass_count }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': genericBreadthMemberState === 'fail' }" :aria-pressed="genericBreadthMemberState === 'fail' ? 'true' : 'false'" @click="genericBreadthMemberState = 'fail'">Fail {{ genericBreadth.eligible_count - genericBreadth.pass_count }}</button>
           </span>
         </header>
-        <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
+        <button v-for="member in genericBreadthMembers.slice(0, 100)" :key="member.instrument_id" type="button" :aria-label="`Select ${member.symbol} ${member.name}`" @click="emit('select', member.symbol, member.instrument_id)"><strong>{{ member.symbol }}</strong><span>{{ member.name }}</span><small v-if="member.metric != null">{{ member.metric.toFixed(3) }}</small><small v-if="member.diagnostics?.length" class="breadth-tool__member-diagnostics" :title="member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ')">{{ member.diagnostics.map(genericBreadthDiagnosticLabel).join(' · ') }}</small></button>
         <small v-if="!genericBreadthMembers.length">No {{ genericBreadthMemberState === 'pass' ? 'passing' : 'failing' }} members are eligible.</small>
       </div>
       <GenericBreadthHistoryUPlot :history="genericBreadthHistory ?? undefined" />
@@ -804,7 +863,7 @@
           <strong>Member state changes</strong>
           <span>{{ genericBreadthHistoryOccurrences.length }} shown · click to publish</span>
         </header>
-        <button v-for="occurrence in genericBreadthHistoryOccurrences" :key="occurrence.occurrence_id" type="button" :aria-label="`${occurrence.symbol} ${genericBreadthOccurrenceLabel(occurrence)} ${occurrence.timestamp}`" @click="emit('occurrence', occurrence.symbol, occurrence.timestamp, occurrence.instrument_id)">
+        <button v-for="occurrence in genericBreadthHistoryOccurrences" :key="occurrence.occurrence_id" type="button" :aria-label="`${occurrence.symbol} ${genericBreadthOccurrenceLabel(occurrence)} ${occurrence.timestamp}`" @keydown.stop @click="emit('occurrence', occurrence.symbol, occurrence.timestamp, occurrence.instrument_id)">
           <strong>{{ occurrence.symbol }}</strong>
           <span>{{ genericBreadthOccurrenceLabel(occurrence) }} · {{ occurrence.timestamp }}</span>
           <small v-if="occurrence.percentage != null">{{ (occurrence.percentage * 100).toFixed(1) }}%</small>
@@ -818,20 +877,20 @@
         <template v-for="period in ['ma20', 'ma50', 'ma200']" :key="period">
           <span>Above {{ period.slice(2) }} MA</span>
           <span class="breadth-tool__actions">
-            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'above' }" @click="setBreadthDrilldown(period, 'above')">{{ breadthMetric(period) }}</button>
-            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'below' }" @click="setBreadthDrilldown(period, 'below')">Below {{ breadthBelowCount(period) }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'above' }" :aria-pressed="breadthDrilldown?.key === period && breadthDrilldown.state === 'above' ? 'true' : 'false'" @click="setBreadthDrilldown(period, 'above')">{{ breadthMetric(period) }}</button>
+            <button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown?.key === period && breadthDrilldown.state === 'below' }" :aria-pressed="breadthDrilldown?.key === period && breadthDrilldown.state === 'below' ? 'true' : 'false'" @click="setBreadthDrilldown(period, 'below')">Below {{ breadthBelowCount(period) }}</button>
           </span>
         </template>
         <span>Coverage</span><b>{{ breadthCoverage }}</b>
-        <span>Near 52W high / low</span><span class="breadth-tool__actions"><button type="button" @click="setBreadthDrilldown('near_52w_high', 'above')">High {{ breadthMetric('near_52w_high') }}</button><button type="button" @click="setBreadthDrilldown('near_52w_low', 'above')">Low {{ breadthMetric('near_52w_low') }}</button></span>
-        <span>New high / low ({{ breadthLookback }})</span><span class="breadth-tool__actions"><button type="button" @click="setBreadthDrilldown('new_high', 'above')">High {{ breadthMetric('new_high') }}</button><button type="button" @click="setBreadthDrilldown('new_low', 'above')">Low {{ breadthMetric('new_low') }}</button></span>
-        <span>Uptrend / downtrend</span><span class="breadth-tool__actions"><button type="button" @click="setBreadthDrilldown('uptrend', 'above')">Up {{ breadthMetric('uptrend') }}</button><button type="button" @click="setBreadthDrilldown('downtrend', 'above')">Down {{ breadthMetric('downtrend') }}</button></span>
+        <span>Near 52W high / low</span><span class="breadth-tool__actions"><button type="button" :aria-pressed="breadthDrilldown?.key === 'near_52w_high' ? 'true' : 'false'" @click="setBreadthDrilldown('near_52w_high', 'above')">High {{ breadthMetric('near_52w_high') }}</button><button type="button" :aria-pressed="breadthDrilldown?.key === 'near_52w_low' ? 'true' : 'false'" @click="setBreadthDrilldown('near_52w_low', 'above')">Low {{ breadthMetric('near_52w_low') }}</button></span>
+        <span>New high / low ({{ breadthLookback }})</span><span class="breadth-tool__actions"><button type="button" :aria-pressed="breadthDrilldown?.key === 'new_high' ? 'true' : 'false'" @click="setBreadthDrilldown('new_high', 'above')">High {{ breadthMetric('new_high') }}</button><button type="button" :aria-pressed="breadthDrilldown?.key === 'new_low' ? 'true' : 'false'" @click="setBreadthDrilldown('new_low', 'above')">Low {{ breadthMetric('new_low') }}</button></span>
+        <span>Uptrend / downtrend</span><span class="breadth-tool__actions"><button type="button" :aria-pressed="breadthDrilldown?.key === 'uptrend' ? 'true' : 'false'" @click="setBreadthDrilldown('uptrend', 'above')">Up {{ breadthMetric('uptrend') }}</button><button type="button" :aria-pressed="breadthDrilldown?.key === 'downtrend' ? 'true' : 'false'" @click="setBreadthDrilldown('downtrend', 'above')">Down {{ breadthMetric('downtrend') }}</button></span>
         <span>Avg distance from MA20 / MA50</span><b>{{ breadthAdvanced('distance_from_ma', 'ma20') }} / {{ breadthAdvanced('distance_from_ma', 'ma50') }}</b>
       </div>
       <small class="breadth-tool__coverage-detail">Metric coverage: {{ breadthMetricCoverage }}</small>
       <div v-if="breadthDrilldown" class="breadth-tool__drilldown" aria-label="Breadth member drilldown">
-        <header><strong>{{ breadthDrilldown.state === 'above' ? 'Passing' : 'Failing' }} {{ breadthDrilldownLabel(breadthDrilldown.key) }} members</strong><span><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'above' }" @click="setBreadthDrilldown(breadthDrilldown.key, 'above')">Pass</button><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'below' }" @click="setBreadthDrilldown(breadthDrilldown.key, 'below')">Fail</button><button type="button" @click="breadthDrilldown = null">Close</button></span></header>
-        <button v-for="row in breadthDrilldownRows" :key="row.symbol" type="button" @click="emit('select', row.symbol, row.instrumentId)"><strong>{{ row.symbol }}</strong><span>{{ row.name }}</span></button>
+        <header><strong>{{ breadthDrilldown.state === 'above' ? 'Passing' : 'Failing' }} {{ breadthDrilldownLabel(breadthDrilldown.key) }} members</strong><span><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'above' }" :aria-pressed="breadthDrilldown.state === 'above' ? 'true' : 'false'" @click="setBreadthDrilldown(breadthDrilldown.key, 'above')">Pass</button><button type="button" :class="{ 'breadth-tool__action--active': breadthDrilldown.state === 'below' }" :aria-pressed="breadthDrilldown.state === 'below' ? 'true' : 'false'" @click="setBreadthDrilldown(breadthDrilldown.key, 'below')">Fail</button><button type="button" @click="breadthDrilldown = null">Close</button></span></header>
+        <button v-for="row in breadthDrilldownRows" :key="row.symbol" type="button" :aria-label="`Select ${row.symbol} ${row.name}`" @click="emit('select', row.symbol, row.instrumentId)"><strong>{{ row.symbol }}</strong><span>{{ row.name }}</span></button>
         <small v-if="!breadthDrilldownRows.length">No locally evaluated members are available.</small>
       </div>
       <BreadthHistoryUPlot :history="breadthHistory" />
@@ -852,13 +911,13 @@
     <MarketGaugeTool v-else-if="tool.tool_type === 'gauge'" />
     <StudyLabTool v-else-if="tool.tool_type === 'study_lab'" :tool-key="tool.instance_key" :active-symbol="activeSymbol" :configuration="tool.configuration" @configuration="emit('configuration', tool.instance_key, $event)" @occurrence="emit('occurrence', $event.symbol, $event.timestamp)" />
     <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" @occurrence="emit('occurrence', $event.symbol, $event.timestamp, $event.instrument_id)" />
-    <CodeLibraryTool v-else-if="tool.tool_type === 'code_library'" />
+    <CodeLibraryTool v-else-if="tool.tool_type === 'code_library'" @open-study="emit('openStudy', $event)" />
     <UnknownToolRecovery v-else :tool="tool" />
   </ToolWindow>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Component } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { fetchCanonicalInstrument } from '@/lib/workstation/instrumentQueries'
@@ -870,8 +929,9 @@ import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
-import { useWorkspaceStore, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { useWorkspaceStore, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
+import { useFavoritesStore } from '@/stores/favorites'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from './VirtualWatchlistTool.vue'
@@ -880,15 +940,16 @@ import InstrumentNoteTool from './InstrumentNoteTool.vue'
 import InstrumentAlertsTool from './InstrumentAlertsTool.vue'
 import EasyScanTool from './EasyScanTool.vue'
 import MarketGaugeTool from './MarketGaugeTool.vue'
-import StudyLabTool from './StudyLabTool.vue'
 import UnknownToolRecovery from './UnknownToolRecovery.vue'
 import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
+import BenchmarkFamilyBreadthHistoryUPlot from './BenchmarkFamilyBreadthHistoryUPlot.vue'
+import BenchmarkFamilyRatioHistoryUPlot from './BenchmarkFamilyRatioHistoryUPlot.vue'
+import BenchmarkFamilyConcentrationHistoryUPlot from './BenchmarkFamilyConcentrationHistoryUPlot.vue'
+import BenchmarkFamilyConcentrationMetricsHistoryUPlot from './BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue'
+import CrossFamilyRankingHistoryUPlot from './CrossFamilyRankingHistoryUPlot.vue'
+import CrossFamilyRankHistoryUPlot from './CrossFamilyRankHistoryUPlot.vue'
 import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
-import MarketMapTool from './MarketMapTool.vue'
-import InstrumentInfoPanel from '@/components/chart/InstrumentInfoPanel.vue'
-import ResearchResultsTool from './ResearchResultsTool.vue'
-import CodeLibraryTool from './CodeLibraryTool.vue'
 import CoverageSummaryTool from './CoverageSummaryTool.vue'
 import BreadthConditionTreeEditor from './BreadthConditionTreeEditor.vue'
 import { fetchCodeAssets, type CodeAssetSummary } from '@/lib/workstation/libraryQueries'
@@ -900,12 +961,47 @@ import { INDICATOR_BY_TYPE } from '@/lib/indicators/catalog'
 import { buildFlaggedWatchlistRows } from '@/lib/workstation/flagged-watchlist'
 import { buildComboWatchlistRows, type ComboListDefinition } from '@/lib/workstation/combo-lists'
 import { autoRatioBenchmarks, autoRatioExpression } from '@/lib/workstation/ratioExpression'
-import { indicatorColumnFromPlot, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
+import { indicatorColumnFromPlot, indicatorOutputFromConfig, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
 import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
+import { breadthReferenceTargetEvidence } from '@/lib/workstation/breadthReferenceEvidence'
+import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type IndicatorType, type OHLCVBar, type Timeframe } from '@/types'
+
+const AsyncToolLoading = defineComponent({
+  name: 'AsyncWorkstationToolLoading',
+  setup: () => () => h('div', {
+    class: 'tool-state',
+    role: 'status',
+    style: 'display:grid;place-items:center;height:100%;padding:12px;color:#98a7b2;font:11px "Segoe UI",Arial,sans-serif;text-align:center',
+  }, 'Loading tool…'),
+})
+
+const AsyncToolError = defineComponent({
+  name: 'AsyncWorkstationToolError',
+  setup: () => () => h('div', {
+    class: 'tool-state tool-state--error',
+    role: 'alert',
+    style: 'display:grid;place-items:center;height:100%;padding:12px;color:#ec8f8f;font:11px "Segoe UI",Arial,sans-serif;text-align:center',
+  }, 'This tool could not be loaded. Refresh the page to try again.'),
+})
+
+function deferWorkstationTool<T extends Component>(loader: () => Promise<{ default: T }>) {
+  return defineAsyncComponent<T>({
+    loader,
+    loadingComponent: AsyncToolLoading,
+    errorComponent: AsyncToolError,
+    delay: 120,
+    timeout: 15_000,
+  })
+}
+
+const MarketMapTool = deferWorkstationTool(() => import('./MarketMapTool.vue'))
+const StudyLabTool = deferWorkstationTool(() => import('./StudyLabTool.vue'))
+const ResearchResultsTool = deferWorkstationTool(() => import('./ResearchResultsTool.vue'))
+const CodeLibraryTool = deferWorkstationTool(() => import('./CodeLibraryTool.vue'))
+const InstrumentInfoPanel = deferWorkstationTool(() => import('@/components/chart/InstrumentInfoPanel.vue'))
 import { formatSourceFailureClass, sourceAvailabilitySuffix, sourceIsNotCurrent } from '@/lib/workstation/sourceCapability'
-import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 // Golden Layout can temporarily retain multiple virtual roots for one tool.
 // Keep the latest name-editor owner module-wide so a stale root cannot replay
@@ -930,7 +1026,21 @@ const props = defineProps<{
   activeWindowKey?: string | null
   factoryLayout?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
+// Golden Layout can destroy a virtual tool while its shared column/asset
+// requests are still resolving. Keep response publication scoped to the
+// component lifetime; request generations alone do not distinguish a closed
+// tool from a newer request in the same instance.
+let disposed = false
+// Personal watchlist and combo mutations may outlive a Golden Layout virtual
+// root. Keep their post-response local state publication separate from the
+// shared store so a closed root cannot replay stale selection or busy/error UI.
+let comboListLoadSequence = 0
+let comboMutationSequence = 0
+let personalMutationSequence = 0
+let benchmarkFamilyReadinessSequence = 0
+let familyAnalyticsSequence = 0
+let familyOverviewSequence = 0
+const emit = defineEmits<{ activate: []; select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; openStudy: [payload: { name: string; versionId: number; source: string; outputContract: string; parameterSchema: Record<string, unknown>; defaultParameters: Record<string, unknown> }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
 // select/edit/evaluate sequence cannot serialize a stale sibling value.
@@ -974,7 +1084,20 @@ const chartStore = usePanelStore(chartPanelId)
 const drawingsStore = useDrawingsStore()
 const alertsStore = useAlertsStore()
 const workspaceStore = useWorkspaceStore()
+const isActiveToolWindow = computed(() => {
+  const activeTab = workspaceStore.activeTab
+  if (activeTab && (!props.factoryLayout || activeTab.stable_key === props.factoryLayout)) {
+    return activeTab.active_window_key === props.tool.instance_key
+  }
+  return props.activeWindowKey == null || props.tool.instance_key === props.activeWindowKey
+})
 const watchlistStore = useWatchlistStore()
+const favoriteStore = useFavoritesStore()
+const isFavoritesTool = computed(() => props.tool.configuration.favorites === true)
+async function toggleChartFavorite() {
+  const instrumentId = chartStore.instrument?.id
+  if (props.tool.tool_type === 'chart' && instrumentId != null) await favoriteStore.toggle(instrumentId)
+}
 const queryClient = useQueryClient()
 const configuredWatchlistId = props.tool.configuration.watchlist_id
 const flaggedItemsSelected = ref(configuredWatchlistId === 'flagged')
@@ -1014,6 +1137,17 @@ const personalWatchlistRows = computed(() => (selectedPersonalWatchlist.value?.i
     change: watchlistStore.priceMap[item.symbol ?? '']?.pct ?? null,
   },
 })))
+const favoriteRows = computed(() => favoriteStore.favorites.map(item => ({
+  itemId: item.id,
+  instrumentId: item.instrument_id,
+  symbol: item.symbol,
+  name: item.name,
+  values: {
+    last: watchlistStore.priceMap[item.symbol]?.close ?? null,
+    change: watchlistStore.priceMap[item.symbol]?.pct ?? null,
+  },
+})))
+const favoriteMarketMapSourceId = computed(() => explicitMarketMapSourceId(favoriteRows.value))
 const flaggedWatchlistRows = computed(() => buildFlaggedWatchlistRows(personalWatchlists.value, watchlistStore.priceMap))
 const comboWatchlistRows = computed(() => selectedCombo.value
   ? buildComboWatchlistRows(watchlistStore.watchlists, selectedCombo.value, watchlistStore.priceMap)
@@ -1094,15 +1228,18 @@ function hydrateSelectedCombo() {
 }
 
 async function loadComboLists() {
+  const sequence = ++comboListLoadSequence
   try {
-    comboLists.value = await queryClient.fetchQuery<ComboListDefinition[]>({
+    const lists = await queryClient.fetchQuery<ComboListDefinition[]>({
       queryKey: ['workstation', 'library-items', 'combo_list'],
       queryFn: async () => (await api.get<ComboListDefinition[]>('/workspaces/library/items', { kind: 'combo_list' })) ?? [],
       staleTime: 30_000,
     })
+    if (disposed || sequence !== comboListLoadSequence) return
+    comboLists.value = lists
     hydrateSelectedCombo()
   } catch (cause: any) {
-    comboError.value = cause?.message ?? 'Unable to load combo lists'
+    if (!disposed && sequence === comboListLoadSequence) comboError.value = cause?.message ?? 'Unable to load combo lists'
   }
 }
 
@@ -1111,7 +1248,8 @@ async function saveComboList() {
   const union = comboUnionIds.value.filter(id => Number.isInteger(id) && id > 0)
   const intersection = comboIntersectionIds.value.filter(id => Number.isInteger(id) && id > 0)
   const exclude = comboExcludeIds.value.filter(id => Number.isInteger(id) && id > 0)
-  if (!name || (!union.length && !intersection.length) || comboBusy.value) return
+  if (disposed || !name || (!union.length && !intersection.length) || comboBusy.value) return
+  const sequence = ++comboMutationSequence
   comboBusy.value = true
   comboError.value = ''
   try {
@@ -1121,7 +1259,9 @@ async function saveComboList() {
       payload: { union_watchlist_ids: union, intersection_watchlist_ids: intersection, exclude_watchlist_ids: exclude },
       dependency_metadata: { watchlist_ids: [...new Set([...union, ...intersection, ...exclude])] },
     })
+    if (disposed || sequence !== comboMutationSequence) return
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'combo_list'] })
+    if (disposed || sequence !== comboMutationSequence) return
     const index = comboLists.value.findIndex(item => item.stable_key === stableKey)
     if (index >= 0) comboLists.value[index] = saved
     else comboLists.value.push(saved)
@@ -1133,20 +1273,23 @@ async function saveComboList() {
     selectedPersonalWatchlistId.value = null
     publishWatchlistConfiguration(`combo:${stableKey}`)
   } catch (cause: any) {
-    comboError.value = cause?.message ?? 'Unable to save combo list'
+    if (!disposed && sequence === comboMutationSequence) comboError.value = cause?.message ?? 'Unable to save combo list'
   } finally {
-    comboBusy.value = false
+    if (sequence === comboMutationSequence) comboBusy.value = false
   }
 }
 
 async function deleteComboList() {
   const combo = selectedCombo.value
-  if (!combo || comboBusy.value) return
+  if (disposed || !combo || comboBusy.value) return
+  const sequence = ++comboMutationSequence
   comboBusy.value = true
   comboError.value = ''
   try {
     await api.delete(`/workspaces/library/items/combo_list/${encodeURIComponent(combo.stable_key)}`)
+    if (disposed || sequence !== comboMutationSequence) return
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items', 'combo_list'] })
+    if (disposed || sequence !== comboMutationSequence) return
     comboLists.value = comboLists.value.filter(item => item.stable_key !== combo.stable_key)
     selectedComboKey.value = null
     comboNameDraft.value = ''
@@ -1156,9 +1299,9 @@ async function deleteComboList() {
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
     publishWatchlistConfiguration(selectedPersonalWatchlistId.value)
   } catch (cause: any) {
-    comboError.value = cause?.message ?? 'Unable to delete combo list'
+    if (!disposed && sequence === comboMutationSequence) comboError.value = cause?.message ?? 'Unable to delete combo list'
   } finally {
-    comboBusy.value = false
+    if (sequence === comboMutationSequence) comboBusy.value = false
   }
 }
 
@@ -1167,11 +1310,17 @@ async function createPersonalWatchlist(event?: Event) {
   // root may retain that flag while its visible successor owns the current
   // draft; the store's name-keyed request deduplication remains the operation
   // guard, and the live input value below is authoritative.
+  if (disposed) return
+  const sequence = ++personalMutationSequence
   personalListBusy.value = true
   // A click can arrive in the same task as the input's final v-model update
   // when a virtual tool root is being activated. Read the committed draft,
   // not the previous render's value, before issuing the create request.
   await nextTick()
+  if (disposed || sequence !== personalMutationSequence) {
+    if (sequence === personalMutationSequence) personalListBusy.value = false
+    return
+  }
   // Read the live control as well as the component ref. During a Golden Layout
   // virtual-root handoff, the DOM button can outlive the closure that received
   // it; the input value is still the user's current draft and must win over a
@@ -1180,7 +1329,7 @@ async function createPersonalWatchlist(event?: Event) {
   const liveInput = button?.closest('.personal-watchlist-tool')?.querySelector<HTMLInputElement>('input[aria-label="Personal watchlist name"]')
   const name = (latestPersonalListDraft || liveInput?.value || personalListNameDraft.value).trim()
   if (!name) {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
     return
   }
   // Golden Layout may briefly leave a stale virtual root alive while a new
@@ -1190,6 +1339,7 @@ async function createPersonalWatchlist(event?: Event) {
   personalWatchlistError.value = ''
   try {
     const created = await watchlistStore.createWatchlist(name)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!created) throw new Error('Unable to create personal watchlist')
     // A stale virtual root can replay the same create after the first root has
     // already committed it. Selecting the canonical returned row is safe even
@@ -1201,57 +1351,63 @@ async function createPersonalWatchlist(event?: Event) {
     personalListNameDraft.value = created.name
     publishWatchlistConfiguration(created.id)
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.message ?? 'Unable to create personal watchlist'
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.message ?? 'Unable to create personal watchlist'
   } finally {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
   }
 }
 
 async function renamePersonalWatchlist() {
   const watchlist = selectedPersonalWatchlist.value
   const name = personalListNameDraft.value.trim()
-  if (!watchlist || watchlist.is_locked || watchlist.is_managed || !name || personalListBusy.value) return
+  if (disposed || !watchlist || watchlist.is_locked || watchlist.is_managed || !name || personalListBusy.value) return
+  const sequence = ++personalMutationSequence
   personalListBusy.value = true
   personalWatchlistError.value = ''
   try {
     const renamed = await watchlistStore.renameWatchlist(watchlist.id, name)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!renamed) throw new Error('Unable to rename personal watchlist')
     personalListNameDraft.value = renamed.name
     personalListNameEditing.value = false
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.status === 409 ? 'Another window changed this watchlist; reload it before renaming.' : (cause?.message ?? 'Unable to rename personal watchlist')
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.status === 409 ? 'Another window changed this watchlist; reload it before renaming.' : (cause?.message ?? 'Unable to rename personal watchlist')
   } finally {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
   }
 }
 
 async function copyPersonalWatchlist() {
   const watchlist = selectedPersonalWatchlist.value
-  if (!watchlist || personalListBusy.value) return
+  if (disposed || !watchlist || personalListBusy.value) return
+  const sequence = ++personalMutationSequence
   personalListBusy.value = true
   personalWatchlistError.value = ''
   try {
     const copy = await watchlistStore.copyWatchlist(watchlist.id)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!copy) throw new Error('Unable to copy personal watchlist')
     selectedPersonalWatchlistId.value = copy.id
     personalListNameDraft.value = copy.name
     personalListNameEditing.value = false
     publishWatchlistConfiguration(copy.id)
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.message ?? 'Unable to copy personal watchlist'
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.message ?? 'Unable to copy personal watchlist'
   } finally {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
   }
 }
 
 async function deletePersonalWatchlist() {
   const watchlist = selectedPersonalWatchlist.value
-  if (!watchlist || watchlist.is_locked || watchlist.is_managed || personalListBusy.value) return
+  if (disposed || !watchlist || watchlist.is_locked || watchlist.is_managed || personalListBusy.value) return
   if (!window.confirm(`Delete personal watchlist “${watchlist.name}”?`)) return
+  const sequence = ++personalMutationSequence
   personalListBusy.value = true
   personalWatchlistError.value = ''
   try {
     const deleted = await watchlistStore.deleteWatchlist(watchlist.id)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!deleted) throw new Error('Unable to delete personal watchlist')
     const next = personalWatchlists.value[0] ?? null
     flaggedItemsSelected.value = false
@@ -1259,20 +1415,22 @@ async function deletePersonalWatchlist() {
     personalListNameDraft.value = next?.name ?? ''
     publishWatchlistConfiguration(selectedPersonalWatchlistId.value)
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.message ?? 'Unable to delete personal watchlist'
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.message ?? 'Unable to delete personal watchlist'
   } finally {
-    personalListBusy.value = false
+    if (sequence === personalMutationSequence) personalListBusy.value = false
   }
 }
 
 async function addPersonalSymbol() {
   const watchlist = selectedPersonalWatchlist.value
   const raw = personalSymbolDraft.value.trim()
-  if (!watchlist || watchlist.is_locked || watchlist.is_managed || !raw || personalWatchlistBusy.value) return
+  if (disposed || !watchlist || watchlist.is_locked || watchlist.is_managed || !raw || personalWatchlistBusy.value) return
+  const sequence = ++personalMutationSequence
   personalWatchlistBusy.value = true
   personalWatchlistError.value = ''
   try {
     const item = await watchlistStore.addBySymbol(watchlist.id, raw, true)
+    if (disposed || sequence !== personalMutationSequence) return
     if (!item) throw new Error(`${raw.toUpperCase()} could not be added (it may already be in the list).`)
     // A concurrent Golden Layout root can echo an older workspace selection
     // while the item request is in flight. Reassert the list that accepted the
@@ -1284,14 +1442,14 @@ async function addPersonalSymbol() {
     publishWatchlistConfiguration(watchlist.id)
     personalSymbolDraft.value = ''
   } catch (cause: any) {
-    personalWatchlistError.value = cause?.message ?? 'Unable to add symbol'
+    if (!disposed && sequence === personalMutationSequence) personalWatchlistError.value = cause?.message ?? 'Unable to add symbol'
   } finally {
-    personalWatchlistBusy.value = false
+    if (sequence === personalMutationSequence) personalWatchlistBusy.value = false
   }
 }
 
 async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-watchlist', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number }, targetWatchlistId?: number, selectedRows: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number }> = [row]) {
-  if (row.instrumentId == null || targetWatchlistId == null) return
+  if (disposed || row.instrumentId == null || targetWatchlistId == null) return
   const target = personalWatchlists.value.find(watchlist => watchlist.id === targetWatchlistId)
   if (!target || target.is_locked || target.is_managed) {
     personalWatchlistError.value = 'Choose an unlocked personal watchlist as the destination.'
@@ -1312,26 +1470,44 @@ async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-wat
     personalWatchlistError.value = 'The source watchlist item is no longer available; reload the list and try again.'
     return
   }
+  const sequence = ++personalMutationSequence
   const transferred = await watchlistStore.transferItems(
     sourceId,
     itemIds,
     target.id,
     action === 'move-to-watchlist' ? 'move' : 'copy',
   )
+  if (disposed || sequence !== personalMutationSequence) return
   if (transferred.length !== itemIds.length) {
     personalWatchlistError.value = `${selectedRows.length} selected row${selectedRows.length === 1 ? '' : 's'} could not be ${action === 'move-to-watchlist' ? 'moved' : 'copied'} to ${target.name}.`
   }
 }
 
-function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }>) {
+function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'favorite' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }>) {
+  if (action === 'favorite') {
+    for (const item of selectedRows?.length ? selectedRows : [row]) {
+      if (item.instrumentId != null) void favoriteStore.add(item.instrumentId)
+    }
+    return
+  }
   if (action === 'flag' && row.itemId != null) {
-    const sourceWatchlistId = row.sourceWatchlistId ?? selectedPersonalWatchlist.value?.id
-    if (sourceWatchlistId == null) return
-    void watchlistStore.setItemFlag(sourceWatchlistId, row.itemId, !row.flagged)
+    const targets = selectedRows?.length ? selectedRows : [row]
+    if (targets.some(item => item.itemId == null || (item.sourceWatchlistId ?? selectedPersonalWatchlist.value?.id) == null)) return
+    const flagged = targets.some(item => item.flagged !== true)
+    for (const item of targets) {
+      const sourceWatchlistId = item.sourceWatchlistId ?? selectedPersonalWatchlist.value?.id
+      if (sourceWatchlistId != null && item.itemId != null) {
+        void watchlistStore.setItemFlag(sourceWatchlistId, item.itemId, flagged)
+      }
+    }
     return
   }
   if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
     void handleMembershipAction(action, row, targetWatchlistId, selectedRows?.length ? selectedRows : [row])
+    return
+  }
+  if (action === 'remove' && isFavoritesTool.value && row.instrumentId != null) {
+    void favoriteStore.remove(row.instrumentId)
     return
   }
   if (action === 'remove' && selectedPersonalWatchlist.value && row.itemId != null) {
@@ -1343,12 +1519,29 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' 
 
 onMounted(async () => {
   void loadBreadthPythonSeriesAssets()
-  if ((props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') && !watchlistStore.watchlistSources.length && !watchlistStore.watchlistSourcesLoading) {
-    await watchlistStore.loadWatchlistSources()
+  if ((props.tool.tool_type === 'chart' || isFavoritesTool.value) && !favoriteStore.loaded && !favoriteStore.loading) {
+    void favoriteStore.load()
   }
-  if (!watchlistStore.watchlists.length && !watchlistStore.loading) await watchlistStore.loadWatchlists()
-  if (props.tool.tool_type !== 'watchlist' || props.tool.configuration.personal !== true) return
+  if ((props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth' || props.tool.tool_type === 'study_lab') && !watchlistStore.watchlistSources.length && !watchlistStore.watchlistSourcesLoading) {
+    await watchlistStore.loadWatchlistSources()
+    if (disposed) return
+  }
+  if (!watchlistStore.watchlists.length && !watchlistStore.loading) {
+    await watchlistStore.loadWatchlists()
+    if (disposed) return
+  }
+  if (props.tool.tool_type !== 'watchlist' || (props.tool.configuration.personal !== true && !isFavoritesTool.value)) return
+  if (isFavoritesTool.value) {
+    if (!favoriteStore.loaded) await favoriteStore.load()
+    if (disposed) return
+    const symbols = favoriteRows.value.map(row => row.symbol)
+    if (symbols.length) await watchlistStore.fetchPrices(symbols, false, true)
+    if (disposed) return
+    void loadIndicatorColumns(favoriteRows.value)
+    return
+  }
   await loadComboLists()
+  if (disposed) return
   if (selectedPersonalWatchlistId.value == null && !flaggedItemsSelected.value) {
     selectedPersonalWatchlistId.value = personalWatchlists.value[0]?.id ?? null
     personalListNameDraft.value = personalWatchlists.value[0]?.name ?? ''
@@ -1357,7 +1550,10 @@ onMounted(async () => {
     }
   }
   const symbols = personalWatchlistRows.value.map(row => row.symbol).filter(symbol => !symbol.startsWith('#'))
-  if (symbols.length) await watchlistStore.fetchPrices(symbols, false, true)
+  if (symbols.length) {
+    await watchlistStore.fetchPrices(symbols, false, true)
+    if (disposed) return
+  }
   void loadIndicatorColumns([
     ...personalWatchlistRows.value,
     ...flaggedWatchlistRows.value,
@@ -1367,7 +1563,7 @@ onMounted(async () => {
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
     ...constituentRows.value,
-  ])
+    ])
   void loadConditionColumns([
     ...personalWatchlistRows.value,
     ...flaggedWatchlistRows.value,
@@ -1377,7 +1573,7 @@ onMounted(async () => {
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
     ...constituentRows.value,
-  ])
+    ])
 })
 
 watch(() => props.tool.configuration.watchlist_id, value => {
@@ -1417,6 +1613,11 @@ watch(() => comboWatchlistRows.value.map(row => row.symbol).join(','), value => 
   const symbols = (value ?? '').split(',').filter(Boolean)
   if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
 })
+watch(() => favoriteRows.value.map(row => row.symbol).join(','), value => {
+  if (!isFavoritesTool.value) return
+  const symbols = (value ?? '').split(',').filter(Boolean)
+  if (symbols.length) void watchlistStore.fetchPrices(symbols, false, true)
+})
 // A Golden Layout virtual component is mounted independently from its host render
 // cycle. Keep the latest serializable chart configuration locally so template changes
 // update its uPlot instance immediately, while the same object is persisted by the
@@ -1444,9 +1645,9 @@ watch(activeSymbol, async symbol => {
   if (!symbol || props.tool.tool_type === 'chart') return
   try {
     const loaded = await fetchCanonicalInstrument(queryClient, symbol)
-    if (sequence === instrumentRequestSequence) toolInstrument.value = loaded
+    if (!disposed && sequence === instrumentRequestSequence) toolInstrument.value = loaded
   } catch {
-    if (sequence === instrumentRequestSequence) toolInstrument.value = null
+    if (!disposed && sequence === instrumentRequestSequence) toolInstrument.value = null
   }
 }, { immediate: true })
 // Older persisted workspaces used the shorter `industries` instance key. Keep
@@ -1463,10 +1664,10 @@ const isIndustryTool = computed(() => {
     || title.includes('industr')
     || marketGroup === 'selected-sector-industries'
 })
-const activeTimeframe = computed(() => workspaceStore.timeframeForLinkGroup(
-  timeframeLinkGroup.value,
-  typeof props.tool.configuration.timeframe === 'string' ? props.tool.configuration.timeframe : null,
-))
+// Resolve isolated Grey timeframes through the live workspace store rather
+// than the detached Golden Layout component-state object. Shared groups are
+// already reactive through the link bus; Grey must track per-tool edits too.
+const activeTimeframe = computed(() => workspaceStore.timeframeForTool(props.tool.instance_key))
 const timeframeLinkGroup = computed(() => workspaceStore.timeframeLinkGroupForTool(props.tool))
 const ratioExpression = computed(() => {
   const configuredExpression = typeof props.tool.configuration.expression === 'string'
@@ -1758,6 +1959,25 @@ function templateIndicators(value: unknown): IndicatorConfig[] | null {
 }
 
 function applyChartConfiguration(changes: Record<string, unknown>) {
+  if (Object.keys(changes).length === 1 && Object.prototype.hasOwnProperty.call(changes, 'date_pointer_mode')) {
+    const activeChartRoot = document.activeElement instanceof HTMLElement
+      ? document.activeElement.closest<HTMLElement>('.chart-root')
+      : null
+    const activeWindowKey = activeChartRoot?.closest<HTMLElement>('.tool-window[data-window-key]')?.dataset.windowKey
+    const configuration = { ...liveChartConfiguration.value, ...changes }
+    liveChartConfiguration.value = configuration
+    emit('configuration', props.tool.instance_key, configuration)
+    if (activeChartRoot) {
+      void nextTick(() => requestAnimationFrame(() => {
+        const replacementRoot = activeWindowKey
+          ? Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
+            .find(window => window.dataset.windowKey === activeWindowKey)?.querySelector<HTMLElement>('.chart-root')
+          : document.querySelector<HTMLElement>('.workstation__popout .chart-root')
+        ;(replacementRoot ?? activeChartRoot).focus()
+      }))
+    }
+    return
+  }
   applyChartTemplate({ ...liveChartConfiguration.value, ...changes })
 }
 
@@ -1768,8 +1988,14 @@ function selectProxy(symbol: string, instrumentId?: number | null) {
   emit('selectProxy', symbol, instrumentId)
 }
 
-function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: { symbol: string; instrumentId: number | null; flagged?: boolean }, targetWatchlistId?: number) {
+function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'favorite' | 'remove', row: { symbol: string; instrumentId: number | null; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null }>) {
   if (action === 'flag') return
+  if (action === 'favorite') {
+    for (const item of selectedRows?.length ? selectedRows : [row]) {
+      if (item.instrumentId != null) void favoriteStore.add(item.instrumentId)
+    }
+    return
+  }
   if (action === 'copy-to-watchlist' || action === 'move-to-watchlist') {
     void handleMembershipAction(action, row, targetWatchlistId)
     return
@@ -1810,6 +2036,7 @@ watch([configuredPythonPlots, activeSymbol, activeTimeframe], () => { void loadP
 watch([configuredScanPlots, activeTimeframe], () => { void loadScanPlots() }, { deep: true, immediate: true })
 
 onBeforeUnmount(() => {
+  disposed = true
   if (pendingWatchlistConfigurationTimer !== null) clearTimeout(pendingWatchlistConfigurationTimer)
   pendingWatchlistConfigurationTimer = null
   pendingWatchlistConfiguration = undefined
@@ -1817,8 +2044,19 @@ onBeforeUnmount(() => {
   // when its dock/pop-out closes and invalidate both chart and plot generations
   // so late research responses cannot update a destroyed uPlot surface.
   chartSelectionSequence += 1
+  instrumentRequestSequence += 1
+  comparisonRequestSequence += 1
+  conditionRequestGeneration += 1
+  indicatorRequestGeneration += 1
+  benchmarkFamilyLoadSequence += 1
+  benchmarkFamilyReadinessSequence += 1
+  familyAnalyticsSequence += 1
+  familyOverviewSequence += 1
   pythonPlotRequestSequence += 1
   scanPlotRequestSequence += 1
+  comboListLoadSequence += 1
+  comboMutationSequence += 1
+  personalMutationSequence += 1
   for (const runId of pythonPlotRunIds) void api.post(`/research/runs/${runId}/cancel`, {})
   pythonPlotRunIds.clear()
 })
@@ -1933,6 +2171,32 @@ const activeBenchmarkMapRole = computed<BenchmarkFamilyMapRole>(() => {
   return selected?.role ?? 'cap_weight'
 })
 const benchmarkFamilyLoading = ref(false)
+const benchmarkFamilyReadiness = computed(() => workspaceStore.benchmarkFamilyReadiness)
+const benchmarkFamilyReadinessError = computed(() => workspaceStore.benchmarkFamilyReadinessError)
+const benchmarkFamilyReadinessLoading = ref(false)
+function benchmarkFamilyProviderProbeLabel(readiness: BenchmarkFamilyReadinessState) {
+  const evidence = readiness.provider_probe_evidence ?? []
+  if (!evidence.length) return 'Provider probes: none recorded'
+  const successful = evidence.filter(item => item.success).length
+  const recovered = evidence.filter(item => item.recovered).length
+  const latestObservedAt = [...evidence]
+    .map(item => item.observed_at)
+    .filter(Boolean)
+    .sort()
+  const latest = latestObservedAt.length ? latestObservedAt[latestObservedAt.length - 1] : undefined
+  return `Provider probes: ${successful}/${evidence.length} passed${recovered ? ` · ${recovered} recovered` : ''}${latest ? ` · latest ${latest.slice(0, 10)}` : ''}`
+}
+function benchmarkFamilyUniverseProvenanceLabel(readiness: BenchmarkFamilyReadinessState) {
+  const provenance = readiness.universe_provenance ?? {}
+  const registry = typeof provenance.registry === 'string' && provenance.registry.trim()
+    ? provenance.registry.trim()
+    : 'unavailable'
+  const familyKeys = Array.isArray(provenance.family_keys) ? provenance.family_keys : []
+  const missingFamilies = Array.isArray(provenance.missing_families) ? provenance.missing_families : []
+  const pointInTime = provenance.point_in_time === true ? 'point-in-time' : 'latest'
+  const providerCalls = provenance.provider_calls === false ? 'none' : provenance.provider_calls === true ? 'recorded' : 'not reported'
+  return `Universe: ${registry} · ${familyKeys.length || readiness.family_count} families · ${pointInTime} · missing ${missingFamilies.length} · provider calls ${providerCalls}`
+}
 const benchmarkFamilyError = computed(() => {
   if (!benchmarkFamilyKey.value) return ''
   return workspaceStore.marketGroupErrors[benchmarkFamilyKey.value] ?? workspaceStore.groupSnapshotErrors[benchmarkFamilyKey.value] ?? benchmarkFamilyOverviewError.value
@@ -2204,6 +2468,8 @@ function asGenericBreadthState(state: NonNullable<typeof breadthPythonSeriesStat
   return {
     definition_version: 1,
     definition_hash: state.definition_hash,
+    calculation_version: state.calculation_version,
+    data_provenance: state.data_provenance,
     universe: state.universe,
     condition: state.condition,
     timeframe: String(state.dataset_manifest.timeframe ?? breadthTimeframe.value),
@@ -2218,7 +2484,6 @@ function asGenericBreadthState(state: NonNullable<typeof breadthPythonSeriesStat
     group_value: current?.group_value ?? null,
     members: current?.members ?? [],
     exclusions: current?.exclusions ?? [],
-    freshness: 'coverage_limited',
   }
 }
 
@@ -2259,6 +2524,11 @@ const familyRatioRole = computed(() => {
   const candidate = String(props.tool.configuration.family_ratio_role ?? 'equal_weight')
   return ['cap_weight', 'equal_weight', 'value', 'growth'].includes(candidate) ? candidate as 'cap_weight' | 'equal_weight' | 'value' | 'growth' : 'equal_weight'
 })
+const familyRankPeriods = ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const
+const familyRankPeriod = computed<typeof familyRankPeriods[number]>(() => {
+  const candidate = String(props.tool.configuration.family_rank_period ?? '1M')
+  return familyRankPeriods.includes(candidate as typeof familyRankPeriods[number]) ? candidate as typeof familyRankPeriods[number] : '1M'
+})
 const familyRatioMarket = computed(() => {
   const candidate = String(props.tool.configuration.family_ratio_market ?? 'SPY').trim().toUpperCase()
   return candidate || 'SPY'
@@ -2280,25 +2550,33 @@ const familyBreadthLoading = ref(false)
 const familyBreadthHistoryKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:500`)
 const familyBreadthHistory = computed(() => workspaceStore.benchmarkFamilyBreadthHistories[familyBreadthHistoryKey.value])
 const familyBreadthHistoryPointCount = computed(() => Math.max(0, ...((familyBreadthHistory.value?.roles ?? []).map(role => role.points.length))))
-const familyRankingKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M`)
+const familyBreadthHistoryReadinessLabel = computed(() => {
+  const roles = (familyBreadthHistory.value?.roles ?? []).filter(role => role.available)
+  if (!roles.length) return 'readiness unavailable'
+  const ready = roles.filter(role => role.analysis_ready_status === 'ready').length
+  const partial = roles.filter(role => role.analysis_ready_status === 'partial').length
+  const pending = roles.filter(role => role.analysis_ready_status === 'pending').length
+  return `analysis-ready ${ready}/${roles.length}${partial ? ` · partial ${partial}` : ''}${pending ? ` · pending ${pending}` : ''}`
+})
+const familyRankingKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}`)
 const familyRanking = computed(() => workspaceStore.benchmarkFamilyRankings[familyRankingKey.value])
 const familyRankingError = computed(() => workspaceStore.benchmarkFamilyRankingErrors[familyRankingKey.value] ?? null)
 const familyRankingLoading = ref(false)
-const familyConcentrationKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M:10`)
+const familyConcentrationKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}:10`)
 const familyConcentration = computed(() => workspaceStore.benchmarkFamilyConcentrations[familyConcentrationKey.value])
 const familyConcentrationError = computed(() => workspaceStore.benchmarkFamilyConcentrationErrors[familyConcentrationKey.value] ?? null)
 const familyConcentrationLoading = ref(false)
-const familyConcentrationHistoryKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M:10:500`)
+const familyConcentrationHistoryKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}:10:500`)
 const familyConcentrationHistory = computed(() => workspaceStore.benchmarkFamilyConcentrationHistories[familyConcentrationHistoryKey.value])
 const familyConcentrationHistoryError = computed(() => workspaceStore.benchmarkFamilyConcentrationHistoryErrors[familyConcentrationHistoryKey.value] ?? null)
 const familyConcentrationHistoryPointCount = computed(() => Math.max(0, ...((familyConcentrationHistory.value?.roles ?? []).map(role => role.points.length))))
 const familyConcentrationHistoryMode = computed(() => familyConcentrationHistory.value?.roles.some(role => role.membership_semantics === 'point_in_time_group_membership') ? 'point-in-time member membership' : 'point-in-time snapshots')
 const familyConcentrationHistoryLoading = ref(false)
-const crossFamilyRankingKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M::`)
+const crossFamilyRankingKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}::`)
 const crossFamilyRanking = computed(() => workspaceStore.crossFamilyRankings[crossFamilyRankingKey.value])
 const crossFamilyRankingError = computed(() => workspaceStore.crossFamilyRankingErrors[crossFamilyRankingKey.value] ?? null)
 const crossFamilyRankingLoading = ref(false)
-const crossFamilyRankingHistoryKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M:::500`)
+const crossFamilyRankingHistoryKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}:::500`)
 const crossFamilyRankingHistory = computed(() => workspaceStore.crossFamilyRankingHistories[crossFamilyRankingHistoryKey.value])
 const crossFamilyRankingHistoryPointCount = computed(() => Math.max(0, ...((crossFamilyRankingHistory.value?.rows ?? []).map(row => row.points.length))))
 const crossFamilyRankingHistoryError = computed(() => workspaceStore.crossFamilyRankingHistoryErrors[crossFamilyRankingHistoryKey.value] ?? null)
@@ -2336,13 +2614,144 @@ function familyContinuityLabel(role: { continuity_status?: string; continuity_ga
   const label = labels[status] ?? status
   return role.continuity_snapshot_limit_reached ? `${label} · window capped` : label
 }
-function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; timeframes?: Array<{ timeframe: string; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
+function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_date?: string | null; as_of_date?: string | null; known_at?: string | null; published_at?: string | null; source_provider?: string | null; source_identifier?: string | null; cadence?: string | null; parser_version?: string | null; timing_provenance?: Record<string, string>; row_count?: number | null; resolved_count?: number | null; unresolved_count?: number | null }> }) {
+  const snapshot = [...(role.snapshots ?? [])]
+    .sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
+  if (!snapshot) return 'no latest disclosure'
+  const rowCount = Number(snapshot.row_count)
+  const resolvedCount = Number(snapshot.resolved_count)
+  const unresolvedCount = Number(snapshot.unresolved_count)
+  const counts = Number.isFinite(rowCount) && Number.isFinite(resolvedCount)
+    ? `${resolvedCount}/${rowCount} resolved${Number.isFinite(unresolvedCount) && unresolvedCount > 0 ? ` · ${unresolvedCount} unresolved` : ''}`
+    : 'resolution unavailable'
+  const asOf = snapshot.as_of_date ? ` · as of ${snapshot.as_of_date}` : ''
+  const publishedAt = snapshot.published_at ? ` · published ${snapshot.published_at}` : ''
+  const knownAt = snapshot.known_at ? ` · known ${snapshot.known_at}` : ''
+  const sourceIdentifier = snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''
+  const cadence = snapshot.cadence ? ` · cadence ${snapshot.cadence}` : ''
+  const parserVersion = snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''
+  const timing = Object.entries(snapshot.timing_provenance ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
+    .join(', ')
+  const timingEvidence = timing ? ` · timing ${timing}` : ''
+  return `latest ${snapshot.composition_date ?? 'date unavailable'}${asOf}${publishedAt}${knownAt} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}${sourceIdentifier}${cadence}${parserVersion}${timingEvidence}`
+}
+function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; unresolved_member_count?: number; timeframes?: Array<{ timeframe: string; required_bar_count?: number; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
   const history = role.member_bar_history
   if (!history || history.status === 'no_snapshot') return 'no member bars'
   if (!history.timeframes?.length) return history.status
-  const daily = history.timeframes.find(item => item.timeframe === 'D1')
-  if (!daily) return history.status
-  return `${history.status} ${daily.covered_member_count}/${daily.member_count} · ready ${daily.analysis_ready_member_count}/${daily.member_count}`
+  const timeframeLabels = ['D1', 'W1', 'MN'].map(timeframe => {
+    const item = history.timeframes?.find(candidate => candidate.timeframe === timeframe)
+    if (!item) return `${timeframe} unavailable`
+    const floor = Number(item.required_bar_count)
+    return `${timeframe} ${item.analysis_ready_member_count}/${item.member_count} ready${Number.isFinite(floor) && floor > 0 ? ` · floor ${floor}` : ''} · ${item.covered_member_count}/${item.member_count} covered`
+  })
+  const placeholders = history.placeholder_member_count ? ` · placeholders ${history.placeholder_member_count}` : ''
+  const unresolved = history.unresolved_member_count ? ` · unresolved ${history.unresolved_member_count}` : ''
+  return `${history.status} · ${timeframeLabels.join(' · ')}${placeholders}${unresolved}`
+}
+function familyReadinessReasonsLabel(role: { composite_readiness_reasons?: string[] }) {
+  const reasons = (role.composite_readiness_reasons ?? []).filter(reason => reason.trim())
+  return reasons.length ? ` · reasons ${reasons.join(' · ')}` : ''
+}
+function familyRouteLabel(role: { holdings_route_status?: string; holdings_route_provider?: string | null; holdings_route_adapter_key?: string | null }) {
+  const status = role.holdings_route_status?.replace(/_/g, ' ') ?? 'not configured'
+  const provider = role.holdings_route_provider?.trim()
+  const adapter = role.holdings_route_adapter_key?.trim()
+  return `${status}${provider ? ` · ${provider}` : ''}${adapter ? ` · adapter ${adapter}` : ''}`
+}
+function familyEntitlementLabel(role: { entitlement_status?: string; entitlement_provider?: string | null; entitlement_live_probe_status?: string | null; entitlement_revision?: number | null; entitlement_effective_at?: string | null; entitlement_review_due_at?: string | null }) {
+  const status = role.entitlement_status ?? 'unknown'
+  const provider = role.entitlement_provider?.trim()
+  const probe = role.entitlement_live_probe_status?.trim()
+  const revision = role.entitlement_revision == null ? null : `rev ${role.entitlement_revision}`
+  const effective = role.entitlement_effective_at?.slice(0, 10)
+  const reviewDue = role.entitlement_review_due_at?.slice(0, 10)
+  return `${status}${provider ? ` · ${provider}` : ''}${probe ? ` · probe ${probe.replace(/_/g, ' ')}` : ''}${revision ? ` · ${revision}` : ''}${effective ? ` · effective ${effective}` : ''}${reviewDue ? ` · review due ${reviewDue}` : ''}`
+}
+function familyRefreshLabel(role: { holdings_refresh_status?: string; holdings_refresh_provider?: string | null; holdings_refresh_last_checked_at?: string | null; holdings_refresh_last_success_at?: string | null; holdings_refresh_last_failure_at?: string | null; holdings_refresh_failure_reason?: string | null; holdings_refresh_composition_date?: string | null }) {
+  const status = role.holdings_refresh_status ?? 'not_attempted'
+  const provider = role.holdings_refresh_provider?.trim()
+  const checked = role.holdings_refresh_last_checked_at?.slice(0, 10)
+  const success = role.holdings_refresh_last_success_at?.slice(0, 10)
+  const failure = role.holdings_refresh_last_failure_at?.slice(0, 10)
+  const composition = role.holdings_refresh_composition_date?.slice(0, 10)
+  const reason = role.holdings_refresh_failure_reason?.trim()
+  return `${status}${provider ? ` · ${provider}` : ''}${reason ? ` · reason ${reason}` : ''}${checked ? ` · checked ${checked}` : ''}${success ? ` · success ${success}` : ''}${failure ? ` · failed ${failure}` : ''}${composition ? ` · composition ${composition}` : ''}`
+}
+function familyCanonicalRoleEvidenceLabel(coverage: BenchmarkFamilyCoverageState) {
+  const roles = coverage.roles ?? []
+  const officialName = coverage.official_index_name?.trim()
+  const official = `${coverage.official_index_symbol}${officialName && officialName !== coverage.official_index_symbol ? ` (${officialName})` : ''}`
+  const asOf = coverage.as_of?.slice(0, 10) || 'latest'
+  const provenance = Object.entries(coverage.universe_provenance ?? {})
+    .filter(([, value]) => value == null || ['string', 'number', 'boolean'].includes(typeof value))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value == null ? 'not reported' : String(value)}`)
+  const exclusions = coverage.exclusions?.length
+    ? `${coverage.exclusions.length} · ${coverage.exclusions.map(item => item.code).join(', ')}`
+    : 'none'
+  const familyEvidence = `Canonical family provenance: ${coverage.family_key} · ${coverage.name} · official index ${official} · as-of ${asOf} · membership version ${coverage.membership_version} · coverage ${(coverage.coverage * 100).toFixed(0)}% · freshness ${coverage.freshness ?? 'not reported'} · universe ${provenance.length ? provenance.join(' · ') : 'not reported'} · exclusions ${exclusions}`
+  if (!roles.length) return `${familyEvidence} · Canonical role evidence: unavailable`
+  return `${familyEvidence} · Canonical role evidence: ${roles.map(role => {
+    const name = `${familyRoleLabel(role.role)} ${role.symbol ?? role.label}`
+    const verification = role.verification_state?.trim() || 'not reported'
+    const adapter = role.adapter_key?.trim() || 'unmapped'
+    const adapterStatus = role.adapter_status?.trim()
+    const confidence = role.adapter_confidence == null ? null : `confidence ${role.adapter_confidence}`
+    const members = Number.isFinite(role.member_count) ? `members ${role.member_count}` : 'members unavailable'
+    const placeholders = role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : ''
+    const weighted = Number.isFinite(role.weighted_member_count) ? `weighted ${role.weighted_member_count} (${role.weights_status ?? 'unknown'})` : 'weighted unavailable'
+    const classified = Number.isFinite(role.classified_member_count) ? `classified ${role.classified_member_count} (${role.classification_status ?? 'unknown'})` : 'classified unavailable'
+    const pointInTime = role.point_in_time_supported === true ? 'point-in-time supported' : role.point_in_time_supported === false ? 'point-in-time unavailable' : 'point-in-time not reported'
+    const history = role.history_ready === true ? 'history ready' : role.history_ready === false ? 'history incomplete' : 'history not reported'
+    const snapshot = [...(role.snapshots ?? [])].sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
+    const snapshotEvidence = snapshot
+      ? ` · snapshot ${snapshot.composition_date?.slice(0, 10) || 'date not reported'}${snapshot.as_of_date ? ` · as-of ${snapshot.as_of_date.slice(0, 10)}` : ''}${snapshot.known_at ? ` · known ${snapshot.known_at.slice(0, 10)}` : ''} · provenance ${snapshot.provenance?.trim() || 'not reported'} · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'} · rows ${Number.isFinite(snapshot.row_count) ? snapshot.row_count : 'not reported'} · resolved ${Number.isFinite(snapshot.resolved_count) ? snapshot.resolved_count : 'not reported'} · unresolved ${Number.isFinite(snapshot.unresolved_count) ? snapshot.unresolved_count : 'not reported'}`
+      : ' · snapshot evidence unavailable'
+    const snapshotSourceEvidence = snapshot
+      ? `${snapshot.published_at ? ` · published ${snapshot.published_at.slice(0, 10)}` : ''}${snapshot.source_provider ? ` · provider ${snapshot.source_provider.trim()}` : ''}${snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''}${snapshot.cadence ? ` · cadence ${snapshot.cadence}` : ''}${snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''}${Object.keys(snapshot.timing_provenance ?? {}).length ? ` · timing ${Object.entries(snapshot.timing_provenance ?? {}).sort(([left], [right]) => left.localeCompare(right)).map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`).join(', ')}` : ''}`
+      : ''
+    const continuityStatus = role.continuity_status?.trim()?.replace(/_/g, ' ') || 'not reported'
+    const continuityGaps = (role.continuity_gaps ?? []).map(gap => `${gap.from_date.slice(0, 10)} to ${gap.to_date.slice(0, 10)} (${gap.interval_days}d)`).join(', ')
+    const continuityEvidence = ` · continuity ${continuityStatus}${role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : ''}${role.continuity_max_interval_days ? ` · max ${role.continuity_max_interval_days}d` : ''}${continuityGaps ? ` · intervals ${continuityGaps}` : ''}${role.continuity_snapshot_limit_reached ? ' · snapshot window capped' : ''}`
+    const observedCadenceStatus = role.observed_cadence_status?.trim()
+    const observedCadenceLabel = observedCadenceStatus
+      ? ({ no_snapshot: 'no snapshot', single_snapshot: 'single disclosure', observed_cadence: 'measured', no_interval: 'no interval' } as Record<string, string>)[observedCadenceStatus] ?? observedCadenceStatus.replace(/_/g, ' ')
+      : ''
+    const observedCadenceMedian = role.observed_cadence_median_interval_days == null
+      ? null
+      : Number.isInteger(role.observed_cadence_median_interval_days)
+        ? String(role.observed_cadence_median_interval_days)
+        : role.observed_cadence_median_interval_days.toFixed(1)
+    const observedCadenceEvidence = observedCadenceStatus
+      ? ` · observed cadence ${observedCadenceLabel}${role.observed_cadence_sample_count ? ` · ${role.observed_cadence_sample_count} interval${role.observed_cadence_sample_count === 1 ? '' : 's'}` : ''}${observedCadenceMedian ? ` · median ${observedCadenceMedian}d` : ''}${role.observed_cadence_min_interval_days ? ` · min ${role.observed_cadence_min_interval_days}d` : ''}${role.observed_cadence_max_interval_days ? ` · max ${role.observed_cadence_max_interval_days}d` : ''}`
+      : ''
+    const entitlementCapabilities = Object.entries(role.entitlement_capabilities ?? {}).sort(([left], [right]) => left.localeCompare(right)).map(([key, value]) => `${key.replace(/_/g, ' ')}=${String(value).replace(/_/g, ' ')}`).join(', ') || 'not reported'
+    const availability = role.available === true ? 'available' : role.available === false ? 'unavailable' : 'not reported'
+    const route = `${role.holdings_route_status?.replace(/_/g, ' ') || 'not reported'}${role.holdings_route_provider ? ` · ${role.holdings_route_provider}` : ''}${role.holdings_route_adapter_key ? ` · adapter ${role.holdings_route_adapter_key}` : ''}`
+    const historyRoute = `${role.history_route_status?.replace(/_/g, ' ') || 'not reported'}${role.history_route_provider ? ` · ${role.history_route_provider}` : ''}${role.history_route_policy ? ` · ${role.history_route_policy.replace(/_/g, ' ')}` : ''}${role.history_route_source_url ? ` · source ${role.history_route_source_url}` : ''}`
+    const refresh = `${role.holdings_refresh_status?.replace(/_/g, ' ') || 'not reported'}${role.holdings_refresh_provider ? ` · ${role.holdings_refresh_provider}` : ''}${role.holdings_refresh_failure_reason ? ` · reason ${role.holdings_refresh_failure_reason}` : ''}${role.holdings_refresh_last_checked_at ? ` · checked ${role.holdings_refresh_last_checked_at.slice(0, 10)}` : ''}${role.holdings_refresh_last_success_at ? ` · success ${role.holdings_refresh_last_success_at.slice(0, 10)}` : ''}${role.holdings_refresh_last_failure_at ? ` · failed ${role.holdings_refresh_last_failure_at.slice(0, 10)}` : ''}${role.holdings_refresh_composition_date ? ` · composition ${role.holdings_refresh_composition_date.slice(0, 10)}` : ''}`
+    const entitlement = `${role.entitlement_status?.replace(/_/g, ' ') || 'not reported'}${role.entitlement_provider ? ` · ${role.entitlement_provider}` : ''}${role.entitlement_live_probe_status ? ` · probe ${role.entitlement_live_probe_status.replace(/_/g, ' ')}` : ''}${role.entitlement_revision != null ? ` · rev ${role.entitlement_revision}` : ''}${role.entitlement_effective_at ? ` · effective ${role.entitlement_effective_at.slice(0, 10)}` : ''}${role.entitlement_review_due_at ? ` · review due ${role.entitlement_review_due_at.slice(0, 10)}` : ''}`
+    const unresolved = role.member_bar_history?.unresolved_member_count != null ? ` · unresolved ${role.member_bar_history.unresolved_member_count}` : ''
+    const disposition = Object.entries(role.member_bar_history?.member_disposition ?? {})
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => `${key} ${value}`)
+      .join(', ')
+    const dispositionEvidence = disposition ? ` · disposition ${disposition}` : ''
+    const barHistory = (role.member_bar_history?.timeframes ?? []).map(item => {
+      const adjustment = item.adjustment_provenance
+      const factorEvidence = adjustment
+        ? ` · factors ${adjustment.factor_status?.replace(/_/g, ' ') || 'not reported'}${adjustment.factor_version ? ` (${adjustment.factor_version})` : ''} · members versioned ${adjustment.factor_versioned_member_count ?? 0}, opaque ${adjustment.factor_opaque_member_count ?? 0}, unavailable ${adjustment.factor_unavailable_member_count ?? 0}`
+        : ''
+      const readinessStatus = item.analysis_ready_status ? ` · status ${item.analysis_ready_status}` : ''
+      return `${item.timeframe} ${item.analysis_ready_member_count}/${item.member_count} analysis-ready${readinessStatus} · ${item.covered_member_count} covered · ${item.bar_count} bars${item.required_bar_count ? ` · floor ${item.required_bar_count}` : ''}${item.source_lineage ? ` · lineage ${item.source_lineage.replace(/_/g, ' ')}` : ''}${item.provider_member_count != null || item.derived_member_count != null ? ` · members provider ${item.provider_member_count ?? 0}, derived ${item.derived_member_count ?? 0}` : ''}${item.provider_only_member_count != null || item.derived_only_member_count != null || item.mixed_member_count != null ? ` · member split provider-only ${item.provider_only_member_count ?? 0}, derived-only ${item.derived_only_member_count ?? 0}, mixed ${item.mixed_member_count ?? 0}` : ''}${factorEvidence}${item.oldest || item.newest ? ` · range ${item.oldest?.slice(0, 10) || 'unknown'} to ${item.newest?.slice(0, 10) || 'unknown'}` : ''}`
+    }).join(', ') || 'not reported'
+    const reasons = role.composite_readiness_reasons?.join(', ') || 'not reported'
+    const readinessEvidence = ` · availability ${availability} · status ${role.status ?? 'not reported'} · history bars ${barHistory} · route ${route} · history route ${historyRoute} · refresh ${refresh} · entitlement ${entitlement} · readiness reasons ${reasons}${dispositionEvidence}`
+    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders}${unresolved} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}${snapshotEvidence}${continuityEvidence}${observedCadenceEvidence} · capabilities ${entitlementCapabilities}${snapshotSourceEvidence}${readinessEvidence}`
+  }).join('; ')}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {
   const value = ratio.points.length ? ratio.points[ratio.points.length - 1]?.value : undefined
@@ -2460,6 +2869,54 @@ const genericBreadthError = computed(() => {
 })
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
+const genericBreadthReferenceTargetEvidence = computed(() => breadthReferenceTargetEvidence(genericBreadth.value?.condition))
+const breadthTimeframeLabel = computed(() => ({ D1: 'Daily', W1: 'Weekly', MN: 'Monthly' }[genericBreadth.value?.timeframe ?? ''] ?? genericBreadth.value?.timeframe ?? 'Unavailable'))
+const genericBreadthUniverseLabel = computed(() => {
+  const universe = genericBreadth.value?.universe
+  if (!universe) return 'Unavailable'
+  const kind = typeof universe.kind === 'string' ? universe.kind.replace(/[_-]+/g, ' ') : 'Universe'
+  const identity = [universe.name, universe.stable_key, universe.etf_symbol, universe.family_key, universe.key, universe.source_id]
+    .find(value => typeof value === 'string' && value.trim())
+  const role = typeof universe.role === 'string' ? universe.role.replace(/[_-]+/g, ' ') : null
+  const proxy = typeof universe.proxy_symbol === 'string' ? 'proxy ' + universe.proxy_symbol : null
+  return [kind, identity, role, proxy].filter((value): value is string => typeof value === 'string' && value.length > 0).join(' · ')
+})
+const genericBreadthMembershipVersion = computed(() => {
+  const version = genericBreadth.value?.universe.membership_version
+  return typeof version === 'string' || typeof version === 'number' ? String(version) : 'Not reported'
+})
+const genericBreadthObservationLabel = computed(() => {
+  const timestamps = (genericBreadth.value?.members ?? [])
+    .map(member => member.observation_time)
+    .filter((value): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)))
+  const dates = [...new Set(timestamps.map(value => new Date(value).toISOString().slice(0, 10)))].sort()
+  if (!dates.length) return 'No member observation dates reported'
+  if (dates.length === 1) return dates[0] + ' · ' + timestamps.length + ' member observation' + (timestamps.length === 1 ? '' : 's')
+  return dates[0] + ' to ' + dates[dates.length - 1] + ' · ' + dates.length + ' distinct dates'
+})
+const genericBreadthProvenanceLabel = computed(() => {
+  const provenance = genericBreadth.value?.data_provenance
+  if (!provenance) return 'Not reported by this run'
+  if (provenance === 'canonical_local_database') return 'Canonical local database'
+  return provenance.replace(/[_-]+/g, ' ')
+})
+const genericBreadthFreshnessLabel = computed(() => genericBreadth.value?.freshness
+  ? formatWorkstationFreshness(genericBreadth.value.freshness)
+  : 'Not reported by this run')
+const genericBreadthFreshnessBreakdown = computed(() => Object.entries(genericBreadth.value?.freshness_detail ?? {})
+  .filter(([, count]) => Number.isFinite(count))
+  .map(([key, count]) => key.replace(/[_-]+/g, ' ') + ': ' + count)
+  .join(' · '))
+const genericBreadthExclusionReasons = computed(() => {
+  const grouped = new Map<string, { code: string; message: string; count: number }>()
+  for (const exclusion of genericBreadth.value?.exclusions ?? []) {
+    const key = exclusion.code + '\u0000' + exclusion.message
+    const current = grouped.get(key)
+    if (current) current.count += 1
+    else grouped.set(key, { code: exclusion.code, message: exclusion.message, count: 1 })
+  }
+  return [...grouped.values()].slice(0, 5)
+})
 const genericBreadthMemberState = ref<'pass' | 'fail'>('pass')
 const genericBreadthDefinitionName = ref('')
 const genericBreadthDefinitionSaving = ref(false)
@@ -2655,6 +3112,17 @@ function displayIndustryValue(item: { values: Record<string, string | number | n
   return key === 'rsi14' || key === 'position_52w' || key === 'relative_ratio' || key === 'relative_spy'
     ? value.toFixed(2)
     : `${(value * 100).toFixed(2)}%`
+}
+function industryRowLabel(item: {
+  industry: string
+  resolved_count: number
+  constituent_count: number
+  classificationDetail: string
+  values: Record<string, string | number | null>
+}) {
+  const coverage = `${item.resolved_count} of ${item.constituent_count} constituents resolved`
+  const proxyCount = item.values.proxy_count == null ? '' : `, ${item.values.proxy_count} verified proxies`
+  return `${item.industry}, ${coverage}${proxyCount}, ${item.classificationDetail}. Select industry.`
 }
 function classificationLabel(systems?: string[]) {
   const values = [...new Set((systems ?? []).filter(Boolean))]
@@ -2980,8 +3448,8 @@ const proxyColumns: WatchlistColumn[] = [
 ]
 // Golden Layout may keep a detached virtual-tool root alive briefly after the
 // canonical workspace window has changed. Read its current configuration so
-// column visibility, indicator rendering, and chart-drop updates share one
-// workspace snapshot.
+// column visibility, indicator rendering, and chart-drop updates share the
+// canonical workspace snapshot without waiting for a dock rebuild.
 const liveToolConfiguration = computed(() => {
   const canonical = workspaceStore.workspace?.tabs
     .flatMap(tab => tab.windows)
@@ -2995,7 +3463,7 @@ const configuredColumnKeys = computed(() => {
 const configuredFilterText = computed(() => typeof props.tool.configuration.filter_text === 'string' ? props.tool.configuration.filter_text : '')
 const configuredConditionScreenerId = computed(() => Number.isInteger(props.tool.configuration.condition_screener_id) ? props.tool.configuration.condition_screener_id as number : null)
 const configuredConditionFilterMode = computed(() => ['active', 'inactive', 'off'].includes(String(props.tool.configuration.condition_filter_mode)) ? props.tool.configuration.condition_filter_mode as 'active' | 'inactive' | 'off' : 'off')
-const configuredPinnedBooleanKeys = computed(() => Array.isArray(props.tool.configuration.pinned_boolean_keys) ? props.tool.configuration.pinned_boolean_keys.filter((key): key is string => typeof key === 'string') : [])
+const configuredPinnedBooleanKeys = computed(() => Array.isArray(liveToolConfiguration.value.pinned_boolean_keys) ? liveToolConfiguration.value.pinned_boolean_keys.filter((key): key is string => typeof key === 'string') : [])
 const configuredColumnGroups = computed(() => {
   const groups = props.tool.configuration.column_groups
   if (!groups || typeof groups !== 'object' || Array.isArray(groups)) return {}
@@ -3035,8 +3503,8 @@ type ConditionColumnConfiguration = { key: string; name: string; screener_id: nu
 // snapshot crosses the parent/Golden Layout boundary.
 const pendingConditionColumns = ref<ConditionColumnConfiguration[]>([])
 const configuredConditionColumns = computed<ConditionColumnConfiguration[]>(() => {
-  const persisted = Array.isArray(props.tool.configuration.condition_columns)
-    ? props.tool.configuration.condition_columns.filter((column): column is ConditionColumnConfiguration => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && Number.isInteger((column as Record<string, unknown>).screener_id) && typeof (column as Record<string, unknown>).timeframe === 'string')
+  const persisted = Array.isArray(liveToolConfiguration.value.condition_columns)
+    ? liveToolConfiguration.value.condition_columns.filter((column): column is ConditionColumnConfiguration => Boolean(column) && typeof column === 'object' && typeof (column as Record<string, unknown>).key === 'string' && typeof (column as Record<string, unknown>).name === 'string' && Number.isInteger((column as Record<string, unknown>).screener_id) && typeof (column as Record<string, unknown>).timeframe === 'string')
     : []
   const persistedKeys = new Set(persisted.map(column => column.key))
   return [...persisted, ...pendingConditionColumns.value.filter(column => !persistedKeys.has(column.key))]
@@ -3062,6 +3530,10 @@ function addPlotColumn(payload: ChartAnalysisDragPayload) {
   }
   if (payload.kind !== 'chart-plot') return
   const column = indicatorColumnFromPlot(payload)
+  if (!column) {
+    conditionDropError.value = 'This multi-output indicator cannot be copied to a watchlist column until an explicit output is selected.'
+    return
+  }
   const configuration = liveToolConfiguration.value
   const columns = Array.isArray(configuration.indicator_columns) ? configuration.indicator_columns : []
   const hasColumn = columns.some(candidate => Boolean(candidate) && typeof candidate === 'object' && (candidate as Record<string, unknown>).key === column.key)
@@ -3100,7 +3572,7 @@ async function loadConditionColumns(rows: Array<{ symbol: string; instrumentId?:
       next[column.key] = Object.fromEntries(rows.map(row => [row.symbol, null]))
     }
   }))
-  if (generation === conditionRequestGeneration) conditionValues.value = next
+  if (!disposed && generation === conditionRequestGeneration) conditionValues.value = next
 }
 async function addConditionColumn(payload: TechnicalConditionDragPayload) {
   conditionDropError.value = ''
@@ -3159,7 +3631,13 @@ async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
   const nextWarnings: Record<string, Record<string, string | null>> = {}
   await Promise.all(columns.map(async column => {
     try {
-      const params = { ...column.params, ...(column.output ? { output: column.output } : {}) }
+      const output = indicatorOutputFromConfig({ type: column.indicator as IndicatorType, output: column.output })
+      if (!output) {
+        next[column.key] = Object.fromEntries(symbols.map(symbol => [symbol, null]))
+        nextWarnings[column.key] = Object.fromEntries(symbols.map(symbol => [symbol, 'explicit_output_required']))
+        return
+      }
+      const params = { ...column.params, output }
       const requestSymbols = [...symbols].sort()
       const response = await queryClient.fetchQuery({
         queryKey: ['workstation', 'indicator-batch', requestSymbols, column.indicator, params, column.timeframe, true],
@@ -3179,7 +3657,7 @@ async function loadIndicatorColumns(rows: Array<{ symbol: string }>) {
       nextWarnings[column.key] = Object.fromEntries(symbols.map(symbol => [symbol, 'unavailable']))
     }
   }))
-  if (generation === indicatorRequestGeneration) {
+  if (!disposed && generation === indicatorRequestGeneration) {
     indicatorValues.value = next
     indicatorWarnings.value = nextWarnings
   }
@@ -3344,6 +3822,7 @@ async function loadBreadthPythonSeriesAssets() {
   breadthPythonSeriesAssetsLoading.value = true
   try {
     const assets = await fetchCodeAssets(queryClient)
+    if (disposed) return
     breadthPythonSeriesAssets.value = assets
       .filter((asset: CodeAssetSummary) => asset.kind === 'condition')
       .flatMap((asset: CodeAssetSummary) => {
@@ -3353,9 +3832,9 @@ async function loadBreadthPythonSeriesAssets() {
           : []
       })
   } catch {
-    breadthPythonSeriesAssets.value = []
+    if (!disposed) breadthPythonSeriesAssets.value = []
   } finally {
-    breadthPythonSeriesAssetsLoading.value = false
+    if (!disposed) breadthPythonSeriesAssetsLoading.value = false
   }
 }
 async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimeframe.value, adjusted = breadthAdjusted.value, lookback = breadthLookback.value) {
@@ -3378,7 +3857,7 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
 }
 let benchmarkFamilyLoadSequence = 0
 watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([familyKey, _capProxy, timeframe]) => {
-  if (props.tool.instance_key !== 'benchmark-list' || !familyKey) return
+  if (disposed || props.tool.instance_key !== 'benchmark-list' || !familyKey) return
   const sequence = ++benchmarkFamilyLoadSequence
   benchmarkFamilyLoading.value = true
   try {
@@ -3392,14 +3871,25 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
       }),
     ])
   } finally {
-    if (sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
+    if (!disposed && sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
+  }
+}, { immediate: true })
+watch(() => props.tool.instance_key, async instanceKey => {
+  if (disposed || instanceKey !== 'benchmark-list') return
+  const sequence = ++benchmarkFamilyReadinessSequence
+  benchmarkFamilyReadinessLoading.value = true
+  try {
+    await workspaceStore.loadBenchmarkFamilyReadiness()
+  } finally {
+    if (!disposed && sequence === benchmarkFamilyReadinessSequence) benchmarkFamilyReadinessLoading.value = false
   }
 }, { immediate: true })
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, breadthLookback, familyAsOf], ([groupKey, timeframe, adjusted, lookback]) => {
   if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey, timeframe, adjusted, lookback)
 }, { immediate: true })
-watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, familyAsOf], async ([groupKey, timeframe, adjusted, market]) => {
-  if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, familyAsOf, familyRankPeriod], async ([groupKey, timeframe, adjusted, market]) => {
+  if (disposed || !isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+  const sequence = ++familyAnalyticsSequence
   familyRatioLoading.value = true
   familyTechnicalsLoading.value = true
   familyBreadthLoading.value = true
@@ -3414,34 +3904,37 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
       workspaceStore.loadBenchmarkFamilyTechnicals(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined }),
       workspaceStore.loadBenchmarkFamilyBreadth(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, near_threshold: 0.01, new_high_lookback: 20 }),
       workspaceStore.loadBenchmarkFamilyBreadthHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, limit: 500 }),
-      workspaceStore.loadBenchmarkFamilyRanking(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
-      workspaceStore.loadBenchmarkFamilyConcentration(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', top_n: 10 }),
-      workspaceStore.loadBenchmarkFamilyConcentrationHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', top_n: 10, limit: 500 }),
-      workspaceStore.loadCrossFamilyRanking({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
-      workspaceStore.loadCrossFamilyRankingHistory({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', limit: 500 }),
-    ])
+      workspaceStore.loadBenchmarkFamilyRanking(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value }),
+      workspaceStore.loadBenchmarkFamilyConcentration(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value, top_n: 10 }),
+      workspaceStore.loadBenchmarkFamilyConcentrationHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value, top_n: 10, limit: 500 }),
+      workspaceStore.loadCrossFamilyRanking({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value }),
+      workspaceStore.loadCrossFamilyRankingHistory({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value, limit: 500 }),
+  ])
   } finally {
-    familyRatioLoading.value = false
-    familyTechnicalsLoading.value = false
-    familyBreadthLoading.value = false
-    familyRankingLoading.value = false
-    familyConcentrationLoading.value = false
-    familyConcentrationHistoryLoading.value = false
-    crossFamilyRankingLoading.value = false
-    crossFamilyRankingHistoryLoading.value = false
+    if (!disposed && sequence === familyAnalyticsSequence) {
+      familyRatioLoading.value = false
+      familyTechnicalsLoading.value = false
+      familyBreadthLoading.value = false
+      familyRankingLoading.value = false
+      familyConcentrationLoading.value = false
+      familyConcentrationHistoryLoading.value = false
+      crossFamilyRankingLoading.value = false
+      crossFamilyRankingHistoryLoading.value = false
+    }
   }
 }, { immediate: true })
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioRole, familyRatioMarket, familyAsOf], async ([groupKey, timeframe, adjusted, role, market]) => {
-  if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+  if (disposed || !isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
+  const sequence = ++familyOverviewSequence
   familyOverviewLoading.value = true
   try {
     await Promise.all([
       workspaceStore.loadBenchmarkFamilyOverview(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined }),
       workspaceStore.loadBenchmarkFamilyCoverage(groupKey, { as_of: familyAsOf.value || undefined }),
       workspaceStore.loadBenchmarkFamilyConstituents(groupKey, role, { timeframe, adjusted, as_of: familyAsOf.value || undefined, market_benchmark: market }),
-    ])
+  ])
   } finally {
-    familyOverviewLoading.value = false
+    if (!disposed && sequence === familyOverviewSequence) familyOverviewLoading.value = false
   }
 }, { immediate: true })
 function formatNumber(value: number | null | undefined) { return value == null ? 'Unavailable' : value.toFixed(2) }
@@ -3459,6 +3952,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .chart-tool__status { position: absolute; inset: 24px 0 0; z-index: 4; background: rgba(7, 12, 16, 0.72); pointer-events: none; }
 .chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
 .chart-tool__plots { position: absolute; top: 3px; left: 150px; z-index: 13; }
+ .chart-tool__surface--comparisons .chart-tool__plots { left: auto; right: 88px; }
 /* Comparison labels grow when prices arrive. Reserve a separate right-hand
    slot instead of moving their overlap above or below the Plots hit target. */
 .chart-tool__surface--comparisons .chart-tool__plots { left: auto; right: 88px; }
@@ -3519,6 +4013,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .breadth-tool__generic-history-events { position: relative; z-index: 2; }
 .breadth-tool__member-diagnostics { flex:1 1 100%; margin-left:0 !important; color:#d0a66a !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .breadth-tool__generic-diagnostics { max-height:110px; overflow:auto; border-top:1px solid #2b3841; border-bottom:1px solid #2b3841; background:#131a20; color:#d0a66a; font:9px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-diagnostics header { display:flex; justify-content:space-between; padding:4px 7px; position:sticky; top:0; background:#20282f; color:#9aabb6; }.breadth-tool__generic-diagnostics header span { color:#778994; }.breadth-tool__generic-diagnostics > div:not(header) { padding:2px 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.breadth-tool__generic-evidence { padding:2px 7px 4px; border-top:1px solid #2b3841; color:#8497a4; font:9px "Segoe UI",Arial,sans-serif; }.breadth-tool__generic-evidence summary { width:max-content; color:#9aabb6; cursor:pointer; }.breadth-tool__generic-evidence dl { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:2px 8px; margin:5px 0; }.breadth-tool__generic-evidence dl > div { display:contents; }.breadth-tool__generic-evidence dt { color:#778994; }.breadth-tool__generic-evidence dd { min-width:0; margin:0; color:#b9c8d1; overflow-wrap:anywhere; }.breadth-tool__generic-evidence code { color:#9bb6c3; overflow-wrap:anywhere; }.breadth-tool__generic-evidence section > strong { color:#9aabb6; }.breadth-tool__generic-evidence ul { margin:3px 0 0; padding-left:18px; }.breadth-tool__generic-evidence li { margin-top:2px; }
 @container (max-width: 560px) {
   .breadth-tool__universe { flex-wrap:wrap; row-gap:4px; }
   .breadth-tool__universe > select { flex:1 1 100px; }
@@ -3550,4 +4045,5 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .breadth-tool__family-breadth { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-breadth-role { padding-left:5px; border-left:1px solid #34434e; color:#8497a4; }.breadth-tool__family-breadth-role b { color:#cad4db; }
 .breadth-tool__family-ranking { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__family-ranking-role { padding-left:5px; border-left:1px solid #34434e; color:#8497a4; }.breadth-tool__family-ranking-role b { color:#cad4db; }
 .breadth-tool__cross-family-ranking { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:5px 7px; border-top:1px solid #2b3841; color:#9aabb6; font:10px "Segoe UI",Arial,sans-serif; }.breadth-tool__cross-family-ranking-row { padding-left:5px; border-left:1px solid #34434e; color:#8497a4; }.breadth-tool__cross-family-ranking-row b { color:#cad4db; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 </style>

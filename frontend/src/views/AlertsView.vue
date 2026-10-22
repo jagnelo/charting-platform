@@ -244,7 +244,8 @@ import { useRouter } from 'vue-router'
 import { useAlertsStore } from '@/stores/alerts'
 import { useScreenerAlertsStore } from '@/stores/screener_alerts'
 import { formatMoney } from '@/lib/format'
-import type { AlertFiringEvent, IndicatorAlert } from '@/types'
+import { indicatorSeriesDisplayName } from '@/lib/indicators/catalog'
+import type { AlertFiringEvent, IndicatorAlert, IndicatorType } from '@/types'
 
 const alertsStore         = useAlertsStore()
 const screenerAlertsStore = useScreenerAlertsStore()
@@ -283,8 +284,13 @@ function handleHistoryRowClick(e: AlertFiringEvent) {
 function fmtSnapshot(snap: Record<string, unknown>): string {
   const cond = (snap.condition as string | undefined)?.replace(/_/g, ' ') ?? ''
   const threshold = snap.threshold != null ? ` ${Number(snap.threshold).toPrecision(6)}` : ''
-  const indicator = snap.indicator ? ` ${snap.indicator}` : ''
-  return `${indicator}${cond}${threshold}`.trim()
+  const indicator = snap.indicator
+    ? `${snap.indicator}${snap.output_a ? ` [${snap.output_a}]` : ''}`
+    : ''
+  const right = snap.indicator_b
+    ? ` ${snap.indicator_b}${snap.output_b ? ` [${snap.output_b}]` : ''}`
+    : ''
+  return `${indicator} ${cond}${snap.indicator_b ? right : threshold}`.trim()
 }
 
 // Indicators that share the price axis — their values are formatted as currency.
@@ -296,18 +302,8 @@ function fmtIndValue(value: number | null, type: string | null | undefined, curr
   return Number(value).toFixed(4)
 }
 
-function fmtTs(ts: number): string {
-  const d = new Date(ts * 1000)
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`
-}
-
 function fmtIndicatorParams(type: string, params: Record<string, unknown>): string {
-  if (!params || !Object.keys(params).length) return type.toUpperCase()
-  if (type === 'avwap' && params.anchorTime) {
-    return `AVWAP(${fmtTs(params.anchorTime as number)})`
-  }
-  return `${type.toUpperCase()}(${Object.values(params).join(',')})`
+  return indicatorSeriesDisplayName({ type: type as IndicatorType, params: params ?? {} })
 }
 
 function indAlertExpr(a: IndicatorAlert): string {

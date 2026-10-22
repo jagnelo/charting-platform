@@ -30,6 +30,20 @@ def test_extract_sec_nport_filing_identity_reads_rendered_identity_tables():
     }
 
 
+def test_extract_sec_nport_filing_identity_reads_registrant_name_from_xml():
+    raw_xml = """
+    <edgarSubmission><formData><genInfo>
+      <regName>State Street(R) SPDR(R) S&amp;P 500(R) ETF Trust</regName>
+      <seriesName>N/A</seriesName>
+    </genInfo></formData></edgarSubmission>
+    """
+
+    assert extract_sec_nport_filing_identity(raw_xml) == {
+        "registrant_name": "State Street(R) SPDR(R) S&P 500(R) ETF Trust",
+        "series_name": "N/A",
+    }
+
+
 def test_parse_sec_nport_xml_parses_security_rows_and_report_date():
     raw_xml = """
     <edgarSubmission>

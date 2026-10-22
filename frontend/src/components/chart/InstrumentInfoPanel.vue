@@ -1,32 +1,42 @@
 <template>
   <section v-if="instrument" class="info-section" role="region" :aria-label="`${instrument.symbol} instrument report`" :class="{ collapsed: !isOpen }">
-    <div class="section-header" role="button" tabindex="0" :aria-expanded="isOpen" @click="toggleOpen" @keydown.enter.stop.prevent="toggleOpen" @keydown.space.stop.prevent="toggleOpen">
+    <button class="section-header" type="button" :aria-expanded="isOpen" :aria-controls="`${reportBodyId}-body`" @click="toggleOpen">
       <span class="section-title">{{ instrument.name }}</span>
       <span v-if="instrument.currency" class="info-currency">{{ instrument.currency }}</span>
       <span class="section-chevron"><WorkstationGlyph :kind="isOpen ? 'chevron-down' : 'chevron-right'" /></span>
-    </div>
+    </button>
 
     <Transition name="slide">
-      <div v-if="isOpen" class="info-body">
+      <div v-if="isOpen" :id="`${reportBodyId}-body`" class="info-body">
 
         <!-- Synthetic expression + constituents -->
         <template v-if="instrument.is_synthetic">
           <div class="info-expr">{{ instrument.expression }}</div>
           <div v-if="instrument.synthetic_constituents?.length" class="info-constituents">
-            <span
+            <button
               v-for="c in instrument.synthetic_constituents"
               :key="c.ticker_alias"
+              type="button"
               class="constituent-chip"
               @click="emit('select', c.ticker_alias, c.constituent_instrument_id)"
+              :aria-label="`Open constituent ${c.ticker_alias}`"
               :title="`Open ${c.ticker_alias}`"
-            >{{ c.ticker_alias }}</span>
+            >{{ c.ticker_alias }}</button>
           </div>
         </template>
 
         <!-- Description (shown when present, e.g. for ETFs) -->
         <template v-if="instrument.description">
-          <div class="info-description" :class="{ 'info-description--expanded': descExpanded }">{{ instrument.description }}</div>
-          <button v-if="instrument.description.length > 160" class="desc-more" @click="descExpanded = !descExpanded">
+          <div :id="descriptionBodyId" class="info-description" :class="{ 'info-description--expanded': descExpanded }">{{ instrument.description }}</div>
+          <button
+            v-if="instrument.description.length > 160"
+            type="button"
+            class="desc-more"
+            :aria-label="descExpanded ? 'Show less instrument description' : 'Show more instrument description'"
+            :aria-expanded="descExpanded"
+            :aria-controls="descriptionBodyId"
+            @click="descExpanded = !descExpanded"
+          >
             {{ descExpanded ? 'less' : 'more' }} <WorkstationGlyph :kind="descExpanded ? 'chevron-up' : 'chevron-down'" />
           </button>
         </template>
@@ -144,7 +154,7 @@
 
 <script setup lang="ts">
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
-import { ref, computed } from 'vue'
+import { ref, computed, useId } from 'vue'
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import ProvenanceHint from '@/components/common/ProvenanceHint.vue'
 import type { Instrument } from '@/types'
@@ -161,6 +171,8 @@ const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null
 
 const isOpen      = ref(true)
 const descExpanded = ref(false)
+const reportBodyId = useId()
+const descriptionBodyId = `${reportBodyId}-description`
 function toggleOpen() { isOpen.value = !isOpen.value }
 
 const stats = computed(() => props.instrument?.stats ?? null)
@@ -265,8 +277,14 @@ function rangeOccurrenceTitle(
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
   padding: 7px 10px;
+  border: 0;
+  color: inherit;
+  background: transparent;
   cursor: pointer;
+  font: inherit;
+  text-align: left;
   user-select: none;
   transition: background 0.1s;
 }
@@ -378,12 +396,15 @@ function rangeOccurrenceTitle(
 }
 
 .constituent-chip {
+  border: 0;
   font-size: 10px;
+  font-family: inherit;
   background: #1a2a3a;
   color: #64b5f6;
   padding: 2px 7px;
   border-radius: 10px;
   cursor: pointer;
+  text-align: left;
   transition: background 0.1s;
 }
 .constituent-chip:hover { background: #1e3a5a; }

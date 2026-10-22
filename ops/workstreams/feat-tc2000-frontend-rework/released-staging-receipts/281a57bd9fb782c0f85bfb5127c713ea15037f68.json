@@ -1,0 +1,13 @@
+{
+  "state": "green",
+  "created_at": "2026-10-19T23:06:53.344640+00:00",
+  "starting_staging_sha": "26443f94c5b9fd3741d28db392fecf9aafe9c699",
+  "staging_sha": "281a57bd9fb782c0f85bfb5127c713ea15037f68",
+  "sources": [
+    {
+      "branch": "fix/tc2000-desktop-plots-rsp-overlap",
+      "sha": "afbb72d6f718007421d99f8418c7f33d97c75ba3"
+    }
+  ],
+  "github_run": "https://github.com/jagnelo/charting-platform/actions/runs/39335198284"
+}

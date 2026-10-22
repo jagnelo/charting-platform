@@ -8,20 +8,32 @@ import math
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
-from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+from app.models.data_source import DataSource
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
 from app.models.market_map import MarketMapSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.models.provider_observation import (
+    DatasetStatus,
+    InstrumentDatasetState,
+    InstrumentProfileSnapshot,
+)
+from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
@@ -63,6 +75,7 @@ from app.schemas.analysis import (
     BenchmarkFamilyRankingRoleOut,
     BenchmarkFamilyRatioOut,
     BenchmarkFamilyRatiosOut,
+    BenchmarkFamilyReadinessOut,
     BenchmarkFamilyRotationOut,
     BenchmarkFamilyRotationRoleOut,
     BenchmarkFamilyTechnicalRoleOut,
@@ -86,6 +99,7 @@ from app.schemas.analysis import (
     BreadthPythonResultPointOut,
     BreadthPythonRunOut,
     BreadthPythonRunRequest,
+    BreadthPythonSignalPromotionRequest,
     BreadthPythonStudyPromotionRequest,
     BreadthUniverseRequest,
     CrossFamilyRankingHistoryOut,
@@ -118,9 +132,12 @@ from app.schemas.market_map import (
     MarketMapSnapshotOut,
     MarketMapSnapshotSummary,
 )
+from app.schemas.strategy import StrategyDefinitionDetailOut
 from app.services.benchmark_family_coverage import (
     OBSERVED_CONTINUITY_MAX_INTERVAL_DAYS,
+    assess_observed_holdings_cadence,
     assess_observed_holdings_continuity,
+    classify_analysis_readiness,
 )
 from app.services.breadth import (
     BreadthMember,
@@ -130,6 +147,12 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
+from app.services.etf_consumer_types import (
+    is_equity_holding_type,
+    is_placeholder_symbol,
+    normalize_holding_type,
+)
+from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
 from app.services.etf_holdings_capability import (
     current_analysis_error_detail,
     evaluate_capability,
@@ -137,16 +160,30 @@ from app.services.etf_holdings_capability import (
 )
 from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.indicators import (
+    INDICATOR_REGISTRY,
     OHLCVSeries,
     get_latest_value,
     required_bars_for_indicator,
 )
 from app.services.market_map import build_market_map, read_market_map_cache
+from app.services.ohlcv_coverage import (
+    bar_visible_through as _bar_visible_through,
+)
+from app.services.ohlcv_coverage import (
+    bar_visible_through_clause as _bar_visible_through_clause,
+)
 from app.services.parameter_validation import validate_parameter_values
+from app.services.provider_availability import latest_availability, provider_configured
 from app.services.research_jobs import (
     collect_research_result,
     enqueue_research_run,
     read_research_progress,
+)
+from app.services.top_down_taxonomy import benchmark_family_registry
+from app.services.watchlist_history import (
+    ANALYSIS_REQUIRED_BAR_COUNTS,
+    adjustment_provenance_for_lineage,
+    state_factor_evidence,
 )
 from app.services.watchlist_sources import (
     CurrentAnalysisSourceError,
@@ -163,6 +200,7 @@ _FAMILY_MEMBER_BAR_REQUIREMENTS = {
     Timeframe.W1: 52,
     Timeframe.MN: 24,
 }
+_USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
 
 
 async def _current_etf_capability(
@@ -217,23 +255,80 @@ async def _family_member_bar_history(
 
     member_rows = (
         await db.execute(
-            select(ETFHolding.constituent_instrument_id)
+            select(
+                ETFHolding.id,
+                ETFHolding.constituent_instrument_id,
+                ETFHolding.reported_symbol,
+                ETFHolding.is_resolved,
+                Instrument.symbol,
+                ETFHolding.holding_type,
+                ETFHolding.row_type,
+            )
+            .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
             .where(
                 ETFHolding.snapshot_id == snapshot.id,
-                ETFHolding.row_type == "security",
-                ETFHolding.holding_type.in_(("equity", "stock", "common_stock")),
-                ETFHolding.is_resolved.is_(True),
-                ETFHolding.constituent_instrument_id.is_not(None),
             )
-            .distinct()
+            .order_by(ETFHolding.id)
         )
     ).all()
-    member_ids = [int(row[0]) for row in member_rows if row[0] is not None]
+    canonical_ids: set[int] = set()
+    placeholder_ids: set[int] = set()
+    unresolved_member_count = 0
+    excluded_member_count = 0
+    for (
+        _holding_id,
+        instrument_id,
+        _reported_symbol,
+        is_resolved,
+        symbol,
+        holding_type,
+        row_type,
+    ) in member_rows:
+        if normalize_holding_type(row_type) != "security" or not is_equity_holding_type(
+            holding_type
+        ):
+            excluded_member_count += 1
+        elif not bool(is_resolved) or instrument_id is None or symbol is None:
+            unresolved_member_count += 1
+        elif is_placeholder_symbol(symbol):
+            placeholder_ids.add(int(instrument_id))
+        else:
+            canonical_ids.add(int(instrument_id))
+    member_ids = list(
+        dict.fromkeys(
+            int(instrument_id)
+            for (
+                _holding_id,
+                instrument_id,
+                _reported_symbol,
+                is_resolved,
+                symbol,
+                holding_type,
+                row_type,
+            ) in member_rows
+            if bool(is_resolved)
+            and instrument_id is not None
+            and symbol is not None
+            and normalize_holding_type(row_type) == "security"
+            and is_equity_holding_type(holding_type)
+            and not is_placeholder_symbol(symbol)
+        )
+    )
+    placeholder_member_count = len(placeholder_ids)
+    member_disposition = {
+        "canonical": len(canonical_ids),
+        "placeholder": placeholder_member_count,
+        "unresolved": unresolved_member_count,
+        "excluded": excluded_member_count,
+    }
     if not member_ids:
         return BenchmarkFamilyMemberBarHistoryOut(
             status="unavailable",
             snapshot_id=snapshot.id,
             composition_date=snapshot.composition_date,
+            member_disposition=member_disposition,
+            placeholder_member_count=placeholder_member_count,
+            unresolved_member_count=unresolved_member_count,
         )
 
     bars_query = (
@@ -243,37 +338,159 @@ async def _family_member_bar_history(
             func.count(OHLCVBar.id).label("bar_count"),
             func.min(OHLCVBar.ts).label("oldest"),
             func.max(OHLCVBar.ts).label("newest"),
+            OHLCVBar.is_derived,
+            OHLCVBar.data_source_id,
+            OHLCVBar.derivation_method,
         )
         .where(
             OHLCVBar.instrument_id.in_(member_ids),
             OHLCVBar.timeframe.in_(tuple(_FAMILY_MEMBER_BAR_REQUIREMENTS)),
             OHLCVBar.is_adjusted.is_(True),
         )
-        .group_by(OHLCVBar.timeframe, OHLCVBar.instrument_id)
+        .group_by(
+            OHLCVBar.timeframe,
+            OHLCVBar.instrument_id,
+            OHLCVBar.is_derived,
+            OHLCVBar.data_source_id,
+            OHLCVBar.derivation_method,
+        )
     )
+    # Current readiness must not count a locally-derived coarse row whose
+    # source period is still open.  Keep provider observations governed by
+    # their established timestamp semantics (including future provider rows),
+    # while applying the shared source-end visibility contract to every read.
+    cutoff = _as_utc(as_of) if as_of is not None else datetime.now(UTC)
+    bars_query = bars_query.where(_bar_visible_through_clause(cutoff))
     if as_of is not None:
-        bars_query = bars_query.where(OHLCVBar.ts <= as_of)
+        bars_query = bars_query.where(OHLCVBar.ts <= cutoff)
     bar_rows = (await db.execute(bars_query)).all()
 
-    by_timeframe: dict[Timeframe, list[tuple[int, int, datetime | None, datetime | None]]] = (
-        defaultdict(list)
+    # Aggregate provider and locally derived rows per member before applying
+    # readiness floors.  A member may legitimately have provider W1/MN rows
+    # for some periods and derived rows for uncovered periods; counting the
+    # grouped rows directly would double-count that member and could inflate
+    # coverage beyond 100 percent.
+    by_timeframe: dict[Timeframe, dict[int, dict[str, Any]]] = defaultdict(dict)
+    for row in bar_rows:
+        timeframe, instrument_id, bar_count, oldest, newest, is_derived = row[:6]
+        data_source_id = row[6] if len(row) > 6 else None
+        derivation_method = row[7] if len(row) > 7 else None
+        member = by_timeframe[timeframe].setdefault(
+            int(instrument_id),
+            {
+                "instrument_id": int(instrument_id),
+                "bar_count": 0,
+                "provider_bar_count": 0,
+                "derived_bar_count": 0,
+                "provider_source_ids": set(),
+                "derived_methods": set(),
+                "oldest": None,
+                "newest": None,
+            },
+        )
+        count = int(bar_count)
+        member["bar_count"] += count
+        if bool(is_derived):
+            member["derived_bar_count"] += count
+            if derivation_method:
+                member["derived_methods"].add(str(derivation_method))
+        else:
+            member["provider_bar_count"] += count
+            if data_source_id is not None:
+                member["provider_source_ids"].add(int(data_source_id))
+        if oldest is not None and (member["oldest"] is None or oldest < member["oldest"]):
+            member["oldest"] = oldest
+        if newest is not None and (member["newest"] is None or newest > member["newest"]):
+            member["newest"] = newest
+
+    provider_source_ids = {
+        source_id
+        for members in by_timeframe.values()
+        for member in members.values()
+        for source_id in member.get("provider_source_ids", set())
+    }
+    has_derived_rows = any(
+        member.get("derived_bar_count", 0) > 0
+        for members in by_timeframe.values()
+        for member in members.values()
     )
-    for timeframe, instrument_id, bar_count, oldest, newest in bar_rows:
-        by_timeframe[timeframe].append((int(instrument_id), int(bar_count), oldest, newest))
+    state_rows: list[tuple[Any, ...]] = []
+    if provider_source_ids or has_derived_rows:
+        state_filters = [InstrumentDatasetState.data_source_id.is_(None)]
+        if provider_source_ids:
+            state_filters.append(InstrumentDatasetState.data_source_id.in_(provider_source_ids))
+        state_rows = (
+            await db.execute(
+                select(
+                    InstrumentDatasetState.instrument_id,
+                    InstrumentDatasetState.data_source_id,
+                    InstrumentDatasetState.dataset_key,
+                    InstrumentDatasetState.extra_data,
+                    InstrumentDatasetState.coverage_end,
+                    InstrumentDatasetState.fetched_at,
+                ).where(
+                    InstrumentDatasetState.instrument_id.in_(member_ids),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    or_(*state_filters),
+                    InstrumentDatasetState.dataset_key.in_(
+                        [
+                            *(
+                                f"{timeframe.value}:adj"
+                                for timeframe in _FAMILY_MEMBER_BAR_REQUIREMENTS
+                            ),
+                            "D1:adj:local_split_ratio",
+                            "D1:adj:provider_adjustment_factor",
+                        ]
+                    ),
+                )
+            )
+        ).all()
 
     timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = []
     for timeframe, required_bar_count in _FAMILY_MEMBER_BAR_REQUIREMENTS.items():
-        rows = by_timeframe.get(timeframe, [])
+        rows = list(by_timeframe.get(timeframe, {}).values())
         covered_count = len(rows)
-        ready_count = sum(
-            1 for _instrument_id, count, _oldest, _newest in rows if count >= required_bar_count
+        ready_count = sum(1 for row in rows if row["bar_count"] >= required_bar_count)
+        analysis_ready_status = classify_analysis_readiness(
+            len(member_ids), covered_count, ready_count
         )
-        oldest_values = [
-            oldest for _instrument_id, _count, oldest, _newest in rows if oldest is not None
-        ]
-        newest_values = [
-            newest for _instrument_id, _count, _oldest, newest in rows if newest is not None
-        ]
+        provider_member_count = sum(1 for row in rows if row["provider_bar_count"] > 0)
+        derived_member_count = sum(1 for row in rows if row["derived_bar_count"] > 0)
+        provider_only_member_count = sum(
+            1 for row in rows if row["provider_bar_count"] > 0 and row["derived_bar_count"] == 0
+        )
+        derived_only_member_count = sum(
+            1 for row in rows if row["derived_bar_count"] > 0 and row["provider_bar_count"] == 0
+        )
+        mixed_member_count = sum(
+            1 for row in rows if row["provider_bar_count"] > 0 and row["derived_bar_count"] > 0
+        )
+        provider_bar_count = sum(int(row["provider_bar_count"]) for row in rows)
+        derived_bar_count = sum(int(row["derived_bar_count"]) for row in rows)
+        source_lineage = (
+            "provider_and_derived"
+            if provider_member_count and derived_member_count
+            else "provider_only"
+            if provider_member_count
+            else "derived_only"
+            if derived_member_count
+            else "unavailable"
+        )
+        lineage_rows = list(rows)
+        factor_evidence = state_factor_evidence(
+            lineage_rows,
+            state_rows,
+            timeframe.value,
+            as_of=as_of,
+        )
+        adjustment_provenance = adjustment_provenance_for_lineage(
+            provider_member_count,
+            derived_member_count,
+        )
+        if factor_evidence:
+            adjustment_provenance.update(factor_evidence)
+        oldest_values = [row["oldest"] for row in rows if row["oldest"] is not None]
+        newest_values = [row["newest"] for row in rows if row["newest"] is not None]
         timeframes.append(
             BenchmarkFamilyMemberBarHistoryTimeframeOut(
                 timeframe=timeframe.value,
@@ -283,7 +500,17 @@ async def _family_member_bar_history(
                 coverage_percent=round((covered_count / len(member_ids)) * 100, 2),
                 analysis_ready_member_count=ready_count,
                 analysis_ready_percent=round((ready_count / len(member_ids)) * 100, 2),
-                bar_count=sum(count for _instrument_id, count, _oldest, _newest in rows),
+                analysis_ready_status=analysis_ready_status,
+                bar_count=sum(int(row["bar_count"]) for row in rows),
+                provider_member_count=provider_member_count,
+                derived_member_count=derived_member_count,
+                provider_only_member_count=provider_only_member_count,
+                derived_only_member_count=derived_only_member_count,
+                mixed_member_count=mixed_member_count,
+                provider_bar_count=provider_bar_count,
+                derived_bar_count=derived_bar_count,
+                source_lineage=source_lineage,
+                adjustment_provenance=adjustment_provenance,
                 oldest=min(oldest_values) if oldest_values else None,
                 newest=max(newest_values) if newest_values else None,
             )
@@ -299,8 +526,260 @@ async def _family_member_bar_history(
         status=status,
         snapshot_id=snapshot.id,
         composition_date=snapshot.composition_date,
+        member_disposition=member_disposition,
+        placeholder_member_count=placeholder_member_count,
+        unresolved_member_count=unresolved_member_count,
         timeframes=timeframes,
     )
+
+
+async def _family_member_metadata_readiness(
+    db: AsyncSession,
+    snapshot: ETFHoldingsSnapshot | None,
+    *,
+    as_of: datetime | None,
+) -> tuple[int, int, str, int, str]:
+    """Summarize point-in-time weight and classification evidence for one snapshot."""
+
+    # FastAPI accepts both offset-aware and offset-less ISO timestamps.  The
+    # provenance timestamps are normalized to UTC below, so normalize the
+    # caller cutoff as well before comparing Python datetime values.  Without
+    # this boundary, a valid historical request such as ``2026-12-01T00:00:00``
+    # would raise on aware/naive comparison instead of returning readiness.
+    evaluation_at = _as_utc(as_of) if as_of is not None else None
+
+    if snapshot is None:
+        return 0, 0, "unavailable", 0, "unavailable"
+    rows = (
+        (
+            await db.execute(
+                select(ETFHolding)
+                .options(
+                    selectinload(ETFHolding.constituent_instrument).selectinload(
+                        Instrument.equity_detail
+                    )
+                )
+                .where(
+                    ETFHolding.snapshot_id == snapshot.id,
+                    ETFHolding.is_resolved.is_(True),
+                    ETFHolding.constituent_instrument_id.is_not(None),
+                )
+                .order_by(ETFHolding.position)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    rows = [
+        row
+        for row in rows
+        if (
+            normalize_holding_type(row.row_type) == "security"
+            and is_equity_holding_type(row.holding_type)
+            and row.constituent_instrument is not None
+            and row.constituent_instrument_id is not None
+            and not is_placeholder_symbol(row.constituent_instrument.symbol)
+        )
+    ]
+    # A provider disclosure may repeat the same canonical instrument (for
+    # example, because two source rows carry the same identifier).  Family
+    # readiness is expressed per canonical member, matching source resolution,
+    # breadth, baskets, and Strategy Lab rather than per raw disclosure row.
+    weighted_member_ids = {
+        int(row.constituent_instrument_id)
+        for row in rows
+        if row.weight is not None and row.constituent_instrument_id is not None
+    }
+    unique_rows: dict[int, ETFHolding] = {}
+    for row in rows:
+        instrument_id = row.constituent_instrument_id
+        if instrument_id is not None:
+            unique_rows.setdefault(int(instrument_id), row)
+    rows = list(unique_rows.values())
+    member_count = len(rows)
+    if not member_count:
+        return 0, 0, "unavailable", 0, "unavailable"
+
+    historical_profile_industry: set[int] = set()
+    if as_of is not None:
+        # EquityDetail is a current read model.  Historical family readiness must
+        # prefer the latest provider profile that was both observed and fetched
+        # by the requested cutoff, matching the point-in-time Market Map policy.
+        profile_rows = (
+            (
+                await db.execute(
+                    select(InstrumentProfileSnapshot)
+                    .where(
+                        InstrumentProfileSnapshot.instrument_id.in_(
+                            [row.constituent_instrument_id for row in rows]
+                        ),
+                        InstrumentProfileSnapshot.observed_at <= evaluation_at,
+                        InstrumentProfileSnapshot.fetched_at <= evaluation_at,
+                    )
+                    .order_by(
+                        InstrumentProfileSnapshot.instrument_id,
+                        InstrumentProfileSnapshot.observed_at.desc(),
+                        InstrumentProfileSnapshot.id.desc(),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        seen_profile_ids: set[int] = set()
+        for profile_snapshot in profile_rows:
+            instrument_id = profile_snapshot.instrument_id
+            if instrument_id in seen_profile_ids:
+                continue
+            seen_profile_ids.add(instrument_id)
+            payload = profile_snapshot.payload if isinstance(profile_snapshot.payload, dict) else {}
+            extra = payload.get("extra")
+            extra = extra if isinstance(extra, dict) else {}
+            industry = payload.get("industry") or extra.get("industry")
+            if isinstance(industry, str) and industry.strip():
+                historical_profile_industry.add(instrument_id)
+
+    weighted_count = sum(
+        int(row.constituent_instrument_id) in weighted_member_ids
+        for row in rows
+        if row.constituent_instrument_id is not None
+    )
+    classified_count = 0
+    for row in rows:
+        detail = row.constituent_instrument.equity_detail if row.constituent_instrument else None
+        if detail is None or not detail.industry:
+            if as_of is not None and row.constituent_instrument_id in historical_profile_industry:
+                classified_count += 1
+            continue
+        if evaluation_at is None:
+            classified_count += 1
+            continue
+        if row.constituent_instrument_id in historical_profile_industry:
+            classified_count += 1
+            continue
+        evidence = (detail.field_provenance or {}).get("industry")
+        observed_text = (
+            evidence.get("observed_at") or evidence.get("known_at")
+            if isinstance(evidence, dict)
+            else None
+        )
+        if not observed_text:
+            continue
+        try:
+            observed_at = datetime.fromisoformat(str(observed_text).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if observed_at.tzinfo is None:
+            observed_at = observed_at.replace(tzinfo=UTC)
+        if observed_at <= evaluation_at:
+            classified_count += 1
+
+    weights_status = (
+        "ready" if weighted_count == member_count else "partial" if weighted_count else "pending"
+    )
+    classification_status = (
+        "ready"
+        if classified_count == member_count
+        else "partial"
+        if classified_count
+        else "pending"
+    )
+    return member_count, weighted_count, weights_status, classified_count, classification_status
+
+
+def _as_utc(value: datetime) -> datetime:
+    """Normalize database timestamps before entitlement cutoff comparisons."""
+
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC)
+
+
+def _entitlement_state(
+    source: DataSource | None,
+    entitlement: ProviderEntitlement | None,
+    *,
+    evaluation_at: datetime | None = None,
+) -> str:
+    """Classify persisted entitlement evidence without probing a provider."""
+
+    if entitlement is None:
+        return "unknown"
+    if not entitlement.is_free or entitlement.configured_plan in {"excluded", "unreviewed"}:
+        return "excluded" if entitlement.configured_plan == "excluded" else "unreviewed"
+    if source is None or not provider_configured(source, entitlement):
+        return "not_configured"
+    evaluation = _as_utc(evaluation_at or datetime.now(UTC))
+    if entitlement.effective_at and _as_utc(entitlement.effective_at) > evaluation:
+        return "unreviewed"
+    if entitlement.review_due_at and _as_utc(entitlement.review_due_at) <= evaluation:
+        return "unreviewed"
+    if entitlement.live_probe_status in {"failure", "failed", "error"}:
+        return "probe_failed"
+    if entitlement.live_probe_status not in {"success", "passed", "verified", "ok"}:
+        return "unreviewed"
+    return "verified"
+
+
+def _role_readiness(
+    *,
+    mapping_available: bool,
+    profile_loaded: bool,
+    holdings_status: str,
+    member_bar_status: str,
+    entitlement_status: str,
+    point_in_time_supported: bool,
+    weights_status: str,
+    classification_status: str,
+    holdings_completeness_status: str | None = None,
+) -> tuple[str, list[str]]:
+    """Return conservative composite readiness and machine-readable reasons."""
+
+    reasons: list[str] = []
+    if not mapping_available:
+        return "unavailable", ["mapping_unavailable"]
+    if not profile_loaded:
+        return "pending", ["profile_not_loaded"]
+    if entitlement_status in {"excluded", "not_configured", "probe_failed"}:
+        reasons.append(f"entitlement_{entitlement_status}")
+    elif entitlement_status in {"unknown", "unreviewed"}:
+        reasons.append(f"entitlement_{entitlement_status}")
+    if holdings_status != "available":
+        reasons.append(f"holdings_{holdings_status}")
+    if (
+        holdings_completeness_status is not None
+        and holdings_completeness_status not in _USABLE_HOLDINGS_COMPLETENESS
+    ):
+        reasons.append(f"holdings_completeness_{holdings_completeness_status}")
+    if not point_in_time_supported:
+        reasons.append("point_in_time_unavailable")
+    if member_bar_status != "ready":
+        reasons.append(f"member_history_{member_bar_status}")
+    if weights_status != "ready":
+        reasons.append(f"weights_{weights_status}")
+    if classification_status != "ready":
+        reasons.append(f"classification_{classification_status}")
+    if any(reason.startswith("entitlement_") for reason in reasons) and entitlement_status in {
+        "excluded",
+        "not_configured",
+        "probe_failed",
+    }:
+        return "blocked", reasons
+    if (
+        holdings_status == "available"
+        and (
+            holdings_completeness_status is None
+            or holdings_completeness_status in _USABLE_HOLDINGS_COMPLETENESS
+        )
+        and member_bar_status == "ready"
+        and entitlement_status == "verified"
+        and point_in_time_supported
+        and weights_status == "ready"
+        and classification_status == "ready"
+    ):
+        return "ready", reasons
+    if holdings_status == "available" or member_bar_status in {"partial", "ready"}:
+        return "partial", reasons
+    return "pending", reasons
 
 
 @router.post("/market-map", response_model=MarketMapOut)
@@ -673,6 +1152,61 @@ def _equal_weight_series(
     return [(timestamp, _mean([item[timestamp] for item in series])) for timestamp in timestamps]
 
 
+def _point_in_time_equal_weight_series(
+    group: MarketGroup,
+    bars_by_id: dict[int, list[OHLCVBar]],
+    *,
+    as_of: datetime | None = None,
+) -> tuple[list[tuple[datetime, float]], set[int]]:
+    """Build an equal-weight series from membership valid at each bar timestamp.
+
+    A derived family leg has no issuer snapshot of its own, so its membership
+    must be evaluated against the group's effective/known-at boundaries for
+    every observation.  Selecting one current member set and reusing it for
+    older bars would introduce survivorship/look-ahead bias whenever a member
+    was added or removed during the requested history.
+    """
+
+    series_by_id = {
+        instrument_id: _normalised_bar_series(bars) for instrument_id, bars in bars_by_id.items()
+    }
+    timestamps = sorted({timestamp for series in series_by_id.values() for timestamp in series})
+    points: list[tuple[datetime, float]] = []
+    membership_versions: set[int] = set()
+    constituent_relationships = {
+        "constituent",
+        "official_constituent",
+        "etf_proxy_constituent",
+    }
+    for timestamp in timestamps:
+        active_members = [
+            member
+            for member in _group_members_at(
+                group,
+                timestamp,
+                allow_late_registered_group=True,
+            )
+            if member.relationship_type in constituent_relationships
+        ]
+        active_ids = {
+            member.instrument_id
+            for member in active_members
+            if member.instrument_id in series_by_id
+        }
+        values = [
+            series_by_id[instrument_id][timestamp]
+            for instrument_id in active_ids
+            if timestamp in series_by_id[instrument_id]
+        ]
+        if not values:
+            continue
+        membership_versions.add(_group_membership_version(group, active_members))
+        points.append((timestamp, _mean(values)))
+    if as_of is not None:
+        points = [point for point in points if _as_utc(point[0]) <= _as_utc(as_of)]
+    return points, membership_versions
+
+
 def _ratio_cell(
     values: list[tuple[datetime, float]],
     reference: dict[datetime, float],
@@ -716,6 +1250,40 @@ async def indicator_batch(
         raise HTTPException(
             422, detail={"code": "invalid_timeframe", "timeframe": body.timeframe}
         ) from exc
+    indicator_definition = INDICATOR_REGISTRY.get(body.indicator)
+    requested_output = body.params.get("output")
+    if indicator_definition is not None:
+        output_keys = tuple(indicator_definition.output_keys)
+        if len(output_keys) > 1:
+            if not isinstance(requested_output, str) or not requested_output.strip():
+                raise HTTPException(
+                    422,
+                    detail={
+                        "code": "explicit_indicator_output_required",
+                        "indicator": body.indicator,
+                        "output_options": list(output_keys),
+                    },
+                )
+            if requested_output not in output_keys:
+                raise HTTPException(
+                    422,
+                    detail={
+                        "code": "invalid_indicator_output",
+                        "indicator": body.indicator,
+                        "output": requested_output,
+                        "output_options": list(output_keys),
+                    },
+                )
+        elif requested_output is not None and requested_output != output_keys[0]:
+            raise HTTPException(
+                422,
+                detail={
+                    "code": "invalid_indicator_output",
+                    "indicator": body.indicator,
+                    "output": requested_output,
+                    "output_options": list(output_keys),
+                },
+            )
     symbols = list(
         dict.fromkeys(symbol.upper().strip() for symbol in body.symbols if symbol.strip())
     )
@@ -883,17 +1451,36 @@ def _is_known_at(
         return True
     if value is None:
         return not required
-    if value.tzinfo is None and as_of.tzinfo is not None:
-        value = value.replace(tzinfo=as_of.tzinfo)
-    return value <= as_of
+    # Query parameters may be offset-less while persisted provenance is UTC
+    # aware (and legacy rows can have the inverse shape).  Compare one
+    # canonical timeline so historical membership never crashes on a valid
+    # ISO cutoff or silently admits a future version.
+    return _as_utc(value) <= _as_utc(as_of)
 
 
 def _wire_datetime(value: datetime | None) -> str | None:
     """Use one canonical UTC spelling in provenance fields and cache identities."""
     if value is None:
         return None
-    encoded = value.isoformat()
+    encoded = _as_utc(value).isoformat()
     return encoded.replace("+00:00", "Z")
+
+
+def _snapshot_timing_provenance(snapshot: ETFHoldingsSnapshot) -> dict[str, str]:
+    """Return only the explicitly recorded timing-basis labels for a disclosure."""
+
+    extra_data = snapshot.extra_data if isinstance(snapshot.extra_data, Mapping) else {}
+    legal_metadata = extra_data.get("legal_metadata")
+    if not isinstance(legal_metadata, Mapping):
+        return {}
+    timing = legal_metadata.get("timing_provenance")
+    if not isinstance(timing, Mapping):
+        return {}
+    return {
+        str(key): str(value)
+        for key, value in timing.items()
+        if key is not None and value is not None
+    }
 
 
 def _group_members_at(
@@ -931,10 +1518,19 @@ def _group_members_at(
 def _truncate_bars_at(
     bars_by_id: dict[int, list[OHLCVBar]], as_of: datetime | None
 ) -> dict[int, list[OHLCVBar]]:
-    if as_of is None:
-        return bars_by_id
+    evaluation_at = _as_utc(as_of or datetime.now(UTC))
     return {
-        instrument_id: [bar for bar in bars if bar.ts <= as_of]
+        instrument_id: [
+            bar
+            for bar in bars
+            # Explicit historical views are bounded by the requested
+            # observation time.  Current snapshots retain the established
+            # provider-row behavior (provider observations are selected by
+            # their stored timestamp/query range); only derived rows need the
+            # wall-clock source-end completeness guard here.
+            if (as_of is None or _as_utc(bar.ts) <= evaluation_at)
+            and _bar_visible_through(bar, evaluation_at)
+        ]
         for instrument_id, bars in bars_by_id.items()
     }
 
@@ -1475,7 +2071,8 @@ async def instrument_technical_snapshot(
         instrument.id, []
     )
     if as_of is not None:
-        bars = [bar for bar in bars if bar.ts <= as_of]
+        bars = _truncate_bars_at({instrument.id: bars}, as_of).get(instrument.id, [])
+    latest = bars[-1] if bars else None
     warnings: list[AnalysisWarning] = []
     stale_ids = (
         set()
@@ -1688,7 +2285,7 @@ async def benchmark_family_relative_rotation(
     sampling: int = Query(default=1, ge=1, le=30),
     lookback: int = Query(default=20, ge=2, le=252),
     tail_length: int = Query(default=10, ge=1, le=100),
-    history_length: int = Query(default=0, ge=0, le=1000),
+    history_length: int = Query(default=0, ge=0, le=5_000),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -1921,7 +2518,7 @@ async def group_relative_rotation(
     sampling: int = Query(default=1, ge=1, le=30),
     lookback: int = Query(default=20, ge=2, le=252),
     tail_length: int = Query(default=10, ge=1, le=100),
-    history_length: int = Query(default=0, ge=0, le=1000),
+    history_length: int = Query(default=0, ge=0, le=5_000),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -2512,12 +3109,7 @@ async def etf_constituent_snapshot(
         .options(selectinload(ETFHoldingsSnapshot.rows))
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
     )
-    if as_of is not None:
-        snapshot_query = snapshot_query.where(
-            ETFHoldingsSnapshot.composition_date <= as_of.date(),
-            ETFHoldingsSnapshot.known_at.is_not(None),
-            ETFHoldingsSnapshot.known_at <= as_of,
-        )
+    snapshot_query = _holdings_snapshot_at(snapshot_query, as_of)
     snapshot = (
         await db.execute(
             snapshot_query.order_by(
@@ -2790,8 +3382,8 @@ async def etf_constituent_snapshot(
             "membership_semantics": "etf_proxy_membership",
             "etf_symbol": etf.symbol,
             "composition_date": snapshot.composition_date.isoformat(),
-            "known_at": snapshot.known_at.isoformat() if snapshot.known_at else None,
-            "requested_as_of": as_of.isoformat() if as_of else None,
+            "known_at": _wire_datetime(snapshot.known_at),
+            "requested_as_of": _wire_datetime(as_of),
         },
         freshness=freshness,
         freshness_detail=freshness_detail,
@@ -3412,11 +4004,7 @@ async def benchmark_family_concentration_history(
             .options(selectinload(ETFHoldingsSnapshot.rows))
             .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
         ).where(ETFHoldingsSnapshot.known_at.is_not(None))
-        if as_of is not None:
-            snapshots_statement = snapshots_statement.where(
-                ETFHoldingsSnapshot.composition_date <= as_of.date(),
-                ETFHoldingsSnapshot.known_at <= as_of,
-            )
+        snapshots_statement = _holdings_snapshot_at(snapshots_statement, as_of)
         snapshots = list(
             (
                 await db.execute(
@@ -4026,6 +4614,39 @@ async def benchmark_family_coverage(
             )
         ).scalars()
     }
+    source_rows = (await db.execute(select(DataSource))).scalars().all()
+    sources = {source.id: source for source in source_rows}
+    sources_by_name = {
+        source.name.strip().lower(): source
+        for source in source_rows
+        if source.name and source.name.strip()
+    }
+    entitlements = {
+        (entitlement.data_source_id, entitlement.capability): entitlement
+        for entitlement in (
+            await db.execute(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.capability.in_(
+                        (ProviderCapability.UNIVERSE_DISCOVERY, ProviderCapability.PRICE_HISTORY)
+                    )
+                )
+            )
+        ).scalars()
+    }
+    adapter_states = {}
+    profile_ids = [profile.id for profile in profiles.values()]
+    if profile_ids:
+        for state in (
+            await db.execute(
+                select(ETFHoldingsAdapterState)
+                .where(ETFHoldingsAdapterState.etf_profile_id.in_(profile_ids))
+                .order_by(
+                    ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                    ETFHoldingsAdapterState.id.desc(),
+                )
+            )
+        ).scalars():
+            adapter_states.setdefault(state.etf_profile_id, state)
 
     roles: list[BenchmarkFamilyCoverageRoleOut] = []
     exclusions: list[AnalysisWarning] = []
@@ -4037,11 +4658,39 @@ async def benchmark_family_coverage(
         symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
         instrument = instruments.get(symbol) if symbol else None
         profile = profiles.get(instrument.id) if instrument is not None else None
+        adapter_state = adapter_states.get(profile.id) if profile is not None else None
         snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = []
         member_bar_history = BenchmarkFamilyMemberBarHistoryOut(status="no_snapshot")
         continuity_status = "not_applicable"
         continuity_gaps: list[BenchmarkFamilyCoverageGapOut] = []
         continuity_snapshot_limit_reached = False
+        observed_cadence_status = "not_applicable"
+        observed_cadence_sample_count = 0
+        observed_cadence_median_interval_days: float | None = None
+        observed_cadence_min_interval_days: int | None = None
+        observed_cadence_max_interval_days: int | None = None
+        selected_snapshot: ETFHoldingsSnapshot | None = None
+        source: DataSource | None = None
+        entitlement_source: DataSource | None = None
+        holdings_entitlement: ProviderEntitlement | None = None
+        price_entitlement: ProviderEntitlement | None = None
+        route_adapter_key: str | None = None
+        route_provider: str | None = None
+        route_status = "not_configured"
+        if symbol:
+            route_metadata = known_etf_route_metadata(symbol)
+            route_aliases = route_metadata.get("provider_aliases") or {}
+            if isinstance(route_aliases, Mapping):
+                route_adapter_key = str(route_aliases.get("holdings_adapter") or "").strip() or None
+            route_adapter = get_holdings_adapter(route_adapter_key)
+            if route_adapter is not None:
+                route_provider = route_adapter.source_provider
+                route_status = "configured"
+            elif route_adapter_key:
+                route_status = "not_registered"
+        history_route = mapping.get("history_route")
+        history_route = history_route if isinstance(history_route, Mapping) else {}
+        point_in_time_supported = False
         if instrument is None:
             status = "mapping_unavailable"
             exclusions.append(
@@ -4073,25 +4722,43 @@ async def benchmark_family_coverage(
             snapshot_rows = (
                 (
                     await db.execute(
-                        statement.order_by(
+                        statement.options(
+                            selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                                ETFHolding.constituent_instrument
+                            )
+                        )
+                        .order_by(
                             ETFHoldingsSnapshot.composition_date.desc(),
                             ETFHoldingsSnapshot.known_at.desc().nullslast(),
                             ETFHoldingsSnapshot.id.desc(),
-                        ).limit(limit)
+                        )
+                        # Fetch one lookahead row so the response can distinguish
+                        # an exactly-full result from a truncated history window.
+                        .limit(limit + 1)
                     )
                 )
                 .scalars()
                 .all()
             )
-            continuity_snapshot_limit_reached = len(snapshot_rows) >= limit
+            continuity_snapshot_limit_reached = len(snapshot_rows) > limit
+            snapshot_rows = snapshot_rows[:limit]
             snapshots = [
                 BenchmarkFamilyCoverageSnapshotOut(
                     snapshot_id=row.id,
                     composition_date=row.composition_date,
                     as_of_date=row.as_of_date,
                     known_at=row.known_at,
+                    published_at=row.published_at,
+                    cadence=(
+                        (row.extra_data or {}).get("legal_metadata", {}).get("cadence")
+                        if isinstance((row.extra_data or {}).get("legal_metadata"), Mapping)
+                        else None
+                    ),
+                    parser_version=row.parser_version,
+                    timing_provenance=_snapshot_timing_provenance(row),
                     provenance=row.provenance,
                     source_provider=row.source_provider,
+                    source_identifier=row.source_identifier,
                     source_quality=row.source_quality,
                     completeness_status=row.completeness_status,
                     row_count=row.row_count,
@@ -4103,6 +4770,9 @@ async def benchmark_family_coverage(
             continuity = assess_observed_holdings_continuity(
                 [snapshot.composition_date for snapshot in snapshots],
             )
+            cadence = assess_observed_holdings_cadence(
+                [snapshot.composition_date for snapshot in snapshots],
+            )
             continuity_status = continuity.status
             continuity_gaps = [
                 BenchmarkFamilyCoverageGapOut(
@@ -4112,6 +4782,32 @@ async def benchmark_family_coverage(
                 )
                 for gap in continuity.gaps
             ]
+            observed_cadence_status = cadence.status
+            observed_cadence_sample_count = cadence.sample_count
+            observed_cadence_median_interval_days = cadence.median_interval_days
+            observed_cadence_min_interval_days = cadence.min_interval_days
+            observed_cadence_max_interval_days = cadence.max_interval_days
+            canonical_snapshot_usable = {}
+            for row in snapshot_rows:
+                eligible_ids = {
+                    int(holding.constituent_instrument_id)
+                    for holding in row.rows
+                    if normalize_holding_type(holding.row_type) == "security"
+                    and is_equity_holding_type(holding.holding_type)
+                    and holding.is_resolved
+                    and holding.constituent_instrument_id is not None
+                    and holding.constituent_instrument is not None
+                    and not is_placeholder_symbol(holding.constituent_instrument.symbol)
+                }
+                # ``resolved_count`` is raw disclosure provenance.  It is
+                # still the only available evidence for legacy metadata-only
+                # snapshots, which intentionally do not persist holding rows.
+                # Once row detail is materialized, canonical readiness must be
+                # established from at least one eligible equity member rather
+                # than from the raw count alone.
+                canonical_snapshot_usable[row.id] = bool(eligible_ids) or (
+                    not row.rows and row.resolved_count > 0
+                )
             latest_capability = (
                 await _current_etf_capability(db, profile, snapshot_rows[0])
                 if snapshot_rows
@@ -4124,14 +4820,43 @@ async def benchmark_family_coverage(
             resolved_snapshots = [
                 snapshot
                 for snapshot in snapshots
-                if snapshot.resolved_count > 0 and current_snapshot_usable
+                if canonical_snapshot_usable.get(snapshot.snapshot_id, False)
+                and current_snapshot_usable
             ]
             selected_snapshot = next(
-                (row for row in snapshot_rows if row.resolved_count > 0),
+                (row for row in snapshot_rows if canonical_snapshot_usable.get(row.id, False)),
                 None,
             )
             if not current_snapshot_usable:
                 selected_snapshot = None
+            source = sources.get(selected_snapshot.data_source_id) if selected_snapshot else None
+            if selected_snapshot is not None:
+                entitlement_source = (
+                    sources_by_name.get(selected_snapshot.source_provider.strip().lower()) or source
+                )
+            if selected_snapshot is not None:
+                holdings_entitlement = entitlements.get(
+                    (
+                        entitlement_source.id
+                        if entitlement_source is not None
+                        else selected_snapshot.data_source_id,
+                        ProviderCapability.UNIVERSE_DISCOVERY,
+                    )
+                )
+                price_entitlement = entitlements.get(
+                    (
+                        entitlement_source.id
+                        if entitlement_source is not None
+                        else selected_snapshot.data_source_id,
+                        ProviderCapability.PRICE_HISTORY,
+                    )
+                )
+            # A requested cutoff is not evidence that the role can answer it.
+            # Keep point-in-time readiness false until at least one dated
+            # holdings snapshot is actually available; otherwise a profile
+            # with no local disclosures would be reported as historically
+            # supported merely because the caller supplied ``as_of``.
+            point_in_time_supported = bool(profile and resolved_snapshots)
             member_bar_history = await _family_member_bar_history(
                 db,
                 selected_snapshot,
@@ -4191,6 +4916,104 @@ async def benchmark_family_coverage(
                         instrument_id=instrument.id,
                     )
                 )
+            if not point_in_time_supported and profile is not None:
+                exclusions.append(
+                    AnalysisWarning(
+                        code="family_role_point_in_time_unavailable",
+                        message=f"No dated holdings evidence is available for {family_key} {role}.",
+                        instrument_id=instrument.id,
+                    )
+                )
+        if source is None and adapter_state is not None:
+            source = sources.get(adapter_state.data_source_id)
+        if profile is not None and profile.adapter_key:
+            route_adapter_key = profile.adapter_key
+            route_adapter = get_holdings_adapter(route_adapter_key)
+            if route_adapter is None:
+                route_provider = None
+                route_status = "not_registered"
+            else:
+                route_provider = route_adapter.source_provider
+                route_status = "configured"
+                if profile.adapter_status in {"success", "ready"}:
+                    route_status = "ready"
+                elif profile.adapter_status in {
+                    "failure",
+                    "needs_issuer_route",
+                    "adapter_not_registered",
+                    "holdings_adapter_unresolved",
+                }:
+                    route_status = profile.adapter_status
+        if entitlement_source is None and source is not None:
+            entitlement_source = source
+        if entitlement_source is None and route_provider:
+            entitlement_source = sources_by_name.get(route_provider.strip().lower())
+        if entitlement_source is not None:
+            if holdings_entitlement is None:
+                holdings_entitlement = entitlements.get(
+                    (entitlement_source.id, ProviderCapability.UNIVERSE_DISCOVERY)
+                )
+            if price_entitlement is None:
+                price_entitlement = entitlements.get(
+                    (entitlement_source.id, ProviderCapability.PRICE_HISTORY)
+                )
+        entitlement_candidates = [
+            item for item in (holdings_entitlement, price_entitlement) if item
+        ]
+        entitlement_statuses = {
+            capability.value: _entitlement_state(
+                entitlement_source,
+                entitlement,
+                evaluation_at=as_of,
+            )
+            for capability, entitlement in (
+                (ProviderCapability.UNIVERSE_DISCOVERY, holdings_entitlement),
+                (ProviderCapability.PRICE_HISTORY, price_entitlement),
+            )
+            if entitlement is not None
+        }
+        entitlement_status = (
+            "not_configured"
+            if any(value == "not_configured" for value in entitlement_statuses.values())
+            else "excluded"
+            if any(value == "excluded" for value in entitlement_statuses.values())
+            else "probe_failed"
+            if any(value == "probe_failed" for value in entitlement_statuses.values())
+            else "unreviewed"
+            if any(value == "unreviewed" for value in entitlement_statuses.values())
+            else "verified"
+            if entitlement_candidates
+            and all(value == "verified" for value in entitlement_statuses.values())
+            else "unknown"
+        )
+        entitlement_record = next(
+            (
+                item
+                for item in entitlement_candidates
+                if item.capability == ProviderCapability.UNIVERSE_DISCOVERY
+            ),
+            next(iter(entitlement_candidates), None),
+        )
+        (
+            member_count,
+            weighted_member_count,
+            weights_status,
+            classified_member_count,
+            classification_status,
+        ) = await _family_member_metadata_readiness(db, selected_snapshot, as_of=as_of)
+        composite_status, composite_reasons = _role_readiness(
+            mapping_available=instrument is not None,
+            profile_loaded=profile is not None,
+            holdings_status=status,
+            member_bar_status=member_bar_history.status,
+            entitlement_status=entitlement_status,
+            point_in_time_supported=point_in_time_supported,
+            weights_status=weights_status,
+            classification_status=classification_status,
+            holdings_completeness_status=(
+                selected_snapshot.completeness_status if selected_snapshot is not None else None
+            ),
+        )
         roles.append(
             BenchmarkFamilyCoverageRoleOut(
                 role=role,
@@ -4201,8 +5024,26 @@ async def benchmark_family_coverage(
                 adapter_key=profile.adapter_key if profile else None,
                 adapter_status=profile.adapter_status if profile else None,
                 adapter_confidence=profile.adapter_confidence if profile else None,
+                holdings_route_adapter_key=route_adapter_key,
+                holdings_route_provider=route_provider,
+                holdings_route_status=route_status,
+                history_route_status=str(history_route.get("status") or "not_reported"),
+                history_route_provider=(
+                    str(history_route.get("provider")) if history_route.get("provider") else None
+                ),
+                history_route_policy=(
+                    str(history_route.get("policy")) if history_route.get("policy") else None
+                ),
+                history_route_source_url=(
+                    str(history_route.get("source_url"))
+                    if history_route.get("source_url")
+                    else None
+                ),
                 available=instrument is not None,
                 status=status,
+                holdings_completeness_status=(
+                    selected_snapshot.completeness_status if selected_snapshot is not None else None
+                ),
                 snapshots=snapshots,
                 continuity_status=continuity_status,
                 continuity_gap_count=len(continuity_gaps),
@@ -4211,7 +5052,64 @@ async def benchmark_family_coverage(
                 ),
                 continuity_gaps=continuity_gaps,
                 continuity_snapshot_limit_reached=continuity_snapshot_limit_reached,
+                observed_cadence_status=observed_cadence_status,
+                observed_cadence_sample_count=observed_cadence_sample_count,
+                observed_cadence_median_interval_days=observed_cadence_median_interval_days,
+                observed_cadence_min_interval_days=observed_cadence_min_interval_days,
+                observed_cadence_max_interval_days=observed_cadence_max_interval_days,
                 member_bar_history=member_bar_history,
+                entitlement_status=entitlement_status,
+                entitlement_provider=entitlement_source.name if entitlement_source else None,
+                entitlement_capabilities=entitlement_statuses,
+                entitlement_revision=(
+                    int(entitlement_record.revision) if entitlement_record else None
+                ),
+                entitlement_effective_at=(
+                    entitlement_record.effective_at if entitlement_record else None
+                ),
+                entitlement_review_due_at=(
+                    entitlement_record.review_due_at if entitlement_record else None
+                ),
+                entitlement_live_probe_status=(
+                    entitlement_record.live_probe_status if entitlement_record else None
+                ),
+                holdings_refresh_status=(
+                    adapter_state.status if adapter_state else "not_attempted"
+                ),
+                holdings_refresh_provider=(
+                    selected_snapshot.source_provider
+                    if selected_snapshot is not None
+                    else adapter_state.adapter_key
+                    if adapter_state is not None
+                    else source.name
+                    if source is not None
+                    else None
+                ),
+                holdings_refresh_last_checked_at=(
+                    adapter_state.last_checked_at if adapter_state else None
+                ),
+                holdings_refresh_last_success_at=(
+                    adapter_state.last_success_at if adapter_state else None
+                ),
+                holdings_refresh_last_failure_at=(
+                    adapter_state.last_failure_at if adapter_state else None
+                ),
+                holdings_refresh_failure_reason=(
+                    adapter_state.failure_reason if adapter_state else None
+                ),
+                holdings_refresh_composition_date=(
+                    adapter_state.composition_date if adapter_state else None
+                ),
+                point_in_time_supported=point_in_time_supported,
+                member_count=member_count,
+                placeholder_member_count=member_bar_history.placeholder_member_count,
+                weighted_member_count=weighted_member_count,
+                weights_status=weights_status,
+                classified_member_count=classified_member_count,
+                classification_status=classification_status,
+                history_ready=member_bar_history.status == "ready",
+                composite_readiness_status=composite_status,
+                composite_readiness_reasons=composite_reasons,
             )
         )
 
@@ -4229,6 +5127,7 @@ async def benchmark_family_coverage(
             "coverage_semantics": "role_independent_dated_holdings_snapshots",
             "continuity_policy": "observed_snapshot_intervals_gt_45_days",
             "continuity_semantics": "diagnostic_of_returned_snapshot_dates_only",
+            "observed_cadence_semantics": "diagnostic_of_returned_snapshot_date_intervals_only",
             "point_in_time": as_of is not None,
             "snapshot_limit": limit,
         },
@@ -4237,6 +5136,166 @@ async def benchmark_family_coverage(
         exclusions=exclusions,
         freshness="available" if covered_roles else "coverage_limited",
         freshness_detail={"role_count": role_count, "covered_roles": covered_roles},
+    )
+
+
+@router.get(
+    "/benchmark-families/readiness",
+    response_model=BenchmarkFamilyReadinessOut,
+)
+async def benchmark_family_readiness(
+    as_of: datetime | None = Query(default=None),
+    limit: int = Query(default=256, ge=1, le=512),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return one bounded readiness matrix for every curated benchmark family.
+
+    The matrix deliberately composes the existing role coverage contract.  It
+    never calls a provider, invents an instrument, or substitutes a different
+    family when a registry group has not yet been materialised.
+    """
+
+    families: list[BenchmarkFamilyCoverageOut] = []
+    missing_families: list[str] = []
+    for metadata in benchmark_family_registry():
+        family_key = str(metadata["logical_key"])
+        try:
+            coverage = await benchmark_family_coverage(family_key, as_of, limit, None, db)
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
+            missing_families.append(family_key)
+            roles = [
+                BenchmarkFamilyCoverageRoleOut(
+                    role=role,
+                    symbol=(mapping.get("symbol") if isinstance(mapping, Mapping) else None),
+                    label=(
+                        str(mapping.get("label") or "No verified mapped proxy")
+                        if isinstance(mapping, Mapping)
+                        else "No verified mapped proxy"
+                    ),
+                    verification_state=(
+                        str(mapping.get("verification_state") or "not_verified")
+                        if isinstance(mapping, Mapping)
+                        else "not_verified"
+                    ),
+                    available=False,
+                    status="mapping_unavailable",
+                    history_route_status=(
+                        str((mapping.get("history_route") or {}).get("status") or "not_reported")
+                        if isinstance(mapping, Mapping)
+                        and isinstance(mapping.get("history_route"), Mapping)
+                        else "not_reported"
+                    ),
+                    history_route_provider=(
+                        str((mapping.get("history_route") or {}).get("provider"))
+                        if isinstance(mapping, Mapping)
+                        and isinstance(mapping.get("history_route"), Mapping)
+                        and (mapping.get("history_route") or {}).get("provider")
+                        else None
+                    ),
+                    history_route_policy=(
+                        str((mapping.get("history_route") or {}).get("policy"))
+                        if isinstance(mapping, Mapping)
+                        and isinstance(mapping.get("history_route"), Mapping)
+                        and (mapping.get("history_route") or {}).get("policy")
+                        else None
+                    ),
+                    history_route_source_url=(
+                        str((mapping.get("history_route") or {}).get("source_url"))
+                        if isinstance(mapping, Mapping)
+                        and isinstance(mapping.get("history_route"), Mapping)
+                        and (mapping.get("history_route") or {}).get("source_url")
+                        else None
+                    ),
+                    composite_readiness_status="unavailable",
+                    composite_readiness_reasons=["benchmark_family_not_materialised"],
+                )
+                for role in ("cap_weight", "equal_weight", "value", "growth")
+                for mapping in [metadata.get(role)]
+            ]
+            coverage = BenchmarkFamilyCoverageOut(
+                family_key=family_key,
+                name=str(metadata.get("name") or family_key),
+                official_index_symbol=str(metadata.get("official_index_symbol") or ""),
+                official_index_name=str(
+                    metadata.get("official_index_name") or metadata.get("name") or family_key
+                ),
+                as_of=as_of,
+                membership_version=0,
+                universe_provenance={
+                    "family_key": family_key,
+                    "registry_only": True,
+                    "point_in_time": as_of is not None,
+                },
+                coverage=0,
+                roles=roles,
+                exclusions=[
+                    AnalysisWarning(
+                        code="benchmark_family_not_materialised",
+                        message=f"No canonical market group is materialised for {family_key}.",
+                    )
+                ],
+                freshness="coverage_limited",
+                freshness_detail={"role_count": 4, "covered_roles": 0},
+            )
+        families.append(coverage)
+
+    all_roles = [role for family in families for role in family.roles]
+    availability = await latest_availability(db)
+    provider_probe_evidence = [
+        {
+            "provider": item["provider"],
+            "capability": item["capability"],
+            "classification": item["classification"],
+            "success": item["success"],
+            "consecutive_failures": item["consecutive_failures"],
+            "recovered": item["recovered"],
+            "observed_at": item["observed_at"],
+        }
+        for item in availability
+    ]
+    ready_role_count = sum(role.composite_readiness_status == "ready" for role in all_roles)
+    ready_family_count = sum(
+        bool(family.roles)
+        and all(role.composite_readiness_status == "ready" for role in family.roles)
+        for family in families
+    )
+    role_count = len(all_roles)
+    family_count = len(families)
+    if family_count and ready_family_count == family_count:
+        readiness_status = "ready"
+    elif ready_role_count or any(family.coverage for family in families):
+        readiness_status = "partial"
+    else:
+        readiness_status = "coverage_limited"
+    return BenchmarkFamilyReadinessOut(
+        as_of=as_of,
+        snapshot_limit=limit,
+        family_count=family_count,
+        ready_family_count=ready_family_count,
+        role_count=role_count,
+        ready_role_count=ready_role_count,
+        readiness_status=readiness_status,
+        provider_probe_evidence=provider_probe_evidence,
+        universe_provenance={
+            "registry": "top_down_taxonomy",
+            "family_keys": [family.family_key for family in families],
+            "point_in_time": as_of is not None,
+            "missing_families": missing_families,
+            "coverage_semantics": "role_independent_dated_holdings_snapshots",
+            "provider_calls": False,
+            "provider_probe_count": len(provider_probe_evidence),
+        },
+        families=families,
+        freshness="available" if readiness_status == "ready" else "coverage_limited",
+        freshness_detail={
+            "family_count": family_count,
+            "ready_family_count": ready_family_count,
+            "role_count": role_count,
+            "ready_role_count": ready_role_count,
+        },
     )
 
 
@@ -5106,6 +6165,24 @@ async def benchmark_family_breadth_history(
             )
             for timestamp, values in sorted(by_timestamp.items())
         ][-limit:]
+        required_bar_count = ANALYSIS_REQUIRED_BAR_COUNTS.get(timeframe.value)
+        member_count = len(member_ids)
+        covered_member_count = sum(
+            bool(bars_by_id.get(instrument_id)) for instrument_id in member_ids
+        )
+        analysis_ready_member_count = (
+            sum(
+                len(bars_by_id.get(instrument_id, [])) >= required_bar_count
+                for instrument_id in member_ids
+            )
+            if required_bar_count is not None
+            else 0
+        )
+        analysis_ready_status = classify_analysis_readiness(
+            member_count,
+            covered_member_count,
+            analysis_ready_member_count,
+        )
         roles.append(
             BenchmarkFamilyBreadthHistoryRoleOut(
                 role=role,
@@ -5115,6 +6192,19 @@ async def benchmark_family_breadth_history(
                 available=True,
                 membership_version=_generic_membership_version(membership_payload),
                 universe_provenance=universe_provenance,
+                member_count=member_count,
+                covered_member_count=covered_member_count,
+                coverage_percent=(
+                    round((covered_member_count / member_count) * 100, 2) if member_count else 0.0
+                ),
+                analysis_ready_member_count=analysis_ready_member_count,
+                analysis_ready_percent=(
+                    round((analysis_ready_member_count / member_count) * 100, 2)
+                    if member_count
+                    else 0.0
+                ),
+                required_bar_count=required_bar_count,
+                analysis_ready_status=analysis_ready_status,
                 coverage_preflight=role_coverage_preflight.to_dict(),
                 points=points,
                 exclusions=role_exclusions,
@@ -5754,9 +6844,20 @@ async def benchmark_family_derived_equal_weight(
         in {"constituent", "official_constituent", "etf_proxy_constituent"}
     ]
     membership_version = _group_membership_version(group, constituent_members)
+    # Load the complete known constituent history so the series helper can
+    # select membership at each observation timestamp.  The response's
+    # ``member_count`` remains scoped to the requested ``as_of`` universe,
+    # while future members are prevented from influencing earlier points.
+    all_constituent_members = [
+        member
+        for member in group.members
+        if member.relationship_type
+        in {"constituent", "official_constituent", "etf_proxy_constituent"}
+    ]
     member_ids = [member.instrument_id for member in constituent_members]
+    all_member_ids = sorted({member.instrument_id for member in all_constituent_members})
     bars_by_id = _truncate_bars_at(
-        await _bars_by_instrument(db, member_ids, timeframe, adjusted), as_of
+        await _bars_by_instrument(db, all_member_ids, timeframe, adjusted), as_of
     )
     stale_ids = (
         set()
@@ -5766,6 +6867,11 @@ async def benchmark_family_derived_equal_weight(
     for instrument_id in stale_ids:
         bars_by_id[instrument_id] = []
     covered_member_count = sum(1 for instrument_id in member_ids if bars_by_id.get(instrument_id))
+    series, membership_versions = _point_in_time_equal_weight_series(
+        group,
+        bars_by_id,
+        as_of=as_of,
+    )
     coverage_preflight = await preflight_ohlcv(
         db,
         evaluator="benchmark_family_derived_equal_weight",
@@ -5777,7 +6883,6 @@ async def benchmark_family_derived_equal_weight(
         cached_bars=bars_by_id,
         minimum_bars=1,
     )
-    series = _equal_weight_series(bars_by_id, member_ids)
     exclusions: list[AnalysisWarning] = []
     if not constituent_members:
         exclusions.append(
@@ -5824,6 +6929,9 @@ async def benchmark_family_derived_equal_weight(
         universe_provenance={
             **_group_provenance(group, as_of),
             "membership_semantics": "point_in_time_constituent_derived_equal_weight",
+            "membership_selection": "effective_at_and_known_at_per_observation",
+            "membership_version_count": len(membership_versions),
+            "membership_versions": sorted(membership_versions),
             "member_count": len(constituent_members),
             "covered_member_count": covered_member_count,
             "weight_method": str(method_metadata.get("method") or "declared_equal_weight"),
@@ -6462,9 +7570,19 @@ def _generic_condition_requires_events(condition: Mapping[str, object]) -> bool:
 
 
 async def _breadth_events_by_instrument(
-    db: AsyncSession, instrument_ids: list[int]
+    db: AsyncSession,
+    instrument_ids: list[int],
+    *,
+    as_of: datetime | None = None,
 ) -> tuple[dict[int, list[InstrumentEvent] | None], dict[str, object]]:
-    """Read locally persisted event calendars without provider fan-out."""
+    """Read locally persisted event calendars without provider fan-out.
+
+    ``as_of`` is the historical knowledge boundary.  A corporate event can
+    have an old event date but still be future information if it was fetched
+    after the requested evaluation time; the same applies to its source fetch
+    state.  Keep source association explicit so one provider's loaded marker
+    cannot make another provider's events look available.
+    """
 
     if not instrument_ids:
         return {}, {
@@ -6473,35 +7591,49 @@ async def _breadth_events_by_instrument(
             "loaded_member_count": 0,
             "unavailable_member_count": 0,
         }
+    event_query = select(InstrumentEvent).where(InstrumentEvent.instrument_id.in_(instrument_ids))
+    if as_of is not None:
+        event_query = event_query.where(InstrumentEvent.fetched_at <= _as_utc(as_of))
     rows = (
         (
             await db.execute(
-                select(InstrumentEvent)
-                .where(InstrumentEvent.instrument_id.in_(instrument_ids))
-                .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
+                event_query.order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
             )
         )
         .scalars()
         .all()
     )
-    states = (
-        (
-            await db.execute(
-                select(InstrumentEventFetchState.instrument_id).where(
-                    InstrumentEventFetchState.instrument_id.in_(instrument_ids)
-                )
-            )
-        )
-        .scalars()
-        .all()
+    knowledge_cutoff = _as_utc(as_of) if as_of is not None else None
+    if knowledge_cutoff is not None:
+        rows = [
+            event
+            for event in rows
+            if getattr(event, "fetched_at", None) is not None
+            and _as_utc(event.fetched_at) <= knowledge_cutoff
+        ]
+    state_query = select(InstrumentEventFetchState).where(
+        InstrumentEventFetchState.instrument_id.in_(instrument_ids)
     )
-    loaded_ids = {int(instrument_id) for instrument_id in states}
+    if as_of is not None:
+        state_query = state_query.where(InstrumentEventFetchState.fetched_at <= _as_utc(as_of))
+    states = (await db.execute(state_query)).scalars().all()
+    if knowledge_cutoff is not None:
+        states = [
+            state
+            for state in states
+            if getattr(state, "fetched_at", None) is not None
+            and _as_utc(state.fetched_at) <= knowledge_cutoff
+        ]
+    loaded_sources_by_instrument: dict[int, set[str]] = defaultdict(set)
+    for state in states:
+        loaded_sources_by_instrument[int(state.instrument_id)].add(str(state.source))
     by_id: dict[int, list[InstrumentEvent] | None] = {
-        instrument_id: [] if instrument_id in loaded_ids else None
+        instrument_id: ([] if loaded_sources_by_instrument.get(instrument_id) else None)
         for instrument_id in instrument_ids
     }
     for event in rows:
-        by_id.setdefault(event.instrument_id, []).append(event)
+        if str(event.source) in loaded_sources_by_instrument.get(int(event.instrument_id), set()):
+            by_id.setdefault(event.instrument_id, []).append(event)
     return by_id, {
         "kind": "instrument_event_calendar",
         "membership_semantics": "canonical_local_instruments",
@@ -6786,10 +7918,18 @@ async def _resolve_benchmark_family_breadth_universe(
     member_ids: list[int] = []
     warnings: list[AnalysisWarning] = []
     for holding in snapshot.rows:
-        if not holding.constituent_instrument_id or holding.constituent_instrument is None:
+        if (
+            not holding.is_resolved
+            or not holding.constituent_instrument_id
+            or holding.constituent_instrument is None
+            or is_placeholder_symbol(holding.constituent_instrument.symbol)
+        ):
             warnings.append(_generic_breadth_warning("unresolved_member", None))
             continue
-        if holding.holding_type != "equity" or holding.row_type != "security":
+        if (
+            not is_equity_holding_type(holding.holding_type)
+            or normalize_holding_type(holding.row_type) != "security"
+        ):
             warnings.append(
                 AnalysisWarning(
                     code="non_equity_holding",
@@ -6818,7 +7958,7 @@ async def _resolve_benchmark_family_breadth_universe(
         "proxy_symbol": proxy_symbol,
         "membership_semantics": "etf_proxy_membership",
         "composition_date": snapshot.composition_date.isoformat(),
-        "known_at": snapshot.known_at.isoformat() if snapshot.known_at else None,
+        "known_at": _wire_datetime(snapshot.known_at),
         "source_provider": snapshot.source_provider,
         "provenance": snapshot.provenance,
         "completeness_status": snapshot.completeness_status,
@@ -7026,6 +8166,7 @@ async def _resolve_generic_breadth_universe(
             raise HTTPException(
                 404, detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol}
             )
+        seen_member_ids: set[int] = set()
         await _require_current_etf_snapshot(
             db,
             profile,
@@ -7033,10 +8174,18 @@ async def _resolve_generic_breadth_universe(
             as_of=definition.as_of if definition.universe.point_in_time else None,
         )
         for holding in snapshot.rows:
-            if not holding.constituent_instrument_id or holding.constituent_instrument is None:
+            if (
+                not holding.is_resolved
+                or not holding.constituent_instrument_id
+                or holding.constituent_instrument is None
+                or is_placeholder_symbol(holding.constituent_instrument.symbol)
+            ):
                 universe_warnings.append(_generic_breadth_warning("unresolved_member", None))
                 continue
-            if holding.holding_type != "equity" or holding.row_type != "security":
+            if (
+                not is_equity_holding_type(holding.holding_type)
+                or normalize_holding_type(holding.row_type) != "security"
+            ):
                 universe_warnings.append(
                     AnalysisWarning(
                         code="non_equity_holding",
@@ -7045,6 +8194,9 @@ async def _resolve_generic_breadth_universe(
                 )
                 continue
             instrument = holding.constituent_instrument
+            if instrument.id in seen_member_ids:
+                continue
+            seen_member_ids.add(instrument.id)
             members.append(BreadthMember(instrument.id, instrument.symbol, instrument.name))
             member_ids.append(instrument.id)
         membership_version_payload = {
@@ -7057,7 +8209,7 @@ async def _resolve_generic_breadth_universe(
             "etf_symbol": etf.symbol,
             "membership_semantics": "etf_proxy_membership",
             "composition_date": snapshot.composition_date.isoformat(),
-            "known_at": snapshot.known_at.isoformat() if snapshot.known_at else None,
+            "known_at": _wire_datetime(snapshot.known_at),
             "source_provider": snapshot.source_provider,
             "provenance": snapshot.provenance,
             "completeness_status": snapshot.completeness_status,
@@ -7663,6 +8815,17 @@ async def _python_breadth_source_instrument_ids(db: AsyncSession, run: ResearchR
     return [by_symbol[symbol].id for symbol in symbols]
 
 
+def _python_breadth_tree_has_cross_sectional_scope(node: object) -> bool:
+    """Return whether a breadth condition tree contains a group-scoped leaf."""
+    if isinstance(node, dict):
+        if str(node.get("scope", "member")).lower() == "cross_sectional":
+            return True
+        return any(_python_breadth_tree_has_cross_sectional_scope(value) for value in node.values())
+    if isinstance(node, list):
+        return any(_python_breadth_tree_has_cross_sectional_scope(value) for value in node)
+    return False
+
+
 @router.post("/breadth/python", response_model=BreadthPythonRunOut, status_code=202)
 async def queue_python_breadth(
     body: BreadthPythonRunRequest,
@@ -7716,15 +8879,21 @@ async def queue_python_breadth(
         resolved_condition_tree, _ = await _resolve_python_condition_tree(
             body.condition_tree, db, current_user.id
         )
-        if (
-            _python_condition_tree_requires_benchmark(resolved_condition_tree)
-            and not body.benchmark
-        ):
+        requires_benchmark = _python_condition_tree_requires_benchmark(resolved_condition_tree)
+        if requires_benchmark and body.benchmark and body.reference_universe is not None:
+            raise HTTPException(
+                422,
+                detail={
+                    "code": "python_series_reference_conflict",
+                    "message": "Choose either a benchmark symbol or a canonical reference universe.",
+                },
+            )
+        if requires_benchmark and not body.benchmark and body.reference_universe is None:
             raise HTTPException(
                 422,
                 detail={
                     "code": "python_series_benchmark_required",
-                    "message": "A benchmark symbol is required when a Python series comparison targets the benchmark dataset.",
+                    "message": "A benchmark symbol or canonical reference universe is required when a Python series comparison targets the benchmark dataset.",
                 },
             )
         if body.series_target is not None:
@@ -7732,6 +8901,56 @@ async def queue_python_breadth(
                 422,
                 detail={"code": "python_condition_tree_series_target_conflict"},
             )
+    elif body.reference_universe is not None:
+        raise HTTPException(
+            422,
+            detail={
+                "code": "reference_universe_requires_python_comparison",
+                "message": "A reference universe is only meaningful for a Python series comparison tree.",
+            },
+        )
+
+    reference_member_ids: list[int] = []
+    reference_provenance: dict[str, object] = {}
+    reference_warnings: list[AnalysisWarning] = []
+    if body.reference_universe is not None:
+        # Resolve membership through the same canonical, point-in-time source
+        # resolver used by generic breadth.  No provider fan-out or ad-hoc
+        # symbols are admitted into the isolated comparison dataset.
+        reference_definition = BreadthDefinitionRequest(
+            universe=body.reference_universe,
+            condition=BreadthConditionRequest(
+                kind="series_comparison",
+                params={"field": "return"},
+            ),
+            timeframe=timeframe.value,
+            adjusted=body.adjusted,
+            as_of=body.as_of,
+        )
+        (
+            _reference_members,
+            reference_member_ids,
+            reference_warnings,
+            resolved_reference_provenance,
+            reference_membership_payload,
+        ) = await _resolve_generic_breadth_universe(reference_definition, db, current_user.id)
+        if not reference_member_ids:
+            raise HTTPException(
+                422,
+                detail={
+                    "code": "python_reference_universe_unavailable",
+                    "message": "The canonical reference universe has no resolved members.",
+                    "warnings": [warning.model_dump() for warning in reference_warnings],
+                },
+            )
+        reference_provenance = {
+            **resolved_reference_provenance,
+            "membership_version": _generic_membership_version(reference_membership_payload),
+            "requested_count": len(reference_member_ids) + len(reference_warnings),
+            "warnings": [warning.model_dump() for warning in reference_warnings],
+            "target": "derived_equal_weight_return_index",
+            "alignment": "exact_timestamp_no_forward_fill",
+        }
     series_target = body.series_target
     if body.output_contract == "series":
         if not isinstance(series_target, dict):
@@ -7798,6 +9017,9 @@ async def queue_python_breadth(
     )
     if resolved_condition_tree is not None:
         condition_metadata["condition_tree"] = resolved_condition_tree
+    if body.reference_universe is not None:
+        condition_metadata["reference_universe"] = body.reference_universe.model_dump(mode="json")
+        condition_metadata["reference_target"] = reference_provenance
     execution_mode = "breadth_history" if body.history else "breadth_current"
     definition_payload = {
         "universe": universe_provenance,
@@ -7806,13 +9028,20 @@ async def queue_python_breadth(
         "timeframe": timeframe.value,
         "adjustment": "split_adjusted" if body.adjusted else "raw",
         "session": body.session,
-        "as_of": body.as_of.isoformat() if body.as_of else None,
+        "as_of": _wire_datetime(body.as_of),
         "benchmark": body.benchmark.upper() if body.benchmark else None,
         "execution_mode": execution_mode,
         "history_limit": body.history_limit,
         "output_contract": body.output_contract,
+        "output_name": version.output_name if body.condition_tree is None else None,
         "series_target": series_target,
         "condition_tree": resolved_condition_tree,
+        "reference_universe": (
+            body.reference_universe.model_dump(mode="json")
+            if body.reference_universe is not None
+            else None
+        ),
+        "reference_target": reference_provenance,
     }
     run_config = {
         "symbols": [member.symbol for member in members],
@@ -7820,7 +9049,7 @@ async def queue_python_breadth(
         "timeframe": timeframe.value,
         "adjustment": "split_adjusted" if body.adjusted else "raw",
         "session": body.session,
-        "as_of": body.as_of.isoformat() if body.as_of else None,
+        "as_of": _wire_datetime(body.as_of),
         "benchmark": body.benchmark.upper() if body.benchmark else None,
         "execution_mode": execution_mode,
         "history_limit": body.history_limit,
@@ -7835,8 +9064,23 @@ async def queue_python_breadth(
         },
         "condition": condition_metadata,
         "output_contract": body.output_contract,
+        "output_name": version.output_name if body.condition_tree is None else None,
         "series_target": series_target,
         "condition_tree": resolved_condition_tree,
+        "reference_universe": (
+            body.reference_universe.model_dump(mode="json")
+            if body.reference_universe is not None
+            else None
+        ),
+        # Keep the absence of a reference universe distinct from an explicitly
+        # declared (possibly unavailable) reference universe.  The dataset
+        # materializer uses ``None`` to select the ordinary benchmark path;
+        # passing the default empty list otherwise creates an unavailable
+        # reference dataset that shadows a ready benchmark dataset.
+        "reference_instrument_ids": (
+            reference_member_ids if body.reference_universe is not None else None
+        ),
+        "reference_target": reference_provenance,
     }
     from app.routers.research import _materialize_declared_dataset
 
@@ -7846,6 +9090,10 @@ async def queue_python_breadth(
             "universe": universe_provenance,
             "membership_version": membership_version,
             "requested_count": len(member_ids) + len(universe_warnings),
+            "reference_universe": body.reference_universe.model_dump(mode="json")
+            if body.reference_universe is not None
+            else None,
+            "reference_target": reference_provenance,
         },
         run_config,
         lookback=version.lookback,
@@ -8168,6 +9416,211 @@ async def promote_python_breadth_run_to_scan(
     await db.flush()
     await db.refresh(screener)
     return screener
+
+
+@router.post(
+    "/breadth/python/runs/{run_id}/promote-signal",
+    response_model=StrategyDefinitionDetailOut,
+    status_code=201,
+)
+async def promote_python_breadth_run_to_signal(
+    run_id: int,
+    body: BreadthPythonSignalPromotionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create a first-class immutable Strategy signal from historical breadth.
+
+    EasyScans intentionally remain ``condition`` assets.  Strategy signals use a
+    separate immutable ``signal`` asset so the promotion cannot accidentally
+    retag or mutate a scan, and so the source run/adapter/tree lineage travels
+    with the signal into Strategy Lab's isolated runner.
+    """
+    run = await _load_python_breadth_run(db, run_id, current_user)
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    if config.get("execution_mode") != "breadth_history":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_signal_promotion_requires_history",
+                "message": "Only completed historical breadth runs can become Strategy signals.",
+            },
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "breadth_signal_promotion_requires_completed_run",
+                "status": run.status,
+            },
+        )
+    version = run.code_version
+    if (
+        version is None
+        or version.asset is None
+        or version.asset.user_id != current_user.id
+        or version.asset.kind != "condition"
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_signal_promotion_source_unavailable",
+                "message": "The source run does not reference an owned condition version.",
+            },
+        )
+
+    source_contract = str(version.output_contract or "")
+    series_target = config.get("series_target")
+    condition_tree = config.get("condition_tree")
+    output_adapter: str | None = None
+    if isinstance(condition_tree, dict):
+        if source_contract not in {"boolean", "series"}:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_signal_promotion_tree_requires_boolean_source",
+                    "message": "A recursive breadth tree must be anchored by a Boolean or numeric condition version.",
+                },
+            )
+        if _python_breadth_tree_has_cross_sectional_scope(condition_tree):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_signal_promotion_requires_member_tree",
+                    "message": "Cross-sectional breadth trees remain aggregate studies and cannot become per-instrument Strategy signals.",
+                },
+            )
+        if series_target is not None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_signal_promotion_tree_series_target_conflict",
+                    "message": "A recursive breadth tree cannot be combined with a numeric series target.",
+                },
+            )
+        output_adapter = "condition_tree_to_boolean"
+    elif source_contract == "series":
+        if (
+            not isinstance(series_target, dict)
+            or str(series_target.get("scope", "member")).lower() != "member"
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "breadth_signal_promotion_requires_member_series",
+                    "message": "Only member-scoped numeric breadth targets can become Strategy signals.",
+                },
+            )
+        output_adapter = "series_target_to_boolean"
+    elif source_contract != "boolean":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_signal_promotion_source_unavailable",
+                "message": "The source run does not provide a Boolean or member-scoped numeric condition.",
+            },
+        )
+
+    artifact = next(
+        (item for item in run.artifacts if item.artifact_type == "breadth_history"),
+        None,
+    )
+    if artifact is None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "breadth_signal_promotion_artifact_unavailable",
+                "message": "The completed run has no persisted breadth history artifact.",
+            },
+        )
+    # Resolve the source members even though Strategy execution may later use a
+    # different declared universe.  This keeps the historical source universe
+    # auditable and prevents promotion from silently widening an incomplete run.
+    source_instrument_ids = await _python_breadth_source_instrument_ids(db, run)
+
+    manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+    universe = config.get("universe") if isinstance(config.get("universe"), dict) else {}
+    source_metadata: dict[str, object] = {
+        "type": "python_breadth_research_run",
+        "target": "signal",
+        "source_run_id": run.id,
+        "source_execution_mode": config.get("execution_mode"),
+        "source_code_version_id": run.code_version_id,
+        "source_definition_hash": str(config.get("definition_hash") or ""),
+        "source_reproducibility_hash": run.reproducibility_hash,
+        "source_dataset_manifest_sha256": _python_breadth_manifest_fingerprint(manifest),
+        "source_dataset_manifest": _python_breadth_manifest_summary(manifest),
+        "source_universe": universe,
+        "source_instrument_ids": source_instrument_ids,
+        "target_semantics": "re_evaluate_current_data_as_strategy_signal",
+        "point_in_time_source_preserved": True,
+    }
+    if isinstance(version.output_name, str) and version.output_name.strip():
+        source_metadata["source_output_name"] = version.output_name
+    if isinstance(condition_tree, dict):
+        source_metadata["condition_tree"] = condition_tree
+    if isinstance(series_target, dict):
+        source_metadata["series_target"] = series_target
+    if output_adapter is not None:
+        source_metadata["output_adapter"] = output_adapter
+
+    stable_key = f"breadth-run-{run.id}-signal"
+    existing = (
+        await db.execute(
+            select(CodeAsset).where(
+                CodeAsset.user_id == current_user.id,
+                CodeAsset.stable_key == stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "breadth_signal_promotion_already_exists"},
+        )
+
+    asset = CodeAsset(
+        user_id=current_user.id,
+        stable_key=stable_key,
+        name=body.name or f"Python breadth signal run {run.id}",
+        kind="signal",
+    )
+    asset.versions.append(
+        CodeVersion(
+            version_number=1,
+            source=version.source,
+            output_contract="boolean",
+            output_name=version.output_name,
+            parameter_schema=dict(version.parameter_schema or {}),
+            default_parameters=dict(version.default_parameters or {}),
+            sdk_version=version.sdk_version,
+            runtime_version=version.runtime_version,
+            dependencies=list(version.dependencies or []),
+            lookback=version.lookback,
+            diagnostics=[
+                *(version.diagnostics or []),
+                {"code": "promotion_lineage", "lineage": source_metadata},
+            ],
+        )
+    )
+    db.add(asset)
+    await db.flush()
+    # Reuse the canonical Strategy Lab promotion path after creating the
+    # dedicated signal asset. This keeps the generic endpoint restricted to
+    # signal/study assets and makes this action atomic from the caller's
+    # perspective: one request creates both immutable source code and the
+    # Strategy definition that references it.
+    from app.routers.strategy_lab import promote_code_signal
+
+    strategy = await promote_code_signal(
+        asset.versions[0].id,
+        db=db,
+        current_user=current_user,
+    )
+    if body.description:
+        strategy.description = body.description
+        await db.commit()
+    return strategy
 
 
 @router.post(
@@ -8827,6 +10280,7 @@ async def evaluate_generic_breadth(
                 404,
                 detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol},
             )
+        seen_member_ids: set[int] = set()
         await _require_current_etf_snapshot(
             db,
             profile,
@@ -8834,10 +10288,18 @@ async def evaluate_generic_breadth(
             as_of=definition.as_of if definition.universe.point_in_time else None,
         )
         for holding in snapshot.rows:
-            if not holding.constituent_instrument_id or holding.constituent_instrument is None:
+            if (
+                not holding.is_resolved
+                or not holding.constituent_instrument_id
+                or holding.constituent_instrument is None
+                or is_placeholder_symbol(holding.constituent_instrument.symbol)
+            ):
                 universe_warnings.append(_generic_breadth_warning("unresolved_member", None))
                 continue
-            if holding.holding_type != "equity" or holding.row_type != "security":
+            if (
+                not is_equity_holding_type(holding.holding_type)
+                or normalize_holding_type(holding.row_type) != "security"
+            ):
                 universe_warnings.append(
                     AnalysisWarning(
                         code="non_equity_holding",
@@ -8846,6 +10308,9 @@ async def evaluate_generic_breadth(
                 )
                 continue
             instrument = holding.constituent_instrument
+            if instrument.id in seen_member_ids:
+                continue
+            seen_member_ids.add(instrument.id)
             members.append(BreadthMember(instrument.id, instrument.symbol, instrument.name))
             member_ids.append(instrument.id)
         membership_version_payload = {
@@ -8858,7 +10323,7 @@ async def evaluate_generic_breadth(
             "etf_symbol": etf.symbol,
             "membership_semantics": "etf_proxy_membership",
             "composition_date": snapshot.composition_date.isoformat(),
-            "known_at": snapshot.known_at.isoformat() if snapshot.known_at else None,
+            "known_at": _wire_datetime(snapshot.known_at),
             "source_provider": snapshot.source_provider,
             "provenance": snapshot.provenance,
             "completeness_status": snapshot.completeness_status,
@@ -8938,7 +10403,9 @@ async def evaluate_generic_breadth(
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
     event_provenance: dict[str, object] = {}
     if _generic_condition_requires_events(condition_definition.model_dump()):
-        events_by_id, event_provenance = await _breadth_events_by_instrument(db, member_ids)
+        events_by_id, event_provenance = await _breadth_events_by_instrument(
+            db, member_ids, as_of=definition.as_of
+        )
     benchmark_bars = None
     reference_member_ids: list[int] = []
     reference_warnings: list[AnalysisWarning] = []
@@ -9138,7 +10605,9 @@ async def evaluate_generic_breadth_history(
     events_by_id: dict[int, list[InstrumentEvent] | None] | None = None
     event_provenance: dict[str, object] = {}
     if _generic_condition_requires_events(condition_definition.model_dump()):
-        events_by_id, event_provenance = await _breadth_events_by_instrument(db, member_ids)
+        events_by_id, event_provenance = await _breadth_events_by_instrument(
+            db, member_ids, as_of=definition.as_of
+        )
     benchmark_bars = None
     reference_member_ids: list[int] = []
     reference_warnings: list[AnalysisWarning] = []

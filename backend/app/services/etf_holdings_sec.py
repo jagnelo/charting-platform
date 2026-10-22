@@ -100,6 +100,7 @@ def extract_sec_nport_filing_identity(raw_document: str) -> dict[str, str]:
         values = {
             key: value
             for key, aliases in {
+                "registrant_name": ["regName", "registrantName", "registrant"],
                 "series_id": ["seriesId", "seriesIdentifier"],
                 "series_name": ["seriesName", "nameOfSeries"],
                 "class_id": ["classId", "classContractId", "classContractIdentifier"],
@@ -123,6 +124,8 @@ def extract_sec_nport_filing_identity(raw_document: str) -> dict[str, str]:
                 continue
             if "class (contract) id" in label:
                 identity.setdefault("class_id", value)
+            elif "registrant name" in label or "name of registrant" in label:
+                identity.setdefault("registrant_name", value)
             elif label == "series id":
                 identity.setdefault("series_id", value)
             elif "edgar series identifier" in label:

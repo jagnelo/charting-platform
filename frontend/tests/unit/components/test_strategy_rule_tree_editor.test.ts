@@ -32,6 +32,7 @@ describe('StrategyRuleTreeEditor', () => {
       },
     })
 
+    expect(wrapper.get('[role="group"]').attributes('aria-label')).toBe('Root logic (all)')
     const buttons = wrapper.findAll('button')
     await buttons[0].trigger('click')
     await buttons[1].trigger('click')
@@ -66,6 +67,7 @@ describe('StrategyRuleTreeEditor', () => {
       },
     })
 
+    expect(wrapper.get('[role="group"]').attributes('aria-label')).toBe('NOT rule group')
     const removeButtons = wrapper.findAll('button[aria-label="Remove condition"], button[aria-label="Remove group"]')
     await removeButtons[0].trigger('click')
     expect(wrapper.emitted('remove')).toEqual([['neg']])

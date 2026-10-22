@@ -1,5 +1,386 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-10-16 — Official semantics for remaining WatchList shortcuts
+
+Rechecked the primary TC2000 references for the three open interactions:
+[Hot Keys & Keyboard Shortcuts](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts),
+[My Favorites](https://help.tc2000.com/m/69401/l/325485-how-to-copy-a-symbol-to-the-my-favorites-watchlist),
+[Custom Date Sort](https://help.tc2000.com/m/69401/l/324107-how-to-use-custom-date-sort),
+and [Tag Columns](https://help.tc2000.com/m/125751/l/1874621-how-to-create-a-tag-column-in-a-watchlist).
+This supersedes the unresolved destination assumptions in the 2026-10-06 gap
+audit. The first TC-owned implementation slice is recorded below; runtime and
+full visual acceptance remain open.
+
+- `Shift+V` targets the fixed **My Favorites** Quick List, not an arbitrary
+  personal WatchList. The reference describes adding/removing the chart's
+  symbol and copying one or multiple selected WatchList symbols; its chart star
+  adds and deselecting that star removes. This is distinct from `Shift+F`
+  Flagged Items and must not be implemented by aliasing `WatchlistItem.flagged`.
+- `Shift+T` opens **Custom Date Sort**. Its range comes from a chart drag or a
+  selected trendline, then the user chooses percent change, performance versus
+  sub-industry, or performance versus industry, and sorts into a new window or
+  adds the result column to an existing WatchList. It is not a date-valued
+  header sort. TC must consume verified persisted history/classification from
+  the upstream data contracts; it must not add its own provider fetch path.
+- An added **Tag Column** identifies a specific personal WatchList and displays
+  which current-list symbols belong to that target. The hotkey reference says
+  Alt+click adds/removes a symbol from a Tag Column. Together, the references
+  establish the selected column's personal-list target; implementation should
+  mutate only that target list's membership and persist the column/target,
+  rather than infer a list from the active WatchList or treat it as a global
+  tag namespace.
+
+These references resolve product intent, not the implementation contract for
+Tag Column storage. That remains a TC-owned task. The Custom Date Sort consumer
+also depends on the staged provider history/coverage and classification
+contracts. No screenshot reference, threshold, mask, skip, or acceptance policy
+changed in this audit.
+
+## 2026-10-16 — My Favorites persistence and command path (validation pending)
+
+The current source adds a distinct per-user `favorite_instrument` collection,
+authenticated list/add/remove routes, and a fixed My Favorites Quick List in
+the workstation tool library. A chart-header star toggles the active canonical
+instrument; Shift+V on a WatchList adds the active row or the selected canonical
+rows. The collection is separate from personal WatchLists and Flagged Items;
+Favorites rows do not expose the Flag action. Focused store and WatchList tests
+pass 89/89, and Vue type-check passes. Backend migration head resolves to the
+new additive revision and Python lint passes. Fresh mounted-app/backend route
+validation and browser evidence are still required; the local TestClient also
+stalled on the pre-existing unauthenticated `/watchlists` request, so that
+local attempt is inconclusive rather than a Favorites failure/pass. The Help
+text now documents Shift+V. Existing Help captures are consequently stale for
+this row and must be reviewed/refreshed only in an authorized full visual run,
+with the unchanged 0.005 tolerance. No reference or tolerance has yet changed.
+
+## 2026-10-06 — Ctrl+M explicit personal-list membership flow
+
+Ctrl+M on a focused WatchList opens the existing explicit membership actions
+for the active symbol and current multi-selection, focusing the target-list
+selector without changing membership. The user must choose a personal list and
+activate Copy or Move. The selector keeps native keyboard behavior; Tab from it
+reaches an enabled membership action and stays on the selector before a
+destination is chosen, even if Remove is available. This does not infer a destination, create a list,
+or conflate list membership with the separate Shift+F Flagged Items aggregate.
+Focused component tests passed 85/85; type-check/build passed; authenticated
+pinned Chromium passed the real two-row copy flow 1/1, including no transfer
+before confirmation. The Help content documents Ctrl+M. Existing visual
+baselines and acceptance policy were not changed; the four Help screenshot
+profiles remain unresolved. Shift+V Favorites, Shift+T custom date sorting,
+and Alt+click Tag Column remain open.
+
+## 2026-10-06 — Shift+N shell-level note shortcut
+
+The official [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+lists “Write a Note: Shift-N” without limiting the command to a focused
+WatchList. Shift+N continues to work in a focused WatchList and now also opens
+the canonical Notes tool from the workstation shell for its active linked
+symbol. The Notes tool's existing `active-instrument` scope is reused; editor
+and interactive-control focus still own their keys. Focused unit and
+authenticated Chromium coverage exercise both contexts and suppression.
+No note persistence, screenshot baseline, threshold, mask, skip, or acceptance
+policy changed.
+
+## 2026-10-06 — Golden Layout modifier divider resizing
+
+Shift-drag on a horizontal divider evenly resizes all panes above it; Ctrl-drag
+evenly resizes panes below it, using the adjacent pane across the divider as
+the counterweight. The operation respects configured minimum pane sizes,
+persists through the existing Golden Layout snapshot contract, and leaves
+ordinary splitter gestures and vertical dividers to Golden Layout. Host and
+geometry tests passed 17/17; authenticated pinned Chromium passed 1/1 for both
+gestures and reload persistence; type-check and production build passed. The
+new Help descriptions and V25 interaction were not used to refresh any
+screenshot, threshold, mask, skip, or acceptance policy. Favorites, custom-date
+sorting, and Tag Column ownership remain open.
+
+## 2026-10-06 — Official V25 shortcut gap audit
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+also lists Ctrl+M for personal WatchList membership, Shift+V for Favorites,
+Shift+T for custom date sort, and Alt+click for Tag Column membership. Ctrl+M
+is implemented through an explicit destination picker; modifier divider
+resizing is implemented and persisted. Shift+V, Shift+T, and Alt+click remain
+open. The Favorites command needs a fixed or explicit target-selection
+contract because this workstation supports arbitrary personal WatchLists;
+this is not an absence of list-membership UI: WatchList row context actions
+already support explicit source/destination inspection, copy, and move, while
+`Shift+F` toggles the separate Flagged Items aggregate. The missing piece is a
+documented, keyboard-addressable TC2000 destination model for Shift+V that does
+not guess among user-owned lists or conflate favorites with flags. Shift+T
+also needs a defined date-valued row field and persistence
+contract; the current header sort is per mounted surface and does not expose a
+custom-date domain object. These should be implemented only after those
+contracts exist and can be tested as persisted state.
+Tag Column behavior and persistence need to be established before wiring the
+mouse modifier. The official `2–4`, `6–8`, and
+`9` timeframe commands also remain unavailable because the current timeframe
+contract cannot represent those periods. Existing Home/End WatchList traversal
+and Ctrl+=/Ctrl+- chart zoom are implemented. No behavior or visual oracle
+changed in this audit.
+
+## 2026-10-06 — Workstation keyboard-help accessibility semantics
+
+The keyboard-shortcut reference is instructional content, not an action menu.
+The workstation Help popover is now a labelled, non-modal, keyboard-focusable
+dialog, and its trigger advertises the dialog. Opening it focuses the scrolling
+container; PageDown/PageUp traverse the long list, Tab reaches Close, and Escape
+closes and restores trigger focus. This corrects the previous ARIA menu role,
+where most rows were static descriptions rather than menu actions. Focused
+workstation tests passed 44/44, authenticated Chromium shell-menu/focus/scroll/
+containment flows passed 3/3, the full frontend suite passed 131 files/1,235
+tests, and type-check/production build passed. The old protected Help screenshots
+encoded an earlier, much shorter shortcut list. After visual review, only the
+four current local Help-state screenshots were refreshed; all four profiles
+passed their unchanged screenshot comparisons at the existing 0.5% threshold.
+The combined rerun had one transient network diagnostic failure; that profile's
+isolated replay passed. This updates the deterministic board-state oracle, not an
+exact V25 pixel reference: the manifest still marks authoritative keyboard-help
+visual coverage required-missing. No threshold, mask, skip, or acceptance
+policy changed.
+
+## 2026-10-06 — Vertical projection-space shortcuts
+
+The [official TC2000 chart reference](https://help.tc2000.com/m/69401/l/314789-how-to-create-projection-space-on-a-chart)
+assigns Shift+= to increase and Shift+- to decrease vertical projection space.
+The active chart applies this to its Y range symmetrically around the midpoint,
+including logarithmic charts, and stores the level in the chart configuration.
+The keyboard action is ignored in text editors and inactive chart windows, and
+the chart Help overlay documents it. Browser verification confirmed linear and
+logarithmic range changes, persistence across reload, editor-focus isolation,
+and unchanged timeframe. It exposed a workstation-shell collision, fixed and
+covered by the shifted-key guard in product commit `b24cc4267`. Scale-math
+tests pass `3/3`, workstation bindings `44/44`, full frontend Vitest
+`1,235/1,235` across `294/294` suites, and production type-check/build pass.
+The unchanged protected Help screenshot passed all four pinned viewport
+profiles. The full 104-case visual matrix remains incomplete after a separate
+run encountered transient `ERR_NETWORK_CHANGED` failures through the temporary
+proxy. No acceptance oracle or screenshot policy changed.
+
+## 2026-10-06 — Shift+wheel chart-history pan
+
+The current [TC2000 V25 shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+lists Shift+mouse-wheel to pan chart history. The chart routes the modified
+gesture through its existing uPlot viewport range logic, while unmodified
+wheel zoom, Ctrl+wheel timeframe changes, and WatchList traversal retain their
+existing behavior. The Help menu now lists the gesture. Authenticated pinned
+Chromium passed the existing wheel-zoom/trackpad-pan/latest-recovery flow `1/1`
+against the changed worktree source; full frontend Vitest passed `1,232/1,232`,
+and Vue type-check/production build passed. Exact V25 visual review and broader
+interaction acceptance remain open.
+The unchanged Help screenshot's state assertions passed, but pixel comparison
+failed at `16,753` pixels (about `1.0%`, over its `0.5%` limit); no baseline,
+mask, threshold, or skip changed.
+
+## 2026-10-06 — F1–F12 chart-template assignment
+
+The [current TC2000 V25 shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+assigns F1–F12 to chart templates. The workstation's Chart Templates dialog
+now lets each saved template claim one unassigned F-key and prevents duplicate
+assignments in the loaded library; exports retain the assignment, and imports
+reject a key already claimed by another saved template. Pressing an unmodified
+F-key on the active chart applies only that chart's matching template, retaining
+its active instrument identity. Unmodified function keys in text editors,
+modified F-keys, and keys while non-chart tools are active do not dispatch a
+template action. `?` opens keyboard help; F1 outside an active chart remains a
+Help fallback.
+
+Focused component/shell tests passed `63/63`, including duplicate prevention,
+initial template-load deferral, active-window routing, and modifiers. The full
+serial frontend suite passed `1,232/1,232`; Vue type-check/production build
+passed; authenticated Chromium verified save, unique F5 assignment, a changed
+chart style, and restoration by F5 (`1/1`). The protected Help screenshot
+oracle remains above tolerance at `50,941` pixels (`3.0%` vs `0.5%`); no visual
+reference, mask, threshold, skip, or acceptance rule changed. Multi-day period
+shortcuts (`2–4`, `6–8`, and `9`) remain unsupported because the existing
+timeframe contract does not represent them. Full integration and exact V25
+visual approval remain open.
+
+## 2026-10-06 — Date-pointer display cycle
+
+The [current TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+defines `.` as a cycle through Off, On, and On with data values. The active
+chart routes the key to its existing crosshair and OHLCV readout; editor input
+and non-chart type-to-search are preserved. Authenticated Chromium passed the
+consecutive three-mode cycle (1/1), including focus retention. Workstation
+bindings passed 43/43, full frontend Vitest passed 130 files
+/ 1,227 tests, and type-check/build passed. A subsequent browser regression
+also confirmed the selected mode survives workspace snapshot and reload. The
+unchanged Help screenshot oracle remains red at 59,101 pixels (3.0%) against
+0.5%; no baseline, mask,
+threshold, or skip changed.
+
+## 2026-10-06 — Direct Daily/Weekly active-chart shortcuts
+
+The [current TC2000 V25 shortcut reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+defines `1` for Daily and `5` for Weekly bars, while Ctrl+number selects
+intraday intervals. The workstation now applies plain `1` / `5` only when a
+chart is active and its existing timeframe update succeeds. Non-chart digits
+retain symbol-search behavior; unsupported multi-day bars and the `9` monthly /
+quarterly / yearly cycle are not claimed. Focused bindings passed `42/42`; the
+authenticated loopback browser path confirmed M5 → W1 → D1. The active test
+fixture has no M5/W1 OHLCV rows, so this verifies interval state/requests, not
+market-data coverage. Full frontend Vitest passed `1,226/1,226` tests after an
+unrelated timer-leak attempt passed its isolated replay; type-check/build
+passed. The protected Help screenshot remains red at `58,238` pixels (`3.0%`)
+against the unchanged `0.5%` threshold; no visual oracle or acceptance policy
+changed.
+
+## 2026-10-06 — Pop-out focus precedes workspace loading
+
+The named browser pop-out landmark receives initial focus immediately when the
+view mounts, before canonical workspace hydration and market-data loading. This
+keeps keyboard and screen-reader users from waiting on unrelated network work
+before they can interact. The regression keeps workspace loading unresolved
+while checking focus; focused workstation bindings pass `38/38`. This is a
+bounded resilience/accessibility improvement, not full AC7 or exact V25 visual
+approval.
+
+## 2026-10-06 — Selected-window maximize shortcut
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+defines Shift+L to maximize the selected window and repeat Shift+L to restore
+normal layout. The workstation now routes this shortcut through the selected
+tool's existing maximize control; the Help menu documents it, and editor or
+interactive-control focus remains excluded from shell shortcuts. Unit, browser,
+build, and visual verification are recorded in the roadmap checkpoint.
+
+## 2026-10-06 — Shift+F flags selected WatchList symbols
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+defines Shift+F to flag/unflag selected symbols.
+The frontend shortcut applies to selected rows backed by persisted personal
+watchlist items; it uses the existing item-flag mutation and leaves multi-row
+selection intact. Non-source/locked rows remain non-mutable. VirtualWatchlistTool
+coverage passed 83/83; authenticated pinned multi-row flag/unflag passed 1/1;
+the seeded four-profile Help visual check passed 4/4 with existing oracles.
+Type-check and production build passed. The full frontend suite and generic
+integration remain open.
+
+## 2026-09-05 — Generic source history analysis-readiness visibility
+
+The provider-neutral watchlist source-history contract now exposes analysis-ready member counts
+and percentages for the D1/W1/MN technical floors (252/52/24 bars). Market Map surfaces these
+values beside covered members, total bars, and observed bounds; the existing coverage/worker
+overall-status semantics and provider/fallback policy remain unchanged. Product commit `8490f2dd`
+is committed locally. Backend units passed `1,318/1,318`, focused history unit/API checks passed
+`5/5` and `1/1` (selected API coverage-floor caveat noted in the TODO ledger), frontend component
+coverage passed `36/36`, full Vitest passed `952/952` across `109` files, TypeScript/Ruff/format/
+diff checks passed, and authenticated F8s-market-map-watchlist passed `1/1` on a rebuilt,
+branch-scoped stack with clean teardown. The exact-tip exhaustive gate then ran at metadata tip
+`0af0bed5` (product tip `8490f2dd`): all non-visual stages and functional Playwright passed
+(`157/157`, `106` documented skips across `263` specs). The unchanged visual matrix remains
+`98/104`; `watchlist-column-editor-open` differs by `13,844` pixels at visual-1080p-100/125, and
+`workspace-floating` differs by `9,770`/`11,901`/`11,901`/`12,097` pixels at
+visual-1080p-100/125/1440p-100/1440p-125. Teardown and resource accounting were clean; no visual
+or provider/fallback policy changed.
+
+## 2026-09-05 — Exact-tip gate after structured range-center threshold promotion
+
+The exact-tip gate ran at metadata tip `93883674` after formatter correction `c2f3a588` (product
+tip `7f672897`). Locked dependency/migration checks, workstream validation, Ruff/format, TypeScript,
+backend units `1,318/1,318`, integration `384/384` with the existing warnings, frontend Vitest
+`952/952` across `109` files, production build, compose/provider policy, stack health, runner
+isolation, and functional Playwright (`157` passed, `106` documented skips across `263` specs)
+passed. The unchanged four-project visual matrix completed `104` cases with `98` passes and six
+failures: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each), and
+`workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
+(`11,901`/`11,901`/`12,097`/`9,770` pixels). No baseline, mask, threshold, skip, fallback oracle,
+provider rule, or acceptance policy changed; teardown and resource accounting were clean. The six
+visual state-oracle diffs remain the reproducible gate blocker and the broader canonical provider/
+history, richer Study, native-window/accessibility/security, dense-data, and visual-oracle gaps
+remain open.
+
+## 2026-09-05 — Structured range-center threshold promotion
+
+Completed Study `range` artifacts with aligned finite centers now expose explicit `gt`, `gte`, `lt`,
+`lte`, `eq`, and `ne` threshold controls in both primary Study Lab and persisted Research Results.
+The user can save a typed Boolean watchlist column or reuse one immutable condition for a filter,
+scan, Market Gauge, or alert. The `range_center_target_to_boolean` adapter requests the range
+contract in the isolated runner, extracts the latest finite center per canonical member, and applies
+the comparison outside user code. Source output identity, canonical member IDs/source/membership,
+timeframe, dataset/run lineage, and `study_range_center_threshold_as_boolean` semantics are retained;
+lower/upper bands remain source-only and invalid operators/non-finite thresholds are rejected.
+
+Backend runner coverage passed `113/113`, code API `24/24`, screener integration `27/27`, focused
+frontend coverage `63/63`, and full frontend Vitest `952/952` across `109` files. TypeScript,
+production build, Ruff, workstream validation, and diff checks passed. Authenticated F8t-results
+passed `1/1` on a rebuilt branch-scoped Docker stack with clean teardown/resource accounting.
+Product commit `7f672897` is pushed to `origin/feat/tc2000-frontend-rework`; the exact-tip gate is
+pending. Existing visual acceptance remains unchanged at `98/104` with the six state-oracle diffs;
+canonical provider/history, richer Study, native-window/accessibility/security, dense-data, and
+visual-oracle gaps remain open.
+
+## 2026-09-05 — Structured range-center latest-value column promotion
+
+Completed structured Study `range` artifacts with an aligned finite `center` now expose a safe
+latest-value watchlist-column target in both primary Study Lab and persisted Research Results. The
+promotion declares scalar output with `range_center_to_scalar`; source/output/run/dataset lineage
+and the explicit `study_range_center_result_as_latest_watchlist_column` semantics are retained,
+while lower/upper band values remain source-only. The prepared-universe runner requests the range
+contract and extracts each member's latest finite center outside user code; the code-asset boundary
+accepts this adapter only when validation observes a range output.
+
+Backend runner/job/API coverage passed `112/112`, `5/5`, and `24/24`; focused frontend coverage
+passed `61/61`; full frontend Vitest passed `950/950` across `109` files; type-check, production
+build, and diff checks passed. Authenticated structured-results and primary Study threshold browser
+flows passed `1/1` each on a rebuilt branch-scoped Docker stack with clean teardown. Product commit
+`928bf8ae` is pushed to `origin/feat/tc2000-frontend-rework`. The exact-tip gate then passed all
+non-visual stages and functional Playwright (`157` passed, `106` documented skips across `263`
+specs). The unchanged four-project visual matrix completed `104` cases with `98` passes and six
+failures: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each), and
+`workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`12,097` pixels each). No
+baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed;
+assigned stack teardown and resource accounting were clean. The remaining canonical
+provider/history, richer Study, native-window/accessibility/security, dense-data, and visual-oracle
+gaps remain open.
+
+## 2026-09-05 — Primary Study Lab numeric-series threshold promotion
+
+The primary Study Lab now offers explicit threshold controls for completed single-output finite
+numeric `series` runs. A selected operator (`gt`, `gte`, `lt`, `lte`, `eq`, or `ne`) and finite
+threshold can save a typed Boolean column or create one reusable current-data condition for a
+watchlist filter, scan, Market Gauge, or alert. The source output name, immutable Study/run/dataset
+lineage, canonical member IDs/source/membership, timeframe, and `series_target_to_boolean` adapter
+are retained; unsupported and non-finite shapes remain capability-gated.
+
+Focused Study Lab coverage passed `26/26`; full frontend Vitest passed `949/949` across `109` files;
+TypeScript, production build, and `git diff --check` passed; authenticated F9j passed `1/1` on the
+rebuilt branch-scoped Docker stack. Product commit `b6316871` is pushed to
+`origin/feat/tc2000-frontend-rework`. The exact-tip gate passed all non-visual stages, including
+backend units `1,315/1,315`, integration `384/384` with the existing `54` warnings, combined
+coverage `80.91%`, and functional Playwright `157` passed with `106` documented skips across `263`
+specs. Visual acceptance remains `98/104` with six unchanged state-oracle diffs:
+`watchlist-column-editor-open` (`13,844` pixels at 1080p-100/125) and `workspace-floating`
+(`12,097`/`9,770`/`12,097`/`12,097` pixels at 1080p-100/125/1440p-100/125). No baseline, mask,
+threshold, skip, fallback oracle, provider rule, or acceptance policy changed. Primary provider/
+history, richer Study targets, native-window/accessibility/security, dense-data, and exact V25
+visual-oracle gaps remain open.
+
+## 2026-09-05 — Structured Study series threshold promotion
+
+Persisted Research Results now represents the missing safe promotion boundary for finite numeric
+Study `series` outputs. A user selects a named series, comparison operator, and finite threshold;
+the surface can save a typed Boolean column or create one reusable current-data EasyScan used by a
+watchlist filter, scan, Market Gauge, or alert. The immutable source/output/run identity, declared
+canonical member IDs, timeframe, dataset manifest, threshold relation, and
+`series_target_to_boolean` adapter are retained in both the code asset and screener provenance.
+The API rejects unsupported operators, non-finite thresholds, or a claimed adapter when validation
+does not observe a numeric series; the isolated runner performs the latest-value extraction and
+comparison outside user code. No event/range/table coercion or universe widening is introduced.
+
+Focused Results/capability coverage passed `34/34`; full frontend Vitest passed `948/948` across
+`109` files; type-check, production build, and diff checks passed; backend code+screener integration
+passed `51/51` with the existing NumPy deprecation warnings, and the existing runner threshold unit
+passed. Authenticated `F8t-results-series-threshold` passed `1/1` on the rebuilt branch-scoped
+Docker stack with clean teardown. The exact-tip gate then passed all non-visual stages; after one
+transient `F8j` conflict-recovery timeout, isolated and complete functional reruns passed. The
+visual-only matrix remains `98/104` with the six unchanged state-oracle diffs recorded in the
+roadmap. This slice is scoped to persisted Research Results; primary Study Lab direct threshold controls,
+canonical provider/history population,
+native-window/accessibility/security, dense-data, and exact V25 visual-oracle gaps remain open. No
+visual policy or provider fallback rule changed.
+
 ## 2026-08-19 — Breadth definitions retain locked-watchlist lineage when saved
 
 The Breadth tool now lets a completed generic predicate be saved directly as an immutable Study
@@ -9218,3 +9599,60 @@ selection, drill-down, breadth, Study Lab, chart, or relative-strength actions. 
 source-polymorphic contract therefore supports an arbitrary user watchlist and a canonical
 SPY/RSP, Russell, S&P, or Nasdaq constituent population without a separate renderer or
 provider-specific frontend path.
+
+## 2026-10-06 — TC2000 V25 symbol traversal shortcut reconciliation
+
+The [current TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+specifies Spacebar for the next symbol in a list, Ctrl+Spacebar for the previous symbol, and
+Backspace to move through viewed-symbol history. The workstation shell and focused virtual
+watchlists now match Space/Ctrl+Space traversal: unmodified Space advances, Ctrl+Space reverses,
+and Shift+Space is not a traversal command. Focused Ctrl+Space moves the active watchlist row
+without toggling multi-select. The workstation also persists a bounded sequence of viewed symbols
+and uses Backspace to walk toward older selections; selecting a new symbol after stepping back
+truncates the forward branch. Editor focus continues to own literal spaces and Backspace. Help and
+authenticated browser regressions use the same contract. This corrects the August 2026
+Shift+Space implementation documented above and adds the V25 history-navigation shortcut.
+
+## 2026-10-06 — TC2000 V25 WatchList note shortcut
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+also lists Shift+N for writing a note. With a WatchList listbox focused, Shift+N now opens the
+existing canonical Notes tool for the active row. The action does not change the current row or
+multi-selection; editor-owned shortcuts remain unaffected because this handler is confined to the
+listbox. Focused unit coverage passed 84/84, the authenticated pinned Shift+N and Help browser
+flows passed 2/2, Vue type-check/build passed, and the unchanged four-profile Help screenshot
+oracle passed 4/4. This is focused keyboard parity, not proof that Shift+N works from every
+workstation context or that the reference board has exact V25 visual coverage.
+
+## 2026-10-06 — TC2000 V25 chart trendline shortcut
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+lists Shift+D to draw a Trend Line. The workstation now toggles the existing trendline drawing
+tool when a chart is the active window; editor and control focus retain native behavior. The pinned
+authenticated F8k-shift-d browser flow passed 1/1 for activation, repeat-key cancellation, and
+editor-focus suppression. Vue type-check/production build passed, and the existing four-profile
+Help screenshot oracle passed 4/4 with unchanged baselines and thresholds. The shortcut is
+workstation/chart scoped; this does not claim broader exact V25 visual approval.
+
+## 2026-10-06 — TC2000 V25 chart bar navigation
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+specifies `[` and `]` to move the chart one bar backward/forward, with Shift variants moving five
+bars. The active workstation chart now applies those ranges through the existing chart viewport
+logic, leaves editor-owned bracket entry unchanged, and does not let inactive dock charts consume
+the shortcut. Tool activation now reads the reactive workspace active-window key instead of a
+render-time snapshot, so the chart keyboard scope follows the selected Golden Layout tool.
+
+The authenticated pinned-browser regression passes activation, one-bar and five-bar navigation,
+reverse navigation, editor literal input, and the chart's latest-history recovery state. Frontend
+type-check and production build pass. This is a focused interaction receipt; exact V25 visual
+approval, the full frontend suite, generic integration, and broader workstation acceptance remain
+open.
+
+## 2026-10-06 — TC2000 V25 chart zoom shortcuts
+
+The current [TC2000 V25 keyboard reference](https://help.tc2000.com/m/125751/l/1874569-hot-keys-keyboard-shortcuts)
+specifies Ctrl+= and Ctrl+- for chart zoom. The chart's keyboard-help overlay now shows those
+modifiers rather than bare +/- (which conflicts with workstation timeframe navigation). The
+authenticated Chromium regression verifies both keys change the active chart rendering while its
+timeframe remains D1. This is focused shortcut/help parity, not exact V25 visual approval.

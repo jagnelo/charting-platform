@@ -4,8 +4,8 @@
       <div class="workstation__brand">CHARTING WORKSTATION</div>
       <nav aria-label="Application menu">
         <div class="workstation__workspace-menu">
-          <button ref="workspaceMenuTrigger" type="button" title="Manage workspace layouts" aria-haspopup="menu" :aria-expanded="workspaceMenuOpen" @click="toggleWorkspaceMenu" @keydown="handleShellTriggerKeydown('workspace', $event)">Workspace</button>
-          <div v-if="workspaceMenuOpen" ref="workspaceMenuRoot" class="workstation__workspace-popover" role="menu" tabindex="-1" aria-label="Workspace layouts" :style="workspaceMenuStyle" @click.stop @keydown.capture="handleShellMenuKeydown('workspace', $event)">
+          <button ref="workspaceMenuTrigger" type="button" title="Manage workspace layouts" aria-haspopup="menu" :aria-expanded="workspaceMenuOpen" :aria-controls="workspaceMenuId" @click="toggleWorkspaceMenu" @keydown="handleShellTriggerKeydown('workspace', $event)">Workspace</button>
+          <div v-if="workspaceMenuOpen" :id="workspaceMenuId" ref="workspaceMenuRoot" class="workstation__workspace-popover" role="menu" tabindex="-1" aria-label="Workspace layouts" :style="workspaceMenuStyle" @click.stop @keydown.capture="handleShellMenuKeydown('workspace', $event)">
             <header><strong>Workspaces</strong><small>{{ workspaceStore.workspace?.name ?? 'Workspace' }}</small></header>
             <div class="workstation__workspace-list" role="listbox" aria-label="Saved workspaces" tabindex="0" :aria-activedescendant="workspaceStore.workspaces[workspaceOptionIndex] ? `saved-workspace-${workspaceStore.workspaces[workspaceOptionIndex].id}` : undefined" @keydown.stop="handleWorkspaceListKeydown" @focus="syncWorkspaceOptionIndex">
               <span v-if="!workspaceStore.workspaces.length" role="status">Loading workspaces…</span>
@@ -34,15 +34,38 @@
         <button type="button" title="Open Study Lab layout" @click="openStudyLab">Study</button>
         <button type="button" title="Open active-symbol alerts" @click="openAlertsTool">Alerts</button>
         <div class="workstation__help-menu">
-          <button ref="keyboardHelpTrigger" type="button" title="Keyboard shortcuts" aria-haspopup="menu" :aria-expanded="keyboardHelpOpen" @click="toggleKeyboardHelp" @keydown="handleShellTriggerKeydown('help', $event)">Help</button>
-          <div v-if="keyboardHelpOpen" ref="keyboardHelpMenuRoot" class="workstation__help-popover" role="menu" aria-label="Keyboard shortcuts" :style="keyboardHelpMenuStyle" @click.stop @keydown="handleShellMenuKeydown('help', $event)">
-            <header><strong>Keyboard shortcuts</strong><button type="button" role="menuitem" tabindex="-1" aria-label="Close keyboard shortcuts" @click="closeShellMenuToTrigger('help')"><WorkstationGlyph kind="close" /></button></header>
+          <button ref="keyboardHelpTrigger" type="button" title="Keyboard shortcuts" aria-haspopup="dialog" :aria-expanded="keyboardHelpOpen" :aria-controls="keyboardHelpMenuId" @click="toggleKeyboardHelp()" @keydown="handleShellTriggerKeydown('help', $event)">Help</button>
+          <div v-if="keyboardHelpOpen" :id="keyboardHelpMenuId" ref="keyboardHelpMenuRoot" class="workstation__help-popover" role="dialog" aria-modal="false" aria-labelledby="keyboard-help-title" tabindex="0" :style="keyboardHelpMenuStyle" @click.stop @keydown="handleShellMenuKeydown('help', $event)">
+            <header><strong id="keyboard-help-title">Keyboard shortcuts</strong><button type="button" aria-label="Close keyboard shortcuts" @click="closeShellMenuToTrigger('help')"><WorkstationGlyph kind="close" /></button></header>
             <dl>
               <div><dt>Type</dt><dd>Open symbol search</dd></div>
               <div><dt>Space</dt><dd>Next symbol in the focused list</dd></div>
-              <div><dt>Shift+Space</dt><dd>Previous symbol in the focused list</dd></div>
-              <div><dt>Ctrl+wheel</dt><dd>Traverse the active symbol universe</dd></div>
-              <div><dt>F1 or ?</dt><dd>Show this help</dd></div>
+              <div><dt>Ctrl+Space</dt><dd>Previous symbol in the focused list</dd></div>
+              <div><dt>Backspace</dt><dd>Previous symbol in viewed history</dd></div>
+              <div><dt>Shift+L</dt><dd>Toggle maximize for the selected window</dd></div>
+              <div><dt>Shift+F</dt><dd>Flag or unflag selected WatchList symbols</dd></div>
+              <div><dt>Shift+V</dt><dd>Add selected WatchList symbols to My Favorites</dd></div>
+              <div><dt>Ctrl+M</dt><dd>Choose an explicit personal WatchList membership action for the selected symbols</dd></div>
+              <div><dt>Shift+drag divider</dt><dd>Resize panes above the divider evenly</dd></div>
+              <div><dt>Ctrl+drag divider</dt><dd>Resize panes below the divider evenly</dd></div>
+              <div><dt>Shift+N</dt><dd>Write a note for the active symbol</dd></div>
+              <div><dt>Shift+D</dt><dd>Toggle Trend Line drawing on the active chart</dd></div>
+              <div><dt>Ctrl+B</dt><dd>Cycle HLC and OHLC bars, candles, and line style on the active chart</dd></div>
+              <div><dt>Ctrl+1</dt><dd>Set the active chart to 1-minute bars</dd></div>
+              <div><dt>Ctrl+3</dt><dd>Set the active chart to 5-minute bars</dd></div>
+              <div><dt>Ctrl+4</dt><dd>Set the active chart to 15-minute bars</dd></div>
+              <div><dt>Ctrl+5</dt><dd>Set the active chart to 30-minute bars</dd></div>
+              <div><dt>Ctrl+6</dt><dd>Set the active chart to hourly bars</dd></div>
+              <div><dt>1</dt><dd>Set the active chart to daily bars</dd></div>
+              <div><dt>5</dt><dd>Set the active chart to weekly bars</dd></div>
+              <div><dt>.</dt><dd>Cycle the active chart date pointer off, on, and on with data values</dd></div>
+              <div><dt>/</dt><dd>Open the active chart's plot library and search indicators</dd></div>
+              <div><dt>[ / ]</dt><dd>Move the active chart backward or forward one bar; Shift moves five bars</dd></div>
+              <div><dt>Shift+wheel</dt><dd>Pan chart history</dd></div>
+              <div><dt>Ctrl+wheel</dt><dd>Over a chart: change timeframe; over a WatchList: move through symbols</dd></div>
+              <div><dt>= / -</dt><dd>Over the active chart: change timeframe</dd></div>
+              <div><dt>F1–F12</dt><dd>Load the chart template assigned to that key</dd></div>
+              <div><dt>?</dt><dd>Show this help</dd></div>
               <div><dt>Escape</dt><dd>Close search and menus</dd></div>
             </dl>
             <small>Shortcuts are inactive while a text, numeric, code, or search editor owns focus.</small>
@@ -60,10 +83,10 @@
           role="combobox"
           aria-autocomplete="list"
           :aria-expanded="searchPanelVisible"
-          aria-controls="workstation-symbol-results"
-          :aria-activedescendant="searchIndex >= 0 ? `workstation-symbol-option-${searchIndex}` : undefined"
+          :aria-controls="symbolResultsId"
+          :aria-activedescendant="searchIndex >= 0 ? symbolOptionId(searchIndex) : undefined"
           :aria-busy="searchLoading ? 'true' : 'false'"
-          aria-describedby="workstation-symbol-search-state"
+          :aria-describedby="symbolSearchStateId"
           @input="handleSymbolInput"
           @blur="closeSymbolSearch"
           @keydown.stop="handleSymbolInputKeydown"
@@ -75,22 +98,23 @@
           aria-label="Recent symbols"
           aria-haspopup="menu"
           :aria-expanded="recentSymbolsOpen"
+          :aria-controls="recentSymbolsMenuId"
           :disabled="!recentStore.recent.length"
           ref="recentSymbolsTrigger"
-          @click.stop="toggleRecentSymbols"
+          @click.stop="toggleRecentSymbols()"
           @keydown="handleShellTriggerKeydown('recent', $event)"
         ><WorkstationGlyph kind="chevron-down" /></button>
-        <div v-if="recentSymbolsOpen && recentStore.recent.length" ref="recentSymbolsMenuRoot" class="workstation__recent-symbols" role="menu" aria-label="Recent symbols" :style="recentSymbolsMenuStyle" @click.stop @keydown="handleShellMenuKeydown('recent', $event)">
+        <div v-if="recentSymbolsOpen && recentStore.recent.length" :id="recentSymbolsMenuId" ref="recentSymbolsMenuRoot" class="workstation__recent-symbols" role="menu" aria-label="Recent symbols" :style="recentSymbolsMenuStyle" @click.stop @keydown="handleShellMenuKeydown('recent', $event)">
           <header><strong>Recent symbols</strong><button type="button" role="menuitem" tabindex="-1" aria-label="Clear recent symbols" @click="recentStore.clear()">Clear</button></header>
           <button v-for="item in recentStore.recent" :key="item.symbol" type="button" role="menuitem" tabindex="-1" @click="selectRecentSymbol(item.symbol)">
             <strong>{{ item.symbol }}</strong><span>{{ item.name || 'Viewed instrument' }}</span>
           </button>
         </div>
-        <div v-if="searchPanelVisible" id="workstation-symbol-results" class="workstation__symbol-results" role="listbox" aria-label="Symbol search results" :aria-busy="searchLoading ? 'true' : 'false'">
+        <div v-if="searchPanelVisible" :id="symbolResultsId" class="workstation__symbol-results" role="listbox" aria-label="Symbol search results" :aria-busy="searchLoading ? 'true' : 'false'">
           <button
             v-for="(result, index) in searchResults"
             :key="`${result.symbol}:${result.exchange}`"
-            :id="`workstation-symbol-option-${index}`"
+            :id="symbolOptionId(index)"
             type="button"
             role="option"
             :aria-selected="index === searchIndex"
@@ -100,7 +124,7 @@
           <div v-else-if="searchError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ searchError }}</div>
           <div v-else-if="searchSettled && !searchResults.length" class="workstation__symbol-search-message" role="status">No canonical instruments found for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
         </div>
-        <span id="workstation-symbol-search-state" class="workstation__symbol-search-state" role="status" aria-live="polite" aria-atomic="true">{{ searchStateText }}</span>
+        <span :id="symbolSearchStateId" class="workstation__symbol-search-state" role="status" aria-live="polite" aria-atomic="true">{{ searchStateText }}</span>
       </div>
       <label class="workstation__timeframe">TF
         <select :value="workspaceStore.linkedTimeframe" aria-label="Linked timeframe" @change="setLinkedTimeframe(($event.target as HTMLSelectElement).value)">
@@ -137,14 +161,14 @@
         @click="selectWorkspaceTab(tab.stable_key)"
         @keydown="handleWorkspaceTabKeydown(tab.stable_key, $event)"
       >{{ tab.name }}</button>
-      <button type="button" class="workstation__tab-add" title="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
+      <button type="button" class="workstation__tab-add" title="Clone active layout" aria-label="Clone active layout" @click="workspaceStore.cloneActiveTab()">+</button>
       <div class="workstation__tool-library">
-        <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" @click="toggleToolLibrary" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
-        <div v-if="toolLibraryOpen" ref="toolLibraryMenuRoot" class="workstation__tool-library-menu" role="menu" aria-label="Workstation tools" :style="toolLibraryMenuStyle" @keydown="handleShellMenuKeydown('tool-library', $event)">
+          <button ref="toolLibraryTrigger" type="button" class="workstation__tab-add" title="Open a workstation tool" aria-haspopup="menu" :aria-expanded="toolLibraryOpen" :aria-controls="toolLibraryMenuId" @click="toggleToolLibrary()" @keydown="handleShellTriggerKeydown('tool-library', $event)">Add tool</button>
+        <div v-if="toolLibraryOpen" :id="toolLibraryMenuId" ref="toolLibraryMenuRoot" class="workstation__tool-library-menu" role="menu" aria-label="Workstation tools" :style="toolLibraryMenuStyle" @keydown="handleShellMenuKeydown('tool-library', $event)">
           <button v-for="tool in openableTools" :key="tool.instance_prefix" type="button" role="menuitem" tabindex="-1" @click="openTool(tool)">{{ tool.title }}</button>
         </div>
       </div>
-      <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" class="workstation__tab-reset" title="Reset factory workspace" @click="resetFactoryWorkspace"><WorkstationGlyph kind="reset" /></button>
+      <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" class="workstation__tab-reset" title="Reset factory workspace" aria-label="Reset factory workspace" @click="resetFactoryWorkspace"><WorkstationGlyph kind="reset" /></button>
       <span class="workstation__workspace-name">{{ workspaceStore.workspace?.name ?? 'Loading workspace…' }}</span>
     </div>
 
@@ -162,7 +186,7 @@
     <main v-else-if="!isPopout && workspaceDockPending" class="workstation__layout-state" role="status">
       Reloading workspace…
     </main>
-    <main v-if="isPopout" class="workstation__popout">
+    <main v-if="isPopout" ref="popoutRoot" class="workstation__popout" tabindex="-1" :aria-label="popoutLabel" :aria-describedby="popoutContextId">
       <WorkstationToolContent
         v-if="popoutTool"
         :tool="popoutTool"
@@ -186,11 +210,13 @@
         @stacked-column-keys="updateStackedColumnKeys"
         @configuration="updateToolConfiguration"
         @publish-analysis="publishMapAnalysis"
+        @open-study="openStudyDefinition"
         @update-link-group="updateLinkGroup"
         @timeframe="setLinkedTimeframe"
         @close="closePopoutTool"
       />
-      <div v-else class="workstation__missing-tool">The requested tool is unavailable. It remains in the source workspace.</div>
+      <div v-else class="workstation__missing-tool" role="alert" aria-live="assertive">The requested tool is unavailable. It remains in the source workspace.</div>
+      <span :id="popoutContextId" class="sr-only">This is a browser-managed pop-out window. Placement across monitors and window controls are controlled by the browser and operating system.</span>
     </main>
     <main v-else-if="!isPopout && !goldenLayoutConfig" class="workstation__layout-state" role="status">
       <span v-if="workspaceStore.loading">Loading saved workstation…</span>
@@ -203,14 +229,14 @@
     <footer v-if="!isPopout" class="workstation__footer">
       <span>{{ activeSymbol }}</span>
       <span>{{ chartStore.timeframe }}</span>
-      <span :title="workspaceStore.error ?? symbolProxyNotice ?? undefined">{{ footerMessage }}</span>
+      <span role="status" aria-live="polite" aria-atomic="true" :title="workspaceStore.error ?? symbolProxyNotice ?? undefined">{{ footerMessage }}</span>
       <span class="workstation__data-state" role="status" aria-live="polite" aria-atomic="true" :aria-label="`Market data freshness: ${dataState.label}`" :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
     </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch, type VNode } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type VNode } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
@@ -226,10 +252,27 @@ import { api } from '@/lib/api'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
+import { useDrawingsStore } from '@/stores/drawings'
 import { workstationFreshness } from '@/lib/workstation/freshness'
+import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
+import type { Timeframe } from '@/types'
 
+const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
+const CHART_TIMEFRAME_ORDER: readonly Timeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN']
+const DIRECT_CHART_TIMEFRAME_SHORTCUTS: Readonly<Record<string, Timeframe>> = {
+  '1': 'M1',
+  '3': 'M5',
+  '4': 'M15',
+  '5': 'M30',
+  '6': 'H1',
+}
+const DIRECT_CHART_PERIOD_SHORTCUTS: Readonly<Record<string, Timeframe>> = {
+  '1': 'D1',
+  '5': 'W1',
+}
+const STANDARD_CHART_STYLES = ['hlc', 'ohlc', 'candles', 'line'] as const
 const route = useRoute()
 const router = useRouter()
 const chartStore = useChartStore()
@@ -237,7 +280,17 @@ const authStore = useAuthStore()
 const workspaceStore = useWorkspaceStore()
 const watchlistStore = useWatchlistStore()
 const recentStore = useRecentInstrumentsStore()
+const drawingsStore = useDrawingsStore()
 const queryClient = useQueryClient()
+const workstationInstanceId = useId()
+const symbolResultsId = `${workstationInstanceId}-symbol-results`
+const symbolSearchStateId = `${workstationInstanceId}-symbol-search-state`
+const symbolOptionId = (index: number) => `${workstationInstanceId}-symbol-option-${index}`
+const workspaceMenuId = `${workstationInstanceId}-workspace-menu`
+const keyboardHelpMenuId = `${workstationInstanceId}-keyboard-help-menu`
+const recentSymbolsMenuId = `${workstationInstanceId}-recent-symbols-menu`
+const toolLibraryMenuId = `${workstationInstanceId}-tool-library-menu`
+const popoutContextId = `${workstationInstanceId}-popout-context`
 const symbolInput = ref<HTMLInputElement | null>(null)
 const workspaceMenuTrigger = ref<HTMLButtonElement | null>(null)
 const workspaceMenuRoot = ref<HTMLElement | null>(null)
@@ -247,6 +300,7 @@ const keyboardHelpTrigger = ref<HTMLButtonElement | null>(null)
 const keyboardHelpMenuRoot = ref<HTMLElement | null>(null)
 const recentSymbolsTrigger = ref<HTMLButtonElement | null>(null)
 const recentSymbolsMenuRoot = ref<HTMLElement | null>(null)
+const popoutRoot = ref<HTMLElement | null>(null)
 const workspaceMenuStyle = ref<Record<string, string>>({})
 const keyboardHelpMenuStyle = ref<Record<string, string>>({})
 const toolLibraryMenuStyle = ref<Record<string, string>>({})
@@ -265,6 +319,7 @@ const workspaceMenuOpen = ref(false)
 const workspaceOptionIndex = ref(0)
 const keyboardHelpOpen = ref(false)
 const recentSymbolsOpen = ref(false)
+let historyNavigationTarget: string | null = null
 const workspaceFileInput = ref<HTMLInputElement | null>(null)
 // Golden Layout virtual roots capture their tool object when created. Advance
 // this token only after an import/reset replaces the complete workspace object
@@ -278,6 +333,7 @@ const workspaceDockPending = computed(() => workspaceReplacementPending.value ||
 // of allowing an early click to mutate a stale/null tab and then be overwritten
 // by the snapshot response.
 const workspaceReady = ref(false)
+const pendingTimeframeSelections = new Map<LinkGroup, string>()
 let workspaceLoadPromise: Promise<void> | null = null
 let resolveWorkspaceReady: (() => void) | null = null
 const workspaceReadyPromise = new Promise<void>(resolve => {
@@ -411,10 +467,14 @@ function removeShellMenuListeners() {
   window.removeEventListener('scroll', positionShellMenus, true)
 }
 
+function scheduleShellMenuPosition() {
+  void nextTick(positionShellMenus)
+}
+
 function syncShellMenuListeners() {
   const open = workspaceMenuOpen.value || toolLibraryOpen.value || keyboardHelpOpen.value || recentSymbolsOpen.value
   if (!open) return removeShellMenuListeners()
-  void nextTick(() => { positionShellMenus(); addShellMenuListeners() })
+  addShellMenuListeners()
 }
 
 function toggleWorkspaceMenu() {
@@ -422,6 +482,7 @@ function toggleWorkspaceMenu() {
   closeShellMenus(open ? 'workspace' : undefined)
   workspaceMenuOpen.value = open
   if (open) {
+    scheduleShellMenuPosition()
     const selectedIndex = (workspaceStore.workspaces ?? []).findIndex(item => item.id === workspaceStore.workspace?.id)
     workspaceOptionIndex.value = selectedIndex >= 0 ? selectedIndex : 0
     void focusShellMenu('workspace')
@@ -509,32 +570,41 @@ watch(() => workspaceStore.workspaces?.length ?? 0, () => {
   })
 })
 
-function toggleToolLibrary() {
+function toggleToolLibrary(focusLast = false) {
   const open = !toolLibraryOpen.value
   closeShellMenus(open ? 'tool-library' : undefined)
   toolLibraryOpen.value = open
-  if (open) closeSymbolSearch()
-  if (open) void focusShellMenu('tool-library')
+  if (open) {
+    closeSymbolSearch()
+    scheduleShellMenuPosition()
+  }
+  if (open) void focusShellMenu('tool-library', focusLast ? -1 : 0)
   else toolLibraryTrigger.value?.focus()
   syncShellMenuListeners()
 }
 
-function toggleKeyboardHelp() {
+function toggleKeyboardHelp(focusLast = false) {
   const open = !keyboardHelpOpen.value
   closeShellMenus(open ? 'help' : undefined)
   keyboardHelpOpen.value = open
-  if (open) closeSymbolSearch()
-  if (open) void focusShellMenu('help')
+  if (open) {
+    closeSymbolSearch()
+    scheduleShellMenuPosition()
+  }
+  if (open) void focusShellMenu('help', focusLast ? -1 : 0)
   else keyboardHelpTrigger.value?.focus()
   syncShellMenuListeners()
 }
 
-function toggleRecentSymbols() {
+function toggleRecentSymbols(focusLast = false) {
   const open = !recentSymbolsOpen.value
   closeShellMenus(open ? 'recent' : undefined)
   recentSymbolsOpen.value = open
-  if (open) closeSymbolSearch()
-  if (open) void focusShellMenu('recent')
+  if (open) {
+    closeSymbolSearch()
+    scheduleShellMenuPosition()
+  }
+  if (open) void focusShellMenu('recent', focusLast ? -1 : 0)
   else recentSymbolsTrigger.value?.focus()
   syncShellMenuListeners()
 }
@@ -555,14 +625,21 @@ const shellMenuTriggers: Record<ShellMenuRoot, ReturnType<typeof ref<HTMLButtonE
 function shellMenuItems(menu: ShellMenuRoot) {
   return Array.from(shellMenuRoots[menu].value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])
 }
-async function focusShellMenu(menu: ShellMenuRoot) {
+async function focusShellMenu(menu: ShellMenuRoot, focusIndex = 0) {
   await nextTick()
   if (menu === 'workspace') {
     const list = workspaceMenuRoot.value?.querySelector<HTMLElement>('[role="listbox"]')
     list?.focus()
     return
   }
-  shellMenuItems(menu)[0]?.focus()
+  const items = shellMenuItems(menu)
+  if (menu === 'help') {
+    keyboardHelpMenuRoot.value?.focus()
+    return
+  }
+  if (!items.length) return
+  const index = focusIndex < 0 ? items.length - 1 : Math.min(focusIndex, items.length - 1)
+  items[Math.max(0, index)]?.focus()
 }
 function closeShellMenuToTrigger(menu: ShellMenuRoot) {
   closeShellMenus()
@@ -571,22 +648,28 @@ function closeShellMenuToTrigger(menu: ShellMenuRoot) {
 function handleShellTriggerKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
   if (!['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(event.key)) return
   event.preventDefault()
+  const focusIndex = event.key === 'ArrowUp' ? -1 : 0
   // Opening a conditional menu during this key event mounts its root before
   // the browser finishes bubbling the original event. Stop that event at the
   // trigger boundary so the newly mounted menu cannot interpret ArrowDown as
   // a request to focus its first action (the workspace listbox owns focus).
   event.stopPropagation()
   if (menu === 'workspace' && !workspaceMenuOpen.value) return toggleWorkspaceMenu()
-  if (menu === 'tool-library' && !toolLibraryOpen.value) return toggleToolLibrary()
-  if (menu === 'help' && !keyboardHelpOpen.value) return toggleKeyboardHelp()
-  if (menu === 'recent' && !recentSymbolsOpen.value) return toggleRecentSymbols()
-  void focusShellMenu(menu)
+  if (menu === 'tool-library' && !toolLibraryOpen.value) return toggleToolLibrary(focusIndex < 0)
+  if (menu === 'help' && !keyboardHelpOpen.value) return toggleKeyboardHelp(focusIndex < 0)
+  if (menu === 'recent' && !recentSymbolsOpen.value) return toggleRecentSymbols(focusIndex < 0)
+  void focusShellMenu(menu, focusIndex)
 }
 function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
   if (event.key === 'Escape') {
     event.preventDefault()
     event.stopPropagation()
     closeShellMenuToTrigger(menu)
+    return
+  }
+  if (menu === 'help' && event.key === 'Home') {
+    event.preventDefault()
+    if (keyboardHelpMenuRoot.value) keyboardHelpMenuRoot.value.scrollTop = 0
     return
   }
   // The workspace menu owns a nested listbox.  Its handler deliberately stops
@@ -622,6 +705,14 @@ function preserveActiveUserSymbolDraft(symbol: string) {
 // search control are stopped at the wrapper and retain normal list interaction.
 function handleWorkstationPointerDown(event: PointerEvent) {
   const target = event.target
+  const clickedTool = target instanceof Element
+    ? target.closest<HTMLElement>('.tool-window[data-window-key]')
+    : null
+  const clickedWindowKey = clickedTool?.dataset.windowKey
+  if (!isPopout.value && clickedWindowKey
+    && workspaceStore.activeTab?.active_window_key !== clickedWindowKey) {
+    workspaceStore.setActiveWindow(clickedWindowKey)
+  }
   const insideSearch = target instanceof Element && target.closest('.workstation__search')
   if (insideSearch) {
     // Search controls retain their own listbox/history state, but any other
@@ -681,6 +772,10 @@ const dataState = computed(() => {
 })
 const footerMessage = computed(() => symbolProxyNotice.value ?? humanizeWorkspaceError(workspaceStore.error))
 const isPopout = computed(() => route.path.startsWith('/popout/'))
+const popoutLabel = computed(() => {
+  const title = popoutTool.value?.title?.trim() || 'workstation tool'
+  return `TC2000 ${title} pop-out`
+})
 
 /** Keep raw transport diagnostics out of the dense workstation status bar.
  * Detailed errors remain available as the native tooltip and in browser/backend
@@ -720,8 +815,34 @@ const marketAnalysisQuery = useQuery({
   refetchIntervalInBackground: false,
 })
 
+function hasSharedMarketAnalysis() {
+  const groups = workspaceStore.marketGroups ?? {}
+  const snapshots = workspaceStore.groupSnapshots ?? {}
+  const breadth = workspaceStore.breadth ?? {}
+  const breadthHistory = workspaceStore.breadthHistory ?? {}
+  return ['us-benchmarks', 'sp500-sectors'].every(key => Boolean(groups[key] && snapshots[key]))
+    && Boolean(breadth['sp500-sectors'])
+    && Boolean(breadthHistory['sp500-sectors'])
+}
+
 async function refreshMarketData() {
-  if (isPopout.value || !documentVisible.value) return
+  if (!documentVisible.value) return
+  // A pop-out does not own the periodic refresh timer, but it can be opened
+  // after the leader has already announced its refresh. In that case the
+  // BroadcastChannel event has already been missed and the local store is
+  // empty, so hydrate the shared analysis once before rendering the tool.
+  // Once the six canonical inputs exist, the pop-out remains a follower and
+  // does not fan out duplicate requests on every mount.
+  if (isPopout.value) {
+    // Only market-analysis surfaces need the shared top-down payload. A chart
+    // pop-out must remain display-only here; hydrating unrelated watchlists on
+    // its first paint changes the canonical readiness/status state behind the
+    // visual workstation oracle without helping the chart itself.
+    if (popoutTool.value?.tool_type === 'watchlist' && !hasSharedMarketAnalysis()) {
+      await workspaceStore.refreshMarketAnalysis()
+    }
+    return
+  }
   if (workspaceStore.isPersistenceLeader) {
     await marketAnalysisQuery.refetch()
   } else {
@@ -836,7 +957,7 @@ function sp500TradableProxy(): string {
   return 'SPY'
 }
 
-async function selectSymbol(raw: string, timestamp?: string, allowNavigationFallback = false, instrumentId?: number | null) {
+async function selectSymbol(raw: string, timestamp?: string, allowNavigationFallback = false, instrumentId?: number | null, recordHistory = true) {
   const requested = raw.trim()
   if (!requested) return
   const generation = ++symbolSelectionGeneration
@@ -918,7 +1039,7 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   )
   if (sectorSymbols.has(symbol)) workspaceStore.setConstituentETF(symbol)
   symbolDraft.value = symbol
-  recentStore.add(symbol)
+  recentStore.add(symbol, undefined, recordHistory)
   // Capture the drill-down ETF before loading the newly selected symbol. A stock
   // selection from a constituent list may itself have no holdings endpoint, but
   // its relevant ratio denominator is still the list's active ETF.
@@ -988,13 +1109,13 @@ function scheduleSymbolSearch(value: string) {
       queryFn: () => api.get<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>('/instruments/search', { q: query, canonical_only: true }),
         staleTime: 30_000,
       })
-      if (requestId !== searchRequest || symbolDraft.value.trim() !== query) return
+      if (!componentMounted || requestId !== searchRequest || symbolDraft.value.trim() !== query) return
       searchResults.value = results
       searchIndex.value = results.length ? 0 : -1
       searchLoading.value = false
       searchSettled.value = true
     } catch {
-      if (requestId === searchRequest) {
+      if (componentMounted && requestId === searchRequest) {
         searchResults.value = []
         searchIndex.value = -1
         searchLoading.value = false
@@ -1059,6 +1180,10 @@ function selectIndustryForContext(industry: string, etf?: string) {
 }
 
 function setLinkedTimeframe(timeframe: string, group: LinkGroup = 'blue') {
+  // As with shell symbol selection, preserve an explicit choice made while
+  // the first saved snapshot is in flight. The snapshot can replace the
+  // linked timeframe before the initial workspace load settles.
+  if (!workspaceReady.value) pendingTimeframeSelections.set(group, timeframe)
   workspaceStore.publishTimeframe(timeframe, group, 'workstation')
 }
 
@@ -1117,14 +1242,20 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   // when the concrete tab needed for the mutation is already present. Only
   // wait for readiness when there is no active tab to mutate at all.
   if (!workspaceReady.value && !workspaceStore.activeTab) {
-    if (workspaceLoadPromise) await workspaceLoadPromise
+    if (workspaceLoadPromise) {
+      await workspaceLoadPromise
+      if (!componentMounted) return
+    }
     if (!componentMounted) return
     // The click can arrive in the same turn as component mount, before the
     // onMounted callback has assigned its load promise. Wait on the explicit
     // readiness signal instead of silently dropping the user's command after
     // an arbitrary polling budget while the canonical workspace is still
     // hydrating.
-    if (!workspaceReady.value && !workspaceStore.activeTab) await workspaceReadyPromise
+    if (!workspaceReady.value && !workspaceStore.activeTab) {
+      await workspaceReadyPromise
+      if (!componentMounted) return
+    }
   }
   // The user may have left this workstation while its snapshot was loading.
   // The old view must never apply a pending command to the shared store after
@@ -1137,6 +1268,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   const opened = workspaceStore.openTool(tool, configurationOverride)
   if (!opened) return
   await nextTick()
+  if (!componentMounted) return
   // Golden Layout can finish creating the tab after its virtual component has
   // mounted. Clicking the concrete tab element is the same interaction as a
   // user selecting it and guarantees the newly opened tool is foregrounded.
@@ -1145,7 +1277,12 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
   // by the restore selecting the previous tab. Keep applying the same real tab
   // interaction until the DOM confirms the requested tab is active; this is
   // bounded and exits immediately once the user-visible state is correct.
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  // A cold Golden Layout reinstall can take longer than a single second when
+  // the browser is already carrying the workstation's chart/watchlist work.
+  // Keep the activation bounded, but give the newly installed component enough
+  // time to acquire its real stack/header before treating the open action as
+  // complete.
+  for (let attempt = 0; attempt < 160; attempt += 1) {
     if (!componentMounted) return
     const toolRoot = [...document.querySelectorAll<HTMLElement>('[data-tool-key]')]
       .find(candidate => candidate.dataset.toolKey === opened.instance_key)
@@ -1154,6 +1291,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
     // treating that tab as success would leave the newly opened component hidden.
     if (!toolRoot) {
       await new Promise(resolve => setTimeout(resolve, 25))
+      if (!componentMounted) return
       continue
     }
     const stack = toolRoot?.closest<HTMLElement>('.lm_stack')
@@ -1173,6 +1311,7 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
       if (dropdownList && getComputedStyle(dropdownList).display === 'none') {
         stack?.querySelector<HTMLElement>('.lm_tabdropdown')?.click()
         await new Promise(resolve => setTimeout(resolve, 25))
+        if (!componentMounted) return
         continue
       }
       const overflowTabs = dropdownList
@@ -1373,6 +1512,34 @@ async function remountDockAfterSnapshot(
   Object.assign(mountedConfiguration, publishedConfiguration)
   workspaceReloadKey.value += 1
   await nextTick()
+}
+
+type StudyDefinitionOpen = {
+  name: string
+  versionId: number
+  source: string
+  outputContract: string
+  parameterSchema: Record<string, unknown>
+  defaultParameters: Record<string, unknown>
+}
+
+async function openStudyDefinition(definition: StudyDefinitionOpen) {
+  const studyDefinition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'study_lab')
+  if (!studyDefinition || !Number.isInteger(definition.versionId) || !definition.source.trim()) return
+  const defaults = definition.defaultParameters ?? {}
+  const configuration: Record<string, unknown> = {
+    study_asset_version_id: definition.versionId,
+    study_name: definition.name,
+    study_source: definition.source,
+    study_output_contract: definition.outputContract,
+    parameter_schema: JSON.stringify(definition.parameterSchema ?? {}),
+    study_default_parameters: defaults,
+  }
+  const stringDefaults = ['universe_source_id', 'symbols', 'timeframe', 'benchmark', 'adjustment', 'session', 'start_date', 'end_date', 'as_of']
+  for (const key of stringDefaults) {
+    if (typeof defaults[key] === 'string' && defaults[key].trim()) configuration[key] = defaults[key]
+  }
+  await openTool(studyDefinition, configuration)
 }
 
 async function publishMapAnalysis(publication: MapAnalysisPublication) {
@@ -1639,9 +1806,13 @@ function floatTool(windowKey: string) {
   const tool = workspaceStore.workspace?.tabs.flatMap(item => item.windows).find(item => item.instance_key === windowKey)
   const popup = window.open(href, `workstation-${windowKey}`, popoutWindowFeatures(readPopoutGeometry(tool?.style, window.screen as Screen & { availLeft?: number; availTop?: number })))
   if (!popup) {
-    workspaceStore.error = 'Browser blocked the pop-out. The tool remains docked.'
+    workspaceStore.error = BLOCKED_POPOUT_ERROR
     return
   }
+  // A blocked first attempt is recoverable by retrying after the user grants
+  // the browser gesture permission. Clear only this transient status so a
+  // successful retry does not leave stale recovery guidance in the footer.
+  if (workspaceStore.error === BLOCKED_POPOUT_ERROR) workspaceStore.error = null
   // Record the requested geometry immediately. The browser-reported outer
   // bounds may not be readable until the popup has painted, and the debounced
   // poll below is intentionally only a refinement of this deterministic
@@ -1726,6 +1897,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     tool,
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
     factoryLayout: workspaceStore.activeTabKey,
+    onActivate: () => workspaceStore.setActiveWindow(dockTool.instance_key),
     onSelect: (symbol: string, instrumentId?: number | null) => void selectSymbol(symbol, undefined, false, instrumentId),
     onCompare: (symbols: string[]) => compareSymbols(symbols),
     onRatio: (symbols: string[]) => void openMarketMapRatio(symbols),
@@ -1744,6 +1916,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onStackedColumnKeys: (windowKey: string, keys: string[]) => updateStackedColumnKeys(windowKey, keys),
     onConfiguration: (windowKey: string, configuration: Record<string, unknown>) => updateToolConfiguration(windowKey, configuration),
     onPublishAnalysis: (publication: MapAnalysisPublication) => void publishMapAnalysis(publication),
+    onOpenStudy: (definition: StudyDefinitionOpen) => void openStudyDefinition(definition),
     onTimeframe: (timeframe: string, group: LinkGroup) => setLinkedTimeframe(timeframe, group),
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),
@@ -1819,22 +1992,169 @@ function handleKeydown(event: KeyboardEvent) {
     syncShellMenuListeners()
     return
   }
-  if (workspaceStore.isEditorTarget(event.target)) return
+  if (workspaceStore.isEditorTarget(event.target) || isInteractiveTarget(event.target)) return
+  if (event.key.toLowerCase() === 'n' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    const notes = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'notes')
+    if (!notes) return
+    event.preventDefault()
+    void openTool(notes)
+    return
+  }
+  if (event.key.toLowerCase() === 'l' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    if (!activeWindowKey) return
+    const activeTool = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
+      .find(tool => tool.dataset.windowKey === activeWindowKey)
+    const maximizeButton = activeTool?.querySelector<HTMLButtonElement>('[aria-label="Maximize tool"]')
+    if (!maximizeButton) return
+    event.preventDefault()
+    maximizeButton.click()
+    return
+  }
+  if (event.key.toLowerCase() === 'd' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+    if (activeWindow?.tool_type !== 'chart') return
+    event.preventDefault()
+    drawingsStore.setActiveTool(drawingsStore.activeToolType === 'trendline' ? null : 'trendline')
+    return
+  }
+  if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+    if (activeWindow?.tool_type !== 'chart' || !activeWindowKey) return
+    const toolWindow = Array.from(document.querySelectorAll<HTMLElement>('.tool-window[data-window-key]'))
+      .find(tool => tool.dataset.windowKey === activeWindowKey)
+    const plotLibraryTrigger = toolWindow?.querySelector<HTMLButtonElement>('button[aria-label="Chart plot library"]')
+    if (!plotLibraryTrigger) return
+    event.preventDefault()
+    plotLibraryTrigger.click()
+    return
+  }
+  if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    if (event.key.toLowerCase() === 'b') {
+      const activeTab = workspaceStore.activeTab
+      const activeWindowKey = isPopout.value
+        ? String(route.params.windowKey ?? '')
+        : activeTab?.active_window_key
+      const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+      if (activeWindow?.tool_type === 'chart' && activeWindowKey) {
+        const configuredStyle = activeWindow.configuration.bar_type
+        const currentStyle = configuredStyle == null
+          ? 'candles'
+          : STANDARD_CHART_STYLES.includes(configuredStyle as typeof STANDARD_CHART_STYLES[number])
+            ? configuredStyle as typeof STANDARD_CHART_STYLES[number]
+            : undefined
+        const currentIndex = currentStyle ? STANDARD_CHART_STYLES.indexOf(currentStyle) : -1
+        const nextStyle = STANDARD_CHART_STYLES[(currentIndex + 1) % STANDARD_CHART_STYLES.length]
+        updateToolConfiguration(activeWindowKey, { ...activeWindow.configuration, bar_type: nextStyle })
+        event.preventDefault()
+        return
+      }
+    }
+    const timeframe = DIRECT_CHART_TIMEFRAME_SHORTCUTS[event.key]
+    if (timeframe) {
+      const activeTab = workspaceStore.activeTab
+      const activeWindowKey = isPopout.value
+        ? String(route.params.windowKey ?? '')
+        : activeTab?.active_window_key
+      const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+      if (activeWindow?.tool_type === 'chart' && activeWindowKey
+        && workspaceStore.updateToolTimeframe(activeWindowKey, timeframe)) {
+        event.preventDefault()
+        return
+      }
+    }
+  }
+  if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && (event.key === '=' || event.key === '-')) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+    const direction = event.key === '=' ? 1 : -1
+    if (activeWindow?.tool_type === 'chart' && activeWindowKey && cycleChartTimeframe(activeWindowKey, direction)) {
+      event.preventDefault()
+      return
+    }
+  }
+  if (/^F(?:[1-9]|1[0-2])$/.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+    if (activeWindow?.tool_type === 'chart' && activeWindowKey) {
+      event.preventDefault()
+      window.dispatchEvent(new CustomEvent('tc2000:chart-template-key', {
+        detail: { windowKey: activeWindowKey, functionKey: event.key },
+      }))
+      return
+    }
+  }
   if (event.key === 'F1' || event.key === '?') {
     event.preventDefault()
     closeShellMenus('help')
     closeSymbolSearch()
     keyboardHelpOpen.value = true
+    scheduleShellMenuPosition()
+    syncShellMenuListeners()
     return
   }
-  if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+  if (event.key === 'Backspace' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    // Backspace is owned even at the oldest entry; never let it fall through
+    // to the browser's page-navigation behavior.
+    event.preventDefault()
+    const previous = recentStore.previous()
+    if (!previous) return
+    historyNavigationTarget = previous
+    void selectSymbol(previous, undefined, true, undefined, false).finally(() => {
+      if (historyNavigationTarget === previous) historyNavigationTarget = null
+    })
+    return
+  }
+  if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    const timeframe = DIRECT_CHART_PERIOD_SHORTCUTS[event.key]
+    if (timeframe) {
+      const activeTab = workspaceStore.activeTab
+      const activeWindowKey = isPopout.value
+        ? String(route.params.windowKey ?? '')
+        : activeTab?.active_window_key
+      const activeWindow = activeTab?.windows.find(window => window.instance_key === activeWindowKey)
+      if (activeWindow?.tool_type === 'chart' && activeWindowKey
+        && workspaceStore.updateToolTimeframe(activeWindowKey, timeframe)) {
+        event.preventDefault()
+        return
+      }
+    }
+  }
+  if (event.key === '.' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    const activeTab = workspaceStore.activeTab
+    const activeWindowKey = isPopout.value
+      ? String(route.params.windowKey ?? '')
+      : activeTab?.active_window_key
+    if (activeTab?.windows.some(window => window.instance_key === activeWindowKey && window.tool_type === 'chart')) return
+  }
+  if (/^[a-z0-9.=]$/i.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
     event.preventDefault()
     symbolInput.value?.focus()
     symbolSearchEnabled.value = true
     symbolDraft.value = event.key.toUpperCase()
     return
   }
-  if (event.key !== ' ' || event.ctrlKey || event.metaKey || event.altKey) return
+  if (event.key !== ' ' || event.metaKey || event.altKey) return
+  // Match TC2000 V25: plain Space advances and Ctrl+Space reverses. Shift+Space
+  // is not a traversal command; editor targets have already been excluded.
+  if (event.shiftKey) return
   event.preventDefault()
   if (!allSymbols.value.length) return
   // Explicit shell actions publish the draft synchronously, while the shared
@@ -1845,7 +2165,7 @@ function handleKeydown(event: KeyboardEvent) {
   const draftSymbol = symbolDraft.value.trim().toUpperCase()
   const currentSymbol = allSymbols.value.includes(draftSymbol) ? draftSymbol : activeSymbol.value
   const currentIndex = allSymbols.value.indexOf(currentSymbol)
-  const nextIndex = (currentIndex + (event.shiftKey ? -1 : 1) + allSymbols.value.length) % allSymbols.value.length
+  const nextIndex = (currentIndex + (event.ctrlKey ? -1 : 1) + allSymbols.value.length) % allSymbols.value.length
   void selectSymbol(allSymbols.value[nextIndex], undefined, true)
 }
 
@@ -1878,32 +2198,46 @@ function handleGlobalKeydownCapture(event: KeyboardEvent) {
 function handleWheel(event: WheelEvent) {
   if (handledWheelEvents.has(event)) return
   handledWheelEvents.add(event)
-  // Ctrl+wheel is an explicit symbol-traversal gesture; unlike typed shortcuts
-  // it remains usable while the active-symbol control retains focus after Go.
-  const controlPressed = event.ctrlKey || ctrlWheelHeld.value || event.getModifierState?.('Control') === true
-  if (!controlPressed || event.metaKey || event.altKey) return
-  event.preventDefault()
-  if (!allSymbols.value.length) return
-  // The shell input is updated synchronously by an explicit Go action while
-  // the canonical store publication completes asynchronously. Use the draft
-  // as a short-lived fallback so an immediate wheel gesture cannot select SPY
-  // again simply because the store has not hydrated the same symbol yet.
-  const currentSymbol = activeSymbol.value || symbolDraft.value.trim().toUpperCase()
-  const currentIndex = allSymbols.value.indexOf(currentSymbol)
+  const controlPressed = !event.shiftKey && (event.ctrlKey || ctrlWheelHeld.value || event.getModifierState?.('Control') === true)
+  if (!controlPressed || event.metaKey || event.altKey || event.deltaY === 0) return
+  const target = event.target
+  if (!(target instanceof Element)) return
+  // Ctrl+wheel belongs to a chart only when the pointer is over its plot.
+  // WatchLists keep their own row-scoped handler; every other shell surface
+  // leaves the gesture untouched.
+  const plot = target.closest('.uplot')
+  const toolWindow = plot?.closest<HTMLElement>('.tool-window[data-window-key]')
+  const windowKey = toolWindow?.dataset.windowKey
+  if (!plot || !windowKey) return
+  const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
+  if (!tool || tool.tool_type !== 'chart') return
+  // The V25 help defines the chart gesture but not its direction. Follow the
+  // selector's ascending interval order: wheel down moves to a longer interval.
   const direction = event.deltaY > 0 ? 1 : -1
-  let nextIndex = (currentIndex + direction + allSymbols.value.length) % allSymbols.value.length
-  // A partially hydrated symbol can temporarily be absent from the list. Do
-  // not turn a traversal gesture into a no-op in that case; advance once more
-  // through the canonical fallback universe.
-  if (allSymbols.value.length > 1 && allSymbols.value[nextIndex] === activeSymbol.value) {
-    nextIndex = (nextIndex + direction + allSymbols.value.length) % allSymbols.value.length
-  }
-  void selectSymbol(allSymbols.value[nextIndex], undefined, true)
+  if (!cycleChartTimeframe(windowKey, direction)) return
+  // Window capture runs before uPlot and its subpane handlers; consume the
+  // modifier gesture here so the same wheel event cannot also pinch-zoom or
+  // redispatch through another chart layer.
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+function cycleChartTimeframe(windowKey: string, direction: 1 | -1) {
+  const currentTimeframe = workspaceStore.timeframeForTool(windowKey)
+  const currentIndex = CHART_TIMEFRAME_ORDER.indexOf(currentTimeframe as Timeframe)
+  if (currentIndex < 0) return false
+  // The V25 help lists `=` / `-` but does not specify direction. Follow the
+  // selector's ascending interval order: `=` moves longer, `-` moves shorter.
+  const nextIndex = (currentIndex + direction + CHART_TIMEFRAME_ORDER.length) % CHART_TIMEFRAME_ORDER.length
+  const nextTimeframe = CHART_TIMEFRAME_ORDER[nextIndex]
+  return nextTimeframe ? workspaceStore.updateToolTimeframe(windowKey, nextTimeframe) : false
 }
 
 watch(activeSymbol, symbol => {
   if (!symbol) return
-  recentStore.add(symbol)
+  const isHistoryNavigation = historyNavigationTarget === symbol
+  recentStore.add(symbol, undefined, !isHistoryNavigation)
+  if (isHistoryNavigation) historyNavigationTarget = null
   // Linked row selections can arrive through the workspace bus before the shell's
   // async symbol handler resumes. Keep the auto-ratio tool tied to the newest
   // published symbol at this boundary as well as in the explicit selection path.
@@ -1944,13 +2278,18 @@ watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => 
 
 onMounted(async () => {
   componentMounted = true
+  if (isPopout.value) {
+    // Establish keyboard and assistive-technology focus before workspace
+    // hydration or market-data requests can delay the pop-out's first focus.
+    popoutRoot.value?.focus({ preventScroll: true })
+  }
   const resolveMount = resolveComponentMountSettled
   resolveComponentMountSettled = null
   resolveMount?.()
   const mountSelectionGeneration = symbolSelectionGeneration
-  // Capture before chart/uPlot gesture handlers can stop propagation. The
-  // workstation-level Ctrl+wheel traversal is a shell command and must remain
-  // available even when the pointer is over a chart canvas.
+  // Capture before chart/uPlot gesture handlers can stop propagation. A chart
+  // owns Ctrl+wheel for timeframe navigation; non-chart targets pass through
+  // so WatchLists can traverse their own rows.
   window.addEventListener('wheel', handleWheel, { passive: false, capture: true })
   const handleModifierKeydown = (event: KeyboardEvent) => {
     if (event.key === 'Control') ctrlWheelHeld.value = true
@@ -1978,10 +2317,21 @@ onMounted(async () => {
   try {
     await workspaceLoadPromise
   } finally {
-    workspaceReady.value = true
-    resolveWorkspaceReady?.()
+    const resolveReady = resolveWorkspaceReady
     resolveWorkspaceReady = null
+    if (componentMounted) {
+      workspaceReady.value = true
+      resolveReady?.()
+    }
   }
+  if (!componentMounted) return
+  // The initial snapshot restores persisted linked timeframes. Replay any
+  // newer shell choices made while it loaded so hydration cannot discard
+  // what the user just selected.
+  for (const [group, timeframe] of pendingTimeframeSelections) {
+    workspaceStore.publishTimeframe(timeframe, group, 'workstation')
+  }
+  pendingTimeframeSelections.clear()
   // A user can interact with the shell while the first snapshot is loading.
   // loadDefault hydrates the persisted blue link, so replay the newer explicit
   // shell selection once hydration completes instead of silently reverting it.
@@ -1997,16 +2347,18 @@ onMounted(async () => {
   if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
     workspaceStore.activeTabKey = requestedTab
   }
-  // A second browser pop-out can start while the first window is announcing a
-  // revisioned workspace snapshot. If that narrow race returns a stale snapshot
-  // without the requested tool, retry the canonical read once before rendering
-  // the honest unavailable-tool recovery state.
+  // A browser pop-out can start while the source window is still persisting a
+  // revisioned workspace snapshot. Keep retrying the canonical read for a short,
+  // bounded recovery window so transient stale reads do not strand a valid tool
+  // in the source workspace.
   if (isPopout.value && !popoutTool.value) {
     // A source window may still be settling a revisioned snapshot when the
-    // browser popup starts. Retry the canonical read for a bounded interval so
-    // a transient stale snapshot does not leave a black, empty pop-out.
-    for (let attempt = 0; attempt < 5 && !popoutTool.value; attempt += 1) {
-      await new Promise(resolve => window.setTimeout(resolve, 200))
+    // browser popup starts. Retry for up to roughly five seconds so a transient
+    // stale read does not leave an empty pop-out during normal persistence load.
+    for (let attempt = 0; attempt < 20 && !popoutTool.value; attempt += 1) {
+      if (!componentMounted) return
+      await new Promise(resolve => window.setTimeout(resolve, 250))
+      if (!componentMounted) return
       await workspaceStore.loadDefault()
       if (requestedTab && workspaceStore.workspace?.tabs.some(tab => tab.stable_key === requestedTab)) {
         workspaceStore.activeTabKey = requestedTab
@@ -2014,11 +2366,13 @@ onMounted(async () => {
     }
   }
   await refreshMarketData()
+  if (!componentMounted) return
   if (isPopout.value && popoutTool.value) {
     const tool = popoutTool.value
     const configuredSymbol = typeof tool.configuration.symbol === 'string' ? tool.configuration.symbol : null
     const linked = workspaceStore.symbolForLinkGroup(tool.link_group, configuredSymbol)
     await loadSymbolData(linked, workspaceStore.constituentETF, false)
+    if (!componentMounted) return
   } else {
     const explicitRouteSymbol = route.params.symbol ?? route.query.symbol
     // A plain /chart navigation restores the persisted workstation symbol; it
@@ -2034,11 +2388,13 @@ onMounted(async () => {
       // navigation fallback keeps the visible symbol deterministic while the
       // chart and technical tools report their honest freshness/error state.
       await selectSymbol(requested, undefined, true)
+      if (!componentMounted) return
     }
   }
   await nextTick()
+  if (!componentMounted) return
   if (!isPopout.value) await refreshMarketData()
-
+  if (!componentMounted) return
 })
 
 onBeforeUnmount(() => {
@@ -2046,6 +2402,11 @@ onBeforeUnmount(() => {
   const resolveMount = resolveComponentMountSettled
   resolveComponentMountSettled = null
   resolveMount?.()
+  symbolSelectionGeneration += 1
+  drilldownSelectionGeneration += 1
+  searchRequest += 1
+  resolveWorkspaceReady?.()
+  resolveWorkspaceReady = null
   endTabDrag()
   window.removeEventListener('wheel', handleWheel, { capture: true })
   ctrlWheelHeld.value = false
@@ -2073,7 +2434,7 @@ onBeforeUnmount(() => {
 .workstation__help-popover header { display: flex; justify-content: space-between; align-items: center; padding: 3px 4px 5px; border-bottom: 1px solid #29343b; font-size: 11px; }
 .workstation__help-popover header button { border: 0; color: #aebbc4; background: transparent; cursor: pointer; font: 13px/1 "Segoe UI",Arial,sans-serif; padding: 0 2px; }
 .workstation__help-popover dl { display: grid; gap: 3px; margin: 5px 0; }
-.workstation__help-popover dl div { display: grid; grid-template-columns: 82px minmax(0,1fr); gap: 7px; padding: 2px 3px; }
+.workstation__help-popover dl div { display: grid; grid-template-columns: 112px minmax(0,1fr); gap: 7px; padding: 2px 3px; }
 .workstation__help-popover dt { color: #e4f1f7; font-weight: 700; }
 .workstation__help-popover dd { margin: 0; color: #aebbc4; }
 .workstation__help-popover > small { display: block; padding: 4px 3px 2px; border-top: 1px solid #29343b; color: #81909a; line-height: 1.35; }
@@ -2117,6 +2478,7 @@ onBeforeUnmount(() => {
 .workstation__tabs > button:not(.workstation__tab-add):active { cursor: grabbing; }
 .workstation__tabs > button.workstation__tab--active { background: #28333b; color: #eaf2f6; box-shadow: inset 0 2px #68b6e9; }
 .workstation__tabs > button.workstation__tab--drag-over { box-shadow: inset 2px 0 #f0c66d, inset -2px 0 #f0c66d; }
+.workstation__tabs > button[role="tab"]:focus-visible { position: relative; z-index: 1; outline: 2px solid #eef3fb; outline-offset: -3px; }
 .workstation__workspace-name { margin-left: auto; padding: 7px 9px; color: #697782; font-size: 10px; }
 .workstation__layout-state { display: grid; min-height: 0; place-content: center; gap: 9px; padding: 20px; background: #090c0f; color: #9baab4; font: 12px "Segoe UI", Arial, sans-serif; text-align: center; }
 .workstation__layout-state button { justify-self: center; border: 1px solid #43525d; background: #1a242c; color: #c5d8e4; cursor: pointer; font: inherit; padding: 4px 10px; }
@@ -2130,4 +2492,5 @@ onBeforeUnmount(() => {
 .workstation__metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .workstation__footer { display: flex; gap: 16px; align-items: center; padding: 0 7px; border-top: 1px solid var(--tc-border); color: var(--tc-text-muted); background: var(--tc-panel-bg); font-size: 10px; }
 .workstation__footer span:first-child { color: #d4e7f4; font-weight: 700; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 </style>

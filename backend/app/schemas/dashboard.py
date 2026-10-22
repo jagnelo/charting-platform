@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+from app.lib.time_utils import wire_datetime
 
 
 class DashboardWidgetBase(BaseModel):
@@ -33,6 +35,10 @@ class DashboardWidgetOut(DashboardWidgetBase):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value) or ""
+
 
 class DashboardTabBase(BaseModel):
     name: str
@@ -58,6 +64,10 @@ class DashboardTabOut(DashboardTabBase):
     widgets: list[DashboardWidgetOut] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value) or ""
 
 
 class DashboardCreate(BaseModel):
@@ -86,6 +96,10 @@ class DashboardOut(BaseModel):
     tabs: list[DashboardTabOut] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value) or ""
 
 
 class ReorderBody(BaseModel):

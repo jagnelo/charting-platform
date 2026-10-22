@@ -5,6 +5,7 @@ from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_stats import InstrumentStats
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.strategy_lab_nautilus import (
+    _nanos_to_iso,
     _timeframe_to_bar_spec,
     run_single_instrument_nautilus_backtest,
 )
@@ -31,6 +32,12 @@ def _bar(ts: datetime, open_: float, high: float, low: float, close: float) -> O
         volume=Decimal("1000"),
         is_adjusted=True,
     )
+
+
+def test_nanos_to_iso_uses_canonical_utc_z_wire_format():
+    timestamp = int(datetime.fromisoformat("2026-09-12T14:30:00+02:00").timestamp() * 1_000_000_000)
+
+    assert _nanos_to_iso(timestamp) == "2026-09-12T12:30:00Z"
 
 
 def test_nautilus_backtest_runs_and_returns_trades():

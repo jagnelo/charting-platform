@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
+from app.lib.time_utils import wire_datetime
 from app.models.strategy import (
     StrategyDefinitionType,
     StrategySourceType,
@@ -86,6 +87,10 @@ class StrategyVersionOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value)
+
 
 class StrategyRunOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -115,6 +120,12 @@ class StrategyRunOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer(
+        "started_at", "completed_at", "date_from", "date_to", "created_at", "updated_at"
+    )
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class StrategyRunBatchOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -131,6 +142,10 @@ class StrategyRunBatchOut(BaseModel):
     summary: dict
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value)
 
 
 class StrategyDefinitionSummaryOut(BaseModel):
@@ -150,6 +165,10 @@ class StrategyDefinitionSummaryOut(BaseModel):
     runs: list[StrategyRunOut] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value)
 
 
 class StrategyDefinitionDetailOut(StrategyDefinitionSummaryOut):
@@ -173,6 +192,12 @@ class StrategyCoverageInstrumentOut(BaseModel):
     note: str | None = None
     ipo_date: str | None = None
 
+    @field_serializer(
+        "available_from", "available_to", "requested_first_bar_at", "requested_last_bar_at"
+    )
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class StrategyCoverageUniverseOut(BaseModel):
     preview_mode: str
@@ -195,6 +220,17 @@ class StrategyCoverageUniverseOut(BaseModel):
     limiting_instruments: list[StrategyCoverageInstrumentOut] = Field(default_factory=list)
     instruments: list[StrategyCoverageInstrumentOut] = Field(default_factory=list)
 
+    @field_serializer(
+        "requested_first_bar_at",
+        "requested_last_bar_at",
+        "any_coverage_from",
+        "any_coverage_to",
+        "collective_coverage_from",
+        "collective_coverage_to",
+    )
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class StrategyCoverageBenchmarkOut(BaseModel):
     symbol: str | None
@@ -208,6 +244,12 @@ class StrategyCoverageBenchmarkOut(BaseModel):
     requested_bars: int
     requested_fits_range: bool | None
 
+    @field_serializer(
+        "available_from", "available_to", "requested_first_bar_at", "requested_last_bar_at"
+    )
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class StrategyCoveragePreviewOut(BaseModel):
     timeframe: str
@@ -216,3 +258,7 @@ class StrategyCoveragePreviewOut(BaseModel):
     universe: StrategyCoverageUniverseOut
     benchmark: StrategyCoverageBenchmarkOut
     warnings: list[str] = Field(default_factory=list)
+
+    @field_serializer("requested_date_from", "requested_date_to")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)

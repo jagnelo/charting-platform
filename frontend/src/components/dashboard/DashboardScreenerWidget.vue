@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 
 interface ScreenerOut {
@@ -64,6 +64,7 @@ const running = ref(false)
 const loading = ref(false)
 const error = ref('')
 let loadSeq = 0
+let mounted = false
 
 const selectedId = computed(() => Number(props.config.screenerId) || screeners.value[0]?.id || null)
 const matchedIds = computed(() => latest.value?.matched_ids.slice(0, 80) ?? [])
@@ -73,13 +74,14 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    screeners.value = await api.get<ScreenerOut[]>('/screeners')
-    if (seq !== loadSeq) return
+    const loadedScreeners = await api.get<ScreenerOut[]>('/screeners')
+    if (!mounted || seq !== loadSeq) return
+    screeners.value = loadedScreeners
     if (selectedId.value) await loadResults(selectedId.value, seq)
   } catch (e: any) {
-    if (seq === loadSeq) error.value = e?.message ?? 'Screener unavailable'
+    if (mounted && seq === loadSeq) error.value = e?.message ?? 'Screener unavailable'
   } finally {
-    if (seq === loadSeq) loading.value = false
+    if (mounted && seq === loadSeq) loading.value = false
   }
 }
 
@@ -88,20 +90,20 @@ async function loadResults(id: number, seq = ++loadSeq) {
   error.value = ''
   try {
     const results = await api.get<ScreenerResultOut[]>(`/screeners/${id}/results`, { limit: 1 })
-    if (seq !== loadSeq) return
+    if (!mounted || seq !== loadSeq) return
     latest.value = results[0] ?? null
-    if (latest.value?.matched_ids.length) await loadInstrumentInfo(latest.value.matched_ids)
+    if (latest.value?.matched_ids.length) await loadInstrumentInfo(latest.value.matched_ids, seq)
   } catch (e: any) {
-    if (seq === loadSeq) {
+    if (mounted && seq === loadSeq) {
       error.value = e?.message ?? 'Screener unavailable'
       latest.value = null
     }
   } finally {
-    if (seq === loadSeq) loading.value = false
+    if (mounted && seq === loadSeq) loading.value = false
   }
 }
 
-async function loadInstrumentInfo(ids: number[]) {
+async function loadInstrumentInfo(ids: number[], seq = loadSeq) {
   const missing = ids.filter(id => !instrumentMap.value[id])
   if (!missing.length) return
   const resp = await api.get<{ items: InstrumentInfo[] }>('/instruments/browse', {
@@ -109,6 +111,7 @@ async function loadInstrumentInfo(ids: number[]) {
     page_size: Math.min(200, missing.length),
     page: 1,
   })
+  if (!mounted || seq !== loadSeq) return
   for (const item of resp.items) instrumentMap.value[item.id] = item
 }
 
@@ -123,13 +126,14 @@ async function runScreener() {
   error.value = ''
   const seq = ++loadSeq
   try {
-    latest.value = await api.post<ScreenerResultOut>(`/screeners/${selectedId.value}/run`, {})
-    if (seq !== loadSeq) return
-    if (latest.value.matched_ids.length) await loadInstrumentInfo(latest.value.matched_ids)
+    const result = await api.post<ScreenerResultOut>(`/screeners/${selectedId.value}/run`, {})
+    if (!mounted || seq !== loadSeq) return
+    latest.value = result
+    if (latest.value.matched_ids.length) await loadInstrumentInfo(latest.value.matched_ids, seq)
   } catch (e: any) {
-    if (seq === loadSeq) error.value = e?.message ?? 'Screener run failed'
+    if (mounted && seq === loadSeq) error.value = e?.message ?? 'Screener run failed'
   } finally {
-    running.value = false
+    if (mounted && seq === loadSeq) running.value = false
   }
 }
 
@@ -140,10 +144,17 @@ function formatValue(value: unknown) {
 }
 
 watch(selectedId, id => {
-  if (id) loadResults(id)
+  if (id && mounted) void loadResults(id)
   else latest.value = null
 })
-onMounted(load)
+onMounted(() => {
+  mounted = true
+  void load()
+})
+onBeforeUnmount(() => {
+  mounted = false
+  loadSeq += 1
+})
 </script>
 
 <style scoped>

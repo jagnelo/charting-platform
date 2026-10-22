@@ -1,16 +1,24 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import select
 
 from app.config import settings
+from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFHoldingsSnapshot
+from app.models.instrument_event import InstrumentEventFetchState
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
     _aggregate_series_cells,
+    _as_utc,
+    _breadth_events_by_instrument,
     _calendar_year_cells,
+    _entitlement_state,
+    _family_member_bar_history,
     _gauge_exclusion_warnings,
     _group_members_at,
     _group_membership_version,
@@ -21,6 +29,7 @@ from app.routers.analysis import (
     _performance_cells,
     _python_breadth_occurrences,
     _python_breadth_point,
+    _role_readiness,
     _rotation_state,
     _sample_aligned_points,
     _stale_instrument_ids,
@@ -29,7 +38,11 @@ from app.routers.analysis import (
     _volume_ratio_50,
     _wire_datetime,
 )
-from app.routers.market_groups import _holdings_snapshot_at, holdings_snapshot_source_filter
+from app.routers.market_groups import (
+    _historical_profile_payloads,
+    _holdings_snapshot_at,
+    holdings_snapshot_source_filter,
+)
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -56,6 +69,261 @@ def test_volume_ratio_returns_structured_warning_for_missing_provider_volume():
     assert value is None
     assert warning is not None
     assert warning.code == "missing_volume"
+
+
+def test_entitlement_readiness_requires_a_successful_persisted_live_probe():
+    source = DataSource(name="public-eod", config={})
+    entitlement = ProviderEntitlement(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        configured_plan="public-eod",
+        is_free=True,
+        authentication_required=False,
+        live_probe_status="not_run",
+    )
+
+    assert _entitlement_state(source, entitlement) == "unreviewed"
+    entitlement.live_probe_status = "passed"
+    assert _entitlement_state(source, entitlement) == "verified"
+    entitlement.live_probe_status = "failure"
+    assert _entitlement_state(source, entitlement) == "probe_failed"
+
+
+def test_role_readiness_cannot_be_ready_without_point_in_time_evidence():
+    status, reasons = _role_readiness(
+        mapping_available=True,
+        profile_loaded=True,
+        holdings_status="available",
+        member_bar_status="ready",
+        entitlement_status="verified",
+        point_in_time_supported=False,
+        weights_status="ready",
+        classification_status="ready",
+    )
+
+    assert status == "partial"
+    assert reasons == ["point_in_time_unavailable"]
+
+
+def test_role_readiness_is_ready_when_all_canonical_gates_are_supported():
+    status, reasons = _role_readiness(
+        mapping_available=True,
+        profile_loaded=True,
+        holdings_status="available",
+        member_bar_status="ready",
+        entitlement_status="verified",
+        point_in_time_supported=True,
+        weights_status="ready",
+        classification_status="ready",
+    )
+
+    assert status == "ready"
+    assert reasons == []
+
+
+def test_role_readiness_requires_complete_holdings_evidence():
+    status, reasons = _role_readiness(
+        mapping_available=True,
+        profile_loaded=True,
+        holdings_status="available",
+        holdings_completeness_status="partial",
+        member_bar_status="ready",
+        entitlement_status="verified",
+        point_in_time_supported=True,
+        weights_status="ready",
+        classification_status="ready",
+    )
+
+    assert status == "partial"
+    assert reasons == ["holdings_completeness_partial"]
+
+
+@pytest.mark.asyncio
+async def test_breadth_event_loading_respects_historical_knowledge_cutoff_and_source():
+    class Result:
+        def __init__(self, values):
+            self.values = values
+
+        def scalars(self):
+            return self
+
+        def all(self):
+            return list(self.values)
+
+    class FakeDB:
+        def __init__(self):
+            self.results = [
+                [
+                    SimpleNamespace(
+                        instrument_id=1,
+                        source="future-provider",
+                        event_time=datetime(2024, 1, 2, tzinfo=UTC),
+                        fetched_at=datetime(2024, 1, 7, tzinfo=UTC),
+                    ),
+                    SimpleNamespace(
+                        instrument_id=1,
+                        source="other-provider",
+                        event_time=datetime(2024, 1, 2, tzinfo=UTC),
+                        fetched_at=datetime(2024, 1, 2, tzinfo=UTC),
+                    ),
+                ],
+                [
+                    InstrumentEventFetchState(
+                        instrument_id=1,
+                        source="future-provider",
+                        fetched_at=datetime(2024, 1, 7, tzinfo=UTC),
+                    ),
+                    InstrumentEventFetchState(
+                        instrument_id=1,
+                        source="other-provider",
+                        fetched_at=datetime(2024, 1, 2, tzinfo=UTC),
+                    ),
+                ],
+            ]
+
+        async def execute(self, _statement):
+            return Result(self.results.pop(0))
+
+    events, provenance = await _breadth_events_by_instrument(
+        FakeDB(), [1], as_of=datetime(2024, 1, 6, tzinfo=UTC)
+    )
+
+    assert [event.source for event in events[1]] == ["other-provider"]
+    assert provenance["loaded_member_count"] == 1
+    assert provenance["event_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_breadth_event_loading_keeps_missing_fetch_state_unavailable():
+    class Result:
+        def __init__(self, values):
+            self.values = values
+
+        def scalars(self):
+            return self
+
+        def all(self):
+            return list(self.values)
+
+    class FakeDB:
+        def __init__(self):
+            self.results = [
+                [
+                    SimpleNamespace(
+                        instrument_id=1,
+                        source="provider-a",
+                        event_time=datetime(2024, 1, 2, tzinfo=UTC),
+                        fetched_at=datetime(2024, 1, 2, tzinfo=UTC),
+                    )
+                ],
+                [],
+            ]
+
+        async def execute(self, _statement):
+            return Result(self.results.pop(0))
+
+    events, provenance = await _breadth_events_by_instrument(FakeDB(), [1])
+
+    assert events == {1: None}
+    assert provenance["loaded_member_count"] == 0
+    assert provenance["unavailable_member_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_family_member_history_reads_method_specific_d1_factor_state():
+    class FakeDB:
+        def __init__(self):
+            self.calls = 0
+
+        async def execute(self, _statement):
+            self.calls += 1
+
+            class FakeResult:
+                def __init__(self, call_number):
+                    self.call_number = call_number
+
+                def all(self_inner):
+                    if self_inner.call_number == 1:
+                        return [(1, 10, "ACME", True, "ACME", "equity", "security")]
+                    if self_inner.call_number == 2:
+                        return [
+                            (
+                                Timeframe.D1,
+                                10,
+                                1,
+                                datetime(2026, 1, 2, tzinfo=UTC),
+                                datetime(2026, 1, 2, tzinfo=UTC),
+                                True,
+                                None,
+                                "provider_adjustment_factor",
+                            )
+                        ]
+                    return [
+                        (
+                            10,
+                            None,
+                            "D1:adj:provider_adjustment_factor",
+                            {
+                                "adjustment_provenance": {
+                                    "factor_status": "rebuildable_provider_factors",
+                                    "factor_version": "afv1-family-provider",
+                                }
+                            },
+                        )
+                    ]
+
+            return FakeResult(self.calls)
+
+    result = await _family_member_bar_history(
+        FakeDB(),
+        SimpleNamespace(id=7, composition_date=date(2026, 1, 1)),
+        as_of=None,
+    )
+
+    daily = next(item for item in result.timeframes if item.timeframe == "D1")
+    assert daily.adjustment_provenance == {
+        "mode": "split_adjusted",
+        "source_kind": "derived_from_canonical_d1",
+        "factor_status": "rebuildable_provider_factors",
+        "factor_version": "afv1-family-provider",
+        "contract_version": 1,
+        "factor_versioned_member_count": 1,
+        "factor_opaque_member_count": 0,
+        "factor_unavailable_member_count": 0,
+    }
+
+
+def test_entitlement_readiness_respects_effective_and_review_cutoffs():
+    source = DataSource(name="public-eod", config={})
+    entitlement = ProviderEntitlement(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        configured_plan="public-eod",
+        is_free=True,
+        authentication_required=False,
+        live_probe_status="passed",
+    )
+
+    entitlement.effective_at = datetime(2026, 9, 4, tzinfo=UTC)
+    assert (
+        _entitlement_state(
+            source,
+            entitlement,
+            evaluation_at=datetime(2026, 9, 3, tzinfo=UTC),
+        )
+        == "unreviewed"
+    )
+
+    entitlement.effective_at = datetime(2026, 1, 1, tzinfo=UTC)
+    entitlement.review_due_at = datetime(2026, 9, 3, tzinfo=UTC)
+    assert (
+        _entitlement_state(
+            source,
+            entitlement,
+            evaluation_at=datetime(2026, 9, 3, tzinfo=UTC),
+        )
+        == "unreviewed"
+    )
 
 
 def test_python_breadth_history_projects_member_transitions_with_metric_lineage():
@@ -172,6 +440,12 @@ def test_point_in_time_membership_normalises_legacy_naive_timestamps():
     assert not _is_known_at(datetime(2024, 3, 11), as_of)
 
 
+def test_point_in_time_membership_normalises_offsetless_cutoffs():
+    as_of = datetime(2024, 3, 10)
+    assert _is_known_at(datetime(2024, 3, 9, tzinfo=UTC), as_of)
+    assert not _is_known_at(datetime(2024, 3, 11, tzinfo=UTC), as_of)
+
+
 def test_group_members_and_bars_are_cut_at_the_requested_time():
     as_of = datetime(2024, 3, 10, tzinfo=UTC)
     group = MarketGroup(
@@ -259,6 +533,38 @@ def test_industry_snapshot_cutoff_requires_known_at_provenance():
     assert "composition_date <= '2024-03-10'" in sql
 
 
+@pytest.mark.asyncio
+async def test_historical_profile_snapshot_cutoff_requires_fetch_proof():
+    class Result:
+        def scalars(self):
+            return self
+
+        def all(self):
+            return []
+
+    class FakeDB:
+        statement = None
+
+        async def execute(self, statement):
+            self.statement = statement
+            return Result()
+
+    db = FakeDB()
+    result = await _historical_profile_payloads(
+        db,
+        {7},
+        datetime(2024, 3, 10),
+    )
+
+    assert result == {}
+    compiled = db.statement.compile()
+    sql = str(compiled)
+    assert "instrument_profile_snapshot.observed_at <=" in sql
+    assert "instrument_profile_snapshot.fetched_at IS NOT NULL" in sql
+    assert "instrument_profile_snapshot.fetched_at <=" in sql
+    assert list(compiled.params.values()).count(datetime(2024, 3, 10, tzinfo=UTC)) == 2
+
+
 def test_relative_rotation_sampling_retains_latest_aligned_observation():
     aligned = [(datetime(2024, 1, day, tzinfo=UTC), float(day)) for day in range(1, 8)]
     assert _sample_aligned_points(aligned, 1) == aligned
@@ -277,6 +583,9 @@ def test_relative_rotation_states_cover_all_quadrants_and_mean_is_explicit():
 def test_analysis_helpers_preserve_utc_wire_format_and_empty_data_warnings():
     timestamp = datetime(2024, 1, 2, 3, 4, tzinfo=UTC)
     assert _wire_datetime(timestamp) == "2024-01-02T03:04:00Z"
+    assert _wire_datetime(datetime.fromisoformat("2024-01-02T05:04:00+02:00")) == (
+        "2024-01-02T03:04:00Z"
+    )
     assert _wire_datetime(None) is None
     assert _truncate_bars_at({7: [_bar(7, 2024, 1, "100")]}, None)[7]
     assert _sample_aligned_points([], 3) == []
@@ -284,6 +593,46 @@ def test_analysis_helpers_preserve_utc_wire_format_and_empty_data_warnings():
     cells = _performance_cells([], instrument_id=7)
     assert set(cells) == {"1D", "1W", "1M", "3M", "6M", "YTD", "1Y"}
     assert all(cell.warning and cell.warning.code == "no_bars" for cell in cells.values())
+
+
+def test_historical_bar_truncation_normalizes_offsetless_and_offset_cutoffs():
+    bars = {
+        7: [
+            _bar(7, 2024, 1, "100"),
+            _bar(7, 2024, 2, "120"),
+        ]
+    }
+
+    offsetless = _truncate_bars_at(bars, datetime(2024, 1, 15))
+    assert [bar.close for bar in offsetless[7]] == [Decimal("100")]
+    assert _as_utc(datetime.fromisoformat("2024-01-15T01:00:00+02:00")) == datetime(
+        2024, 1, 14, 23, tzinfo=UTC
+    )
+
+
+def test_bar_truncation_excludes_derived_period_until_source_closes():
+    cutoff = datetime(2024, 1, 10, tzinfo=UTC)
+    closed = _bar(7, 2024, 1, "100")
+    closed.is_derived = True
+    closed.source_end = datetime(2024, 1, 8, tzinfo=UTC)
+    incomplete = _bar(7, 2024, 1, "120")
+    incomplete.ts = datetime(2024, 1, 9, tzinfo=UTC)
+    incomplete.is_derived = True
+    incomplete.source_end = datetime(2024, 1, 12, tzinfo=UTC)
+
+    truncated = _truncate_bars_at({7: [closed, incomplete]}, cutoff)
+
+    assert [bar.close for bar in truncated[7]] == [Decimal("100")]
+
+
+def test_current_bar_truncation_excludes_derived_period_that_reaches_into_future():
+    incomplete = _bar(7, 2024, 1, "120")
+    incomplete.is_derived = True
+    incomplete.source_end = datetime.now(UTC) + timedelta(days=1)
+
+    truncated = _truncate_bars_at({7: [incomplete]}, None)
+
+    assert truncated[7] == []
 
 
 @pytest.mark.asyncio
@@ -333,9 +682,7 @@ async def test_stale_instrument_ids_honor_expiry_and_current_fresh_precedence():
         async def execute(self, _statement):
             return Result()
 
-    stale = await _stale_instrument_ids(Database(), [7, 8, 9], Timeframe.D1, adjusted=True)
-
-    assert stale == {7, 8}
+    assert await _stale_instrument_ids(Database(), [7, 8, 9], Timeframe.D1, adjusted=True) == {7, 8}
 
 
 def test_industry_aggregate_helpers_return_complete_periods_and_transparent_technicals():

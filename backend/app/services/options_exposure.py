@@ -23,6 +23,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.lib.quantlib_greeks import calculate_greeks
+from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument, OptionDetail, OptionRight
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import OptionQuotePoint
@@ -508,7 +509,7 @@ async def get_options_exposure(
             spot=spot,
             expirations=provider_expirations,
             active_expirations=[] if expiration is None else [expiration.isoformat()],
-            computed_at=datetime.now(UTC).isoformat(),
+            computed_at=wire_datetime(datetime.now(UTC)),
             ladder=[],
             key_levels=KeyLevels(),
             pcr_oi=None,
@@ -539,7 +540,7 @@ async def get_options_exposure(
         spot=spot,
         expirations=provider_expirations,
         active_expirations=active_expirations,
-        computed_at=datetime.now(UTC).isoformat(),
+        computed_at=wire_datetime(datetime.now(UTC)),
         ladder=ladder,
         key_levels=key_levels,
         pcr_oi=pcr_oi,

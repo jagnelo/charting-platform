@@ -14,6 +14,51 @@ function mount(component: typeof EasyScanTool, options: Parameters<typeof vueMou
 }
 
 describe('EasyScanTool', () => {
+  it('announces the idle EasyScan state politely', async () => {
+    apiGet.mockResolvedValue([])
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+
+    const state = wrapper.get('.easy-scan__state')
+    expect(state.text()).toContain('Save a price/volume condition')
+    expect(state.attributes('role')).toBe('status')
+    expect(state.attributes('aria-live')).toBe('polite')
+    expect(state.attributes('aria-atomic')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('announces condition-loading failures assertively', async () => {
+    apiGet.mockRejectedValueOnce(new Error('Condition library unavailable'))
+    const wrapper = mount(EasyScanTool)
+    await vi.waitFor(() => expect(wrapper.get('.easy-scan__error').text()).toBe('Condition library unavailable'))
+
+    const error = wrapper.get('.easy-scan__error')
+    expect(error.attributes('role')).toBe('alert')
+    expect(error.attributes('aria-live')).toBe('assertive')
+    expect(error.attributes('aria-atomic')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('announces condition-save progress politely', async () => {
+    let resolveSave!: (value: unknown) => void
+    apiGet.mockResolvedValue([])
+    apiPut.mockImplementationOnce(() => new Promise(resolve => { resolveSave = resolve }))
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('input[aria-label="Condition name"]').setValue('Close condition')
+    await wrapper.get('input[aria-label="Condition threshold"]').setValue('100')
+    await wrapper.findAll('button').find(button => button.text() === 'Save')!.trigger('click')
+
+    const state = wrapper.get('.easy-scan__state')
+    expect(state.text()).toContain('Saving condition…')
+    expect(state.attributes('role')).toBe('status')
+    expect(state.attributes('aria-live')).toBe('polite')
+    expect(state.attributes('aria-atomic')).toBe('true')
+    resolveSave({ stable_key: 'close-condition', name: 'Close condition', version: 1, payload: { condition: {} } })
+    await flushPromises()
+    wrapper.unmount()
+  })
+
   it('opens the advanced condition builder with semantic state and restores toggle focus', async () => {
     apiGet.mockResolvedValue([])
     const wrapper = mount(EasyScanTool, { attachTo: document.body })
@@ -23,7 +68,9 @@ describe('EasyScanTool', () => {
     const advanced = wrapper.get('[role="region"][aria-label="Advanced technical condition builder"]')
     expect(wrapper.get('[aria-label="Technical condition tree"]')).toBeTruthy()
     expect(toggle.attributes('aria-expanded')).toBe('true')
-    expect(toggle.attributes('aria-controls')).toBe('easy-scan-advanced-conditions')
+    const advancedId = toggle.attributes('aria-controls')
+    expect(advancedId).toBeTruthy()
+    expect(advanced.attributes('id')).toBe(advancedId)
     expect(document.activeElement).toBe(advanced.find('select, input, button').element)
     await toggle.trigger('click')
     expect(document.activeElement).toBe(toggle.element)
@@ -201,6 +248,26 @@ describe('EasyScanTool', () => {
     expect(wrapper.findAll('.tech-cond-card')).toHaveLength(2)
   })
 
+  it('refuses an ambiguous multi-output chart plot drop', async () => {
+    apiGet.mockResolvedValue([])
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    const values = new Map<string, string>()
+    const dataTransfer = {
+      types: ['application/x-charting-platform-plot'],
+      setData: (type: string, value: string) => values.set(type, value),
+      getData: (type: string) => values.get(type) ?? '',
+      effectAllowed: '',
+    } as unknown as DataTransfer
+    writeChartPlotDrag(dataTransfer, createChartPlotDragPayload({ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#fff', lineWidth: 1 }, pane: 'main' }, 'D1', 'chart-source'))
+
+    await wrapper.get('.easy-scan').trigger('drop', { dataTransfer })
+    await flushPromises()
+
+    expect(wrapper.get('[role="status"]').text()).toContain('multi-output')
+    expect(wrapper.find('.easy-scan__advanced').exists()).toBe(false)
+  })
+
   it('exposes the editable condition tree as a bounded drag source', async () => {
     apiGet.mockResolvedValue([])
     const wrapper = mount(EasyScanTool, { props: { sourceWindowKey: 'scan-source' } })
@@ -302,5 +369,21 @@ describe('EasyScanTool', () => {
     expect(wrapper.text()).toContain('2 matches')
     await history.setValue('100')
     expect(wrapper.text()).toContain('1 matches')
+  })
+
+  it('does not publish late library hydration after the tool unmounts', async () => {
+    let resolveConditions!: (value: any[]) => void
+    apiGet.mockImplementation((path: string) => path === '/workspaces/library/conditions'
+      ? new Promise(resolve => { resolveConditions = resolve })
+      : Promise.resolve([]))
+    const wrapper = mount(EasyScanTool)
+    await Promise.resolve()
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/library/conditions')
+
+    wrapper.unmount()
+    resolveConditions([{ stable_key: 'late', name: 'Late condition', version: 1 }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).conditions).toEqual([])
   })
 })

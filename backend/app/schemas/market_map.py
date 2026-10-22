@@ -3,8 +3,9 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 
+from app.lib.time_utils import wire_datetime
 from app.schemas.watchlist import WatchlistSourceRead
 
 MarketMapGroupBy = Literal["none", "sector", "industry", "sector_industry"]
@@ -109,6 +110,10 @@ class MarketMapCell(BaseModel):
     area_coverage: float = Field(default=0, ge=0, le=1)
     warnings: list[MarketMapWarning] = Field(default_factory=list)
 
+    @field_serializer("observation_time")
+    def serialize_observation_time(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class MarketMapNode(BaseModel):
     node_id: str
@@ -141,6 +146,9 @@ class MarketMapOut(BaseModel):
     condition: dict[str, object] | None = None
     coverage_preflight: dict[str, object] = Field(default_factory=dict)
     python_run_id: int | None = None
+    python_code_version_id: int | None = None
+    python_output_name: str | None = None
+    python_output_contract: str | None = None
     reference_symbol: str | None = None
     reference_source: WatchlistSourceRead | None = None
     reference_source_id: str | None = None
@@ -163,6 +171,10 @@ class MarketMapOut(BaseModel):
     exclusions: list[MarketMapWarning] = Field(default_factory=list)
     warnings: list[MarketMapWarning] = Field(default_factory=list)
 
+    @field_serializer("period_start", "period_end", "cached_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class MarketMapSnapshotCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
@@ -180,6 +192,10 @@ class MarketMapSnapshotSummary(BaseModel):
     snapshot_hash: str
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value) or ""
 
 
 class MarketMapSnapshotOut(MarketMapSnapshotSummary):

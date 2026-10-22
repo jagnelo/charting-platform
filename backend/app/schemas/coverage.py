@@ -2,13 +2,19 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+from app.lib.time_utils import wire_datetime
 
 
 class LocalCoverageRangeOut(BaseModel):
     oldest: datetime | None = None
     newest: datetime | None = None
     bar_count: int = Field(ge=0)
+
+    @field_serializer("oldest", "newest")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class DatasetCoverageStateOut(BaseModel):
@@ -21,6 +27,11 @@ class DatasetCoverageStateOut(BaseModel):
     fetched_at: datetime | None = None
     stale_after: datetime | None = None
     version: int = Field(ge=1)
+    extra_data: dict | None = None
+
+    @field_serializer("coverage_start", "coverage_end", "observed_at", "fetched_at", "stale_after")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class InstrumentCoverageOut(BaseModel):
@@ -32,10 +43,57 @@ class InstrumentCoverageOut(BaseModel):
     refreshed_at: datetime
     provenance: str = "canonical_local_database"
 
+    @field_serializer("refreshed_at")
+    def serialize_timestamp(self, value: datetime) -> str:
+        return wire_datetime(value)
+
 
 class OhlcvCoverageSliceOut(BaseModel):
     start: datetime
     end: datetime
+
+    @field_serializer("start", "end")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value)
+
+
+class OhlcvLineageOut(BaseModel):
+    provider_bar_count: int = Field(ge=0)
+    derived_bar_count: int = Field(ge=0)
+    unknown_bar_count: int = Field(ge=0)
+    source_lineage: str
+    source_timeframes: list[str] = Field(default_factory=list)
+
+
+class OhlcvAdjustmentProvenanceOut(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    mode: str
+    source_kind: str
+    factor_status: str
+    factor_version: str | None = None
+    contract_version: int = Field(ge=1)
+
+
+class OhlcvStorageEvidenceOut(BaseModel):
+    status: str
+    provider_bar_count: int = Field(ge=0)
+    observation_count: int = Field(ge=0)
+    matched_observation_count: int = Field(ge=0)
+    missing_observation_count: int = Field(ge=0)
+    mismatched_observation_count: int = Field(ge=0)
+    orphan_observation_count: int = Field(ge=0)
+
+
+class OhlcvObservedCadenceOut(BaseModel):
+    """Observed spacing for returned local bars, not a provider schedule."""
+
+    status: str
+    sample_count: int = Field(default=0, ge=0)
+    median_interval_days: float | None = Field(default=None, ge=0)
+    min_interval_days: float | None = Field(default=None, ge=0)
+    max_interval_days: float | None = Field(default=None, ge=0)
+    semantics: str = "diagnostic_of_returned_bar_timestamps_only"
 
 
 class OhlcvCoverageOut(BaseModel):
@@ -52,4 +110,12 @@ class OhlcvCoverageOut(BaseModel):
     bar_count: int = Field(ge=0)
     missing_slices: list[OhlcvCoverageSliceOut] = Field(default_factory=list)
     explanation: str
+    lineage: OhlcvLineageOut
+    adjustment_provenance: OhlcvAdjustmentProvenanceOut
+    storage_evidence: OhlcvStorageEvidenceOut
+    observed_cadence: OhlcvObservedCadenceOut
     provenance: str = "canonical_local_database"
+
+    @field_serializer("requested_start", "requested_end", "covered_start", "covered_end")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)

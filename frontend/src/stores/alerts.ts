@@ -209,6 +209,10 @@ export const useAlertsStore = defineStore('alerts', () => {
             fired_at: msg.triggered_at ?? new Date().toISOString(),
             trigger_value: msg.current_price ?? msg.value_a ?? null,
             condition_snapshot: {
+              indicator: msg.indicator,
+              output_a: msg.output_a,
+              indicator_b: msg.indicator_b,
+              output_b: msg.output_b,
               condition: msg.condition,
               threshold: msg.threshold,
               symbol: msg.symbol,

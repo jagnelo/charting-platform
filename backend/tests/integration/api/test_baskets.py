@@ -218,3 +218,15 @@ def test_basket_ohlcv_returns_rebased_weighted_series(
     # AAPL +21% and MSFT -1%, equal weighted from the first aligned bar.
     assert bars[2]["close"] == 110
     assert bars[2]["volume"] == 3000
+
+    offset_range = client.get(
+        f"/api/v1/baskets/{basket_id}/ohlcv/D1",
+        params={
+            "start": "2026-01-01T02:00:00+02:00",
+            "end": "2026-01-02T02:00:00+02:00",
+        },
+        headers=auth_headers,
+    )
+
+    assert offset_range.status_code == 200
+    assert [bar["close"] for bar in offset_range.json()] == [100, 110]

@@ -15,6 +15,7 @@ from app.services.etf_holdings import (
     _enrich_existing_constituent_classification,
     _holding_needs_reconcile,
     _resolve_or_create_constituent,
+    _snapshot_hash,
     ensure_etf_profile,
     ensure_lightweight_etf_instrument,
     ingest_holdings_snapshot,
@@ -404,6 +405,88 @@ async def test_resolver_can_skip_optional_provider_enrichment_for_bounded_ingest
     assert instrument.symbol == "BOUNDFAST"
     assert confidence == Decimal("0.5000")
     assert note is None
+
+
+@pytest.mark.asyncio
+async def test_ingest_normalizes_legacy_equity_labels_without_rewriting_audit_evidence(db):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="LEGACYETF",
+        name="Legacy Label ETF",
+    )
+    row = CanonicalHoldingRow(
+        symbol="LEGACYCOMMON",
+        name="Legacy Common Stock Corporation",
+        currency="USD",
+        holding_type="Common Stock",
+        row_type="Security",
+    )
+
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[row],
+        composition_date=date(2026, 9, 30),
+        provenance="issuer_native",
+        source_provider="issuer-test",
+        completeness_status="complete",
+        allow_provider_enrichment=False,
+    )
+    db.flush()
+
+    holding = db.execute(
+        select(ETFHolding).where(ETFHolding.snapshot_id == snapshot.id)
+    ).scalar_one()
+    assert holding.is_resolved is True
+    assert holding.constituent_instrument.symbol == "LEGACYCOMMON"
+    assert holding.holding_type == "Common Stock"
+    assert holding.row_type == "Security"
+    assert snapshot.row_count == 1
+    assert snapshot.resolved_count == 1
+    assert snapshot.snapshot_hash == _snapshot_hash([row])
+
+
+@pytest.mark.asyncio
+async def test_ingest_keeps_unsupported_reit_label_unresolved_and_auditable(db):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="UNSUPPORTEDETF",
+        name="Unsupported Label ETF",
+    )
+    row = CanonicalHoldingRow(
+        symbol="NARROWREIT",
+        name="Narrow Allowlist REIT",
+        currency="USD",
+        holding_type="Real Estate Investment Trust",
+        row_type="Security",
+    )
+
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[row],
+        composition_date=date(2026, 9, 30),
+        provenance="issuer_native",
+        source_provider="issuer-test",
+        completeness_status="complete",
+        allow_provider_enrichment=False,
+    )
+    db.flush()
+
+    holding = db.execute(
+        select(ETFHolding).where(ETFHolding.snapshot_id == snapshot.id)
+    ).scalar_one()
+    assert holding.is_resolved is False
+    assert holding.constituent_instrument_id is None
+    assert holding.holding_type == "Real Estate Investment Trust"
+    assert holding.row_type == "Security"
+    assert holding.resolution_note is not None
+    assert snapshot.row_count == 1
+    assert snapshot.resolved_count == 0
+    assert snapshot.unresolved_count == 1
+    assert snapshot.snapshot_hash == _snapshot_hash([row])
 
 
 @pytest.mark.asyncio

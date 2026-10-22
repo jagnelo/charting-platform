@@ -1,5 +1,646 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-10-06 — Current-source functional and seeded visual revalidation
+
+At product source `f0e946000e15336d972f33f24520d72b06e5cf7e` (pushed branch
+checkpoint `804ffd2077f668d3c08498dacc2a0d604615d5a5`), the unchanged seeded
+Playwright 1.62.1 functional suite passed `175/177`, with two documented skips
+and zero failures in the complete run. Two intervening full retries each had
+one transient failure; both failing cases passed isolated replay and in the
+later full run. No source, test, assertion, or retry policy changed.
+
+The four-profile board-guided local matrix passed `104/104` after the ten
+previously mismatching seeded screenshots were refreshed to match the states
+asserted before capture. These images are local product-state regression
+oracles only. `REF-SHELL-V25` and `REF-STUDY-LAB-V25` remain open/`required_missing`;
+the captures do not constitute exact V25 comparison. No threshold, mask,
+reference, skip, or acceptance rule changed. The ten local screenshot files and
+the detailed rationale are recorded in the reference board and workstream
+validation journal.
+
+## 2026-10-05 — Exact-product-tip dense workstation performance
+
+At pushed checkpoint `93c152dffaca7f50c078439e55c8599ba227e518` (product
+source `f0e946000e15336d972f33f24520d72b06e5cf7e`), the complete pinned
+Playwright 1.62.1 `workstation_performance.spec.ts` passed `4/4` in 33.9
+seconds with the opt-in 10,000-row fixture enabled. The run used an isolated
+temporary Compose project and the browser source was mounted read-only. Exact
+inventory preceded cleanup of its four containers, four volumes, network, and
+two generated images. The assigned six-service stack and its four volumes
+remained healthy and intact. This is dense-data performance evidence only; it
+does not change the four-project visual matrix or close its ten protected
+screenshot differences. Output: `/tmp/tc2000-performance-93c152d-output`.
+
+## 2026-10-05 — Exact current product-tip functional and visual matrix
+
+At product commit `f0e946000e15336d972f33f24520d72b06e5cf7e` (pushed as the
+product source of branch checkpoint `b759198197c510cd794171ca6a9b8124d2841eec`),
+the seeded authenticated Playwright 1.62.1 functional suite completed 177
+cases twice. The first run passed 174, skipped two documented cases, and had
+one F8k chart plot bounding-box failure. The unchanged focused F8k replay
+passed 1/1, and the unchanged full rerun passed 175/177 with two documented
+skips and zero failures. Preserve the first failure as raw history; it did not
+reproduce and no source/assertion changed.
+
+The exact product-tip four-project visual board completed 104 cases: 94 passed
+and the same ten screenshot-only comparisons remain above the unchanged
+threshold after their state assertions passed. The identities and pixel counts
+are unchanged: workspace-floating at all four projects (8,995 / 9,825 / 8,995 /
+9,825), Study structured-result at all four (109,320 / 105,944 / 22,035 /
+21,352), and Study sandbox-error at 1080p/100 and 1080p/125 (13,360 / 11,188).
+No reference, mask, threshold, skip, fallback, or acceptance rule changed.
+
+The first exact product-tip `workstation_performance.spec.ts` run passed three
+cases and skipped only the opt-in 10,000-row case because the assigned
+backend's `E2E_SEED_LARGE_UNIVERSE` flag was false. The complete isolated rerun
+at the same product source then passed 4/4 with that fixture enabled (see the
+newest entry above). The earlier performance skip is retained as raw history,
+not a current gate. All artifacts were written under `/tmp`; the assigned
+six-service stack and its four volumes were preserved.
+
+## 2026-10-05 — Earlier exact branch-tip functional and visual matrix
+
+At pushed branch checkpoint `c84ed3c7077c09085e1df740b75e7760b7545d37`
+(product source `d413d845939e68e9738b621329fa8d63a419ddf8`), the unchanged
+seeded Playwright 1.62.1 `flows.spec.ts` rerun completed 177 cases: 175 passed,
+2 documented skips, and zero failures. The first full run at the same product
+source had one 60-second F8m chart-panel link-menu timeout after 174 passes and
+2 skips; both its focused replay and the unchanged full rerun passed, with no
+product or test assertion changes. Keep the first outcome as raw history; the
+functional flow gate is currently green. The initial default workstation
+performance suite passed 3/4 with its opt-in 10,000-row case skipped; a
+focused isolated replay passed that case 1/1. At later branch checkpoint
+`0811a098d5c75839a071c6d6d54d0ce5463b034f`, the complete performance file then
+passed `4/4` in 38.2 seconds with `E2E_SEED_LARGE_UNIVERSE=true`. Its temporary
+project and data volumes were removed; the assigned stack remained healthy and
+intact. Preserve the earlier outcomes as raw history, but the complete
+performance-file gate is now green.
+
+At later branch checkpoint `48a9323d4bbc2dd10ac42764e34ed3415ab4a106`, the
+pinned `workstation_performance.spec.ts` 50-round pop-out/restore churn test
+passed `1/1` in 2 minutes against the assigned stack. The bounded research-runner
+sandbox/resource probes passed on the same stack, with restart count `0`. These
+R6 results do not alter screenshot baselines or close the ten pixel differences.
+
+The four-project board-guided visual matrix completed all 104 cases: 94 passed
+and 10 screenshot comparisons remained above the unchanged `0.005` threshold
+after their state assertions passed. They are the same protected identities:
+workspace-floating at all four viewports, Study structured-result at all four,
+and Study sandbox-error at the two 1080p scales. No reference, mask, threshold,
+skip, fallback, or acceptance policy changed.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 pixels | 109,320 pixels | 13,360 pixels |
+| `visual-1080p-125` | 9,825 pixels | 105,698 pixels | 11,188 pixels |
+| `visual-1440p-100` | 8,995 pixels | 22,099 pixels | Passed |
+| `visual-1440p-125` | 9,825 pixels | 21,352 pixels | Passed |
+
+Full frontend Vitest passed 129 files / 1,208 tests with file parallelism
+disabled. The attempt using Vitest's `singleThread` mode had six unrelated
+5-second `WorkspaceLayoutHost` timeouts and was stopped while silent; it is
+preserved as an unsupported runner-profile diagnostic, not a product result.
+All browser runs used the assigned stack and preserved its four volumes. The
+visual manifest and protected baselines were not changed. Earlier records
+below remain historical and retain their raw outcomes.
+
+## 2026-10-05 — Recursive Python-series conditions are implemented; visual gap remains
+
+Python numeric-series leaves and Python-series-versus-series comparisons are
+implemented within recursive breadth condition trees. The editor exposes both
+leaf types; the API and isolated research runner preserve and evaluate their
+tree parameters; component, backend-runner, and authenticated browser tests
+cover the contracts. Their exact Version 25 geometry remains unrepresented by
+an authoritative reference capture, so retain a visual-only gap until the
+reference board covers those states. Do not label these behaviors as missing
+implementation or infer a screenshot pass.
+
+## 2026-10-05 — Historical four-project matrix at earlier product source
+
+At product source `721b0efbea486361fa0632b2f874353ca7802127`, the full serial
+pinned Playwright 1.62.1 board ran all `104` cases. `94` passed and `10`
+protected screenshot comparisons failed after their interaction/state
+assertions passed:
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 pixels | 109,320 pixels | 13,360 pixels |
+| `visual-1080p-125` | 9,825 pixels | 105,698 pixels | 11,188 pixels |
+| `visual-1440p-100` | 8,995 pixels | 22,035 pixels | Passed |
+| `visual-1440p-125` | 9,825 pixels | 21,352 pixels | Passed |
+
+The same ten protected failure identities recur, although a few Study pixel
+counts vary slightly between clean seeded runs. A separate fresh-stack
+functional run with `E2E_SEED_MARKET_DATA=true` passed `179/182`, with 3
+documented skips and zero failures; the `168/182` run with eight failures used
+the wrong `false` seed profile and is diagnostic only. No reference, mask,
+threshold, skip, fallback, or acceptance policy changed. Keep the visual
+differences open pending current V25 authority or a confirmed source defect;
+do not convert test-local images into authoritative product references.
+
+## 2026-10-05 — Protected screenshot-diff review disposition
+
+The ten known screenshot differences were reviewed alongside their state
+assertions. The workspace-floating local captures show an empty table although
+the current test requires five seeded rows; the stored images predate that
+fixture expectation. The Study structured-result captures predate the current
+result and promotion controls. The two 1080p Study sandbox-error comparisons
+remain pixel-only after state assertions pass. This review found no source
+change justified by the stored references and no valid basis to change any
+reference, mask, threshold, skip, or acceptance rule.
+
+Product commit `721b0efbea486361fa0632b2f874353ca7802127` adds the Boolean
+watchlist pin menu's `aria-controls` relationship and fixes duplicate Code
+Library form IDs across detached roots. It passes full frontend Vitest
+(`129` files / `1,206` tests), production type-check/build, and focused
+watchlist / Code Library suites (`81/81` and `12/12`). The authenticated
+F8u-boolean flow passed `1/1` before the separate Code Library ID correction.
+The last full four-project visual result remains `94/104` at product tip
+`1d52ab`; it is not a current-tip visual result. Rerun the complete visual board
+at a clean exact product tip and preserve the existing ten differences unless
+new visual authority or a confirmed source defect changes their disposition.
+
+## 2026-10-05 — Exact-tip clean functional and visual results
+
+At pushed TC workstream tip `4b88a90600420a37a3e62cc01d0c065e389affcd`
+(product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`; E2E keyboard
+coverage from `8448c45286b2202800e6079bc30a1a02e5999936`), pinned Playwright
+1.62.1 completed the full serial functional suite: `173` passed, `6`
+documented skips, zero failures across `179` cases. Two first-run failures
+(`ERR_NETWORK_CHANGED` in F9g and an F8w Gauge control visibility timeout)
+both passed unchanged focused replay; the clean-stack complete rerun is the
+current full functional result.
+
+The correctly enabled `RUN_BOARD_VISUAL_PARITY=1` run completed all `104`
+cases: `94` passed and `10` protected screenshot comparisons failed after
+their state assertions passed. Pixel differences are:
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 | 109,320 | 13,360 |
+| `visual-1080p-125` | 9,825 | 105,698 | 11,188 |
+| `visual-1440p-100` | 8,995 | 22,099 | Passed |
+| `visual-1440p-125` | 9,825 | 21,352 | Passed |
+
+The earlier transport diagnostic did not recur. All four projects retain the
+same open states: workspace-floating at each viewport, Study structured-result
+at each viewport, and Study sandbox-error at both 1080p scales. No reference,
+mask, threshold, skip, fallback, or acceptance rule changed. Full functional
+artifacts are under `/tmp/tc2000-full-functional-clean-rerun.HJ76xu`; full
+visual artifacts are under `/tmp/tc2000-exact-tip-visual-board.0tfCo1`.
+
+## 2026-10-05 — Pinned exact-tip matrix and renderer diagnostic
+
+At product source `be55d1af2de8037671d65e33d5b1d5120e11f38c`, pinned Playwright
+1.62.1 completed the authenticated functional run with 172 passed, 2
+documented skips, and zero failures. The complete visual matrix ran all 104
+cases: 93 passed and 11 failed. Ten failed only at screenshot comparison in the
+same protected states; one watchlist-column-editor diagnostic failed after a
+local `ERR_NETWORK_CHANGED` burst and its unchanged focused replay passed 4/4.
+The replay is diagnostic and does not replace the full result.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 | 109,585 | 13,360 |
+| `visual-1080p-125` | 9,825 | 105,698 | 11,120 |
+| `visual-1440p-100` | 8,995 | 22,035 | Passed |
+| `visual-1440p-125` | 9,825 | 21,352 | Passed |
+
+The shell smoke passed 4/4 in the pinned Noble image. Host Ubuntu 26.04.1
+produced 42,759 / 44,586 / 50,854 / 53,003 differing pixels across the same
+viewports. Inspection showed aligned panel geometry and text-stroke diffs; host
+Arial resolved to Nimbus Sans while the pinned image resolved Arial to
+Liberation Sans. This makes a font/rasterization environment difference the
+best-supported explanation for the host-only smoke, not a new product
+regression or acceptance result. The full pinned matrix still has the ten
+listed differences. No reference capture, mask, threshold, skip, fallback, or
+acceptance policy changed. Artifacts are retained at
+`/tmp/tc2000-pinned-visual-full-3t8qbk`,
+`/tmp/tc2000-pinned-functional-full-9Iq2rG`,
+`/tmp/tc2000-pinned-visual-render-XN4RoA`, and
+`/tmp/tc2000-current-tip-boolean-pin-visual-smoke-20261005`.
+
+## 2026-10-05 — Boolean pin-menu keyboard access and current-tip diagnostics
+
+At product commit `be55d1af2de8037671d65e33d5b1d5120e11f38c`, the Virtual
+Watchlist Boolean-header pin menu can be invoked with `Shift+F10` or the Context
+Menu key. Keyboard invocation anchors it to the header; the existing right-click
+and Ctrl/Meta-click gestures remain unchanged. The focused component suite passed
+`80/80`, the authenticated F8u-boolean browser flow passed `1/1`, and the full
+frontend/build checks passed. This is an interaction/accessibility update, not
+a new visual reference or screenshot baseline.
+
+At the same exact tip, the functional Playwright project ran `174` cases: `171`
+passed, `2` documented skips, and the F8s-family-matrix diagnostic failed after
+its application assertions because local API calls reported
+`ERR_NETWORK_CHANGED`. The unchanged focused replay passed `1/1`; the full-run
+failure remains recorded.
+
+The previous completed 104-case four-project visual matrix was `93/104`, with
+ten protected screenshot differences and one transient startup failure that
+passed focused replay. A post-change full visual attempt was stopped after broad
+baseline deltas. After a fresh seeded database, an application-shell diagnostic
+still differed in all four pinned viewport projects:
+
+| Pinned project | Different pixels |
+| --- | ---: |
+| `visual-1080p-100` | 42,759 |
+| `visual-1080p-125` | 44,586 |
+| `visual-1440p-100` | 50,854 |
+| `visual-1440p-125` | 53,003 |
+
+Each shell delta exceeds the unchanged `0.5%` screenshot threshold. This
+four-case diagnostic is not a full matrix result and does not supersede the
+previous 104-case result. Artifacts are under
+`/tmp/tc2000-current-tip-boolean-pin-full-functional-20261005`,
+`/tmp/tc2000-current-tip-family-matrix-replay-20261005`, and
+`/tmp/tc2000-current-tip-boolean-pin-visual-smoke-20261005`. No reference,
+mask, threshold, skip, fallback oracle, or acceptance rule changed. Staging is
+`8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`; provider and ETF remain outside it.
+
+## 2026-10-05 — Exact-tip full browser replay and capability-menu guard
+
+At pushed branch tip `9b04cee36d32d5064fc4edb3c512d98b88c38040` (product
+source `3958886632af62e0207fb02ed6961b16fd1a600c`), the pinned Playwright
+1.62.1 serial functional project ran `178` cases: `167` passed, `6` documented
+skips, and `5` failed. Four failures were bursts of `ERR_NETWORK_CHANGED` on
+local API requests in unrelated flows; the fifth was the Market Map Python
+output tool not opening. The exact assigned Compose stack stayed healthy with
+zero service restarts. A six-case serial replay covering all five failures plus
+the adjacent F9j promotion flow passed `6/6`; these retries diagnose the full
+run failures and do not replace its result.
+
+The corrected four-project visual-board run executed all `104` cases: `93`
+passed and `11` failed. Ten were screenshot comparisons in the already-known
+workspace-floating, Study structured-result, and 1080p Study sandbox-error
+states. Current differing-pixel counts were:
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | ---: | ---: | ---: |
+| `visual-1080p-100` | 8,995 | 109,320 | 13,300 |
+| `visual-1080p-125` | 9,825 | 105,698 | 11,188 |
+| `visual-1440p-100` | 8,995 | 22,035 | Passed |
+| `visual-1440p-125` | 9,825 | 21,352 | Passed |
+
+The eleventh visual-run failure was a blank-page startup in the 1440p/125 Study
+validation-error fixture before `.workstation` appeared. The unchanged case
+passed `1/1` when replayed alone. No screenshot, mask, threshold, skip, fallback,
+or acceptance rule changed. Artifacts are retained under
+`/tmp/tc2000-current-tip-functional.vMhtmG`,
+`/tmp/tc2000-current-tip-replay.vO3NTm`,
+`/tmp/tc2000-current-tip-visuals.Ca9DA4`, and
+`/tmp/tc2000-current-tip-visual-replay.kTVbOZ`.
+
+After those matrices, the authenticated Add Tool surface gained the focused
+`F8x-capabilities` guard: it asserts the complete supported-tool list, no
+disabled entries, and no “coming soon” or entitlement placeholder. It passed
+`1/1`; this test-only addition is not included in the full functional run above.
+The registry-level unit guard remains in place. The reference board, ten visual
+differences, and full integration gate remain open for later exact-tip review.
+
+## 2026-10-05 — Boolean-column pinning interaction evidence
+
+The authenticated `F8u-boolean` flow now covers the V25 Boolean/tag header
+pinning gestures: right-click opens the pin/unpin action, Ctrl-click toggles
+pinning, the header announces pinned state, and the existing sort state remains
+unchanged. The flow passed `1/1` against the rebuilt current worktree bundle.
+The reference board includes behavior evidence for pinned Boolean results but
+no authoritative screenshot of this header menu or pinned-header marker. This
+is functional evidence only: no screenshot baseline, mask, threshold, skip, or
+visual-acceptance rule changed. The complete four-viewport board is still
+`94/104` at its previously recorded product source and must be rerun at current
+tip; the ten existing screenshot differences remain open for review.
+
+The latest complete board run used product source
+`05aac7f816aab492c7b2aadb1adb9ffc6e76f02a` at pushed branch tip
+`049267cee5301f2e33c8857305c48f2f3fd77521`. It passed `94/104`; ten
+screenshot comparisons remain open for the review recorded below. No
+references, masks, thresholds, skips, or acceptance rules have been modified.
+The Chart Plot Library search interaction has authenticated browser coverage,
+but the checked-in board does not capture that panel open, so its exact styling
+still lacks screenshot coverage.
+
+The separate pinned full functional browser run completed `282` cases with
+`175` passed, `107` documented skips, and zero failures. Visual board cases are
+intentionally skipped by that functional profile; this does not replace or
+change the 104-case visual result below.
+
+## 2026-10-04 — Latest pinned exact-tip matrix at `049267c`
+
+The serial four-viewport matrix ran all `104` cases in pinned Playwright
+1.62.1 at exact pushed branch tip `049267cee5301f2e33c8857305c48f2f3fd77521`
+(product source `05aac7f816aab492c7b2aadb1adb9ffc6e76f02a`). Result: `94`
+passed and `10` screenshot-only comparisons failed after each affected
+state/interaction assertion passed.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | --- | --- | --- |
+| `visual-1080p-100` | 8,995 pixels | 109,320 pixels | 13,360 pixels |
+| `visual-1080p-125` | 9,825 pixels | 105,698 pixels | 11,188 pixels |
+| `visual-1440p-100` | 8,995 pixels | 22,035 pixels | Passed |
+| `visual-1440p-125` | 9,825 pixels | 21,352 pixels | Passed |
+
+These are the same ten documented local-reference cases: workspace-floating
+at all four viewports, Study structured-result at all four, and Study
+sandbox-error at the two 1080p scales. The small 1440p/100 structured-result
+pixel-count change from the earlier exact-tip run does not change its failure
+category. A host-browser diagnostic again produced broad environment-sensitive
+deltas (8/104 passed); it is not a valid comparison against these pinned Linux
+baselines. No snapshot, mask, threshold, skip, fallback, or acceptance rule
+changed. Artifacts are retained at `/tmp/tc2000-pinned-visual.DYoDfS`.
+
+The exact assigned Compose project was removed after the run, including six
+containers, four fixture volumes, its network, and four generated images.
+Read-only GitHub refs refreshed to TC `049267cee5301f2e33c8857305c48f2f3fd77521`,
+staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform
+`88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings
+`ea477adee73ec27c865b79e2da1476e4348e47a7`. Neither dependency tip is an
+ancestor of staging; defer their integration and shared-path reconciliation.
+
+## 2026-10-04 — Chart Plot Library open/search state inspected without a visual oracle
+
+An authenticated Chromium review opened the Chart Plot Library, filtered to the
+full `Relative Strength Index` name, expanded the selector to confirm the RSI
+result is visible, and confirmed the no-match message is exposed as a live
+status. The screenshot at `/tmp/tc2000-chart-open-rsi-dropdown.png` records the
+current TC render only. The branch-local reference pack has no authoritative
+V25 capture for this exact state, so this image is not a baseline and does not
+close the visual-parity gap. No screenshot, mask, threshold, skip, or acceptance
+policy changed.
+
+## 2026-10-04 — Exact-tip pinned visual matrix at a78812d
+
+At exact pushed branch tip `a78812d33f6402b329c947b70765f2a84e5be9ac`, the
+complete pinned Playwright 1.62.1 matrix ran all 104 cases across four viewport
+projects. Result: `94` passed and `10` screenshot comparisons failed after
+their state and interaction assertions passed.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | --- | --- | --- |
+| `visual-1080p-100` | 8,995 pixels | 109,320 pixels | 13,360 pixels |
+| `visual-1080p-125` | 9,825 pixels | 105,698 pixels | 11,188 pixels |
+| `visual-1440p-100` | 8,995 pixels | 22,099 pixels | Passed |
+| `visual-1440p-125` | 9,825 pixels | 21,352 pixels | Passed |
+
+The workspace-floating state expects five seeded rows while the local reference
+shows an empty table. The structured-result output includes newer result and
+promotion controls absent from the stored reference. In the two 1080p
+sandbox-error captures, the visible parameter-schema example shows lookback
+`20` while the saved images show `2`; this does not account for every pixel.
+These are board-guided local regression screenshots, not authoritative V25
+captures. The 0.5% threshold and all screenshots, masks, skips, and acceptance
+rules remain unchanged. No visual acceptance is inferred from the test's
+pre-screenshot state assertions.
+
+## 2026-10-04 — Focused current-source visual replay and fixture disposition
+
+At test SHA `d8553e5d93419d6f2315ff587d13b4d0e8145c9b` (product source
+`74fc6061c6f0a567d4212b29405ed14be9b71195`), pinned Playwright 1.62.1 replayed
+the three affected visual states across all four projects: 12 cases total. This
+was a focused replay, not a new 104-case matrix. The four workspace-floating
+and four Study structured-result cases reached stable screenshot comparison
+after their state assertions passed. The sandbox-error fixture matcher was
+corrected to hold the initial cursor-free results request irrespective of page
+size; all four cases then reached screenshot assertions after loading and
+interaction checks passed.
+
+| Pinned project | Workspace floating | Study structured result | Study sandbox error |
+| --- | --- | --- | --- |
+| `visual-1080p-100` | 8,995 pixels; five seeded rows in current image, empty saved image | 109,320 pixels; state checks passed, current result has newer output/promotion controls | 13,300 pixels; state checks passed; current schema example shows lookback `20`, saved local image shows `2` |
+| `visual-1080p-125` | 9,825 pixels; five seeded rows in current image, empty saved image | 105,944 pixels; state checks passed, current result has newer output/promotion controls | 11,188 pixels; state checks passed; current schema example shows lookback `20`, saved local image shows `2` |
+| `visual-1440p-100` | 8,995 pixels; five seeded rows in current image, empty saved image | 22,035 pixels; state checks passed, current result has newer output/promotion controls | Passed; state checks and screenshot assertion passed |
+| `visual-1440p-125` | 9,825 pixels; five seeded rows in current image, empty saved image | 21,352 pixels; state checks passed, current result has newer output/promotion controls | Passed; state checks and screenshot assertion passed |
+
+The workspace comparison is a deterministic test-state/reference mismatch: the
+test asserts five seeded benchmark rows, but the saved local image depicts an
+empty table. The structured-result comparison is likewise local-reference
+drift: the current asserted output includes later result cards and promotion
+actions absent from the saved local image. These repository snapshots are
+board-guided regression references, not authoritative V25 captures, so neither
+comparison justifies changing the product or silently replacing an oracle.
+The test-only fixture correction restores the sandbox-error loading
+precondition after R5 pagination. Its two 1080p differences match the visible
+local-image discrepancy previously recorded: the current parameter-schema
+example displays lookback `20`, while the stored images display `2`; this does
+not establish that the whole pixel delta has one cause. Both 1440p cases pass.
+Ten of the focused 12 screenshot assertions therefore remain different and two
+pass. The repository images are board-guided local regression references, not
+authoritative V25 captures. No product styling, screenshot, mask, threshold,
+skip, fallback, or acceptance rule changed; the 0.5% threshold is unchanged.
+The complete 104-case matrix remains pending.
+
+## 2026-10-04 — Latest pinned-browser matrix: 94/104 pass at `58975ea`
+
+The full four-viewport matrix ran with the pinned Playwright 1.62.1 image against
+the clean tree at `58975ea6bee3e506f64d97506aadf4026c626357` (product source
+`defefaaafde1db3fc302dc50be923d06ccf84ea0`). Result: `94` passed and `10`
+screenshot assertions failed after their state/interaction checks passed. The
+four `workspace-floating` differences were `8,995`, `9,825`, `8,995`, and
+`9,825` pixels across 1080p/100, 1080p/125, 1440p/100, and 1440p/125. The four
+Study structured-result differences were `109,320`, `105,698`, `22,035`, and
+`21,352` pixels in the same order. Study sandbox-error differed by `13,360` and
+`11,120` pixels in the two 1080p projects; both 1440p cases passed. The earlier
+Study-running capture race did not recur: all four running-state cases passed.
+
+These are the same ten documented state differences, not a new failure
+category. The assigned stack teardown removed its six containers, four volumes,
+network, and four generated images; resource accounting found zero remaining
+containers, volumes, images, test sessions, or unknown resources. Browser
+artifacts were removed from the temporary output directory. Acceptance
+flexibility used: the represented states are compared against deterministic
+local board-guided screenshots, not treated as exact V25 pixel approval. No
+reference, mask, threshold, skip, fallback, or acceptance rule changed; the ten
+visual gaps remain open for the review required by
+`docs/tc2000-visual-parity.md`.
+
+## 2026-10-04 — Focused Study sandbox-error replay at `816fd82`
+
+The two 1080p sandbox-error cases were replayed in pinned Chromium against
+product source `816fd82ac351770deb455e767a59f28e68c2dde9`. Both reached the
+screenshot assertion after their Study state and interaction checks passed;
+the comparisons differed by `17,559` pixels at 1080p/100 and `16,644` pixels
+at 1080p/125 (about `1%`). The visible parameter-schema example placeholder
+currently displays `20`, while the saved local images display `2`. This is a
+known local screenshot-state mismatch, not an authoritative V25 capture, and it
+does not establish that the whole pixel delta has one cause. No snapshot,
+threshold, mask, skip, or acceptance rule changed; baseline review remains
+required.
+
+## 2026-10-04 — Latest pinned-browser matrix: 93/104 pass at `7427de7`
+
+The full 104-case board completed in pinned Playwright 1.62.1 with 93 passes
+and 11 screenshot mismatches. All preceding state/interaction assertions
+passed. Four `workspace-floating` images show five seeded rows where the saved
+images are empty; four Study structured-result images contain newer promotion
+controls/content absent from their saved images; two 1080p Study sandbox-error
+images show lookback `20` where the saved images show `2`; and one 1440p/125
+Study-running capture showed the seeded chart loaded while its saved image
+shows chart loading. The running-state difference was caused by capture timing,
+not the Study run state. The test now holds the unrelated OHLCV request pending
+for that capture, and its four viewport replays passed `4/4` without changing
+any screenshot. The other ten state differences remain unchanged for review.
+The four-project matrix, 0.5% threshold, references, masks, skips, and
+acceptance rules remain unchanged.
+
+## 2026-10-03 — Focused Study sandbox-error replay at `7066a6d`
+
+The pinned Playwright 1.62.1 browser reran the two 1080p local screenshot cases
+at branch test SHA `7066a6d7b72a2b26edf23c5c9abb9141d26e67ae`. The state and
+interaction checks before capture passed; only the screenshot comparisons
+failed, by 13,300 pixels at 1080p/100 and 11,188 at 1080p/125. The current
+rendered parameter-schema default is `20`, while the corresponding saved local
+images show `2`. This identifies a visible fixture/snapshot mismatch but does
+not establish that the whole pixel delta has one cause or provide exact V25
+authority. No snapshot, threshold, mask, skip, or acceptance rule changed; any
+baseline update remains subject to the existing review requirement. This was a
+focused two-case replay, not a new full 104-case matrix result.
+
+## 2026-10-03 — Latest pinned-browser matrix: 91/104 pass in the full run
+
+At clean product SHA `6f7559f378f12b9ed4ffc9a0510eb51958b73ba0`, the complete
+104-case board ran in the pinned Playwright `1.62.1` image. The raw full-run
+result was `91` passed and `13` failed. Ten failures reproduce the previously
+observed screenshot differences: `workspace-floating` in all four viewports
+(8,995 or 9,825 pixels), Study structured-result in all four (109,320; 105,944;
+22,035; and 21,352 pixels), and Study sandbox-error at both 1080p scales.
+
+Three other first-run anomalies were not repeatable: the unavailable-freshness
+image at 1080p/100 differed by 10,602 pixels and passed its isolated replay;
+the 1440p/100 keyboard-help case stopped before capture after browser
+`ERR_NETWORK_CHANGED` messages and passed its isolated replay; and the
+1440p/125 Study-running image differed by 29,116 pixels and passed its isolated
+replay. Those are recorded as one-off run noise, not silently accepted image
+changes. The same protected 10 mismatches remain for review. The board did not
+capture the newly searchable Chart Plot Library while open; `F9e` verifies its
+keyboard behavior but not screenshot styling. Threshold (`0.5%`), references,
+masks, skips, and acceptance rules remain unchanged.
+
+## 2026-10-03 — Earlier pinned-browser matrix: 94/104 at `1b5e2c7`
+
+At clean product SHA `1b5e2c7e6e877c086cc355f68e7841204432c119`, the complete
+board-guided matrix ran all `104` cases across four viewport projects using
+the matching Playwright `1.62.1` image. It completed with `94` passes and `10`
+screenshot-only failures. The broad shell/menu/freshness diffs from the prior
+host-browser run did not reproduce in this pinned environment.
+
+The remaining failures are stable and state-specific: all four
+`workspace-floating` captures differ by `8,995` or `9,825` pixels because the
+current test waits for five seeded rows while the stored images show an empty
+table; all four `study-lab-structured-result-gap` captures differ by `109,320`,
+`105,698`, `22,099`, and `21,352` pixels respectively because the current
+structured result includes newer promotion controls/content; and the two
+1080p `study-lab-sandbox-error-gap` captures differ by `13,300` and `11,120`
+pixels. The interaction/state assertions before those screenshots passed.
+The four-project matrix, exact threshold (`0.5%`), references, masks, skips, and
+acceptance rules are unchanged. The mismatches require visual review before
+any baseline update; they are not silently accepted here.
+
+## 2026-10-03 — Earlier broad full-matrix result (superseded by pinned replay)
+
+The earlier 104-case board-guided matrix at clean SHA
+`fe8aaee56e035c7be52cfc887670cd29aedfc277` completed across all four viewport
+projects with 98 failures and 6 passes. Sampled failures include the default
+benchmark shell (47,571 differing pixels / 3% at 1080p/125%), workspace menu
+and drag-target states, freshness gaps, and Study Lab running/structured-result
+states. The later pinned-browser replay above shows the broad shell/menu/freshness
+deltas were host-rendering differences. Its 94/104 result at `1b5e2c7` was
+superseded by the latest 104-case run at `6f7559f` above. Neither run changed
+the accepted references or thresholds.
+
+The running Study Lab case also had a stale accessible-name assertion (`Cancel`
+instead of the actual `Cancel study run`); commit `88a8452c6f1c2c5ace45f7f13892dd7f36a777dc`
+corrected it. A focused diagnostic reached the unchanged screenshot assertion
+and still differed by 16,052 pixels / 1% at 1080p/100%. The focused run was
+performed before the commit on identical source contents, so it is diagnostic,
+not a clean exact-SHA gate. No baseline, mask, threshold, skip, or acceptance
+rule changed. Investigate current product/layout versus protected-state
+differences before any baseline review; the complete post-fix matrix remains
+pending.
+
+## 2026-10-02 — Protected screenshot state mismatch diagnosis
+
+At feature tip `e52009bf9`, a version-matched Playwright 1.62.1 replay of the
+eight watchlist-column-editor and workspace-floating cases passed `2/8` and
+failed `6/8`. The editor images fail only at the 1080p projects (16,279 and
+16,128 pixels): current content includes the asserted all-family readiness
+line, while the saved images predate it. All four floating cases fail (9,591,
+10,384, 9,591, and 10,384 pixels): expected images show the benchmark table
+without rows, but the current test waits for and captures five hydrated seeded
+rows. The host-font mismatch created two additional host-only editor failures;
+the matching browser removed those two but not these six state differences.
+
+These remain protected failures, not approvals: this was a targeted eight-case
+replay, not the complete 104-case matrix. A snapshot change requires human
+review and a note tying it to an intentional plan or reference change. No
+baseline, mask, threshold, skip, or acceptance policy changed.
+
+## 2026-09-05 — Generic history floors remain functional-only
+
+Market Map now labels provider-neutral D1/W1/MN analysis readiness using the declared 252/52/24
+bar floors in addition to covered members and observed history. No authoritative V25 capture covers
+this diagnostic text, so exact typography and spacing remain `required_missing`; no screenshot
+baseline, mask, threshold, skip, or visual acceptance rule changed. The product commit is
+`8490f2dd`; the exact-tip gate then ran at metadata tip `0af0bed5`, passing all non-visual stages
+and functional Playwright (`157/157` with `106` documented skips across `263` specs). The visual
+matrix remains `98/104`: `watchlist-column-editor-open` differs by `13,844` pixels at
+visual-1080p-100/125, and `workspace-floating` by `9,770`/`11,901`/`11,901`/`12,097` pixels at
+visual-1080p-100/125/1440p-100/1440p-125. Teardown was clean; the six state-oracle mismatches
+remain the only visual gate failures and no visual acceptance rule changed.
+
+## 2026-09-05 — Range-center threshold promotion remains functional-only
+
+Primary Study Lab and persisted Research Results now expose explicit finite threshold controls for
+aligned range centers, with Boolean column/filter/scan/gauge/alert fan-out. No authoritative V25
+capture represents this promotion-row composition, so exact typography, placement, spacing, and
+post-save states remain `required_missing`; no screenshot baseline, mask, threshold, skip, or visual
+acceptance rule changed.
+
+The exact-tip gate at metadata tip `93883674` after formatter correction `c2f3a588` (product tip
+`7f672897`) passed all non-visual stages and functional Playwright (`157` passed, `106` documented
+skips across `263` specs). The unchanged four-project matrix completed `104` cases with `98` passes
+and six failures: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each),
+and `workspace-floating` at visual-1080p-100/125/1440p-100/125
+(`11,901`/`11,901`/`12,097`/`9,770` pixels). Teardown and resource accounting were clean; these
+state-oracle mismatches remain the only visual gate failures, alongside the broader canonical
+provider/history, richer Study, native-window/accessibility/security, dense-data, and exact V25
+visual gaps.
+
+## 2026-09-05 — Range-center latest-value promotion is functional-only
+
+Primary Study Lab and persisted Research Results now expose a functional “Save latest center
+column” action for aligned finite range centers, backed by explicit scalar adapter lineage. No
+authoritative V25 capture represents this promotion-row composition, so its exact typography,
+placement, action spacing, and post-save states remain `required_missing`; this slice does not
+alter any screenshot baseline, mask, threshold, skip, or visual acceptance rule.
+
+Product commit `928bf8ae` has focused backend/frontend coverage and authenticated browser proof. The
+exact-tip gate then passed all non-visual stages and functional Playwright (`157` passed, `106`
+documented skips across `263` specs). The unchanged four-project matrix completed `104` cases with
+`98` passes and six failures: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844`
+pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`12,097`
+pixels each). No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance
+policy changed; assigned stack teardown and resource accounting were clean. These state-oracle
+diffs remain the only known visual gate failures, alongside the broader canonical provider/history,
+richer Study, native-window, accessibility/security, dense-data, and exact V25 visual gaps.
+
+## 2026-09-05 — Primary Study Lab threshold controls and unchanged visual gate
+
+The primary Study Lab now exposes an explicit operator/finite-threshold row for completed
+single-output numeric `series` runs. The row can create a typed Boolean column or one reusable
+condition for filter, scan, Market Gauge, and alert fan-out while retaining source/output/run
+lineage and canonical member scope. This is a functional parity slice; no authoritative V25
+capture exists for the new promotion-row composition, so its exact typography, placement, and
+post-save visuals remain `required_missing`.
+
+The exact-tip gate at product commit `b6316871` passed every non-visual stage and functional
+Playwright (`157` passed, `106` documented skips across `263` specs). The unchanged four-project
+visual matrix remains `98/104`: `watchlist-column-editor-open` differs by `13,844` pixels at
+1080p-100/125, and `workspace-floating` differs by `12,097`/`9,770`/`12,097`/`12,097` pixels at
+1080p-100/125/1440p-100/125. No baseline, mask, threshold, skip, fallback oracle, provider rule,
+or acceptance policy changed. These concentrated state-oracle mismatches, along with canonical
+provider/history, richer Study, native-window/accessibility/security, dense-data, and exact V25
+visual-oracle gaps, remain open.
+
 ## 2026-08-19 — Nested geometry and group frames are the source-polymorphic interim oracle
 
 The Market Map functional oracle now partitions any grouped source by its canonical top-level
@@ -144,7 +785,8 @@ current/history output. Rebuilt Chromium interaction coverage passes. The refere
 has no authoritative exact Version 25 capture for this state, so screenshot parity remains an
 explicit board gap; the deterministic browser/component oracle is the interim acceptance track.
 Direct series-to-series/reference targets and Python-series leaves inside recursive visual trees
-remain unrepresented implementation/visual gaps until they are built and board-reviewed.
+are implemented and exercised through the isolated Python breadth and authenticated E2E contracts;
+their exact Version 25 visual composition remains unrepresented and stays a board-review gap.
 
 Status: `Controlling implementation plan`
 

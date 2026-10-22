@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import defaultdict
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
@@ -831,6 +832,12 @@ async def _deactivate_incompatible_internal_identifier(
     return changed
 
 
+def _normalize_holding_classification(value: str | None) -> str:
+    """Normalize classification spelling without rewriting raw holding evidence."""
+
+    return "_".join(part for part in re.split(r"[^a-z0-9]+", str(value or "").casefold()) if part)
+
+
 async def _resolve_or_create_constituent(
     db: AsyncSession,
     row: CanonicalHoldingRow,
@@ -838,8 +845,9 @@ async def _resolve_or_create_constituent(
     source_provider: str,
     allow_provider_enrichment: bool = True,
 ) -> tuple[Instrument | None, Decimal | None, str | None]:
-    holding_type = str(row.holding_type or "").strip().lower()
-    if row.row_type != "security" or holding_type in {"cash", "currency", "collateral"}:
+    holding_type = _normalize_holding_classification(row.holding_type)
+    row_type = _normalize_holding_classification(row.row_type)
+    if row_type != "security" or holding_type in {"cash", "currency", "collateral"}:
         return None, None, None
 
     # This resolver only creates Equity/Stock identities. Letting any other

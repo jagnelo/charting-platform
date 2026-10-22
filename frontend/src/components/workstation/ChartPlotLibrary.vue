@@ -1,12 +1,14 @@
 <template>
   <section class="chart-plots" aria-label="Chart plot library" @pointerdown.stop @mousedown.stop @keydown.esc="closeToTrigger">
-    <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" aria-haspopup="menu" @click="toggleOpen" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
-    <div v-if="open" ref="menuRoot" class="chart-plots__menu" role="menu" aria-label="Chart plot library menu" :style="menuStyle" @keydown="handleMenuKeydown">
+    <button ref="toggleButton" type="button" aria-label="Chart plot library" :aria-expanded="open" :aria-controls="plotLibraryMenuId" aria-haspopup="dialog" @click="toggleOpen()" @keydown="handleTriggerKeydown">Plots {{ chartStore.indicators.length + (pythonPlots?.length ?? 0) + (scanPlots?.length ?? 0) }}</button>
+    <div v-if="open" :id="plotLibraryMenuId" ref="menuRoot" class="chart-plots__menu" role="dialog" aria-label="Chart plot library panel" :style="menuStyle" @keydown="handleMenuKeydown">
       <header><b>Chart plots</b><button type="button" aria-label="Close chart plot library" @click="closeToTrigger"><WorkstationGlyph kind="close" /></button></header>
-      <select ref="firstControl" aria-label="Add indicator plot" :value="''" @change="add(($event.target as HTMLSelectElement).value)">
+      <input ref="firstControl" v-model.trim="indicatorSearch" type="search" aria-label="Filter indicators" placeholder="Find an indicator…" autocomplete="off" />
+      <select aria-label="Add indicator plot" :value="''" @change="add(($event.target as HTMLSelectElement).value)">
         <option value="" disabled>Add indicator plot…</option>
-        <option v-for="item in catalog" :key="item.type" :value="item.type">{{ item.pickerLabel }}</option>
+        <option v-for="item in filteredCatalog" :key="item.type" :value="item.type">{{ item.pickerLabel }}</option>
       </select>
+      <p v-if="indicatorSearch && !filteredCatalog.length" role="status">No indicators match “{{ indicatorSearch }}”.</p>
       <label class="chart-plots__target">Copy target
         <select v-model="selectedCopyTarget" aria-label="Copy plot target">
           <option value="linked">Linked charts ({{ linkedChartCount }})</option>
@@ -22,8 +24,8 @@
       <section class="chart-plots__python" aria-label="Python plot assets">
         <button type="button" :disabled="pythonLoading" @click="loadPythonAssets">{{ pythonLoading ? 'Loading…' : 'Load Python plots' }}</button>
         <select v-if="pythonAssets.length" v-model="selectedPythonVersion" aria-label="Python plot asset"><option value="">Add Python plot…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select>
-        <button v-if="selectedPythonVersion" type="button" @click="addPythonPlot">Add</button>
-        <small v-if="pythonStatus">{{ pythonStatus }}</small>
+        <button v-if="selectedPythonVersion" type="button" aria-label="Add selected Python plot" @click="addPythonPlot">Add</button>
+        <small v-if="pythonStatus" role="status" aria-live="polite" aria-atomic="true">{{ pythonStatus }}</small>
       </section>
       <section class="chart-plots__python chart-plots__scan" aria-label="EasyScan plot assets">
         <button type="button" :disabled="scanLoading" @click="loadScanPlots">{{ scanLoading ? 'Loading…' : 'Load EasyScan plots' }}</button>
@@ -31,45 +33,55 @@
           <option value="">Add scan plot…</option>
           <option v-for="asset in scanAssets" :key="`${asset.screenerId}:${asset.metric}`" :value="`${asset.screenerId}:${asset.metric}`">{{ asset.name }} · {{ asset.metric }}</option>
         </select>
-        <button v-if="selectedScanAsset" type="button" @click="addScanPlot">Add</button>
-        <small v-if="scanStatus">{{ scanStatus }}</small>
+        <button v-if="selectedScanAsset" type="button" aria-label="Add selected EasyScan plot" @click="addScanPlot">Add</button>
+        <small v-if="scanStatus" role="status" aria-live="polite" aria-atomic="true">{{ scanStatus }}</small>
       </section>
       <div v-if="selectedPromotionIndex !== ''" class="chart-plots__promotion">
-        <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="alert">Indicator alert</option></select>
-        <select v-if="promotionTarget === 'filter'" v-model="selectedFilterTarget" aria-label="Plot promotion watchlist"><option value="" disabled>Select watchlist…</option><option v-for="target in watchlistTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }}</option></select>
+        <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="column">Boolean column</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="gauge">Market Gauge</option><option value="alert">Indicator alert</option><option value="signal">Strategy signal</option></select>
+        <select v-if="promotionTarget === 'filter' || promotionTarget === 'column'" v-model="selectedFilterTarget" aria-label="Plot promotion watchlist"><option value="" disabled>Select watchlist…</option><option v-for="target in watchlistTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }}</option></select>
         <select v-model="promotionOperator" aria-label="Plot promotion operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option></select>
         <input v-model.number="promotionThreshold" aria-label="Plot promotion threshold" type="number" step="any" />
         <input v-model.trim="promotionName" aria-label="Plot promotion name" placeholder="Name" />
-        <button type="button" :disabled="promotionBusy || !promotionName || !Number.isFinite(promotionThreshold) || (promotionTarget === 'filter' && !selectedFilterTarget)" @click="promoteSelected">{{ promotionBusy ? 'Saving…' : 'Copy' }}</button>
+        <button type="button" aria-label="Copy plot to selected promotion target" :disabled="promotionBusy || !promotionName || !Number.isFinite(promotionThreshold) || ((promotionTarget === 'filter' || promotionTarget === 'column') && !selectedFilterTarget)" @click="promoteSelected">{{ promotionBusy ? 'Saving…' : 'Copy' }}</button>
       </div>
       <p v-if="promotionStatus" class="chart-plots__promotion-status" role="status" aria-live="polite" aria-atomic="true">{{ promotionStatus }}</p>
       <p>Price history <small>active</small></p>
-      <p v-if="!chartStore.indicators.length && !pythonPlots?.length && !scanPlots?.length">No indicator or reusable plots.</p>
+      <p v-if="!chartStore.indicators.length && !pythonPlots?.length && !scanPlots?.length" role="status" aria-live="polite" aria-atomic="true">No indicator or reusable plots.</p>
       <ol v-else><li v-for="(plot, index) in (scanPlots ?? [])" :key="scanPlotKey(plot, index)" class="chart-plots__python-item chart-plots__scan-item" :class="{ muted: plot.hidden }">
         <input :value="plot.color ?? '#4dd0e1'" :aria-label="`${plot.name} color`" type="color" @input="updateScanPlot(index, { color: ($event.target as HTMLInputElement).value })" /><span>{{ plot.name }} <small>EasyScan · {{ plot.metric }}</small></span>
-        <button type="button" :aria-label="`${plot.hidden ? 'Show' : 'Hide'} ${plot.name}`" @click="toggleScanPlot(index)"><WorkstationGlyph :kind="plot.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${plot.name} up`" :disabled="index === 0" @click="moveScanPlot(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${plot.name} down`" :disabled="index === (scanPlots?.length ?? 0) - 1" @click="moveScanPlot(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${plot.name}`" @click="duplicateScanPlot(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${plot.name} to linked charts`" :disabled="!linkedTargets" @click="copyScanPlot(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${plot.name} to selected chart target`" :disabled="!copyTargetAvailable" @click="copyScanPlot(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Remove ${plot.name}`" @click="removeScanPlot(index)"><WorkstationGlyph kind="delete" /></button>
+        <button type="button" :aria-label="`${plot.hidden ? 'Show' : 'Hide'} ${plot.name}`" :aria-pressed="plot.hidden ? 'false' : 'true'" @click="toggleScanPlot(index)"><WorkstationGlyph :kind="plot.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${plot.name} up`" :disabled="index === 0" @click="moveScanPlot(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${plot.name} down`" :disabled="index === (scanPlots?.length ?? 0) - 1" @click="moveScanPlot(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${plot.name}`" @click="duplicateScanPlot(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${plot.name} to linked charts`" :disabled="!linkedTargets" @click="copyScanPlot(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${plot.name} to selected chart target`" :disabled="!copyTargetAvailable" @click="copyScanPlot(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Remove ${plot.name}`" @click="removeScanPlot(index)"><WorkstationGlyph kind="delete" /></button>
       </li><li v-for="(plot, index) in (pythonPlots ?? [])" :key="pythonPlotKey(plot, index)" class="chart-plots__python-item" :class="{ muted: plot.hidden }" draggable="true" @dragstart="startPythonDrag(index, $event)" @dragend="endDrag">
         <input :value="plot.color ?? '#ffb74d'" :aria-label="`${plot.name} color`" type="color" @input="updatePythonPlot(index, { color: ($event.target as HTMLInputElement).value })" /><span>{{ plot.name }} <small>Python</small></span>
-        <button type="button" :aria-label="`${plot.hidden ? 'Show' : 'Hide'} ${plot.name}`" @click="togglePythonPlot(index)"><WorkstationGlyph :kind="plot.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${plot.name} up`" :disabled="index === 0" @click="movePythonPlot(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${plot.name} down`" :disabled="index === (pythonPlots?.length ?? 0) - 1" @click="movePythonPlot(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${plot.name}`" @click="duplicatePythonPlot(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${plot.name} to linked charts`" :disabled="!linkedTargets" @click="copyPythonPlot(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${plot.name} to selected chart target`" :disabled="!copyTargetAvailable" @click="copyPythonPlot(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Remove ${plot.name}`" @click="removePythonPlot(index)"><WorkstationGlyph kind="delete" /></button>
+        <button type="button" :aria-label="`${plot.hidden ? 'Show' : 'Hide'} ${plot.name}`" :aria-pressed="plot.hidden ? 'false' : 'true'" @click="togglePythonPlot(index)"><WorkstationGlyph :kind="plot.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${plot.name} up`" :disabled="index === 0" @click="movePythonPlot(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${plot.name} down`" :disabled="index === (pythonPlots?.length ?? 0) - 1" @click="movePythonPlot(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${plot.name}`" @click="duplicatePythonPlot(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${plot.name} to linked charts`" :disabled="!linkedTargets" @click="copyPythonPlot(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${plot.name} to selected chart target`" :disabled="!copyTargetAvailable" @click="copyPythonPlot(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Remove ${plot.name}`" @click="removePythonPlot(index)"><WorkstationGlyph kind="delete" /></button>
       </li><li v-if="draggingPreview && !chartStore.indicators.some(indicator => indicator.type === draggingPreview!.type && JSON.stringify(indicator.params ?? {}) === JSON.stringify(draggingPreview!.params ?? {}))" class="chart-plots__drag-preview" draggable="true" @dragstart="startPreviewDrag($event)" @dragend="endDrag"><span>{{ indicatorDisplayName(draggingPreview) }}</span></li><li v-for="(indicator, index) in chartStore.indicators" :key="`${indicator.type}:${index}`" :class="{ muted: indicator.hidden }" draggable="true" @dragstart="startDrag(index, $event)" @dragend="endDrag">
-        <input :value="indicator.style.color" :aria-label="`${label(indicator)} color`" type="color" @input="style(index, 'color', ($event.target as HTMLInputElement).value)" /><span>{{ label(indicator) }}</span>
-        <input :value="indicator.style.lineWidth" :aria-label="`${label(indicator)} line width`" type="number" min="0.25" max="5" step="0.25" @change="style(index, 'lineWidth', Number(($event.target as HTMLInputElement).value))" />
-        <button type="button" :aria-label="`${indicator.hidden ? 'Show' : 'Hide'} ${label(indicator)}`" @click="toggle(index)"><WorkstationGlyph :kind="indicator.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${label(indicator)} up`" :disabled="index === 0" @click="move(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${label(indicator)} down`" :disabled="index === chartStore.indicators.length - 1" @click="move(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${label(indicator)}`" @click="duplicate(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to linked charts`" :disabled="!linkedTargets" @click="copy(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to selected chart target`" :disabled="!copyTargetAvailable" @click="copy(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Promote ${label(indicator)}`" @click="selectPromotion(index)"><WorkstationGlyph kind="promote" /></button><button type="button" :aria-label="`Delete ${label(indicator)}`" @click="chartStore.removeIndicator(index)"><WorkstationGlyph kind="delete" /></button>
+        <input :value="indicator.style.color" :aria-label="`${label(indicator)} color`" type="color" @input="style(index, 'color', ($event.target as HTMLInputElement).value)" /><button type="button" class="chart-plots__indicator-settings-trigger" :aria-label="`Edit ${label(indicator)} settings`" @click.stop="openIndicatorSettings(index)">{{ label(indicator) }}</button><select v-if="indicatorOutputOptions(indicator).length" :aria-label="`${label(indicator)} output`" :value="indicator.output ?? ''" @mousedown.stop @change="setOutput(index, ($event.target as HTMLSelectElement).value)"><option value="">Select output…</option><option v-for="option in indicatorOutputOptions(indicator)" :key="option.value" :value="option.value">{{ option.label }}</option></select>
+        <input :value="indicator.style.lineWidth" :aria-label="`${label(indicator)} line width`" type="number" min="0.25" max="5" step="0.25" @change="style(index, 'lineWidth', ($event.target as HTMLInputElement).value)" />
+        <button type="button" :aria-label="`${indicator.hidden ? 'Show' : 'Hide'} ${label(indicator)}`" :aria-pressed="indicator.hidden ? 'false' : 'true'" @click="toggle(index)"><WorkstationGlyph :kind="indicator.hidden ? 'hidden' : 'visible'" /></button><button type="button" :aria-label="`Move ${label(indicator)} up`" :disabled="index === 0" @click="move(index, -1)"><WorkstationGlyph kind="move-up" /></button><button type="button" :aria-label="`Move ${label(indicator)} down`" :disabled="index === chartStore.indicators.length - 1" @click="move(index, 1)"><WorkstationGlyph kind="move-down" /></button><button type="button" :aria-label="`Duplicate ${label(indicator)}`" @click="duplicate(index)"><WorkstationGlyph kind="duplicate" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to linked charts`" :disabled="!linkedTargets" @click="copy(index, 'linked')"><WorkstationGlyph kind="copy-linked" /></button><button type="button" :aria-label="`Copy ${label(indicator)} to selected chart target`" :disabled="!copyTargetAvailable" @click="copy(index, selectedCopyTarget)"><WorkstationGlyph kind="copy" /></button><button type="button" :aria-label="`Promote ${label(indicator)}`" @click="selectPromotion(index)"><WorkstationGlyph kind="promote" /></button><button type="button" :aria-label="`Delete ${label(indicator)}`" @click="chartStore.removeIndicator(index)"><WorkstationGlyph kind="delete" /></button>
       </li></ol>
     </div>
+    <IndicatorSettingsDialog
+      v-if="editingIndicator"
+      :key="editingIndex ?? 'editing'"
+      :indicator="editingIndicator"
+      :display-name="label(editingIndicator)"
+      @cancel="closeIndicatorSettings"
+      @apply="applyIndicatorSettings"
+    />
   </section>
 </template>
 <script setup lang="ts">
-import { computed, inject, nextTick, onBeforeUnmount, ref } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { usePanelStore } from '@/stores/chart'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { cloneDefaultIndicator, INDICATOR_CATALOG, indicatorDisplayName } from '@/lib/indicators/catalog'
 import { api } from '@/lib/api'
-import type { IndicatorConfig, IndicatorType } from '@/types'
-import { clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, scheduleAnalysisDragCleanup, writeChartPlotDrag, writePythonPlotDrag } from '@/lib/workstation/plotDrag'
+import type { IndicatorConfig, IndicatorType, Instrument } from '@/types'
+import { getTechnicalIndicatorOutputOptions } from '@/lib/technicalConditions'
+import { clearAnalysisDrag, createChartPlotDragPayload, createPythonPlotDragPayload, indicatorOutputFromConfig, scheduleAnalysisDragCleanup, writeChartPlotDrag, writePythonPlotDrag } from '@/lib/workstation/plotDrag'
 import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
 import WorkstationGlyph from './WorkstationGlyph.vue'
+import IndicatorSettingsDialog from './IndicatorSettingsDialog.vue'
 type PythonPlot = {
   code_version_id: number
   name: string
@@ -83,12 +95,26 @@ type PythonPlot = {
 type ScanPlot = { screener_id: number; name: string; metric: 'count' | 'percentage'; color?: string; hidden?: boolean; instance_key?: string }
 type ScanAsset = { screenerId: number; name: string; metric: 'count' | 'percentage'; points: number }
 const props = defineProps<{ sourceWindowKey: string; linkGroup: string; pythonPlots?: PythonPlot[]; scanPlots?: ScanPlot[] }>()
-const emit = defineEmits<{ 'update:python-plots': [plots: PythonPlot[]]; 'update:scan-plots': [plots: ScanPlot[]] }>()
+const emit = defineEmits<{
+  'update:python-plots': [plots: PythonPlot[]]
+  'update:scan-plots': [plots: ScanPlot[]]
+  configuration: [windowKey: string, configuration: Record<string, unknown>]
+}>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
+const indicatorSearch = ref('')
+const filteredCatalog = computed(() => {
+  const query = indicatorSearch.value.toLocaleLowerCase()
+  if (!query) return catalog
+  return catalog.filter(item => `${item.type} ${item.label} ${item.pickerLabel}`.toLocaleLowerCase().includes(query))
+})
+const editingIndex = ref<number | null>(null)
+const editingIndicator = computed(() => editingIndex.value == null ? null : chartStore.indicators[editingIndex.value] ?? null)
+const plotLibraryToken = globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 12) ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+const plotLibraryMenuId = `chart-plot-library-menu-${plotLibraryToken}`
 const queryClient = useQueryClient()
 const toggleButton = ref<HTMLButtonElement | null>(null)
 const menuRoot = ref<HTMLElement | null>(null)
-const firstControl = ref<HTMLSelectElement | null>(null)
+const firstControl = ref<HTMLInputElement | null>(null)
 const menuStyle = ref<Record<string, string>>({})
 function positionMenu() {
   const rect = toggleButton.value?.getBoundingClientRect()
@@ -102,13 +128,18 @@ function positionMenu() {
   const top = below + menuHeight <= window.innerHeight - gutter ? below : Math.max(gutter, above)
   menuStyle.value = { position: 'fixed', left: `${Math.round(left)}px`, top: `${Math.round(top)}px`, width: `${Math.round(width)}px`, maxHeight: `${Math.round(menuHeight)}px` }
 }
-function toggleOpen() {
+function focusLastMenuControl() {
+  const controls = menuRoot.value?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([type="hidden"]):not([type="file"]), select:not(:disabled), textarea:not(:disabled)')
+  controls?.item(controls.length - 1)?.focus()
+}
+function toggleOpen(focusLast = false) {
   open.value = !open.value
   if (open.value) void nextTick(() => {
     positionMenu()
     window.addEventListener('resize', positionMenu)
     window.addEventListener('scroll', positionMenu, true)
-    firstControl.value?.focus()
+    if (focusLast) focusLastMenuControl()
+    else firstControl.value?.focus()
   })
   else closeToTrigger()
 }
@@ -122,7 +153,8 @@ function closeToTrigger() {
 function handleTriggerKeydown(event: KeyboardEvent) {
   if (!['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(event.key)) return
   event.preventDefault()
-  if (!open.value) toggleOpen()
+  if (!open.value) toggleOpen(event.key === 'ArrowUp')
+  else if (event.key === 'ArrowUp') focusLastMenuControl()
   else firstControl.value?.focus()
 }
 function handleMenuKeydown(event: KeyboardEvent) {
@@ -132,6 +164,27 @@ function handleMenuKeydown(event: KeyboardEvent) {
     closeToTrigger()
   }
 }
+function openIndicatorSettings(index: number) {
+  if (!chartStore.indicators[index]) return
+  editingIndex.value = index
+  if (!open.value) toggleOpen()
+}
+function closeIndicatorSettings() {
+  editingIndex.value = null
+  closeToTrigger()
+}
+async function applyIndicatorSettings(indicator: IndicatorConfig) {
+  const index = editingIndex.value
+  if (index == null || !chartStore.indicators[index]) return
+  chartStore.updateIndicator(index, indicator)
+  await chartStore.saveIndicatorsForInstrument()
+  closeIndicatorSettings()
+}
+watch(() => chartStore.editRequestIndicatorIndex, index => {
+  if (index == null) return
+  chartStore.requestEditIndicator(null)
+  openIndicatorSettings(index)
+})
 const selectedCopyTarget = ref('linked')
 const chartTargets = computed(() => (workspaceStore.activeTab?.windows ?? []).filter(window => ['chart', 'watchlist'].includes(window.tool_type) && window.instance_key !== props.sourceWindowKey))
 const watchlistTargets = computed(() => chartTargets.value.filter(window => window.tool_type === 'watchlist'))
@@ -139,7 +192,7 @@ const linkedChartCount = computed(() => chartTargets.value.filter(window => wind
 const linkedTargets = computed(() => linkedChartCount.value > 0)
 const copyTargetAvailable = computed(() => selectedCopyTarget.value === 'linked' ? linkedTargets.value : chartTargets.value.some(window => window.instance_key === selectedCopyTarget.value))
 const selectedPromotionIndex = ref('')
-const promotionTarget = ref<'condition' | 'scan' | 'filter' | 'alert'>('condition')
+const promotionTarget = ref<'condition' | 'column' | 'scan' | 'filter' | 'gauge' | 'alert' | 'signal'>('condition')
 const selectedFilterTarget = ref('')
 const promotionOperator = ref('gt')
 const promotionThreshold = ref(0)
@@ -155,13 +208,18 @@ const scanAssets = ref<ScanAsset[]>([])
 const selectedScanAsset = ref('')
 const scanLoading = ref(false)
 const scanStatus = ref('')
+let mounted = false
+let pythonLoadGeneration = 0
+let scanLoadGeneration = 0
 const draggingIndex = ref<number | null>(null)
 const draggingPreview = ref<IndicatorConfig | null>(null)
 function label(indicator: IndicatorConfig) { return indicatorDisplayName(indicator) }
 async function loadPythonAssets() {
+  const generation = ++pythonLoadGeneration
   pythonLoading.value = true; pythonStatus.value = ''
   try {
     const assets = await fetchCodeAssets(queryClient)
+    if (!mounted || generation !== pythonLoadGeneration) return
     pythonAssets.value = assets.filter(asset => asset.kind === 'plot' || asset.kind === 'study').flatMap(asset => asset.versions.slice(-1).flatMap(version => {
       if (!version.id || (version.output_contract !== 'series' && asset.kind !== 'plot')) return []
       const diagnostics = Array.isArray(version.diagnostics) ? version.diagnostics : []
@@ -175,8 +233,12 @@ async function loadPythonAssets() {
       return [{ versionId: version.id, name: `${asset.name} v${version.version_number}`, ...(sourceId ? { universeSourceId: sourceId } : {}), ...(symbols?.length ? { symbols } : {}) }]
     }))
     pythonStatus.value = pythonAssets.value.length ? `${pythonAssets.value.length} plot asset${pythonAssets.value.length === 1 ? '' : 's'} available` : 'No Python plot assets available'
-  } catch (cause: any) { pythonStatus.value = cause?.message ?? 'Unable to load Python plot assets' }
-  finally { pythonLoading.value = false }
+  } catch (cause: any) {
+    if (mounted && generation === pythonLoadGeneration) pythonStatus.value = cause?.message ?? 'Unable to load Python plot assets'
+  }
+  finally {
+    if (mounted && generation === pythonLoadGeneration) pythonLoading.value = false
+  }
 }
 function addPythonPlot() {
   const versionId = Number(selectedPythonVersion.value)
@@ -189,6 +251,7 @@ function addPythonPlot() {
   pythonStatus.value = `Added ${asset.name}`
 }
 async function loadScanPlots() {
+  const generation = ++scanLoadGeneration
   scanLoading.value = true
   scanStatus.value = ''
   try {
@@ -201,12 +264,13 @@ async function loadScanPlots() {
       }))
       return entries.filter((entry): entry is ScanAsset => entry != null)
     }))
+    if (!mounted || generation !== scanLoadGeneration) return
     scanAssets.value = assets.flat().filter((entry): entry is ScanAsset => entry != null)
     scanStatus.value = scanAssets.value.length ? `${scanAssets.value.length} historical scan plot${scanAssets.value.length === 1 ? '' : 's'} available` : 'No retained scan history available'
   } catch (cause: any) {
-    scanStatus.value = cause?.message ?? 'Unable to load EasyScan plots'
+    if (mounted && generation === scanLoadGeneration) scanStatus.value = cause?.message ?? 'Unable to load EasyScan plots'
   } finally {
-    scanLoading.value = false
+    if (mounted && generation === scanLoadGeneration) scanLoading.value = false
   }
 }
 function addScanPlot() {
@@ -321,24 +385,52 @@ async function add(value: string) {
   // (drawing, pan, crosshair, or zoom) reaches the uPlot surface immediately.
   closeToTrigger()
 }
-function style(index: number, key: 'color' | 'lineWidth', value: string | number) { const item = chartStore.indicators[index]; if (item && (key !== 'lineWidth' || (Number.isFinite(value) && Number(value) > 0))) chartStore.updateIndicator(index, { ...item, style: { ...item.style, [key]: value } }) }
+function style(index: number, key: 'color' | 'lineWidth', value: string | number) {
+  const item = chartStore.indicators[index]
+  if (!item) return
+  if (key === 'lineWidth') {
+    if (typeof value === 'string' && !value.trim()) return
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed)) return
+    const stepped = Math.round(parsed * 4) / 4
+    value = Math.min(5, Math.max(0.25, stepped))
+  }
+  chartStore.updateIndicator(index, { ...item, style: { ...item.style, [key]: value } })
+}
 function toggle(index: number) { const item = chartStore.indicators[index]; if (item) chartStore.updateIndicator(index, { ...item, hidden: !item.hidden }) }
 function duplicate(index: number) { const item = chartStore.indicators[index]; if (item) chartStore.indicators.splice(index + 1, 0, { ...item, params: { ...item.params }, style: { ...item.style }, lockedTimeframes: item.lockedTimeframes ? [...item.lockedTimeframes] : item.lockedTimeframes }) }
 function move(index: number, delta: number) { const target = index + delta; if (target < 0 || target >= chartStore.indicators.length) return; const next = [...chartStore.indicators]; const [item] = next.splice(index, 1); next.splice(target, 0, item); chartStore.reorderIndicators(next) }
+function indicatorOutputOptions(item: IndicatorConfig) { return getTechnicalIndicatorOutputOptions(item.type) }
+function setOutput(index: number, output: string) {
+  const item = chartStore.indicators[index]
+  if (!item) return
+  const options = indicatorOutputOptions(item)
+  if (output && !options.some(option => option.value === output)) return
+  chartStore.updateIndicator(index, { ...item, ...(output ? { output } : { output: undefined }) })
+}
 function copy(index: number, target: string) {
   const item = chartStore.indicators[index]
   if (!item) return
+  let skippedMultiOutputWatchlist = false
   for (const window of workspaceStore.activeTab?.windows ?? []) {
     if (window.instance_key === props.sourceWindowKey) continue
     if (target === 'linked' ? window.tool_type !== 'chart' || window.link_group !== props.linkGroup : window.instance_key !== target) continue
     if (window.tool_type === 'watchlist') {
+      const output = indicatorOutputFromConfig(item)
+      if (!output) {
+        skippedMultiOutputWatchlist = true
+        continue
+      }
       const columns = Array.isArray(window.configuration.indicator_columns) ? window.configuration.indicator_columns : []
-      const key = `indicator:${item.type}:${JSON.stringify(item.params)}`
-      if (!columns.some((column: any) => column?.key === key)) window.configuration.indicator_columns = [...columns, { key, name: label(item), indicator: item.type, params: { ...item.params }, timeframe: chartStore.timeframe, output: 'value' }]
+      const key = `indicator:${item.type}:${JSON.stringify(item.params)}:${chartStore.timeframe}:${output}`
+      if (!columns.some((column: any) => column?.key === key)) window.configuration.indicator_columns = [...columns, { key, name: label(item), indicator: item.type, params: { ...item.params }, timeframe: chartStore.timeframe, output }]
     } else {
       const plots = Array.isArray(window.configuration.indicators) ? window.configuration.indicators : []
       window.configuration.indicators = [...plots, { ...item, params: { ...item.params }, style: { ...item.style }, lockedTimeframes: item.lockedTimeframes ? [...item.lockedTimeframes] : item.lockedTimeframes }]
     }
+  }
+  if (skippedMultiOutputWatchlist) {
+    promotionStatus.value = 'This multi-output indicator cannot be copied to a watchlist column until an explicit output is selected.'
   }
   workspaceStore.scheduleSnapshot()
 }
@@ -386,48 +478,156 @@ function selectPromotion(index: number) {
   promotionStatus.value = ''
 }
 function promotionCondition(item: IndicatorConfig) {
-  return { operator: 'AND', conditions: [{ type: 'indicator_threshold', indicator: item.type, params: { ...item.params }, output: 'value', op: promotionOperator.value, value: promotionThreshold.value }] }
+  const output = indicatorOutputFromConfig(item)
+  if (!output) throw new Error('Select an explicit output for this multi-output indicator before promoting it.')
+  return { operator: 'AND', conditions: [{ type: 'indicator_threshold', indicator: item.type, params: { ...item.params }, output, op: promotionOperator.value, value: promotionThreshold.value }] }
 }
 function promotionKey(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 72) || 'chart-plot-condition'
+}
+function uniqueAssetKey(value: string, kind = 'plot') {
+  const base = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 56) || 'chart-plot'
+  return `${base}-${kind}-${Date.now().toString(36)}`.slice(0, 80)
+}
+function chartSignalSource(item: IndicatorConfig, output: string) {
+  const params = JSON.stringify(item.params ?? {})
+  const threshold = JSON.stringify(Number(promotionThreshold.value))
+  const operator = promotionOperator.value
+  const expression = operator === 'gte' ? `latest >= ${threshold}` : operator === 'lt' ? `latest < ${threshold}` : operator === 'lte' ? `latest <= ${threshold}` : `latest > ${threshold}`
+  return `values = ta.indicator(${JSON.stringify(item.type)}, ${params}, ${JSON.stringify(output)})\nlatest = values[-1] if values else float('nan')\noutput.boolean(${JSON.stringify(item.type)}, bool(${expression}))`
+}
+async function canonicalPromotionContext() {
+  const selectedSymbol = chartStore.symbol.trim()
+  const timeframe = chartStore.timeframe
+  const current = chartStore.instrument
+  const currentSymbol = current?.symbol?.trim() ?? ''
+  if (current?.id && (!selectedSymbol || currentSymbol.toUpperCase() === selectedSymbol.toUpperCase())) {
+    return { instrument: current, timeframe }
+  }
+
+  const symbol = selectedSymbol || currentSymbol
+  if (!symbol) throw new Error('Select a canonical instrument before promoting this plot')
+  const instrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(symbol)}`)
+
+  const currentSelection = chartStore.symbol.trim()
+  if ((currentSelection && currentSelection.toUpperCase() !== symbol.toUpperCase()) || chartStore.timeframe !== timeframe) {
+    throw new Error('The chart selection changed before promotion completed. Please retry.')
+  }
+  if (!instrument?.id || instrument.symbol.trim().toUpperCase() !== symbol.toUpperCase()) {
+    throw new Error('Select a canonical instrument before promoting this plot')
+  }
+  return { instrument, timeframe }
 }
 async function promoteSelected() {
   const item = chartStore.indicators[Number(selectedPromotionIndex.value)]
   if (!item || !promotionName.value || !Number.isFinite(promotionThreshold.value) || promotionBusy.value) return
   promotionBusy.value = true; promotionStatus.value = ''
   try {
+    const output = indicatorOutputFromConfig(item)
+    if (!output) throw new Error('Select an explicit output for this multi-output indicator before promoting it.')
+    if (promotionTarget.value === 'signal') {
+      const { instrument, timeframe } = await canonicalPromotionContext()
+      const source = chartSignalSource(item, output)
+      const asset = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: uniqueAssetKey(`${promotionName.value}-signal`, 'signal'),
+        name: `${promotionName.value} Strategy signal`,
+        kind: 'signal',
+        initial_version: {
+          source,
+          output_contract: 'boolean',
+          output_name: item.type,
+          parameter_schema: {},
+          default_parameters: {},
+          lineage: {
+            type: 'chart_plot_promotion',
+            source: 'chart_plot_library',
+            source_instrument_id: instrument.id,
+            source_symbol: instrument.symbol,
+            source_timeframe: timeframe,
+            indicator_type: item.type,
+            indicator_params: { ...item.params },
+            indicator_output: output,
+            target: 'signal',
+            output_adapter: 'indicator_threshold_to_boolean',
+            series_target: { operator: promotionOperator.value, threshold: Number(promotionThreshold.value) },
+            semantics: 'chart_indicator_threshold_as_strategy_signal',
+            point_in_time_source_preserved: false,
+          },
+        },
+      })
+      const codeVersionId = asset.versions?.[0]?.id ?? asset.id
+      if (typeof codeVersionId !== 'number') throw new Error('The chart Strategy signal asset did not return an immutable code version.')
+      const promoted = await api.post<{ id: number; name: string }>(`/strategy-lab/signals/from-code/${codeVersionId}`, {})
+      promotionStatus.value = `Saved ${label(item)} as Strategy signal “${promoted.name}” (#${promoted.id}).`
+      return
+    }
     const key = promotionKey(promotionName.value)
     await api.put(`/workspaces/library/conditions/${encodeURIComponent(key)}`, {
       name: promotionName.value, condition: promotionCondition(item),
       dependency_metadata: { source: 'chart-plot-library', indicator_type: item.type, timeframe: chartStore.timeframe },
     })
-    if (promotionTarget.value === 'scan' || promotionTarget.value === 'filter') {
+    if (promotionTarget.value === 'column') {
+      const target = watchlistTargets.value.find(window => window.instance_key === selectedFilterTarget.value)
+      if (!target) throw new Error('Select a watchlist window before adding a Boolean column')
+      const scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(key)}`, { name: `${promotionName.value} Boolean`, universe_type: 'all', timeframe: chartStore.timeframe })
+      await api.post(`/screeners/${scan.id}/run`, {})
+      const columns = Array.isArray(target.configuration.condition_columns) ? target.configuration.condition_columns : []
+      const columnKey = `condition:${key}`
+      if (!columns.some((column: any) => column?.key === columnKey)) {
+        const column = { key: columnKey, name: promotionName.value, screener_id: scan.id, timeframe: chartStore.timeframe }
+        const configuredKeys = Array.isArray(target.configuration.column_keys) ? target.configuration.column_keys : []
+        // Golden Layout keeps the target watchlist component mounted. Preserve
+        // its reactive configuration object so the newly promoted Boolean
+        // column is rendered immediately instead of only being persisted for a
+        // later remount.
+        Object.assign(target.configuration, {
+          condition_columns: [...columns, column],
+          column_keys: configuredKeys.includes(columnKey) ? configuredKeys : [...configuredKeys, columnKey],
+        })
+        // The chart and watchlists may be mounted by separate Golden Layout
+        // Vue roots. Publish the complete target configuration through the
+        // parent contract as well as updating the shared store reference, so
+        // the mounted target receives the same reactive patch immediately.
+        emit('configuration', target.instance_key, { ...target.configuration })
+        workspaceStore.scheduleSnapshot()
+      }
+      promotionStatus.value = `Copied ${label(item)} to ${target.title || target.instance_key} Boolean column`
+    } else if (promotionTarget.value === 'scan' || promotionTarget.value === 'filter' || promotionTarget.value === 'gauge') {
       const scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(key)}`, { name: `${promotionName.value} Scan`, universe_type: 'all', timeframe: chartStore.timeframe })
       if (promotionTarget.value === 'filter') {
         const target = watchlistTargets.value.find(window => window.instance_key === selectedFilterTarget.value)
         if (!target) throw new Error('Select a watchlist window before applying a filter')
-        target.configuration = { ...target.configuration, condition_screener_id: scan.id, condition_filter_mode: 'active' }
+        // Keep the mounted watchlist's configuration identity intact for the
+        // active filter update as well; replacing it can leave the visible
+        // Golden Layout tool observing the previous object.
+        Object.assign(target.configuration, { condition_screener_id: scan.id, condition_filter_mode: 'active' })
+        emit('configuration', target.instance_key, { ...target.configuration })
         workspaceStore.scheduleSnapshot()
         promotionStatus.value = `Copied ${label(item)} to ${target.title || target.instance_key} filter`
         return
       }
-      promotionStatus.value = `Copied ${label(item)} to condition and EasyScan`
+      promotionStatus.value = promotionTarget.value === 'gauge'
+        ? `Copied ${label(item)} to condition and Market Gauge`
+        : `Copied ${label(item)} to condition and EasyScan`
     } else if (promotionTarget.value === 'alert') {
-      const instrumentId = chartStore.instrument?.id
-      if (!instrumentId) throw new Error('Select a canonical instrument before creating an indicator alert')
-      await api.post('/alerts/indicator', { instrument_id: instrumentId, timeframe: chartStore.timeframe, indicator_a_type: item.type, indicator_a_params: { ...item.params }, condition: promotionOperator.value, threshold_value: promotionThreshold.value, repeat: true, notes: promotionName.value })
+      const { instrument, timeframe } = await canonicalPromotionContext()
+      await api.post('/alerts/indicator', { instrument_id: instrument.id, timeframe, indicator_a_type: item.type, indicator_a_params: { ...item.params, output }, condition: promotionOperator.value, threshold_value: promotionThreshold.value, repeat: true, notes: promotionName.value })
       promotionStatus.value = `Copied ${label(item)} to condition and indicator alert`
     } else promotionStatus.value = `Copied ${label(item)} to reusable condition`
   } catch (cause: any) {
     promotionStatus.value = cause?.message ?? 'Unable to promote plot'
   } finally { promotionBusy.value = false }
 }
+onMounted(() => { mounted = true })
 onBeforeUnmount(() => {
+  mounted = false
+  pythonLoadGeneration += 1
+  scanLoadGeneration += 1
   window.removeEventListener('resize', positionMenu)
   window.removeEventListener('scroll', positionMenu, true)
 })
 </script>
 <style scoped>
-.chart-plots{position:relative}.chart-plots button,.chart-plots select,.chart-plots input{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-plots>button{height:18px;padding:0 5px;cursor:pointer}.chart-plots__menu{z-index:121;display:grid;gap:4px;max-height:340px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-plots__menu header{display:flex;align-items:center}.chart-plots__menu header button{margin-left:auto}.chart-plots select{min-width:0;padding:2px}.chart-plots p{margin:0;padding:3px 4px;color:#b4c3cd;border-top:1px solid #2d3942}.chart-plots p small{color:#8196a4}.chart-plots ol{display:grid;gap:2px;max-height:204px;margin:0;padding:0;overflow:auto;list-style:none}.chart-plots li{display:grid;grid-template-columns:18px minmax(0,1fr) 36px repeat(6,18px);align-items:center;gap:3px;padding:2px;border-top:1px solid #27323a}.chart-plots li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-plots li input[type=color]{width:17px;height:16px;padding:0}.chart-plots li input[type=number]{min-width:0;padding:1px}.chart-plots li button{height:17px;padding:0;cursor:pointer}.chart-plots li button:disabled{opacity:.35}.muted{opacity:.5}
+.chart-plots{position:relative}.chart-plots button,.chart-plots select,.chart-plots input{border:1px solid #3a4954;background:#172027;color:#dce6ed;font:10px "Segoe UI",Arial,sans-serif}.chart-plots>button{height:18px;padding:0 5px;cursor:pointer}.chart-plots__menu{z-index:121;display:grid;gap:4px;max-height:340px;padding:6px;border:1px solid #4a5b67;background:#131a20;box-shadow:0 6px 16px #000b}.chart-plots__menu header{display:flex;align-items:center}.chart-plots__menu header button{margin-left:auto}.chart-plots__menu select{min-width:0;padding:2px}.chart-plots__menu input[type=search]{min-width:0;padding:3px 4px}.chart-plots p{margin:0;padding:3px 4px;color:#b4c3cd;border-top:1px solid #2d3942}.chart-plots p small{color:#8196a4}.chart-plots ol{display:grid;gap:2px;max-height:204px;margin:0;padding:0;overflow:auto;list-style:none}.chart-plots li{display:grid;grid-template-columns:18px minmax(0,1fr) 36px repeat(6,18px);align-items:center;gap:3px;padding:2px;border-top:1px solid #27323a}.chart-plots li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-plots li input[type=color]{width:17px;height:16px;padding:0}.chart-plots li input[type=number]{min-width:0;padding:1px}.chart-plots li button{height:17px;padding:0;cursor:pointer}.chart-plots li button:disabled{opacity:.35}.chart-plots li .chart-plots__indicator-settings-trigger{min-width:0;overflow:hidden;padding:0;border:0;background:transparent;text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}.chart-plots li .chart-plots__indicator-settings-trigger:hover{text-decoration:underline}.muted{opacity:.5}
 .chart-plots__promotion{display:grid;grid-template-columns:72px 34px 62px minmax(60px,1fr) 36px;gap:3px}.chart-plots__promotion input,.chart-plots__promotion select{min-width:0}.chart-plots__promotion-status{margin:0;padding:2px 4px;color:#9ec6a0}
 </style>

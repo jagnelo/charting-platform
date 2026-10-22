@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
 from app.models.screener import ScreenerDefinition
 from app.models.user import User
@@ -28,7 +29,7 @@ from app.schemas.watchlist import (
     WatchlistSourceRead,
     WatchlistSourceResolvedRead,
 )
-from app.services.benchmark_family_history import canonical_history_job_id
+from app.services.benchmark_family_history import canonical_history_job_id, history_end_iso
 from app.services.watchlist_history import (
     build_watchlist_source_history_status,
     plan_watchlist_source_history_refresh,
@@ -79,7 +80,7 @@ async def _refresh_run_progress(run: WatchlistHistoryRefreshRun, redis) -> dict:
         "instrument_count": len(run.instrument_ids or []),
         **counts,
         "instruments": by_instrument,
-        "updated_at": datetime.now(UTC).isoformat(),
+        "updated_at": wire_datetime(datetime.now(UTC)),
     }
     return progress
 
@@ -280,7 +281,7 @@ async def queue_watchlist_source_history_refresh(
                     run.id,
                 ]
                 if plan["as_of"] is not None:
-                    job_args.append(plan["as_of"].isoformat())
+                    job_args.append(history_end_iso(plan["as_of"]))
                 job = await redis.enqueue_job(
                     *job_args,
                     _job_id=canonical_history_job_id(

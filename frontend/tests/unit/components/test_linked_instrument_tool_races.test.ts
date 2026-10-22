@@ -45,6 +45,21 @@ describe('linked instrument tool stale-response guards', () => {
     expect((wrapper.get('textarea').element as HTMLTextAreaElement).value).toBe('XLK note')
   })
 
+  it('does not publish a late note load after the tool unmounts', async () => {
+    const note = deferred<{ content: string; updated_at: string } | null>()
+    apiGet.mockReturnValue(note.promise)
+    const wrapper = mountNote({ props: { instrumentId: 1, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/notes/instruments/1'))
+    wrapper.unmount()
+
+    note.resolve({ content: 'late note', updated_at: '2026-08-03T00:00:00Z' })
+    await note.promise
+    await Promise.resolve()
+
+    expect((wrapper.vm as unknown as { content: string }).content).toBe('')
+    expect((wrapper.vm as unknown as { loadedId: number | null }).loadedId).toBe(null)
+  })
+
   it('does not let an older alerts load overwrite the newly selected instrument', async () => {
     const first = deferred<unknown[]>()
     apiGet.mockImplementation((_path: string, params?: { instrument_id?: number }) => {
@@ -62,6 +77,58 @@ describe('linked instrument tool stale-response guards', () => {
     expect(wrapper.text()).not.toContain('No alerts for XLK.')
   })
 
+  it('discloses selected outputs in saved indicator alerts', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/alerts/indicator') {
+        return Promise.resolve([{
+          id: 8,
+          instrument_id: 1,
+          indicator_a_type: 'bb',
+          indicator_a_params: { period: 20, std_dev: 2, output: 'bb_upper' },
+          condition: 'crosses_above',
+          threshold_value: 100,
+          indicator_b_type: null,
+          indicator_b_params: null,
+          status: 'active',
+          repeat: false,
+        }])
+      }
+      return Promise.resolve([])
+    })
+    const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('BB(20,2) [bb_upper] crosses above 100'))
+    expect(wrapper.get('[role="listitem"][aria-label*="bb_upper"]').exists()).toBe(true)
+  })
+
+  it('discloses selected outputs in compact firing history', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/alerts/history/instrument/1') {
+        return Promise.resolve([{
+          id: 51,
+          alert_type: 'indicator',
+          fired_at: '2026-08-03T12:00:00Z',
+          trigger_value: 101.25,
+          condition_snapshot: {
+            indicator: 'bb',
+            output_a: 'bb_upper',
+            indicator_b: 'sma',
+            output_b: 'sma',
+            condition: 'crosses_above',
+          },
+          is_viewed: false,
+        }])
+      }
+      return Promise.resolve([])
+    })
+    const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('BB [bb_upper] crosses above SMA [sma]'))
+    const historyButton = wrapper.get('.alerts-tool__history button')
+    expect(historyButton.text()).toContain('101.25')
+    expect(historyButton.attributes('aria-label')).toContain('BB [bb_upper] crosses above SMA [sma]')
+  })
+
   it('does not leave the alerts tool busy when an older mutation completes after relinking', async () => {
     const mutation = deferred<{ id: number; condition: string; threshold_price: number; status: string; repeat: boolean }>()
     apiGet.mockImplementation((_path: string, params?: { instrument_id?: number }) => {
@@ -71,13 +138,41 @@ describe('linked instrument tool stale-response guards', () => {
     apiPatch.mockReturnValue(mutation.promise)
     const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
     await vi.waitFor(() => expect(wrapper.get('button[aria-label="Enable repeat for price alert"]')).toBeTruthy())
-    await wrapper.get('button[aria-label="Enable repeat for price alert"]').trigger('click')
+    const repeatButton = wrapper.get('button[aria-label="Enable repeat for price alert"]')
+    expect(repeatButton.attributes('aria-pressed')).toBe('false')
+    await repeatButton.trigger('click')
     await wrapper.setProps({ instrumentId: 2, symbol: 'XLK' })
     expect((wrapper.vm as unknown as { busy: boolean }).busy).toBe(false)
 
     mutation.resolve({ id: 1, condition: 'touches', threshold_price: 9, status: 'active', repeat: true })
     await wrapper.vm.$nextTick()
     expect((wrapper.vm as unknown as { busy: boolean }).busy).toBe(false)
+  })
+
+  it('does not publish a late alert bundle after the tool unmounts', async () => {
+    const prices = deferred<unknown[]>()
+    const indicators = deferred<unknown[]>()
+    const screeners = deferred<unknown[]>()
+    const history = deferred<unknown[]>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/alerts/price') return prices.promise
+      if (path === '/alerts/indicator') return indicators.promise
+      if (path === '/alerts/screener') return screeners.promise
+      return history.promise
+    })
+    const wrapper = mountAlerts({ props: { instrumentId: 7, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(4))
+    await wrapper.unmount()
+
+    prices.resolve([{ id: 1, condition: 'touches', threshold_price: 9, status: 'active', repeat: false }])
+    indicators.resolve([])
+    screeners.resolve([])
+    history.resolve([])
+    await Promise.all([prices.promise, indicators.promise, screeners.promise, history.promise])
+    await Promise.resolve()
+
+    expect((wrapper.vm as unknown as { alerts: unknown[] }).alerts).toEqual([])
+    expect((wrapper.vm as unknown as { loading: boolean }).loading).toBe(true)
   })
 
   it('renders and manages saved EasyScan alerts alongside instrument alerts', async () => {
@@ -88,8 +183,18 @@ describe('linked instrument tool stale-response guards', () => {
     apiPatch.mockResolvedValue({ id: 9, screener_id: 4, screener_name: 'Momentum', trigger_type: 'entered', status: 'paused', repeat: true })
     const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
     await vi.waitFor(() => expect(wrapper.text()).toContain('Momentum'))
+    expect(wrapper.get('button[aria-label="Disable repeat for scan alert"]').attributes('aria-pressed')).toBe('true')
     await wrapper.get('button[aria-label="Pause scan alert"]').trigger('click')
     expect(apiPatch).toHaveBeenCalledWith('/alerts/screener/9', { status: 'paused' })
+  })
+
+  it('names rearm controls by alert type', async () => {
+    apiGet.mockImplementation((_path: string) => {
+      if (_path === '/alerts/screener') return Promise.resolve([{ id: 10, screener_id: 5, screener_name: 'Paused momentum', trigger_type: 'both', status: 'paused', repeat: false }])
+      return Promise.resolve([])
+    })
+    const wrapper = mountAlerts({ props: { instrumentId: 1, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(wrapper.get('button[aria-label="Rearm scan alert"]')).toBeTruthy())
   })
 
   it('creates an indicator alert from the primary Alerts tool', async () => {
@@ -124,6 +229,24 @@ describe('linked instrument tool stale-response guards', () => {
     await wrapper.get('[aria-label="Indicator threshold"]').setValue('30')
     await wrapper.get('form[aria-label="Create instrument alert"]').trigger('submit')
     expect(apiPost).toHaveBeenCalledWith('/alerts/indicator', expect.objectContaining({ condition: 'lte', threshold_value: 30 }))
+  })
+
+  it('requires and submits an explicit output for multi-output indicator alerts', async () => {
+    apiGet.mockResolvedValue([])
+    apiPost.mockResolvedValue({ id: 44, instrument_id: 7, indicator_a_type: 'bb', condition: 'crosses_above', threshold_value: 100, status: 'active', repeat: false })
+    const wrapper = mountAlerts({ props: { instrumentId: 7, symbol: 'SPY' } })
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Alert type"]')).toBeTruthy())
+    await wrapper.get('[aria-label="Alert type"]').setValue('indicator')
+    await wrapper.get('[aria-label="Alert indicator"]').setValue('bb')
+    await wrapper.get('[aria-label="Indicator threshold"]').setValue('100')
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[aria-label="Alert indicator output"]').setValue('bb_upper')
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+    await wrapper.get('form[aria-label="Create instrument alert"]').trigger('submit')
+    expect(apiPost).toHaveBeenCalledWith('/alerts/indicator', expect.objectContaining({
+      indicator_a_type: 'bb',
+      indicator_a_params: { period: 20, std_dev: 2, output: 'bb_upper' },
+    }))
   })
 
   it('creates an indicator-versus-indicator alert without a fixed threshold', async () => {

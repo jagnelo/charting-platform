@@ -6,9 +6,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from enum import StrEnum
+from statistics import median
 from typing import Literal
 
+from sqlalchemy import and_, or_
+
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
+from app.models.provider_observation import MarketBarObservation
 
 
 class CoverageStatus(StrEnum):
@@ -34,8 +38,269 @@ class OhlcvCoverageAssessment:
     explanation: str
 
 
+@dataclass(frozen=True, slots=True)
+class OhlcvLineageSummary:
+    """Explicit source and adjustment lineage for a covered bar range.
+
+    Provider APIs expose the requested adjustment mode but do not expose the
+    event-level factors used to produce adjusted prices.  Keep that limitation
+    explicit, and distinguish it from locally derived coarse bars inheriting
+    the canonical D1 adjustment contract.
+    """
+
+    provider_bar_count: int
+    derived_bar_count: int
+    unknown_bar_count: int
+    source_lineage: str
+    source_timeframes: tuple[str, ...]
+    adjustment_provenance: dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class OhlcvStorageReconciliation:
+    """Evidence that canonical provider bars still match raw observations."""
+
+    status: str
+    provider_bar_count: int
+    observation_count: int
+    matched_observation_count: int
+    missing_observation_count: int
+    mismatched_observation_count: int
+    orphan_observation_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class OhlcvCadenceAssessment:
+    """Observed spacing between distinct bars returned for a range.
+
+    This is a diagnostic of local rows in the requested range only. It is not
+    a claim about a provider schedule or about missing observations outside
+    the returned rows.
+    """
+
+    status: str
+    sample_count: int = 0
+    median_interval_days: float | None = None
+    min_interval_days: float | None = None
+    max_interval_days: float | None = None
+
+
+def assess_observed_ohlcv_cadence(bars: Sequence[OHLCVBar]) -> OhlcvCadenceAssessment:
+    """Summarise intervals between distinct timestamps in returned OHLCV rows."""
+
+    timestamps = sorted({_as_utc(bar.ts) for bar in bars if bar.ts is not None})
+    if not timestamps:
+        return OhlcvCadenceAssessment(status="no_observation")
+    if len(timestamps) == 1:
+        return OhlcvCadenceAssessment(status="single_observation")
+    intervals = tuple(
+        (current - previous).total_seconds() / 86_400
+        for previous, current in zip(timestamps, timestamps[1:])
+        if current > previous
+    )
+    if not intervals:
+        return OhlcvCadenceAssessment(status="no_interval")
+    return OhlcvCadenceAssessment(
+        status="observed_cadence",
+        sample_count=len(intervals),
+        median_interval_days=float(median(intervals)),
+        min_interval_days=min(intervals),
+        max_interval_days=max(intervals),
+    )
+
+
+def reconcile_ohlcv_storage(
+    bars: Sequence[OHLCVBar], observations: Sequence[MarketBarObservation]
+) -> OhlcvStorageReconciliation:
+    """Compare provider-backed canonical bars with their raw observations.
+
+    Derived rows intentionally have no raw observation. Provider rows with no
+    source identity are reported through the existing unknown-lineage count,
+    not treated as a proven mismatch.
+    """
+
+    provider_bars = [
+        bar for bar in bars if bar.is_derived is False and bar.data_source_id is not None
+    ]
+    # A timestamp is not globally unique: the same source can expose several
+    # timeframes and both raw and adjusted views for one instrument.  Keep the
+    # complete storage identity here so one observation cannot satisfy a
+    # different timeframe or adjustment mode by accident.
+    observation_by_key = {
+        (
+            observation.instrument_id,
+            observation.data_source_id,
+            observation.timeframe,
+            _as_utc(observation.ts),
+            observation.is_adjusted,
+        ): observation
+        for observation in observations
+    }
+    provider_keys = {
+        (
+            bar.instrument_id,
+            bar.data_source_id,
+            bar.timeframe,
+            _as_utc(bar.ts),
+            bar.is_adjusted,
+        )
+        for bar in provider_bars
+    }
+    matched = missing = mismatched = 0
+    for bar in provider_bars:
+        key = (
+            bar.instrument_id,
+            bar.data_source_id,
+            bar.timeframe,
+            _as_utc(bar.ts),
+            bar.is_adjusted,
+        )
+        observation = observation_by_key.get(key)
+        if observation is None:
+            missing += 1
+            continue
+        if any(
+            left != right
+            for left, right in (
+                (bar.open, observation.open),
+                (bar.high, observation.high),
+                (bar.low, observation.low),
+                (bar.close, observation.close),
+                (bar.volume, observation.volume),
+                (bar.vwap, observation.vwap),
+            )
+        ):
+            mismatched += 1
+        else:
+            matched += 1
+    # Compare observations with a precomputed provider identity set.  The
+    # previous nested scan was O(observations × provider_bars), which made a
+    # large-range reconciliation prohibitively expensive even though the
+    # identity itself is already fully hashable.
+    orphan = sum(1 for key in observation_by_key if key not in provider_keys)
+    if not provider_bars and not observations:
+        status = "not_observed"
+    elif missing or mismatched or orphan:
+        status = "inconsistent"
+    else:
+        status = "reconciled"
+    return OhlcvStorageReconciliation(
+        status=status,
+        provider_bar_count=len(provider_bars),
+        observation_count=len(observations),
+        matched_observation_count=matched,
+        missing_observation_count=missing,
+        mismatched_observation_count=mismatched,
+        orphan_observation_count=orphan,
+    )
+
+
+def summarize_ohlcv_lineage(bars: Sequence[OHLCVBar], *, adjusted: bool) -> OhlcvLineageSummary:
+    """Summarize provider/derived lineage without naming an unknown provider."""
+
+    provider_count = sum(1 for bar in bars if bar.is_derived is False)
+    derived_count = sum(1 for bar in bars if bar.is_derived is True)
+    unknown_count = len(bars) - provider_count - derived_count
+    if provider_count and derived_count:
+        source_lineage = "provider_and_derived"
+    elif provider_count:
+        source_lineage = "provider_only"
+    elif derived_count:
+        source_lineage = "derived_only"
+    else:
+        source_lineage = "unavailable"
+
+    source_timeframes = tuple(
+        sorted(
+            {
+                str(bar.source_timeframe)
+                for bar in bars
+                if bar.is_derived is True and bar.source_timeframe
+            }
+        )
+    )
+    local_split_count = sum(
+        1 for bar in bars if bar.is_derived is True and bar.derivation_method == "local_split_ratio"
+    )
+    local_provider_factor_count = sum(
+        1
+        for bar in bars
+        if bar.is_derived is True and bar.derivation_method == "provider_adjustment_factor"
+    )
+    if not bars:
+        source_kind = "unavailable"
+        factor_status = "not_observed"
+    elif provider_count and derived_count:
+        source_kind = "mixed_provider_and_derived"
+        factor_status = "mixed_provider_native_opaque_and_inherited_from_canonical_d1"
+    elif provider_count:
+        source_kind = "provider_observation"
+        factor_status = "provider_native_opaque" if adjusted else "not_applied"
+    elif derived_count:
+        if local_split_count == derived_count:
+            source_kind = "local_split_ratio"
+            factor_status = "rebuildable_split_factors"
+        elif local_provider_factor_count == derived_count:
+            source_kind = "provider_adjustment_factor"
+            factor_status = "rebuildable_provider_factors"
+        else:
+            source_kind = "derived_from_canonical_d1"
+            factor_status = "inherited_from_canonical_d1"
+    else:
+        source_kind = "unavailable"
+        factor_status = "not_observed"
+
+    return OhlcvLineageSummary(
+        provider_bar_count=provider_count,
+        derived_bar_count=derived_count,
+        unknown_bar_count=unknown_count,
+        source_lineage=source_lineage,
+        source_timeframes=source_timeframes,
+        adjustment_provenance={
+            "mode": "split_adjusted" if adjusted else "raw",
+            "source_kind": source_kind,
+            "factor_status": factor_status,
+            "factor_version": None,
+            "contract_version": 1,
+        },
+    )
+
+
 def _as_utc(value: datetime) -> datetime:
-    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def bar_visible_through_clause(cutoff: datetime):
+    """Keep derived coarse bars out of a cutoff until their source closes.
+
+    Derived W1/MN rows use the first source session as ``ts`` but aggregate
+    through ``source_end``. Comparing only ``ts`` would expose a partially
+    observed period to a historical caller. Provider rows retain their
+    observation-timestamp contract; derived rows need explicit source-end
+    evidence to be visible at the cutoff.
+    """
+
+    normalized_cutoff = _as_utc(cutoff)
+    return or_(
+        OHLCVBar.is_derived.is_(False),
+        and_(
+            OHLCVBar.is_derived.is_(True),
+            OHLCVBar.source_end.is_not(None),
+            OHLCVBar.source_end <= normalized_cutoff,
+        ),
+    )
+
+
+def bar_visible_through(bar: OHLCVBar, cutoff: datetime) -> bool:
+    """Return whether one ORM bar has complete source evidence by cutoff."""
+
+    if not bar.is_derived:
+        return True
+    if bar.source_end is None:
+        return False
+    return _as_utc(bar.source_end) <= _as_utc(cutoff)
 
 
 def _observed_fixed_holiday(year: int, month: int, day: int) -> date:

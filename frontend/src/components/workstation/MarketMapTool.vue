@@ -17,8 +17,8 @@
           <input v-model.trim="etfBootstrapSymbol" aria-label="ETF universe symbol" placeholder="e.g. QQQ" maxlength="20" @keydown.enter.prevent="bootstrapEtfSource" />
         </label>
         <button type="button" :disabled="etfBootstrapBusy || !etfBootstrapSymbol.trim()" aria-label="Load ETF constituent universe" @click="bootstrapEtfSource">{{ etfBootstrapBusy ? 'Loading…' : 'Load ETF' }}</button>
-        <span v-if="etfBootstrapMessage" role="status">{{ etfBootstrapMessage }}</span>
-        <span v-if="etfBootstrapError" class="market-map-tool__status--error" role="alert">{{ etfBootstrapError }}</span>
+        <span v-if="etfBootstrapMessage" role="status" aria-live="polite" aria-atomic="true">{{ etfBootstrapMessage }}</span>
+        <span v-if="etfBootstrapError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ etfBootstrapError }}</span>
       </div>
       <label>Explicit symbols
         <input v-model.trim="explicitSymbols" aria-label="Market Map explicit symbols" placeholder="SPY, NVDA, MSFT" @keydown.enter.prevent="run" />
@@ -26,14 +26,14 @@
       <small v-if="explicitSymbols.trim()" class="market-map-tool__explicit-hint">Canonical selection · save it as a personal watchlist for durable membership</small>
       <template v-if="explicitSymbols.trim()">
         <input v-model.trim="explicitWatchlistName" aria-label="Explicit source watchlist name" placeholder="Save watchlist as…" maxlength="80" />
-        <button type="button" :disabled="explicitSaving || !explicitWatchlistName" @click="saveExplicitSource">{{ explicitSaving ? 'Saving…' : 'Save as watchlist' }}</button>
+        <button type="button" aria-label="Save explicit symbols as personal watchlist" :disabled="explicitSaving || !explicitWatchlistName" @click="saveExplicitSource">{{ explicitSaving ? 'Saving…' : 'Save as watchlist' }}</button>
         <button type="button" :disabled="explicitSaving || !explicitWatchlistName" aria-label="Save explicit symbols as locked source" @click="saveExplicitLockedSource">{{ explicitSaving ? 'Saving…' : 'Save as locked source' }}</button>
-        <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
-        <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
+        <span v-if="publicationMessage" role="status" aria-live="polite" aria-atomic="true">{{ publicationMessage }}</span>
+        <span v-if="publicationError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ publicationError }}</span>
       </template>
       <div v-if="activeSource" class="market-map-tool__source-actions" aria-label="Market Map source preferences">
         <span class="market-map-tool__source-kind">{{ sourceKindLabel(activeSource.source_kind) }} · {{ activeSource.member_count ?? '—' }} members</span>
-        <span v-if="sourceAvailability(activeSource) === 'pending'" class="market-map-tool__source-state" role="status">Membership pending; this locked source remains followable</span>
+        <span v-if="sourceAvailability(activeSource) === 'pending'" class="market-map-tool__source-state" role="status" aria-live="polite" aria-atomic="true">Membership pending; this locked source remains followable</span>
         <span
           v-if="sourceIsNotCurrent(activeSource)"
           class="market-map-tool__source-state market-map-tool__source-state--warning"
@@ -45,8 +45,8 @@
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
         <button v-if="map && activeSource.can_clone" type="button" :disabled="sourceCloneBusy" :aria-label="`Clone ${activeSource.name} snapshot`" @click="cloneActiveSource">{{ sourceCloneBusy ? 'Cloning…' : 'Clone snapshot' }}</button>
         <button v-if="sourceCloneRetryIds.length" type="button" :disabled="sourceCloneBusy" aria-label="Retry failed source clone members" @click="retrySourceClone">{{ sourceCloneBusy ? 'Retrying…' : `Retry ${sourceCloneRetryIds.length} failed` }}</button>
-        <span v-if="sourceCloneMessage" role="status">{{ sourceCloneMessage }}</span>
-        <span v-if="sourceCloneError" class="market-map-tool__status--error" role="alert">{{ sourceCloneError }}</span>
+        <span v-if="sourceCloneMessage" role="status" aria-live="polite" aria-atomic="true">{{ sourceCloneMessage }}</span>
+        <span v-if="sourceCloneError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ sourceCloneError }}</span>
       </div>
       <label>Group
         <select v-model="groupBy" aria-label="Market Map grouping">
@@ -120,7 +120,12 @@
         </select>
       </label>
       <label v-if="colorMetric === 'breadth'" class="market-map-tool__advanced-toggle"><input v-model="advancedBreadthEditor" type="checkbox" aria-label="Use advanced Market Map breadth condition editor" /> Advanced condition editor</label>
-      <BreadthConditionTreeEditor v-if="colorMetric === 'breadth' && advancedBreadthEditor" v-model="breadthConditionTree" />
+      <BreadthConditionTreeEditor
+        v-if="colorMetric === 'breadth' && advancedBreadthEditor"
+        v-model="breadthConditionTree"
+        :python-series-assets="pythonAssets"
+        :python-series-assets-loading="pythonAssetsLoading"
+      />
       <label v-if="colorMetric === 'breadth' && !advancedBreadthEditor && breadthConditionKind === 'above_moving_average'">Period
         <input v-model.number="breadthConditionPeriod" aria-label="Market Map breadth moving average period" type="number" min="2" max="252" />
       </label>
@@ -140,13 +145,14 @@
       </label>
       <label v-if="colorMetric === 'python' || areaMetric === 'python'">Python output
         <select v-model="pythonCodeVersionId" aria-label="Market Map Python colour asset" :disabled="pythonAssetsLoading || pythonRunLoading">
-          <option :value="null">Select a Boolean or numeric-series asset</option>
-          <option v-for="asset in pythonAssets.filter(item => areaMetric !== 'python' || item.outputContract === 'series')" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
+          <option :value="null">Select a named Boolean or numeric-series output</option>
+          <option v-for="asset in compatiblePythonAssets" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
         </select>
       </label>
-      <span v-if="colorMetric === 'python' && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
-      <span v-if="colorMetric === 'python' && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
-      <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim()) || (!explicitSymbols.trim() && !!activeSource && !isSourceSelectable(activeSource))" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+      <span v-if="pythonSelectionNotice" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ pythonSelectionNotice }}</span>
+      <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunLoading" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">Evaluating isolated Python…</span>
+      <span v-if="(colorMetric === 'python' || areaMetric === 'python' || breadthUsesPython) && pythonRunError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ pythonRunError }}</span>
+      <button type="button" class="market-map-tool__run" aria-label="Refresh Market Map" :disabled="loading || (!sourceId && !explicitSymbols.trim()) || (!explicitSymbols.trim() && !!activeSource && !isSourceSelectable(activeSource))" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
           <option value="">Live / cached result</option>
@@ -154,32 +160,60 @@
         </select>
       </label>
       <input v-model="snapshotName" aria-label="Market Map snapshot name" placeholder="Snapshot name" maxlength="160" />
-      <button type="button" :disabled="snapshotLoading || !map || !snapshotName.trim()" @click="saveSnapshot">{{ snapshotLoading ? 'Saving…' : 'Save snapshot' }}</button>
-      <button type="button" :disabled="!map" @click="exportCsv">Export CSV</button>
-      <button v-if="snapshotSelectionId" type="button" :disabled="snapshotLoading" @click="deleteSnapshot">Delete snapshot</button>
+      <button type="button" aria-label="Save Market Map snapshot" :disabled="snapshotLoading || !map || !snapshotName.trim()" @click="saveSnapshot">{{ snapshotLoading ? 'Saving…' : 'Save snapshot' }}</button>
+      <button type="button" aria-label="Export Market Map CSV" :disabled="!map" @click="exportCsv">Export CSV</button>
+      <button v-if="snapshotSelectionId" type="button" aria-label="Delete selected Market Map snapshot" :disabled="snapshotLoading" @click="deleteSnapshot">Delete snapshot</button>
     </div>
-    <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ sourcesError }}</p>
-    <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ error }}</p>
-    <p v-if="snapshotError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ snapshotError }}</p>
-    <p v-if="publicationMessage && !explicitSymbols.trim() && !selectedIds.length" class="market-map-tool__status" role="status">{{ publicationMessage }}</p>
-    <p v-if="map?.warnings.length" class="market-map-tool__status" role="status">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
+    <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ sourcesError }}</p>
+    <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-if="snapshotError" class="market-map-tool__status market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ snapshotError }}</p>
+    <p v-if="publicationMessage && !explicitSymbols.trim() && !selectedIds.length" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ publicationMessage }}</p>
+    <p v-if="map?.warnings.length" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
     <div v-if="map" class="market-map-tool__summary">
-      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
+      <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="map.python_run_id && map.python_code_version_id" aria-label="Market Map Python output lineage">Python · {{ map.python_output_name || 'unnamed output' }} · {{ map.python_output_contract || 'unknown contract' }} · version #{{ map.python_code_version_id }} · run #{{ map.python_run_id }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
+    </div>
+    <div v-if="benchmarkFamilyKey || benchmarkCoverageLoading || benchmarkCoverageError" class="market-map-tool__benchmark-readiness" aria-label="Benchmark family canonical readiness">
+      <strong>Canonical readiness</strong>
+      <span v-if="benchmarkCoverageLoading" role="status" aria-live="polite" aria-atomic="true">Checking dated holdings, weights, classifications, and member bars…</span>
+      <span v-else-if="benchmarkCoverageError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ benchmarkCoverageError }}</span>
+      <template v-else-if="benchmarkCoverage">
+        <span>{{ benchmarkCoverage.name }} · {{ coveragePercent(benchmarkCoverage.coverage, 0) }}% of roles have dated holdings</span>
+        <ul class="market-map-tool__benchmark-readiness-list">
+          <li v-for="role in benchmarkCoverage.roles" :key="role.role" :data-readiness="role.composite_readiness_status">
+            <span>{{ role.label }}{{ role.symbol ? ` (${role.symbol})` : '' }}</span>
+            <span>{{ role.composite_readiness_status }}</span>
+            <span>{{ benchmarkRoleCoverageLabel(role) }}</span>
+            <small>Route: {{ benchmarkRoleRouteLabel(role) }} · Refresh: {{ benchmarkRoleRefreshLabel(role) }}</small>
+            <small>Members: {{ role.member_count }} · Weighted: {{ role.weighted_member_count }} ({{ role.weights_status.replace(/_/g, ' ') }}) · Classified: {{ role.classified_member_count }} ({{ role.classification_status.replace(/_/g, ' ') }}) · Point-in-time: {{ role.point_in_time_supported ? 'supported' : 'unavailable' }}</small>
+            <small v-if="role.member_bar_history?.timeframes?.length">History: {{ benchmarkRoleHistoryLabel(role) }}</small>
+            <small v-if="role.entitlement_status || role.entitlement_provider || role.entitlement_revision != null">Entitlement: {{ benchmarkRoleEntitlementLabel(role) }}</small>
+            <small v-if="role.snapshots?.length">Latest disclosure: {{ benchmarkRoleLatestSnapshotLabel(role) }}</small>
+            <small v-if="role.continuity_status && role.continuity_status !== 'not_applicable'">Observed continuity: {{ role.continuity_status.replace(/_/g, ' ') }}{{ role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : '' }}{{ role.continuity_snapshot_limit_reached ? ' · snapshot limit reached' : '' }}</small>
+            <small v-if="role.composite_readiness_reasons?.length">{{ role.composite_readiness_reasons.join(' · ') }}</small>
+          </li>
+        </ul>
+        <span class="sr-only" aria-label="Benchmark family canonical identity evidence">{{ benchmarkRoleIdentityEvidenceLabel(benchmarkCoverage) }}</span>
+      </template>
     </div>
     <div v-if="sourceId || historyLoading || historyError" class="market-map-tool__history-status" aria-label="Market Map history readiness">
       <strong>History</strong>
-      <span v-if="historyLoading">Checking local bars…</span>
-      <span v-else-if="historyError" class="market-map-tool__status--error" role="alert">{{ historyError }}</span>
+      <span v-if="historyLoading" role="status" aria-live="polite" aria-atomic="true">Checking local bars…</span>
+      <span v-else-if="historyError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ historyError }}</span>
       <template v-else-if="historyStatus">
         <span :class="`market-map-tool__history-status--${historyStatus.overall_status}`">{{ historyStatus.overall_status }}</span>
-        <span v-if="historyStatus.timeframes.length">{{ historyStatus.timeframes[0].covered_member_count }}/{{ historyStatus.timeframes[0].member_count }} {{ historyStatus.timeframes[0].timeframe }} members covered</span>
+        <span v-if="historyStatus.analysis_ready_status" :class="`market-map-tool__history-status--${historyStatus.analysis_ready_status}`">analysis {{ historyStatus.analysis_ready_status }}</span>
+        <span v-for="history in historyStatus.timeframes" :key="history.timeframe">{{ watchlistHistoryTimeframeLabel(history) }}</span>
         <span v-if="historyStatus.limited">Bounded to {{ historyStatus.selected_instrument_count }} of {{ historyStatus.available_instrument_count }}</span>
-        <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>
+        <span v-if="historyRefreshMessage" role="status" aria-live="polite" aria-atomic="true">{{ historyRefreshMessage }}</span>
+        <span class="sr-only" aria-label="Market Map history member disposition evidence">{{ watchlistHistoryDispositionLabel(historyStatus) }}</span>
+        <span class="sr-only" aria-label="Market Map history membership timing evidence">{{ watchlistHistoryTimingLabel(historyStatus) }}</span>
+        <span class="sr-only" aria-label="Market Map history adjustment provenance evidence">{{ watchlistHistoryAdjustmentLabel(historyStatus) }}</span>
+        <span class="sr-only" aria-label="Market Map history lineage evidence">{{ watchlistHistoryLineageLabel(historyStatus) }}</span>
       </template>
-      <span v-if="historyRun" class="market-map-tool__history-run" role="status">Run {{ historyRun.id }} · {{ historyRun.status }}<template v-if="historyRun.progress"> · {{ historyRunProgress }}</template></span>
+      <span v-if="historyRun" class="market-map-tool__history-run" role="status" aria-live="polite" aria-atomic="true">Run {{ historyRun.id }} · {{ historyRun.status }}<template v-if="historyRun.progress"> · {{ historyRunProgress }}</template></span>
       <button v-if="sourceId" type="button" aria-label="Refresh Market Map history" :disabled="historyRefreshing || historyLoading" @click="refreshHistory">{{ historyRefreshing ? 'Queueing…' : 'Refresh history' }}</button>
       <button v-if="historyRun && isHistoryRunActive" type="button" aria-label="Cancel Market Map history refresh" :disabled="historyRunLoading" @click="cancelHistoryRefresh">{{ historyRunLoading ? 'Canceling…' : 'Cancel refresh' }}</button>
-      <span v-if="historyRefreshError" class="market-map-tool__status--error" role="alert">{{ historyRefreshError }}</span>
+      <span v-if="historyRefreshError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ historyRefreshError }}</span>
     </div>
     <div v-if="map" class="market-map-tool__source-analysis-actions" aria-label="Market Map source analysis actions">
       <span v-if="selectedIds.length">{{ selectedIds.length }} selected members will be included as context</span>
@@ -189,18 +223,18 @@
     <div v-if="map && colorMetric === 'breadth'" class="market-map-tool__definition-actions" aria-label="Market Map reusable definition actions">
       <input v-model.trim="definitionName" aria-label="Market Map breadth definition name" placeholder="Reusable breadth definition name" maxlength="160" />
       <button type="button" aria-label="Save as Study Lab definition" :disabled="definitionSaving || !definitionName" @click="saveBreadthDefinition">{{ definitionSaving ? 'Saving…' : 'Save as Study Lab definition' }}</button>
-      <span v-if="definitionMessage" role="status">{{ definitionMessage }}</span>
-      <span v-if="definitionError" class="market-map-tool__status--error" role="alert">{{ definitionError }}</span>
+      <span v-if="definitionMessage" role="status" aria-live="polite" aria-atomic="true">{{ definitionMessage }}</span>
+      <span v-if="definitionError" class="market-map-tool__status--error" role="alert" aria-live="assertive" aria-atomic="true">{{ definitionError }}</span>
     </div>
     <div v-if="map" class="market-map-tool__nodes" aria-label="Market Map groups">
       <button v-if="selectedNode" type="button" aria-label="Market Map parent group" @click="selectNode(activeNode?.parent_id ?? null)">← Up</button>
-      <button v-for="node in visibleNodes" :key="node.node_id" type="button" :class="{ active: selectedNode === node.node_id }" @click="selectNode(node.node_id)">{{ node.label }} <small>{{ node.member_count }}</small></button>
+      <button v-for="node in visibleNodes" :key="node.node_id" type="button" :class="{ active: selectedNode === node.node_id }" :aria-pressed="selectedNode === node.node_id ? 'true' : 'false'" @click="selectNode(node.node_id)">{{ node.label }} <small>{{ node.member_count }}</small></button>
     </div>
     <nav v-if="map" class="market-map-tool__breadcrumbs" aria-label="Market Map hierarchy">
-      <button type="button" :class="{ active: !selectedNode }" @click="selectNode(null)">All members</button>
+      <button type="button" :class="{ active: !selectedNode }" :aria-pressed="!selectedNode ? 'true' : 'false'" @click="selectNode(null)">All members</button>
       <template v-for="node in breadcrumbs" :key="node.node_id">
         <span aria-hidden="true">›</span>
-        <button type="button" :class="{ active: selectedNode === node.node_id }" @click="selectNode(node.node_id)">{{ node.label }}</button>
+        <button type="button" :class="{ active: selectedNode === node.node_id }" :aria-pressed="selectedNode === node.node_id ? 'true' : 'false'" @click="selectNode(node.node_id)">{{ node.label }}</button>
       </template>
     </nav>
     <div v-if="map" class="market-map-tool__legend" aria-label="Market Map colour and coverage legend"><span class="market-map-tool__legend--negative">−</span><span>{{ colorLabel }}</span><span class="market-map-tool__legend--positive">+</span><span class="market-map-tool__legend__coverage">Combined {{ coveragePercent(map.coverage, 0) }}% · Colour {{ coveragePercent(map.color_coverage, map.coverage) }}% · Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span></div>
@@ -226,7 +260,7 @@
         <option v-for="target in publicationTargets" :key="target.id" :value="String(target.id)">{{ target.name }}</option>
       </select>
       <input v-if="!publicationTargetId" v-model="newPublicationName" aria-label="Market Map new watchlist name" placeholder="Watchlist name" maxlength="80" @keydown.enter.prevent="publishSelection" />
-      <button type="button" :disabled="publishing || (!publicationTargetId && !newPublicationName.trim())" @click="publishSelection">{{ publishing ? 'Saving…' : 'Save selection' }}</button>
+      <button type="button" aria-label="Save selected members as personal watchlist" :disabled="publishing || (!publicationTargetId && !newPublicationName.trim())" @click="publishSelection">{{ publishing ? 'Saving…' : 'Save selection' }}</button>
       <input v-model.trim="lockedSourceName" aria-label="Market Map locked source name" placeholder="Locked source name" maxlength="160" />
       <button type="button" :disabled="lockedSourceSaving || !lockedSourceName || !selectedIds.length" aria-label="Save selected members as locked source" @click="saveSelectedAsLockedSource">{{ lockedSourceSaving ? 'Saving…' : 'Save as locked source' }}</button>
       <button type="button" :disabled="!selectedSymbols.length" aria-label="Open selected members in chart" @click="openSelectedInChart">Open in Chart</button>
@@ -237,6 +271,7 @@
       <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
       <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
     </div>
+    <span v-if="map" class="sr-only market-map-tool__selection-announcement" role="status" aria-live="polite" aria-atomic="true">{{ selectedMemberAnnouncement }}</span>
     <div v-if="map" ref="viewportRef" class="market-map-tool__tiles" aria-label="Market Map tiles" @wheel.prevent="zoomByWheel" @pointerdown="startPan" @pointermove="movePan" @pointerup="endPan" @pointercancel="endPan">
       <div class="market-map-tool__canvas" :style="canvasStyle">
         <canvas
@@ -245,23 +280,25 @@
           class="market-map-tool__canvas-map"
           role="img"
           :aria-label="`${visibleLayoutCells.length} Market Map members`"
+          :aria-describedby="marketMapAccessibilityId"
           @mousemove="handleCanvasHover"
           @mouseleave="hoveredCell = null"
           @click="selectCanvasCell"
         />
-        <button v-else v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
+        <button v-else v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :data-market-map-instrument-id="cell.instrument_id" :aria-pressed="selectedIds.includes(cell.instrument_id) ? 'true' : 'false'" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @keydown="focusAdjacentMarketMapTile($event, cell)" @click="selectCell($event, cell)">
           <strong>{{ cell.symbol }}</strong><span>{{ formatMetric(cell.color_value) }}</span><small>{{ cell.group_path.join(' · ') || 'All members' }}</small>
         </button>
         <div v-if="!useCanvasTiles" v-for="group in visibleLayoutGroups" :key="`group-${group.key}`" class="market-map-tool__group-frame" :style="groupFrameStyle(group)" :data-group-level="group.level" aria-hidden="true">
           <strong>{{ group.label }}</strong><small>{{ group.member_count }} members</small>
         </div>
         <small v-if="useCanvasTiles" class="market-map-tool__canvas-hint">Large universe · canvas rendering · click a tile to select</small>
+        <span v-if="useCanvasTiles" :id="marketMapAccessibilityId" class="sr-only">{{ marketMapAccessibilitySummary }}</span>
         <p v-if="!visibleCells.length" class="market-map-tool__status">No covered members match this group.</p>
         <p v-else-if="visibleLayoutCells.length < visibleCells.length" class="market-map-tool__status">{{ visibleCells.length - visibleLayoutCells.length }} member(s) have no valid area value and are excluded from tile geometry.</p>
       </div>
     </div>
     <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span>Combined {{ coveragePercent(hoveredCell.coverage, 0) }}% · Colour {{ coveragePercent(hoveredCell.color_coverage, hoveredCell.coverage) }}% · Area {{ coveragePercent(hoveredCell.area_coverage, hoveredCell.coverage) }}%</span><span v-if="hoveredCell.classification_provenance">Classification snapshot · {{ formatClassificationProvenance(hoveredCell.classification_provenance) }}</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>
-    <p v-if="!map && !loading" class="market-map-tool__status">Choose a canonical universe, personal watchlist, or explicit symbols to build a map.</p>
+    <p v-if="!map && !loading" class="market-map-tool__status" role="status" aria-live="polite" aria-atomic="true">Choose a canonical universe, personal watchlist, or explicit symbols to build a map.</p>
   </section>
 </template>
 
@@ -276,7 +313,8 @@ import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { marketMapPythonUniverse } from '@/lib/workstation/marketMapPublication'
-import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
+import { describeMarketMap } from '@/lib/workstation/marketMapAccessibility'
+import { buildMarketMapHitTestIndex, cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchBenchmarkFamilyCoverage, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, findMarketMapCell, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type BenchmarkFamilyCoverage, type BenchmarkFamilyCoverageRole, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource, WatchlistSourceKind } from '@/types'
 
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
@@ -329,10 +367,18 @@ const advancedBreadthEditor = ref(Boolean(props.configuration.advanced_breadth_e
 const breadthConditionTree = ref<BreadthConditionNode>((props.configuration.condition as BreadthConditionNode | undefined) ?? { kind: 'above_moving_average', params: { period: 200, average: 'sma', comparator: 'above' } })
 const pythonCodeVersionId = ref<number | null>(Number(props.configuration.python_code_version_id ?? 0) || null)
 const pythonRunId = ref<number | null>(Number(props.configuration.python_run_id ?? 0) || null)
-const pythonAssets = ref<Array<{ versionId: number; name: string; outputContract: 'boolean' | 'series' }>>([])
+const pythonAssets = ref<Array<{
+  versionId: number
+  versionNumber: number
+  name: string
+  outputName: string | null
+  outputContract: 'boolean' | 'series'
+}>>([])
 const pythonAssetsLoading = ref(false)
 const pythonRunLoading = ref(false)
 const pythonRunError = ref('')
+const pythonSelectionNotice = ref('')
+const compatiblePythonAssets = computed(() => pythonAssets.value.filter(asset => areaMetric.value !== 'python' || asset.outputContract === 'series'))
 const periods = ['1D', '1W', 'MTD', 'YTD', '1M', '3M', '6M', '1Y', 'CUSTOM']
 const startDate = ref(String(props.configuration.start_date ?? ''))
 const endDate = ref(String(props.configuration.end_date ?? ''))
@@ -340,7 +386,8 @@ const loading = ref(false)
 const error = ref('')
 const map = ref<MarketMap | null>(null)
 const selectedNode = ref<string | null>(null)
-const selectedIds = ref<number[]>([])
+const selectedMembers = ref<MarketMapCell[]>([])
+const selectedIds = computed(() => selectedMembers.value.map(cell => cell.instrument_id))
 const hoveredCell = ref<MarketMapCell | null>(null)
 const viewportRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -383,16 +430,47 @@ const historyRefreshMessage = ref('')
 const historyRefreshError = ref('')
 const historyRun = ref<WatchlistHistoryRefreshRun | null>(null)
 const historyRunLoading = ref(false)
+const benchmarkCoverage = ref<BenchmarkFamilyCoverage | null>(null)
+const benchmarkCoverageLoading = ref(false)
+const benchmarkCoverageError = ref('')
 let historyPollTimer: ReturnType<typeof setTimeout> | null = null
 // Source changes can overlap while Golden Layout is opening/closing repeated
 // Market Map tools.  Fence each request so a slower response from the prior
 // universe cannot clear or replace the currently selected map.
 let runGeneration = 0
+// History readiness has the same source/timeframe race as the map itself. A
+// slow status response from a previous source must never replace the current
+// source's coverage or resurrect its refresh run.
+let historyGeneration = 0
+// Explicit history refresh/cancel actions can outlive a docked or popped-out
+// Market Map. Keep their post-response messages scoped to the mounted action
+// generation so teardown cannot repopulate a detached surface.
+let historyActionGeneration = 0
+let sourceActionGeneration = 0
+// Source cloning performs a resolved-member read followed by sequential
+// watchlist writes. Keep the whole action scoped to the mounted source so a
+// late response or source switch cannot keep mutating a detached map.
+let sourceCloneGeneration = 0
+// Locked-source publication spans an API write, source-catalog reload, and map
+// rerun. Fence the sequence so a detached or relinked Market Map cannot
+// publish a saved source into the wrong visible universe.
+let sourcePublicationGeneration = 0
+let sourcePublicationTargetId: string | null = null
+// Personal watchlist publication has the same detached-window risk as locked
+// source publication. Keep selection and explicit-symbol writes scoped to the
+// mounted universe so a late response cannot repopulate a closed tool.
+let selectionPublicationGeneration = 0
+let explicitPublicationGeneration = 0
+let definitionGeneration = 0
+let benchmarkCoverageGeneration = 0
+let pythonAssetsGeneration = 0
+let snapshotGeneration = 0
 let componentMounted = false
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
 const definitionMessage = ref('')
 const definitionError = ref('')
+let skipInitialSourceWatcher = false
 const skipNextSourceRun = ref(false)
 const loadingSources = computed(() => watchlistStore.watchlistSourcesLoading)
 const sourcesError = computed(() => watchlistStore.watchlistSourcesError)
@@ -401,6 +479,27 @@ const activeSource = computed(() => sources.value.find(source => source.source_i
 const sourceFollowed = computed(() => Boolean(activeSource.value && userSettingsStore.followedSourceIds.includes(activeSource.value.source_id)))
 const sourcePinned = computed(() => Boolean(activeSource.value && userSettingsStore.pinnedSourceIds.includes(activeSource.value.source_id)))
 const LARGE_MAP_CANVAS_THRESHOLD = 1500
+// The backend treats an explicit map ``end`` as a historical membership
+// cutoff only for these system-managed source families.  Keep history-status
+// and history-refresh on that same point-in-time contract; personal/combo
+// sources intentionally retain current membership unless they receive an
+// explicit ``as_of`` from another surface.
+const POINT_IN_TIME_SOURCE_PREFIXES = [
+  'benchmark-family:',
+  'etf-holdings:',
+  'market-group:',
+  'explicit-list:',
+]
+
+const historyAsOf = computed<string | null>(() => {
+  if (period.value !== 'CUSTOM' || !endDate.value) return null
+  if (!POINT_IN_TIME_SOURCE_PREFIXES.some(prefix => sourceId.value.startsWith(prefix))) return null
+  return `${endDate.value}T23:59:59Z`
+})
+const benchmarkFamilyKey = computed(() => {
+  const match = /^benchmark-family:([^:]+):[^:]+$/.exec(sourceId.value)
+  return match?.[1] ?? null
+})
 
 function isSourceSelectable(source: WatchlistSource): boolean {
   return sourceAvailability(source) !== 'unavailable'
@@ -446,7 +545,9 @@ function sourceSnapshotDescription(source: WatchlistSource): string {
 
 async function cloneActiveSource() {
   const source = activeSource.value
-  if (!source || !map.value || sourceCloneBusy.value) return
+  if (!componentMounted || !source || !map.value || sourceCloneBusy.value) return
+  const generation = ++sourceCloneGeneration
+  const requestSourceId = source.source_id
   sourceCloneBusy.value = true
   sourceCloneMessage.value = ''
   sourceCloneError.value = ''
@@ -456,53 +557,69 @@ async function cloneActiveSource() {
   try {
     const asOf = source.composition_date ? `${source.composition_date}T23:59:59Z` : null
     const resolved = await watchlistStore.resolveWatchlistSource(source.source_id, asOf)
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) return
     const memberIds = [...new Set((resolved?.members ?? []).map(member => member.instrument_id).filter(id => Number.isInteger(id) && id > 0))]
     if (!memberIds.length) throw new Error('The selected source has no canonical members available to clone.')
     const descriptor = resolved?.source ?? source
     const created = await watchlistStore.createWatchlist(sourceSnapshotName(descriptor), sourceSnapshotDescription(descriptor))
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) return
     if (!created) throw new Error('Unable to create the cloned watchlist.')
     const existingIds = new Set((created.items ?? []).map(item => item.instrument_id))
     const pendingIds = memberIds.filter(instrumentId => !existingIds.has(instrumentId))
-    const result = await addCloneMembers(created.id, pendingIds)
+    const result = await addCloneMembers(created.id, pendingIds, generation, requestSourceId)
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) return
     sourceCloneRetryTargetId.value = result.failed.length ? created.id : null
     sourceCloneRetryIds.value = result.failed
     sourceCloneRetryTotal.value = memberIds.length
     sourceCloneMessage.value = `${result.added + existingIds.size}/${memberIds.length} members cloned as ${created.name} · ${descriptor.membership_version ?? 'current snapshot'}${result.failed.length ? ` · ${result.failed.length} pending (${result.failed.join(', ')})` : ''}`
   } catch (cause) {
-    sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to clone the selected source'
+    if (componentMounted && generation === sourceCloneGeneration && sourceId.value === requestSourceId) {
+      sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to clone the selected source'
+    }
   } finally {
-    sourceCloneBusy.value = false
+    if (generation === sourceCloneGeneration) sourceCloneBusy.value = false
   }
 }
 
-async function addCloneMembers(targetId: number, memberIds: number[]) {
+async function addCloneMembers(targetId: number, memberIds: number[], generation: number, requestSourceId: string) {
   const failed: number[] = []
   let added = 0
-  for (const instrumentId of memberIds) {
+  for (const [index, instrumentId] of memberIds.entries()) {
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) {
+      return { added, failed: [...failed, ...memberIds.slice(index)], canceled: true }
+    }
     const result = await watchlistStore.addItem(targetId, instrumentId)
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) {
+      return { added, failed: [...failed, ...memberIds.slice(index + 1)], canceled: true }
+    }
     if (result) added += 1
     else failed.push(instrumentId)
   }
-  return { added, failed }
+  return { added, failed, canceled: false }
 }
 
 async function retrySourceClone() {
   const targetId = sourceCloneRetryTargetId.value
   const retryIds = [...sourceCloneRetryIds.value]
-  if (!targetId || !retryIds.length || sourceCloneBusy.value) return
+  if (!componentMounted || !targetId || !retryIds.length || sourceCloneBusy.value) return
+  const generation = ++sourceCloneGeneration
+  const requestSourceId = sourceId.value
   sourceCloneBusy.value = true
   sourceCloneMessage.value = ''
   sourceCloneError.value = ''
   try {
-    const result = await addCloneMembers(targetId, retryIds)
+    const result = await addCloneMembers(targetId, retryIds, generation, requestSourceId)
+    if (!componentMounted || generation !== sourceCloneGeneration || sourceId.value !== requestSourceId) return
     sourceCloneRetryIds.value = result.failed
     sourceCloneRetryTargetId.value = result.failed.length ? targetId : null
     const completed = sourceCloneRetryTotal.value - result.failed.length
     sourceCloneMessage.value = `${completed}/${sourceCloneRetryTotal.value} members cloned${result.failed.length ? ` · ${result.failed.length} still pending (${result.failed.join(', ')})` : ' · retry complete'}`
   } catch (cause) {
-    sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to retry failed source clone members'
+    if (componentMounted && generation === sourceCloneGeneration && sourceId.value === requestSourceId) {
+      sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to retry failed source clone members'
+    }
   } finally {
-    sourceCloneBusy.value = false
+    if (generation === sourceCloneGeneration) sourceCloneBusy.value = false
   }
 }
 
@@ -528,65 +645,320 @@ const historyRunProgress = computed(() => {
   return `${historyRun.value.queued_count + historyRun.value.already_queued_count} queued`
 })
 
-async function loadHistoryRun(schedulePoll = false) {
-  if (!historyRun.value) return
+async function loadHistoryRun(schedulePoll = false, generation = historyGeneration) {
+  const runId = historyRun.value?.id
+  if (runId == null) return
   try {
-    historyRun.value = await fetchWatchlistHistoryRefreshRun(historyRun.value.id)
+    const nextRun = await fetchWatchlistHistoryRefreshRun(runId)
+    if (!componentMounted || generation !== historyGeneration || historyRun.value?.id !== runId) return
+    historyRun.value = nextRun
     if (schedulePoll) scheduleHistoryPoll()
   } catch (cause) {
-    historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to read history refresh progress'
+    if (componentMounted && generation === historyGeneration && historyRun.value?.id === runId) {
+      historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to read history refresh progress'
+    }
   }
 }
 
 async function loadHistoryStatus(schedulePoll = false) {
   if (!sourceId.value) {
+    historyGeneration += 1
     clearHistoryPoll()
+    historyLoading.value = false
     historyStatus.value = null
     return
   }
+  const generation = ++historyGeneration
+  const requestSourceId = sourceId.value
   historyLoading.value = true
   historyError.value = ''
   try {
-    const result = await fetchWatchlistSourceHistoryStatus(sourceId.value, [timeframe.value])
+    const result = await fetchWatchlistSourceHistoryStatus(requestSourceId, [timeframe.value], 5000, historyAsOf.value)
+    if (!componentMounted || generation !== historyGeneration || sourceId.value !== requestSourceId) return
     historyStatus.value = result && !Array.isArray(result) ? result : null
-    await loadHistoryRun()
+    await loadHistoryRun(false, generation)
+    if (!componentMounted || generation !== historyGeneration || sourceId.value !== requestSourceId) return
     if (schedulePoll) scheduleHistoryPoll()
   } catch (cause) {
-    historyStatus.value = null
-    historyError.value = cause instanceof Error ? cause.message : 'Unable to read local history readiness'
+    if (componentMounted && generation === historyGeneration && sourceId.value === requestSourceId) {
+      historyStatus.value = null
+      historyError.value = cause instanceof Error ? cause.message : 'Unable to read local history readiness'
+    }
   } finally {
-    historyLoading.value = false
+    if (generation === historyGeneration) historyLoading.value = false
   }
 }
 
+async function loadBenchmarkCoverage() {
+  const generation = ++benchmarkCoverageGeneration
+  const familyKey = benchmarkFamilyKey.value
+  if (!familyKey) {
+    benchmarkCoverage.value = null
+    benchmarkCoverageError.value = ''
+    benchmarkCoverageLoading.value = false
+    return
+  }
+  const requestSourceId = sourceId.value
+  benchmarkCoverageLoading.value = true
+  benchmarkCoverageError.value = ''
+  try {
+    const result = await fetchBenchmarkFamilyCoverage(familyKey, historyAsOf.value)
+    if (!componentMounted || generation !== benchmarkCoverageGeneration || sourceId.value !== requestSourceId) return
+    benchmarkCoverage.value = result && typeof result === 'object' && Array.isArray(result.roles) ? result : null
+  } catch (cause) {
+    if (componentMounted && generation === benchmarkCoverageGeneration && sourceId.value === requestSourceId) {
+      benchmarkCoverage.value = null
+      benchmarkCoverageError.value = cause instanceof Error ? cause.message : 'Unable to read benchmark family readiness'
+    }
+  } finally {
+    if (generation === benchmarkCoverageGeneration) benchmarkCoverageLoading.value = false
+  }
+}
+
+function benchmarkRoleCoverageLabel(role: BenchmarkFamilyCoverageRole): string {
+  if (!role.available) return 'mapping unavailable'
+  const history = role.member_bar_history?.timeframes?.find(item => item.timeframe === timeframe.value)
+  if (history) return `${history.analysis_ready_member_count}/${history.member_count} ${history.timeframe} analysis-ready`
+  if (role.member_bar_history?.status) return role.member_bar_history.status.replace(/_/g, ' ')
+  return role.history_ready ? 'member history ready' : 'member history incomplete'
+}
+
+function benchmarkRoleHistoryLabel(role: BenchmarkFamilyCoverageRole): string {
+  const histories = role.member_bar_history?.timeframes ?? []
+  return histories.map(history => {
+    const floor = history.required_bar_count ? ` · floor ${history.required_bar_count}` : ''
+    const oldest = history.oldest ? history.oldest.slice(0, 10) : null
+    const newest = history.newest ? history.newest.slice(0, 10) : null
+    const range = oldest || newest ? ` · range ${oldest ?? 'unknown'} → ${newest ?? 'unknown'}` : ''
+    const status = history.analysis_ready_status ? ` · ${history.analysis_ready_status}` : ''
+    return `${history.timeframe} ${history.analysis_ready_member_count}/${history.member_count} ready${status} · ${history.covered_member_count} covered · ${history.bar_count} bars${floor}${range}`
+  }).join(' · ')
+}
+
+function benchmarkRoleRouteLabel(role: BenchmarkFamilyCoverageRole): string {
+  const status = role.holdings_route_status?.replace(/_/g, ' ') ?? 'not configured'
+  const provider = role.holdings_route_provider?.trim()
+  const adapter = role.holdings_route_adapter_key?.trim()
+  return `${status}${provider ? ` · ${provider}` : ''}${adapter ? ` · adapter ${adapter}` : ''}`
+}
+
+function watchlistHistoryTimeframeLabel(history: WatchlistSourceHistoryStatus['timeframes'][number]): string {
+  const oldest = history.oldest ? history.oldest.slice(0, 10) : null
+  const newest = history.newest ? history.newest.slice(0, 10) : null
+  const range = oldest || newest ? ` · range ${oldest ?? 'unknown'} → ${newest ?? 'unknown'}` : ''
+  const ready = typeof history.analysis_ready_member_count === 'number'
+    ? ` · analysis-ready ${history.analysis_ready_member_count}/${history.member_count}${history.required_bar_count ? ` (floor ${history.required_bar_count})` : ''}`
+    : ''
+  const status = history.analysis_ready_status ? ` · ${history.analysis_ready_status}` : ''
+  return `${history.covered_member_count}/${history.member_count} ${history.timeframe} members covered${ready}${status} · ${history.bar_count} bars${range}`
+}
+
+function watchlistHistoryDispositionLabel(status: WatchlistSourceHistoryStatus): string {
+  const disposition = Object.entries(status.member_disposition ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key} ${value}`)
+    .join(', ')
+  return disposition ? `Member disposition: ${disposition}` : 'Member disposition: not reported'
+}
+
+function watchlistHistoryTimingLabel(status: WatchlistSourceHistoryStatus): string {
+  const effective = status.effective_at ? `effective ${status.effective_at}` : 'effective not reported'
+  const known = status.known_at ? `known ${status.known_at}` : 'known not reported'
+  const published = status.published_at ? `published ${status.published_at}` : 'published not reported'
+  const cadence = status.cadence ? `cadence ${status.cadence}` : 'cadence not reported'
+  const parser = status.parser_version ? `parser ${status.parser_version}` : 'parser not reported'
+  const source = status.source_identifier ? `source ${status.source_identifier}` : 'source not reported'
+  const timing = Object.entries(status.timing_provenance ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
+    .join(', ')
+  return `Membership timing: ${effective} · ${known} · ${published} · ${cadence} · ${parser} · ${source} · provenance ${timing || 'not reported'}`
+}
+
+function watchlistHistoryAdjustmentLabel(status: WatchlistSourceHistoryStatus): string {
+  const adjustment = status.timeframes
+    .map(history => {
+      const provenance = history.adjustment_provenance ?? {}
+      const mode = provenance.mode?.replace(/_/g, ' ') || 'not reported'
+      const source = provenance.source_kind?.replace(/_/g, ' ') || 'not reported'
+      const factor = provenance.factor_status?.replace(/_/g, ' ') || 'not reported'
+      const version = provenance.factor_version ? ` · factor version ${provenance.factor_version}` : ' · factor version not reported'
+      const factorMembers = provenance.factor_versioned_member_count != null || provenance.factor_opaque_member_count != null || provenance.factor_unavailable_member_count != null
+        ? ` · factor members versioned ${provenance.factor_versioned_member_count ?? 0}, opaque ${provenance.factor_opaque_member_count ?? 0}, unavailable ${provenance.factor_unavailable_member_count ?? 0}`
+        : ''
+      return `${history.timeframe} ${mode} · source ${source} · factor ${factor}${version}${factorMembers}`
+    })
+    .join(', ')
+  return adjustment ? `History adjustment provenance: ${adjustment}` : 'History adjustment provenance: not reported'
+}
+
+function watchlistHistoryLineageLabel(status: WatchlistSourceHistoryStatus): string {
+  const lineage = status.timeframes
+    .map(history => {
+      const source = history.source_lineage?.replace(/_/g, ' ') || 'unavailable'
+      const members = `members provider ${history.provider_member_count ?? 0}, derived ${history.derived_member_count ?? 0}`
+      const split = `provider-only ${history.provider_only_member_count ?? 0}, derived-only ${history.derived_only_member_count ?? 0}, mixed ${history.mixed_member_count ?? 0}`
+      const bars = `bars provider ${history.provider_bar_count ?? 0}, derived ${history.derived_bar_count ?? 0}`
+      return `${history.timeframe} ${source} · ${members} · ${split} · ${bars}`
+    })
+    .join(', ')
+  return lineage ? `History lineage: ${lineage}` : 'History lineage: not reported'
+}
+
+function benchmarkRoleLatestSnapshotLabel(role: BenchmarkFamilyCoverageRole): string {
+  const snapshot = role.snapshots?.[0]
+  if (!snapshot) return 'none observed'
+  const composition = snapshot.composition_date
+  const asOf = snapshot.as_of_date ? ` · as-of ${snapshot.as_of_date.slice(0, 10)}` : ''
+  const knownAt = snapshot.known_at ? ` · known ${snapshot.known_at.slice(0, 10)}` : ''
+  const publishedAt = snapshot.published_at ? ` · published ${snapshot.published_at.slice(0, 10)}` : ''
+  const sourceIdentifier = snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''
+  const cadence = snapshot.cadence ? ` · cadence ${snapshot.cadence}` : ''
+  const parserVersion = snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''
+  const timing = Object.entries(snapshot.timing_provenance ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
+    .join(', ')
+  const timingEvidence = timing ? ` · timing ${timing}` : ''
+  const resolved = `${snapshot.resolved_count}/${snapshot.row_count} resolved`
+  const source = snapshot.source_provider ? ` · ${snapshot.source_provider}` : ''
+  return `${composition}${asOf}${publishedAt}${knownAt} · ${resolved}${source}${sourceIdentifier}${cadence}${parserVersion}${timingEvidence}`
+}
+
+function benchmarkRoleRefreshLabel(role: BenchmarkFamilyCoverageRole): string {
+  const status = role.holdings_refresh_status ?? 'not attempted'
+  const provider = role.holdings_refresh_last_success_at
+    ? ` · success ${role.holdings_refresh_last_success_at.slice(0, 10)}`
+    : role.holdings_refresh_last_checked_at
+      ? ` · checked ${role.holdings_refresh_last_checked_at.slice(0, 10)}`
+      : ''
+  const reason = role.holdings_refresh_failure_reason?.trim()
+  const failure = role.holdings_refresh_last_failure_at
+    ? ` · failed ${role.holdings_refresh_last_failure_at.slice(0, 10)}`
+    : ''
+  const composition = role.holdings_refresh_composition_date
+    ? ` · composition ${role.holdings_refresh_composition_date.slice(0, 10)}`
+    : ''
+  return `${status}${provider}${reason ? ` · reason ${reason}` : ''}${failure}${composition}`
+}
+
+function benchmarkRoleEntitlementLabel(role: BenchmarkFamilyCoverageRole): string {
+  const status = role.entitlement_status?.replace(/_/g, ' ') ?? 'unknown'
+  const provider = role.entitlement_provider?.trim()
+  const probe = role.entitlement_live_probe_status?.trim()
+  const revision = role.entitlement_revision == null ? null : `rev ${role.entitlement_revision}`
+  const effective = role.entitlement_effective_at?.slice(0, 10)
+  const reviewDue = role.entitlement_review_due_at?.slice(0, 10)
+  return `${status}${provider ? ` · ${provider}` : ''}${probe ? ` · probe ${probe.replace(/_/g, ' ')}` : ''}${revision ? ` · ${revision}` : ''}${effective ? ` · effective ${effective}` : ''}${reviewDue ? ` · review due ${reviewDue}` : ''}`
+}
+
+function benchmarkFamilyProvenanceLabel(coverage: BenchmarkFamilyCoverage): string {
+  const officialName = coverage.official_index_name?.trim()
+  const official = `${coverage.official_index_symbol}${officialName && officialName !== coverage.official_index_symbol ? ` (${officialName})` : ''}`
+  const asOf = coverage.as_of?.slice(0, 10) || 'latest'
+  const provenance = Object.entries(coverage.universe_provenance ?? {})
+    .filter(([, value]) => value == null || ['string', 'number', 'boolean'].includes(typeof value))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value == null ? 'not reported' : String(value)}`)
+  const exclusions = coverage.exclusions?.length
+    ? `${coverage.exclusions.length} · ${coverage.exclusions.map(item => item.code).join(', ')}`
+    : 'none'
+  return `Canonical family provenance: ${coverage.family_key} · ${coverage.name} · official index ${official} · as-of ${asOf} · membership version ${coverage.membership_version} · coverage ${(coverage.coverage * 100).toFixed(0)}% · freshness ${coverage.freshness} · universe ${provenance.length ? provenance.join(' · ') : 'not reported'} · exclusions ${exclusions}`
+}
+
+function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): string {
+  const roles = coverage.roles ?? []
+  if (!roles.length) return `${benchmarkFamilyProvenanceLabel(coverage)} · Canonical role identity evidence: unavailable`
+  return `${benchmarkFamilyProvenanceLabel(coverage)} · Canonical role identity evidence: ${roles.map(role => {
+    const name = `${role.label}${role.symbol ? ` ${role.symbol}` : ''}`
+    const verification = role.verification_state?.trim() || 'not reported'
+    const adapter = role.adapter_key?.trim() || 'unmapped'
+    const status = role.adapter_status?.trim()
+    const confidence = role.adapter_confidence == null ? null : `confidence ${role.adapter_confidence}`
+    const snapshot = [...(role.snapshots ?? [])].sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
+    const snapshotEvidence = snapshot
+      ? ` · snapshot ${snapshot.composition_date?.slice(0, 10) || 'date not reported'}${snapshot.as_of_date ? ` · as-of ${snapshot.as_of_date.slice(0, 10)}` : ''}${snapshot.known_at ? ` · known ${snapshot.known_at.slice(0, 10)}` : ''} · provenance ${snapshot.provenance?.trim() || 'not reported'} · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'} · rows ${Number.isFinite(snapshot.row_count) ? snapshot.row_count : 'not reported'} · resolved ${Number.isFinite(snapshot.resolved_count) ? snapshot.resolved_count : 'not reported'} · unresolved ${Number.isFinite(snapshot.unresolved_count) ? snapshot.unresolved_count : 'not reported'}`
+      : ' · snapshot evidence unavailable'
+    const snapshotSourceEvidence = snapshot
+      ? `${snapshot.published_at ? ` · published ${snapshot.published_at.slice(0, 10)}` : ''}${snapshot.source_provider ? ` · provider ${snapshot.source_provider.trim()}` : ''}${snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''}${snapshot.cadence ? ` · cadence ${snapshot.cadence}` : ''}${snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''}${Object.keys(snapshot.timing_provenance ?? {}).length ? ` · timing ${Object.entries(snapshot.timing_provenance ?? {}).sort(([left], [right]) => left.localeCompare(right)).map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`).join(', ')}` : ''}`
+      : ''
+    const continuityStatus = role.continuity_status?.trim()?.replace(/_/g, ' ') || 'not reported'
+    const continuityGaps = (role.continuity_gaps ?? []).map(gap => `${gap.from_date.slice(0, 10)} to ${gap.to_date.slice(0, 10)} (${gap.interval_days}d)`).join(', ')
+    const continuityEvidence = ` · continuity ${continuityStatus}${role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : ''}${role.continuity_max_interval_days ? ` · max ${role.continuity_max_interval_days}d` : ''}${continuityGaps ? ` · intervals ${continuityGaps}` : ''}${role.continuity_snapshot_limit_reached ? ' · snapshot window capped' : ''}`
+    const observedCadenceStatus = role.observed_cadence_status?.trim()
+    const observedCadenceLabel = observedCadenceStatus
+      ? ({ no_snapshot: 'no snapshot', single_snapshot: 'single disclosure', observed_cadence: 'measured', no_interval: 'no interval' } as Record<string, string>)[observedCadenceStatus] ?? observedCadenceStatus.replace(/_/g, ' ')
+      : ''
+    const observedCadenceMedian = role.observed_cadence_median_interval_days == null
+      ? null
+      : Number.isInteger(role.observed_cadence_median_interval_days)
+        ? String(role.observed_cadence_median_interval_days)
+        : role.observed_cadence_median_interval_days.toFixed(1)
+    const observedCadenceEvidence = observedCadenceStatus
+      ? ` · observed cadence ${observedCadenceLabel}${role.observed_cadence_sample_count ? ` · ${role.observed_cadence_sample_count} interval${role.observed_cadence_sample_count === 1 ? '' : 's'}` : ''}${observedCadenceMedian ? ` · median ${observedCadenceMedian}d` : ''}${role.observed_cadence_min_interval_days ? ` · min ${role.observed_cadence_min_interval_days}d` : ''}${role.observed_cadence_max_interval_days ? ` · max ${role.observed_cadence_max_interval_days}d` : ''}`
+      : ''
+    const entitlementCapabilities = Object.entries(role.entitlement_capabilities ?? {}).sort(([left], [right]) => left.localeCompare(right)).map(([key, value]) => `${key.replace(/_/g, ' ')}=${String(value).replace(/_/g, ' ')}`).join(', ') || 'not reported'
+    const availability = role.available === true ? 'available' : role.available === false ? 'unavailable' : 'not reported'
+    const members = Number.isFinite(role.member_count) ? `members ${role.member_count}` : 'members not reported'
+    const placeholders = Number.isFinite(role.placeholder_member_count) ? ` · placeholders ${role.placeholder_member_count}` : ''
+    const weighted = Number.isFinite(role.weighted_member_count) ? ` · weighted ${role.weighted_member_count} (${role.weights_status?.replace(/_/g, ' ') || 'not reported'})` : ''
+    const classified = Number.isFinite(role.classified_member_count) ? ` · classified ${role.classified_member_count} (${role.classification_status?.replace(/_/g, ' ') || 'not reported'})` : ''
+    const pointInTime = role.point_in_time_supported === true ? 'supported' : role.point_in_time_supported === false ? 'unavailable' : 'not reported'
+    const history = role.history_ready === true ? 'ready' : role.history_ready === false ? 'incomplete' : 'not reported'
+    const unresolved = role.member_bar_history?.unresolved_member_count != null ? ` · unresolved ${role.member_bar_history.unresolved_member_count}` : ''
+    const barHistory = (role.member_bar_history?.timeframes ?? []).map(item => {
+      const adjustment = item.adjustment_provenance
+      const factorEvidence = adjustment
+        ? ` · factors ${adjustment.factor_status?.replace(/_/g, ' ') || 'not reported'}${adjustment.factor_version ? ` (${adjustment.factor_version})` : ''} · members versioned ${adjustment.factor_versioned_member_count ?? 0}, opaque ${adjustment.factor_opaque_member_count ?? 0}, unavailable ${adjustment.factor_unavailable_member_count ?? 0}`
+        : ''
+      return `${item.timeframe} ${item.analysis_ready_member_count}/${item.member_count} analysis-ready · ${item.covered_member_count} covered · ${item.bar_count} bars${item.required_bar_count ? ` · floor ${item.required_bar_count}` : ''}${item.source_lineage ? ` · lineage ${item.source_lineage.replace(/_/g, ' ')}` : ''}${item.provider_member_count != null || item.derived_member_count != null ? ` · members provider ${item.provider_member_count ?? 0}, derived ${item.derived_member_count ?? 0}` : ''}${item.provider_only_member_count != null || item.derived_only_member_count != null || item.mixed_member_count != null ? ` · member split provider-only ${item.provider_only_member_count ?? 0}, derived-only ${item.derived_only_member_count ?? 0}, mixed ${item.mixed_member_count ?? 0}` : ''}${factorEvidence}${item.oldest || item.newest ? ` · range ${item.oldest?.slice(0, 10) || 'unknown'} to ${item.newest?.slice(0, 10) || 'unknown'}` : ''}`
+    }).join(', ') || 'not reported'
+    const route = `${role.holdings_route_status?.replace(/_/g, ' ') || 'not reported'}${role.holdings_route_provider ? ` · ${role.holdings_route_provider}` : ''}${role.holdings_route_adapter_key ? ` · adapter ${role.holdings_route_adapter_key}` : ''}`
+    const historyRoute = `${role.history_route_status?.replace(/_/g, ' ') || 'not reported'}${role.history_route_provider ? ` · ${role.history_route_provider}` : ''}${role.history_route_policy ? ` · ${role.history_route_policy.replace(/_/g, ' ')}` : ''}${role.history_route_source_url ? ` · source ${role.history_route_source_url}` : ''}`
+    const refresh = `${role.holdings_refresh_status?.replace(/_/g, ' ') || 'not reported'}${role.holdings_refresh_provider ? ` · ${role.holdings_refresh_provider}` : ''}${role.holdings_refresh_failure_reason ? ` · reason ${role.holdings_refresh_failure_reason}` : ''}${role.holdings_refresh_last_checked_at ? ` · checked ${role.holdings_refresh_last_checked_at.slice(0, 10)}` : ''}${role.holdings_refresh_last_success_at ? ` · success ${role.holdings_refresh_last_success_at.slice(0, 10)}` : ''}${role.holdings_refresh_last_failure_at ? ` · failed ${role.holdings_refresh_last_failure_at.slice(0, 10)}` : ''}${role.holdings_refresh_composition_date ? ` · composition ${role.holdings_refresh_composition_date.slice(0, 10)}` : ''}`
+    const entitlement = `${role.entitlement_status?.replace(/_/g, ' ') || 'not reported'}${role.entitlement_provider ? ` · ${role.entitlement_provider}` : ''}${role.entitlement_live_probe_status ? ` · probe ${role.entitlement_live_probe_status.replace(/_/g, ' ')}` : ''}${role.entitlement_revision != null ? ` · rev ${role.entitlement_revision}` : ''}${role.entitlement_effective_at ? ` · effective ${role.entitlement_effective_at.slice(0, 10)}` : ''}${role.entitlement_review_due_at ? ` · review due ${role.entitlement_review_due_at.slice(0, 10)}` : ''}`
+    const reasons = role.composite_readiness_reasons?.join(', ') || 'not reported'
+    const readinessEvidence = ` · availability ${availability} · status ${role.status || 'not reported'} · ${members}${placeholders}${unresolved}${weighted}${classified} · point-in-time ${pointInTime} · history ${history} · bars ${barHistory} · readiness ${role.composite_readiness_status || 'not reported'} (${reasons}) · route ${route} · history route ${historyRoute} · refresh ${refresh} · entitlement ${entitlement}`
+    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}${snapshotEvidence}${continuityEvidence}${observedCadenceEvidence} · capabilities ${entitlementCapabilities}${snapshotSourceEvidence}${readinessEvidence}`
+  }).join(' | ')}`
+}
+
 async function refreshHistory() {
-  if (!sourceId.value || historyRefreshing.value) return
+  if (!componentMounted || !sourceId.value || historyRefreshing.value) return
+  const generation = ++historyActionGeneration
+  const requestSourceId = sourceId.value
   historyRefreshing.value = true
   historyRefreshMessage.value = ''
   historyRefreshError.value = ''
   try {
-    const result = await refreshWatchlistSourceHistory(sourceId.value, [timeframe.value])
-    historyRun.value = result.run_id ? await fetchWatchlistHistoryRefreshRun(result.run_id) : null
+    const result = await refreshWatchlistSourceHistory(sourceId.value, [timeframe.value], 5000, historyAsOf.value)
+    if (!componentMounted || generation !== historyActionGeneration || sourceId.value !== requestSourceId) return
+    const refreshedRun = result.run_id ? await fetchWatchlistHistoryRefreshRun(result.run_id) : null
+    if (!componentMounted || generation !== historyActionGeneration || sourceId.value !== requestSourceId) return
+    historyRun.value = refreshedRun
     const jobs = result.queued + result.already_queued
     historyRefreshMessage.value = result.queue_unavailable
       ? 'History queue unavailable; cached bars were not changed.'
       : `${jobs} history job${jobs === 1 ? '' : 's'} queued`
     await loadHistoryStatus(true)
   } catch (cause) {
-    historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to queue history refresh'
+    if (componentMounted && generation === historyActionGeneration) {
+      historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to queue history refresh'
+    }
   } finally {
-    historyRefreshing.value = false
+    if (generation === historyActionGeneration) historyRefreshing.value = false
   }
 }
 
 async function bootstrapEtfSource() {
   const symbol = etfBootstrapSymbol.value.trim().toUpperCase()
-  if (etfBootstrapBusy.value || !symbol) return
+  if (!componentMounted || etfBootstrapBusy.value || !symbol) return
   if (!/^[A-Z][A-Z0-9./-]{0,19}$/.test(symbol)) {
     etfBootstrapError.value = 'Enter one canonical ETF symbol.'
     etfBootstrapMessage.value = ''
     return
   }
+  const generation = ++sourceActionGeneration
   etfBootstrapBusy.value = true
   etfBootstrapMessage.value = ''
   etfBootstrapError.value = ''
@@ -595,10 +967,12 @@ async function bootstrapEtfSource() {
       `/etf-holdings/${encodeURIComponent(symbol)}/bootstrap`,
       {},
     )
+    if (!componentMounted || generation !== sourceActionGeneration) return
     // This is an explicit, user-triggered bootstrap. It does not turn ordinary
     // source reads into provider fan-out; the canonical source catalog remains
     // the only map input after this action completes.
     await watchlistStore.loadWatchlistSources()
+    if (!componentMounted || generation !== sourceActionGeneration) return
     const source = watchlistStore.watchlistSources.find(item => item.source_id === `etf-holdings:${symbol}`)
     if (!source) throw new Error(`${symbol} was registered but is not available as a canonical ETF source.`)
     sourceId.value = source.source_id
@@ -608,25 +982,34 @@ async function bootstrapEtfSource() {
       : `${symbol} source registered; membership is pending hydration.`
     if (result.message && !result.latest_snapshot) etfBootstrapMessage.value += ` ${result.message}`
   } catch (cause) {
-    etfBootstrapError.value = cause instanceof Error ? cause.message : 'Unable to load ETF constituent universe'
+    if (componentMounted && generation === sourceActionGeneration) {
+      etfBootstrapError.value = cause instanceof Error ? cause.message : 'Unable to load ETF constituent universe'
+    }
   } finally {
-    etfBootstrapBusy.value = false
+    if (generation === sourceActionGeneration) etfBootstrapBusy.value = false
   }
 }
 
 async function cancelHistoryRefresh() {
-  if (!historyRun.value || !isHistoryRunActive.value || historyRunLoading.value) return
+  if (!componentMounted || !historyRun.value || !isHistoryRunActive.value || historyRunLoading.value) return
+  const generation = ++historyActionGeneration
+  const requestSourceId = sourceId.value
+  const runId = historyRun.value.id
   historyRunLoading.value = true
   historyRefreshError.value = ''
   try {
-    historyRun.value = await cancelWatchlistHistoryRefreshRun(historyRun.value.id)
+    const canceledRun = await cancelWatchlistHistoryRefreshRun(runId)
+    if (!componentMounted || generation !== historyActionGeneration || sourceId.value !== requestSourceId || historyRun.value?.id !== runId) return
+    historyRun.value = canceledRun
     historyRefreshMessage.value = 'History refresh canceled; cached bars were retained.'
     clearHistoryPoll()
     await loadHistoryStatus()
   } catch (cause) {
-    historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to cancel history refresh'
+    if (componentMounted && generation === historyActionGeneration && sourceId.value === requestSourceId && historyRun.value?.id === runId) {
+      historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to cancel history refresh'
+    }
   } finally {
-    historyRunLoading.value = false
+    if (generation === historyActionGeneration) historyRunLoading.value = false
   }
 }
 
@@ -654,14 +1037,44 @@ function tileClass(value: number | null | undefined) {
 function tileStyle(cell: MarketMapLayoutCell) {
   return { left: `${cell.x}%`, top: `${cell.y}%`, width: `${cell.width}%`, height: `${cell.height}%` }
 }
+function focusAdjacentMarketMapTile(event: KeyboardEvent, cell: MarketMapLayoutCell) {
+  const direction = ({
+    ArrowLeft: { primary: 'x', sign: -1 },
+    ArrowRight: { primary: 'x', sign: 1 },
+    ArrowUp: { primary: 'y', sign: -1 },
+    ArrowDown: { primary: 'y', sign: 1 },
+  } as const)[event.key as 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown']
+  if (!direction) return
+  event.preventDefault()
+  event.stopPropagation()
+
+  const originX = cell.x + cell.width / 2
+  const originY = cell.y + cell.height / 2
+  const candidates = visibleLayoutCells.value.flatMap(candidate => {
+    if (candidate.instrument_id === cell.instrument_id) return []
+    const centerX = candidate.x + candidate.width / 2
+    const centerY = candidate.y + candidate.height / 2
+    const primaryDistance = direction.primary === 'x' ? (centerX - originX) * direction.sign : (centerY - originY) * direction.sign
+    if (primaryDistance <= 0) return []
+    const secondaryDistance = direction.primary === 'x' ? Math.abs(centerY - originY) : Math.abs(centerX - originX)
+    return [{ candidate, primaryDistance, secondaryDistance }]
+  }).sort((left, right) =>
+    (left.primaryDistance + left.secondaryDistance * 2) - (right.primaryDistance + right.secondaryDistance * 2)
+      || left.primaryDistance - right.primaryDistance
+      || left.candidate.instrument_id - right.candidate.instrument_id,
+  )
+  const next = candidates[0]?.candidate
+  if (!next) return
+  viewportRef.value?.querySelector<HTMLButtonElement>(`[data-market-map-instrument-id="${next.instrument_id}"]`)?.focus()
+}
 function groupFrameStyle(group: MarketMapLayoutGroup) {
   return { left: `${group.x}%`, top: `${group.y}%`, width: `${group.width}%`, height: `${group.height}%`, zIndex: 3 + group.level }
 }
 function selectCell(event: MouseEvent, cell: MarketMapCell) {
   const additive = event.shiftKey || event.ctrlKey || event.metaKey
-  selectedIds.value = additive
-    ? (selectedIds.value.includes(cell.instrument_id) ? selectedIds.value.filter(id => id !== cell.instrument_id) : [...selectedIds.value, cell.instrument_id])
-    : [cell.instrument_id]
+  selectedMembers.value = additive
+    ? (selectedIds.value.includes(cell.instrument_id) ? selectedMembers.value.filter(member => member.instrument_id !== cell.instrument_id) : [...selectedMembers.value, cell])
+    : [cell]
   emit('select', cell.symbol, cell.instrument_id)
 }
 const activeNode = computed(() => map.value?.nodes.find(node => node.node_id === selectedNode.value) ?? null)
@@ -695,6 +1108,31 @@ const visibleCells = computed(() => {
 const visibleLayoutCells = computed<MarketMapLayoutCell[]>(() => layoutMarketMapCells(visibleCells.value))
 const visibleLayoutGroups = computed<MarketMapLayoutGroup[]>(() => layoutMarketMapGroupsFromLayout(visibleLayoutCells.value))
 const useCanvasTiles = computed(() => visibleLayoutCells.value.length > LARGE_MAP_CANVAS_THRESHOLD)
+const canvasHitTestIndex = computed(() => buildMarketMapHitTestIndex(visibleLayoutCells.value))
+const marketMapAccessibilityId = computed(() => `market-map-summary-${(sourceId.value || 'empty').replace(/[^a-z0-9_-]+/gi, '-')}`)
+const marketMapAccessibilitySummary = computed(() => {
+  const current = map.value
+  if (!current) return ''
+  return describeMarketMap({
+    sourceName: current.source.name,
+    period: current.period,
+    timeframe: current.timeframe,
+    adjustment: current.adjustment,
+    areaMetric: current.area_metric,
+    colorMetric: current.color_metric,
+    freshness: current.freshness,
+    requestedCount: current.requested_count,
+    evaluatedCount: current.evaluated_count,
+    coverage: current.coverage,
+    colorCoverage: current.color_coverage,
+    areaCoverage: current.area_coverage,
+    visibleCount: visibleLayoutCells.value.length,
+    groupCount: visibleLayoutGroups.value.length,
+    selectedCount: selectedIds.value.length,
+    warningCount: current.warnings.length,
+    exclusionCount: current.exclusions.length,
+  })
+})
 const canvasSearchMatch = computed(() => {
   const query = canvasSearch.value.trim().toLowerCase()
   if (!query) return null
@@ -781,7 +1219,7 @@ function canvasCellAt(event: MouseEvent): MarketMapLayoutCell | null {
   if (!bounds.width || !bounds.height) return null
   const x = ((event.clientX - bounds.left) / bounds.width) * 100
   const y = ((event.clientY - bounds.top) / bounds.height) * 100
-  return visibleLayoutCells.value.find(cell => x >= cell.x && x <= cell.x + cell.width && y >= cell.y && y <= cell.y + cell.height) ?? null
+  return findMarketMapCell(canvasHitTestIndex.value, x, y)
 }
 function handleCanvasHover(event: MouseEvent) {
   hoveredCell.value = canvasCellAt(event)
@@ -798,13 +1236,22 @@ function selectCanvasSearch(event: KeyboardEvent) {
   if (event.key !== 'Enter') return
   const cell = canvasSearchMatch.value
   if (!cell) return
-  selectedIds.value = [cell.instrument_id]
+  selectedMembers.value = [cell]
   hoveredCell.value = cell
   emit('select', cell.symbol, cell.instrument_id)
 }
 
 watch([visibleLayoutCells, selectedIds, useCanvasTiles], scheduleCanvasDraw, { deep: true })
 watch([viewportZoom, panX, panY], scheduleCanvasDraw)
+watch(areaMetric, (next, previous) => {
+  if (next !== 'python' || previous === 'python') return
+  const selected = pythonAssets.value.find(asset => asset.versionId === pythonCodeVersionId.value)
+  if (!selected || selected.outputContract === 'series') return
+  pythonCodeVersionId.value = null
+  pythonRunId.value = null
+  pythonSelectionNotice.value = 'Tile area requires a numeric-series output. Choose a compatible Python output.'
+})
+watch(pythonCodeVersionId, next => { if (next != null) pythonSelectionNotice.value = '' })
 const breadthCondition = computed<Record<string, unknown> | null>(() => {
   if (colorMetric.value !== 'breadth') return null
   if (advancedBreadthEditor.value) return breadthConditionTree.value
@@ -816,13 +1263,44 @@ const breadthCondition = computed<Record<string, unknown> | null>(() => {
   if (breadthConditionKind.value === 'event') return { kind: 'event', params: { event_type: breadthEventType.value, lookback_days: breadthEventLookback.value, include_estimates: false } }
   return { kind: 'relative_strength', params: { lookback: breadthConditionPeriod.value, operator: 'gte', threshold: 0 } }
 })
+function findPythonConditionLeaf(node: unknown): Record<string, unknown> | null {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) return null
+  const candidate = node as Record<string, unknown>
+  const kind = String(candidate.kind ?? '').toLowerCase()
+  if (kind === 'python_series' || kind === 'python_series_comparison') return candidate
+  const params = candidate.params
+  if (!params || typeof params !== 'object' || Array.isArray(params)) return null
+  const children = (params as Record<string, unknown>).conditions
+  if (!Array.isArray(children)) return null
+  for (const child of children) {
+    const found = findPythonConditionLeaf(child)
+    if (found) return found
+  }
+  return null
+}
+const breadthPythonLeaf = computed(() => breadthCondition.value ? findPythonConditionLeaf(breadthCondition.value) : null)
+const breadthUsesPython = computed(() => breadthPythonLeaf.value !== null)
+function pythonConditionAnchorId(leaf: Record<string, unknown> | null): number | null {
+  if (!leaf) return null
+  const params = leaf.params && typeof leaf.params === 'object' && !Array.isArray(leaf.params)
+    ? leaf.params as Record<string, unknown>
+    : {}
+  const raw = String(leaf.kind ?? '').toLowerCase() === 'python_series_comparison'
+    ? params.left_code_version_id
+    : params.code_version_id
+  const value = Number(raw)
+  return Number.isInteger(value) && value > 0 ? value : null
+}
 function conditionNeedsReference(node: BreadthConditionNode | null): boolean {
   if (!node) return false
-  if (node.kind === 'relative_strength' || node.kind === 'series_comparison') return true
+  if (node.kind === 'relative_strength' || node.kind === 'series_comparison' || node.kind === 'python_series_comparison') {
+    const params = node.params ?? {}
+    return node.kind !== 'python_series_comparison' || params.right_scope === 'benchmark'
+  }
   const children = node.params?.conditions
   return Array.isArray(children) && children.some(child => conditionNeedsReference(child as BreadthConditionNode))
 }
-const referenceNeeded = computed(() => colorMetric.value === 'breadth' && conditionNeedsReference(breadthConditionTree.value))
+const referenceNeeded = computed(() => colorMetric.value === 'breadth' && conditionNeedsReference(breadthCondition.value as BreadthConditionNode | null))
 const colorLabel = computed(() => colorMetric.value.replace(/_/g, ' '))
 const canvasStyle = computed(() => ({ transform: `translate(${panX.value}%, ${panY.value}%) scale(${viewportZoom.value})` }))
 
@@ -831,26 +1309,55 @@ function pythonUniverse() {
 }
 
 async function loadPythonAssets() {
+  const generation = ++pythonAssetsGeneration
   pythonAssetsLoading.value = true
   try {
-    const assets = await api.get<Array<{ kind: string; name: string; versions: Array<{ id?: number; version_number: number; output_contract?: string }> }>>('/code/assets')
-    pythonAssets.value = (assets ?? []).filter(asset => asset.kind === 'condition').flatMap(asset => {
-      const version = asset.versions.slice(-1)[0]
-      if (version?.id == null || (version.output_contract !== 'boolean' && version.output_contract !== 'series')) return []
-      return [{ versionId: version.id, name: `${asset.name} v${version.version_number}`, outputContract: version.output_contract }]
-    })
+    const assets = await api.get<Array<{
+      kind: string
+      name: string
+      is_archived?: boolean
+      versions: Array<{
+        id?: number
+        version_number: number
+        output_contract?: string
+        output_name?: string | null
+      }>
+    }>>('/code/assets')
+    if (!componentMounted || generation !== pythonAssetsGeneration) return
+    pythonAssets.value = (assets ?? []).filter(asset => asset.kind === 'condition' && !asset.is_archived).flatMap(asset =>
+      [...(asset.versions ?? [])]
+        .sort((left, right) => right.version_number - left.version_number)
+        .flatMap(version => {
+          if (version.id == null || (version.output_contract !== 'boolean' && version.output_contract !== 'series')) return []
+          const outputName = version.output_name?.trim() || null
+          const outputLabel = outputName
+            ? `${outputName} · v${version.version_number}`
+            : `default output · v${version.version_number}`
+          return [{
+            versionId: version.id,
+            versionNumber: version.version_number,
+            name: `${asset.name} · ${outputLabel}`,
+            outputName,
+            outputContract: version.output_contract,
+          }]
+        }),
+    )
   } catch (cause) {
+    if (!componentMounted || generation !== pythonAssetsGeneration) return
     pythonRunError.value = cause instanceof Error ? cause.message : 'Unable to load Python code assets'
   } finally {
-    pythonAssetsLoading.value = false
+    if (generation === pythonAssetsGeneration) pythonAssetsLoading.value = false
   }
 }
 
-async function resolvePythonRun() {
+async function resolvePythonRun(generation = runGeneration) {
   pythonRunError.value = ''
-  if (pythonCodeVersionId.value == null) throw new Error('Select a Boolean or numeric-series Python asset first.')
+  if (pythonCodeVersionId.value == null) throw new Error('Select a named Boolean or numeric-series Python output first.')
   const selected = pythonAssets.value.find(asset => asset.versionId === pythonCodeVersionId.value)
-  if (!selected) throw new Error('The selected Python asset is unavailable or no longer active.')
+  if (!selected) throw new Error('The selected Python output is unavailable or no longer active. Choose an active named output.')
+  if (areaMetric.value === 'python' && selected.outputContract !== 'series') {
+    throw new Error('Market Map tile area requires a compatible numeric-series Python output.')
+  }
   const queued = await api.post<{ run_id: number }>('/analysis/breadth/python', {
     code_version_id: selected.versionId,
     universe: pythonUniverse(),
@@ -860,11 +1367,14 @@ async function resolvePythonRun() {
     adjusted: true,
     history: false,
   })
+  if (!componentMounted || generation !== runGeneration) return
   pythonRunLoading.value = true
   try {
     for (let attempt = 0; attempt < 240; attempt += 1) {
+      if (!componentMounted || generation !== runGeneration) return
       const result = await api.get<{ status: string }>(`/analysis/breadth/python/runs/${queued.run_id}`)
       if (result.status === 'completed') {
+        if (!componentMounted || generation !== runGeneration) return
         pythonRunId.value = queued.run_id
         return
       }
@@ -873,13 +1383,60 @@ async function resolvePythonRun() {
     }
     throw new Error('Python colour run did not finish within 60 seconds; its run remains available for retry.')
   } finally {
-    pythonRunLoading.value = false
+    if (generation === runGeneration) pythonRunLoading.value = false
+  }
+}
+
+async function resolvePythonBreadthRun(generation = runGeneration) {
+  pythonRunError.value = ''
+  const condition = breadthCondition.value
+  const anchor = pythonConditionAnchorId(breadthPythonLeaf.value)
+  if (!condition || !anchor) throw new Error('Select an owned Python series condition asset first.')
+  const benchmark = referenceNeeded.value && !referenceSourceId.value
+    ? referenceSymbol.value.trim().toUpperCase()
+    : ''
+  const referenceUniverse = referenceNeeded.value && referenceSourceId.value
+    ? marketMapPythonUniverse(referenceSourceId.value)
+    : null
+  if (referenceNeeded.value && !benchmark && !referenceUniverse) {
+    throw new Error('Python breadth comparisons require a benchmark symbol or canonical reference universe.')
+  }
+  const queued = await api.post<{ run_id: number }>('/analysis/breadth/python', {
+    code_version_id: anchor,
+    universe: pythonUniverse(),
+    parameters: {},
+    output_contract: 'boolean',
+    condition_tree: condition,
+    timeframe: timeframe.value,
+    adjusted: true,
+    session: 'regular',
+    ...(benchmark ? { benchmark } : {}),
+    ...(referenceUniverse ? { reference_universe: referenceUniverse } : {}),
+    history: false,
+  })
+  if (!componentMounted || generation !== runGeneration) return
+  pythonRunLoading.value = true
+  try {
+    for (let attempt = 0; attempt < 240; attempt += 1) {
+      if (!componentMounted || generation !== runGeneration) return
+      const result = await api.get<{ status: string }>(`/analysis/breadth/python/runs/${queued.run_id}`)
+      if (result.status === 'completed') {
+        if (!componentMounted || generation !== runGeneration) return
+        pythonRunId.value = queued.run_id
+        return
+      }
+      if (result.status === 'failed' || result.status === 'canceled') throw new Error(`Python breadth condition run ${result.status}.`)
+      await new Promise(resolve => setTimeout(resolve, 250))
+    }
+    throw new Error('Python breadth condition run did not finish within 60 seconds; its run remains available for retry.')
+  } finally {
+    if (generation === runGeneration) pythonRunLoading.value = false
   }
 }
 
 function selectNode(nodeId: string | null) {
   selectedNode.value = nodeId
-  selectedIds.value = []
+  selectedMembers.value = []
   resetViewport()
 }
 function clampPan(value: number) {
@@ -923,7 +1480,10 @@ function endPan(event: PointerEvent) {
   panStart.value = null
 }
 async function publishSelection() {
-  if (!selectedIds.value.length || publishing.value) return
+  if (!componentMounted || !selectedIds.value.length || publishing.value) return
+  const generation = ++selectionPublicationGeneration
+  const requestSourceId = sourceId.value
+  const memberIds = [...selectedIds.value]
   publishing.value = true
   publicationMessage.value = ''
   publicationError.value = ''
@@ -933,17 +1493,24 @@ async function publishSelection() {
       const name = newPublicationName.value.trim()
       if (!name) return
       const created = await watchlistStore.createWatchlist(name)
+      if (!componentMounted || generation !== selectionPublicationGeneration || sourceId.value !== requestSourceId) return
       if (!created) throw new Error('Unable to create personal watchlist')
       targetId = created.id
       publicationTargetId.value = String(targetId)
     }
-    const results = await Promise.all(selectedIds.value.map(instrumentId => watchlistStore.addItem(targetId, instrumentId)))
-    const added = results.filter(Boolean).length
+    let added = 0
+    for (const instrumentId of memberIds) {
+      if (!componentMounted || generation !== selectionPublicationGeneration || sourceId.value !== requestSourceId) return
+      if (await watchlistStore.addItem(targetId, instrumentId)) added += 1
+    }
+    if (!componentMounted || generation !== selectionPublicationGeneration || sourceId.value !== requestSourceId) return
     publicationMessage.value = `${added} selected member${added === 1 ? '' : 's'} saved`
   } catch (cause) {
-    publicationError.value = cause instanceof Error ? cause.message : 'Unable to save selected members'
+    if (componentMounted && generation === selectionPublicationGeneration && sourceId.value === requestSourceId) {
+      publicationError.value = cause instanceof Error ? cause.message : 'Unable to save selected members'
+    }
   } finally {
-    publishing.value = false
+    if (generation === selectionPublicationGeneration) publishing.value = false
   }
 }
 
@@ -959,28 +1526,39 @@ function explicitSourceMemberIds(): number[] {
 async function saveExplicitSource() {
   const memberIds = explicitSourceMemberIds()
   const name = explicitWatchlistName.value.trim()
-  if (!memberIds.length || !name || explicitSaving.value) return
+  if (!componentMounted || !memberIds.length || !name || explicitSaving.value) return
+  const generation = ++explicitPublicationGeneration
+  const requestSourceId = sourceId.value
   explicitSaving.value = true
   publicationMessage.value = ''
   publicationError.value = ''
   try {
     const created = await watchlistStore.createWatchlist(name)
+    if (!componentMounted || generation !== explicitPublicationGeneration || sourceId.value !== requestSourceId) return
     if (!created) throw new Error('Unable to create personal watchlist')
-    const results = await Promise.all(memberIds.map(instrumentId => watchlistStore.addItem(created.id, instrumentId)))
-    const added = results.filter(Boolean).length
+    let added = 0
+    for (const instrumentId of memberIds) {
+      if (!componentMounted || generation !== explicitPublicationGeneration || sourceId.value !== requestSourceId) return
+      if (await watchlistStore.addItem(created.id, instrumentId)) added += 1
+    }
+    if (!componentMounted || generation !== explicitPublicationGeneration || sourceId.value !== requestSourceId) return
     publicationMessage.value = `${added} canonical member${added === 1 ? '' : 's'} saved as ${created.name}`
     explicitWatchlistName.value = ''
   } catch (cause) {
-    publicationError.value = cause instanceof Error ? cause.message : 'Unable to save explicit source'
+    if (componentMounted && generation === explicitPublicationGeneration && sourceId.value === requestSourceId) {
+      publicationError.value = cause instanceof Error ? cause.message : 'Unable to save explicit source'
+    }
   } finally {
-    explicitSaving.value = false
+    if (generation === explicitPublicationGeneration) explicitSaving.value = false
   }
 }
 
 async function saveLockedSource(memberIds: number[], name: string) {
   const normalizedIds = [...new Set(memberIds.filter(id => Number.isInteger(id) && id > 0))]
   const normalizedName = name.trim()
-  if (!normalizedIds.length || !normalizedName || lockedSourceSaving.value) return
+  if (!componentMounted || !normalizedIds.length || !normalizedName || lockedSourceSaving.value) return
+  const generation = ++sourcePublicationGeneration
+  const requestSourceId = sourceId.value
   lockedSourceSaving.value = true
   publicationMessage.value = ''
   publicationError.value = ''
@@ -988,22 +1566,28 @@ async function saveLockedSource(memberIds: number[], name: string) {
     const saved = await api.post<WatchlistSource>('/watchlists/sources/explicit', {
       name: normalizedName,
       instrument_ids: normalizedIds,
-      parent_source_id: sourceId.value || null,
+      parent_source_id: requestSourceId || null,
       parent_membership_version: map.value?.membership_version ?? map.value?.source.membership_version ?? activeSource.value?.membership_version ?? null,
     })
+    if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== requestSourceId) return
     await watchlistStore.loadWatchlistSources()
+    if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== requestSourceId) return
     skipNextSourceRun.value = true
+    sourcePublicationTargetId = saved.source_id
     sourceId.value = saved.source_id
     explicitSymbols.value = ''
-    selectedIds.value = []
+    selectedMembers.value = []
     lockedSourceName.value = ''
     explicitWatchlistName.value = ''
     publicationMessage.value = normalizedIds.length + ' canonical member' + (normalizedIds.length === 1 ? '' : 's') + ' saved as locked source ' + saved.name
     await run()
+    if (!componentMounted || generation !== sourcePublicationGeneration || sourceId.value !== saved.source_id) return
   } catch (cause) {
-    publicationError.value = cause instanceof Error ? cause.message : 'Unable to save locked explicit source'
+    if (componentMounted && generation === sourcePublicationGeneration && sourceId.value === requestSourceId) {
+      publicationError.value = cause instanceof Error ? cause.message : 'Unable to save locked explicit source'
+    }
   } finally {
-    lockedSourceSaving.value = false
+    if (generation === sourcePublicationGeneration) lockedSourceSaving.value = false
   }
 }
 
@@ -1018,22 +1602,23 @@ async function saveExplicitLockedSource() {
 
 function publishAnalysis(target: 'breadth' | 'study_lab', scope: 'full' | 'selection' = 'full') {
   if (!sourceId.value) return
-  const selectedSymbols = selectedIds.value
-    .map(instrumentId => map.value?.cells.find(cell => cell.instrument_id === instrumentId)?.symbol)
-    .filter((symbol): symbol is string => Boolean(symbol))
   emit('publishAnalysis', {
     target,
     sourceId: sourceId.value,
     selectedIds: [...selectedIds.value],
-    selectedSymbols,
+    selectedSymbols: [...selectedSymbols.value],
     scope,
   })
 }
 
-const selectedMembers = computed(() => selectedIds.value
-  .map(instrumentId => map.value?.cells.find(cell => cell.instrument_id === instrumentId))
-  .filter((cell): cell is NonNullable<typeof cell> => Boolean(cell)))
 const selectedSymbols = computed(() => selectedMembers.value.map(cell => cell.symbol))
+const selectedMemberAnnouncement = computed(() => {
+  const symbols = selectedSymbols.value
+  if (!symbols.length) return ''
+  const preview = symbols.slice(0, 5).join(', ')
+  const remaining = symbols.length - Math.min(symbols.length, 5)
+  return `${symbols.length} selected member${symbols.length === 1 ? '' : 's'}: ${preview}${remaining ? `, and ${remaining} more` : ''}`
+})
 
 function openSelectedInChart() {
   const member = selectedMembers.value[0]
@@ -1067,7 +1652,9 @@ function definitionStableKey(name: string) {
 }
 
 async function saveBreadthDefinition() {
-  if (definitionSaving.value || colorMetric.value !== 'breadth' || !definitionName.value || !breadthCondition.value) return
+  if (!componentMounted || definitionSaving.value || colorMetric.value !== 'breadth' || !definitionName.value || !breadthCondition.value) return
+  const generation = ++definitionGeneration
+  const requestSourceId = sourceId.value
   definitionSaving.value = true
   definitionMessage.value = ''
   definitionError.value = ''
@@ -1110,25 +1697,35 @@ async function saveBreadthDefinition() {
         },
       },
     })
+    if (!componentMounted || generation !== definitionGeneration || sourceId.value !== requestSourceId) return
     await invalidateCodeAssets(queryClient)
+    if (!componentMounted || generation !== definitionGeneration || sourceId.value !== requestSourceId) return
     definitionMessage.value = 'Saved immutable Study Lab definition.'
   } catch (cause) {
-    definitionError.value = cause instanceof Error ? cause.message : 'Unable to save reusable breadth definition'
+    if (componentMounted && generation === definitionGeneration && sourceId.value === requestSourceId) {
+      definitionError.value = cause instanceof Error ? cause.message : 'Unable to save reusable breadth definition'
+    }
   } finally {
-    definitionSaving.value = false
+    if (generation === definitionGeneration) definitionSaving.value = false
   }
 }
 
 async function loadSnapshot() {
+  const generation = ++snapshotGeneration
   const snapshotId = Number(snapshotSelectionId.value)
   if (!Number.isInteger(snapshotId) || snapshotId <= 0) {
+    const hadLoadedSnapshot = Boolean(activeSnapshotName.value)
     activeSnapshotName.value = ''
+    snapshotLoading.value = false
+    snapshotError.value = ''
+    if (hadLoadedSnapshot && componentMounted && (sourceId.value || explicitSymbols.value.trim())) void run()
     return
   }
   snapshotLoading.value = true
   snapshotError.value = ''
   try {
     const snapshot = await fetchMarketMapSnapshot(snapshotId)
+    if (!componentMounted || generation !== snapshotGeneration || snapshotSelectionId.value !== String(snapshotId)) return
     skipNextSourceRun.value = true
     sourceId.value = snapshot.source_id
     map.value = snapshot.map
@@ -1143,50 +1740,64 @@ async function loadSnapshot() {
       advancedBreadthEditor.value = true
     }
     pythonRunId.value = snapshot.map.python_run_id ?? null
+    pythonCodeVersionId.value = snapshot.map.python_code_version_id ?? null
     activeSnapshotName.value = snapshot.name
     snapshotName.value = snapshot.name
     selectedNode.value = null
-    selectedIds.value = []
+    selectedMembers.value = []
     resetViewport()
   } catch (cause) {
-    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshot'
+    if (componentMounted && generation === snapshotGeneration && snapshotSelectionId.value === String(snapshotId)) {
+      snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshot'
+    }
   } finally {
-    snapshotLoading.value = false
+    if (generation === snapshotGeneration) snapshotLoading.value = false
   }
 }
 
 async function saveSnapshot() {
   if (!map.value || !snapshotName.value.trim() || snapshotLoading.value) return
+  const generation = ++snapshotGeneration
+  const cacheKey = map.value.cache_key
   snapshotLoading.value = true
   snapshotError.value = ''
   try {
-    const snapshot = await saveMarketMapSnapshot(snapshotName.value.trim(), map.value.cache_key)
+    const snapshot = await saveMarketMapSnapshot(snapshotName.value.trim(), cacheKey)
+    if (!componentMounted || generation !== snapshotGeneration || map.value?.cache_key !== cacheKey) return
     snapshots.value = [snapshot, ...snapshots.value.filter(item => item.id !== snapshot.id)]
     snapshotSelectionId.value = String(snapshot.id)
     activeSnapshotName.value = snapshot.name
     snapshotName.value = snapshot.name
   } catch (cause) {
-    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to save Market Map snapshot'
+    if (componentMounted && generation === snapshotGeneration) {
+      snapshotError.value = cause instanceof Error ? cause.message : 'Unable to save Market Map snapshot'
+    }
   } finally {
-    snapshotLoading.value = false
+    if (generation === snapshotGeneration) snapshotLoading.value = false
   }
 }
 
 async function deleteSnapshot() {
   const snapshotId = Number(snapshotSelectionId.value)
   if (!Number.isInteger(snapshotId) || snapshotId <= 0 || snapshotLoading.value) return
+  const generation = ++snapshotGeneration
+  const selectionId = String(snapshotId)
   snapshotLoading.value = true
   snapshotError.value = ''
   try {
     await deleteMarketMapSnapshot(snapshotId)
+    if (!componentMounted || generation !== snapshotGeneration || snapshotSelectionId.value !== selectionId) return
     snapshots.value = snapshots.value.filter(item => item.id !== snapshotId)
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     snapshotName.value = ''
+    if (componentMounted && (sourceId.value || explicitSymbols.value.trim())) void run()
   } catch (cause) {
-    snapshotError.value = cause instanceof Error ? cause.message : 'Unable to delete Market Map snapshot'
+    if (componentMounted && generation === snapshotGeneration && snapshotSelectionId.value === selectionId) {
+      snapshotError.value = cause instanceof Error ? cause.message : 'Unable to delete Market Map snapshot'
+    }
   } finally {
-    snapshotLoading.value = false
+    if (generation === snapshotGeneration) snapshotLoading.value = false
   }
 }
 
@@ -1250,14 +1861,16 @@ async function run() {
       }
     }
     if (!componentMounted || generation !== runGeneration) return
-    if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
-    const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
+    if (colorMetric.value === 'breadth' && breadthUsesPython.value) await resolvePythonBreadthRun(generation)
+    else if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun(generation)
+    if (!componentMounted || generation !== runGeneration) return
+    const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' || (colorMetric.value === 'breadth' && breadthUsesPython.value) ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
     if (!componentMounted || generation !== runGeneration) return
     map.value = nextMap
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
-    selectedIds.value = []
+    selectedMembers.value = []
     resetViewport()
   } catch (cause) {
     if (!componentMounted || generation !== runGeneration) return
@@ -1268,31 +1881,72 @@ async function run() {
 }
 function persist() {
   if (!componentMounted) return
-  emit('configuration', { ...props.configuration, source_id: sourceId.value, explicit_symbols: explicitSymbols.value || null, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, timeframe: timeframe.value, start_date: period.value === 'CUSTOM' ? startDate.value : null, end_date: period.value === 'CUSTOM' ? endDate.value : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, advanced_breadth_editor: advancedBreadthEditor.value, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value, definition_name: definitionName.value })
+  emit('configuration', { ...props.configuration, source_id: sourceId.value, explicit_symbols: explicitSymbols.value || null, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, timeframe: timeframe.value, start_date: period.value === 'CUSTOM' ? startDate.value : null, end_date: period.value === 'CUSTOM' ? endDate.value : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, advanced_breadth_editor: advancedBreadthEditor.value, python_code_version_id: pythonCodeVersionId.value, python_output_name: pythonAssets.value.find(asset => asset.versionId === pythonCodeVersionId.value)?.outputName ?? props.configuration.python_output_name ?? null, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value, definition_name: definitionName.value })
 }
 watch([sourceId, explicitSymbols, groupBy, sortBy, period, timeframe, startDate, endDate, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree, definitionName], persist, { deep: true })
 watch(timeframe, () => {
+  historyActionGeneration += 1
+  historyGeneration += 1
   clearHistoryPoll()
+  historyLoading.value = false
   historyStatus.value = null
   historyRun.value = null
   historyRefreshMessage.value = ''
   historyError.value = ''
   if (sourceId.value) void loadHistoryStatus()
 })
+watch([period, endDate], () => {
+  benchmarkCoverageGeneration += 1
+  if (benchmarkFamilyKey.value) void loadBenchmarkCoverage()
+})
 watch(sourceId, () => {
+  const publicationSourceChange = sourcePublicationTargetId === sourceId.value
+  sourcePublicationTargetId = null
+  selectionPublicationGeneration += 1
+  explicitPublicationGeneration += 1
+  definitionGeneration += 1
+  publishing.value = false
+  explicitSaving.value = false
+  definitionSaving.value = false
+  sourceCloneGeneration += 1
+  if (!publicationSourceChange) {
+    sourcePublicationGeneration += 1
+    lockedSourceSaving.value = false
+  }
+  sourceCloneBusy.value = false
+  sourceCloneMessage.value = ''
+  sourceCloneError.value = ''
+  sourceCloneRetryIds.value = []
+  sourceCloneRetryTargetId.value = null
+  sourceCloneRetryTotal.value = 0
+  historyActionGeneration += 1
+  historyGeneration += 1
+  benchmarkCoverageGeneration += 1
   clearHistoryPoll()
+  historyLoading.value = false
   historyStatus.value = null
   historyRun.value = null
   historyRefreshMessage.value = ''
   historyError.value = ''
+  benchmarkCoverage.value = null
+  benchmarkCoverageError.value = ''
+  benchmarkCoverageLoading.value = false
+  if (skipInitialSourceWatcher) {
+    skipInitialSourceWatcher = false
+    return
+  }
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false
-    if (sourceId.value) void loadHistoryStatus()
+    if (sourceId.value) {
+      void loadHistoryStatus()
+      void loadBenchmarkCoverage()
+    }
     return
   }
   if (sourceId.value) {
     void run()
     void loadHistoryStatus()
+    void loadBenchmarkCoverage()
   }
 })
 watch(snapshotSelectionId, () => { void loadSnapshot() })
@@ -1317,16 +1971,34 @@ onMounted(async () => {
   if (!sourceId.value && !explicitSymbols.value.trim()) {
     const preferred = sources.value.find((item: WatchlistSource) => isSourceSelectable(item) && (item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings'))
       ?? sources.value.find((item: WatchlistSource) => isSourceSelectable(item))
-    if (preferred) sourceId.value = preferred.source_id
+    if (preferred) {
+      // The mount path explicitly runs its chosen initial source below; prevent
+      // the source watcher from racing it with the same first request.
+      skipInitialSourceWatcher = true
+      sourceId.value = preferred.source_id
+    }
   }
   if (!componentMounted) return
   if (sourceId.value || explicitSymbols.value.trim()) await run()
   if (!componentMounted) return
   if (sourceId.value) await loadHistoryStatus()
+  if (sourceId.value) await loadBenchmarkCoverage()
 })
 onUnmounted(() => {
   componentMounted = false
+  sourceActionGeneration += 1
+  sourceCloneGeneration += 1
+  sourcePublicationGeneration += 1
+  sourcePublicationTargetId = null
+  selectionPublicationGeneration += 1
+  explicitPublicationGeneration += 1
+  definitionGeneration += 1
+  pythonAssetsGeneration += 1
+  snapshotGeneration += 1
   runGeneration += 1
+  historyGeneration += 1
+  historyActionGeneration += 1
+  benchmarkCoverageGeneration += 1
   clearHistoryPoll()
   window.removeEventListener('resize', scheduleCanvasDraw)
   if (canvasDrawFrame != null) window.cancelAnimationFrame(canvasDrawFrame)
@@ -1360,6 +2032,14 @@ onUnmounted(() => {
 .market-map-tool__history-status button { cursor: pointer; }
 .market-map-tool__history-status button:disabled { cursor: default; opacity: .55; }
 .market-map-tool__history-status--ready { color: #82e2ac; }.market-map-tool__history-status--partial,.market-map-tool__history-status--pending { color: #f7d87b; }.market-map-tool__history-status--fetching { color: #70b4ff; }.market-map-tool__history-status--failed,.market-map-tool__history-status--unavailable { color: #ff9a9a; }
+.market-map-tool__benchmark-readiness { display: grid; gap: 5px; padding: 5px 8px; color: #9eabbb; border-top: 1px solid #303a48; border-bottom: 1px solid #303a48; background: #151c25; }
+.market-map-tool__benchmark-readiness strong { color: #dce5ee; }
+.market-map-tool__benchmark-readiness-list { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.market-map-tool__benchmark-readiness-list li { display: grid; grid-template-columns: minmax(130px, 1.4fr) minmax(75px, .8fr) minmax(120px, 1fr); gap: 6px; align-items: baseline; }
+.market-map-tool__benchmark-readiness-list li[data-readiness="ready"] { color: #82e2ac; }
+.market-map-tool__benchmark-readiness-list li[data-readiness="partial"], .market-map-tool__benchmark-readiness-list li[data-readiness="pending"] { color: #f7d87b; }
+.market-map-tool__benchmark-readiness-list li[data-readiness="unavailable"] { color: #ff9a9a; }
+.market-map-tool__benchmark-readiness-list small { grid-column: 1 / -1; color: #8b98a7; }
 .market-map-tool__source-analysis-actions { padding-top: 2px; padding-bottom: 2px; }
 .market-map-tool__source-analysis-actions button, .market-map-tool__definition-actions button { cursor: pointer; }
 .market-map-tool__definition-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 2px 8px; }
@@ -1401,5 +2081,7 @@ onUnmounted(() => {
 .market-map-tool__tile--negative { background: #843f50 !important; }
 .market-map-tool__tile--unknown { background: #3c4652 !important; }
 .market-map-tool__tile--selected { outline: 2px solid #f7d87b; outline-offset: -2px; z-index: 2; }
+.market-map-tool__tile:focus-visible { box-shadow: inset 0 0 0 2px #fff; z-index: 4; }
 .market-map-tool__hover { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; gap: 2px; max-width: 300px; padding: 8px 10px; border: 1px solid #60758d; background: #18222e; box-shadow: 0 4px 18px #0008; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>

@@ -22,6 +22,8 @@
 import { computed, ref } from 'vue'
 import { useAlertsStore } from '@/stores/alerts'
 import { useScreenerAlertsStore } from '@/stores/screener_alerts'
+import { indicatorSeriesDisplayName } from '@/lib/indicators/catalog'
+import type { IndicatorType } from '@/types'
 
 const alertsStore = useAlertsStore()
 const screenerAlertsStore = useScreenerAlertsStore()
@@ -39,7 +41,7 @@ const rows = computed(() => {
     key: `indicator-${alert.id}`,
     type: 'indicator',
     title: alert.instrument_symbol,
-    detail: `${alert.indicator_a_type.toUpperCase()} ${alert.condition.replace(/_/g, ' ')}`,
+    detail: indicatorAlertDetail(alert),
     status: alert.status,
   }))
   const screener = screenerAlertsStore.alerts.map(alert => ({
@@ -52,6 +54,29 @@ const rows = computed(() => {
   return [...price, ...indicator, ...screener]
     .filter(row => filter.value === 'all' || row.type === filter.value)
 })
+
+function indicatorAlertDetail(alert: {
+  indicator_a_type: string
+  indicator_a_params: Record<string, unknown>
+  condition: string
+  threshold_value: number | null
+  indicator_b_type: string | null
+  indicator_b_params: Record<string, unknown> | null
+}): string {
+  const left = indicatorSeriesDisplayName({
+    type: alert.indicator_a_type as IndicatorType,
+    params: alert.indicator_a_params ?? {},
+  })
+  const condition = alert.condition.replace(/_/g, ' ')
+  if (alert.indicator_b_type) {
+    const right = indicatorSeriesDisplayName({
+      type: alert.indicator_b_type as IndicatorType,
+      params: alert.indicator_b_params ?? {},
+    })
+    return `${left} ${condition} ${right}`
+  }
+  return `${left} ${condition} ${alert.threshold_value ?? ''}`.trim()
+}
 </script>
 
 <style scoped>

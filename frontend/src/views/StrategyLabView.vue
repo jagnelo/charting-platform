@@ -17,6 +17,7 @@
             v-if="!strategyLab.definitions.length"
             type="button"
             class="definition-item definition-item--new sidebar-new-btn"
+            aria-label="Create new strategy"
             @click="startNew"
           >
             + New
@@ -27,6 +28,8 @@
             type="button"
             class="definition-item"
             :class="{ active: strategyLab.selectedDefinitionId === definition.id }"
+            :aria-pressed="strategyLab.selectedDefinitionId === definition.id ? 'true' : 'false'"
+            :aria-label="`Open strategy ${definition.name}`"
             @click="selectDefinition(definition.id)"
           >
             <div class="definition-tile definition-tile--dense">
@@ -34,7 +37,7 @@
               <div class="definition-copy">
                 <strong>{{ definition.name }}</strong>
                 <small>
-                  v{{ definition.versions[0]?.version_number ?? 1 }}
+                  v{{ currentVersionNumber(definition) }}
                 </small>
                 <div v-if="definitionDisplayTags(definition).length" class="definition-tags">
                   <span
@@ -53,6 +56,7 @@
             v-if="strategyLab.definitions.length"
             type="button"
             class="definition-item definition-item--new sidebar-new-btn"
+            aria-label="Create new strategy"
             @click="startNew"
           >
             + New
@@ -63,6 +67,8 @@
       <button
         class="sidebar-toggle-strip"
         :title="sidebarCollapsed ? 'Expand strategy list' : 'Collapse strategy list'"
+        :aria-label="sidebarCollapsed ? 'Expand strategy list' : 'Collapse strategy list'"
+        :aria-expanded="sidebarCollapsed ? 'false' : 'true'"
         type="button"
         @click="sidebarCollapsed = !sidebarCollapsed"
       >
@@ -134,6 +140,7 @@
             </svg>
           </button>
           <button
+            v-if="!isPythonSignal"
             class="btn-primary"
             type="button"
             @click="publishStrategy"
@@ -151,17 +158,18 @@
                 <button
                   type="button"
                   class="panel-toggle"
+                  :aria-controls="sectionPanelIds.profile"
                   :aria-expanded="sectionExpanded.profile ? 'true' : 'false'"
                   :title="sectionExpanded.profile ? 'Collapse Strategy profile' : 'Expand Strategy profile'"
                   @click="toggleSection('profile')"
                 >
                   <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.profile }">▸</span>
                 </button>
-                <h3 class="panel-head-heading" @click="toggleSection('profile')">Strategy profile</h3>
+                <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.profile" :aria-expanded="sectionExpanded.profile ? 'true' : 'false'" @click="toggleSection('profile')">Strategy profile</button></h3>
               </div>
             </div>
 
-            <div v-if="sectionExpanded.profile" class="panel-body">
+            <div v-if="sectionExpanded.profile" :id="sectionPanelIds.profile" class="panel-body">
             <div class="form-grid two-up">
               <label class="field">
                 <span class="field-label">
@@ -175,7 +183,7 @@
                   placeholder="Momentum Continuation"
                 />
               </label>
-              <label class="field">
+              <label v-if="!isPythonSignal" class="field">
                 <span class="field-label">Source</span>
                 <select v-model="sourceType" class="form-select">
                   <option value="custom">Custom rules</option>
@@ -204,17 +212,58 @@
               </label>
             </div>
 
+            <div v-if="isPythonSignal" class="python-signal-lineage" data-testid="python-signal-lineage">
+              <div class="subsection-title">
+                <h4>Python signal lineage</h4>
+                <span class="detail-version-pill">Immutable</span>
+              </div>
+              <p>
+                This strategy runs the promoted Study Lab code version below. To change signal logic,
+                edit it in Study Lab and promote a new signal; Strategy Lab only allows profile edits here.
+              </p>
+              <dl class="python-signal-lineage__fields">
+                <div>
+                  <dt>Code asset</dt>
+                  <dd>{{ pythonSignalLineage.codeAssetId ?? 'Not recorded' }}</dd>
+                </div>
+                <div>
+                  <dt>Executable code version</dt>
+                  <dd>{{ pythonSignalLineage.codeVersionId ?? 'Unavailable' }}</dd>
+                </div>
+                <div>
+                  <dt>Output contract</dt>
+                  <dd>{{ pythonSignalLineage.outputContract ?? 'Unavailable' }}</dd>
+                </div>
+                <div>
+                  <dt>Origin</dt>
+                  <dd>{{ pythonSignalLineage.origin ?? 'Not recorded' }}</dd>
+                </div>
+              </dl>
+              <p v-if="pythonSignalLineageMismatch" class="python-signal-lineage__warning" role="alert">
+                The saved profile lineage does not match the executable version snapshot. The snapshot remains authoritative;
+                running this signal is disabled until the lineage is repaired from Study Lab.
+              </p>
+              <p v-else-if="!pythonSignalCodeReferenceReady" class="python-signal-lineage__warning" role="alert">
+                This signal has no supported immutable code-version reference, so it cannot be run from Strategy Lab.
+              </p>
+            </div>
+
             <div class="subsection">
               <div class="subsection-head">
                 <div class="subsection-title">
-                  <h4>{{ sourceType === 'radar' ? 'Universe scope' : 'Universe' }}</h4>
+                  <h4>{{ isPythonSignal ? 'Run universe' : sourceType === 'radar' ? 'Universe scope' : 'Universe' }}</h4>
                   <HoverTooltip :text="sourceType === 'radar'
                     ? 'Radar provides the source instruments by default. Use the scope controls only when you want to narrow replay to a manual symbol list, watchlist, or screener result.'
-                    : 'Use a manual symbol list or a watchlist-backed universe. Run-specific subsets can still narrow the published universe later.'">
+                    : isPythonSignal
+                      ? 'Choose the dataset for the next run. Python signal code and its Study Lab version remain immutable; this run universe is not saved as a Strategy revision.'
+                      : 'Use a manual symbol list or a watchlist-backed universe. Run-specific subsets can still narrow the published universe later.'">
                     <button type="button" class="help-dot" aria-label="Universe info">i</button>
                   </HoverTooltip>
                 </div>
               </div>
+              <p v-if="isPythonSignal" class="python-signal-run-note">
+                This selection is used only for the next run. Python signal code and its output contract stay tied to the immutable Study Lab version.
+              </p>
 
               <div class="form-grid two-up">
                 <label class="field">
@@ -300,7 +349,7 @@
                 <div class="chip-row">
                   <span v-for="symbol in logicDraft.symbols" :key="symbol" class="symbol-chip">
                     {{ symbol }}
-                    <button type="button" @click="removeSymbol(symbol)">×</button>
+                    <button type="button" :aria-label="`Remove ${symbol}`" @click="removeSymbol(symbol)">×</button>
                   </span>
                   <span v-if="!logicDraft.symbols.length" class="empty-inline">No symbols added yet.</span>
                 </div>
@@ -352,7 +401,7 @@
               </template>
             </div>
 
-            <div class="form-grid three-up">
+            <div v-if="!isPythonSignal" class="form-grid three-up">
               <label class="field">
                 <span class="field-label">Timeframe</span>
                 <select v-model="logicDraft.timeframe" class="form-select">
@@ -381,23 +430,24 @@
             </div>
           </div>
 
-          <div class="panel">
+          <div v-if="!isPythonSignal" class="panel">
           <div class="panel-head">
             <div class="panel-head-title">
               <button
-                type="button"
-                class="panel-toggle"
-                :aria-expanded="sectionExpanded.entry ? 'true' : 'false'"
+                  type="button"
+                  class="panel-toggle"
+                  :aria-controls="sectionPanelIds.entry"
+                  :aria-expanded="sectionExpanded.entry ? 'true' : 'false'"
                 :title="sectionExpanded.entry ? `Collapse ${sourceType === 'radar' ? 'Signal source' : 'Entry logic'}` : `Expand ${sourceType === 'radar' ? 'Signal source' : 'Entry logic'}`"
                 @click="toggleSection('entry')"
               >
                 <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.entry }">▸</span>
               </button>
-              <h3 class="panel-head-heading" @click="toggleSection('entry')">{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</h3>
+              <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.entry" :aria-expanded="sectionExpanded.entry ? 'true' : 'false'" @click="toggleSection('entry')">{{ sourceType === 'radar' ? 'Signal source' : 'Entry logic' }}</button></h3>
             </div>
           </div>
 
-          <div v-if="sectionExpanded.entry" class="panel-body">
+          <div v-if="sectionExpanded.entry" :id="sectionPanelIds.entry" class="panel-body">
           <template v-if="sourceType === 'custom'">
             <div class="form-grid one-up">
               <label class="field">
@@ -437,12 +487,21 @@
                   <button
                     type="button"
                     class="multi-select-trigger"
+                    aria-label="Setup families"
+                    :aria-controls="radarSetupMenuId"
+                    :aria-expanded="radarSetupMenuOpen ? 'true' : 'false'"
                     @click="toggleRadarMenu('setup')"
                   >
                     <span>{{ radarSetupSummary }}</span>
                     <span class="multi-select-caret">{{ radarSetupMenuOpen ? '▴' : '▾' }}</span>
                   </button>
-                  <div v-if="radarSetupMenuOpen" class="multi-select-menu">
+                  <div
+                    v-if="radarSetupMenuOpen"
+                    :id="radarSetupMenuId"
+                    class="multi-select-menu"
+                    role="group"
+                    aria-label="Setup families"
+                  >
                     <label
                       v-for="option in radarSetupOptions"
                       :key="option.value"
@@ -472,12 +531,21 @@
                   <button
                     type="button"
                     class="multi-select-trigger"
+                    aria-label="States"
+                    :aria-controls="radarStateMenuId"
+                    :aria-expanded="radarStateMenuOpen ? 'true' : 'false'"
                     @click="toggleRadarMenu('state')"
                   >
                     <span>{{ radarStateSummary }}</span>
                     <span class="multi-select-caret">{{ radarStateMenuOpen ? '▴' : '▾' }}</span>
                   </button>
-                  <div v-if="radarStateMenuOpen" class="multi-select-menu">
+                  <div
+                    v-if="radarStateMenuOpen"
+                    :id="radarStateMenuId"
+                    class="multi-select-menu"
+                    role="group"
+                    aria-label="States"
+                  >
                     <label
                       v-for="option in radarStateOptions"
                       :key="option.value"
@@ -511,23 +579,24 @@
           </div>
           </div>
 
-          <div class="panel">
+            <div v-if="!isPythonSignal" class="panel">
             <div class="panel-head">
               <div class="panel-head-title">
                 <button
                   type="button"
                   class="panel-toggle"
+                  :aria-controls="sectionPanelIds.risk"
                   :aria-expanded="sectionExpanded.risk ? 'true' : 'false'"
                   :title="sectionExpanded.risk ? 'Collapse Risk' : 'Expand Risk'"
                   @click="toggleSection('risk')"
                 >
                   <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.risk }">▸</span>
                 </button>
-                <h3 class="panel-head-heading" @click="toggleSection('risk')">Risk</h3>
+              <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.risk" :aria-expanded="sectionExpanded.risk ? 'true' : 'false'" @click="toggleSection('risk')">Risk</button></h3>
               </div>
             </div>
 
-            <div v-if="sectionExpanded.risk" class="panel-body">
+            <div v-if="sectionExpanded.risk" :id="sectionPanelIds.risk" class="panel-body">
             <div class="form-grid three-up">
               <label class="field">
                 <span class="field-label">
@@ -662,23 +731,24 @@
             </div>
           </div>
 
-          <div class="panel">
+            <div v-if="!isPythonSignal" class="panel">
             <div class="panel-head">
               <div class="panel-head-title">
                 <button
                   type="button"
                   class="panel-toggle"
+                  :aria-controls="sectionPanelIds.exits"
                   :aria-expanded="sectionExpanded.exits ? 'true' : 'false'"
                   :title="sectionExpanded.exits ? 'Collapse Exits' : 'Expand Exits'"
                   @click="toggleSection('exits')"
                 >
                   <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.exits }">▸</span>
                 </button>
-                <h3 class="panel-head-heading" @click="toggleSection('exits')">Exits</h3>
+              <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.exits" :aria-expanded="sectionExpanded.exits ? 'true' : 'false'" @click="toggleSection('exits')">Exits</button></h3>
               </div>
             </div>
 
-            <div v-if="sectionExpanded.exits" class="panel-body">
+            <div v-if="sectionExpanded.exits" :id="sectionPanelIds.exits" class="panel-body">
             <div class="form-grid two-up">
               <div class="field field--sweep">
                 <span class="field-label">
@@ -761,13 +831,14 @@
               <button
                 type="button"
                 class="panel-toggle"
+                :aria-controls="sectionPanelIds.runs"
                 :aria-expanded="sectionExpanded.runs ? 'true' : 'false'"
                 :title="sectionExpanded.runs ? 'Collapse Research runs' : 'Expand Research runs'"
                 @click="toggleSection('runs')"
               >
                 <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.runs }">▸</span>
               </button>
-              <h3 class="panel-head-heading" @click="toggleSection('runs')">Research runs</h3>
+              <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.runs" :aria-expanded="sectionExpanded.runs ? 'true' : 'false'" @click="toggleSection('runs')">Research runs</button></h3>
             </div>
             <div class="panel-head-controls">
               <button
@@ -775,18 +846,19 @@
                 class="btn-primary"
                 type="button"
                 @click="runCurrentVersion"
-                :disabled="strategyLab.isRunning || showRunSubsetValidation"
+                :disabled="strategyLab.isRunning || showRunSubsetValidation || !pythonSignalRunReady"
+                :title="isPythonSignal && !pythonSignalRunReady ? pythonSignalRunReadinessMessage : undefined"
               >
                 {{ strategyLab.isRunning ? 'Running…' : runDraft.test_mode === 'walk_forward' ? 'Run walk-forward' : runDraft.test_mode === 'paper_forward' ? 'Run paper-forward' : 'Run backtest' }}
               </button>
             </div>
           </div>
 
-          <div v-if="sectionExpanded.runs" class="panel-body">
+          <div v-if="sectionExpanded.runs" :id="sectionPanelIds.runs" class="panel-body">
           <div class="mode-strip">
-            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'backtest' }" @click="runDraft.test_mode = 'backtest'">Backtest</button>
-            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'walk_forward' }" @click="runDraft.test_mode = 'walk_forward'">Walk forward</button>
-            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'paper_forward' }" @click="runDraft.test_mode = 'paper_forward'">Paper forward</button>
+            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'backtest' }" :aria-pressed="runDraft.test_mode === 'backtest' ? 'true' : 'false'" @click="runDraft.test_mode = 'backtest'">Backtest</button>
+            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'walk_forward' }" :aria-pressed="runDraft.test_mode === 'walk_forward' ? 'true' : 'false'" @click="runDraft.test_mode = 'walk_forward'">Walk forward</button>
+            <button type="button" class="mode-pill" :class="{ 'mode-pill--active': runDraft.test_mode === 'paper_forward' }" :aria-pressed="runDraft.test_mode === 'paper_forward' ? 'true' : 'false'" @click="runDraft.test_mode = 'paper_forward'">Paper forward</button>
           </div>
 
           <div class="form-grid three-up">
@@ -920,6 +992,8 @@
             <button
               type="button"
               class="advanced-toggle"
+              :aria-controls="advancedRunOptionsId"
+              :aria-expanded="showAdvancedRunOptions ? 'true' : 'false'"
               @click="showAdvancedRunOptions = !showAdvancedRunOptions"
             >
               <span class="advanced-toggle__title">
@@ -928,7 +1002,7 @@
               </span>
             </button>
 
-            <div v-show="showAdvancedRunOptions" class="advanced-panel">
+            <div v-show="showAdvancedRunOptions" :id="advancedRunOptionsId" class="advanced-panel">
               <template v-if="availableRunSubsetSymbols.length">
                 <div class="subsection-head">
                   <div class="subsection-title">
@@ -949,12 +1023,15 @@
                     type="button"
                     class="multi-select-trigger"
                     :class="{ 'form-select--invalid': showRunSubsetValidation }"
+                    aria-label="Run subset symbols"
+                    :aria-controls="runSubsetMenuId"
+                    :aria-expanded="runSubsetMenuOpen ? 'true' : 'false'"
                     @click="runSubsetMenuOpen = !runSubsetMenuOpen"
                   >
                     <span>{{ runSubsetSummary }}</span>
                     <span class="multi-select-caret">{{ runSubsetMenuOpen ? '▴' : '▾' }}</span>
                   </button>
-                  <div v-if="runSubsetMenuOpen" class="multi-select-menu">
+                  <div v-if="runSubsetMenuOpen" :id="runSubsetMenuId" class="multi-select-menu" role="group" aria-label="Run subset symbols">
                     <label
                       v-for="symbol in availableRunSubsetSymbols"
                       :key="symbol"
@@ -963,6 +1040,7 @@
                       <input
                         :checked="runDraft.overrideSymbols.includes(symbol)"
                         type="checkbox"
+                        :aria-label="`Include ${symbol} in run subset`"
                         @change="toggleRunSubsetSymbol(symbol, checkboxValue($event))"
                       />
                       <span>{{ symbol }}</span>
@@ -978,6 +1056,7 @@
               type="button"
               class="scroll-list-toggle"
               :aria-expanded="runHistoryExpanded ? 'true' : 'false'"
+              :aria-controls="runHistoryId"
               @click="runHistoryExpanded = !runHistoryExpanded"
             >
               <span class="scroll-list-toggle__icon" :class="{ 'scroll-list-toggle__icon--expanded': runHistoryExpanded }">▸</span>
@@ -985,7 +1064,7 @@
               <small>{{ selectedRunBatches.length }} {{ selectedRunBatches.length === 1 ? 'batch' : 'batches' }}</small>
             </button>
 
-          <div v-if="runHistoryExpanded" class="run-list">
+          <div v-if="runHistoryExpanded" :id="runHistoryId" class="run-list">
             <article
               v-for="batch in selectedRunBatches"
               :key="batch.id"
@@ -995,6 +1074,7 @@
               <button
                 type="button"
                 class="run-batch__head"
+                :aria-pressed="batch.runs.some(run => strategyLab.selectedRunId === run.id) ? 'true' : 'false'"
                 @click="strategyLab.selectedRunId = batch.primaryRun?.id ?? null"
               >
                 <span>
@@ -1019,6 +1099,7 @@
                   type="button"
                   class="run-item"
                   :class="{ active: strategyLab.selectedRunId === run.id }"
+                  :aria-pressed="strategyLab.selectedRunId === run.id ? 'true' : 'false'"
                   @click="strategyLab.selectedRunId = run.id"
                 >
                   <div class="run-item__header">
@@ -1049,13 +1130,14 @@
             <button
               type="button"
               class="panel-toggle"
+              :aria-controls="sectionPanelIds.results"
               :aria-expanded="sectionExpanded.results ? 'true' : 'false'"
               :title="sectionExpanded.results ? 'Collapse Results' : 'Expand Results'"
               @click="toggleSection('results')"
             >
               <span class="panel-toggle__icon" :class="{ 'panel-toggle__icon--expanded': sectionExpanded.results }">▸</span>
             </button>
-            <h3 class="panel-head-heading" @click="toggleSection('results')">Results</h3>
+            <h3 class="panel-head-heading"><button type="button" class="panel-head-heading__button" :aria-controls="sectionPanelIds.results" :aria-expanded="sectionExpanded.results ? 'true' : 'false'" @click="toggleSection('results')">Results</button></h3>
           </div>
           <div class="panel-head-controls">
             <div v-if="selectedRunDetail" class="detail-actions">
@@ -1075,11 +1157,16 @@
               </button>
               <div ref="exportMenuRef" class="export-menu" @click.stop>
                 <button
+                  ref="exportMenuTrigger"
                   class="btn-secondary btn-icon-only export-menu__trigger"
                   type="button"
                   title="Export"
                   aria-label="Export"
-                  @click="exportMenuOpen = !exportMenuOpen"
+                  aria-haspopup="menu"
+                  :aria-expanded="exportMenuOpen ? 'true' : 'false'"
+                  :aria-controls="exportMenuId"
+                  @click="toggleExportMenu"
+                  @keydown="handleExportMenuTriggerKeydown"
                 >
                   <svg viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M8 2.5v7" />
@@ -1088,16 +1175,16 @@
                   </svg>
                   <span class="export-menu__caret">{{ exportMenuOpen ? '▴' : '▾' }}</span>
                 </button>
-                <div v-if="exportMenuOpen" class="export-menu__panel">
-                  <button type="button" class="export-menu__item" @click="handleExport('summary')">Export summary</button>
-                  <button type="button" class="export-menu__item" @click="handleExport('trades')">Export trades CSV</button>
+                <div v-if="exportMenuOpen" :id="exportMenuId" class="export-menu__panel" role="menu" aria-label="Export options" @keydown="handleExportMenuKeydown">
+                  <button type="button" role="menuitem" tabindex="-1" class="export-menu__item" @click="handleExport('summary')">Export summary</button>
+                  <button type="button" role="menuitem" tabindex="-1" class="export-menu__item" @click="handleExport('trades')">Export trades CSV</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div v-if="sectionExpanded.results" class="panel-body">
+        <div v-if="sectionExpanded.results" :id="sectionPanelIds.results" class="panel-body">
         <div v-if="selectedRunDetail" class="run-detail">
           <div class="form-grid two-up" v-if="selectedRuns.length > 1">
             <label class="field">
@@ -1269,6 +1356,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': positionEvolutionMode === 'currency' }"
+                        :aria-pressed="positionEvolutionMode === 'currency' ? 'true' : 'false'"
                         aria-label="Show position evolution in currency"
                         @click="positionEvolutionMode = 'currency'"
                       >
@@ -1278,6 +1366,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': positionEvolutionMode === 'percent' }"
+                        :aria-pressed="positionEvolutionMode === 'percent' ? 'true' : 'false'"
                         aria-label="Show position evolution in percent"
                         @click="positionEvolutionMode = 'percent'"
                       >
@@ -1336,6 +1425,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': activeReturnsMode === 'monthly' }"
+                        :aria-pressed="activeReturnsMode === 'monthly' ? 'true' : 'false'"
                         aria-label="Show monthly returns"
                         @click="returnsViewMode = 'monthly'"
                       >
@@ -1345,6 +1435,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': activeReturnsMode === 'quarterly' }"
+                        :aria-pressed="activeReturnsMode === 'quarterly' ? 'true' : 'false'"
                         aria-label="Show quarterly returns"
                         @click="returnsViewMode = 'quarterly'"
                       >
@@ -1355,6 +1446,7 @@
                         type="button"
                         class="chart-mode-toggle__button"
                         :class="{ 'chart-mode-toggle__button--active': activeReturnsMode === 'yearly' }"
+                        :aria-pressed="activeReturnsMode === 'yearly' ? 'true' : 'false'"
                         aria-label="Show yearly returns"
                         @click="returnsViewMode = 'yearly'"
                       >
@@ -1563,7 +1655,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, useId, watch } from 'vue'
 
 import HoverTooltip from '@/components/common/HoverTooltip.vue'
 import ResizeHandle from '@/components/common/ResizeHandle.vue'
@@ -1667,10 +1759,32 @@ const STRATEGY_SIDEBAR_MAX_WIDTH = 420
 const STRATEGY_SIDEBAR_DEFAULT_WIDTH = 308
 const STRATEGY_SIDEBAR_COLLAPSED_WIDTH = 16
 const STRATEGY_SECTION_STORAGE_KEY = 'strategyLab.sections.v1'
+const PYTHON_SIGNAL_REVISION_GUIDANCE = 'Python signal code and version lineage are immutable in Strategy Lab. Make signal changes in Study Lab and promote a new signal.'
 const initialSidebarState = loadStrategySidebarState()
 const initialSectionStates = loadStrategySectionStates()
 
+function currentVersionNumber(definition: StrategyDefinition) {
+  return definition.versions.find(version => version.is_current)?.version_number
+    ?? definition.versions[0]?.version_number
+    ?? 1
+}
+
 const strategyLab = useStrategyLabStore()
+const strategyInstanceId = useId()
+const sectionPanelIds = {
+  profile: `${strategyInstanceId}-profile-panel`,
+  entry: `${strategyInstanceId}-entry-panel`,
+  risk: `${strategyInstanceId}-risk-panel`,
+  exits: `${strategyInstanceId}-exits-panel`,
+  runs: `${strategyInstanceId}-runs-panel`,
+  results: `${strategyInstanceId}-results-panel`,
+} as const
+const advancedRunOptionsId = `${strategyInstanceId}-advanced-run-options`
+const runHistoryId = `${strategyInstanceId}-run-history`
+const runSubsetMenuId = `${strategyInstanceId}-run-subset-menu`
+const radarSetupMenuId = `${strategyInstanceId}-radar-setup-menu`
+const radarStateMenuId = `${strategyInstanceId}-radar-state-menu`
+const exportMenuId = `${strategyInstanceId}-export-menu`
 const availableWatchlists = ref<Watchlist[]>([])
 const availableScreeners = ref<ScreenerOption[]>([])
 const availableBaskets = ref<Basket[]>([])
@@ -1729,6 +1843,7 @@ const showAdvancedRunOptions = ref(false)
 const runSubsetMenuOpen = ref(false)
 const exportMenuOpen = ref(false)
 const exportMenuRef = ref<HTMLElement | null>(null)
+const exportMenuTrigger = ref<HTMLButtonElement | null>(null)
 const runHistoryExpanded = ref(false)
 const sidebarWidth = ref(initialSidebarState.width)
 const sidebarCollapsed = ref(initialSidebarState.collapsed)
@@ -1753,6 +1868,11 @@ const executionLogFilters = reactive<Record<ExecutionLogColumnKey, string>>({
 })
 const openExecutionLogFilter = ref<ExecutionLogColumnKey | null>(null)
 let coveragePreviewSequence = 0
+let lifecycleGeneration = 0
+
+function isCurrentLifecycle(generation: number) {
+  return generation === lifecycleGeneration
+}
 
 type OptionalNumberInput = number | string | '' | null
 type SweepMode = 'single' | 'list' | 'range'
@@ -1853,6 +1973,37 @@ const currentVersion = computed<StrategyVersion | null>(() =>
   ?? strategyLab.selectedDefinition?.versions[0]
   ?? null
 )
+const pythonSignalSnapshot = computed<Record<string, any>>(() => {
+  const snapshot = currentVersion.value?.definition_snapshot
+  return snapshot && typeof snapshot === 'object' ? snapshot : {}
+})
+const isPythonSignal = computed(() =>
+  strategyLab.selectedDefinition?.definition_type === 'python'
+  || String(pythonSignalSnapshot.value.kind ?? '').startsWith('python_')
+)
+const pythonSignalLineage = computed(() => ({
+  codeAssetId: strategyLab.selectedDefinition?.metadata?.code_asset_id ?? null,
+  codeVersionId: pythonSignalSnapshot.value.code_version_id ?? null,
+  outputContract: pythonSignalSnapshot.value.output_contract ?? null,
+  origin: strategyLab.selectedDefinition?.metadata?.origin ?? null,
+}))
+const pythonSignalLineageMismatch = computed(() => {
+  const metadataVersionId = strategyLab.selectedDefinition?.metadata?.code_version_id
+  const snapshotVersionId = pythonSignalSnapshot.value.code_version_id
+  return metadataVersionId != null
+    && snapshotVersionId != null
+    && metadataVersionId !== snapshotVersionId
+})
+const pythonSignalCodeReferenceReady = computed(() => {
+  const codeVersionId = pythonSignalSnapshot.value.code_version_id
+  const kind = String(pythonSignalSnapshot.value.kind ?? '')
+  return kind.startsWith('python_')
+    && typeof codeVersionId === 'number'
+    && Number.isInteger(codeVersionId)
+    && codeVersionId > 0
+    && ['boolean', 'events'].includes(String(pythonSignalSnapshot.value.output_contract ?? ''))
+    && !pythonSignalLineageMismatch.value
+})
 const selectedWatchlist = computed(() =>
   availableWatchlists.value.find(item => item.id === selectedWatchlistId.value) ?? null
 )
@@ -3070,6 +3221,17 @@ const hasEntryLogic = computed(() =>
   sourceType.value === 'radar' || conditionCount.value > 0
 )
 
+const pythonSignalRunReady = computed(() =>
+  !isPythonSignal.value || (pythonSignalCodeReferenceReady.value && hasUniverseSelection.value)
+)
+const pythonSignalRunReadinessMessage = computed(() => {
+  if (!pythonSignalCodeReferenceReady.value) {
+    return 'This Python signal is missing a supported immutable code-version reference.'
+  }
+  if (!hasUniverseSelection.value) return 'Choose a run universe before running this Python signal.'
+  return ''
+})
+
 const canPublish = computed(() =>
   Boolean(draft.name.trim())
   && hasUniverseSelection.value
@@ -3082,29 +3244,39 @@ const showUniverseValidation = computed(() =>
 )
 
 onMounted(async () => {
+  const generation = lifecycleGeneration
   await Promise.all([
     strategyLab.loadAll(),
     api.get<Watchlist[]>('/watchlists').then(rows => {
+      if (!isCurrentLifecycle(generation)) return
       availableWatchlists.value = rows
     }).catch(() => {
+      if (!isCurrentLifecycle(generation)) return
       availableWatchlists.value = []
     }),
     api.get<ScreenerOption[]>('/screeners').then(rows => {
+      if (!isCurrentLifecycle(generation)) return
       availableScreeners.value = rows.map(row => ({ id: row.id, name: row.name }))
     }).catch(() => {
+      if (!isCurrentLifecycle(generation)) return
       availableScreeners.value = []
     }),
     api.get<Basket[]>('/baskets').then(rows => {
+      if (!isCurrentLifecycle(generation)) return
       availableBaskets.value = rows
     }).catch(() => {
+      if (!isCurrentLifecycle(generation)) return
       availableBaskets.value = []
     }),
     api.get<ETFProfile[]>('/etf-holdings').then(rows => {
+      if (!isCurrentLifecycle(generation)) return
       availableEtfHoldings.value = rows
     }).catch(() => {
+      if (!isCurrentLifecycle(generation)) return
       availableEtfHoldings.value = []
     }),
   ])
+  if (!isCurrentLifecycle(generation)) return
   hydrateFromSelection(strategyLab.selectedDefinition)
 })
 
@@ -3122,6 +3294,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', handleDocumentPointerDown)
+})
+
+onUnmounted(() => {
+  lifecycleGeneration += 1
+  coveragePreviewSequence += 1
 })
 
 watch([sidebarWidth, sidebarCollapsed], ([width, collapsed]) => {
@@ -3146,6 +3323,7 @@ function scheduleCoveragePreview() {
 }
 
 async function fetchCoveragePreview() {
+  const generation = lifecycleGeneration
   const requestId = ++coveragePreviewSequence
   coveragePreviewLoading.value = true
   coveragePreviewError.value = null
@@ -3154,14 +3332,14 @@ async function fetchCoveragePreview() {
       '/strategy-lab/coverage-preview',
       coveragePreviewPayload.value,
     )
-    if (requestId !== coveragePreviewSequence) return
+    if (!isCurrentLifecycle(generation) || requestId !== coveragePreviewSequence) return
     coveragePreview.value = preview
   } catch (err: any) {
-    if (requestId !== coveragePreviewSequence) return
+    if (!isCurrentLifecycle(generation) || requestId !== coveragePreviewSequence) return
     coveragePreview.value = null
     coveragePreviewError.value = err?.message ?? 'Failed to refresh coverage preview'
   } finally {
-    if (requestId === coveragePreviewSequence) {
+    if (isCurrentLifecycle(generation) && requestId === coveragePreviewSequence) {
       coveragePreviewLoading.value = false
     }
   }
@@ -4060,6 +4238,40 @@ function compileCondition(condition: BuilderConditionNode) {
 
 async function saveProfileOnly() {
   if (!strategyLab.selectedDefinition || !currentVersion.value) return
+  if (isPythonSignal.value) {
+    const runInputs = {
+      universeMode: universeMode.value,
+      symbols: [...logicDraft.symbols],
+      selectedWatchlistId: selectedWatchlistId.value,
+      selectedScreenerId: selectedScreenerId.value,
+      selectedBasketId: selectedBasketId.value,
+      selectedBasketSnapshotMode: selectedBasketSnapshotMode.value,
+      selectedEtfHoldingSymbol: selectedEtfHoldingSymbol.value,
+      selectedEtfHoldingSnapshotMode: selectedEtfHoldingSnapshotMode.value,
+      selectedEtfHoldingSnapshotDate: selectedEtfHoldingSnapshotDate.value,
+      runDraft: { ...runDraft, overrideSymbols: [...runDraft.overrideSymbols] },
+    }
+    await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, {
+      name: draft.name.trim(),
+      description: draft.description.trim() || null,
+      is_active: draft.is_active,
+      tags: normalizeTags(draft.tags),
+    })
+    const refreshed = await strategyLab.refreshDefinition(strategyLab.selectedDefinition.id)
+    hydrateFromSelection(refreshed)
+    await nextTick()
+    universeMode.value = runInputs.universeMode
+    logicDraft.symbols = runInputs.symbols
+    selectedWatchlistId.value = runInputs.selectedWatchlistId
+    selectedScreenerId.value = runInputs.selectedScreenerId
+    selectedBasketId.value = runInputs.selectedBasketId
+    selectedBasketSnapshotMode.value = runInputs.selectedBasketSnapshotMode
+    selectedEtfHoldingSymbol.value = runInputs.selectedEtfHoldingSymbol
+    selectedEtfHoldingSnapshotMode.value = runInputs.selectedEtfHoldingSnapshotMode
+    selectedEtfHoldingSnapshotDate.value = runInputs.selectedEtfHoldingSnapshotDate
+    Object.assign(runDraft, runInputs.runDraft)
+    return
+  }
   const definitionPayload = buildDefinitionPayload()
   const versionPayload = buildVersionPayload()
   await strategyLab.updateDefinition(strategyLab.selectedDefinition.id, definitionPayload)
@@ -4082,6 +4294,10 @@ async function deleteCurrentStrategy() {
 }
 
 async function publishStrategy() {
+  if (isPythonSignal.value) {
+    strategyLab.error = PYTHON_SIGNAL_REVISION_GUIDANCE
+    return
+  }
   const definitionPayload = buildDefinitionPayload()
   const versionPayload = buildVersionPayload()
   if (isNew.value) {
@@ -4102,18 +4318,21 @@ async function publishStrategy() {
 
 async function runCurrentVersion() {
   if (!currentVersion.value) return
+  if (isPythonSignal.value && !pythonSignalRunReady.value) return
   const slippageBps = optionalNumberValue(runDraft.slippage_bps)
   const commissionValue = optionalNumberValue(runDraft.commission_value)
   const submitted = await strategyLab.runVersion(currentVersion.value.id, {
     test_mode: runDraft.test_mode,
-    timeframe: runDraft.timeframe || null,
+    timeframe: runDraft.timeframe || (isPythonSignal.value ? logicDraft.timeframe || 'D1' : null),
     date_from: runDraft.date_from ? `${runDraft.date_from}T00:00:00Z` : null,
     date_to: runDraft.date_to ? `${runDraft.date_to}T23:59:59Z` : null,
     parameter_values: {},
-    parameter_grid: parameterGridPayload(),
-    universe_config: runDraft.use_subset && runDraft.overrideSymbols.length
-      ? { symbols: runDraft.overrideSymbols }
-      : {},
+    parameter_grid: isPythonSignal.value ? null : parameterGridPayload(),
+    universe_config: isPythonSignal.value
+      ? effectiveRunUniverseConfig.value
+      : runDraft.use_subset && runDraft.overrideSymbols.length
+        ? { symbols: runDraft.overrideSymbols }
+        : {},
     execution_assumptions: {
       initial_capital: runDraft.initial_capital,
       risk_per_trade_pct: runDraft.risk_per_trade_pct,
@@ -4143,8 +4362,70 @@ async function refreshPaperForwardRun() {
   strategyLab.selectedRunId = refreshed.id
 }
 
-function handleExport(kind: 'summary' | 'trades') {
+function exportMenuItems() {
+  return Array.from(exportMenuRef.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
+}
+
+function focusExportMenuItem(index: number) {
+  const items = exportMenuItems()
+  if (!items.length) return
+  const resolvedIndex = index < 0 ? items.length - 1 : Math.min(index, items.length - 1)
+  items[Math.max(0, resolvedIndex)]?.focus()
+}
+
+function setExportMenuOpen(open: boolean, focusIndex = 0) {
+  exportMenuOpen.value = open
+  if (!open) return
+  void nextTick(() => focusExportMenuItem(focusIndex))
+}
+
+function toggleExportMenu() {
+  setExportMenuOpen(!exportMenuOpen.value)
+}
+
+function closeExportMenuToTrigger() {
+  if (!exportMenuOpen.value) return
   exportMenuOpen.value = false
+  void nextTick(() => exportMenuTrigger.value?.focus())
+}
+
+function handleExportMenuTriggerKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    setExportMenuOpen(true, event.key === 'ArrowUp' ? exportMenuItems().length - 1 : 0)
+  }
+}
+
+function handleExportMenuKeydown(event: KeyboardEvent) {
+  const items = exportMenuItems()
+  const target = event.target instanceof HTMLElement ? event.target : null
+  const currentIndex = target ? items.indexOf(target as HTMLButtonElement) : -1
+  if (!items.length) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeExportMenuToTrigger()
+    return
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    focusExportMenuItem((currentIndex + 1 + items.length) % items.length)
+  } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+    event.preventDefault()
+    focusExportMenuItem((currentIndex - 1 + items.length) % items.length)
+  } else if (event.key === 'Home') {
+    event.preventDefault()
+    focusExportMenuItem(0)
+  } else if (event.key === 'End') {
+    event.preventDefault()
+    focusExportMenuItem(items.length - 1)
+  } else if ((event.key === 'Enter' || event.key === ' ') && target) {
+    event.preventDefault()
+    target.click()
+  }
+}
+
+function handleExport(kind: 'summary' | 'trades') {
+  closeExportMenuToTrigger()
   if (kind === 'summary') {
     exportSummaryJson()
     return
@@ -4192,6 +4473,14 @@ function downloadBlob(filename: string, mimeType: string, content: string) {
 }
 
 function buildDefinitionPayload() {
+  if (isPythonSignal.value) {
+    return {
+      name: draft.name.trim(),
+      description: draft.description.trim() || null,
+      is_active: draft.is_active,
+      tags: normalizeTags(draft.tags),
+    }
+  }
   return {
     name: draft.name.trim(),
     description: draft.description.trim() || null,
@@ -4204,7 +4493,9 @@ function buildDefinitionPayload() {
 }
 
 async function reload() {
+  const generation = lifecycleGeneration
   await strategyLab.loadAll()
+  if (!isCurrentLifecycle(generation)) return
   hydrateFromSelection(strategyLab.selectedDefinition)
 }
 
@@ -4994,10 +5285,20 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 }
 
 .panel-head-heading {
-  cursor: pointer;
+  margin: 0;
 }
 
-.panel-head-heading:hover {
+.panel-head-heading__button {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.panel-head-heading__button:hover {
   color: #f3f3f3;
 }
 
@@ -5148,6 +5449,48 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 .run-detail {
   display: grid;
   gap: 8px;
+}
+
+.python-signal-lineage {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #29333d;
+  border-radius: 4px;
+  background: #101419;
+}
+
+.python-signal-lineage > p,
+.python-signal-run-note {
+  margin: 0;
+  color: #aeb7c0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.python-signal-lineage__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+}
+
+.python-signal-lineage__fields dt {
+  color: #7c8995;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.python-signal-lineage__fields dd {
+  margin: 3px 0 0;
+  color: #e0e6eb;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.python-signal-lineage__warning {
+  color: #ffcf73 !important;
 }
 
 .coverage-preview-section,

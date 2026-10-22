@@ -1534,7 +1534,7 @@ class TestWorkspaces:
             (as_of - timedelta(days=2)).date().isoformat()
         )
         assert roles["equal_weight"]["universe_provenance"]["known_at"].startswith(
-            as_of.isoformat()
+            as_of.isoformat().replace("+00:00", "Z")
         )
         assert roles["equal_weight"]["above_ma"]["ma20"]["requested_count"] == 1
         assert roles["equal_weight"]["above_ma"]["ma20"]["eligible_count"] == 1
@@ -1610,7 +1610,9 @@ class TestWorkspaces:
         assert pit_equal["universe_provenance"]["composition_date"] == (
             (as_of - timedelta(days=2)).date().isoformat()
         )
-        assert pit_equal["universe_provenance"]["known_at"].startswith(as_of.isoformat())
+        assert pit_equal["universe_provenance"]["known_at"].startswith(
+            as_of.isoformat().replace("+00:00", "Z")
+        )
         assert db.query(ProviderRequestLog).count() == provider_log_count
         assert db.query(ProviderQuotaWindow).count() == quota_window_count
 
@@ -2012,7 +2014,11 @@ class TestWorkspaces:
             "benchmark_family_derived_equal_weight"
         )
         assert available_payload["coverage_preflight"]["status"] == "full"
-        assert len(available_payload["points"]) == len(ohlcv_bars)
+        assert len(available_payload["points"]) == len(ohlcv_bars) - 1
+        assert available_payload["points"][0]["timestamp"] == "2024-01-02T00:00:00Z"
+        assert all(
+            point["timestamp"] != "2024-01-01T00:00:00Z" for point in available_payload["points"]
+        )
         assert available_payload["universe_provenance"]["membership_semantics"] == (
             "point_in_time_constituent_derived_equal_weight"
         )
@@ -4279,7 +4285,7 @@ class TestWorkspaces:
         assert payload["provenance"] == "issuer_native"
         assert payload["source_provider"] == "issuer"
         assert payload["as_of"] == "2024-06-01T00:00:00Z"
-        assert payload["universe_provenance"]["requested_as_of"] == "2024-06-01T00:00:00+00:00"
+        assert payload["universe_provenance"]["requested_as_of"] == "2024-06-01T00:00:00Z"
         assert payload["coverage_preflight"]["evaluator"] == "etf_constituent_snapshot"
         assert payload["coverage"] == 1
         assert payload["rows"][0]["symbol"] == instrument.symbol

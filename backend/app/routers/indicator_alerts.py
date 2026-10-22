@@ -2,11 +2,12 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.lib.time_utils import wire_datetime
 from app.models.indicator_alert import IndicatorAlert
 from app.models.ohlcv import Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus
@@ -48,6 +49,10 @@ class IndicatorAlertOut(BaseModel):
     trigger_count: int
     last_indicator_value: Decimal | None
     created_at: datetime
+
+    @field_serializer("triggered_at", "created_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 @router.get("", response_model=list[IndicatorAlertOut])

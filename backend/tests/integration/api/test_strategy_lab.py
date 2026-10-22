@@ -2,6 +2,241 @@ from datetime import date, timedelta
 
 
 class TestStrategyLabAPI:
+    def test_historical_breadth_signal_promotion_preserves_shape_and_lineage(
+        self, client, auth_headers, db, user, instrument
+    ):
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        def add_run(
+            *,
+            stable_key: str,
+            output_contract: str,
+            output_name: str,
+            run_config: dict,
+        ) -> ResearchRun:
+            asset = CodeAsset(
+                user_id=user.id,
+                stable_key=stable_key,
+                name=stable_key,
+                kind="condition",
+            )
+            asset.versions.append(
+                CodeVersion(
+                    version_number=1,
+                    source=(
+                        f"output.{output_contract}('{output_name}', True)"
+                        if output_contract == "boolean"
+                        else f"output.series('{output_name}', market.close())"
+                    ),
+                    output_contract=output_contract,
+                    output_name=output_name,
+                )
+            )
+            run = ResearchRun(
+                user_id=user.id,
+                code_version=asset.versions[0],
+                status="completed",
+                run_config={
+                    "execution_mode": "breadth_history",
+                    "symbols": [instrument.symbol],
+                    "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                    "definition_hash": f"{stable_key}-definition",
+                    **run_config,
+                },
+                dataset_manifest={"source": "canonical_database", "timeframe": "D1"},
+                reproducibility_hash=f"{stable_key}-hash",
+            )
+            run.artifacts.append(
+                ResearchArtifact(
+                    artifact_type="breadth_history",
+                    name="breadth_history",
+                    payload={"value": {"points": [], "occurrences": []}},
+                )
+            )
+            db.add(run)
+            db.flush()
+            return run
+
+        boolean_run = add_run(
+            stable_key="breadth-signal-boolean",
+            output_contract="boolean",
+            output_name="match",
+            run_config={},
+        )
+        boolean_response = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{boolean_run.id}/promote-signal",
+            headers=auth_headers,
+            json={"name": "Boolean breadth strategy signal"},
+        )
+        assert boolean_response.status_code == 201, boolean_response.text
+        boolean_payload = boolean_response.json()
+        assert boolean_payload["metadata"]["origin"] == "breadth_history_promotion"
+        assert boolean_payload["metadata"]["source_instrument_ids"] == [instrument.id]
+
+        series_run = add_run(
+            stable_key="breadth-signal-series",
+            output_contract="series",
+            output_name="trend",
+            run_config={
+                "output_contract": "series",
+                "series_target": {"operator": "gte", "threshold": 2.5},
+            },
+        )
+        series_response = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{series_run.id}/promote-signal",
+            headers=auth_headers,
+            json={},
+        )
+        assert series_response.status_code == 201, series_response.text
+        series_payload = series_response.json()
+        assert series_payload["metadata"]["output_adapter"] == "series_target_to_boolean"
+        assert series_payload["metadata"]["source_output_name"] == "trend"
+        assert series_payload["metadata"]["series_target"] == {
+            "operator": "gte",
+            "threshold": 2.5,
+        }
+
+        tree_run = add_run(
+            stable_key="breadth-signal-tree",
+            output_contract="boolean",
+            output_name="match",
+            run_config={
+                "condition_tree": {"kind": "all", "params": {"conditions": []}},
+            },
+        )
+        tree_response = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{tree_run.id}/promote-signal",
+            headers=auth_headers,
+            json={},
+        )
+        assert tree_response.status_code == 201, tree_response.text
+        tree_payload = tree_response.json()
+        assert tree_payload["metadata"]["output_adapter"] == "condition_tree_to_boolean"
+        assert tree_payload["metadata"]["condition_tree"]["kind"] == "all"
+
+        cross_sectional_run = add_run(
+            stable_key="breadth-signal-cross-sectional",
+            output_contract="series",
+            output_name="trend",
+            run_config={
+                "output_contract": "series",
+                "series_target": {
+                    "scope": "cross_sectional",
+                    "statistic": "mean",
+                    "operator": "gte",
+                    "threshold": 0,
+                },
+            },
+        )
+        cross_sectional_response = client.post(
+            f"/api/v1/analysis/breadth/python/runs/{cross_sectional_run.id}/promote-signal",
+            headers=auth_headers,
+            json={},
+        )
+        assert cross_sectional_response.status_code == 422, cross_sectional_response.text
+        assert (
+            cross_sectional_response.json()["detail"]["code"]
+            == "breadth_signal_promotion_requires_member_series"
+        )
+
+    def test_research_event_artifact_promotes_with_lineage(self, client, auth_headers, db, user):
+        import hashlib
+        import json
+
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        manifest = {
+            "source": "canonical_database",
+            "instrument_ids": [7],
+            "timeframe": "D1",
+            "as_of": "2026-01-03T00:00:00Z",
+        }
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="event-run-promotion",
+            name="Breakout Study",
+            kind="study",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source="output.events('breakout', [])",
+            output_contract="events",
+            parameter_schema={"lookback": {"type": "integer"}},
+            default_parameters={"lookback": 20},
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"symbols": ["SPY"], "timeframe": "D1"},
+            dataset_manifest=manifest,
+            reproducibility_hash="run-hash",
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="events",
+                name="breakout_events",
+                payload={
+                    "value": [
+                        {
+                            "symbol": "SPY",
+                            "timestamp": "2026-01-02T00:00:00Z",
+                            "kind": "breakout",
+                            "instrument_id": 7,
+                        }
+                    ]
+                },
+            )
+        )
+        db.add(run)
+        db.flush()
+
+        response = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-signal",
+            headers=auth_headers,
+            json={"name": "Promoted event signal", "description": "Event lineage test"},
+        )
+
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["name"] == "Promoted event signal"
+        assert payload["definition_type"] == "python"
+        metadata = payload["metadata"]
+        assert metadata["origin"] == "research_run_event_promotion"
+        assert metadata["source_run_id"] == run.id
+        assert metadata["source_code_asset_id"] == asset.id
+        assert metadata["source_code_version_id"] == version.id
+        assert metadata["source_artifact_name"] == "breakout_events"
+        assert metadata["source_reproducibility_hash"] == "run-hash"
+        assert (
+            metadata["source_dataset_manifest_sha256"]
+            == hashlib.sha256(
+                json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+        )
+        assert metadata["source_dataset_manifest"] == {
+            "source": "canonical_database",
+            "timeframe": "D1",
+            "as_of": "2026-01-03T00:00:00Z",
+        }
+        assert metadata["source_run_config"] == {"symbols": ["SPY"], "timeframe": "D1"}
+        assert metadata["semantics"] == "re_evaluate_current_data_event_source"
+        assert metadata["point_in_time_source_preserved"] is False
+        assert payload["versions"][0]["definition_snapshot"] == {
+            "kind": "python_event_signal",
+            "code_version_id": version.id,
+            "output_contract": "events",
+            "source_run_id": run.id,
+            "source_artifact_name": "breakout_events",
+            "source_dataset_manifest_sha256": metadata["source_dataset_manifest_sha256"],
+            "semantics": "re_evaluate_current_data_event_source",
+        }
+
     def test_study_code_version_can_be_reused_as_strategy_signal(self, client, auth_headers):
         asset_res = client.post(
             "/api/v1/code/assets",
@@ -27,6 +262,403 @@ class TestStrategyLabAPI:
         )
         assert promotion_res.status_code == 201
         assert promotion_res.json()["metadata"]["code_version_id"] == version_id
+
+    def test_multi_event_run_requires_and_preserves_named_signal_artifact(
+        self, client, auth_headers, db, user
+    ):
+        """Direct events runs cannot silently promote the first of several outputs."""
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="multi-event-signal-promotion",
+            name="Multi-event study",
+            kind="study",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source=("output.events('breakouts', [])\n" "output.events('breakdowns', [])"),
+            output_contract="events",
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"symbols": ["SPY"], "timeframe": "D1"},
+            dataset_manifest={
+                "source": "canonical_database",
+                "timeframe": "D1",
+                "datasets": [{"instrument_id": 7, "symbol": "SPY"}],
+            },
+            reproducibility_hash="multi-event-signal-hash",
+        )
+        run.artifacts.extend(
+            [
+                ResearchArtifact(
+                    artifact_type="events",
+                    name="breakouts",
+                    payload={
+                        "value": [{"symbol": "SPY", "timestamp": "2026-01-02", "kind": "breakout"}]
+                    },
+                ),
+                ResearchArtifact(
+                    artifact_type="events",
+                    name="breakdowns",
+                    payload={
+                        "value": [{"symbol": "SPY", "timestamp": "2026-01-03", "kind": "breakdown"}]
+                    },
+                ),
+            ]
+        )
+        db.add(run)
+        db.flush()
+
+        missing_name = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-signal",
+            headers=auth_headers,
+            json={},
+        )
+        assert missing_name.status_code == 422
+        assert (
+            missing_name.json()["detail"]["code"]
+            == "research_signal_promotion_artifact_name_required"
+        )
+
+        missing_filter_name = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={},
+        )
+        assert missing_filter_name.status_code == 422
+        assert (
+            missing_filter_name.json()["detail"]["code"]
+            == "research_filter_promotion_artifact_name_required"
+        )
+
+        selected = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-signal",
+            headers=auth_headers,
+            json={"artifact_name": "breakdowns", "name": "Breakdowns signal"},
+        )
+        assert selected.status_code == 201, selected.text
+        payload = selected.json()
+        assert payload["name"] == "Breakdowns signal"
+        assert payload["metadata"]["source_artifact_name"] == "breakdowns"
+        assert payload["versions"][0]["definition_snapshot"]["source_artifact_name"] == "breakdowns"
+
+        selected_filter = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={"artifact_name": "breakdowns", "name": "Breakdowns filter"},
+        )
+        assert selected_filter.status_code == 201, selected_filter.text
+        assert selected_filter.json()["name"] == "Breakdowns filter"
+
+    def test_chart_indicator_code_version_keeps_chart_promotion_origin(self, client, auth_headers):
+        asset_res = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "chart-rsi-signal",
+                "name": "RSI threshold",
+                "kind": "signal",
+                "initial_version": {
+                    "source": "values = ta.indicator('rsi', {'period': 14}, 'rsi')\nlatest = values[-1] if values else float('nan')\noutput.boolean('rsi', bool(latest > 70))",
+                    "output_contract": "boolean",
+                    "output_name": "rsi",
+                    "lineage": {
+                        "type": "chart_plot_promotion",
+                        "source": "chart_plot_library",
+                        "source_instrument_id": 42,
+                        "indicator_type": "rsi",
+                        "indicator_output": "rsi",
+                        "output_adapter": "indicator_threshold_to_boolean",
+                        "series_target": {"operator": "gt", "threshold": 70},
+                        "semantics": "chart_indicator_threshold_as_strategy_signal",
+                        "point_in_time_source_preserved": False,
+                    },
+                },
+            },
+        )
+        assert asset_res.status_code == 201, asset_res.text
+        version_id = asset_res.json()["versions"][0]["id"]
+        promotion_res = client.post(
+            f"/api/v1/strategy-lab/signals/from-code/{version_id}",
+            headers=auth_headers,
+            json={},
+        )
+        assert promotion_res.status_code == 201, promotion_res.text
+        payload = promotion_res.json()
+        assert payload["metadata"]["origin"] == "chart_plot_promotion"
+        assert (
+            payload["description"]
+            == "Canonical chart indicator threshold promoted as a Strategy Lab signal."
+        )
+
+    def test_research_event_artifact_promotes_to_scoped_python_filter(
+        self, client, auth_headers, db, user
+    ):
+        import hashlib
+        import json
+
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="event-filter-promotion",
+            name="Breakout Study",
+            kind="study",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source="output.events('breakout', [])",
+            output_contract="events",
+            parameter_schema={},
+            default_parameters={},
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"symbols": ["SPY", "XLK"], "timeframe": "D1"},
+            dataset_manifest={
+                "source": "canonical_database",
+                "timeframe": "D1",
+                "datasets": [
+                    {"instrument_id": 7, "symbol": "SPY"},
+                    {"instrument_id": 8, "symbol": "XLK"},
+                ],
+            },
+            reproducibility_hash="event-filter-hash",
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="events",
+                name="breakout_events",
+                payload={
+                    "value": [{"symbol": "SPY", "timestamp": "2026-01-02", "kind": "breakout"}]
+                },
+            )
+        )
+        db.add(run)
+        db.flush()
+
+        response = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={"name": "Breakout event filter", "description": "Scoped event adapter"},
+        )
+
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["name"] == "Breakout event filter"
+        assert payload["universe_type"] == "custom"
+        assert payload["universe_instrument_ids"] == [7, 8]
+        assert payload["timeframe"] == "D1"
+        assert payload["semantics"] == "event_presence_at_current_observation"
+        assert payload["conditions"] == {
+            "type": "python_condition",
+            "code_version_id": version.id,
+            "output_name": "breakout_events",
+            "output_adapter": "events_to_boolean",
+            "provenance": {
+                "origin": "research_run_event_filter_promotion",
+                "source_run_id": run.id,
+                "source_code_asset_id": asset.id,
+                "source_code_version_id": version.id,
+                "source_artifact_id": run.artifacts[0].id,
+                "source_artifact_name": "breakout_events",
+                "source_output_name": "breakout_events",
+                "source_reproducibility_hash": "event-filter-hash",
+                "source_dataset_manifest_sha256": hashlib.sha256(
+                    json.dumps(
+                        {
+                            "source": "canonical_database",
+                            "timeframe": "D1",
+                            "datasets": [
+                                {"instrument_id": 7, "symbol": "SPY"},
+                                {"instrument_id": 8, "symbol": "XLK"},
+                            ],
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode()
+                ).hexdigest(),
+                "source_dataset_manifest": {
+                    "source": "canonical_database",
+                    "timeframe": "D1",
+                },
+                "source_run_config": {"symbols": ["SPY", "XLK"], "timeframe": "D1"},
+                "output_contract": "events",
+                "output_adapter": "events_to_boolean",
+                "semantics": "event_presence_at_current_observation",
+                "point_in_time_source_preserved": False,
+            },
+        }
+
+    def test_multi_output_study_event_artifact_promotes_to_scoped_python_filter(
+        self, client, auth_headers, db, user
+    ):
+        """A named event output from a structured Study Lab run uses the explicit adapter."""
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="structured-event-filter-promotion",
+            name="Structured event study",
+            kind="study",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source=(
+                "output.scalar('sample_size', 1)\n"
+                "output.events('signals', [{'symbol': dataset['symbol'], 'timestamp': "
+                "market.timestamps()[-1], 'kind': 'signal'}])"
+            ),
+            output_contract="study",
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"symbols": ["SPY"], "timeframe": "D1"},
+            dataset_manifest={
+                "source": "canonical_database",
+                "timeframe": "D1",
+                "datasets": [{"instrument_id": 7, "symbol": "SPY"}],
+            },
+            reproducibility_hash="structured-event-filter-hash",
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="events",
+                name="signals",
+                payload={
+                    "value": [
+                        {
+                            "symbol": "SPY",
+                            "timestamp": "2026-01-02",
+                            "kind": "signal",
+                            "instrument_id": 7,
+                        }
+                    ]
+                },
+            )
+        )
+        db.add(run)
+        db.flush()
+
+        response = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={"artifact_name": "signals", "name": "Structured event filter"},
+        )
+
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["universe_instrument_ids"] == [7]
+        assert payload["conditions"]["code_version_id"] == version.id
+        assert payload["conditions"]["output_name"] == "signals"
+        assert payload["conditions"]["output_adapter"] == "events_to_boolean"
+        assert payload["conditions"]["provenance"]["output_contract"] == "study"
+        assert payload["conditions"]["provenance"]["source_output_name"] == "signals"
+
+        missing_name = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={"name": "Missing event name"},
+        )
+        assert missing_name.status_code == 422
+        assert (
+            missing_name.json()["detail"]["code"]
+            == "research_filter_promotion_artifact_name_required"
+        )
+
+    def test_multi_output_study_event_output_promotes_to_strategy_signal(
+        self, client, auth_headers
+    ):
+        """A named event output keeps its contract and lineage through both API boundaries."""
+        source = (
+            "output.scalar('sample_size', 1)\n"
+            'output.events(\'occurrences\', [{"symbol": "SPY", '
+            '"timestamp": "2026-01-02", "kind": "signal"}])'
+        )
+        lineage = {
+            "type": "study_run_promotion",
+            "source_run_id": 37,
+            "source_code_version_id": 85,
+            "source_reproducibility_hash": "structured-signal-hash",
+            "source_dataset_manifest": {
+                "source": "canonical_database",
+                "timeframe": "D1",
+            },
+            "source_run_config": {"symbols": ["SPY"], "timeframe": "D1"},
+            "source_output_name": "occurrences",
+            "target": "signal",
+            "output_adapter": "events_to_signal",
+            "semantics": "study_event_result_as_strategy_signal",
+            "point_in_time_source_preserved": False,
+        }
+
+        asset_res = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "structured-event-strategy-signal",
+                "name": "Occurrences Study Signal",
+                "kind": "signal",
+                "initial_version": {
+                    "source": source,
+                    "output_contract": "events",
+                    "output_name": "occurrences",
+                    "parameter_schema": {"lookback": {"type": "integer"}},
+                    "default_parameters": {"lookback": 20},
+                    "lineage": lineage,
+                },
+            },
+        )
+        assert asset_res.status_code == 201, asset_res.text
+        version = asset_res.json()["versions"][0]
+        assert version["output_contract"] == "events"
+        assert version["output_name"] == "occurrences"
+        assert any(
+            diagnostic["code"] == "promotion_lineage" and diagnostic["lineage"] == lineage
+            for diagnostic in version["diagnostics"]
+        )
+
+        promotion_res = client.post(
+            f"/api/v1/strategy-lab/signals/from-code/{version['id']}",
+            headers=auth_headers,
+        )
+        assert promotion_res.status_code == 201, promotion_res.text
+        payload = promotion_res.json()
+        assert payload["name"] == "Occurrences Study Signal Strategy Signal"
+        assert payload["metadata"] == {
+            "origin": "study_lab_promotion",
+            "code_asset_id": asset_res.json()["id"],
+            "code_version_id": version["id"],
+            "output_contract": "events",
+        }
+        assert payload["versions"][0]["definition_snapshot"] == {
+            "kind": "python_signal",
+            "code_version_id": version["id"],
+            "output_contract": "events",
+        }
 
     def test_study_lab_signal_promotion_creates_strategy_definition_reference(
         self, client, auth_headers
@@ -63,6 +695,136 @@ class TestStrategyLabAPI:
             "code_version_id": version_id,
             "output_contract": "boolean",
         }
+
+    def test_python_signal_profile_edits_preserve_immutable_code_lineage(
+        self, client, auth_headers
+    ):
+        asset_res = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "study-signal-immutable-profile",
+                "name": "Immutable Profile Signal",
+                "kind": "signal",
+                "initial_version": {
+                    "source": "output.boolean('signal', True)",
+                    "output_contract": "boolean",
+                    "parameter_schema": {},
+                    "default_parameters": {},
+                },
+            },
+        )
+        assert asset_res.status_code == 201, asset_res.text
+        code_version_id = asset_res.json()["versions"][0]["id"]
+        promotion_res = client.post(
+            f"/api/v1/strategy-lab/signals/from-code/{code_version_id}",
+            headers=auth_headers,
+            json={},
+        )
+        assert promotion_res.status_code == 201, promotion_res.text
+        promoted = promotion_res.json()
+        strategy_id = promoted["id"]
+        strategy_version_id = promoted["versions"][0]["id"]
+        original_metadata = promoted["metadata"]
+        original_snapshot = promoted["versions"][0]["definition_snapshot"]
+
+        profile_res = client.patch(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}",
+            headers=auth_headers,
+            json={
+                "name": "Renamed Immutable Profile Signal",
+                "description": "A safe profile-only edit.",
+                "is_active": False,
+                "tags": ["reviewed"],
+            },
+        )
+        assert profile_res.status_code == 200, profile_res.text
+        profile = profile_res.json()
+        assert profile["name"] == "Renamed Immutable Profile Signal"
+        assert profile["description"] == "A safe profile-only edit."
+        assert profile["is_active"] is False
+        assert profile["tags"] == ["reviewed"]
+        assert profile["definition_type"] == "python"
+        assert profile["metadata"] == original_metadata
+        assert profile["versions"][0]["definition_snapshot"] == original_snapshot
+
+        type_mutation = client.patch(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}",
+            headers=auth_headers,
+            json={"definition_type": "rules"},
+        )
+        assert type_mutation.status_code == 409
+        assert "immutable" in type_mutation.json()["detail"].lower()
+
+        lineage_mutation = client.patch(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}",
+            headers=auth_headers,
+            json={"metadata": {}},
+        )
+        assert lineage_mutation.status_code == 409
+
+        version_creation = client.post(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}/versions",
+            headers=auth_headers,
+            json={"definition_snapshot": {"kind": "rules", "conditions": []}},
+        )
+        assert version_creation.status_code == 409
+
+        version_mutation = client.patch(
+            f"/api/v1/strategy-lab/versions/{strategy_version_id}",
+            headers=auth_headers,
+            json={"definition_snapshot": {"kind": "rules", "conditions": []}},
+        )
+        assert version_mutation.status_code == 409
+
+        final_res = client.get(
+            f"/api/v1/strategy-lab/definitions/{strategy_id}",
+            headers=auth_headers,
+        )
+        assert final_res.status_code == 200, final_res.text
+        final = final_res.json()
+        assert final["definition_type"] == "python"
+        assert final["metadata"] == original_metadata
+        assert len(final["versions"]) == 1
+        assert final["versions"][0]["id"] == strategy_version_id
+        assert final["versions"][0]["is_current"] is True
+        assert final["versions"][0]["definition_snapshot"] == original_snapshot
+
+    def test_mislabelled_python_signal_snapshot_rejects_version_mutation(
+        self, client, auth_headers, db, user
+    ):
+        from app.models.strategy import StrategyDefinition, StrategyVersion
+
+        strategy = StrategyDefinition(
+            user_id=user.id,
+            name="Legacy Python Signal With Rules Type",
+            source_type="custom",
+            definition_type="rules",
+            tags=[],
+            metadata_json={},
+        )
+        strategy.versions.append(
+            StrategyVersion(
+                version_number=1,
+                definition_snapshot={
+                    "kind": "python_signal",
+                    "code_version_id": 98765,
+                    "output_contract": "boolean",
+                },
+            )
+        )
+        db.add(strategy)
+        db.flush()
+        version = strategy.versions[0]
+
+        response = client.patch(
+            f"/api/v1/strategy-lab/versions/{version.id}",
+            headers=auth_headers,
+            json={"definition_snapshot": {"kind": "rules", "conditions": []}},
+        )
+
+        assert response.status_code == 409, response.text
+        assert "immutable" in response.json()["detail"].lower()
 
     def test_promoted_python_signal_run_queues_isolated_research(
         self, client, auth_headers, instrument, ohlcv_bars, tmp_path
@@ -434,10 +1196,19 @@ class TestStrategyLabAPI:
         client,
         admin_headers,
         auth_headers,
+        db,
         instrument,
         ohlcv_bars,
     ):
-        current_composition_date = date.today() - timedelta(days=1)
+        from datetime import UTC, datetime
+
+        from sqlalchemy import select
+
+        from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
+        from app.models.instrument import Instrument
+
+        checked_at = datetime.now(UTC)
+        current_composition_date = checked_at.date() - timedelta(days=1)
         ingest_res = client.post(
             "/api/v1/etf-holdings/SPY/ingest",
             headers=admin_headers,
@@ -446,7 +1217,7 @@ class TestStrategyLabAPI:
                 "source_provider": "issuer-test",
                 "provenance": "issuer_current_holdings",
                 "legal_metadata": {
-                    "expected_cadence": "quarterly",
+                    "expected_cadence": "unspecified",
                     "artifact_identity_validation": {
                         "status": "matched",
                         "matched": [{"value": "SPY"}],
@@ -458,7 +1229,13 @@ class TestStrategyLabAPI:
                         "name": instrument.name,
                         "weight": "0.05",
                         "shares": "100",
-                    }
+                        "holding_type": "Common Stock",
+                        "row_type": "Security",
+                    },
+                    {
+                        "name": "Unresolved issuer placeholder",
+                        "weight": "0.01",
+                    },
                 ],
             },
         )
@@ -469,6 +1246,31 @@ class TestStrategyLabAPI:
             json={"provider_aliases": {"holdings_adapter": "spdr"}},
         )
         assert profile_res.status_code == 200
+        profile = db.execute(
+            select(ETFProfile)
+            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+            .where(Instrument.symbol == "SPY")
+        ).scalar_one()
+        db.add(
+            ETFHoldingsAdapterState(
+                etf_profile_id=profile.id,
+                adapter_key="spdr",
+                status="success",
+                last_success_at=checked_at,
+                last_checked_at=checked_at,
+                composition_date=current_composition_date,
+                completeness_status="complete",
+                extra_data={
+                    "source_tier": "issuer_native",
+                    "expected_cadence": "unspecified",
+                    "artifact_identity_validation": {
+                        "status": "matched",
+                        "matched": [{"value": "SPY"}],
+                    },
+                },
+            )
+        )
+        db.flush()
 
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",
@@ -548,6 +1350,230 @@ class TestStrategyLabAPI:
         assert run["result_summary"]["universe"]["resolved_instrument_count"] == 1
         assert run["result_summary"]["universe"]["resolved_symbols"] == [instrument.symbol]
 
+    def test_strategy_etf_universe_excludes_newer_controlled_fixture_snapshot(
+        self,
+        client,
+        admin_headers,
+        auth_headers,
+        db,
+        instrument,
+        instrument_b,
+        ohlcv_bars,
+        monkeypatch,
+    ):
+        """Canonical research must not select a newer deterministic fixture disclosure."""
+
+        from datetime import UTC, datetime
+
+        from app.config import settings
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+        ingest_res = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-01-01",
+                "known_at": "2024-01-02T00:00:00Z",
+                "source_provider": "canonical-provider",
+                "provenance": "issuer_current_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument.symbol,
+                        "name": instrument.name,
+                        "weight": "1.0",
+                        "holding_type": "equity",
+                        "row_type": "security",
+                    }
+                ],
+            },
+        )
+        assert ingest_res.status_code == 200, ingest_res.text
+
+        spy = db.query(Instrument).filter_by(symbol="SPY").one()
+        profile = db.query(ETFProfile).filter_by(instrument_id=spy.id).one()
+        fixture_snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 2, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 2, 2, tzinfo=UTC),
+            provenance="controlled_fixture",
+            source_provider="e2e_reference",
+            source_quality="deterministic",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="strategy-fixture-newer",
+        )
+        db.add(fixture_snapshot)
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=fixture_snapshot.id,
+                constituent_instrument_id=instrument_b.id,
+                position=0,
+                reported_symbol=instrument_b.symbol,
+                reported_name=instrument_b.name,
+                weight=1.0,
+                holding_type="equity",
+                row_type="security",
+                source_row_hash="strategy-fixture-newer-row",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+        preview_res = client.post(
+            "/api/v1/strategy-lab/coverage-preview",
+            headers=auth_headers,
+            json={
+                "source_type": "custom",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "universe_config": {
+                    "etf_holdings": {
+                        "symbol": "SPY",
+                        "snapshot_mode": "point_in_time",
+                    }
+                },
+                "benchmark_config": {},
+            },
+        )
+        assert preview_res.status_code == 200, preview_res.text
+        assert preview_res.json()["universe"]["resolved_symbols"] == [instrument.symbol]
+
+    def test_strategy_pit_etf_universe_excludes_snapshot_not_yet_known(
+        self,
+        client,
+        admin_headers,
+        auth_headers,
+        db,
+        instrument,
+        instrument_b,
+        ohlcv_bars,
+        monkeypatch,
+    ):
+        """PIT research excludes a canonical correction until its known-at date."""
+
+        import asyncio
+        from datetime import UTC, datetime
+
+        from app.config import settings
+        from app.models.ohlcv import OHLCVBar
+        from app.services.strategy_lab import (
+            _dynamic_member_ids_for_date,
+            _resolve_dynamic_etf_universe,
+        )
+        from tests.conftest import AsyncSessionAdapter
+
+        monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+        initial = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-01-01",
+                "known_at": "2024-01-02T00:00:00Z",
+                "source_provider": "canonical-provider",
+                "provenance": "issuer_current_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument.symbol,
+                        "name": instrument.name,
+                        "weight": "1.0",
+                        "holding_type": "equity",
+                        "row_type": "security",
+                    }
+                ],
+            },
+        )
+        assert initial.status_code == 200, initial.text
+
+        correction = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2024-01-01",
+                "known_at": "2024-02-02T00:00:00Z",
+                "source_provider": "canonical-provider",
+                "provenance": "issuer_current_holdings",
+                "rows": [
+                    {
+                        "symbol": instrument_b.symbol,
+                        "name": instrument_b.name,
+                        "weight": "1.0",
+                        "holding_type": "equity",
+                        "row_type": "security",
+                    }
+                ],
+            },
+        )
+        assert correction.status_code == 200, correction.text
+
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=bar.timeframe,
+                    ts=bar.ts,
+                    open=bar.open,
+                    high=bar.high,
+                    low=bar.low,
+                    close=bar.close,
+                    volume=bar.volume,
+                    is_adjusted=bar.is_adjusted,
+                )
+                for bar in ohlcv_bars
+            ]
+        )
+        db.flush()
+
+        def preview_for(cutoff: str):
+            response = client.post(
+                "/api/v1/strategy-lab/coverage-preview",
+                headers=auth_headers,
+                json={
+                    "source_type": "custom",
+                    "timeframe": "D1",
+                    "date_from": ohlcv_bars[0].ts.isoformat(),
+                    "date_to": f"{cutoff}T23:59:59Z",
+                    "universe_config": {
+                        "etf_holdings": {
+                            "symbol": "SPY",
+                            "snapshot_mode": "point_in_time",
+                        }
+                    },
+                    "benchmark_config": {},
+                },
+            )
+            assert response.status_code == 200, response.text
+            return response.json()["universe"]
+
+        before_correction = preview_for("2024-01-31")
+        after_correction = preview_for("2024-02-28")
+        assert before_correction["resolved_symbols"] == [instrument.symbol]
+        assert after_correction["resolved_symbols"] == [instrument.symbol, instrument_b.symbol]
+
+        _instruments, dynamic_universe = asyncio.run(
+            _resolve_dynamic_etf_universe(
+                AsyncSessionAdapter(db),
+                {
+                    "etf_holdings": {
+                        "symbol": "SPY",
+                        "snapshot_mode": "point_in_time",
+                    }
+                },
+                date_to=datetime(2024, 2, 28, 23, 59, 59, tzinfo=UTC),
+                warnings=[],
+            )
+        )
+        assert dynamic_universe is not None
+        assert _dynamic_member_ids_for_date(dynamic_universe, date(2024, 1, 31)) == {instrument.id}
+        assert _dynamic_member_ids_for_date(dynamic_universe, date(2024, 2, 28)) == {
+            instrument_b.id
+        }
+
     def test_strategy_latest_etf_universe_rejects_non_current_snapshot(
         self,
         client,
@@ -565,22 +1591,17 @@ class TestStrategyLabAPI:
                 "source_quality": "sec_filing",
                 "completeness_status": "complete",
                 "rows": [
-                    {
-                        "symbol": "AAPL",
-                        "name": "Apple Inc.",
-                        "weight": "1.0",
-                        "shares": "100",
-                    }
+                    {"symbol": "AAPL", "name": "Apple Inc.", "weight": "1.0", "shares": "100"}
                 ],
             },
         )
-        assert ingest_res.status_code == 200
+        assert ingest_res.status_code == 200, ingest_res.text
         profile_res = client.patch(
             "/api/v1/etf-holdings/SPY/profile",
             headers=admin_headers,
             json={"provider_aliases": {"holdings_adapter": "spdr"}},
         )
-        assert profile_res.status_code == 200
+        assert profile_res.status_code == 200, profile_res.text
 
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",
@@ -595,12 +1616,7 @@ class TestStrategyLabAPI:
                         "direction": "long",
                         "entry_logic": "all",
                         "conditions": [
-                            {
-                                "type": "price_threshold",
-                                "field": "close",
-                                "op": "gt",
-                                "value": 0,
-                            }
+                            {"type": "price_threshold", "field": "close", "op": "gt", "value": 0}
                         ],
                         "risk": {
                             "stop_loss_pct": 2.0,
@@ -609,19 +1625,15 @@ class TestStrategyLabAPI:
                         },
                     },
                     "universe_config": {
-                        "etf_holdings": {
-                            "symbol": "SPY",
-                            "snapshot_mode": "latest",
-                        }
+                        "etf_holdings": {"symbol": "SPY", "snapshot_mode": "latest"}
                     },
                     "benchmark_config": {"symbol": "SPY"},
                     "execution_model": {"entry": "next_bar_open"},
                 },
             },
         )
-        assert create_res.status_code == 201
+        assert create_res.status_code == 201, create_res.text
         version = create_res.json()["versions"][0]
-
         preview_res = client.post(
             "/api/v1/strategy-lab/coverage-preview",
             headers=auth_headers,
@@ -634,7 +1646,7 @@ class TestStrategyLabAPI:
                 "benchmark_config": {},
             },
         )
-        assert preview_res.status_code == 200
+        assert preview_res.status_code == 200, preview_res.text
         preview = preview_res.json()
         assert preview["universe"]["instrument_count"] == 0
         assert any(
@@ -687,7 +1699,13 @@ class TestStrategyLabAPI:
                         "name": instrument.name,
                         "weight": "1.0",
                         "shares": "100",
-                    }
+                        "holding_type": "Common Stock",
+                        "row_type": "Security",
+                    },
+                    {
+                        "name": "Unresolved issuer placeholder",
+                        "weight": "0.01",
+                    },
                 ],
             },
         )
@@ -1997,3 +3015,77 @@ class TestStrategyLabAPI:
         refreshed = refresh_res.json()
         assert refreshed["result_summary"]["result_kind"] == "rules_paper_forward"
         assert len(refreshed["result_summary"]["paper_forward"]["monitor_snapshots"]) == 2
+
+    def test_research_run_listing_uses_stable_created_at_id_cursor(
+        self, client, auth_headers, db, user
+    ):
+        from datetime import UTC, datetime, timedelta
+
+        from app.models.research import CodeAsset, CodeVersion, ResearchRun
+
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="run-pagination-study",
+            name="Run pagination study",
+            kind="study",
+        )
+        version = CodeVersion(
+            version_number=1,
+            source="output.scalar('value', 1)",
+            output_contract="study",
+        )
+        asset.versions.append(version)
+        db.add(asset)
+        db.flush()
+
+        base_time = datetime(2026, 1, 1, tzinfo=UTC)
+        runs = [
+            ResearchRun(
+                user_id=user.id,
+                code_version=version,
+                status="completed",
+                created_at=base_time + timedelta(days=day),
+            )
+            for day in (0, 0, 1, 1)
+        ]
+        db.add_all(runs)
+        db.flush()
+
+        first_page = client.get(
+            "/api/v1/research/runs",
+            headers=auth_headers,
+            params={"limit": 2},
+        )
+        assert first_page.status_code == 200, first_page.text
+        first_rows = first_page.json()
+        assert [row["id"] for row in first_rows] == [runs[3].id, runs[2].id]
+        assert first_rows[1]["created_at"]
+
+        # A newly persisted run must not shift the older page under its cursor.
+        newest = ResearchRun(
+            user_id=user.id,
+            code_version=version,
+            status="completed",
+            created_at=base_time + timedelta(days=2),
+        )
+        db.add(newest)
+        db.flush()
+
+        second_page = client.get(
+            "/api/v1/research/runs",
+            headers=auth_headers,
+            params={
+                "limit": 2,
+                "before_created_at": first_rows[-1]["created_at"],
+                "before_id": first_rows[-1]["id"],
+            },
+        )
+        assert second_page.status_code == 200, second_page.text
+        assert [row["id"] for row in second_page.json()] == [runs[1].id, runs[0].id]
+
+        incomplete_cursor = client.get(
+            "/api/v1/research/runs",
+            headers=auth_headers,
+            params={"limit": 2, "before_id": runs[2].id},
+        )
+        assert incomplete_cursor.status_code == 422

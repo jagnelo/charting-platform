@@ -20,6 +20,7 @@ from app.models.ohlcv import Timeframe
 from app.providers.alpaca import (
     AlpacaProvider,
     _is_crypto,
+    _parse_corporate_action_events,
     _to_alpaca_crypto,
     _trading_base_url,
     estimate_latest_ohlcv_request_count,
@@ -818,12 +819,61 @@ class TestAlpacaOHLCVParsing:
                     datetime(2024, 1, 5, tzinfo=UTC),
                 )
 
+    @pytest.mark.parametrize("field", ["adjustment_factor", "adjustmentFactor"])
+    def test_corporate_actions_parse_only_the_recognized_explicit_factor(self, field):
+        events = _parse_corporate_action_events(
+            {"cash_dividends": [{"ex_date": "2025-01-02", "rate": "0.25", field: "0.9975"}]},
+            "AAPL",
+            datetime(2025, 1, 3, tzinfo=UTC),
+        )
+
+        assert [event.adjustment_factor for event in events] == [Decimal("0.9975")]
+
+    def test_corporate_actions_do_not_infer_factor_from_dividend_rate(self):
+        events = _parse_corporate_action_events(
+            {"cash_dividends": [{"ex_date": "2025-01-02", "rate": "0.25"}]},
+            "AAPL",
+            datetime(2025, 1, 3, tzinfo=UTC),
+        )
+
+        assert events
+        assert all(event.dividend_amount == Decimal("0.25") for event in events)
+        assert all(event.adjustment_factor is None for event in events)
+
     @pytest.mark.parametrize(
         "actions,match",
         [
             ({"forward_splits": "not-an-array"}, "invalid forward_splits"),
             ({"reverse_splits": [{"ex_date": "not-a-date"}]}, "reverse split"),
             ({"cash_dividends": [{"ex_date": "2024-01-02", "rate": "NaN"}]}, "cash-dividend"),
+            (
+                {"cash_dividends": [{"ex_date": "2024-01-02", "adjustment_factor": "0"}]},
+                "invalid adjustment factor",
+            ),
+            (
+                {"cash_dividends": [{"ex_date": "2024-01-02", "adjustment_factor": "-0.1"}]},
+                "invalid adjustment factor",
+            ),
+            (
+                {"cash_dividends": [{"ex_date": "2024-01-02", "adjustment_factor": "NaN"}]},
+                "invalid adjustment factor",
+            ),
+            (
+                {"cash_dividends": [{"ex_date": "2024-01-02", "adjustmentFactor": "bad"}]},
+                "invalid adjustment factor",
+            ),
+            (
+                {
+                    "cash_dividends": [
+                        {
+                            "ex_date": "2024-01-02",
+                            "adjustment_factor": "0.9975",
+                            "adjustmentFactor": "0.99",
+                        }
+                    ]
+                },
+                "conflicting adjustment factors",
+            ),
             ({"cash_dividends": [{"rate": "1"}]}, "cash dividend without"),
         ],
     )
@@ -851,6 +901,7 @@ class TestAlpacaOHLCVParsing:
                             "ex_date": "2025-01-02",
                             "payable_date": "2025-01-10",
                             "rate": 0.25,
+                            "adjustment_factor": "0.9975",
                         }
                     ]
                 },
@@ -889,6 +940,8 @@ class TestAlpacaOHLCVParsing:
             "split",
         ]
         assert events[1].event_time.date() == date(2025, 1, 10)
+        assert events[0].adjustment_factor == Decimal("0.9975")
+        assert events[1].adjustment_factor == Decimal("0.9975")
         assert get.call_count == 2
         assert get.call_args_list[0].args[0] == "https://data.alpaca.markets/v1/corporate-actions"
         assert get.call_args_list[0].kwargs["params"]["symbols"] == "AAPL"
