@@ -696,26 +696,28 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-selected-study-runtime-input-materialization
+  current_phase: full-roadmap-typed-study-payload-runtime-binding-v1
   current_blocker: >-
     No upstream-contract wait remains for the released four-feature baseline. Exact green staging
     0e342512e53ba2268425294d61c50e219eaafa4f (CI 39827786248, including Exhaustive Integration
     Gate 120006510572) is adopted in Strategy merge 05acff1aa624b2f6ba9e1085a796e17b664ed87a and
     independently verified equal to the feature remote. The accepted SLICP1-SLICP5 checkpoint and
     its exact source/runtime/CI evidence remain historical; they do not close the original 18
-    criteria or prove native-v2 SPA/execution. Current technical boundary: selected TC Study
-    references are authenticated and immutable, but runtime assembly does not materialize their
-    payload. The active change therefore rejects a selected Study reference before any runtime
-    artifact is published; no-reference assembly compatibility is retained. Provider/live/quota,
-    paid/trial, unknown/unsafe, broker, and capital-bearing actions remain disabled; no provider,
-    issuer, or SEC HTTP was used. Full backend/combined DB, runtime, browser, visual, native and
-    exact-source gates remain open for later coordinator-assigned validation.
+    criteria or prove native-v2 SPA/execution. Typed immutable Study outputs now pass through the
+    owner-scoped resolver, trial hydration and bounded runtime context streams; no-reference SDK
+    fingerprints/wire and strict mismatch denial are preserved. Focused tests, Ruff and changed-
+    boundary MyPy pass. The real PostgreSQL reconstructed-worker test is prepared but unrun, so
+    persisted restart behavior is not database-proven. Exact c45 CI 39850802077 remains live in
+    Playwright; two validated local source commits await publication so they do not cancel that
+    run. Provider/live/quota, paid/trial, unknown/unsafe, broker and capital-bearing actions remain
+    disabled; no provider, issuer or SEC HTTP was used. Full backend/combined DB, runtime, browser,
+    visual, native and full exact-source gates remain open.
   next_action: >-
-    Define the supported immutable Study payload representation and bind its authenticated content
-    into the frozen native-runtime input bundle. Revalidate owner, source lineage, payload digest,
-    and version at preparation and worker restart; until that implementation and evidence exist,
-    keep selected Study inputs fail-closed and do not claim native execution. Continue the unchanged
-    18-criterion roadmap and preserve the human-selected local/production safety boundaries.
+    Preserve c45's live Playwright run; once terminal, publish the two local commits and verify exact
+    tip/CI. Request the coordinator-assigned PostgreSQL slot for persisted API/output and fresh
+    worker-hydration restart/revocation tests, then continue remaining full-roadmap application,
+    combined runtime, browser/visual and native qualification only in assigned safe slots. Keep all
+    18 original criteria and human-selected provider/live/quota/paid/trial/broker/capital boundaries.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

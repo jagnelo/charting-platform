@@ -147,11 +147,12 @@ def test_invocation_wire_round_trip_is_canonical_and_typed() -> None:
     )
 
 
-def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift() -> None:
+def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift(tmp_path) -> None:
     source = (
         "class Strategy:\n"
         "    def on_event(self, context):\n"
-        "        return [] if context.study_artifacts['study.close'].value[0] > 0 else []\n"
+        "        return [TargetPositionIntent('US.AAPL', Decimal('0.25'))] "
+        "if context.study_artifacts['study.close'].value[0] > 0 else []\n"
     )
     base_manifest = _manifest(source)
     output_payload = {"type": "series", "value": [1.25, 2.5]}
@@ -191,6 +192,33 @@ def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift() -> 
         entrypoint="strategy.main:Strategy",
     )
     assert result.status is InvocationStatus.SUCCEEDED
+    assert len(result.intents) == 1
+    assert isinstance(result.intents[0], TargetPositionIntent)
+    assert result.intents[0].target_fraction == Decimal("0.25")
+
+    study_stream = BytesIO()
+    assert (
+        serialize_invocation_context_stream(
+            study_stream,
+            source=source,
+            manifest=manifest,
+            contexts=(context,),
+            entrypoint="strategy.main:Strategy",
+        )
+        == 1
+    )
+    request_path = tmp_path / "study-context-stream.jsonl"
+    result_path = tmp_path / "study-result-stream.jsonl"
+    request_path.write_bytes(study_stream.getvalue())
+    assert main(["--request", str(request_path), "--result", str(result_path)]) == 0
+    with result_path.open("rb") as result_stream:
+        streamed_result = tuple(
+            deserialize_invocation_result_stream(result_stream, expected_result_count=1)
+        )
+    assert len(streamed_result) == 1
+    assert streamed_result[0].status is InvocationStatus.SUCCEEDED
+    assert len(streamed_result[0].intents) == 1
+    assert streamed_result[0].intents[0].target_fraction == Decimal("0.25")
 
     component_stream = BytesIO()
     serialize_component_invocation_context_stream(

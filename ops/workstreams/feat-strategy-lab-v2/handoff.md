@@ -16978,3 +16978,18 @@ API memory cost without changing the selected-input contract. This two-file
 follow-up is a separate local source commit from the preceding payload/runtime
 commit; the real PostgreSQL slot and push remain pending the live c45 Playwright
 run's terminal result.
+
+### Prove selected output reaches worker-executed strategy code
+
+Strengthened the runtime-protocol regression because its original positive
+strategy returned an empty result regardless of Study value. It now returns a
+specific target-position intent only when the header-bound `study.close` value
+is positive, and asserts that intent both after invocation decoding and through
+the bounded worker context-stream CLI/result-stream path. This proves the local
+runtime protocol exposes the authenticated generic output to strategy code; it
+does not prove Nautilus execution. The exact node passes after adding its temp
+directory fixture; the first attempted run failed only with `NameError` because
+the test signature omitted that fixture, and the unchanged behavior passed on
+the corrected run. Ruff, format and diff checks are green. Exact current-base CI
+39850802077 remains live, so the test strengthening and pending durable records
+are not pushed yet.
