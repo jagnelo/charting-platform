@@ -626,6 +626,40 @@ current_blocker: >-
   CI. No DB/browser/full profile, external HTTP, quota, cleanup, or cross-branch
   write. Preserve the entire AC1–AC14 roadmap, 15 Tier-0 and 156 Tier-1, all
   quarantines and holds, historical results, and the 30-day observation.
+  Current continuation at 2026-10-22 23:02Z: exact own ETF CI39867753554 on
+  published92e58ed4106f8ab8a9a9f86f637074e0277b3609 is terminal RED. Frontend
+  passed; backend reported5,215 passed,1 failed,1 skipped and37 warnings; its
+  failure skipped the downstream Exhaustive, Playwright and Branch-declared
+  jobs. The sole failure was the stale NSI cash-row unit test still patching
+  raw requests after the adapter had moved to HTTPX. It lacked a bound NSI
+  request context, so the real fail-closed facade correctly denied before
+  transport. The test now uses the queued HTTPX fake, exact NSI binding and a
+  requests-namespace tripwire without changing row/cash/identity/date/URL
+  assertions; the three NSI success/403 cases pass3/3. No source behavior or
+  route state was changed. The separate Cohen caller-path MockTransport test
+  also passes locally but mocks Provider policy/session/persistence. Both are
+  uncommitted and not covered by CI39867753554. Preserve that exact red receipt;
+  no rerun, live requests, quota or heavy fixture. Root owns staging CI and its
+  safe resource slot. Preserve all AC1–AC14, 15 Tier-0 and 156 Tier-1, history,
+  holds/quarantines and the post-integration 30-day gate.
+  Current continuation at 2026-10-22 22:58Z: ETF commit
+  92e58ed4106f8ab8a9a9f86f637074e0277b3609 is published and synchronized.
+  Exact ETF CI39867753554 was checked at 22:58Z: Frontend Unit Tests passed;
+  Backend Tests remained in progress. A new offline real-adapter caller-path
+  unit test runs Cohen & Steers through `_refresh_adapter_route`, the actual
+  Provider-backed HTTPX facade, and worker-local HTTPX MockTransport for its
+  sitemap, product page and API calls. It verifies actual/reviewed URL equality
+  and all three attempt IDs flow to ingestion metadata; the shared Provider
+  policy/executor, attempt session and persistence are mocked, so it is not
+  DB admission or durable-settlement proof. The test and branch validation
+  record remain uncommitted and absent from CI39867753554. Focused selection
+  and all16 provider-bridge unit tests pass; Ruff check/format pass. A test
+  development attempt first failed on test-fixture mistakes and was corrected;
+  those outcomes are recorded. Canonical `make agent-session-start` preflight
+  recorded a Docker permission denial after its180-second readiness bound;
+  no container was started and the existing claim is unchanged. Do not run a
+  heavy local profile while Root owns the slot. Preserve all route holds,
+  unresolved quarantines, roadmap criteria, and historical evidence.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -1645,20 +1679,20 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Complete the narrative-count sentinel, branch workstream validator, JSON/
-  JSONL/plan-hash, diff, and fast changed-file checks, then publish the
-  substantive own-branch changeset containing the Cohen & Steers guarded
-  transport/binding-identity correction and its evidence. Inspect only the
-  resulting exact ETF branch CI; do not poll Root CI. CI for prior published
-  source62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f is not accessible from the
-  private-repository connector, so no outcome is inferred. The NSI
-  DB-backed shared-admission case and changed-adapter shared-runtime proof
-  remain pending Root's fixture release; no DB/browser/full profile while Root
-  owns it. One raw request site remains (Arax/Day Hagan), held for missing
-  token/account/terms evidence; do not infer or activate it. Root's
-  `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` staging repair CI39866387942 is
-  not green/released; do not adopt it. Preserve all route policies, the full
-  AC1–AC14 roadmap, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG
-  quarantines, all history/holds, and the post-integration 30-day gate. No
-  issuer/SEC/Provider HTTP, quota, paid/trial/unknown activation, data cleanup,
-  staging/sibling/master write, deployment, or self-integration.
+  Complete the bounded touched-module tests and static checks, including the
+  fixed NSI fixture and Cohen caller-path MockTransport case; preserve the
+  exact CI39867753554 red receipt (5,215 backend passes, the stale NSI fixture
+  failure, frontend pass, downstream skips) without replay. Run Ruff/format,
+  exact narrative-count sentinel, workstream validator, JSON/JSONL and plan
+  hash checks; then publish this substantive test/fixture correction and
+  evidence coherently and inspect only its exact own-branch CI. The Cohen test
+  verifies actual adapter/refresh/facade and worker-local HTTPX requests, but
+  not canonical DB admission, durable ledger or settlement. The Docker socket
+  denied canonical full-profile preflight after180 seconds; no local fixture
+  started and the existing owner claim remains. Root owns staging CI and the
+  heavy local slot; do not poll Root CI, adopt unreleased staging, or start the
+  DB/browser/full profile. Keep Arax/Day Hagan held; preserve full AC1–AC14,
+  15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all prior
+  history/holds, and the 30-day gate. No issuer/SEC/Provider requests, quota,
+  paid/trial/unknown activation, data cleanup, cross-worktree write, promotion
+  or deployment.

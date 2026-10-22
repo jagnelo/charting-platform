@@ -13998,3 +13998,71 @@ Next: finish exact workstream/hash/count/diff validation, publish this
 substantive ETF-only adapter/binding change, then verify only its own exact
 branch CI. Keep the Arax route held pending actual retained publisher/account/
 terms evidence; do not infer its credential rights or costs.
+
+## Cohen & Steers refresh-path MockTransport coverage — 2026-10-22 22:58Z
+
+Follow-up testing found the adapter-only Cohen cases replace the adapter's
+HTTPX namespace with a fake client. Added a separate offline regression that
+calls the real Cohen & Steers adapter from `_refresh_adapter_route`, through the
+Provider-backed HTTPX facade and the real `LoopLocalHTTPXAttempt` worker-local
+HTTPX client. Its MockTransport serves a sitemap, matching fund page, and API
+payload; it asserts the exact three wire URLs equal the per-attempt reviewed
+URLs and that all three request IDs/URL pairs reach snapshot-ingestion metadata.
+The test exercises refresh/caller binding and loop/client lifetime, but mocks
+the shared Provider policy/executor and persistence session: it is not
+DB-backed admission, durable ledger, or settlement evidence.
+
+The new test passes alone and as part of the entire 16-test provider-bridge unit
+module; the combined guarded-transport selection passes16/16. Ruff check and
+format pass. Two early test-development failures were fixture mistakes
+(referencing an undefined local schema helper, then comparing HTTPX QueryParams
+to a string); the assertion was corrected and the unchanged behavior now passes.
+The canonical `make agent-session-start` preflight was also attempted: it
+recorded `blocked_local_runtime` after the helper's 180-second Docker readiness
+check received permission denied on `/var/run/docker.sock`. It started no
+container and did not alter the existing claim. This does not block bounded
+offline tests; no local DB/browser/full profile was started.
+
+Own-source CI39867753554 is on exact published SHA
+92e58ed4106f8ab8a9a9f86f637074e0277b3609: Frontend Unit Tests passed and
+Backend Tests are still in progress. Do not claim the run green or rerun it.
+The new caller-path test and its validation record are still uncommitted and
+not in that run. Wait for this exact branch-owned backend job to reach a
+terminal result, then publish the real test-strengthening context coherently
+and verify its resulting exact ETF CI. Root's staging run is separate and
+remains unreleased; do not poll or adopt it. Keep Arax/Day Hagan fail-closed,
+all issuer/quota holds, the complete AC1–AC14 roadmap, and the 30-day gate.
+
+## Exact CI failure reconciliation and NSI fixture binding — 2026-10-22 23:02Z
+
+Exact ETF CI39867753554 on published `92e58ed4106f8ab8a9a9f86f637074e0277b3609`
+is terminal RED, not a code-free pass: Frontend Unit Tests passed; Backend
+Tests failed with5,215 passed,1 failed,1 skipped and37 warnings; downstream
+Exhaustive Integration, Playwright and Branch-declared jobs were skipped. The
+only backend failure was
+`test_nsi_adapter_verifies_product_page_csv_and_keeps_cash_non_tradable`:
+it still mocked `requests.get`, even though the NSI source had already moved
+to guarded HTTPX. CI therefore exercised the real fail-closed facade without a
+bound request context and raised `ETFHoldingsRouteHeldError` before transport.
+This is a stale unit fixture, not evidence that valid NSI admission fails.
+Historical CI remains preserved; it was not rerun.
+
+Updated that test to feed its existing product page and holdings CSV through
+the HTTPX fake, bind the NSI adapter/profile/instrument/symbol/latest operation,
+and fail if the legacy requests namespace is invoked. All original parsed-row,
+cash classification, issuer identity, composition-date and URL assertions
+remain. The focused legacy success, guarded success, and 403 stop cases pass
+3/3 locally. This fake-client contract is not DB-backed admission evidence.
+The Cohen real-adapter/refresh loop-local MockTransport test also remains in
+the same uncommitted workstream context; its Provider execution/session are
+mocked and it does not prove durable quota settlement. The exact result above
+does not cover that new test, which had not yet been published.
+
+Next: run the bounded touched-module tests, Ruff/format, the exact narrative
+count sentinel and workstream/plan-hash checks; retain both development
+failure histories and the canonical Docker-socket preflight denial. Publish
+the substantive test-context correction coherently to the ETF branch, then
+inspect only its new exact-source CI. Root owns its separate staging run; do
+not poll/adopt staging or launch the reserved local DB/browser/full profile.
+All external request, quota, route activation, quarantine and roadmap
+boundaries remain unchanged.

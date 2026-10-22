@@ -4215,26 +4215,35 @@ BBH SWEEP VEHICLE,BBHETFMM,9BBH,3.378236649900,100.000000000000,1355227.7100000,
 FABRINET,G3323L100,FN US,0.894731214000,476.040000000000,754.0000000,358934.16,0.894779747900
 PDD HOLDINGS INC,722304102,PDD US,2.550078195600,82.660000000000,12376.0000000,1023000.16,2.550216522300
 """
-    requested = []
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>National Security Emerging Markets Index ETF</h1>"
+                '<span>NSI</span><a href="/f/holdings.csv">Full holdings</a>'
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(text=raw_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("NSI must not use the legacy requests transport"),
+    )
 
-    def fake_get(url, **kwargs):
-        requested.append((url, kwargs))
-        if url == product_url:
-            return FakeResponse(
-                text=(
-                    "<h1>National Security Emerging Markets Index ETF</h1>"
-                    '<span>NSI</span><a href="/f/holdings.csv">Full holdings</a>'
-                ),
-                content_type="text/html",
-                url=product_url,
-            )
-        return FakeResponse(text=raw_csv, content_type="text/csv", url=holdings_url)
+    with bridge.bind_etf_holdings_request_context(
+        db=object(),
+        adapter=adapter,
+        profile_id=11,
+        instrument_id=23,
+        provider_symbol="NSI",
+        operation="fetch_etf_holdings_latest",
+    ):
+        result = await adapter.fetch_latest(symbol="NSI")
 
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
-
-    result = await adapter.fetch_latest(symbol="NSI")
-
-    assert [request[0] for request in requested] == [product_url, holdings_url]
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [product_url, holdings_url]
     assert len(result.rows) == 4
     assert result.rows[0].symbol is None
     assert result.rows[0].holding_type == "cash"

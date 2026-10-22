@@ -487,3 +487,156 @@ async def test_real_issuer_adapter_through_refresh_uses_worker_local_mocktranspo
         "https://publisher.example/DXJ.csv",
         "https://publisher.example/funds/DXJ.csv",
     ]
+
+
+@pytest.mark.asyncio
+async def test_cohen_steers_refresh_uses_loop_local_mocktransport_for_each_request(monkeypatch):
+    from datetime import UTC, datetime
+
+    from app.services import etf_holdings_refresh as refresh
+    from app.services.etf_holdings_adapters import get_holdings_adapter
+
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    sitemap_url = adapter.fund_sitemap_url
+    page_url = "https://www.cohenandsteers.com/funds/csre/"
+    fund_url = adapter.fund_url
+    composition_date = datetime.now(UTC).date().isoformat()
+    payload = {
+        "meta": {
+            "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
+            "fullHoldings": [
+                {
+                    "holdingName": "Acadia Realty Trust",
+                    "ticker": "AKR",
+                    "securityType": "Common Stock",
+                    "accountWeight": "4.152700",
+                    "asOfDate": f"{composition_date}T00:00:00Z",
+                }
+            ],
+        }
+    }
+    observed_requests = []
+    reviewed_requests = []
+
+    def transport(request):
+        observed_requests.append(request)
+        if str(request.url) == sitemap_url:
+            return httpx.Response(
+                200,
+                text=f"<urlset><url><loc>{page_url}</loc></url></urlset>",
+                request=request,
+            )
+        if str(request.url) == page_url:
+            return httpx.Response(
+                200,
+                text='<section data-id="15098" data-fund-type="etf" data-default-symbol="CSRE">',
+                request=request,
+            )
+        if request.url.path == "/wp-admin/admin-ajax.php":
+            assert request.url.params["action"] == "load_fund"
+            assert request.url.params["id"] == "15098"
+            return httpx.Response(200, json=payload, request=request)
+        raise AssertionError(f"Unexpected offline Cohen & Steers request: {request.url}")
+
+    original_attempt_factory = bridge._make_loop_local_httpx_attempt
+    monkeypatch.setattr(
+        bridge,
+        "_make_loop_local_httpx_attempt",
+        lambda **kwargs: original_attempt_factory(
+            **kwargs,
+            transport_factory=lambda: httpx.MockTransport(transport),
+        ),
+    )
+
+    async def reviewed_context(_db, **context):
+        reviewed_requests.append(context)
+        return None
+
+    dispatches = []
+
+    async def offline_provider_call(
+        _db,
+        _capability,
+        operation,
+        *,
+        instrument_id,
+        provider_symbol,
+        invoke,
+        etf_holdings_adapters,
+        request_log_id_callback,
+        **_kwargs,
+    ):
+        assert operation == "fetch_etf_holdings_latest"
+        assert instrument_id == 42
+        assert provider_symbol == "CSRE"
+        assert etf_holdings_adapters["cohen_steers"] is adapter
+        response = _run_in_finite_worker(
+            invoke,
+            etf_holdings_adapters["cohen_steers"],
+            provider_symbol,
+        )
+        request_log_id = len(dispatches) + 1
+        dispatches.append(response.status_code)
+        request_log_id_callback(request_log_id)
+        return SimpleNamespace(result=response, request_log_id=request_log_id)
+
+    class OfflineAttemptSession:
+        def __init__(self, *, bind, expire_on_commit):
+            self.bind = bind
+            self.expire_on_commit = expire_on_commit
+
+        async def commit(self):
+            return None
+
+        async def rollback(self):
+            return None
+
+        async def close(self):
+            return None
+
+    monkeypatch.setattr(bridge, "_review_attempt_context", reviewed_context)
+    monkeypatch.setattr(bridge, "execute_provider_call", offline_provider_call)
+    monkeypatch.setattr(bridge, "AsyncSession", OfflineAttemptSession)
+    monkeypatch.setattr(
+        refresh, "_validate_artifact_identity", lambda *_a, **_kw: {"status": "matched"}
+    )
+
+    async def accept_schema_fingerprint(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(refresh, "_ensure_schema_fingerprint_is_stable", accept_schema_fingerprint)
+    ingested = {}
+
+    async def capture_ingestion(_db, **kwargs):
+        ingested.update(kwargs)
+        return SimpleNamespace(id=99, source_provider=kwargs["source_provider"])
+
+    monkeypatch.setattr(refresh, "ingest_holdings_snapshot", capture_ingestion)
+    profile = SimpleNamespace(
+        id=12,
+        adapter_key="cohen_steers",
+        instrument=SimpleNamespace(id=42, symbol="CSRE", name="fixture CSRE"),
+        provider_aliases={},
+        issuer=None,
+        sponsor=None,
+        fund_family=None,
+        product_url=None,
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
+    )
+
+    result = await refresh._refresh_adapter_route(SimpleNamespace(bind=object()), profile)
+
+    expected_urls = [sitemap_url, page_url, f"{fund_url}?action=load_fund&id=15098"]
+    assert [str(request.url) for request in observed_requests] == expected_urls
+    assert [item["request_url"] for item in reviewed_requests] == expected_urls
+    assert dispatches == [200, 200, 200]
+    assert ingested["legal_metadata"]["provider_request_log_ids"] == [1, 2, 3]
+    assert ingested["legal_metadata"]["provider_request_attempts"] == [
+        {"request_log_id": index, "request_url": url}
+        for index, url in enumerate(expected_urls, start=1)
+    ]
+    assert ingested["rows"][0].symbol == "AKR"
+    assert result.source_provider == "cohen_steers"
