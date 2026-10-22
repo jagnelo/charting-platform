@@ -23,7 +23,7 @@ integration_checkpoint:
     base_source_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
     released_staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
     strategy_merge_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
-    phase: published_pending_postgres_api_restart_and_full_profile_validation
+    phase: postgres_component_gate_passed_pending_exact_ci_migration_and_full_profile
     reconciled_alembic_head: slv2_0011
     integration_capture: exact branch HEAD
     intent: >-
@@ -40,8 +40,21 @@ integration_checkpoint:
       two-file MyPy invocation exposed only imported AdjustmentFactorObservation relationship names;
       narrowly authorized module-tail TYPE_CHECKING imports for Instrument and DataSource preserve
       that mapped class body and runtime schema, and the same two-file MyPy command now passes.
-      Preserve the initial red receipt. Exact-source CI, real SQL/API/restart proof and full
-      integration profiles remain pending.
+      Preserve the initial red receipt. The Root-assigned local PostgreSQL component gate collected
+      20 cases: the real-FK-closure guard passed and 19 failed in common fixture setup because
+      CodeAsset.user_id had no ORM relationship ordering its User FK inserts. The root cause was
+      diagnosed from the mapped schema, and the test seed now explicitly flushes both owner rows
+      before constructing CodeAsset; this changes no production code, FK or assertion. Ruff,
+      formatting, byte-compile and workstream/diff validation pass after the correction, but the
+      PostgreSQL test has not been replayed and the fix is not yet database-verified. Preserve the
+      failed run and exact cleanup evidence. A separately authorized revised-source attempt then
+      passed all 20 PostgreSQL/API/reconstructed-worker cases in 7.19s on module SHA256
+      e415a20bd75a7f75c373fe4219b22117e27990233a1d96799a26e500ff04a2fd, using the cached pinned
+      PostgreSQL 16 Alpine image in one capped loopback-only container; the exact ID was removed,
+      cleanup_failed=0, and container/state/volume/network baseline diffs are empty. This validates
+      this focused component only. Exact-source CI for the new Strategy commit, fresh/previous-release
+      migration validation, full combined application, full_stack_browser and Exhaustive remain
+      pending.
     owned_paths:
       - backend/app/strategy_lab_v2/study_artifact_resolver.py
       - backend/app/strategy_lab_v2/application.py
@@ -441,22 +454,19 @@ progress:
   total: 5
   current_phase: strategy-tc-three-feature-consumer-reconciliation
   current_blocker: >-
-    The accepted three-feature reconciliation is implemented, but exact hosted CI 39721966157 is
-    running on fb05317 and persisted SQL/API/restart proof has not run. Focused resolver/test MyPy
-    passes after a narrow module-tail TYPE_CHECKING-only fix; its initial imported-name errors remain
-    recorded. Actual producer-row PostgreSQL/API/restart validation, fresh/previous-release upgrade
-    and data preservation, full_stack_browser, Exhaustive, and the complete 18-criterion review
-    remain open. Study input authentication is not native execution proof. Root independently
-    verified the existing native goal active and unbudgeted at 04:23 UTC; do not retain the
-    superseded unavailable-state claim.
+    The accepted Provider/ETF/TC staging reconciliation and the focused real PostgreSQL/API/restarted-
+    worker Study-reference component now have evidence; the corrected 20-case module passes. The
+    source/test and evidence changes are still local and need one coherent branch publication with
+    exact-source CI. Fresh/previous-release migration and schema/data preservation, full combined
+    application, full_stack_browser, Exhaustive, coordinator technical review and all original
+    18-roadmap criteria remain open. Study-input authentication is not native Nautilus execution
+    proof. The existing session goal remains active and unbudgeted.
   next_action: >-
-    Publish the narrow typing repair and accurate current-source receipt. Then prepare the normal
-    PostgreSQL producer-row/API/restart integration module with full mapped FK closure and exact
-    fixture commands for Root review; do not launch the DB fixture until coordinator slot
-    assignment. Prove fresh/previous-release upgrades and preservation before full application,
-    full_stack_browser, and Exhaustive gates.
-    Keep the full checkpoint in_progress and all five acceptance criteria open until their original
-    evidence is complete; do not claim native Nautilus execution from persisted Study inputs.
+    Publish the coherent tested Study-reference source and owned evidence, then inspect the exact
+    push-triggered branch CI to terminal. Continue with fresh/previous-release migration preservation,
+    full combined application, full_stack_browser and final integration evidence under assigned
+    resource slots. Preserve all prior failures and do not claim Strategy checkpoint acceptance or
+    native execution authority from the Study-reference integration.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

@@ -16156,10 +16156,190 @@ Correction to the already-published validation row timestamped `04:29:00Z`: that
 mistyped while the actual UTC clock was approximately `04:23–04:25Z`; this correction is appended
 without rewriting that historic row.
 
-After this narrow source boundary closes, prepare the ordinary backend PostgreSQL integration
-module for actual released Study rows, API pre-persistence admission, and reconstructed worker
-hydration. Preserve all real FKs/uniques/enums; the producer FK closure is exactly `user`,
-`code_asset`, `code_version`, `research_run`, and `research_artifact`; the Strategy aggregate and
-receipt tables are also required for the API persistence round-trip. Use the existing lazy PG
-fixture fallback without an opt-in skip, and omit `-n 0` unless the repository actually installs
-xdist. Root reviews the exact fixture/module command and assigns capacity before any DB launch.
+The typing source boundary is published at `6bf4f19e544e15e7c1e629687acee8eb66bcc54d`.
+The ordinary backend PostgreSQL integration module for actual released Study ORM rows, API
+pre-persistence admission, and reconstructed worker hydration is prepared in the next section.
+Root reviewed the module and requested changes have been applied. Exact launch approval and slot
+assignment remain pending; no DB/container launch is authorized by this preparation.
+
+### Prepared exact PostgreSQL consumer module — awaiting Root launch review
+
+Added `backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`
+as an ordinary backend integration module, with no opt-in marker/skip. Its fixture derives the
+actual mapped FK closure from `ResearchArtifact.__table__`; the expected producer closure is
+exactly `user`, `code_asset`, `code_version`, `research_run`, and `research_artifact`. It uses
+`Base.metadata.create_all(tables=closure)` without cloning tables or dropping mapped constraints,
+then adds only the two existing `PostgresStorageSchema` aggregate/receipt tables required by the
+API path in a per-test PostgreSQL schema. Schema teardown is limited to that generated schema.
+When `STRATEGY_STUDY_DATABASE_URL` is supplied, the fixture does not resolve `pg_container`; in
+ordinary CI it lazily reuses `TEST_DATABASE_URL` or the session's existing `pg_container`.
+
+Root reviewed the prepared module at 04:34Z and requested stronger API readback, invocation of the
+actual production binding factory, stored-row revocation, reconstructed engine/session restart,
+changed/deleted row checks, explicit no-provider/no-dispatch guards, running/queued producer rows,
+and nested cleanup safety. All are now represented in the source. The module declares 20 cases
+cases: a mapped-FK-closure guard; an API case that exercises `search_dispatch_rpc.build_api_bindings`
+through the adapter host-binding factory, asserts exact persisted-reference and revision-fingerprint
+HTTP readback, rejects foreign-owner/false-digest/post-revocation submissions without persistence,
+and confirms the original pin remains unchanged; 16 persisted producer drift/denial cases including
+failed/running/queued run states; and two reconstructed engine/session worker-hydrator cases for
+dataset mutation and artifact deletion. Dispatch, provider preflight/acquisition, and non-ASGI
+`httpx.AsyncHTTPTransport` calls are guarded and asserted at zero. The expected CodeVersion digest
+is independently constructed from persisted ORM fields rather than the resolver's private helper.
+The false-digest API case uses a valid `sha256:` digest computed from different artifact content,
+so rejection must come from comparison with persisted producer evidence rather than malformed
+reference parsing.
+The test body uses PostgreSQL and in-process ASGI only; it does not invoke quota reservation, broker,
+native execution, or external HTTP.
+
+Read-only CI inclusion audit: `.github/workflows/ci.yml` runs `pytest tests/integration` in its
+Integration Tests job, and `make test-int` uses the same unfiltered directory. This module's ordinary
+`integration` marker does not opt it out. The existing `test_database_url`/`pg_container` fixtures
+are lazy: an explicit `STRATEGY_STUDY_DATABASE_URL` bypasses them for the assigned local fixture;
+without it, normal integration CI reuses `TEST_DATABASE_URL` or the session PostgreSQL fixture.
+
+Static-only evidence for this not-yet-run module: Ruff check/format and Python byte-compilation pass
+(rerun 2026-10-22 04:45Z after the API digest mismatch correction, deterministic production-host
+environment clearing, and confirming GET readback URLs against the router prefix);
+`git diff --no-index --check /dev/null <module>` reported no whitespace diagnostics (its expected
+nonzero status reflects the untracked file difference). No collection, pytest, database, container,
+service, migration, browser,
+full-suite, MyPy, provider or native command was run. Root source review is incorporated; this remains
+uncommitted WIP and is not covered by exact-source CI `39722585671` on published source `6bf4f19`.
+The branch workstream validator also passed for 44 records; `session.json` and all 1,719 JSONL
+validation rows parse. The validator emitted its existing private quota-directory and empty-path
+warnings; shared quota state was not accessed or changed.
+
+Proposed one-shot local fixture for Root launch review only (NOT authorized/launched): first verify
+that the exact unique container name is absent and inspect the cached `postgres:16-alpine` image,
+requiring immutable image ID
+`sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea`; use container name
+`strategy-study-pg-02d5ffaa`, owner/worktree-purpose labels, `--pull=never`, `--rm`, no named volume,
+one CPU, 384 MiB memory (and equal memory+swap cap), 256 MiB tmpfs at `/var/lib/postgresql/data`,
+and a Docker-published ephemeral port bound only to `127.0.0.1`. Use dummy database/user/password
+`strategytest` and verify the exact container ID, labels, image ID, limits, tmpfs and host binding
+before running pytest. Proposed command, pending Root review:
+
+```sh
+rtk docker container inspect strategy-study-pg-02d5ffaa
+# Expected: no such container. If it exists, do not start or alter it.
+rtk docker image inspect --format '{{.Id}}' postgres:16-alpine
+rtk docker run --detach --pull=never --rm --name strategy-study-pg-02d5ffaa \
+  --label charting.worktree.id=feat-strategy-lab-v2-7794d9e53d \
+  --label charting.purpose=strategy-study-artifact-integration \
+  --memory=384m --memory-swap=384m --cpus=1 \
+  --tmpfs /var/lib/postgresql/data:rw,nosuid,nodev,size=256m \
+  --publish 127.0.0.1::5432/tcp \
+  --env POSTGRES_USER=strategytest --env POSTGRES_PASSWORD=strategytest \
+  --env POSTGRES_DB=strategytest postgres:16-alpine
+# Inspect only the returned container ID; verify image/limits/labels/tmpfs and read
+# the ephemeral host port from NetworkSettings.Ports["5432/tcp"].
+# Readiness probe loop (at most once per second, with a 60-second outer bound):
+timeout --signal=INT --kill-after=5s 60s sh -c \
+  'until rtk docker exec "$1" pg_isready -U strategytest -d strategytest; do sleep 1; done' \
+  _ <container-id>
+```
+
+No extra service/network, Redis, Compose, build, provider HTTP or retained service/data cleanup is
+needed. After Root approves that exact container and available slot, invoke only from `backend/`
+with the discovered loopback port:
+
+```sh
+ENV_FILE=/dev/null UV_OFFLINE=1 UV_NO_SYNC=1 UV_CACHE_DIR=/tmp/uv-strategy-lab-v2 \
+RUN_LIVE_PROVIDER_TESTS=0 RUN_LIVE_ETF_HOLDINGS_TESTS=0 \
+STRATEGY_STUDY_DATABASE_URL=postgresql+asyncpg://strategytest:strategytest@127.0.0.1:<port>/strategytest \
+timeout --signal=INT --kill-after=15s 720s prlimit --as=1073741824 -- \
+uv run --offline --no-sync pytest -q tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
+```
+
+This command is for the 20-case module. Pytest's default is single-process; do not add an xdist flag.
+Enforce a 15-minute total slot including container startup/readiness and exact-ID stop/removal. Keep
+the explicit URL set so this invocation
+cannot start a second PostgreSQL container. Before/after inspect only the returned ID; stop that
+exact ID and verify absence (`rtk docker stop --time 5 <container-id>`; `--rm` removes it). The
+test's own teardown drops only its random schema. Verify the stopped ID is absent with
+`rtk docker inspect <container-id>`. Root must
+approve this exact fixture and assign capacity before launch. The standalone PG
+gate, fresh/previous-release migration proof, final full local/application and `full_stack_browser`
+profiles, exact-source CI/Exhaustive, TC acceptance dependencies and every 18-roadmap criterion
+remain open; checkpoint remains `in_progress`/unaccepted.
+
+### 2026-10-22 — assigned PostgreSQL component run and fixture-order correction
+
+Root assigned the exact one-shot 20-case PostgreSQL component gate in
+`/home/m920q/charting-platform/.ai/staging-attempts/strategy-study-pg-launch-authorization-20261022.md`.
+Before launch, the reviewed integration module hash was
+`723c3cb171c347006d1007deba3ea9977e67c20073a2c1560e0f1f193efee1e4`, the source
+HEAD/origin were both `6bf4f19e544e15e7c1e629687acee8eb66bcc54d`, cached image
+`postgres:16-alpine` matched the authorized immutable image ID, the exact
+container name was absent, and available memory was 3282 MiB. The raw test
+artifact directory is `/tmp/strategy-study-pg-02d5ffaa.Ko23CM`; it retains the
+complete pytest log, pre-cleanup container inspect/state and server logs, test
+exit, and before/after resource snapshots.
+
+The exact container ID was
+`140cf4fb65dc67d324e4c5029ab76c3c191df857f4378d0f703e2781498be74c`, published
+only on loopback port `32770`, with the assigned 384 MiB memory+swap cap, one
+CPU, 256 MiB tmpfs, labels, and dummy credentials. Pytest collected all 20
+cases: the mapped-FK-closure test passed, while the API case and all 18 other
+fixture-dependent cases errored during common fixture setup (19 setup errors,
+14.58s). The causal failure is a real retained-FK insertion-order issue, not a
+resolver assertion: `User` rows and `CodeAsset` were queued in one ORM flush;
+`CodeAsset.user_id` has a real FK to `user.id` but no ORM relationship to order
+the two mappers, so PostgreSQL rejected the `code_asset` insert before the user
+row was present. No FK, constraint, test assertion, skip, or negative case was
+weakened.
+
+Added one explicit `await session.flush()` immediately after adding the two
+fixture owners and before adding FK-dependent `CodeAsset` rows. The current
+uncommitted module SHA is `e415a20bd75a7f75c373fe4219b22117e27990233a1d96799a26e500ff04a2fd`.
+Ruff check, Ruff format check, Python byte-compilation, tracked diff check, and
+untracked module whitespace check pass after this source correction. The
+assigned run itself was not replayed. Captured pre-cleanup state reports the
+container was still running and `OOMKilled=false`; exact-ID stop/removal
+succeeded, its subsequent inspect returned `No such container`, and all four
+container-ID, container-state, volume-ID, and network-ID before/after diffs are
+empty. Retained services, volumes, and networks were unchanged.
+
+This is a fixture setup repair awaiting a distinct bounded PostgreSQL slot for
+one post-fix run; the previous 1-pass/19-setup-error receipt remains preserved.
+No pytest replay, DB fixture, provider/issuer/SEC HTTP, Redis, native engine,
+browser, or full-suite command ran after the correction. The earlier `--rm`
+proposal above is superseded for execution by Root's actual launch authorization:
+the assigned run omitted `--rm` and retained state/log evidence before removing
+only the exact returned container ID. Full migration, combined application,
+browser/Exhaustive, exact-current-source CI, checkpoint acceptance, and all 18
+roadmap criteria remain open; status stays `in_progress`/unaccepted.
+
+### 2026-10-22 — revised-source PostgreSQL component gate
+
+Root explicitly authorized one revised-source attempt after reviewing the first
+setup failure and the complete runner. Before execution, the revised test module
+SHA256 was `e415a20bd75a7f75c373fe4219b22117e27990233a1d96799a26e500ff04a2fd`,
+the runner SHA256 was
+`8e13c7af23d947160a8d83d017c4f5a44f05495cb741dd82a9ea56632bca6d50`, and the
+cached `postgres:16-alpine` image ID was
+`sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea`.
+The exact prior target name returned `No such container`, and available memory
+was above the authorized 2 GiB floor. No source changed during this execution.
+
+The exact capped, single-process integration command collected and passed all
+20 PostgreSQL/API/reconstructed-worker cases in 7.19 seconds. The fresh exact
+container ID was
+`a8ea637040aa3c2926ffb4d9c8b4569b26dc2596d0db5fbf485d55221653ade7`, bound only
+to loopback port `32771`, using the assigned image, 384 MiB memory/swap cap, one
+CPU, 256 MiB tmpfs, labels, and dummy credentials. Pre-cleanup inspection showed
+the PostgreSQL container running and `OOMKilled=false`; the runner stopped and
+removed only this returned ID, verified its subsequent absence, and reported
+`runner_exit=0`, `cleanup_failed=0`. All four container-ID, container-state,
+volume-ID, and network-ID baseline diff files are empty. Full artifacts are at
+`/tmp/strategy-study-pg-02d5ffaa.geY0Ch`; the first failed attempt remains
+preserved separately at `/tmp/strategy-study-pg-02d5ffaa.Ko23CM`.
+
+This closes the focused real PostgreSQL API/immutable-reference/reconstructed-
+worker test component, not the whole integration checkpoint. Exact-source CI
+for a commit containing this module, fresh/previous-release migration and
+schema/data-preservation checks, full combined application,
+`full_stack_browser`, Exhaustive, coordinator review and all 18 roadmap
+criteria remain open. No Study-reference evidence is native Nautilus execution
+proof; the checkpoint remains in progress and unaccepted.

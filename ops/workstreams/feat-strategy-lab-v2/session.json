@@ -52,18 +52,23 @@
   },
   "goal_request_state": "ready",
   "goal_state": "active",
-  "goal_unavailable_reason": null,
   "goal_state_observations": [
-    {"observed_at":"2026-10-22T04:23:00Z","status":"active","budget":"unbounded","source":"Root live snapshot for existing thread 01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b; no goal recreation or accounting reset."}
+    {
+      "budget": "unbounded",
+      "observed_at": "2026-10-22T04:23:00Z",
+      "source": "Root live snapshot for existing thread 01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b; no goal recreation or accounting reset.",
+      "status": "active"
+    }
   ],
-  "head": "fb05317df65eb1384052bc4f3b12a260bb242bad",
+  "goal_unavailable_reason": null,
+  "head": "6bf4f19e544e15e7c1e629687acee8eb66bcc54d",
   "implementation_sha": "05e5df177abe9c264f163566635daeebbb488fa9",
   "last_checkpoint": "2026-10-22T04:14:38Z",
   "last_human_progress_update": "2026-10-20T21:20:08.693731+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the scoped AdjustmentFactorObservation relationship typing repair with accurate receipts. Then prepare the normal PostgreSQL producer-row/API/restart integration module and exact FK/fixture plan for Root review; do not launch the fixture before coordinator slot assignment. Preserve full application, full_stack_browser, Exhaustive, native qualification, checkpoint acceptance, and all 18 roadmap criteria as open.",
+  "next_action": "Inspect terminal exact-source CI for the published 20-case PostgreSQL/API/reconstructed-worker Study-reference context, preserving the first 1-pass/19-setup-error receipt. Then continue fresh/previous-release migration, combined application, full_stack_browser, Exhaustive and full-roadmap gates without claiming native proof from persisted Study inputs.",
   "parent_branch": "staging",
-  "plan_hash": "c7fc901776b36764b20941e09539451a42292ae2eaa205b766705dca2b55db7a",
+  "plan_hash": "f6e8e59066055a7fd4995d0ba3ff208fc540222ef7ed865c4ad231ffe2543fdc",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -90,14 +95,14 @@
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "The scoped AdjustmentFactorObservation TYPE_CHECKING-only relationship import repair is implemented; the authorized two-file MyPy rerun passes, while the first two-error result is preserved. Exact CI 39721966157 is still running on fb05317. Actual producer-row PostgreSQL/API/restart validation and fresh/previous-release migration data-preservation remain pending Root resource review, followed by full application/full_stack_browser and Exhaustive. Full checkpoint remains in_progress/unaccepted; the existing native goal is active and unbudgeted.",
+    "current_blocker": "The first assigned PostgreSQL attempt is preserved as 1 FK-closure pass and 19 shared fixture-setup errors from CodeAsset owner insert ordering. After the explicit owner flush, a separately authorized run passed all 20 PostgreSQL/API/reconstructed-worker cases in 7.19s with verified exact-ID cleanup and zero global resource diffs. The tested module SHA is e415a20bd75a7f75c373fe4219b22117e27990233a1d96799a26e500ff04a2fd. Exact-source CI for the resulting source commit remains to be verified. Fresh/previous-release migration preservation, full combined application/full_stack_browser, Exhaustive and coordinator review remain open. Full checkpoint remains in_progress/unaccepted; the existing native goal remains active and unbudgeted.",
     "current_phase": "strategy-tc-three-feature-consumer-reconciliation",
-    "next_action": "Publish the narrow typing repair and accurate current-source record. Then prepare the actual normal PostgreSQL resolver/API/reconstructed-worker integration module and full FK closure/resource plan for Root review without launching it. Preserve all no-provider-call, owner, terminal settlement, admission/reservation, immutable lineage and native-proof boundaries.",
+    "next_action": "Inspect exact-source CI for the published tested Study-reference context to terminal. Preserve the first failed setup attempt, and continue fresh/previous-release migration validation, full combined application/full_stack_browser and Exhaustive under assigned slots; do not weaken ownership, terminal/admission/reservation or immutable-lineage checks or claim native execution from Study inputs.",
     "total": 5,
-    "updated_at": "2026-10-22T04:27:41+00:00"
+      "updated_at": "2026-10-22T05:08:53+00:00"
   },
-  "remote": "fb05317df65eb1384052bc4f3b12a260bb242bad",
-  "remote_sha": "fb05317df65eb1384052bc4f3b12a260bb242bad",
+  "remote": "6bf4f19e544e15e7c1e629687acee8eb66bcc54d",
+  "remote_sha": "6bf4f19e544e15e7c1e629687acee8eb66bcc54d",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
