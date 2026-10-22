@@ -37,26 +37,25 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "backend_job_id": 119543565368,
-    "branch_declared_job_id": 119550358826,
-    "conclusion": "failure",
-    "e2e_job_id": 119550358675,
-    "e2e_summary": "190 passed,110 declared skips,one retry-passing Market Map hover flake and no hard failures on sourcea7c8ecba",
-    "frontend_unit_job_id": 119543565727,
-    "head_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
+    "backend_job_id": 119573167370,
+    "branch_declared_job_id": 119579563574,
+    "conclusion": "success",
+    "e2e_job_id": 119579563559,
+    "e2e_summary": "191 passed,110 declared skips,15.3 minutes,0 failures,0 flakes,0 retry markers on exact source f206029",
+    "frontend_unit_job_id": 119573167855,
+    "head_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
     "jobs": {
-      "backend": "success_3421_unit_459_integration_83_percent",
+      "backend": "success_3421_unit_459_integration_83_percent;540.65s unit;567.80s integration",
       "branch_declared": "success",
-      "e2e": "red_with_one_retry_passing_Market_Map_hover_flake_no_hard_failure",
+      "e2e": "success_191_pass_110_declared_skip_0_failure_0_flake_0_retry_markers",
       "exhaustive_feature_branch": "expected_skip",
       "frontend_unit": "success"
     },
-    "run_id": 39693019337,
-    "status": "terminal red/flaky for exact sourcea7c8ecba; the pending one-line test actionability correction has no exact-source CI",
-    "visuals": "The unchanged a7 visual matrix passed104/104 and remains qualified to its unchanged visual inputs; official V25 parity and full roadmap remain open."
+    "run_id": 39701994384,
+    "status": "terminal success attempt 1 on exact source f206029; all mandatory jobs green; Exhaustive Feature Integration Gate expected skip, not staging acceptance",
+    "visuals": "Strict visual 104/104 remains qualified to a7 visual tests with unchanged product image 05664729; official REF-HELP-V25 parity and full roadmap remain open."
   },
   "dirty_paths": [
-    "frontend/tests/e2e/workstation_performance.spec.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -141,36 +140,36 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
+  "head": "f206029f16c94e32616ccccf81f65675f224e67c",
   "merge_head": null,
-  "implementation_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
+  "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
-    "acceptance": "pending",
+    "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
     "id": "tc2000-workstation-integration-1",
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-22T00:42:15+00:00",
+  "last_checkpoint": "2026-10-22T01:31:04+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
-    "conclusion": "failure",
-    "e2e_summary": "190 passed,110 declared skips,one retry-passing Market Map hover flake and no hard failures",
-    "head_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
+    "conclusion": "success",
+    "e2e_summary": "191 passed,110 declared skips,15.3 minutes,0 failures,0 flakes,0 retry markers",
+    "head_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
     "jobs": {
-      "backend": "3421 unit passed;459 integration passed;83 percent coverage",
+      "backend": "3421 unit + 459 integration passed;83 percent coverage;unit540.65s;integration567.80s",
       "branch_declared": "success",
-      "e2e": "one retry-passing Market Map hover flake; no hard failure",
-      "exhaustive_feature_branch": "expected skip",
+      "e2e": "success_191_pass_110_declared_skip_0_failure_0_flake_0_retry_markers",
+      "exhaustive_feature_branch": "expected skip; not staging acceptance",
       "frontend_unit": "success"
     },
-    "run_id": 39693019337,
-    "scope": "Exact sourcea7c8ecba208ce6c79d8f1a5d7294500122e462e5. E2E119550358675 reported190 passed,110 declared skips, one retry-passing workstation_performance.spec.ts Market Map hover flake and no hard failure. Backend119543565368 (3421 unit+459 integration,83%), frontend119543565727 and branch119550358826 succeeded; EIG was an expected skip. This is historical a7 CI and does not cover the pending test-only correction.",
-    "visuals": "The unchanged strict visual inputs passed104/104 on sourcea7 and remain qualified; full functional on the corrected test source and exact-source CI are pending."
+    "run_id": 39701994384,
+    "scope": "Exact f206029 source. Backend119573167370, Frontend119573167855, Branch Declared119579563574 and E2E119579563559 are green; E2E is 191 passed/110 declared skips/15.3m/0 failures/0 flakes/0 retry markers. Exhaustive Feature Integration Gate was an expected skip. Root accepted only the bounded checkpoint; final closure-record HEAD CI remains required before coordinator staging integration.",
+    "visuals": "Strict104/104 remains qualified to a7c8ecba visual tests and unchanged product image05664729; frontend coverage/build and migration compatibility remain qualified to unchanged inputs. Official REF-HELP-V25 and full roadmap remain open."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Stage only the reviewed one-line workstation_performance.spec.ts actionability correction and four owned records after the recorded stack-free checks; request Root's staged-scope review and do not commit/push yet. After review/publication, run the exact full functional profile on the corrected test source and obtain exact-source CI. Do not rerun the unchanged104 visual matrix solely for this functional-test-only edit. Preserve hosted CI39693019337's retry-passing flake and all earlier reds. The native session goal is usageLimited with tokenBudget/remainingTokens null; Root's normal-turn supervision continues this same work without resetting the goal or accounting. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
+  "next_action": "Finish exact four-record cached-diff review, publish this accepted bounded checkpoint packet once, capture the resulting closing SHA from exact branch HEAD, and require exact closure-head CI before coordinator staging integration. Do not create an acknowledgment-only commit. Preserve the full AC1-AC9 roadmap and official REF-HELP-V25 gap; no deployment, promotion, provider activation, paid access, or live provider/ETF operation is authorized. Native goal remains usageLimited with tokenBudget/remainingTokens null; no goal/accounting reset or claim change.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -183,7 +182,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "9515338bdd7ac15f3398e846db3381af3f66ee0b643563ea316738642c632150",
+  "plan_hash": "99be5de10d4e398368092ee81f19caa058359cc250cbd1c27a5a2908151503bb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -198,31 +197,34 @@
   "progress": {
     "completed": [
       "TCP1",
-      "TCP2"
+      "TCP2",
+      "TCP3",
+      "TCP4",
+      "TCP5"
     ],
-    "current_blocker": "The only pending source change is a one-line test actionability correction in workstation_performance.spec.ts on top of published HEAD a7c8ecba208ce6c79d8f1a5d7294500122e462e5. The private native-scroll clipped-center diagnostic passed1/1 in13.5s/zero retries: raw bbox-center movement hit the footer with no hover, then ordinary locator.hover and the unchanged remaining flow passed. This supports harness actionability but does not prove the original hosted CI cause. Exact a7 hosted CI39693019337 remains terminal red/flaky (190 passed,110 declared skips, one retry-passing Market Map hover flake). Prior functional195/2skip evidence is source/product05664729; a7 visual104/104 used a7 tests with that unchanged product image. Full functional on the corrected test source and exact-source CI remain pending. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_DELIVERED;TC_MARKET_MAP_HOVER_ACTIONABILITY_TEST_FIX_PENDING;TCP2_FINAL_FUNCTIONAL_AND_EXACT_CI_PENDING;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN",
-    "next_action": "Run stack-free Playwright collection, TC scope/self-tests, structured JSON/YAML and workstream validation, and diff checks for the one-line workstation_performance.spec.ts actionability correction and owned records. Present the exact five-file staged scope to Root; do not commit/push before review. After review/publication, run the exact full functional profile on the corrected test source and obtain exact-source CI; do not rerun the unchanged104 visual matrix solely for this functional-test-only edit. Preserve hosted CI39693019337's retry-passing flake and all prior red receipts. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
+    "current_blocker": "No implementation blocker remains for the bounded checkpoint accepted by Root on 2026-10-22. The closing workstream-record commit must be captured from exact branch HEAD and pass its own exact-head CI before coordinator staging integration. Full AC1-AC9 roadmap completion, official REF-HELP-V25 parity, staging integration, deployment and promotion remain outside this acceptance.",
+    "current_phase": "bounded_checkpoint_accepted_by_root;implementation_f206029_validated;closure_record_publication_and_exact_closure_head_CI_pending;coordinator_staging_integration_after_green_CI;full_roadmap_and_official_REF_HELP_V25_open",
+    "next_action": "Publish the Root-reviewed four-record packet once; verify the resulting exact branch HEAD and automatic CI. Do not relabel f206 as the later closing metadata commit, create an acknowledgment-only commit, integrate directly, deploy, or claim whole-roadmap/V25 completion.",
     "total": 5,
-    "updated_at": "2026-10-22T00:42:15+00:00"
+    "updated_at": "2026-10-22T01:31:04+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
-    "current_pending_range": "One-line test-only workstation_performance.spec.ts actionability correction plus current handoff/plan/session/append-only validation receipt are uncommitted and awaiting staged-scope review.",
+    "current_local_head": "f206029f16c94e32616ccccf81f65675f224e67c",
+    "current_pending_range": "Four owned checkpoint records are being applied after Root accepted the bounded f206 checkpoint; cached-diff review precedes the single publication.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
-    "status": "Published local HEAD and origin tracking ref are a7c8ecba208ce6c79d8f1a5d7294500122e462e5; the one-line test-only actionability correction and owned records are uncommitted and pending Root staged-scope review. No merge is active."
+    "remote_tracking_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
+    "status": "Validated implementation f206029 is the clean pushed branch tip; the four owned closure records are being applied and will be staged for Root cached-diff review after validation. No merge is active."
   },
-  "remote": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
-  "remote_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
-  "remote_synchronized": false,
+  "remote": "f206029f16c94e32616ccccf81f65675f224e67c",
+  "remote_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

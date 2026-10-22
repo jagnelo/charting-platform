@@ -15,8 +15,38 @@ human_intent_authorization: >-
   Keep branch history; reconcile file and semantic overlaps after upstream work
   reaches staging, then consume staging through the prescribed workflow.
 human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall and authorized committing the staged TC2000 reference-universe slice."
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: >-
+  Root accepts bounded checkpoint closure under the recorded 2026-10-20
+  standing delegation and the human's literal authorization: "Yes—approve that
+  initial scope and handle checkpoint acceptance." This accepts only the
+  bounded checkpoint, not the whole feature, staging integration, deployment,
+  or promotion.
+closure_summary: |-
+  integration_capture: exact branch HEAD
+  Root accepted the bounded TC2000 checkpoint on validated implementation
+  f206029f16c94e32616ccccf81f65675f224e67c after exact attempt-1 CI
+  39701994384 succeeded: Backend 3421 unit + 459 integration at 83%, Frontend
+  Unit and Branch Declared green, E2E 191 passed/110 declared skips/0 failures/
+  0 flakes/0 retry markers in 15.3 minutes; Exhaustive Feature Integration
+  Gate was an expected skip, not staging acceptance. Local functional on f206
+  passed 195 with 2 unchanged declared skips and zero retries in 23.8 minutes.
+  Strict visual 104/104 remains qualified to visual-test source
+  a7c8ecba208ce6c79d8f1a5d7294500122e462e5 with unchanged product image
+  05664729ea612d4bc27812cf86ab9fca02603880; FE coverage/build evidence is
+  likewise qualified to unchanged product inputs, not represented as f206
+  reruns. Fresh/upgrade migration compatibility was validated for 628c to 6a6e
+  migration inputs; no migration/backend product bytes changed in f206.
+  Deployment impact/defaults were not changed or newly verified; fixture-only
+  controls are not deployment evidence. The 475-path shared-contract review
+  records 350 immutable byte-verified paths and 29 narrow approved adaptations,
+  including Provider/ETF consumer dispositions. Historical failures remain
+  preserved. Full roadmap AC1-AC9 work beyond these bounded dispositions,
+  official REF-HELP-V25 parity, and broader feature acceptance remain open.
+  Provider/issuer HTTP, paid access, live provider/ETF tests, deployment and
+  promotion remain disabled or unperformed. The final closure-metadata commit
+  HEAD is to be captured by exact branch HEAD after publication; its exact-head
+  CI must be green before coordinator staging integration. Strategy release
+  remains gated on actual green TC staging.
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 human_interim_help_reference_authorization: >-
@@ -30,26 +60,26 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Current source HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5. The sole
-  pending product-tree change is a test-only actionability correction in
-  workstation_performance.spec.ts: retain the canvas bounds assertion and
-  replace only raw bounding-box-center mouse movement with ordinary
-  pointerCanvas.hover(); preserve every subsequent hover/search/zoom/pan and
-  render-budget assertion, timeout, retry policy and visual oracle. The private
-  one-case diagnostic passed1/1 in13.5s/0 retries after native scrolling left
-  the canvas partly visible with its center outside the clip: raw movement hit
-  the footer and produced no hover, while locator.hover targeted the canvas
-  and the unchanged flow passed. This supports harness actionability only; it
-  does not establish the cause of the hosted failure. Preserve the failed
-  precondition diagnostic e55fe (exit1/no OOM) and hosted a7 CI39693019337
-  (190 passed,110 declared skips, one retry-passing Market Map hover flake).
-  Prior functional195 pass/2 declared skips is source-qualified to product
-  source05664729ea612d4bc27812cf86ab9fca02603880; the a7 visual104/104 result
-  used a7 visual tests with the unchanged05664729 product image. Both remain
-  qualified to those exact inputs; exact CI and full functional on this test correction are
-  pending. Next: run requested stack-free checks and present the exact staged
-  five-file scope to Root; do not commit/push before review. TCP3 overall,
-  TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.
+  Root accepted bounded checkpoint acceptance for validated implementation
+  f206029f16c94e32616ccccf81f65675f224e67c after exact CI39701994384 passed
+  every mandatory job. The final workstream-record publication still requires
+  exact branch-head CI before coordinator staging integration. This checkpoint
+  does not complete the full AC1-AC9 roadmap or official REF-HELP-V25 parity;
+  no deployment, provider activation, paid access, live provider/ETF test, or
+  staging integration is claimed.
+current_checkpoint_status: >-
+  Bounded TC2000 implementation checkpoint accepted by Root on 2026-10-22 under
+  the recorded human standing authorization and literal checkpoint delegation.
+  Validated implementation is f206029f16c94e32616ccccf81f65675f224e67c; exact
+  attempt-1 CI39701994384 is fully green for mandatory Backend (3421 unit + 459
+  integration, 83%), Frontend Unit, Branch Declared and E2E (191 passed,110
+  declared skips,0 failures,0 flakes,0 retry markers). EIG is an expected
+  skip. Local functional is 195 passed/2 unchanged declared skips/0 retries on
+  f206; strict104 visual, frontend coverage/build and 628c-to-6a6e migration
+  compatibility remain qualified to their unchanged inputs. Apply the staged
+  four-record packet after Root's cached-diff review; after publication capture
+  the resulting exact branch HEAD and require its CI before Root's staging
+  integration. Preserve full roadmap and official REF-HELP-V25 gap.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -519,22 +549,22 @@ goal: "Prepare tc2000-workstation-integration-1: repair independent chart-templa
 integration_checkpoint:
   id: tc2000-workstation-integration-1
   planning_authorization: "Human resumed the saved checkpoint objective on 2026-10-15, directing this existing session to read coordinator guidance, fix independent chart-template and functional/visual defects, then consume green Provider+ETF staging and prepare review."
-  acceptance: pending
+  acceptance: accepted_bounded_checkpoint_by_root_2026-10-22
   coordinator_guidance: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
   downstream_consumers: [human-workstation-testing, strategy-lab-v2]
   required_contracts: [provider-coverage-preflight, etf-provenance-freshness, immutable-code-study-outputs, chart-template-interactions]
-  source_freeze: "No TC product source is frozen. Coordinator released exact synchronized green Provider+ETF staging628c1634f4894403339687586adee74d45637d51 for this TC-owned consumer reconciliation only; the coordinator retains staging integration and checkpoint acceptance."
-  continuation: "Reconcile the actual released Provider+ETF contracts in this TC branch, preserve the full TCP3 acceptance criterion, then complete combined validation and exact-source CI; TCP4/TCP5 and coordinator checkpoint acceptance remain open."
+  source_freeze: "Validated implementation source is f206029f16c94e32616ccccf81f65675f224e67c. Final closure-record HEAD is captured from the exact branch HEAD after this packet is published; exact final-head CI remains required before coordinator integration."
+  continuation: "Root accepted this bounded checkpoint only. Preserve original TCP and AC text and the full roadmap. The exact closure-record branch HEAD must pass CI before coordinator-owned staging integration; no feature-branch self-integration, deployment, or promotion."
   original_criteria_disposition:
-    AC1: {status: partial, owner: TC, delivered: scope guard, remainder: revalidate checkpoint paths, continuation_test: scope guard and ownership ledger}
-    AC2: {status: partial, owner: TC, delivered: existing read consumers, remainder: staged provider contract reconciliation, continuation_test: real preflight and coverage success/unavailable tests}
-    AC3: {status: partial, owner: TC, delivered: existing lineage views, remainder: staged ETF contract reconciliation, continuation_test: current/stale/unavailable analytic exclusion tests}
-    AC4: {status: partial, owner: TC, delivered: existing top-down workstation, remainder: complete persisted-input workflows and full V25 roadmap, continuation_test: authenticated top-down and analytics flows}
-    AC5: {status: partial, owner: TC, delivered: existing immutable Study and promotion paths, remainder: combined consumer compatibility and wider roadmap, continuation_test: immutable output and negative capability tests}
-    AC6: {status: partial, owner: TC, delivered: mapped interactions, remainder: coordinator-delivered pointer repair acceptance and unresolved V25 visual/reference states, continuation_test: synced green staging plus functional and protected visual matrix with original policy}
-    AC7: {status: partial, owner: TC, delivered: historical resilience and accessibility evidence, remainder: exact candidate combined validation and broader evidence, continuation_test: required full-stack browser and security/performance checks}
-    AC8: {status: deferred, owner: TC-after-coordinator, reason: requires green Provider and ETF staging, remainder: line-level reconciliation and exact-source validation, continuation_test: green staging receipt plus shared-path dispositions and full gate}
-    AC9: {status: partial, owner: TC, delivered: preserved source and exclusive worktree, remainder: clean pushed checkpoint review and later full-roadmap review, continuation_test: clean synchronized source and review receipt}
+    AC1: {status: bounded_checkpoint_delivered, owner: TC, delivered: "475-path ownership manifest; 350 immutable paths byte-verified and 29 narrow adaptations", remainder: "Continue ownership enforcement and whole-roadmap review"}
+    AC2: {status: consumer_contract_delivered, owner: TC, delivered: "Provider staging consumer contract from accepted 628c reconciliation", remainder: "Broader feature acceptance and future upstream contract changes"}
+    AC3: {status: consumer_contract_delivered, owner: TC, delivered: "ETF holdings capability, identity, freshness and lineage consumer contract from accepted 628c reconciliation", remainder: "Broader feature acceptance and future upstream contract changes"}
+    AC4: {status: partial_roadmap_open, owner: TC, delivered: "Bounded workstation flows and component evidence in this checkpoint", remainder: "Complete persisted-input workflows, breadth/ratios/historical analytics and full V25 roadmap"}
+    AC5: {status: partial_roadmap_open, owner: TC, delivered: "Existing immutable Study/Strategy consumers preserved and validated within delivered scope", remainder: "Broader engine, promotion, lineage and combined-consumer roadmap"}
+    AC6: {status: partial_roadmap_open, owner: TC, delivered: "Bounded interaction and strict visual evidence without changing protected references or thresholds", remainder: "Official REF-HELP-V25 parity and broader V25 visual/state parity"}
+    AC7: {status: partial_roadmap_open, owner: TC, delivered: "Qualified functional, strict visual, performance, sandbox, migration and CI evidence", remainder: "Whole-roadmap security, accessibility, endurance and broader operational evidence"}
+    AC8: {status: line_level_reconciliation_delivered_after_exact_green_ci, owner: TC, delivered: "Provider/ETF shared paths have line-level dispositions under the 475/350/29 manifest; exact CI39701994384 is green", remainder: "Continue reconciliation for future upstream changes and broader combined validation"}
+    AC9: {status: delegated_bounded_checkpoint_closure_only, owner: TC, delivered: "Clean synchronized branch and bounded checkpoint packet under recorded 2026-10-20 delegation", remainder: "Whole-roadmap review remains open; no direct merge, staging mutation, deployment or promotion"}
 acceptance_criteria:
   - {id: TCP1, text: "COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority."}
   - {id: TCP2, text: "Resolve TC-owned functional/visual failures without weakening checks; review and adopt only the human-authorized local Help reference after all four profiles pass, while keeping official V25 Help parity as unfinished roadmap work."}
@@ -1139,23 +1169,16 @@ branch_tests_reason: "The branch-declared job is intentionally stack-free: it ru
 live_test_impact: "Authenticated workstation evidence may be required. Upstream live provider/ETF evidence remains owner-supplied; TC uses bounded consumer probes only and never exposes or invents credentials."
 migration_impact: "No generic provider or ETF schema/migration work is owned here. Add TC-specific schema only when necessary for workstation or Study/Strategy behavior, with migration and rollback evidence."
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
-status: in_progress
+status: ready_for_integration
 progress:
-  completed: [TCP1, TCP2]
+  completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
-  current_phase: "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_DELIVERED;TC_MARKET_MAP_HOVER_ACTIONABILITY_TEST_FIX_PENDING;TCP2_FINAL_FUNCTIONAL_AND_EXACT_CI_PENDING;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN"
+  current_phase: "bounded_checkpoint_accepted_by_root;validated_implementation_f206029;final_closure_head_CI_required_before_coordinator_staging_integration;full_AC1_AC9_roadmap_and_official_REF_HELP_V25_open"
   next_action: >-
-    Run the stack-free Playwright collection, TC scope/self-tests, structured
-    JSON/YAML and workstream validation, and diff checks for the one-line
-    workstation_performance.spec.ts actionability correction and owned records.
-    Present the exact five-file staged scope to Root; do not commit/push before
-    staged-scope review. After review/publication, run the exact full functional
-    profile on the frozen corrected test source and obtain exact-source CI; do
-    not rebuild or rerun the unchanged104 visual matrix solely for this
-    test-only change. Preserve hosted CI39693019337's retry-passing flake and
-    all previous red receipts. TCP3 overall, TCP4/TCP5, full roadmap and
-    official REF-HELP-V25 remain open.
+    Complete final four-record cached-diff review, publish once, capture the
+    resulting exact branch HEAD and verify its automatic CI. Only then may Root
+    proceed with coordinator-owned staging integration. Do not create an
+    acknowledgment-only commit or claim whole-roadmap/V25 completion.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1221,7 +1244,7 @@ progress:
     must remain preserved; fresh exact-source CI is required. No local fixture was
     created. TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain
     open.
-current_checkpoint_status: >-
+historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
   workstation_performance.spec.ts and the four owned records are pending review.

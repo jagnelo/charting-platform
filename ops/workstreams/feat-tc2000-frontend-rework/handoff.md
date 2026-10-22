@@ -1,6 +1,34 @@
 # feat/tc2000-frontend-rework
 
-## Current status — 2026-10-22: Market Map hover actionability correction
+## Current status — 2026-10-22: bounded checkpoint accepted
+
+Root accepted the bounded TC2000 checkpoint on validated implementation
+`f206029f16c94e32616ccccf81f65675f224e67c` under the recorded 2026-10-20
+standing authorization and literal delegation, “Yes—approve that initial scope
+and handle checkpoint acceptance.” Exact attempt-1 CI `39701994384` is fully
+green: Backend `3421` unit + `459` integration at `83%`, Frontend Unit and
+Branch Declared green, and E2E `191 passed/110 declared skips/0 failures/0
+flakes/0 retry markers` in `15.3m`; EIG was an expected skip. Local functional
+on f206 passed `195` with `2` unchanged declared skips and zero retries.
+
+Strict visual `104/104` remains qualified to visual tests `a7c8ecba` with the
+unchanged product image `05664729`; FE coverage/build and fresh/upgrade
+migration compatibility likewise remain qualified to unchanged inputs,
+including migration compatibility `628c`→`6a6e`. No migration/backend bytes
+changed in f206. The 475-path shared-contract review records 350 immutable
+byte-verified paths and 29 narrow adaptations. Deployment defaults were not
+changed or newly verified; no provider/issuer HTTP, paid/live operation,
+deployment, promotion, or staging integration occurred. Official
+`REF-HELP-V25` parity and broader AC1–AC9 roadmap work remain open; Strategy
+release stays gated on actual green TC staging.
+
+The four-record closure packet is prepared for Root’s cached-diff review. After
+validation and staging, capture the closing commit from exact branch `HEAD`; its
+exact-head CI remains required before coordinator-owned staging integration. The
+validated implementation SHA remains f206 and must not be relabeled as the
+later metadata commit.
+
+## Historical status — 2026-10-22: Market Map hover actionability correction
 
 The checked-out/published source is `a7c8ecba208ce6c79d8f1a5d7294500122e462e5`;
 the only product-tree edit in this pending candidate is in
