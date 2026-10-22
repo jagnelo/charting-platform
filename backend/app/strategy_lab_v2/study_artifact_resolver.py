@@ -52,12 +52,26 @@ def create_selected_study_artifact_resolver(
 ) -> SelectedStudyArtifactResolver:
     """Bind reference-only Study revalidation for existing API admission callers."""
 
-    output_resolver = create_resolved_study_artifact_output_resolver(session_factory)
+    if not callable(session_factory):
+        raise TypeError("session_factory must be callable")
 
     async def resolve(
         *, principal: Any, reference: SelectedStudyArtifactReference
     ) -> SelectedStudyArtifactReference:
-        return (await output_resolver(principal=principal, reference=reference)).reference
+        if not isinstance(reference, SelectedStudyArtifactReference):
+            raise SelectedStudyArtifactResolutionError("selected Study reference is not typed")
+        async with session_factory() as session:
+            resolved = await _resolve_selected_study_artifact(
+                session=session,
+                principal=principal,
+                reference=reference,
+                materialize_payload=False,
+            )
+        if not isinstance(resolved, SelectedStudyArtifactReference):
+            raise SelectedStudyArtifactResolutionError(
+                "reference-only Study resolution returned a payload"
+            )
+        return resolved
 
     return resolve
 
@@ -76,11 +90,17 @@ def create_resolved_study_artifact_output_resolver(
         if not isinstance(reference, SelectedStudyArtifactReference):
             raise SelectedStudyArtifactResolutionError("selected Study reference is not typed")
         async with session_factory() as session:
-            return await _resolve_selected_study_artifact(
+            resolved = await _resolve_selected_study_artifact(
                 session=session,
                 principal=principal,
                 reference=reference,
+                materialize_payload=True,
             )
+        if not isinstance(resolved, ResolvedStudyArtifactOutput):
+            raise SelectedStudyArtifactResolutionError(
+                "Study payload resolution did not return its immutable output"
+            )
+        return resolved
 
     return resolve
 
@@ -136,7 +156,8 @@ async def _resolve_selected_study_artifact(
     session: AsyncSession,
     principal: Any,
     reference: SelectedStudyArtifactReference,
-) -> ResolvedStudyArtifactOutput:
+    materialize_payload: bool = True,
+) -> SelectedStudyArtifactReference | ResolvedStudyArtifactOutput:
     """Revalidate a pinned artifact from the existing immutable Study tables.
 
     This seam accepts only a typed reference; it does not derive or guess an
@@ -270,6 +291,8 @@ async def _resolve_selected_study_artifact(
         raise SelectedStudyArtifactResolutionError(
             "selected Study evidence differs from its immutable reference"
         )
+    if not materialize_payload:
+        return resolved
     try:
         return ResolvedStudyArtifactOutput(reference=resolved, payload=artifact.payload)
     except (TypeError, ValueError) as error:

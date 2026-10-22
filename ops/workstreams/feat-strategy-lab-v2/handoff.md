@@ -16962,3 +16962,19 @@ publish this coherent product changeset and capture its exact-source CI. Then
 request the real PostgreSQL test slot and retain all full local, combined,
 browser, visual and native roadmap gates. The full 18 criteria and all safety
 holds remain unchanged.
+
+### Reference-only API path avoids payload materialization
+
+Source review found that the API admission callback reused the new runtime-output
+resolver and consequently froze a complete Study payload even though it returned
+only the authenticated reference. The shared owner/run/version/artifact/hash
+checks are unchanged, but the reference-only resolver now selects the typed
+reference result before immutable runtime-output construction. Worker hydration
+still uses the output resolver and retains payload freezing/digest validation.
+The resolver module and test module pass 28 focused fake-session cases, two-file
+MyPy, Ruff check/format, and diff checks. The new regression makes output-object
+construction fail if the reference-only API resolver attempts it. This narrows
+API memory cost without changing the selected-input contract. This two-file
+follow-up is a separate local source commit from the preceding payload/runtime
+commit; the real PostgreSQL slot and push remain pending the live c45 Playwright
+run's terminal result.

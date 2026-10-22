@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.visitors import iterate
 
+import app.strategy_lab_v2.study_artifact_resolver as study_resolver_module
 from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
 from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
@@ -193,7 +194,7 @@ async def test_resolves_exact_owner_scoped_completed_named_study_artifact() -> N
 
 
 @pytest.mark.asyncio
-async def test_host_resolver_owns_one_read_session_and_returns_exact_pin() -> None:
+async def test_host_resolver_owns_one_read_session_and_returns_exact_pin(monkeypatch) -> None:
     reference, responses, principal = _graph()
     session = FakeAsyncSession(responses)
     lifecycle: list[str] = []
@@ -207,6 +208,15 @@ async def test_host_resolver_owns_one_read_session_and_returns_exact_pin() -> No
             lifecycle.append("exit")
 
     resolver = create_selected_study_artifact_resolver(SessionContext)
+
+    def reject_payload_materialization(*_args: Any, **_kwargs: Any) -> None:
+        pytest.fail("reference-only API resolver must not freeze a runtime payload")
+
+    monkeypatch.setattr(
+        study_resolver_module,
+        "ResolvedStudyArtifactOutput",
+        reject_payload_materialization,
+    )
     resolved = await resolver(principal=principal, reference=reference)
 
     assert resolved is reference or resolved == reference
