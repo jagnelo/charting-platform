@@ -6,8 +6,8 @@ Created from `staging` at `5178b414b426ec61bdcb22257b4f956581c25d0c`.
 
 - Recorded at: 2026-10-22T15:13:02.399130+00:00
 - Request: Human standing authorization to progress development, reconciliation and promotion of the four feature branches into staging and production; coordinator applies it to the formatting-only repair documented in .ai/staging-attempts/strategy-staging-quality-repair-20261022.md.
-- Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
-- Planning state: draft; the implementation agent must complete scope, acceptance criteria, tests, and local validation profile before creating a goal.
+- Closure authorization: human delegated careful technical-repair acceptance; Root exercised it after local proof, conditional on mandatory exact final source CI before integration. No pending CI result is claimed green.
+- Planning state: ready; required docker_integration minimum retained and actual local profile passed. Original active unbudgeted coordinator goal remains unchanged.
 
 ## Active changeset: pinned-formatting repair
 
@@ -51,3 +51,17 @@ the proven formatter-only scope; exact full hosted/staging gates remain required
 Exact final hosted CI and repaired staging exhaustive gate are still pending.
 FMT3 remains incomplete until exact hosted success. No staging release,
 production/deployment or full feature-roadmap completion is inferred.
+
+## Implementation closure and delegated acceptance — 2026-10-22 15:30 UTC
+
+Locally validated implementation27e1bb22e42b322832d964f99ea506f20cedf4f3 is clean
+and synchronized. Root accepts only this AST-equivalent formatting repair under
+the quoted delegated technical closure authority in plan.yaml. This final own-
+record closure contains no further code delta. integration_capture: exact branch HEAD.
+
+Freeze this final closing commit; do not create a self-SHA/CI metadata loop.
+Exact full hosted CI on FINAL HEAD remains required before canonical
+make integrate BRANCH=fix/strategy-staging-quality REMEDIATE_DEGRADED=1.
+The queue/guard must hold pending/red/inconclusive CI. New exact staging exhaustive
+green is then required before final owner release. FMT3 pending is honest, not
+an integration waiver; the coordinator exact receipt will capture terminal CI.
