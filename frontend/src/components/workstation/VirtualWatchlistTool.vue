@@ -38,7 +38,14 @@
     <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}<button v-if="pythonRunIds.python_condition" type="button" aria-label="Cancel Python condition" @click="cancelPythonRun('python_condition')">Cancel</button><button v-if="pythonCondition?.mode === 'active' && !pythonAlertBusy" type="button" aria-label="Create alert from Python condition" @click="createPythonConditionAlert">Alert</button><small v-if="pythonAlertState">{{ pythonAlertState }}</small></p>
     <div v-if="columnMenuOpen" :id="columnMenuId" ref="columnMenuRoot" class="watchlist__column-menu" role="dialog" aria-label="Column editor" @keydown="handleEditorKeydown('columns', $event)">
       <div class="watchlist__column-clipboard"><button type="button" aria-label="Paste column settings" @click="pasteColumn">Paste column settings</button><small v-if="columnClipboardState">{{ columnClipboardState }}</small></div>
-      <label v-for="column in effectiveColumns" :key="column.key" class="watchlist__column-editor-row" :class="{ 'watchlist__column-editor-row--dragging': draggedColumnKey === column.key }" draggable="true" @dragstart="dragColumn(column.key)" @dragover.prevent @drop.prevent="dropColumn(column.key)" @dragend="draggedColumnKey = null"><input type="checkbox" :aria-label="`Show ${column.label} column`" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" /><input class="watchlist__label-input" :aria-label="`${column.label} label`" :value="column.label" @change="setColumnOverride(column.key, { label: ($event.target as HTMLInputElement).value })" /><input class="watchlist__width-input" :aria-label="`${column.label} width`" :value="column.width ?? ''" placeholder="px/fr" @change="setColumnOverride(column.key, { width: ($event.target as HTMLInputElement).value })" /><select v-if="column.kind !== 'boolean'" class="watchlist__format-input" :aria-label="`${column.label} format`" :value="column.format ?? 'percent'" @change="setColumnOverride(column.key, { format: ($event.target as HTMLSelectElement).value as 'percent' | 'number' })"><option value="percent">%</option><option value="number">#</option></select><input v-if="column.kind !== 'boolean'" class="watchlist__decimals-input" type="number" min="0" max="6" :aria-label="`${column.label} decimals`" :value="column.decimals ?? ''" placeholder="dp" @change="setColumnOverride(column.key, { decimals: Number(($event.target as HTMLInputElement).value) })" /><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)"><WorkstationGlyph kind="move-left" /></button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)"><WorkstationGlyph kind="move-right" /></button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @input="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-label="`${stackedColumnKeys.includes(column.key) ? 'Unstack' : 'Stack'} ${column.label} column`" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-label="`${pinnedBooleanKeys.includes(column.key) ? 'Unpin' : 'Pin'} ${column.label} column`" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button><button class="watchlist__copy-button" type="button" :aria-label="`Copy ${column.label} settings`" @click="copyColumn(column)">Copy</button></label>
+      <div v-if="membershipTargets.length" class="watchlist__tag-column-add">
+        <select v-model.number="tagColumnTargetId" aria-label="Tag Column target WatchList">
+          <option :value="null">Choose personal WatchList…</option>
+          <option v-for="target in membershipTargets" :key="target.id" :value="target.id">{{ target.name }}</option>
+        </select>
+        <button type="button" aria-label="Add Tag Column" :disabled="tagColumnTargetId == null || tagColumnDefinitions.some(column => column.tagWatchlistId === tagColumnTargetId)" @click="addTagColumn">Add Tag Column</button>
+      </div>
+      <label v-for="column in effectiveColumns" :key="column.key" class="watchlist__column-editor-row" :class="{ 'watchlist__column-editor-row--dragging': draggedColumnKey === column.key }" draggable="true" @dragstart="dragColumn(column.key)" @dragover.prevent @drop.prevent="dropColumn(column.key)" @dragend="draggedColumnKey = null"><input type="checkbox" :aria-label="`Show ${column.label} column`" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" /><input v-if="column.kind !== 'tag'" class="watchlist__label-input" :aria-label="`${column.label} label`" :value="column.label" @change="setColumnOverride(column.key, { label: ($event.target as HTMLInputElement).value })" /><span v-else class="watchlist__tag-column-label">{{ column.label }}</span><input v-if="column.kind !== 'tag'" class="watchlist__width-input" :aria-label="`${column.label} width`" :value="column.width ?? ''" placeholder="px/fr" @change="setColumnOverride(column.key, { width: ($event.target as HTMLInputElement).value })" /><select v-if="column.kind !== 'boolean' && column.kind !== 'tag'" class="watchlist__format-input" :aria-label="`${column.label} format`" :value="column.format ?? 'percent'" @change="setColumnOverride(column.key, { format: ($event.target as HTMLSelectElement).value as 'percent' | 'number' })"><option value="percent">%</option><option value="number">#</option></select><input v-if="column.kind !== 'boolean' && column.kind !== 'tag'" class="watchlist__decimals-input" type="number" min="0" max="6" :aria-label="`${column.label} decimals`" :value="column.decimals ?? ''" placeholder="dp" @change="setColumnOverride(column.key, { decimals: Number(($event.target as HTMLInputElement).value) })" /><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)"><WorkstationGlyph kind="move-left" /></button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)"><WorkstationGlyph kind="move-right" /></button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @input="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-label="`${stackedColumnKeys.includes(column.key) ? 'Unstack' : 'Stack'} ${column.label} column`" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-label="`${pinnedBooleanKeys.includes(column.key) ? 'Unpin' : 'Pin'} ${column.label} column`" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button><button v-if="column.kind === 'tag'" class="watchlist__copy-button" type="button" :aria-label="`Remove ${column.label}`" @click="removeTagColumn(column.tagWatchlistId!)">Remove</button><button v-else class="watchlist__copy-button" type="button" :aria-label="`Copy ${column.label} settings`" @click="copyColumn(column)">Copy</button></label>
       <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" aria-label="Add selected Python column" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button><label v-for="column in pythonColumns" :key="`timeframe-${column.code_version_id}`">{{ column.name }} <select :aria-label="`${column.name} timeframe`" :value="column.timeframe ?? timeframe" @change="setPythonColumnTimeframe(column.code_version_id, ($event.target as HTMLSelectElement).value)"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label><template v-for="column in pythonColumns" :key="`progress-${column.code_version_id}`"><small v-if="pythonProgress[pythonKey(column.code_version_id)]">{{ column.name }} · {{ pythonProgress[pythonKey(column.code_version_id)] }}<button v-if="pythonRunIds[pythonKey(column.code_version_id)]" type="button" :aria-label="`Cancel ${column.name}`" @click="cancelPythonRun(pythonKey(column.code_version_id))">Cancel</button></small></template></div>
     </div>
     <div v-if="columnSetMenuOpen" :id="columnSetMenuId" ref="columnSetMenuRoot" class="watchlist__column-set-menu" role="dialog" aria-label="Saved column sets" @keydown="handleEditorKeydown('sets', $event)">
@@ -89,8 +96,8 @@
           @contextmenu.prevent.stop="openContextMenu($event, filteredRows[virtualRow.index])"
         >
           <template v-for="item in columnRenderItems" :key="item.column.key">
-            <span v-if="item.column.key !== stackedColumnKey" :style="columnCellStyle(item)" :class="cellClasses(filteredRows[virtualRow.index], item.column.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], item.column.key)" :title="cellTitle(filteredRows[virtualRow.index], item.column.key)"><b v-if="item.column.key === 'symbol' && filteredRows[virtualRow.index].flagged" class="watchlist__flag" aria-label="Flagged">⚑</b><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], item.column.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], item.column.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], item.column.key) }}</span>
-            <span v-else :style="columnCellStyle(item)" class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :class="cellClasses(filteredRows[virtualRow.index], stackedColumn.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], stackedColumn.key)" :title="cellTitle(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], stackedColumn.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], stackedColumn.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
+            <span v-if="item.column.key !== stackedColumnKey" :style="columnCellStyle(item)" :class="cellClasses(filteredRows[virtualRow.index], item.column.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], item.column.key)" :title="cellTitle(filteredRows[virtualRow.index], item.column.key)" @click="handleTagColumnClick($event, filteredRows[virtualRow.index], item.column)"><b v-if="item.column.key === 'symbol' && filteredRows[virtualRow.index].flagged" class="watchlist__flag" aria-label="Flagged">⚑</b><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], item.column.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], item.column.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], item.column.key) }}</span>
+            <span v-else :style="columnCellStyle(item)" class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :class="cellClasses(filteredRows[virtualRow.index], stackedColumn.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], stackedColumn.key)" :title="cellTitle(filteredRows[virtualRow.index], stackedColumn.key)" @click="handleTagColumnClick($event, filteredRows[virtualRow.index], stackedColumn)"><em>{{ stackedColumn.label }}</em><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], stackedColumn.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], stackedColumn.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
           </template>
           </button>
         </template>
@@ -106,6 +113,9 @@
       <button type="button" role="menuitem" tabindex="-1" @click="runContextAction('copy')">Copy symbol</button>
       <button v-if="contextMarketMapSourceId" type="button" role="menuitem" tabindex="-1" @click="openContextMarketMap">Open constituents in Market Map</button>
       <button v-if="contextMenu.row.itemId != null && !favoriteList" type="button" role="menuitem" tabindex="-1" @click="runContextAction('flag')">{{ contextMenu.row.flagged ? 'Unflag' : 'Flag' }}</button>
+      <template v-for="column in tagColumnDefinitions" :key="`tag-action-${column.tagWatchlistId}`">
+        <button type="button" role="menuitem" tabindex="-1" :disabled="!canToggleTagColumn(contextMenu.row, column)" @click="runTagColumnAction(contextMenu.row, column)">{{ tagColumnActionLabel(contextMenu.row, column) }}</button>
+      </template>
       <button
         v-if="relatedLists.length"
         type="button"
@@ -143,6 +153,7 @@ import { api } from '@/lib/api'
 import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
 import { CHART_PLOT_DRAG_MIME, clearAnalysisDrag, hasActiveAnalysisDrag, readAnalysisDrag, scheduleAnalysisDragCleanup, type ChartAnalysisDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { workstationRowBudgetState } from '@/lib/workstation/performanceBudget'
+import { parseTagColumnWatchlistIds, tagColumnKey, tagColumnMembership, type TagColumnTarget } from '@/lib/workstation/tagColumns'
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
 export interface WatchlistRow {
@@ -163,7 +174,8 @@ export interface WatchlistColumn {
   width?: string
   format?: 'percent' | 'number'
   decimals?: number
-  kind?: 'boolean'
+  kind?: 'boolean' | 'tag'
+  tagWatchlistId?: number
 }
 
 export interface WatchlistMembershipTarget {
@@ -231,6 +243,7 @@ const props = withDefaults(defineProps<{
   /** Optional row-specific canonical source, used for role/ETF constituent drill-down. */
   marketMapSourceForRow?: (row: WatchlistRow) => string | null
   membershipTargets?: WatchlistMembershipTarget[]
+  tagColumns?: TagColumnTarget[]
   columnOverrides?: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>
 }>(), {
   selected: '',
@@ -266,10 +279,11 @@ const props = withDefaults(defineProps<{
   marketMapSourceId: null,
   marketMapSourceForRow: undefined,
   membershipTargets: () => [],
+  tagColumns: () => [],
   columnOverrides: () => ({}),
 })
 const queryClient = useQueryClient()
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'market-map': [sourceId: string]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartAnalysisDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'favorite' | 'remove', row: WatchlistRow, targetWatchlistId?: number, selectedRows?: WatchlistRow[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'market-map': [sourceId: string]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartAnalysisDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'toggle-tag-membership' | 'flag' | 'favorite' | 'remove', row: WatchlistRow, targetWatchlistId?: number, selectedRows?: WatchlistRow[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:tag-columns': [value: { targetWatchlistIds: number[]; visibleColumnKeys: string[] }]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -360,6 +374,7 @@ function handleContextMenuKeydown(event: KeyboardEvent) {
   }
 }
 const membershipTargetId = ref('')
+const tagColumnTargetId = ref<number | null>(null)
 const membershipInspectionOpen = ref(false)
 const draggedItemId = ref<number | null>(null)
 const draggedColumnKey = ref<string | null>(null)
@@ -544,10 +559,14 @@ const canMoveToTarget = computed(() => {
   return Boolean(canCopyToTarget.value && sourceIds.some(id => id !== targetId))
 })
 const pythonCondition = computed(() => props.pythonCondition && Number.isInteger(props.pythonCondition.code_version_id) && props.pythonCondition.code_version_id > 0 && typeof props.pythonCondition.name === 'string' ? props.pythonCondition : null)
-const effectiveColumns = computed<WatchlistColumn[]>(() => ([...props.columns, ...indicatorColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', format: 'number' as const })), ...conditionColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', kind: 'boolean' as const })), ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))] as WatchlistColumn[]).map(column => ({
+const tagColumnDefinitions = computed(() => props.tagColumns
+  .filter(column => Number.isInteger(column.id) && column.id > 0 && typeof column.name === 'string')
+  .filter((column, index, columns) => columns.findIndex(candidate => candidate.id === column.id) === index)
+  .map(column => ({ key: tagColumnKey(column.id), label: `Tag · ${column.name}`, width: '84px', kind: 'tag' as const, tagWatchlistId: column.id })))
+const effectiveColumns = computed<WatchlistColumn[]>(() => ([...props.columns, ...tagColumnDefinitions.value, ...indicatorColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', format: 'number' as const })), ...conditionColumns.value.map(column => ({ key: column.key, label: column.name, width: '78px', kind: 'boolean' as const })), ...pythonColumns.value.map(column => ({ key: pythonKey(column.code_version_id), label: column.name, width: '78px', format: 'number' as const }))] as WatchlistColumn[]).map(column => ({
   ...column,
-  label: props.columnOverrides[column.key]?.label?.trim() || column.label,
-  width: localColumnWidths.value[column.key] || props.columnOverrides[column.key]?.width?.trim() || column.width,
+  label: column.kind === 'tag' ? column.label : props.columnOverrides[column.key]?.label?.trim() || column.label,
+  width: column.kind === 'tag' ? column.width : localColumnWidths.value[column.key] || props.columnOverrides[column.key]?.width?.trim() || column.width,
   format: props.columnOverrides[column.key]?.format || column.format,
   decimals: props.columnOverrides[column.key]?.decimals ?? column.decimals,
 })))
@@ -1315,7 +1334,7 @@ function formatNumeric(key: string, value: number, fallbackDecimals = 2) {
 }
 
 function numericCellValue(row: WatchlistRow, key: string): number | null {
-  if (effectiveColumns.value.find(column => column.key === key)?.kind === 'boolean') return null
+  if (effectiveColumns.value.find(column => column.key === key)?.kind === 'boolean' || effectiveColumns.value.find(column => column.key === key)?.kind === 'tag') return null
   if (key.startsWith('indicator:')) return props.indicatorValues[key]?.[row.symbol] ?? null
   if (key.startsWith('python:')) {
     const value = pythonCells.value[key]?.[row.symbol]?.value
@@ -1356,6 +1375,13 @@ function cellTitle(row: WatchlistRow, key: string) {
 }
 
 function cellWarning(row: WatchlistRow, key: string): string | null {
+  const tagColumn = tagColumnDefinitions.value.find(column => column.key === key)
+  if (tagColumn) {
+    const target = props.tagColumns.find(candidate => candidate.id === tagColumn.tagWatchlistId)
+    return tagColumnMembership(target, row.instrumentId) === 'unavailable'
+      ? `Membership for ${tagColumn.label} is unavailable.`
+      : null
+  }
   if (key.startsWith('indicator:')) return props.indicatorValues[key]?.[row.symbol] == null ? props.indicatorWarnings[key]?.[row.symbol] ?? null : null
   if (key.startsWith('python:')) return null
   if (key.startsWith('condition:')) return null
@@ -1364,6 +1390,12 @@ function cellWarning(row: WatchlistRow, key: string): string | null {
 }
 
 function display(row: WatchlistRow, key: string) {
+  const tagColumn = tagColumnDefinitions.value.find(column => column.key === key)
+  if (tagColumn) {
+    const target = props.tagColumns.find(candidate => candidate.id === tagColumn.tagWatchlistId)
+    const membership = tagColumnMembership(target, row.instrumentId)
+    return membership === 'member' ? 'In' : membership === 'not_member' ? '—' : 'Unavailable'
+  }
   if (key.startsWith('indicator:')) {
     const value = props.indicatorValues[key]?.[row.symbol]
     const warning = props.indicatorWarnings[key]?.[row.symbol]
@@ -1387,6 +1419,12 @@ function display(row: WatchlistRow, key: string) {
 }
 
 function sortValue(row: WatchlistRow, key: string): number | string | null {
+  const tagColumn = tagColumnDefinitions.value.find(column => column.key === key)
+  if (tagColumn) {
+    const target = props.tagColumns.find(candidate => candidate.id === tagColumn.tagWatchlistId)
+    const membership = tagColumnMembership(target, row.instrumentId)
+    return membership === 'member' ? 'In list' : membership === 'not_member' ? 'Not in list' : null
+  }
   if (key.startsWith('indicator:')) return props.indicatorValues[key]?.[row.symbol] ?? null
   if (key.startsWith('condition:')) {
     const value = props.conditionValues[key]?.[row.symbol]
@@ -1556,6 +1594,52 @@ function runContextAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'aler
     if (selectedRows.length > 1) emit('row-action', action, row, undefined, selectedRows)
     else emit('row-action', action, row)
   }
+}
+
+function canToggleTagColumn(row: WatchlistRow, column: WatchlistColumn): boolean {
+  if (column.kind !== 'tag' || column.tagWatchlistId == null) return false
+  const target = props.tagColumns.find(candidate => candidate.id === column.tagWatchlistId)
+  return !target?.locked && tagColumnMembership(target, row.instrumentId) !== 'unavailable'
+}
+
+function tagColumnActionLabel(row: WatchlistRow, column: WatchlistColumn): string {
+  if (column.kind !== 'tag' || column.tagWatchlistId == null) return 'Tag membership unavailable'
+  const target = props.tagColumns.find(candidate => candidate.id === column.tagWatchlistId)
+  const membership = tagColumnMembership(target, row.instrumentId)
+  if (membership === 'unavailable') return `Membership unavailable in ${column.label}`
+  return `${membership === 'member' ? 'Remove' : 'Add'} ${row.symbol} ${membership === 'member' ? 'from' : 'to'} ${column.label}`
+}
+
+function runTagColumnAction(row: WatchlistRow, column: WatchlistColumn) {
+  if (!canToggleTagColumn(row, column) || column.tagWatchlistId == null) return
+  emit('row-action', 'toggle-tag-membership', row, column.tagWatchlistId)
+  contextMenu.value = null
+  void nextTick(() => contextRowElement.value?.focus())
+}
+
+function handleTagColumnClick(event: MouseEvent, row: WatchlistRow, column: WatchlistColumn) {
+  if (!event.altKey || column.kind !== 'tag') return
+  if (!canToggleTagColumn(row, column) || column.tagWatchlistId == null) return
+  event.preventDefault()
+  event.stopPropagation()
+  emit('row-action', 'toggle-tag-membership', row, column.tagWatchlistId)
+}
+
+function addTagColumn() {
+  const targetId = tagColumnTargetId.value
+  if (targetId == null || tagColumnDefinitions.value.some(column => column.tagWatchlistId === targetId)) return
+  const ids = parseTagColumnWatchlistIds([
+    ...props.tagColumns.map(column => column.id),
+    targetId,
+  ])
+  const visibleColumnKeys = [...new Set([...activeColumnKeys.value, tagColumnKey(targetId)])]
+  emit('update:tag-columns', { targetWatchlistIds: ids, visibleColumnKeys })
+}
+
+function removeTagColumn(targetId: number) {
+  const ids = parseTagColumnWatchlistIds(props.tagColumns.map(column => column.id)).filter(id => id !== targetId)
+  const visibleColumnKeys = activeColumnKeys.value.filter(key => key !== tagColumnKey(targetId))
+  emit('update:tag-columns', { targetWatchlistIds: ids, visibleColumnKeys })
 }
 
 function toggleColumn(key: string) {
@@ -1785,6 +1869,9 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__column-clipboard { position: sticky; z-index: 1; top: -3px; display: flex; align-items: center; gap: 4px; min-height: 20px; padding: 2px 0; background: #151b20; border-bottom: 1px solid #2d3942; }
 .watchlist__column-clipboard button { border: 1px solid #42515c; background: #1d2a33; color: #d7e3eb; padding: 2px 5px; font: inherit; cursor: pointer; }
 .watchlist__column-clipboard small { overflow: hidden; color: #8498a6; text-overflow: ellipsis; white-space: nowrap; }
+.watchlist__tag-column-add { display: flex; align-items: center; gap: 4px; }
+.watchlist__tag-column-add select,.watchlist__tag-column-add button { min-width: 0; border: 1px solid #42515c; background: #182128; color: #d7e3eb; font: inherit; padding: 2px 5px; }
+.watchlist__tag-column-label { overflow: hidden; text-overflow: ellipsis; }
 .watchlist__column-set-menu { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:4px 7px; background:#202b33; border-bottom:1px solid #384550; color:#b7c6d0; font-size:10px; }.watchlist__column-set-menu input,.watchlist__column-set-menu button{min-width:0;border:1px solid #42515c;background:#182128;color:#d7e3eb;font:inherit;padding:1px 4px}.watchlist__column-set-menu input{width:108px}.watchlist__column-set-menu span{display:flex;gap:2px}.watchlist__column-set-menu small{color:#8498a6}.watchlist__column-set-error{color:#e49a9a!important}
 .watchlist__condition-state { overflow: hidden; margin: 0; padding: 2px 7px; border-bottom: 1px solid #2b343c; color: #8498a6; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .watchlist__column-menu label { display: grid; grid-template-columns: 15px minmax(62px, 1fr) 40px 36px 30px 18px 18px 54px 38px 38px 38px; align-items: center; gap: 2px; min-height: 22px; padding: 1px 3px; border: 1px solid transparent; background: #1a2228; white-space: nowrap; cursor: grab; }

@@ -1,5 +1,6 @@
 <template>
   <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+    <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
     <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
         <label>Family
@@ -55,12 +56,14 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
+      :tag-columns="configuredTagColumns"
       :market-map-source-id="activeBenchmarkMarketMapSourceId"
       :market-map-source-for-row="benchmarkFamilyKey ? benchmarkFamilyMarketMapSourceForRow : undefined"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @market-map="emit('marketMap', $event)"
       @row-action="handleRowAction"
+      @update:tag-columns="updateTagColumns"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -101,11 +104,13 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
+      :tag-columns="configuredTagColumns"
       market-map-source-id="market-group:sp500-sectors"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @market-map="emit('marketMap', $event)"
       @row-action="handleRowAction"
+      @update:tag-columns="updateTagColumns"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -146,7 +151,6 @@
         <span v-else-if="watchlistStore.loading">Loading watchlists…</span>
         <span v-else>No personal watchlists available.</span>
         <span v-if="Object.values(customDateSortListLoading).some(Boolean)" role="status" aria-live="polite">Calculating Custom Date Sort from canonical local history…</span>
-        <span v-if="personalWatchlistError" class="personal-watchlist-tool__error">{{ personalWatchlistError }}</span>
         <span v-if="favoriteStore.error" class="personal-watchlist-tool__error" role="alert">{{ favoriteStore.error }}</span>
         <span v-if="watchlistStore.loadError" class="personal-watchlist-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ watchlistStore.loadError }}</span>
         <section class="combo-editor" aria-label="Combo list editor">
@@ -197,6 +201,7 @@
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
         :membership-targets="isFavoritesTool ? [] : personalWatchlistTargets"
+        :tag-columns="configuredTagColumns"
         :source-watchlist-id="isFavoritesTool ? undefined : selectedPersonalWatchlist?.id"
         :market-map-source-id="isFavoritesTool ? favoriteMarketMapSourceId : personalMarketMapSourceId"
         :reorderable="!isFavoritesTool && Boolean(selectedPersonalWatchlist && !selectedPersonalWatchlist.is_locked && !selectedPersonalWatchlist.is_managed)"
@@ -207,6 +212,7 @@
         @compare="emit('compare', $event)"
         @market-map="emit('marketMap', $event)"
       @row-action="handlePersonalRowAction"
+        @update:tag-columns="updateTagColumns"
         @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
         @update:filter-text="emit('filter', tool.instance_key, $event)"
         @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -244,11 +250,13 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
+      :tag-columns="configuredTagColumns"
       :market-map-source-id="factoryWatchlistSourceId"
       @select="tool.instance_key === 'industries' ? emit('selectIndustry', $event.symbol, industryETFContext) : selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @market-map="emit('marketMap', $event)"
       @row-action="handleRowAction"
+      @update:tag-columns="updateTagColumns"
       @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
       @update:filter-text="emit('filter', tool.instance_key, $event)"
       @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -389,11 +397,13 @@
             :python-columns="configuredPythonColumns"
             :python-condition="configuredPythonCondition"
             :membership-targets="personalWatchlistTargets"
+            :tag-columns="configuredTagColumns"
             :market-map-source-id="proxyMarketMapSourceId"
             @select="selectProxy($event.symbol, $event.instrumentId)"
             @compare="emit('compare', $event)"
             @market-map="emit('marketMap', $event)"
             @row-action="handleRowAction"
+            @update:tag-columns="updateTagColumns"
             @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
             @update:filter-text="emit('filter', tool.instance_key, $event)"
             @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -446,11 +456,13 @@
         :python-columns="configuredPythonColumns"
         :python-condition="configuredPythonCondition"
         :membership-targets="personalWatchlistTargets"
+        :tag-columns="configuredTagColumns"
         :market-map-source-id="constituentMarketMapSourceId"
         @select="selectSymbol($event.symbol, $event.instrumentId)"
         @compare="emit('compare', $event)"
         @market-map="emit('marketMap', $event)"
         @row-action="handleRowAction"
+        @update:tag-columns="updateTagColumns"
         @update:visible-column-keys="emit('columns', tool.instance_key, $event)"
         @update:filter-text="emit('filter', tool.instance_key, $event)"
         @update:condition-screener-id="emit('conditionFilter', tool.instance_key, $event)"
@@ -979,6 +991,7 @@ import { useFavoritesStore } from '@/stores/favorites'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from './VirtualWatchlistTool.vue'
+import { parseTagColumnWatchlistIds, type TagColumnTarget } from '@/lib/workstation/tagColumns'
 import RatioUPlot from './RatioUPlot.vue'
 import InstrumentNoteTool from './InstrumentNoteTool.vue'
 import InstrumentAlertsTool from './InstrumentAlertsTool.vue'
@@ -1081,6 +1094,7 @@ let disposed = false
 let comboListLoadSequence = 0
 let comboMutationSequence = 0
 let personalMutationSequence = 0
+const pendingTagMembershipMutations = new Set<string>()
 let benchmarkFamilyReadinessSequence = 0
 let familyAnalyticsSequence = 0
 let familyOverviewSequence = 0
@@ -1716,7 +1730,41 @@ async function handleMembershipAction(action: 'copy-to-watchlist' | 'move-to-wat
   }
 }
 
-function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'favorite' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }>) {
+async function toggleTagColumnMembership(row: { symbol: string; instrumentId: number | null }, targetWatchlistId?: number) {
+  const instrumentId = row.instrumentId
+  if (disposed || targetWatchlistId == null || !Number.isInteger(targetWatchlistId) || instrumentId == null || !Number.isInteger(instrumentId) || instrumentId <= 0) return
+  const target = personalWatchlists.value.find(watchlist => watchlist.id === targetWatchlistId)
+  if (!target || target.is_managed || target.is_locked) {
+    personalWatchlistError.value = 'Tag Columns can change membership only in an unlocked personal WatchList.'
+    return
+  }
+  const mutationKey = `${target.id}:${instrumentId}`
+  if (pendingTagMembershipMutations.has(mutationKey)) return
+  pendingTagMembershipMutations.add(mutationKey)
+  personalWatchlistError.value = ''
+  try {
+    const existing = target.items.find(item => item.instrument_id === instrumentId)
+    if (existing) {
+      await watchlistStore.removeItem(target.id, existing.id)
+      if (personalWatchlists.value.find(list => list.id === target.id)?.items.some(item => item.instrument_id === instrumentId)) {
+        personalWatchlistError.value = `Unable to remove ${row.symbol} from ${target.name}.`
+      }
+    } else {
+      const added = await watchlistStore.addItem(target.id, instrumentId)
+      if (!added || !personalWatchlists.value.find(list => list.id === target.id)?.items.some(item => item.instrument_id === instrumentId)) {
+        personalWatchlistError.value = `Unable to add ${row.symbol} to ${target.name}.`
+      }
+    }
+  } finally {
+    pendingTagMembershipMutations.delete(mutationKey)
+  }
+}
+
+function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'toggle-tag-membership' | 'flag' | 'favorite' | 'remove', row: { symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null; itemId?: number; sourceWatchlistId?: number; flagged?: boolean }>) {
+  if (action === 'toggle-tag-membership') {
+    void toggleTagColumnMembership(row, targetWatchlistId)
+    return
+  }
   if (action === 'favorite') {
     for (const item of selectedRows?.length ? selectedRows : [row]) {
       if (item.instrumentId != null) void favoriteStore.add(item.instrumentId)
@@ -2221,7 +2269,11 @@ function selectProxy(symbol: string, instrumentId?: number | null) {
   emit('selectProxy', symbol, instrumentId)
 }
 
-function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'favorite' | 'remove', row: { symbol: string; instrumentId: number | null; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null }>) {
+function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'toggle-tag-membership' | 'flag' | 'favorite' | 'remove', row: { symbol: string; instrumentId: number | null; flagged?: boolean }, targetWatchlistId?: number, selectedRows?: Array<{ symbol: string; instrumentId: number | null }>) {
+  if (action === 'toggle-tag-membership') {
+    void toggleTagColumnMembership(row, targetWatchlistId)
+    return
+  }
   if (action === 'flag') return
   if (action === 'favorite') {
     for (const item of selectedRows?.length ? selectedRows : [row]) {
@@ -3693,6 +3745,28 @@ const configuredColumnKeys = computed(() => {
   const keys = liveToolConfiguration.value.column_keys
   return Array.isArray(keys) && keys.every(key => typeof key === 'string') ? keys as string[] : []
 })
+const configuredTagColumns = computed<TagColumnTarget[]>(() => parseTagColumnWatchlistIds(
+  liveToolConfiguration.value.tag_watchlist_ids,
+).map(id => {
+  const target = personalWatchlists.value.find(watchlist => watchlist.id === id)
+  return {
+    id,
+    name: target?.name ?? `WatchList ${id} (unavailable)`,
+    locked: Boolean(target?.is_locked || target?.is_managed),
+    instrumentIds: target ? target.items.map(item => item.instrument_id) : null,
+  }
+}))
+function updateTagColumns(value: { targetWatchlistIds: number[]; visibleColumnKeys: string[] }) {
+  const ids = parseTagColumnWatchlistIds(value.targetWatchlistIds)
+  const keys = Array.isArray(value.visibleColumnKeys)
+    ? [...new Set(value.visibleColumnKeys.filter((key): key is string => typeof key === 'string'))]
+    : configuredColumnKeys.value
+  emit('configuration', props.tool.instance_key, {
+    ...liveToolConfiguration.value,
+    tag_watchlist_ids: ids,
+    column_keys: keys,
+  })
+}
 const configuredFilterText = computed(() => typeof props.tool.configuration.filter_text === 'string' ? props.tool.configuration.filter_text : '')
 const configuredConditionScreenerId = computed(() => Number.isInteger(props.tool.configuration.condition_screener_id) ? props.tool.configuration.condition_screener_id as number : null)
 const configuredConditionFilterMode = computed(() => ['active', 'inactive', 'off'].includes(String(props.tool.configuration.condition_filter_mode)) ? props.tool.configuration.condition_filter_mode as 'active' | 'inactive' | 'off' : 'off')
@@ -4241,6 +4315,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .personal-watchlist-tool__controls button:disabled { cursor: default; opacity: .5; }
 .personal-watchlist-tool__controls span { color: #8498a6; }
 .personal-watchlist-tool__controls .personal-watchlist-tool__error { color: #e49a9a; }
+.workstation-tool-content__mutation-error { display:block; padding:4px 8px; color:#e49a9a; background:#2a1919; }
 .combo-editor { display: flex; flex: 1 0 100%; align-items: center; min-width: max-content; gap: 4px; padding: 3px 0 2px 4px; border-left: 1px solid #34434d; border-top: 1px solid #28343c; }
 .combo-editor header { color: #d7e4eb; }
 .combo-editor label { display: flex; align-items: center; gap: 2px; color: #8498a6; }

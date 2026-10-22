@@ -27,28 +27,62 @@ reported `feat/tc2000-frontend-rework` identical to that SHA (the shell
 resolver and chart-selection consumer were subsequently developed on that base;
 the current published slice is summarized immediately below.
 
-The next branch-owned roadmap item remains Custom Date Sort. Exact released
-staging `0e342512e53ba2268425294d61c50e219eaafa4f` is an ancestor of the
-published implementation tip `5ca3423e553e27e36dc8002be5f11996bbd4cf9e`; a
-live GitHub compare API independently reports the feature ref identical to
-that SHA. No fast-forward or merge was needed to adopt the release. The shell
-`ls-remote` attempt encountered transient DNS failure, but connected GitHub
-compare verified the branch ref. The percent-change result-destination slice is
-published: after verified instrument-range evidence, the user can choose an
-existing personal WatchList and open a new WatchList window with a canonical
-persisted column definition. The window reads each symbol through the existing
-historical coverage gate and canonical local OHLCV route, with at most four
-symbol reads in flight; unready, mismatched, non-local, unknown-lineage, or
-failed results stay unavailable with row warnings. No list mutation or provider
-acquisition is added. Ordinary WatchLists retain their ascending-symbol
-default. Relative comparison modes remain unavailable until source-backed
-industry/sub-industry history is verified. Three focused suites passed 108/108
-and Vue type-check passed on implementation `5ca3423`; these are unit/type
-checks only. No live app/database, full frontend coverage/build, browser, or
-exact-source CI for `5ca3423` has been run. The adopted combined staging
-receipt/run `39827786248` is recorded above and in the validation journal.
-Official `REF-HELP-V25`, broader AC1-AC9 completion, and the remaining full
-feature roadmap stay open.
+The current branch HEAD is `23ba07a76a10eb05b4352b9e2fd421ba288acf91`,
+synchronized with origin; its latest product source remains implementation
+`5ca3423e553e27e36dc8002be5f11996bbd4cf9e` and the intervening commit only
+updated workstream records. The exact released staging SHA
+`0e342512e53ba2268425294d61c50e219eaafa4f` remains an ancestor. The published
+Custom Date Sort percent-change destination reads each symbol through the
+historical coverage gate and canonical local OHLCV route, limits concurrent
+reads to four, and leaves unready, mismatched, non-local, unknown-lineage, or
+failed results unavailable. Ordinary WatchLists retain their ascending-symbol
+default. Source review of `analysis.py` and `schemas/analysis.py` found that the
+industry snapshot endpoint returns fixed-period summary cells with an `as_of`
+cutoff, not an arbitrary date-indexed comparator series. Relative modes remain
+unavailable; no benchmark, membership rule, or provider route was inferred.
+
+## In-progress roadmap slice — personal WatchList Tag Columns
+
+The current worktree also contains an uncommitted Tag Columns candidate, grounded
+in the product contract recorded in `docs/tc2000-parity.md`: each column targets
+one explicitly selected personal WatchList, persists that target and visibility,
+displays current membership, and Alt+click changes only that target's membership.
+Locked or unavailable target evidence remains read-only; ordinary row selection
+is unchanged. The dirty source/test paths are `VirtualWatchlistTool.vue`,
+`WorkstationToolContent.vue`, `tagColumns.ts`, `test_virtual_watchlist_tool.test.ts`,
+`test_tag_columns.test.ts`, and the parent-level
+`test_workstation_tool_content_tag_columns.test.ts`. Focused helper/component/store
+tests passed 116/116 before the shared-alert correction. Review found
+membership-mutation errors were written to a status span only present in the
+personal-WatchList branch, though tag actions are wired on other virtual-list
+surfaces. The existing alert now occupies the shared WorkstationToolContent
+slot. The current three focused suites pass 102/102, and `vue-tsc --noEmit` passes
+on these current bytes; workstream/scope validation, JSONL parsing, and diff
+checks pass. Earlier one-worker full frontend coverage and `npm run build` (527
+modules) predate that correction and the new parent-level test, so do not count
+them as final-candidate evidence. The candidate remains staged/dirty but not
+committed or published; authenticated browser and exact-source CI remain
+pending. Root's shared Market Map repair is still unreleased into this branch;
+do not duplicate it or begin a heavy local profile before release/explicit slot.
+Preserve
+the accepted staging checkpoint and full
+AC1–AC9/official REF-HELP-V25 roadmap.
+
+Full frontend coverage passed locally on the current product inputs (141 files,
+1350 tests; 85.74% statements/lines, 73.74% branches, 75.35% functions), and
+`npm run build` including Vue type-check passed. Exact hosted CI
+`39850573339` for record HEAD `23ba07a` completed successfully: Backend passed
+5,191 unit and 497 integration tests at 84% combined coverage, Frontend Unit
+and Branch Declared passed, and E2E passed 191 with 110 declared skips and no
+retry/flake markers. Exhaustive Integration Gate was skipped, so this is not a
+strict104 visual result. These results do not replace the required full local
+functional and strict104 visual profile for the Custom Date Sort product
+source; prior functional/visual receipts remain qualified to their original
+source inputs. No new local browser/Compose profile is authorized until Root
+assigns its runtime slot.
+The adopted combined staging receipt/run `39827786248` remains recorded above
+and in the validation journal. Official `REF-HELP-V25`, broader AC1-AC9
+completion, and the remaining full feature roadmap stay open.
 
 ## Historical status — 2026-10-22: persisted Custom Date Sort loader
 

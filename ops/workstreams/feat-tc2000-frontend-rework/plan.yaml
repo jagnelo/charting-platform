@@ -61,19 +61,28 @@ human_interim_help_reference_authorization: >-
   source repair.
 current_blocker: >-
   The exact combined staging release 0e342512e53ba2268425294d61c50e219eaafa4f
-  is an ancestor of published implementation tip 5ca3423e553e27e36dc8002be5f11996bbd4cf9e;
-  GitHub compare independently reports the feature ref identical to that tip.
-  No upstream dependency blocks TC-owned development. The published Custom Date
-  Sort implementation now includes a persisted percent-change result column in a new
-  WatchList window backed by an existing personal list. It uses the existing
-  exact-range historical coverage gate and canonical local OHLCV route, limits
-  concurrent symbol work to four, and leaves inadequate/unknown/non-local
-  evidence unavailable. Relative modes remain unavailable until a truthful
-  persisted industry/sub-industry comparator is verified. Focused checks pass
-  108/108 across three suites plus Vue type-check on 5ca3423; full frontend
-  coverage/build, browser and exact-source CI remain pending. No provider
-  acquisition, live test, deployment, or visual-reference change was performed.
-  Official REF-HELP-V25 and broader AC1-AC9 work remain open.
+  remains an ancestor of published branch HEAD 23ba07a76a10eb05b4352b9e2fd421ba288acf91,
+  which is synchronized with origin. The published Custom Date Sort implementation
+  remains 5ca3423e553e27e36dc8002be5f11996bbd4cf9e; exact-range coverage,
+  canonical local OHLCV, a four-symbol concurrency bound and explicit unavailable
+  outcomes are retained. No arbitrary-date industry/sub-industry comparator
+  series exists in the reviewed contract, so relative modes remain unavailable.
+  The current worktree is intentionally dirty with a separate Tag Columns
+  candidate in VirtualWatchlistTool, WorkstationToolContent, tagColumns.ts and
+  three focused test files. The candidate's latest focused run passes 102/102
+  across the VirtualWatchlistTool, helper, and parent mutation-error suites;
+  Vue type-check passes on these current bytes. Workstream/scope validation,
+  JSONL parsing and cached/working diff checks also pass. Earlier one-worker full
+  frontend coverage and production build predate the shared alert-placement
+  correction and the new parent-level test, so they do not qualify the final
+  candidate. No authenticated browser or exact-source CI has run for it. The
+  previous branch CI 39850573339 remains qualified only to record HEAD 23ba and
+  skipped Exhaustive Integration Gate; it does not validate Tag Columns or
+  strict visual parity. Root's shared Market Map repair is not yet released
+  into this branch; do not duplicate that fix or start a heavy local profile
+  before release/explicit slot.
+  No provider acquisition, live test, deployment or visual-reference change was
+  performed. Official REF-HELP-V25 and broader AC1-AC9 work remain open.
 current_checkpoint_status: >-
   The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
   implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
@@ -524,29 +533,29 @@ historical_blocker_archive: >-
   tolerance. Full integration and broader AC4-AC7/R1/R5/R6 remain open; provider
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
-  name: TC2000 F8m/F8n/F8s renderer and menu lifecycle repair
-  status: five_path_reviewed_and_published_by_this_changeset_exact_CI_and_browser_pending
-  commit_sha: enclosing_changeset_commit
-  remote_sha: enclosing_changeset_commit
+  name: TC2000 personal WatchList Tag Columns
+  status: focused_tests_and_typecheck_green_full_coverage_build_browser_and_exact_CI_pending
+  commit_sha: null
+  remote_sha: null
   intent: >-
-    Preserve uPlot identity across semantically equivalent renderer initialization
-    and prevent shell-menu listener synchronization from moving a fixed menu
-    between ordinary pointer press and release. Keep genuine renderer changes,
-    data updates, resize/scroll positioning, keyboard access and ordinary menu
-    activation intact.
+    Persist explicit personal WatchList targets as Tag Columns, display membership
+    from canonical target-list rows, and let Alt+click or the accessible row menu
+    add/remove only that target list's membership. Preserve unavailable/locked
+    evidence as read-only and retain ordinary row selection behavior.
   owned_paths:
-    - frontend/src/components/chart/UPlotChart.vue
-    - frontend/src/lib/uplot/rendererLifecycle.ts
-    - frontend/src/views/WorkstationView.vue
-    - frontend/tests/unit/lib/test_renderer_lifecycle.test.ts
-    - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+    - frontend/src/components/workstation/VirtualWatchlistTool.vue
+    - frontend/src/components/workstation/WorkstationToolContent.vue
+    - frontend/src/lib/workstation/tagColumns.ts
+    - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
+    - frontend/tests/unit/components/test_workstation_tool_content_tag_columns.test.ts
+    - frontend/tests/unit/lib/test_tag_columns.test.ts
   next_action: >-
-    Publish this coherent candidate once; verify exact refs and automatic CI.
-    Then submit a refreshed source-qualified proposal to reuse only the existing
-    owned runtime for frontend-only functional and strict104 visual gates. Do not
-    execute build/runtime/browser work before coordinator review; preserve all
-    screenshot references, masks, retries and 0.005 tolerance. No TCP2 full-gate
-    closure or downstream checkpoint acceptance is claimed.
+    Publish the exact ten-path candidate packet after cached-diff review, then
+    qualify automatic exact-source branch CI. The latest focused 102-test suite
+    and Vue type-check are green; full authenticated functional and strict104
+    browser validation still requires the coordinator-assigned existing runtime
+    slot; do not create a fixture or change screenshot references, masks, retries
+    or tolerance.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -1211,13 +1220,13 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "combined_green_staging_0e342512_ancestor_of_published_5ca3423_remote_compare_identical;custom_date_sort_formula_coverage_loader_chart_selection_and_local_percent_consumer;personal_watchlist_new_window_percent_destination_published;focused_108_tests_vue_typecheck_green;full_frontend_coverage_build_browser_exact_candidate_CI_and_relative_comparator_source_pending;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "combined_green_staging_0e342512_ancestor_of_published_5ca3423;custom_date_sort_percent_destination_published;tag_columns_six_source_test_paths_candidate;focused_102_tests_and_current_vue_typecheck_green;prior_full_frontend_coverage_build_predate_shared_alert_and_parent_test;candidate_exact_CI_and_authenticated_browser_pending;custom_source_functional_strict104_visual_pending;relative_comparator_unavailable_without_source_contract;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Verify whether a source-backed persisted
-    industry/sub-industry comparator exists before enabling either relative
-    mode; do not infer it from classification labels or add a provider fetch.
-    Then run the required frontend coverage/build, browser profile and
-    exact-source CI when the assigned runtime slot is available.
+    Publish the exact reviewed ten-path Tag Columns packet with truthful records
+    and own-branch CI. Do not start a browser/Compose
+    profile without the Root-assigned runtime slot. Keep Custom Date Sort relative modes unavailable until a source-backed
+    arbitrary-date comparator series contract exists. Preserve the full AC1-AC9
+    roadmap, official REF-HELP-V25 gap, provider/live holds and screenshot policy.
     Preserve native goal/session accounting, disabled live/provider operations,
     protected visual oracles, the official REF-HELP-V25 gap, and the full
     AC1-AC9 roadmap. Do not create an acknowledgment-only commit or claim

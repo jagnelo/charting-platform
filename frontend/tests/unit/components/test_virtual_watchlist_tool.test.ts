@@ -866,6 +866,110 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['move-to-watchlist', expect.objectContaining({ itemId: 22 }), 7])
   })
 
+  it('persists a Tag Column target and changes only that membership on Alt+click', async () => {
+    const row = { ...rows[0], itemId: 11, sourceWatchlistId: 3 }
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Current list',
+        rows: [row],
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'name', label: 'Name' }],
+        membershipTargets: [{ id: 7, name: 'Core', instrumentIds: [1] }],
+        tagColumns: [{ id: 7, name: 'Core', instrumentIds: [1] }],
+      },
+    })
+    const tagCell = wrapper.find('[title="In"]')
+    expect(tagCell.exists()).toBe(true)
+    await tagCell.trigger('click')
+    expect(wrapper.emitted('row-action')).toBeUndefined()
+    expect(wrapper.emitted('select')).toHaveLength(1)
+    await tagCell.trigger('click', { altKey: true })
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['toggle-tag-membership', row, 7])
+    expect(wrapper.emitted('select')).toHaveLength(1)
+
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const accessibleAction = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Remove XLK from Tag · Core')
+    expect(accessibleAction?.exists()).toBe(true)
+    await accessibleAction?.trigger('click')
+    expect(wrapper.emitted('row-action')?.at(-1)).toEqual(['toggle-tag-membership', row, 7])
+  })
+
+  it('sorts Tag Column membership while keeping unavailable rows after known states', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Current list',
+        rows: [
+          { instrumentId: 2, symbol: 'XLE', name: 'Energy' },
+          { instrumentId: null, symbol: 'UNK', name: 'Unknown identity' },
+          { instrumentId: 1, symbol: 'XLK', name: 'Technology' },
+        ],
+        columns: [{ key: 'symbol', label: 'Symbol' }],
+        visibleColumnKeys: ['symbol', 'tag-watchlist:7'],
+        tagColumns: [{ id: 7, name: 'Core', instrumentIds: [1] }],
+      },
+    })
+
+    await wrapper.get('button[aria-label^="Sort by Tag · Core"]').trigger('click')
+
+    const sortedRows = (wrapper.vm as unknown as { filteredRows: Array<{ symbol: string }> }).filteredRows
+    expect(sortedRows.map(row => row.symbol)).toEqual([
+      'XLK',
+      'XLE',
+      'UNK',
+    ])
+    expect(wrapper.get('.watchlist__row').attributes('aria-label')).toContain('Tag · Core: In')
+    wrapper.unmount()
+  })
+
+  it('adds the selected Tag Column to persisted visibility and removes only its target definition', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Current list',
+        rows,
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'name', label: 'Name' }],
+        membershipTargets: [{ id: 7, name: 'Core', instrumentIds: [1] }],
+        tagColumns: [],
+      },
+    })
+    await wrapper.get('button[aria-label="Columns"]').trigger('click')
+    await wrapper.get('select[aria-label="Tag Column target WatchList"]').setValue('7')
+    await wrapper.get('button[aria-label="Add Tag Column"]').trigger('click')
+    expect(wrapper.emitted('update:tag-columns')?.at(-1)).toEqual([{
+      targetWatchlistIds: [7],
+      visibleColumnKeys: ['symbol', 'name', 'tag-watchlist:7'],
+    }])
+
+    await wrapper.setProps({ tagColumns: [{ id: 7, name: 'Core', instrumentIds: [1] }] })
+    await wrapper.findAll('button[aria-label="Remove Tag · Core"]').at(-1)?.trigger('click')
+    expect(wrapper.emitted('update:tag-columns')?.at(-1)).toEqual([{
+      targetWatchlistIds: [],
+      visibleColumnKeys: ['symbol', 'name'],
+    }])
+  })
+
+  it('keeps locked or unavailable Tag Column membership read-only on Alt+click', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Current list',
+        rows: [rows[0]],
+        columns: [{ key: 'symbol', label: 'Symbol' }],
+        visibleColumnKeys: ['symbol', 'tag-watchlist:7', 'tag-watchlist:8'],
+        tagColumns: [
+          { id: 7, name: 'Locked', locked: true, instrumentIds: [1] },
+          { id: 8, name: 'Not loaded', instrumentIds: null },
+        ],
+      },
+    })
+
+    const lockedMembership = wrapper.get('span[title="In"]')
+    const unavailableMembership = wrapper.get('span[title^="Unavailable"]')
+    expect(lockedMembership.text()).toBe('In')
+    expect(unavailableMembership.text()).toBe('Unavailable')
+    await lockedMembership.trigger('click', { altKey: true })
+    await unavailableMembership.trigger('click', { altKey: true })
+
+    expect(wrapper.emitted('row-action')).toBeUndefined()
+  })
+
   it('uses Ctrl+M to open explicit list membership for the active selection without mutating it', async () => {
     const selectedRows = rows.map((row, index) => ({ ...row, itemId: index + 10, sourceWatchlistId: 3 }))
     const wrapper = mount(VirtualWatchlistTool, {
