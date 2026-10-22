@@ -23,7 +23,7 @@ integration_checkpoint:
     base_source_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
     released_staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
     strategy_merge_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
-    phase: bounded_f8l_observation_and_provider_reader_pg_evidence_review
+    phase: published_source_exact_ci_and_full_backend_local_validation
     reconciled_alembic_head: slv2_0011
     integration_capture: exact branch HEAD
     intent: >-
@@ -102,6 +102,124 @@ integration_checkpoint:
         The local full collector's 14 shard-53 failures occurred with routing forced off; two
         representative mocked positive route-selection nodes passed once with routing true only in
         that isolated process, which does not explain every failure.
+      latest_full_backend_attempt:
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        command: scripts/backend_coverage.py --shard-size 50
+        result: >-
+          The unchanged complete collector discovered 3432 tests/unit, 1759 app/strategy_lab_v2/tests,
+          and 499 tests/integration (5690 total). Unit shards 1-58 passed (2900 cases). Shard 59/104
+          exited 1 with pytest INTERNALERROR/MemoryError during pytest-cov collector flush_data at
+          runtestloop teardown, followed by a second MemoryError writing pytest cache/nodeids. No
+          assertion summary is available for shard 59; shards 60-104, all 499 integration tests,
+          and the combined coverage report/75% threshold were not reached. This is an incomplete
+          local full-backend gate, not a test-suite pass or a proven product assertion failure.
+        bounds_and_environment: >-
+          One UV offline/no-sync collector, no xdist/retries, 2 GiB address-space limit, 5400-second
+          wall limit with INT/20-second grace, RESEARCH_MAX_MEMORY_BYTES=1 GiB, scientific thread
+          pools set to one, normal mocked-test PROVIDER_ROUTING_ENABLED=true only in the isolated test
+          process, paid routing false, all live flags zero, cleared provider credentials/proxies,
+          private quota/FINRA/UV-cache paths and ENV_FILE=/dev/null. The two approved loopback-only
+          fixtures used the pinned cached PostgreSQL/Redis images, caps and tmpfs; no provider HTTP
+          or quota operation occurred.
+        fixture_receipt: >-
+          Runner-reported supervisor/collector PID 630769; raw log and evidence directory
+          /tmp/strategy-backend-12ae557.LAs9RC/. PostgreSQL ID
+          cb5c5e14a2ad09fec8ccaa6b132ae3ba2dadcd9d4a0a5fb45769393369f82274 and Redis ID
+          c8f71eb8a292cb6641b62f0b36698494bdd0d8a1d91cb4ec9a0f8985a16cb26b were each removed and
+          independently absent afterward; cleanup_failed=0. Global container/ID/volume/network
+          snapshots were byte-identical, and the Provider-reader test module SHA256 was unchanged
+          at d91c6051cc6f8d6b3762ba45c5196d84f39c4b9de2eb60b80c07357cd67232ac.
+        next_action: >-
+          Root released one complete frozen-source run at 08:59Z using the same shard-50 collector,
+          all 5690 discovered cases, zero retries and unchanged 75% combined threshold. The runner
+          raises only the test-harness RLIMIT_AS to 8 GiB inside a verified 1536 MiB physical-memory,
+          no-swap scope; the SUT 1 GiB budget is unchanged. Verify exact scope membership and limits,
+          run once, retain all output and cleanup evidence, and do not replay if it fails. Full local
+          application/worker and full_stack_browser remain separately required.
+      focused_shard_memory_diagnostics:
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        command: >-
+          Two sequential single-process offline UV pytest invocations over canonical collected unit
+          IDs [2900:2925] and [2925:2950], with --cov=app --cov-append --cov-report=, addopts override,
+          faulthandler_timeout=60, private coverage/cache/quota/FINRA paths, a 2 GiB inherited
+          RLIMIT_AS launcher cap, 180-second timeout with INT/20-second grace, and
+          RESEARCH_MAX_MEMORY_BYTES=1 GiB.
+        group_2900_2925: >-
+          25 exact IDs saved in /tmp/strategy-shard59-diagnostic-02d5ffaa/2900-2925/nodeids.txt;
+          exit 3 at coverage/collector.py:485 linenos.copy() MemoryError after 12.72 seconds, peak
+          RSS 393276 KiB. Raw log: /tmp/strategy-shard59-diagnostic-02d5ffaa/2900-2925/raw.log.
+        group_2925_2950: >-
+          25 exact IDs saved in /tmp/strategy-shard59-diagnostic-02d5ffaa/2925-2950/nodeids.txt;
+          exit 3 at coverage collector flush MemoryError after 13.95 seconds, peak RSS 392304 KiB.
+          Raw log: /tmp/strategy-shard59-diagnostic-02d5ffaa/2925-2950/raw.log.
+        process_observation: >-
+          Both runs reported pytest INTERNALERROR, not assertion failures, and produced no test summary.
+          GNU time captured peak RSS; the attempted live process monitor did not capture the actual
+          pytest PID or /proc VmSize/VmPeak/RLIMIT_AS snapshot. Do not infer those values from the
+          parent command or runner source. No source or workstream edit occurred during execution.
+        interpretation: >-
+          The repeated small-group failure shows that merely lowering the collector shard size to 25
+          has not been demonstrated to resolve coverage flush memory exhaustion. It does not identify
+          the allocation cause, prove host OOM, or authorize a full-suite replay. No assertion,
+          coverage requirement, test selection, retry policy, or production memory budget changed.
+      changed_resource_diagnostics:
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        resource_policy: >-
+          Each 25-case group ran once, sequentially, in its own transient user scope with
+          MemoryMax=1536M, MemorySwapMax=0, and an 8 GiB inherited test-process RLIMIT_AS. The
+          existing RESEARCH_MAX_MEMORY_BYTES remained 1 GiB; all tests/assertions/coverage settings
+          and disabled live/paid behavior remained unchanged. Each scope recorded memory.max=1610612736
+          and memory.swap.max=0 from inside its cgroup, then systemd reported it inactive/dead.
+        group_2900_2925: >-
+          strategy-shard59-a-20261022.scope; 25 passed, 2 warnings, pytest 11.10s, outer elapsed
+          14.04s, GNU time peak RSS 420368 KiB. Actual pytest PID 1258894 had 8 GiB RLIMIT_AS,
+          VmPeak 2236916 KiB and VmHWM 420160 KiB. Receipt and raw output:
+          /tmp/strategy-shard59-cgroup-02d5ffaa/2900-2925/.
+        group_2925_2950: >-
+          strategy-shard59-b-20261022.scope; 25 passed, 34 warnings, pytest 11.59s, outer elapsed
+          14.52s, GNU time peak RSS 455908 KiB. Actual pytest PID 1260258 had 8 GiB RLIMIT_AS,
+          VmPeak 2242224 KiB and VmHWM 450784 KiB. Receipt and raw output:
+          /tmp/strategy-shard59-cgroup-02d5ffaa/2925-2950/.
+        interpretation: >-
+          The same tests failed coverage flush under the prior 2 GiB cap and pass with observed
+          VmPeak above 2 GiB while confined below 1.5 GiB physical RAM with no swap. This strongly
+          implicates the address-space cap/native mappings as the cause; the failed old processes did
+          not retain direct VmPeak snapshots, so the causal diagnosis remains evidence-based rather
+          than direct per-process proof. This is not a full-backend pass, a change to the 1 GiB SUT
+          limit, or authorization to replay the complete collector.
+      released_full_backend_gate:
+        authorization: /home/m920q/charting-platform/.ai/staging-attempts/strategy-12ae-final-backend-authorization-20261022.md
+        released_at: "2026-10-22T08:59:00Z"
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        command: scripts/backend_coverage.py --shard-size 50
+        expected_cases: 5690
+        combined_coverage_threshold_percent: 75
+        retries: 0
+        user_scope: strategy-backend-x-umask-20261022.scope
+        harness_rlimit_as_bytes: 8589934592
+        physical_memory_max_bytes: 1610612736
+        memory_swap_max_bytes: 0
+        sut_research_max_memory_bytes: 1073741824
+        fixture_count: 2
+        status: preflight_retry_authorized_before_pytest
+        constraints: >-
+          Freeze source and owned records during the run. Preserve all cases, assertions, normal
+          skips, timeouts and cleanup guards. The earlier run's unchanged-node diagnostic proved
+          that child umask 077 caused its mode-sensitive fixture mismatch; this run applies umask
+          022 only to the pytest child while the private runner remains 077. Do not replay after
+          failure; full app/browser is separate.
+      latest_published_source_ci:
+        source_sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+        run_id: 39734932990
+        conclusion: success
+        backend: success
+        frontend_unit: success
+        branch_declared: success
+        e2e_playwright: success
+        exhaustive_integration_gate: skipped_by_feature_branch_policy
+        scope_note: >-
+          This exact hosted source CI is green but does not replace the failed/incomplete local full
+          backend run, the full local application profile, or the Exhaustive Integration Gate.
     owned_paths:
       - backend/app/strategy_lab_v2/study_artifact_resolver.py
       - backend/app/strategy_lab_v2/application.py
@@ -207,6 +325,19 @@ integration_checkpoint:
       clean push/freeze, and canonical staging merge. Preserve the full roadmap.
     source: /home/m920q/charting-platform/.ai/staging-attempts/four-feature-coordination-2026-10-15.json#checkpoint_acceptance_delegation_question
   exact_source_ci:
+    current_published_source:
+      sha: 12ae557eb0bbe262a43d3b66dbcfcee4967b51a4
+      run_id: 39734932990
+      conclusion: success
+      backend: success
+      frontend_unit: success
+      branch_declared: success
+      e2e_playwright: success
+      exhaustive_integration_gate: skipped_by_feature_branch_policy
+      scope_note: >-
+        Hosted exact-source CI does not substitute for the local full backend/application profile;
+        the assigned local collector stopped at shard 59/104 with a MemoryError and did not reach
+        integration or combined coverage.
     latest_repaired_source:
       sha: 790223f3aad553e4dacd2efffb13cdece4e50f28
       run_id: 39501877296
@@ -505,21 +636,59 @@ progress:
   current_phase: strategy-tc-three-feature-consumer-reconciliation
   current_blocker: >-
     The accepted Provider/ETF/TC staging reconciliation and focused Study-reference PostgreSQL/API/
-    restart component have prior evidence. The Provider-reader PostgreSQL component now passes 2/2
-    on corrected frozen module SHA d91c6051cc6f8d6b3762ba45c5196d84f39c4b9de2eb60b80c07357cd67232ac;
-    the original 1-pass/1-failure attempt remains preserved. The local worktree also contains the
-    F8l browser-observation repair/test WIP; its three-case unit test passed, while actual browser
-    acceptance remains open. Fresh/previous-release migration, schema/data preservation, full
-    combined application, full_stack_browser, Exhaustive, exact-source CI, coordinator review and
-    all original 18-roadmap criteria remain open. Study-input authentication is not native Nautilus
-    execution proof. The existing session goal remains active and unbudgeted.
+    restart component have prior evidence. The Provider-reader PostgreSQL component passes 2/2 on
+    corrected module SHA d91c6051cc6f8d6b3762ba45c5196d84f39c4b9de2eb60b80c07357cd67232ac, with its
+    first failure retained. Exact hosted source CI 39734932990 passed Backend, Frontend Unit,
+    Branch-declared and Playwright; Exhaustive was skipped by branch policy. The first assigned local
+    full backend attempt is terminal RED: shards 1-96 passed (including one existing opt-in skip),
+    then shard 97 had 49 passed and one sandbox fixture failure (expected START_FAILED, observed
+    OUTPUT_LIMIT_EXCEEDED); integrations and combined coverage were not reached. Its exact log is
+    /tmp/strategy-backend-12ae557.5kGLqni2; cleanup_failed=0, exact fixtures are absent and
+    container/volume/network diffs are empty. Root's authorized unchanged-node diagnostic passed
+    1/1 in 0.40s with child umask 022 and observed the generated public directory at mode 0755,
+    establishing the prior child-umask mismatch without source changes or Docker. Two authorized
+    25-test canonical slices reproduced coverage flush
+    MemoryError under 2 GiB RLIMIT_AS (peak RSS 393276/392304 KiB); both exact groups then passed
+    25/25 under 8 GiB RLIMIT_AS inside separate verified 1536 MiB hard-memory/no-swap scopes. Actual
+    pytest PIDs 1258894/1260258 had VmPeak 2236916/2242224 KiB and VmHWM 420160/450784 KiB. This
+    strongly implicates the prior address-space cap rather than physical RAM, while the old failing
+    processes did not retain direct VmPeak snapshots. All four scoped runs' exact IDs/logs/receipts
+    remain under /tmp/strategy-shard59-diagnostic-02d5ffaa/ and
+    /tmp/strategy-shard59-cgroup-02d5ffaa/. Both transient scopes are inactive/dead; no tests were
+    changed, skipped or retried and the SUT 1 GiB limit remains unchanged. Root owns the next full-gate
+    decision; that decision was the one-time 08:59Z release recorded under
+    active_changeset.released_full_backend_gate and its first result remains red. A fresh one-time
+    full run is released at 09:34Z on frozen source 12ae557 under
+    strategy-backend-x-umask-20261022.scope, with child umask 022, outer umask 077, harness-only
+    8 GiB address space, 1536 MiB/no-swap physical cap and unchanged 1 GiB SUT limit. It retains
+    all 5690 tests, zero retries and the 75% combined threshold. Its invocation safely aborted
+    before pytest: after starting the two bounded fixtures, MemAvailable was 1841136 KiB, below the
+    runner's 2-GiB pre-collector guard. No collector PID/log or tests exist for that attempt;
+    cleanup_failed=0, exact fixture IDs are absent, global container/volume/network diffs are empty
+    and the scope cgroup is absent. The preflight receipt is /tmp/strategy-backend-12ae557.x3tnybZo/.
+    Root's 09:39Z addendum confirms this preflight abort did not consume the one full-run release.
+    The private PG readiness probe now uses `pg_isready -h 127.0.0.1` so it cannot accept the
+    initdb Unix-only temporary server as final readiness. Before the authorized single preflight
+    retry, old IDs/names and collector were absent, the assigned scope was absent, and headroom was
+    2312712 KiB. Allow at most 60 seconds settling after final TCP readiness; retain the 2-GiB guard
+    and do not loop fixture starts.
+    The owned source correction wires the actual Compose backtest and forward worker DATABASE_URL
+    to the same PostgreSQL service as their namespaced migration URLs. Both focused Compose tests
+    pass, and read-only actual Compose rendering confirms both resolved values; this does not prove
+    real worker DB/Redis readiness. One released shard-25 runner attempt stopped before pytest
+    because its sanitized PATH omitted the installed UV binary. No collector PID/tests existed; the
+    exact PG/Redis IDs were cleaned, cleanup_failed=0, and global inventories were unchanged. Do
+    not replay that pre-pytest attempt. Fresh/previous-release migration, full combined application,
+    full_stack_browser, Exhaustive, coordinator review, and all original 18 roadmap criteria remain open. Study-input authentication
+    is not native Nautilus execution proof; the existing goal remains active and unbudgeted.
   next_action: >-
-    Close and publish the coherent F8l-observation plus Provider-reader test changes and exact
-    workstream receipts using the normal Strategy branch workflow; then inspect the one exact-source
-    push CI to terminal. Preserve the earlier failed PG receipt. Next prepare the corrected full
-    backend/application/browser validation plan, with complete migration/application and browser
-    execution gates still pending. Do not claim Strategy checkpoint acceptance or native execution
-    authority from the focused Study/Provider tests.
+    Close and publish the worker runtime DATABASE_URL correction with focused tests and static
+    resolved-Compose evidence. Do not start another backend fixture without a fresh exact-source/
+    resource release; verify /home/m920q/.local/bin/uv before any fixture creation. Continue
+    private app-runner preparation only: bounded probes/API/worker phases, real DB+Redis readiness,
+    exact browser cleanup, pre-launch inventories, private SECRET_KEY and corrected source/helper
+    pins. No app phase is released. Full backend, application/worker restart, full_stack_browser,
+    migration, Exhaustive and exact-source CI remain mandatory; no checkpoint/native authority claim.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
