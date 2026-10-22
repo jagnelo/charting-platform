@@ -660,6 +660,15 @@ def test_ranked_fallback_symbol_audit_uses_explicit_issuer_evidence():
     assert "not current support" in result.next_action
 
 
+def test_identity_level_fallback_audit_uses_latest_durable_investigation_date():
+    result = symbol_audit_for_profile(profile_with_symbol("UNLISTED_AEGON", "aegon"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "identity_level_access_blocked"
+    assert result.investigated_at == date(2026, 10, 5)
+
+
 def test_ranked_fallback_symbol_audit_rejects_provider_identity_mismatch():
     result = symbol_audit_for_profile(profile_with_symbol("TALV", "other_provider"))
 

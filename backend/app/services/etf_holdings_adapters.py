@@ -71862,7 +71862,98 @@ for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
     )
 
 
-_FALLBACK_AUDIT_DATE = date(2026, 7, 26)
+# The runtime summary date must match the current durable provider-audit record
+# for each still-fallback identity. It records when that identity's evidence was
+# last investigated; it does not imply an executable route or current holdings.
+_FALLBACK_AUDIT_LAST_CHECKED_BY_KEY: dict[str, date] = {
+    adapter_key: date.fromisoformat(last_checked)
+    for last_checked, adapter_keys in {
+        "2026-09-02": (
+            "ea_series_trust",
+            "elements",
+            "emirate_abu_dhabi",
+            "fcf_advisors",
+            "formula_folio",
+            "fpa",
+        ),
+        "2026-09-03": (
+            "epiris",
+            "eurazeo",
+            "gc_ferry_parent",
+            "genter_capital",
+            "granite_group_advisors",
+            "horizons",
+            "hoya",
+            "m2_financial",
+            "madison_avenue",
+            "marathon",
+            "merchant_investment_management",
+            "merk",
+            "merlyn_ai",
+            "msc_group",
+            "new_age_alpha",
+            "orix",
+            "panagram",
+            "riverfront",
+            "roc",
+            "rock_point",
+        ),
+        "2026-09-04": ("swedish_export_credit",),
+        "2026-09-25": (
+            "alphamark_advisors",
+            "amg_national",
+            "azimut",
+            "credit_suisse",
+            "desjardins",
+            "dvx_ventures",
+        ),
+        "2026-10-02": (
+            "alphaclone",
+            "anfield",
+            "avos",
+            "discipline_funds",
+            "etf_managers_group",
+            "epwa",
+            "first_manhattan",
+            "highland_capital",
+            "matrix",
+            "nicholas_wealth",
+            "pabrai",
+            "parnassus_investments",
+            "performance_trust",
+            "planrock",
+            "premise_capital",
+            "putnam",
+            "pzena",
+            "rareview_funds",
+            "ridgeline",
+            "saturna",
+            "segall_bryant_hamill",
+            "siren",
+            "sophus",
+            "strategy_shares",
+            "subversive",
+            "suncoast",
+            "towle",
+            "tweedy_browne",
+            "us_benchmark_series",
+            "vega_financial",
+            "wellesley_asset_management",
+            "worth_charting",
+            "yoke",
+        ),
+        "2026-10-04": ("north_square", "pacific_investments"),
+        "2026-10-05": (
+            "advisors_asset_management",
+            "aegon",
+            "guinness_atkinson",
+            "manulife",
+            "q3",
+            "westwood",
+        ),
+    }.items()
+    for adapter_key in adapter_keys
+}
 
 # These identities remain registered because ETF discovery can identify them,
 # but they are not native provider integrations. The manifest is deliberately
@@ -71957,7 +72048,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
 }
 
 
-def _fallback_audit(status: str) -> IssuerFallbackAudit:
+def _fallback_audit(status: str, adapter_key: str) -> IssuerFallbackAudit:
     details = {
         "not_verified_us_etf_publisher": (
             "The discovered identity is not yet verified as an independent U.S. ETF "
@@ -72000,12 +72091,12 @@ def _fallback_audit(status: str) -> IssuerFallbackAudit:
         status=status,
         reason=reason,
         next_action=next_action,
-        last_checked=_FALLBACK_AUDIT_DATE,
+        last_checked=_FALLBACK_AUDIT_LAST_CHECKED_BY_KEY[adapter_key],
     )
 
 
 FALLBACK_ISSUER_AUDITS: dict[str, IssuerFallbackAudit] = {
-    adapter_key: _fallback_audit(status)
+    adapter_key: _fallback_audit(status, adapter_key)
     for status, adapter_keys in _FALLBACK_AUDITS_BY_STATUS.items()
     for adapter_key in adapter_keys
 }
