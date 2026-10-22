@@ -40,7 +40,7 @@
   "goal_unavailable_reason": "The original coordinator native goal remains active and unbudgeted and covers this quality repair in the same visible thread. A duplicate native goal is unavailable and must not replace/reset that goal. Continue the committed repair plan and mandatory full CI gates.",
   "head": "e91f9fb07afd643b78711037b5fe0c4fd607e902",
   "implementation_sha": "2620e684cc369c592bcfad37dc35f3e458c2112a",
-  "last_human_progress_update": "2026-10-22T15:29:06.358728+00:00",
+  "last_human_progress_update": "2026-10-22T16:54:40.709361+00:00",
   "local_validation_profile": "pending_agent_assessment",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -51,13 +51,15 @@
   "progress": {
     "completed": [
       "FMT1",
-      "FMT2"
+      "FMT2",
+      "PROV1",
+      "PROV2"
     ],
     "current_blocker": "none",
-    "current_phase": "local-validation-green-awaiting-exact-source-ci",
-    "next_action": "Commit and push the locally validated formatter changeset; exact final branch CI remains mandatory before integration.",
-    "total": 3,
-    "updated_at": "2026-10-22T15:29:06.358710+00:00"
+    "current_phase": "local-quality-validation-green",
+    "next_action": "Finalize technical closure and require final exact full branch CI green before canonical remediation integration; all new staging exhaustive gates remain mandatory.",
+    "total": 5,
+    "updated_at": "2026-10-22T16:54:40.709327+00:00"
   },
   "remote": "e91f9fb07afd643b78711037b5fe0c4fd607e902",
   "remote_sha": "2620e684cc369c592bcfad37dc35f3e458c2112a",
