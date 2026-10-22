@@ -64,14 +64,16 @@ current_blocker: >-
   0e342512e53ba2268425294d61c50e219eaafa4f; the feature remote was independently
   verified at the same SHA. The frozen-import snapshot/guard now passes its
   987-path validation and 35 self-tests for this exact fast-forward adoption.
-  No upstream dependency blocks TC-owned development. The formula, exact
-  coverage-evidence gate, and a dirty mock-tested local data loader are in place.
-  The loader asks historical coverage first and reads canonical local bars only
-  when the exact range/timeframe/adjustment is ready; callers still need actual
-  chart-range interaction and a truthful existing sector/industry comparator
-  source before exposing results. No provider
-  transport, acquisition, live test, deployment or visual-reference change is
-  authorized. Official REF-HELP-V25 and broader AC1-AC9 work remain open.
+  No upstream dependency blocks TC-owned development. Custom Date Sort now has
+  formula/range and exact-scope coverage gates, a mocked-tested loader that
+  checks historical coverage before canonical local OHLCV, and a workstation
+  chart drag path armed by Shift+T. The result uses only exact loaded-bar
+  boundaries and local persisted prices; non-ready, mismatched, non-local,
+  unknown-lineage, or ambiguous evidence remains unavailable. Relative modes
+  remain explicitly unavailable until a source-backed sub-industry/industry
+  series is identified, and new-window/WatchList output remains unimplemented.
+  No provider acquisition, live test, deployment, or visual-reference change
+  was performed. Official REF-HELP-V25 and broader AC1-AC9 work remain open.
 current_checkpoint_status: >-
   The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
   implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
@@ -92,18 +94,17 @@ current_checkpoint_status: >-
   scope guard passes for that receipt-approved fast-forward and pins 858
   frozen paths to exact release blobs/deletions; 29 approved TC adaptations
   remain separate. This is not full AC1-AC9 or official REF-HELP-V25 completion.
-  The next TC-owned roadmap item is Custom Date Sort over persisted history and
-  explicit coverage/classification evidence, without provider transport or
-  acquisition. The pure formula/range core is committed at
-  eaddaef9e19f7dd3cf3798465a1cf1680e5813dc. Its coverage gate requires ready
-  exact-scope canonical-local evidence, known lineage, and unique valid boundary
-  bars. The current dirty loader adds two mocked request-contract tests: it
-  checks historical coverage first and requests at most 5000 canonical local
-  bars only after the requested scope is ready. The two focused files pass
-  14/14 and Vue type-check passes. No live API/database call was made; the
-  existing canonical W1/MN route may locally materialize derived bars from D1.
-  Chart gesture integration, a trustworthy existing sector/industry comparator
-  series, and result-window/WatchList output remain unimplemented. No deployment,
+  Custom Date Sort is the current TC-owned roadmap item. The formula/range core
+  and exact-scope canonical-local coverage gate are published; the loader checks
+  historical coverage first and reads at most 5000 canonical local bars only
+  after matching ready evidence. The current candidate wires Shift+T to an
+  ordinary chart drag, snaps fractional plot positions to the nearest loaded
+  bar, and requests only the existing local-history contract. Fifteen focused
+  tests and Vue type-check pass on this dirty candidate. These are unit and
+  type-check results only; no live app/database, browser, full build, or current
+  exact-source CI was run. The existing canonical W1/MN route may locally
+  materialize derived bars from D1. A trustworthy existing sub-industry/industry
+  comparison series and new-window/WatchList output remain open. No deployment,
   live provider/ETF test, paid access, or visual reference change is claimed.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static

@@ -158,6 +158,19 @@ export function customDateSortRangeFromChartIndices(
   )
 }
 
+/** Snap uPlot's fractional x positions to the nearest loaded bar, clamping its overscroll gutters. */
+export function customDateSortRangeFromChartPositions(
+  bars: readonly CustomDateSortBarBoundary[],
+  firstPosition: number,
+  secondPosition: number,
+): CustomDateSortRange | null {
+  if (!bars.length || !Number.isFinite(firstPosition) || !Number.isFinite(secondPosition)) return null
+  const lastIndex = bars.length - 1
+  const firstIndex = Math.max(0, Math.min(lastIndex, Math.round(firstPosition)))
+  const secondIndex = Math.max(0, Math.min(lastIndex, Math.round(secondPosition)))
+  return customDateSortRangeFromChartIndices(bars, firstIndex, secondIndex)
+}
+
 /** Map a selected two-point trendline to its exact time boundaries. */
 export function customDateSortRangeFromTrendline(
   points: readonly [{ time: number }, { time: number }],

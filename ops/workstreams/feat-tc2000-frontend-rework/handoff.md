@@ -26,31 +26,36 @@ reported `feat/tc2000-frontend-rework` identical to that SHA (the shell
 `ls-remote` query separately hit transient DNS failure). A follow-on offline
 coverage-evidence resolver is now being developed on that published base.
 
-The next branch-owned roadmap item is the V25 Custom Date Sort consumer using
-only persisted OHLCV/history and explicit coverage/classification contracts,
-with no provider routing or acquisition. Its pure formula and exact-boundary
-range-source core is in `frontend/src/lib/workstation/customDateSort.ts`; 12
-focused tests and Vue type-check pass for the current dirty coverage-evidence
-resolver. It maps chart indices and two-point trendline timestamps to UTC
-boundaries, computes the documented formulas from already-resolved close
-pairs, and refuses non-ready, mismatched-scope, non-local, unknown-lineage, or
-ambiguous boundary-price evidence. It does not fetch history, select chart
-gestures, map classification, or persist/output results. Persisted-history
-loading, truthful sector/industry comparator inputs, actual chart interaction,
-and new-window/WatchList output remain unimplemented. Official `REF-HELP-V25`,
-broader AC1-AC9 completion, and integration beyond this exact released baseline
-remain open.
+The next branch-owned roadmap item is the remaining Custom Date Sort consumer
+work: identify source-backed industry/sub-industry comparator history and
+implement the documented new-window/WatchList result destinations. The current
+candidate advances the consumer without provider acquisition: Shift+T arms an
+ordinary chart drag; fractional plot positions snap to exact loaded-bar UTC
+boundaries; the workstation checks historical coverage before reading at most
+5000 canonical local bars and calculating percent change. Non-ready, mismatched,
+non-local, unknown-lineage, or ambiguous evidence stays unavailable. Relative
+modes stay unavailable until a truthful comparator series exists. The focused
+date-sort files pass 15/15 and Vue type-check passes on the dirty candidate;
+these are unit/type evidence only, with no browser, live app/database, full build,
+or exact-source CI run. The exact combined staging release remains
+`0e342512e53ba2268425294d61c50e219eaafa4f`, already an ancestor of this branch;
+its canonical run `39827786248` is recorded above and in the validation journal.
+Official `REF-HELP-V25`, broader AC1-AC9 completion, and integration beyond this
+exact released baseline remain open.
 
-The next slice adds `customDateSortData.ts` to sequence the existing historical
-coverage endpoint before the canonical local OHLCV endpoint. Two new mocked
-contract tests prove that partial coverage short-circuits the bar read and a
-ready exact-scope assessment requests only local canonical bars. The focused
-Custom Date Sort files pass 14/14 tests and Vue type-check on the current dirty
-worktree. This is mocked request-contract evidence only; no live app/database
-was exercised. The existing canonical W1/MN route can materialize derived bars
-locally from daily rows, but it never fans out to providers; that route effect
-is inherited behavior, not tested by these mocks. Relative comparator history,
-chart gesture wiring, and result destinations remain open.
+## Historical status — 2026-10-22: persisted Custom Date Sort loader
+
+At the dcd07957 checkpoint, `customDateSortData.ts` added the existing
+historical-coverage request before the canonical local OHLCV route. Two mocked
+contract tests proved that partial coverage short-circuits the bar read and a
+ready exact-scope assessment requests only local canonical bars. Those focused
+files passed 14/14 tests with Vue type-check; this was request-contract evidence
+only, not a live app/database exercise. The existing canonical W1/MN route can
+materialize derived bars locally from daily rows, but that route effect was not
+tested by these mocks and never fans out to providers. At that historical
+checkpoint, chart gesture wiring, relative comparator history, and result
+destinations remained open; the current status above records subsequent
+Shift+T drag wiring.
 
 ## Previous bounded-checkpoint status — 2026-10-22
 

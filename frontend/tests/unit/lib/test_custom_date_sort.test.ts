@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   calculateCustomDateSortValue,
   customDateSortRangeFromChartIndices,
+  customDateSortRangeFromChartPositions,
   customDateSortRangeFromTrendline,
   resolveCoveredCustomDateSortPrices,
 } from '@/lib/workstation/customDateSort'
@@ -125,6 +126,25 @@ describe('Custom Date Sort range sources', () => {
     expect(customDateSortRangeFromChartIndices(bars, 0, 2)).toBeNull()
     expect(customDateSortRangeFromChartIndices(bars, 0.5, 1)).toBeNull()
     expect(customDateSortRangeFromChartIndices(bars, 1, 1)).toBeNull()
+  })
+
+  it('snaps fractional plot positions to loaded bars and clamps overscroll gutters', () => {
+    const bars = [
+      { ts: '2026-02-03T00:00:00Z' },
+      { ts: 1770163200 },
+      { ts: '2026-02-05T00:00:00Z' },
+    ]
+    expect(customDateSortRangeFromChartPositions(bars, 0.2, 1.7)).toEqual({
+      start: '2026-02-03T00:00:00.000Z',
+      end: '2026-02-05T00:00:00.000Z',
+    })
+    expect(customDateSortRangeFromChartPositions(bars, -4, 1)).toEqual({
+      start: '2026-02-03T00:00:00.000Z',
+      end: '2026-02-04T00:00:00.000Z',
+    })
+    expect(customDateSortRangeFromChartPositions(bars, 1.1, 1.3)).toBeNull()
+    expect(customDateSortRangeFromChartPositions(bars, Number.NaN, 2)).toBeNull()
+    expect(customDateSortRangeFromChartPositions([], 0, 1)).toBeNull()
   })
 
   it('normalizes selected trendline endpoints into chronological UTC bounds', () => {

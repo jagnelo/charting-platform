@@ -56,8 +56,10 @@
     "visuals": "Strict visual 104/104 passed in the staging Exhaustive Integration Gate at the unchanged 0.5%/1px/DeltaE2000=2 policy; official REF-HELP-V25 parity and full roadmap remain open."
   },
   "dirty_paths": [
-    "frontend/src/lib/workstation/customDateSortData.ts",
-    "frontend/tests/unit/lib/test_custom_date_sort_data.test.ts",
+    "frontend/src/components/chart/UPlotChart.vue",
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/workstation/customDateSort.ts",
+    "frontend/tests/unit/lib/test_custom_date_sort.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -142,12 +144,12 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "a74d4848a4c2c877f69b7d736b0e2cceb785a9b8",
+  "head": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
-    "adopted_staging_sha": "0e342512e53ba2268425294d61c50e219eaafa4f",
     "adopted_staging_ci": 39827786248,
+    "adopted_staging_sha": "0e342512e53ba2268425294d61c50e219eaafa4f",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
     "id": "tc2000-workstation-integration-1",
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
@@ -186,7 +188,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "23f7b4938cc98af0bf2e63fb27429980d6fde0b769bdc6c28fdefffa4fc08d5e",
+  "plan_hash": "994426de205e504365f14d1bf7f0ecc7eef5494a6e94db2157aa726f670024d1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -206,28 +208,28 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "No upstream dependency blocks TC development. Custom Date Sort formula/range core and coverage scope/lineage gate are published through a74d4848. A dirty local loader passes 14 focused tests and Vue type-check; it requests exact historical coverage first and only then canonical local OHLCV, with no provider route. Chart gesture wiring, comparator series, and outputs remain open; no sub-industry mapping is assumed.",
-    "current_phase": "M2_adopted;custom_date_sort_formula_range_core_published_eaddaef;coverage_gate_published_a74d4848;mocked_local_evidence_loader_14_tests_typecheck_green_dirty;chart_gesture_comparator_output_pending;AC1_AC9_and_REF_HELP_V25_open",
-    "next_action": "Identify a truthful persisted industry/sub-industry comparison time series and actual uPlot selection event seam; then wire the ready-coverage local loader into the official chart-range flow without provider acquisition.",
+    "current_blocker": "No upstream dependency blocks TC development. Custom Date Sort now has a Shift+T chart-selection path and a mocked-tested persisted-local loader that gates the request on exact ready coverage and known lineage. Relative modes remain unavailable until a source-backed industry/sub-industry series is identified; new-window/WatchList output and the full local/browser/CI gates remain open. No provider acquisition or live operation was run.",
+    "current_phase": "M2_0e342_adopted_and_remote_verified;custom_date_sort_formula_coverage_and_local_loader_published;shift_t_chart_drag_and_local_percent_change_consumer_in_progress;relative_comparator_and_result_destinations_pending;focused_15_tests_and_vue_typecheck_green;full_profile_exact_ci_and_AC1_AC9_REF_HELP_V25_open",
+    "next_action": "Identify a truthful persisted industry/sub-industry comparator series and implement explicit Custom Date Sort result destinations; preserve unavailable behavior until verified comparator history exists, then run the required full validation profile and exact-source CI.",
     "total": 5,
-    "updated_at": "2026-10-22T20:05:44+00:00"
+    "updated_at": "2026-10-22T20:18:18Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "a74d4848a4c2c877f69b7d736b0e2cceb785a9b8",
-    "current_pending_range": "M2 adoption/guard checkpoint 59d0c3b6 and Custom Date Sort formula/range plus exact-scope coverage gate through a74d4848 are published. The mocked local-history loader and corresponding own records are the current in-progress slice.",
+    "current_local_head": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
+    "current_pending_range": "M2 adoption/guard checkpoint 59d0c3b6 and Custom Date Sort formula/range, exact-scope coverage gate and local-history loader through dcd07957 are published. The current slice adds Shift+T chart-range selection and a local percent-change consumer with focused mock/API evidence; relative comparator history and output destinations remain open.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "a74d4848a4c2c877f69b7d736b0e2cceb785a9b8",
-    "status": "Exact coordinator-released staging M2 is the parent source for published adoption checkpoint 59d0c3b6; remote ref was independently verified then. GitHub compare independently confirmed the branch ref identical to a74d4848. The direct shell ls-remote attempt for earlier eaddaef encountered transient DNS failure; subsequent connected GitHub compare confirmed eaddaef before this newer commit."
+    "remote_tracking_sha": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
+    "status": "At the start of this source slice, exact coordinator-released staging M2 0e342512 was an ancestor of the published branch. GitHub compare independently confirmed the feature ref identical to dcd07957 (ahead_by=0, behind_by=0); a direct shell ls-remote in this session encountered transient DNS failure."
   },
-  "remote": "a74d4848a4c2c877f69b7d736b0e2cceb785a9b8",
-  "remote_sha": "a74d4848a4c2c877f69b7d736b0e2cceb785a9b8",
+  "remote": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
+  "remote_sha": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

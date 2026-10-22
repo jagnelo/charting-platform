@@ -280,6 +280,29 @@
             <i :style="{ background: target.color }" />{{ target.symbol }} {{ target.percentChange == null ? '—' : `${target.percentChange >= 0 ? '+' : ''}${target.percentChange.toFixed(2)}%` }} ×
           </button>
         </div>
+        <div v-if="customDateSortSelecting || customDateSortRange || customDateSortMessage" class="chart-tool__custom-date-sort" role="group" aria-label="Custom Date Sort">
+          <button v-if="customDateSortSelecting" type="button" @click="cancelCustomDateSort">Cancel</button>
+          <template v-if="customDateSortRange">
+            <label>
+              <span>Measure</span>
+              <select v-model="customDateSortMode" aria-label="Custom Date Sort measure">
+                <option value="percent_change">Percent change</option>
+                <option value="vs_sub_industry">Versus sub-industry</option>
+                <option value="vs_industry">Versus industry</option>
+              </select>
+            </label>
+            <span v-if="customDateSortLoading" role="status" aria-live="polite">Checking local history…</span>
+            <span v-else-if="customDateSortValue?.status === 'ready'" role="status" aria-live="polite">
+              {{ customDateSortValue.valuePercent >= 0 ? '+' : '' }}{{ customDateSortValue.valuePercent.toFixed(2) }}%
+            </span>
+            <span v-else-if="customDateSortValue?.status === 'unavailable'" role="status" aria-live="polite">
+              {{ customDateSortUnavailableLabel }}
+            </span>
+            <span v-else-if="customDateSortMessage" role="status" aria-live="polite">{{ customDateSortMessage }}</span>
+          </template>
+          <span v-else-if="customDateSortSelecting" role="status" aria-live="polite">Drag from one loaded bar to another.</span>
+          <span v-else-if="customDateSortMessage" role="status" aria-live="polite">{{ customDateSortMessage }}</span>
+        </div>
         <UPlotChart
           v-if="chartStore.symbol && !chartStore.error"
           :chart-type="chartBarType"
@@ -289,7 +312,12 @@
           :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)"
           :comparison-series="comparisonSeries"
           :python-series="numericSeries"
+          custom-date-sort-available
+          :custom-date-sort-selecting="customDateSortSelecting"
           @configuration="applyChartConfiguration"
+          @custom-date-sort-toggle="toggleCustomDateSort"
+          @custom-date-sort-cancel="cancelCustomDateSort"
+          @custom-date-sort-range="loadCustomDateSortRange"
         />
         <div v-if="chartStore.isLoading" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartStore.error }}</div>
@@ -922,6 +950,8 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { fetchCanonicalInstrument } from '@/lib/workstation/instrumentQueries'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
+import { calculateCustomDateSortValue, type CustomDateSortMode, type CustomDateSortPriceRange, type CustomDateSortRange, type CustomDateSortValue } from '@/lib/workstation/customDateSort'
+import { loadCustomDateSortLocalEvidence } from '@/lib/workstation/customDateSortData'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import ChartTemplateControl from './ChartTemplateControl.vue'
@@ -1084,6 +1114,85 @@ const chartStore = usePanelStore(chartPanelId)
 const drawingsStore = useDrawingsStore()
 const alertsStore = useAlertsStore()
 const workspaceStore = useWorkspaceStore()
+const customDateSortSelecting = ref(false)
+const customDateSortRange = ref<CustomDateSortRange | null>(null)
+const customDateSortMode = ref<CustomDateSortMode>('percent_change')
+const customDateSortLoading = ref(false)
+const customDateSortValue = ref<CustomDateSortValue | null>(null)
+const customDateSortMessage = ref('')
+const customDateSortInstrumentPrices = ref<CustomDateSortPriceRange | null>(null)
+let customDateSortRequestSequence = 0
+const customDateSortUnavailableLabel = computed(() => {
+  if (customDateSortValue.value?.status !== 'unavailable') return ''
+  return customDateSortValue.value.reason === 'comparison_history_unavailable'
+    ? 'Unavailable: no verified persisted comparator series.'
+    : 'Unavailable: valid persisted instrument prices are not available.'
+})
+function recalculateCustomDateSort() {
+  const prices = customDateSortInstrumentPrices.value
+  if (!prices) return
+  customDateSortValue.value = calculateCustomDateSortValue(customDateSortMode.value, prices)
+}
+function clearCustomDateSort() {
+  customDateSortRequestSequence += 1
+  customDateSortSelecting.value = false
+  customDateSortRange.value = null
+  customDateSortInstrumentPrices.value = null
+  customDateSortValue.value = null
+  customDateSortMessage.value = ''
+  customDateSortLoading.value = false
+}
+function toggleCustomDateSort() {
+  clearCustomDateSort()
+  if (drawingsStore.activeToolType || drawingsStore.avwapDropActive) {
+    customDateSortMessage.value = 'Finish or cancel the active drawing tool before selecting a date range.'
+    return
+  }
+  customDateSortSelecting.value = true
+}
+function cancelCustomDateSort() {
+  clearCustomDateSort()
+}
+async function loadCustomDateSortRange(range: CustomDateSortRange) {
+  customDateSortSelecting.value = false
+  customDateSortRange.value = range
+  customDateSortInstrumentPrices.value = null
+  customDateSortValue.value = null
+  customDateSortMessage.value = ''
+  customDateSortLoading.value = true
+  const sequence = ++customDateSortRequestSequence
+  const symbol = chartStore.symbol
+  const timeframe = chartStore.timeframe
+  try {
+    const evidence = await loadCustomDateSortLocalEvidence({
+      symbol,
+      timeframe,
+      adjusted: true,
+      range,
+    })
+    if (sequence !== customDateSortRequestSequence || symbol !== chartStore.symbol || timeframe !== chartStore.timeframe) return
+    if (evidence.prices.status === 'ready') {
+      customDateSortInstrumentPrices.value = evidence.prices.prices
+      recalculateCustomDateSort()
+    } else {
+      const messages: Record<string, string> = {
+        coverage_not_ready: evidence.coverage.explanation || 'Matching persisted coverage is not ready for this range.',
+        coverage_scope_mismatch: 'The persisted coverage does not match this chart range and timeframe.',
+        non_local_provenance: 'The selected range does not have canonical local-history provenance.',
+        unknown_lineage: 'The selected range contains bars with unknown source lineage.',
+        boundary_price_unavailable: 'Exact, unique prices for both selected bars are unavailable.',
+      }
+      customDateSortMessage.value = messages[evidence.prices.reason] ?? 'Matching local history is unavailable for this range.'
+    }
+  } catch {
+    if (sequence === customDateSortRequestSequence) customDateSortMessage.value = 'Unable to verify persisted local history for this range.'
+  } finally {
+    if (sequence === customDateSortRequestSequence) customDateSortLoading.value = false
+  }
+}
+watch(customDateSortMode, recalculateCustomDateSort)
+watch(() => [chartStore.symbol, chartStore.timeframe], () => clearCustomDateSort())
+onBeforeUnmount(() => { customDateSortRequestSequence += 1 })
 const isActiveToolWindow = computed(() => {
   const activeTab = workspaceStore.activeTab
   if (activeTab && (!props.factoryLayout || activeTab.stable_key === props.factoryLayout)) {
@@ -3952,6 +4061,12 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .chart-tool__status { position: absolute; inset: 24px 0 0; z-index: 4; background: rgba(7, 12, 16, 0.72); pointer-events: none; }
 .chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
 .chart-tool__plots { position: absolute; top: 3px; left: 150px; z-index: 13; }
+.chart-tool__custom-date-sort { position: absolute; top: 27px; left: 4px; z-index: 14; display: flex; align-items: center; gap: 6px; max-width: calc(100% - 8px); color: #dce9f2; font: 10px "Segoe UI", Arial, sans-serif; }
+.chart-tool__custom-date-sort button, .chart-tool__custom-date-sort select { border: 1px solid #42515c; background: #151c22; color: inherit; padding: 2px 5px; font: inherit; }
+.chart-tool__custom-date-sort button { cursor: pointer; white-space: nowrap; }
+.chart-tool__custom-date-sort button:disabled { cursor: default; opacity: .55; }
+.chart-tool__custom-date-sort label { display: inline-flex; align-items: center; gap: 4px; }
+.chart-tool__custom-date-sort [role="status"] { overflow: hidden; max-width: 34vw; text-overflow: ellipsis; white-space: nowrap; }
  .chart-tool__surface--comparisons .chart-tool__plots { left: auto; right: 88px; }
 /* Comparison labels grow when prices arrive. Reserve a separate right-hand
    slot instead of moving their overlap above or below the Plots hit target. */
