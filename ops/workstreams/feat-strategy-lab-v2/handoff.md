@@ -16343,3 +16343,141 @@ schema/data-preservation checks, full combined application,
 `full_stack_browser`, Exhaustive, coordinator review and all 18 roadmap
 criteria remain open. No Study-reference evidence is native Nautilus execution
 proof; the checkpoint remains in progress and unaccepted.
+
+### 2026-10-22 — bounded F8l observation and Provider reader evidence preparation
+
+The source at `b96d456cbfe0d043cfe2e1abe266afb6460140b1` was clean and matched
+origin before this follow-up. Its exact hosted run `39726439939` is terminal red:
+backend 5190 passed + 495 skipped (84%), frontend and branch-declared checks
+green, and E2E exited red after an F8l first-attempt failure followed by a
+passing retry (190 passed, 110 skipped, one flaky test). Preserve that exact
+failure; it was not rerun. The first-failure trace does not exist in the retained
+artifact. The available network trace is the passing retry, so the cause of the
+first failure remains unproven. Root’s review identified a plausible Node/browser
+protocol timing gap in `flows.spec.ts`, not a proven product defect.
+
+Prepared test-only F8l observation changes in
+`frontend/tests/e2e/flows.spec.ts` and
+`frontend/tests/e2e/hidden_request_observation.ts`, with deterministic cases in
+`frontend/tests/unit/lib/test_hidden_request_observation.test.ts`. The browser
+captures `performance.timeOrigin + performance.now()` in the same evaluate call
+that sets hidden state; request timing is compared against that browser-clock
+transition. A late-delivered pre-hidden request is excluded, a request starting
+at/after the transition is counted, and missing/nonpositive timing throws.
+The original zero-request assertion, all watched endpoints and the 1500 ms
+window remain unchanged. There are no production visibility/API changes, retry,
+skip, endpoint suppression, or tolerance changes. Root released one targeted
+Vitest run: all three deterministic helper cases passed in 850 ms with one worker
+and a 768 MiB Node heap cap. The browser F8l case remains unrun; the passing unit
+slice neither proves the historical cause nor substitutes for browser acceptance.
+
+The existing `test_study_artifact_resolution_postgres.py` only monkeypatches
+`ProviderLocalCapabilityEvidenceReader` to forbid provider acquisition; no
+existing real-PostgreSQL receipt invokes its SQL queries. Prepared
+`backend/tests/integration/strategy_lab_v2/test_provider_local_capability_reader_postgres.py`
+as ordinary backend integration coverage with no opt-in skip. Its fixture derives
+the exact mapped FK closure from real metadata:
+`asset_class`, `data_source`, `exchange`, `instrument`,
+`instrument_dataset_state`, `instrument_type`, `issuer`, `market_series`, and
+`ohlcv_bar`. It retains mapped FKs, indexes and constraints in a unique schema,
+then exercises positive XNYS daily equity evidence admitted by
+`provider_series_capability_cell` under the production `equity`/`market`/`cash`
+scope, persisted bar-content digest change, source/series inactivity, provisional
+identity, unproven venue, partial range, stale status, and fresh status with an
+expired `stale_after`. Each restored state is re-proven admitted before the next
+negative mutation; zero HTTP client calls are asserted.
+Ordinary CI lazily uses `TEST_DATABASE_URL` or the existing `pg_container`
+fixture; a bounded local run can provide the explicit
+`STRATEGY_PROVIDER_READER_DATABASE_URL` so it will not start a second container.
+Fixture creation, seeding, yield and teardown share one guarded `finally`, so a
+setup failure drops the generated schema and disposes its engine.
+
+The local full backend collector ran with routing forced off by its invocation:
+52 shards passed, shard 53 ended 14 failed/36 passed in 244.31 seconds, and later
+shards/integration/aggregate did not run. The isolated two-node diagnostic on
+unchanged B passed in 5.23 seconds when `PROVIDER_ROUTING_ENABLED=true` only for
+the mocked test process. This supports an environment mismatch for those
+representative positive route-selection tests; it does not establish the cause
+of every shard-53 failure. Production and Compose remain routing-off/egress-
+denied; no provider/issuer/SEC requests occurred. The collector’s exact fixtures
+were removed and ID/state/volume/network baselines returned unchanged.
+
+Current uncommitted follow-up is limited to the three F8l test/helper paths, the
+new real-PostgreSQL Provider reader test module, and owned workstream records.
+Ruff check/format and `git diff --check` pass; only the released three-case
+Vitest unit test ran. The Provider reader PostgreSQL module and actual browser
+case remain unrun. Root review of the exact PG diff and bounded fixture plan is
+the next step. Do not launch a fixture or browser matrix until that component
+release. Full fresh/previous-release migration,
+combined application, `full_stack_browser`, Exhaustive, exact-current-source CI,
+Nautilus qualification and the complete 18-criterion roadmap remain open; the
+checkpoint remains `in_progress` and unaccepted.
+
+The prepared PG module has two collected cases: one exact mapped-FK-closure
+assertion and one persisted reader/admission mutation case. Proposed command,
+pending Root release, runs from `backend` as a single normal pytest process:
+
+```text
+STRATEGY_PROVIDER_READER_DATABASE_URL=<assigned loopback PostgreSQL URL> uv run --offline --no-sync pytest -q tests/integration/strategy_lab_v2/test_provider_local_capability_reader_postgres.py
+```
+
+The proposed isolated fixture reuses only the cached `postgres:16-alpine` image
+ID `sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea`,
+with one unique owner-labelled container, loopback-only ephemeral port, 384 MiB
+memory/swap, one CPU, 256 MiB tmpfs, 15-minute outer bound, exact-ID cleanup,
+and before/after container/state/volume/network snapshots. No additional service,
+provider request, browser, Redis, or native engine is involved. This recipe is
+prepared for Root review; no PG fixture has been started for this module.
+
+## 2026-10-22 06:30Z — Provider-reader PostgreSQL result and correction
+
+Root released one bounded PostgreSQL component attempt for the real local Provider
+reader module. The exact command used the UV-managed backend environment offline
+and without sync, a single pytest process, the assigned explicit database URL,
+720-second inner bound/2-GiB address-space limit, and the exact reviewed module.
+Module SHA256 was
+`51cd29830d6d6d28381d66567ec8ec4ad4769821a6601aa2eace13e1bde7e670` on source
+`b96d456cbfe0d043cfe2e1abe266afb6460140b1`. Result: FK-closure check passed;
+persisted-reader case failed at its initial positive `provider_series_capability_cell`
+assertion (1 passed, 1 failed in 2.28 seconds). Raw evidence is
+`/tmp/strategy-provider-reader-pg-02d5ffaa.9pOKab/pytest.raw.log`.
+
+Static causal review found the positive fixture's `MarketSeries.provenance`
+contained corporate-action semantics but omitted the required non-empty
+`provider` value checked by `verify_provider_series_binding`. Added the test-only
+fixture value `strategy-reader-fixture`; no production code, query, assertion,
+constraint, or failure receipt was changed. This correction has not been tested
+and requires a separate bounded PG slot; do not replay the unchanged red case.
+The exact fixture container was `68dc7988e610ea60748afb7e312646690e688037f202ced366fc22c87afaa6cc`
+on loopback port 32774, pinned image/caps/labels matched, cleanup succeeded with
+`cleanup_failed=0`, and the container ID/state, volume, and network diff files are
+all empty. No provider/network request occurred.
+
+The preceding “unrun” preparation text is historical and superseded by this
+receipt. F8l observation unit tests remain 3/3 from their authorized run; actual
+browser acceptance, corrected Provider-reader PG evidence, full combined
+migration/application, `full_stack_browser`, Exhaustive, exact current-source CI,
+and coordinator checkpoint review remain open. The checkpoint stays
+`in_progress`/unaccepted and the full 18-criterion roadmap is unchanged.
+
+Root then released one corrected fixture attempt. Before launch, the module was
+frozen at SHA256
+`d91c6051cc6f8d6b3762ba45c5196d84f39c4b9de2eb60b80c07357cd67232ac`; only
+test-fixture provenance, binding-mismatch diagnostics and persisted-bar
+removal/restoration assertions changed after the first run. Ruff check/format,
+byte-compilation and `git diff --check` passed. On source
+`b96d456cbfe0d043cfe2e1abe266afb6460140b1`, the corrected module collected and
+passed both cases in 2.33 seconds. It verified the mapped FK closure and the
+persisted reader/admission sequence, including zero HTTP calls, coverage denial
+when the exact final bar is removed, readmission after restoring the row, and
+restoration of the same content digest. The first attempt remains an honest
+1-pass/1-failure receipt; it is not erased by the corrected run.
+
+Corrected fixture container
+`399dc774a1bb3828b77803ba2f6d84b45d59d78e6bff17a35d4fb3dd146643dd` used
+loopback port 32775 and the authorized cached PG16 image, labels and resource
+caps. Exact-ID stop/removal and absence verification succeeded; `cleanup_failed=0`.
+Container ID/state, volume and network snapshot diffs were all zero bytes. Full
+raw evidence is `/tmp/strategy-provider-reader-pg-02d5ffaa.v8dBNX/`. No
+provider/network request occurred. This is bounded local Provider persistence
+admission evidence only, not an overall profile or checkpoint pass.

@@ -19,11 +19,11 @@ integration_checkpoint:
       integration_capture: exact branch HEAD
   active_changeset:
     name: strategy-tc-three-feature-consumer-reconciliation
-    status: source_context_complete
+    status: in_progress
     base_source_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
     released_staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
     strategy_merge_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
-    phase: postgres_component_gate_passed_pending_exact_ci_migration_and_full_profile
+    phase: bounded_f8l_observation_and_provider_reader_pg_evidence_review
     reconciled_alembic_head: slv2_0011
     integration_capture: exact branch HEAD
     intent: >-
@@ -55,6 +55,53 @@ integration_checkpoint:
       this focused component only. Exact-source CI for the new Strategy commit, fresh/previous-release
       migration validation, full combined application, full_stack_browser and Exhaustive remain
       pending.
+    follow_up_source_review:
+      status: prepared_for_coordinator_review_not_runtime_validated
+      base_source_commit: b96d456cbfe0d043cfe2e1abe266afb6460140b1
+      historical_exact_ci_run: 39726439939
+      historical_exact_ci_conclusion: failure
+      frontend_paths:
+        - frontend/tests/e2e/flows.spec.ts
+        - frontend/tests/e2e/hidden_request_observation.ts
+        - frontend/tests/unit/lib/test_hidden_request_observation.test.ts
+      frontend_scope: >-
+        Test-only browser-clock request-start classification preserves the F8l hidden-initiation
+        assertion and 1500ms observation. A delayed delivery of a pre-hidden request is excluded;
+        a request at/after the transition is counted; missing/nonpositive timing throws. This is a
+        plausible harness observation-window repair, not proof of the historical first-attempt CI
+        cause. No production visibility/API behavior, assertion, retry, endpoint filter or tolerance
+        changed. The three-case no-browser Vitest regression has now passed once; the actual
+        Playwright F8l browser case remains unrun pending the later full-stack slot.
+      provider_reader_paths:
+        - backend/tests/integration/strategy_lab_v2/test_provider_local_capability_reader_postgres.py
+      provider_reader_scope: >-
+        No existing real-PostgreSQL invocation of ProviderLocalCapabilityEvidenceReader was found;
+        test_study_artifact_resolution_postgres.py only forbids/monkeypatches that reader. The new
+        ordinary integration module derives the actual nine-table mapped FK closure (asset_class,
+        data_source, exchange, instrument, instrument_dataset_state, instrument_type, issuer,
+        market_series, ohlcv_bar), retains mapped constraints, and exercises positive local evidence,
+        immutable bar-content drift, identity revocation, non-XNYS denial, partial coverage, stale
+        freshness, unsupported product/feed and zero HTTP calls. Positive evidence must also pass
+        provider_series_capability_cell under the actual equity/market/cash host scope. Every source,
+        series, identity, venue, coverage and status restoration is positively revalidated before the
+        next denial mutation; a fresh status with expired stale_after is rejected at admission. Its
+        fixture cleanup covers setup failures and test teardown in one guarded finally. It has no
+        opt-in skip: ordinary CI lazily uses TEST_DATABASE_URL or the repository pg_container fixture.
+      latest_component_validation: >-
+        Preserve first attempt 9pOKab (1 passed/1 failed in 2.28s): the FK-closure test passed and
+        the persisted-reader case exposed missing provider provenance in its positive fixture. The
+        corrected module added provider=strategy-reader-fixture, explicit binding-mismatch diagnostics,
+        and a persisted OHLCV-bar removal denial/restoration readmission asserting the restored
+        immutable content digest. Root authorized one distinct corrected attempt, v8dBNX, on frozen
+        module SHA256 d91c6051cc6f8d6b3762ba45c5196d84f39c4b9de2eb60b80c07357cd67232ac: both cases
+        passed in 2.33s. The exact cached PostgreSQL 16 Alpine container used loopback port 32775,
+        384 MiB memory/swap, one CPU, and 256 MiB tmpfs; exact-ID cleanup succeeded, cleanup_failed=0,
+        and container/state/volume/network snapshots were unchanged. Raw output and receipts remain in
+        `/tmp/strategy-provider-reader-pg-02d5ffaa.v8dBNX/`. No provider/network request occurred.
+        The three-case frontend Vitest test also passed once; actual browser acceptance remains open.
+        The local full collector's 14 shard-53 failures occurred with routing forced off; two
+        representative mocked positive route-selection nodes passed once with routing true only in
+        that isolated process, which does not explain every failure.
     owned_paths:
       - backend/app/strategy_lab_v2/study_artifact_resolver.py
       - backend/app/strategy_lab_v2/application.py
@@ -66,6 +113,9 @@ integration_checkpoint:
       - backend/alembic/versions
       - backend/app/strategy_lab_v2/tests
       - backend/tests/integration/strategy_lab_v2
+      - frontend/tests/e2e/flows.spec.ts
+      - frontend/tests/e2e/hidden_request_observation.ts
+      - frontend/tests/unit/lib/test_hidden_request_observation.test.ts
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
@@ -454,19 +504,22 @@ progress:
   total: 5
   current_phase: strategy-tc-three-feature-consumer-reconciliation
   current_blocker: >-
-    The accepted Provider/ETF/TC staging reconciliation and the focused real PostgreSQL/API/restarted-
-    worker Study-reference component now have evidence; the corrected 20-case module passes. The
-    source/test and evidence changes are still local and need one coherent branch publication with
-    exact-source CI. Fresh/previous-release migration and schema/data preservation, full combined
-    application, full_stack_browser, Exhaustive, coordinator technical review and all original
-    18-roadmap criteria remain open. Study-input authentication is not native Nautilus execution
-    proof. The existing session goal remains active and unbudgeted.
+    The accepted Provider/ETF/TC staging reconciliation and focused Study-reference PostgreSQL/API/
+    restart component have prior evidence. The Provider-reader PostgreSQL component now passes 2/2
+    on corrected frozen module SHA d91c6051cc6f8d6b3762ba45c5196d84f39c4b9de2eb60b80c07357cd67232ac;
+    the original 1-pass/1-failure attempt remains preserved. The local worktree also contains the
+    F8l browser-observation repair/test WIP; its three-case unit test passed, while actual browser
+    acceptance remains open. Fresh/previous-release migration, schema/data preservation, full
+    combined application, full_stack_browser, Exhaustive, exact-source CI, coordinator review and
+    all original 18-roadmap criteria remain open. Study-input authentication is not native Nautilus
+    execution proof. The existing session goal remains active and unbudgeted.
   next_action: >-
-    Publish the coherent tested Study-reference source and owned evidence, then inspect the exact
-    push-triggered branch CI to terminal. Continue with fresh/previous-release migration preservation,
-    full combined application, full_stack_browser and final integration evidence under assigned
-    resource slots. Preserve all prior failures and do not claim Strategy checkpoint acceptance or
-    native execution authority from the Study-reference integration.
+    Close and publish the coherent F8l-observation plus Provider-reader test changes and exact
+    workstream receipts using the normal Strategy branch workflow; then inspect the one exact-source
+    push CI to terminal. Preserve the earlier failed PG receipt. Next prepare the corrected full
+    backend/application/browser validation plan, with complete migration/application and browser
+    execution gates still pending. Do not claim Strategy checkpoint acceptance or native execution
+    authority from the focused Study/Provider tests.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
