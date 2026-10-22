@@ -16953,6 +16953,10 @@ restart. It also retains changed-dataset and deleted-artifact rejection cases.
 That module was not executed in this source-only slot; it still needs the
 coordinator-assigned constrained PostgreSQL gate before restart/data claims are
 closed. No full backend/database/Compose/browser/native gate was launched.
+Collection-only verification then imported this exact module and enumerated its
+20 cases in 1.55s without running fixtures or tests. This confirms collection
+shape only; all SQL/API persistence and reconstructed-worker behavior remain
+unexecuted locally.
 
 At the last live read, exact current-base CI `39850802077` on c45 had Backend,
 Frontend and Branch-declared jobs successful; Playwright remained in progress,
