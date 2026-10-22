@@ -33,47 +33,52 @@ closure_summary: >-
   changes. integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: docker_integration
+local_validation_profile: full_stack_browser
 local_validation_reason: >-
-  Pinned Ruff formatting only, with exact formatter-output and AST equivalence
-  proven for every changed Python file. No database, queue, UI, dependency,
-  migration, provider or runtime behavior changes. Run backend lint, focused
-  startup/schema unit regressions and isolated actual PostgreSQL/Redis contracts
-  locally to meet the declared-path minimum; preserve the accepted full local
-  application evidence and require new exact-source full hosted CI and exhaustive
-  staging validation. No Compose/browser fixture is needed for whitespace-only input.
+  Formatting remains AST-equivalent and locally validated. Final branch CI exposed
+  a separate readiness-provenance fixture race; synchronize its existing browser
+  response precondition without changing assertions or timeouts. Run the affected
+  real full-stack browser flows locally with isolated owned resources. Retain the
+  prior full application/visual evidence only with its original source and input
+  qualification; require full exact final branch CI and new exact staging
+  functional/visual gates before acceptance/release. No live provider calls.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: Repair the exact four-feature staging formatting failure without semantic changes, then return the clean validated repair for delegated coordinator acceptance and guarded remediation integration.
+goal: Repair the four-feature staging formatting gate and readiness-provenance browser setup without weakening behavior, assertions or validation, then return the tested checkpoint for guarded remediation integration.
 scope:
   - Apply only pinned Ruff 0.4.7 formatting to the 139 reported Python files.
   - Prove every changed Python file matches formatter output and preserves its AST.
   - Validate lint and focused unit contracts; preserve all gates and original feature roadmaps.
+  - Wait explicitly for the readiness fixture response before the existing adjacent provenance assertions; preserve all text, timeouts, retries and visual oracles.
 owned_paths:
   - backend/app/strategy_lab_v2/
   - backend/tests/integration/strategy_lab_v2/test_oos_terminal_postgres_redis.py
   - backend/tests/unit/strategy_lab_v2/test_app_migration_startup.py
   - backend/tests/unit/strategy_lab_v2/test_schema_migration.py
   - ops/workstreams/fix-strategy-staging-quality/
+  - frontend/tests/e2e/flows.spec.ts
 dependencies:
   - Exact degraded staging 5178b414b426ec61bdcb22257b4f956581c25d0c contains all four accepted feature checkpoints; exhaustive lint failed before its remaining stages.
 acceptance_criteria:
   - {id: FMT1, text: Pinned backend code and formatting checks pass without policy changes.}
   - {id: FMT2, text: "All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes."}
   - {id: FMT3, text: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.}
+  - {id: PROV1, text: "Affected readiness browser flows wait for their fixture response before the unchanged provenance assertions; no assertion, timeout, retry, skip, reference or production behavior changes."}
+  - {id: PROV2, text: "Actual isolated full-stack focused browser validation passes with exact cleanup; full final branch CI and new staging exhaustive functional/visual gates remain required."}
 branch_tests:
   - make lint-backend
 branch_tests_reason: Full hosted backend CI already executes all backend unit and integration tests; additionally enforce the exact missing formatting gate on this repair branch before another staging attempt.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: ready_for_integration
+status: in_progress
 remaining_gaps:
   - Exact final pushed repair branch CI remains mandatory before guarded remediation integration; no hosted pass is claimed yet.
   - Exact repaired staging exhaustive gate remains mandatory before owner backmerge/release, master promotion or deployment.
+  - Final source4fd11ebd CI39806090414 is RED from one flaky provenance case; its retry pass is not accepted. Previous conditional formatter closure does not close this new readiness-fixture context.
 progress:
   completed: [FMT1, FMT2]
-  total: 3
-  current_phase: accepted-technical-repair-awaiting-exact-source-ci
+  total: 5
+  current_phase: readiness-fixture-response-synchronization
   current_blocker: none
-  next_action: Freeze final closure HEAD and require its exact full hosted branch CI green before guarded REMEDIATE_DEGRADED integration; then require new exact staging exhaustive gate.
+  next_action: Synchronize readiness fixture responses before existing assertions; validate actual focused browser flows on an isolated stack, then publish and require full exact CI before remediation integration.
