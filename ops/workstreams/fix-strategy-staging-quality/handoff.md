@@ -23,6 +23,8 @@ Scope is only pinned Ruff0.4.7 output in the listed139files plus this own record
 No behavior, tests, providers, migrations, frontend or visual-oracle changes.
 
 Next: formatter, exact-output and AST proof, full backend lint and focused unit
-checks; then coherent commit/push and exact branch CI. Local profile unit is
-chosen for proven whitespace-only/no-boundary-impact scope, not a waiver of
-required exact-source full hosted/staging gates. No Docker fixture or cleanup.
+checks; then coherent commit/push and exact branch CI. The path validator rejected
+the proposed unit profile; the required docker_integration minimum is retained,
+with actual isolated PostgreSQL/Redis contracts and exact cleanup. No exception
+or validation weakening is recorded. No Compose/browser fixture is needed for
+the proven formatter-only scope; exact full hosted/staging gates remain required.

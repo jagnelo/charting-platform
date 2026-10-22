@@ -10,14 +10,15 @@ human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: unit
+local_validation_profile: docker_integration
 local_validation_reason: >-
   Pinned Ruff formatting only, with exact formatter-output and AST equivalence
   proven for every changed Python file. No database, queue, UI, dependency,
-  migration, provider or runtime behavior changes. Run backend lint and focused
-  startup/schema unit regressions locally; preserve the accepted full local
+  migration, provider or runtime behavior changes. Run backend lint, focused
+  startup/schema unit regressions and isolated actual PostgreSQL/Redis contracts
+  locally to meet the declared-path minimum; preserve the accepted full local
   application evidence and require new exact-source full hosted CI and exhaustive
-  staging validation. No Docker/browser fixture is needed for whitespace-only input.
+  staging validation. No Compose/browser fixture is needed for whitespace-only input.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: Repair the exact four-feature staging formatting failure without semantic changes, then return the clean validated repair for delegated coordinator acceptance and guarded remediation integration.
@@ -50,4 +51,4 @@ progress:
   total: 3
   current_phase: pinned-formatting-repair
   current_blocker: none
-  next_action: Apply only the pinned formatter, prove equivalence, and run local lint and focused tests under the existing active unbudgeted coordinator goal.
+  next_action: Apply only the pinned formatter, prove equivalence, and run local lint, focused unit and isolated PostgreSQL/Redis tests under the existing active unbudgeted coordinator goal.
