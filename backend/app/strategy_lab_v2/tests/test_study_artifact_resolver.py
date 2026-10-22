@@ -212,6 +212,14 @@ def test_resolved_study_output_freezes_nested_payload_against_source_mutation() 
         cast(Any, resolved.payload)["type"] = "table"
 
 
+def test_resolved_study_output_rejects_payload_that_does_not_match_pinned_digest() -> None:
+    reference, _responses, _principal = _graph()
+    changed_payload = {"type": "series", "value": [9.0, 2.0]}
+
+    with pytest.raises(ValueError, match="immutable reference"):
+        ResolvedStudyArtifactOutput(reference, changed_payload)
+
+
 @pytest.mark.asyncio
 async def test_host_resolver_owns_one_read_session_and_returns_exact_pin(monkeypatch) -> None:
     reference, responses, principal = _graph()

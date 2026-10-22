@@ -17042,3 +17042,18 @@ test-only casts at the deliberate mutation sites; Ruff and format checks pass.
 This proves in-process defensive freezing only, not persisted PostgreSQL restart
 behavior. Exact CI39856591934 is still running on published 485bea63f314cdffcd6d4cf571d6158a215ef2c5;
 the unpushed restart-matrix commit and this new unit test are not included.
+
+### Direct immutable payload digest guard — 2026-10-22
+
+Added an I/O-free regression proving `ResolvedStudyArtifactOutput` rejects a payload whose
+canonical content digest does not match its pinned `SelectedStudyArtifactReference`. The full
+resolver test module passed 30/30 in 1.56s; focused MyPy passed for that module, Ruff check and
+format passed, and `git diff --check` passed. The new test file SHA-256 is
+`b123e71a7528c5bbf312d75eeaea2c5a9498e351e20dad3be1aeb37ca68fa6d4`.
+
+The exact published-source run `39856591934` on `485bea63f314cdffcd6d4cf571d6158a215ef2c5` is
+still in progress (Frontend Unit Tests green; Backend integration step active). This local test
+and the latest restart-denial tests are not covered by that run and will not be pushed until it is
+terminal. No database, network, Docker, browser, native, or external provider work ran. The real
+PostgreSQL reconstructed-worker cases and all remaining full-roadmap runtime/browser/native gates
+remain open; generic Study data remains distinct from native execution evidence.
