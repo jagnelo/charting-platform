@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, cast
 
 import pytest
@@ -191,6 +192,24 @@ async def test_resolves_exact_owner_scoped_completed_named_study_artifact() -> N
     assert resolved.value == (1.0, 2.0)
     assert len(session.statements) == 4
     assert session._responses == []
+
+
+def test_resolved_study_output_freezes_nested_payload_against_source_mutation() -> None:
+    reference, _responses, _principal = _graph()
+    payload = {"type": "series", "value": [{"close": 1.0}]}
+    pinned_reference = replace(
+        reference,
+        artifact_content_digest=content_digest(payload),
+    )
+
+    resolved = ResolvedStudyArtifactOutput(pinned_reference, payload)
+    cast(Any, payload)["value"][0]["close"] = 99.0
+
+    assert resolved.value[0]["close"] == 1.0
+    with pytest.raises(TypeError):
+        cast(Any, resolved.value[0])["close"] = 2.0
+    with pytest.raises(TypeError):
+        cast(Any, resolved.payload)["type"] = "table"
 
 
 @pytest.mark.asyncio

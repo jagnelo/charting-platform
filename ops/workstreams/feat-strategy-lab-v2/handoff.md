@@ -17031,3 +17031,14 @@ correct backend-relative collect-only command collected all 30 in 1.36s.
 Collection does not run fixture setup or prove PostgreSQL behavior. The assigned
 real-PostgreSQL gate, full backend/runtime/browser/native gates and all safety
 holds remain open.
+
+### Verify resolved Study payload immutability directly
+
+Added an I/O-free resolver regression that mutates a nested source payload after
+constructing `ResolvedStudyArtifactOutput`; the bound value remains unchanged,
+and both nested-value and top-level payload writes raise `TypeError`. The resolver
+test module passes all 29 cases. Focused MyPy passes for that module after narrow
+test-only casts at the deliberate mutation sites; Ruff and format checks pass.
+This proves in-process defensive freezing only, not persisted PostgreSQL restart
+behavior. Exact CI39856591934 is still running on published 485bea63f314cdffcd6d4cf571d6158a215ef2c5;
+the unpushed restart-matrix commit and this new unit test are not included.
