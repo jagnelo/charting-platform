@@ -53336,17 +53336,8 @@ class SaracenHoldingsAdapter(IssuerCsvHoldingsAdapter):
         url: str,
         *,
         headers: dict[str, str],
-    ) -> httpx.Response | requests.Response:
-        response = await client.get(url, headers=headers, follow_redirects=True)
-        if getattr(response, "status_code", None) != 403:
-            return response
-        return await asyncio.to_thread(
-            requests.get,
-            url,
-            headers=headers,
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+    ) -> httpx.Response:
+        return await client.get(url, headers=headers, follow_redirects=True)
 
     @staticmethod
     async def _browser_compatible_post(
@@ -53355,18 +53346,8 @@ class SaracenHoldingsAdapter(IssuerCsvHoldingsAdapter):
         *,
         headers: dict[str, str],
         data: dict[str, str],
-    ) -> httpx.Response | requests.Response:
-        response = await client.post(url, headers=headers, data=data, follow_redirects=True)
-        if getattr(response, "status_code", None) != 403:
-            return response
-        return await asyncio.to_thread(
-            requests.post,
-            url,
-            headers=headers,
-            data=data,
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+    ) -> httpx.Response:
+        return await client.post(url, headers=headers, data=data, follow_redirects=True)
 
     @staticmethod
     def _resolve_feed_ajax_params(page_text: str) -> tuple[str, str]:

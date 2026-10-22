@@ -14423,6 +14423,37 @@ async def test_saracen_adapter_verifies_sanjac_data_feed_and_parses_account_csv(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("method", ["get", "post"])
+async def test_saracen_403_does_not_escape_guarded_httpx_transport(method):
+    adapter = get_holdings_adapter("saracen")
+    assert adapter is not None
+    url = "https://sanjacalpha.com/wp-admin/admin-ajax.php"
+    client = FakeAsyncClient()
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(status_code=403, content_type="text/plain", url=url)]
+    headers = {"Referer": "https://sanjacalpha.com/etf-sjcp/"}
+
+    if method == "get":
+        response = await adapter._browser_compatible_get(client, url, headers=headers)
+    else:
+        response = await adapter._browser_compatible_post(
+            client,
+            url,
+            headers=headers,
+            data={"action": "get_feed_urls"},
+        )
+
+    assert response.status_code == 403
+    assert len(FakeAsyncClient.requested) == 1
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == url
+    assert request_kwargs["headers"] == headers
+    assert request_kwargs["follow_redirects"] is True
+    if method == "post":
+        assert request_kwargs["data"] == {"action": "get_feed_urls"}
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("adapter_key", ["mm_vam", "vident"])
 async def test_vident_product_page_adapter_parses_holdings_table(monkeypatch, adapter_key):
     adapter = get_holdings_adapter(adapter_key)

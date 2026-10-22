@@ -336,16 +336,15 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: PeakShares guarded retry boundary
-    state: two_peakshares_contracts_pass;adapter_611_pass;declared_offline_branch_suite_pass;final_records_checks_pending
-    baseline: c23fa9e925677c5dc6bc4335e1419f6d0c05954b
+    name: Saracen guarded 403 boundary
+    state: three_saracen_contracts_pass;adapter_613_pass;declared_offline_branch_suite_pass;final_records_checks_pending
+    baseline: db023ed8023bdacd6316380147114d344848ed14
     intent: >-
-      Remove PeakShares' raw requests.post escape after three FilePoint
-      timeouts. Keep every physical POST on the same Provider-backed HTTPX
-      client so each retry is separately admitted/settled, preserve existing
-      backoff and the original terminal timeout, and never convert a governed
-      failure into an unadmitted request. No live request or route promotion
-      is claimed.
+      Remove Saracen's raw requests.get/post 403 fallbacks. Keep each request
+      and redirect on the shared Provider-backed HTTPX client so every physical
+      attempt is separately admitted/settled; preserve 403 as a failed response
+      and never convert it into an unadmitted alternate transport. No live
+      request or route promotion is claimed.
     owned_paths:
       - backend/app/services/etf_holdings_adapters.py
       - backend/tests/unit/services/test_etf_holdings_adapters.py
@@ -1584,17 +1583,18 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    Exact Actions run 39855044854 was created for published REX source
-    c23fa9e925677c5dc6bc4335e1419f6d0c05954b and is pending/in progress; it
-    does not contain the current PeakShares follow-up. The PeakShares tests and
-    full declared offline branch suite pass locally; a fresh exact-head run is
-    required after its coherent publication. Earlier cancelled, partial and
+    Exact Actions run 39855756183 is in progress on published source
+    db023ed8023bdacd6316380147114d344848ed14 containing the PeakShares and
+    earlier Voya/REX fixes. The current Saracen 403-boundary change and its
+    deterministic tests pass locally through the complete declared offline
+    branch suite; they are not covered by that run, so a fresh exact-head run
+    is required after coherent publication. Earlier cancelled, partial and
     red runs remain historical and are not upgraded to green.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Record the validated PeakShares guarded-retry change, run final count/schema/
+  Record the validated Saracen 403-boundary change, run final count/schema/
   hash/diff checks, then commit/push only this ETF-owned checkpoint and inspect
   exact-source CI. Continue
   the full AC1-AC14 roadmap from retained evidence; do not change route status

@@ -36,18 +36,31 @@ surfaced rather than making an unadmitted fourth request. The success-after-one-
 timeout contract and the three-timeout fail-closed contract pass; the latter
 asserts all three POSTs use the configured FilePoint URL, fund ID and product
 page Referer. The complete declared branch suite passed again with live tests
-disabled. PeakShares source/test and owner-record updates remain uncommitted and
-are not covered by REX CI `39855044854`.
+disabled. PeakShares fix and evidence were published as
+`db023ed8023bdacd6316380147114d344848ed14`; exact CI `39855756183` is running
+on that SHA. It does not contain the current Saracen follow-up.
 
-No live REX or PeakShares success, full-stack browser pass, route promotion,
+The next static route review found Saracen/SanJac's registered native route
+retried HTTPX 403 responses with raw `requests.get/post`, bypassing the shared
+Provider admission boundary. Those fallbacks are removed: redirects and all
+attempts remain within the Provider-backed client, and a 403 remains an error
+rather than being retried through an ungoverned transport. Three offline
+Saracen contracts (the full product-page feed and GET/POST 403 boundaries) pass;
+the full declared offline suite passed with 613 adapter cases, consumers15,
+route-drift23, offline contracts9 passed/537 live cases skipped, lint and
+workstream validation, frontend type-check, ETF frontend17 and build. The
+current Saracen source/test and owner evidence are local and need final checks,
+publication and exact-source CI.
+
+No live REX, PeakShares, or Saracen success, full-stack browser pass, route promotion,
 full-roadmap completion, or post-integration observation is claimed. MSMR/QQQ
 and Militia/GOOG remain unresolved/quarantined; all unknown, quota-held,
 unreviewed, paid/trial, and unsafe operations remain disabled. Preserve all
 fourteen criteria, the exact “15 Tier-0 and 156 Tier-1” count wording,
 historical failures, and the 30-day observation gate.
 
-Next: close and publish the substantive PeakShares guarded-transport change
-with its coherent evidence, then inspect resulting exact-source CI. Continue
+Next: close and publish the substantive Saracen 403-boundary change with its
+coherent evidence, then inspect resulting exact-source CI. Continue
 the full roadmap from retained evidence without issuer/provider/SEC requests
 or quota spend. A full
 `full_stack_browser` matrix remains required and needs Root's assigned safe
