@@ -2,6 +2,28 @@
 
 ## ACTIVE NEW CHECKPOINT — 2026-10-22 21:31 UTC
 
+## New repair local acceptance — 2026-10-22 21:55 UTC
+
+Implementationf19854ae is locally proven: unchanged 10k Market Map E2E passes
+1/1in20.8s, retries0, actual pinnedNoble1.62.1 browser state0falseexited. Existing
+5s renderbudget and every ordinary selection/zoom/pan/diagnostic assertion stay
+byte-identical toM2. All six fixture services' actual caps/no-extra-swap/private
+network/loopback boundaries verified. No new product/data/provider gate is waived.
+38workflowtests and actual shared-image cleanup proof pass;61mountedtests and
+Vue typecheck pass. Exact private fixture/browser cleanup and2own temporary image
+removals complete; all global container-state/volume/network diffs0bytes and
+canonical current-worktree cleanup passes. Original datasets/services untouched,
+artifacts and stopped shared builder/cache preserved. See appended raw hashes
+and paths in validation.jsonl, not a blanket full visual/profile acceptance.
+
+Root exercises delegated narrow technical closure SUBJECT TO exact final HEAD
+full CI. New closure record contains no further product edits; it captures
+integration_capture: exact branch HEAD. Freeze once published; do not add a
+self-SHA/CI acknowledgment commit. MAP2 remains incomplete until independently
+enforced hosted/staging/master gates actually succeed. Previous B193 closure is
+historical, not authority to accept this new source. Full later feature work,
+roadmaps, official HelpV25 and provider/legal/quota holds remain separate.
+
 21:40 validation update: the delayed-initialization regression failed on original
 M2 with2maprequests instead of1. Minimal onMounted runGeneration===0 guard now
 passes61/61 mounted tests; Vue type-check0. Shared-image cleanup regression also
