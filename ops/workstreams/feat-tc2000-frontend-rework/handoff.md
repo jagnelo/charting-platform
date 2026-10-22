@@ -1,6 +1,43 @@
 # feat/tc2000-frontend-rework
 
-## Current status — 2026-10-22: Study loading-state visual fixture correction
+## Current status — 2026-10-22: Market Map hover actionability correction
+
+The checked-out/published source is `a7c8ecba208ce6c79d8f1a5d7294500122e462e5`;
+the only product-tree edit in this pending candidate is in
+`frontend/tests/e2e/workstation_performance.spec.ts`: retain the canvas bounds
+non-null assertion, but use ordinary `pointerCanvas.hover()` instead of moving
+to the raw bounding-box center. All existing hover text, search, zoom, pan and
+5-second render-budget assertions/actions remain unchanged; no force, trial,
+custom timeout, retry, product CSS or visual oracle changes.
+
+The deterministic private actionability diagnostic passed one test in13.5s,
+zero retries, on frozen a7 source with the product image still qualified to
+05664729. Native scrolling of `.tool-window__body` (`overflow-y:hidden`) moved
+the canvas center to `(931,699)`, below the clipped bottom y=698 while part of
+the canvas remained visible. A raw move hit `.workstation__footer` and created
+no hover; ordinary `locator.hover()` targeted the visible canvas, then the
+unchanged positive flow passed. The prior precondition-only run e55fe exited1
+without a scroll range and remains setup evidence. This proves the test action
+is robust under the measured clipped-center condition; it does not prove the
+cause of hosted CI39693019337's first-attempt hover miss.
+
+Exact hosted CI39693019337 on a7 remains terminal red/flaky: 190 passed,110
+declared skips and one retry-passing Market Map hover flake; preserve that
+result. The current one-line test correction is uncommitted and has no exact CI
+or full functional result. The prior functional195 pass/2 declared skips is
+qualified to source/product05664729; the a7 visual104/104 result used a7 visual
+tests with the unchanged05664729 product image. Those receipts remain qualified
+to their exact inputs; backend/migration/source bytes are unchanged. Next:
+complete stack-free collection/scope/workstream and
+record checks, present the exact staged five-file scope for Root review, and
+wait for review before commit/push. Full functional on the corrected test
+source and exact-source CI remain pending; no visual rerun is requested solely
+for this test-only change. TCP3 overall, TCP4/TCP5, full roadmap and official
+`REF-HELP-V25` remain open. The existing session goal is usageLimited with
+tokenBudget/remainingTokens null; Root's normal-turn supervision continues this
+same thread without a goal/accounting reset.
+
+## Historical status — 2026-10-22: Study loading-state visual fixture correction
 
 The local strict visual attempt on published source
 `05664729ea612d4bc27812cf86ab9fca02603880` was stopped by the coordinator at
@@ -22,19 +59,14 @@ Loading. The sandbox case retains its existing post-run loading assertions and
 holds its first page in the unified route handler. No product behavior,
 assertion timeout, screenshot reference, mask, skip or `0.005` tolerance changed.
 
-Stack-free checks on the candidate pass: Playwright collection lists104 tests;
-visual manifest validation and its10 unit tests pass; Vue type-check, TC scope
-guard, workstream validation and diff check pass. The separate
+Stack-free checks on that candidate passed: Playwright collection listed104
+tests; visual manifest validation and its10 unit tests passed; Vue type-check,
+TC scope guard, workstream validation and diff check passed. The separate
 `--require-approved` manifest gate still reports existing `board_covered`
-status; official V25 parity remains open. No browser rerun has occurred. The
-prior functional195 pass/2 declared skips and hosted E2E191 evidence remain
-qualified to source056, not this uncommitted test-only candidate. Next: publish
-this correction and receipt once, then prepare a visual-only frozen-source
-runner using the existing frontend image for coordinator review; no rebuild,
-fixture recreation, smoke, functional replay or browser launch before review.
-TCP3 overall, TCP4/TCP5, full roadmap and official `REF-HELP-V25` remain open.
+status; official V25 parity remains open. The prior functional195 pass/2
+declared skips and hosted E2E191 evidence remain qualified to source056.
 
-## Current status — 2026-10-21: reviewed F8m/F8n/F8s repair candidate
+## Historical status — 2026-10-21: reviewed F8m/F8n/F8s repair candidate
 
 The candidate is based on exact branch source
 `20f69b21fba025ae90abf95f72968a5133c35464` and changes only five reviewed

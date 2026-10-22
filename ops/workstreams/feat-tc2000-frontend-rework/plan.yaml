@@ -30,30 +30,26 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  A fixture-only visual-readiness correction is prepared against published
-  source 05664729ea612d4bc27812cf86ab9fca02603880. The local strict visual
-  attempt on that source was stopped by the coordinator at case41/104 (exit143)
-  after readiness failures in the Study Lab running and sandbox-error gap
-  cases; preserve this as incomplete red evidence, not a timeout or pixel
-  mismatch. All four protected Linux profiles for each of those cases show the
-  same state: Refreshing…, Shared Unavailable, Loading SPY…, and persisted-runs
-  Loading. The candidate changes only those intentional loading fixtures:
-  default loaded readiness remains unchanged, while loading mode checks the
-  workspace host and loading chart without requiring a canvas; the running
-  fixture holds benchmark, OHLCV and first-page research-run requests, and the
-  sandbox first-page hold is in the unified handler. Original actions,
-  assertions, timeouts, references, masks, skips and0.005 tolerance remain.
-  Stack-free validation passes: Playwright lists104 tests; visual manifest
-  validation and its10 unit tests pass; Vue type-check, TC scope guard,
-  workstream validation and git diff check pass. The separate require-approved
-  manifest gate remains blocked by existing board_covered status; official V25
-  parity is not inferred. This candidate has not run in a browser. The prior
-  source-qualified functional195 pass/2 declared skips and hosted CI191 E2E
-  evidence remain tied to source056. Publish this one test-only correction and
-  its receipt, then prepare the reviewed visual-only frozen-source runner using
-  the existing frontend image; no rebuild, fixture recreation, smoke, or
-  functional replay. TCP3 overall, TCP4/TCP5, full roadmap, and official
-  REF-HELP-V25 remain open.
+  Current source HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5. The sole
+  pending product-tree change is a test-only actionability correction in
+  workstation_performance.spec.ts: retain the canvas bounds assertion and
+  replace only raw bounding-box-center mouse movement with ordinary
+  pointerCanvas.hover(); preserve every subsequent hover/search/zoom/pan and
+  render-budget assertion, timeout, retry policy and visual oracle. The private
+  one-case diagnostic passed1/1 in13.5s/0 retries after native scrolling left
+  the canvas partly visible with its center outside the clip: raw movement hit
+  the footer and produced no hover, while locator.hover targeted the canvas
+  and the unchanged flow passed. This supports harness actionability only; it
+  does not establish the cause of the hosted failure. Preserve the failed
+  precondition diagnostic e55fe (exit1/no OOM) and hosted a7 CI39693019337
+  (190 passed,110 declared skips, one retry-passing Market Map hover flake).
+  Prior functional195 pass/2 declared skips is source-qualified to product
+  source05664729ea612d4bc27812cf86ab9fca02603880; the a7 visual104/104 result
+  used a7 visual tests with the unchanged05664729 product image. Both remain
+  qualified to those exact inputs; exact CI and full functional on this test correction are
+  pending. Next: run requested stack-free checks and present the exact staged
+  five-file scope to Root; do not commit/push before review. TCP3 overall,
+  TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1148,16 +1144,18 @@ progress:
   completed: [TCP1, TCP2]
   total: 5
   # Current TCP3 is intentionally subdivided; completed IDs remain TCP1/TCP2 only.
-  current_phase: TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_DELIVERED;TC_STUDY_VISUAL_LOADING_FIXTURE_PUBLICATION_PENDING;TCP2_FINAL_VISUAL_MATRIX_PENDING;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN
+  current_phase: "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_DELIVERED;TC_MARKET_MAP_HOVER_ACTIONABILITY_TEST_FIX_PENDING;TCP2_FINAL_FUNCTIONAL_AND_EXACT_CI_PENDING;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN"
   next_action: >-
-    Publish the root-reviewed test-only Study loading-state correction with this
-    receipt. Then prepare a visual-only frozen-source archive/runner for root
-    review, reusing the existing healthy frontend image and qualified functional
-    evidence; do not rebuild, recreate, smoke, rerun functional, or start a
-    browser before that review. Preserve the stopped 056 visual attempt as
-    incomplete red and run the unchanged full104 strict matrix only when its
-    exact runner is reviewed. TCP3 overall, TCP4/TCP5, full roadmap and official
-    REF-HELP-V25 remain open.
+    Run the stack-free Playwright collection, TC scope/self-tests, structured
+    JSON/YAML and workstream validation, and diff checks for the one-line
+    workstation_performance.spec.ts actionability correction and owned records.
+    Present the exact five-file staged scope to Root; do not commit/push before
+    staged-scope review. After review/publication, run the exact full functional
+    profile on the frozen corrected test source and obtain exact-source CI; do
+    not rebuild or rerun the unchanged104 visual matrix solely for this
+    test-only change. Preserve hosted CI39693019337's retry-passing flake and
+    all previous red receipts. TCP3 overall, TCP4/TCP5, full roadmap and
+    official REF-HELP-V25 remain open.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1224,31 +1222,27 @@ progress:
     created. TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain
     open.
 current_checkpoint_status: >-
-  Current boundary (2026-10-21): the five-path frontend repair is based on
-  20f69b21fba025ae90abf95f72968a5133c35464. Preserve the exact hosted red
-  39654421515 on 9b7238ad (F8m/F8s), hosted run39673014884 on exact source
-  20f69b21fba025ae90abf95f72968a5133c35464 (189 passed,110 declared skips,
-  hard F8n and retry-passing F8s flake; backend/frontend/branch jobs green), and
-  the 20f local full functional result (193 passed,2 failed,2 skipped; F8k/F8s),
-  plus diagnostic02's F8n identity reproduction; these are historical failures,
-  not results for this repair.
-  F8n's trace showed uPlot replacement under the same chart-root/parent after
-  empty initial indicators and semantically unchanged renderer settings. The
-  renderer lifecycle now skips equivalent configurations while retaining real
-  configuration rebuilds and same-configuration data updates. For F8s, restoring
-  the old syncShellMenuListeners body made the focused geometry test fail
-  (expected left120px, received left420px); the restored candidate passes and
-  still repositions on actual resize while preserving ordinary item activation.
-  This component regression does not establish browser closure. Focused renderer/
-  indicator tests pass8/8, related workstation tests pass, and root-verified full
-  frontend coverage (exec55d96932), vue-tsc (exec230a3d63-84ba-490f-8cf3-320ad8e966dd
-  and exec6f0c8970-790e-4113-b213-347c9ab882f2; both include npm run type-check),
-  and Vite build (execf7722a10,13.52s) are green. No backend or Compose bytes changed;
-  prior backend/migration receipts remain qualified to their original source.
-  Final candidate exact-source CI and unchanged full functional/104 strict visual
-  gates remain pending; no fixture/runtime action is authorized before coordinator
-  review. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain
-  open.
+  Current boundary (2026-10-22): published HEAD is
+  a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
+  workstation_performance.spec.ts and the four owned records are pending review.
+  Exact hosted CI39693019337 on a7 is terminal red/flaky (190 passed,110
+  declared skips, one retry-passing Market Map hover failure); preserve it.
+  The previous clipped-center run e55fe failed before pointer actions because no
+  native scroll range was found. The revised same-one-case diagnostic on exact
+  a7/product image05664729 passed1/1 in13.5s/zero retries: a measured native
+  scroll in `.tool-window__body` made the partially visible canvas center fall
+  below its clip; raw movement hit the footer and yielded no hover, while
+  ordinary locator.hover targeted the canvas and the unchanged remainder passed.
+  This establishes actionability under the diagnostic geometry only, not the
+  cause of the original hosted flake. The prior functional195 pass/2 declared
+  skips is qualified to source/product05664729; the a7 visual104/104 result
+  used a7 visual tests with the unchanged05664729 product image. These receipts
+  remain qualified to those exact inputs; backend/migration/product
+  bytes are unchanged. Run stack-free collection/scope/record checks, then
+  stage the exact five-file packet for Root review. Full functional on the
+  corrected test source and exact-source CI remain pending; no visual rerun is
+  needed solely for the functional-test-only edit. TCP3 overall, TCP4/TCP5,
+  full roadmap and official REF-HELP-V25 remain open.
 
   Historical Provider+ETF reconciliation details follow unchanged:
   Current boundary (2026-10-21): TCP1 and TCP2 remain narrowly accepted only as

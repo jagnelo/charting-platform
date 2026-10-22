@@ -37,30 +37,26 @@
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_exact_ci": {
     "attempt": 1,
-    "backend_job_id": 119475524444,
-    "branch_declared_job_id": 119485245047,
+    "backend_job_id": 119543565368,
+    "branch_declared_job_id": 119550358826,
     "conclusion": "failure",
-    "e2e_job_id": 119485244807,
-    "e2e_summary": "189 passed,110 declared skips,one hard F8n failure and one retry-passing F8s flake on source20f69b21; candidate changes after this source still need exact CI",
-    "frontend_unit_job_id": 119475524846,
-    "head_sha": "20f69b21fba025ae90abf95f72968a5133c35464",
+    "e2e_job_id": 119550358675,
+    "e2e_summary": "190 passed,110 declared skips,one retry-passing Market Map hover flake and no hard failures on sourcea7c8ecba",
+    "frontend_unit_job_id": 119543565727,
+    "head_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
     "jobs": {
       "backend": "success_3421_unit_459_integration_83_percent",
       "branch_declared": "success",
-      "e2e": "red_with_one_hard_failure_and_one_retry_passing_flake",
+      "e2e": "red_with_one_retry_passing_Market_Map_hover_flake_no_hard_failure",
       "exhaustive_feature_branch": "expected_skip",
       "frontend_unit": "success"
     },
-    "run_id": 39673014884,
-    "status": "terminal red for exact source20f69b21; the five-path frontend candidate modifies that source and has no exact-source CI yet",
-    "visuals": "No candidate visual acceptance. Final unchanged strict104 visual gate and official V25 parity remain required."
+    "run_id": 39693019337,
+    "status": "terminal red/flaky for exact sourcea7c8ecba; the pending one-line test actionability correction has no exact-source CI",
+    "visuals": "The unchanged a7 visual matrix passed104/104 and remains qualified to its unchanged visual inputs; official V25 parity and full roadmap remain open."
   },
   "dirty_paths": [
-    "frontend/src/components/chart/UPlotChart.vue",
-    "frontend/src/lib/uplot/rendererLifecycle.ts",
-    "frontend/src/views/WorkstationView.vue",
-    "frontend/tests/unit/lib/test_renderer_lifecycle.test.ts",
-    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+    "frontend/tests/e2e/workstation_performance.spec.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -143,11 +139,11 @@
     "objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: Diagnose and fix chart-template pointer interception with browser regression evidence and a coordinator-readable narrow repair proposal.; TCP2: Resolve required functional/visual failures without weakening reference policy; document missing reference evidence and proposed checkpoint limitations for human review.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "resumed_after_takeover",
+  "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "20f69b21fba025ae90abf95f72968a5133c35464",
+  "head": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
   "merge_head": null,
-  "implementation_sha": "20f69b21fba025ae90abf95f72968a5133c35464",
+  "implementation_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
   "integration_checkpoint": {
     "acceptance": "pending",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -155,26 +151,26 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-21T22:20:00+00:00",
+  "last_checkpoint": "2026-10-22T00:42:15+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
     "conclusion": "failure",
-    "e2e_summary": "189 passed,110 declared skips,one hard F8n failure and one retry-passing F8s flake",
-    "head_sha": "20f69b21fba025ae90abf95f72968a5133c35464",
+    "e2e_summary": "190 passed,110 declared skips,one retry-passing Market Map hover flake and no hard failures",
+    "head_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
     "jobs": {
       "backend": "3421 unit passed;459 integration passed;83 percent coverage",
       "branch_declared": "success",
-      "e2e": "one hard failure plus one retry-passing flaky case",
+      "e2e": "one retry-passing Market Map hover flake; no hard failure",
       "exhaustive_feature_branch": "expected skip",
       "frontend_unit": "success"
     },
-    "run_id": 39673014884,
-    "scope": "Exact source20f69b21fba025ae90abf95f72968a5133c35464. E2E119485244807 reported189 passed,110 declared skips, hard F8n and retry-passing F8s flake. Backend119475524444 (3421 unit+459 integration,83%), frontend119475524846 and branch119485245047 succeeded; EIG119485248119 was an expected skip. This predates the current five-path candidate changes.",
-    "visuals": "No visual acceptance inferred. New-source full local profile and exact-source CI remain required."
+    "run_id": 39693019337,
+    "scope": "Exact sourcea7c8ecba208ce6c79d8f1a5d7294500122e462e5. E2E119550358675 reported190 passed,110 declared skips, one retry-passing workstation_performance.spec.ts Market Map hover flake and no hard failure. Backend119543565368 (3421 unit+459 integration,83%), frontend119543565727 and branch119550358826 succeeded; EIG was an expected skip. This is historical a7 CI and does not cover the pending test-only correction.",
+    "visuals": "The unchanged strict visual inputs passed104/104 on sourcea7 and remain qualified; full functional on the corrected test source and exact-source CI are pending."
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the reviewed five-path frontend repair once after staged scope/workstream/structured-record checks. Then observe exact-source CI and prepare the refreshed private source archive/frontend-only refresh plus full functional/strict104 visual proposal for coordinator hash, fixture and capacity review. Do not execute build, refresh or browser phases before that review. Preserve the prior functional reds; TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
+  "next_action": "Stage only the reviewed one-line workstation_performance.spec.ts actionability correction and four owned records after the recorded stack-free checks; request Root's staged-scope review and do not commit/push yet. After review/publication, run the exact full functional profile on the corrected test source and obtain exact-source CI. Do not rerun the unchanged104 visual matrix solely for this functional-test-only edit. Preserve hosted CI39693019337's retry-passing flake and all earlier reds. The native session goal is usageLimited with tokenBudget/remainingTokens null; Root's normal-turn supervision continues this same work without resetting the goal or accounting. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -187,7 +183,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "c6706ac643d010c643fa45d0da17af3887eb196250438828467648a5640f75f3",
+  "plan_hash": "9515338bdd7ac15f3398e846db3381af3f66ee0b643563ea316738642c632150",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -204,29 +200,29 @@
       "TCP1",
       "TCP2"
     ],
-    "current_blocker": "Published consumer-preservation source ef30fac341b5c302e908b286f977fd03882d6e82 has terminal-red CI39619728143: backend unit3421 passed, integration458 passed and one fixture failure because the historical refresh fake lost its fixed as_of_value. The working-tree test-only correction restores that assignment while preserving the +00:00 task argument and independent literal UTC-Z job key; Ruff and diff checks pass, but exact CI remains pending. The prior full-source build failed before app startup when the builder OOM-killed frontend under768MiB; Root has adjusted the same cache-preserving builder to1536MiB/2CPU and3GiB memory+swap. A fresh corrected-source archive and serial service builds are required. The exact generated diagnostic DB is confirmed absent and must not be recreated. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
-    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_ACTIVE;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN",
-    "next_action": "Complete scope/workstream/structured-record checks for the one-line historical as_of fixture correction, publish it coherently, then build a fresh exact-source archive with the existing adjusted builder using serial per-service builds. Run the complete approved local profile and monitor exact CI; preserve prior red/build-OOM receipts and all retained resources. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
+    "current_blocker": "The only pending source change is a one-line test actionability correction in workstation_performance.spec.ts on top of published HEAD a7c8ecba208ce6c79d8f1a5d7294500122e462e5. The private native-scroll clipped-center diagnostic passed1/1 in13.5s/zero retries: raw bbox-center movement hit the footer with no hover, then ordinary locator.hover and the unchanged remaining flow passed. This supports harness actionability but does not prove the original hosted CI cause. Exact a7 hosted CI39693019337 remains terminal red/flaky (190 passed,110 declared skips, one retry-passing Market Map hover flake). Prior functional195/2skip evidence is source/product05664729; a7 visual104/104 used a7 tests with that unchanged product image. Full functional on the corrected test source and exact-source CI remain pending. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
+    "current_phase": "TCP1_NARROW_ACCEPTED;TCP2_LOCAL_TECHNICAL_GATE_ACCEPTED;TCP3_PROVIDER_AND_ETF_CONSUMER_RECONCILIATION_DELIVERED;TC_MARKET_MAP_HOVER_ACTIONABILITY_TEST_FIX_PENDING;TCP2_FINAL_FUNCTIONAL_AND_EXACT_CI_PENDING;TCP4_COMBINED_PROFILE_OPEN;TCP5_FINAL_REVIEW_OPEN",
+    "next_action": "Run stack-free Playwright collection, TC scope/self-tests, structured JSON/YAML and workstream validation, and diff checks for the one-line workstation_performance.spec.ts actionability correction and owned records. Present the exact five-file staged scope to Root; do not commit/push before review. After review/publication, run the exact full functional profile on the corrected test source and obtain exact-source CI; do not rerun the unchanged104 visual matrix solely for this functional-test-only edit. Preserve hosted CI39693019337's retry-passing flake and all prior red receipts. TCP3 overall, TCP4/TCP5, full roadmap and official REF-HELP-V25 remain open.",
     "total": 5,
-    "updated_at": "2026-10-21T15:06:20+00:00"
+    "updated_at": "2026-10-22T00:42:15+00:00"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "ef30fac341b5c302e908b286f977fd03882d6e82",
-    "current_pending_range": "Published Provider+ETF consumer-preservation source ef30fac341b5c302e908b286f977fd03882d6e82 plus one-line test-only historical as_of fixture correction; correction and truthful records are pending review/commit/push.",
+    "current_local_head": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
+    "current_pending_range": "One-line test-only workstation_performance.spec.ts actionability correction plus current handoff/plan/session/append-only validation receipt are uncommitted and awaiting staged-scope review.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "ef30fac341b5c302e908b286f977fd03882d6e82",
-    "status": "Published parent local HEAD and origin tracking ref are ef30fac341b5c302e908b286f977fd03882d6e82; one-line fixture correction is uncommitted and pending scoped publication. No merge is active."
+    "remote_tracking_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
+    "status": "Published local HEAD and origin tracking ref are a7c8ecba208ce6c79d8f1a5d7294500122e462e5; the one-line test-only actionability correction and owned records are uncommitted and pending Root staged-scope review. No merge is active."
   },
-  "remote": "ef30fac341b5c302e908b286f977fd03882d6e82",
-  "remote_sha": "ef30fac341b5c302e908b286f977fd03882d6e82",
-  "remote_synchronized": true,
+  "remote": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
+  "remote_sha": "a7c8ecba208ce6c79d8f1a5d7294500122e462e5",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

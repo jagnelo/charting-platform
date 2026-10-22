@@ -425,7 +425,7 @@ test.describe('TC2000 workstation performance guards', () => {
     await expect(pointerCanvas).toHaveAttribute('aria-label', '10000 Market Map members')
     const canvasBounds = await pointerCanvas.boundingBox()
     expect(canvasBounds).not.toBeNull()
-    await page.mouse.move(canvasBounds!.x + canvasBounds!.width * 0.5, canvasBounds!.y + canvasBounds!.height * 0.5)
+    await pointerCanvas.hover()
     await expect(mapWindow.locator('.market-map-tool__hover')).toBeVisible()
     await expect(mapWindow.locator('.market-map-tool__hover')).toContainText('Synthetic Market Map member')
 
