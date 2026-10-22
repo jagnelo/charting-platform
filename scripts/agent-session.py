@@ -1451,6 +1451,51 @@ def release_volume(volume: str, confirm: str) -> None:
     print(json.dumps({"released": volume, "worktree_id": identifier}, indent=2))
 
 
+def remove_owned_image(image: str, identifier: str, projects: set[str]) -> bool:
+    """Remove only verified project references, without force or foreign aliases."""
+    if not re.fullmatch(r"(?:sha256:)?[0-9a-f]{12,64}", image):
+        return False
+    inspected = run(
+        "docker", "image", "inspect", image, "--format", "{{json .}}", check=False
+    )
+    if inspected.returncode:
+        return False
+    try:
+        data = json.loads(inspected.stdout)
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(data, dict):
+        return False
+    config = data.get("Config") or {}
+    if not isinstance(config, dict):
+        return False
+    labels = config.get("Labels") or {}
+    actual_id = str(data.get("Id", "")).removeprefix("sha256:")
+    if (
+        not isinstance(labels, dict)
+        or labels.get("charting.worktree.id") != identifier
+        or not re.fullmatch(r"[0-9a-f]{64}", actual_id)
+        or not actual_id.startswith(image.removeprefix("sha256:"))
+    ):
+        return False
+    tags = data.get("RepoTags") or []
+    if not isinstance(tags, list) or any(
+        not isinstance(tag, str)
+        or not any(tag.startswith(f"{project}-") for project in projects)
+        for tag in tags
+    ):
+        return False
+    # Registry digests are not project-owned references. Leave them for review.
+    if data.get("RepoDigests"):
+        return False
+    references = sorted(set(tags)) if tags else [image]
+    removed = True
+    for reference in references:
+        result = run("docker", "image", "rm", reference, check=False)
+        removed = result.returncode == 0 and removed
+    return removed
+
+
 def cleanup() -> dict[str, Any]:
     branch, path = branch_and_path(allow_protected=True, allow_hosted_cleanup=True)
     identifier = worktree_id(path, branch)
@@ -1475,8 +1520,7 @@ def cleanup() -> dict[str, Any]:
     removed_images = 0
     if images.returncode == 0:
         for image in sorted(set(images.stdout.splitlines())):
-            run("docker", "image", "rm", image, check=False)
-            removed_images += 1
+            removed_images += int(remove_owned_image(image, identifier, projects))
     retained_path = common_root() / ".ai" / "runtime" / "retained-volumes.json"
     retained = json.loads(retained_path.read_text()) if retained_path.exists() else {}
     volumes = run(

@@ -131,6 +131,64 @@ def test_cleanup_and_readiness_are_scoped_to_the_current_worktree() -> None:
     assert "validation_evidence_current" in session
 
 
+def test_cleanup_removes_shared_owned_backend_worker_tags(tmp_path, monkeypatch):
+    module = hosted_cleanup_module(tmp_path, monkeypatch, "master")
+    identifier = "owned-release-fixture"
+    image = "a" * 12
+    tags = {
+        "charting-stack-fixture-backend:latest",
+        "charting-stack-fixture-worker:latest",
+    }
+    removals = []
+    monkeypatch.setattr(module, "worktree_id", lambda *args: identifier)
+    monkeypatch.setattr(
+        module, "project_names", lambda *args: {"charting-stack-fixture"}
+    )
+    monkeypatch.setattr(module, "recorded_testcontainer_sessions", lambda *args: set())
+    monkeypatch.setattr(module, "owned_containers", lambda *args: [])
+    monkeypatch.setattr(module, "builder_name", lambda *args: "owned-builder")
+    monkeypatch.setattr(module.shutil, "which", lambda *args: "/bin/docker")
+
+    def run(*args, **kwargs):
+        result = SimpleNamespace(returncode=0, stdout="", stderr="")
+        if args[:4] == ("docker", "image", "ls", "-q"):
+            result.stdout = image if tags else ""
+        elif args[:3] == ("docker", "image", "inspect"):
+            result.stdout = json.dumps(
+                {
+                    "Id": "sha256:" + "a" * 64,
+                    "RepoTags": sorted(tags),
+                    "Config": {"Labels": {"charting.worktree.id": identifier}},
+                }
+            )
+        elif args[:3] == ("docker", "image", "rm"):
+            reference = args[3]
+            removals.append(reference)
+            if reference in tags:
+                tags.remove(reference)
+            else:
+                result.returncode = 1
+                result.stderr = "image is referenced in multiple repositories"
+        elif args[:3] not in {
+            ("docker", "volume", "ls"),
+            ("docker", "network", "ls"),
+            ("docker", "buildx", "rm"),
+        }:
+            raise AssertionError(args)
+        return result
+
+    monkeypatch.setattr(module, "run", run)
+    result = module.cleanup()
+    assert result["cleaned"] is True
+    assert result["images_removed"] == 1
+    assert result["images_remaining"] == []
+    assert removals == [
+        "charting-stack-fixture-backend:latest",
+        "charting-stack-fixture-worker:latest",
+    ]
+    assert tags == set()
+
+
 def hosted_cleanup_module(tmp_path: Path, monkeypatch, branch: str):
     spec = importlib.util.spec_from_file_location(
         "agent_session_hosted_cleanup",
@@ -163,6 +221,87 @@ def hosted_cleanup_module(tmp_path: Path, monkeypatch, branch: str):
     }.items():
         monkeypatch.setenv(name, value)
     return module
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "foreign_label",
+        "foreign_tag",
+        "registry_digest",
+        "wrong_id",
+        "malformed",
+        "unavailable",
+    ],
+)
+def test_owned_image_cleanup_preserves_unverified_references(
+    tmp_path, monkeypatch, case
+):
+    module = hosted_cleanup_module(tmp_path, monkeypatch, "master")
+    metadata = {
+        "Id": "sha256:" + "a" * 64,
+        "RepoTags": ["charting-stack-fixture-backend:latest"],
+        "Config": {"Labels": {"charting.worktree.id": "owned-fixture"}},
+    }
+    if case == "foreign_label":
+        metadata["Config"]["Labels"]["charting.worktree.id"] = "another-owner"
+    if case == "foreign_tag":
+        metadata["RepoTags"].append("another-project-backend:latest")
+    if case == "registry_digest":
+        metadata["RepoDigests"] = ["registry.example/retained@sha256:" + "b" * 64]
+    if case == "wrong_id":
+        metadata["Id"] = "sha256:" + "b" * 64
+    calls = []
+
+    def run(*args, **kwargs):
+        calls.append(args)
+        assert args[:3] == ("docker", "image", "inspect")
+        return SimpleNamespace(
+            returncode=1 if case == "unavailable" else 0,
+            stdout="not-json" if case == "malformed" else json.dumps(metadata),
+            stderr="",
+        )
+
+    monkeypatch.setattr(module, "run", run)
+    assert (
+        module.remove_owned_image("a" * 12, "owned-fixture", {"charting-stack-fixture"})
+        is False
+    )
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("tagged", [False, True])
+def test_owned_image_cleanup_does_not_force_a_refused_removal(
+    tmp_path, monkeypatch, tagged
+):
+    module = hosted_cleanup_module(tmp_path, monkeypatch, "master")
+    image = "a" * 12
+    tag = "charting-stack-fixture-backend:latest"
+    calls = []
+
+    def run(*args, **kwargs):
+        calls.append(args)
+        if args[:3] == ("docker", "image", "inspect"):
+            return SimpleNamespace(
+                returncode=0,
+                stdout=json.dumps(
+                    {
+                        "Id": "sha256:" + "a" * 64,
+                        "RepoTags": [tag] if tagged else [],
+                        "Config": {"Labels": {"charting.worktree.id": "owned-fixture"}},
+                    }
+                ),
+                stderr="",
+            )
+        assert args == ("docker", "image", "rm", tag if tagged else image)
+        return SimpleNamespace(returncode=1, stdout="", stderr="image is in use")
+
+    monkeypatch.setattr(module, "run", run)
+    assert (
+        module.remove_owned_image(image, "owned-fixture", {"charting-stack-fixture"})
+        is False
+    )
+    assert len(calls) == 2
 
 
 @pytest.mark.parametrize("branch", ["staging", "master"])

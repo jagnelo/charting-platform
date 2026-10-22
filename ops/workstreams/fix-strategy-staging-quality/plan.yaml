@@ -50,6 +50,12 @@ validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
 local_validation_reason: >-
+  Current checkpoint changes Market Map initialization behavior and scoped image
+  cleanup. Require deterministic mounted regressions, workflow ownership-negative
+  tests and actual bounded Docker/browser proof, full exact branch CI, new staging
+  exhaustive functional/visual then independent master release gates. Preserve all
+  assertions, budgets, zero-retry policy and visual references. Historical prior
+  checkpoint justification follows and is not new-checkpoint acceptance:
   Formatting remains AST-equivalent and locally validated. Final branch CI exposed
   a separate readiness-provenance fixture race; synchronize its existing browser
   response precondition without changing assertions or timeouts. Run the affected
@@ -93,12 +99,14 @@ acceptance_criteria:
   - {id: PROV2, text: "Actual isolated full-stack focused browser validation passes with exact cleanup; full final branch CI and new staging exhaustive functional/visual gates remain required."}
 branch_tests:
   - make lint-backend
+  - uv run --project backend pytest tests/workflow/test_agent_session.py -q --no-cov
 branch_tests_reason: Full hosted backend CI already executes all backend unit and integration tests; additionally enforce the exact missing formatting gate on this repair branch before another staging attempt.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
 status: in_progress
 remaining_gaps:
+  - New Market Map/shared-image repair still requires actual Docker/browser proof and all exact-source branch/staging/master gates; previous B193 acceptance does not cover it.
   - Exact final pushed repair branch CI remains mandatory before guarded remediation integration; no hosted pass is claimed yet.
   - Exact repaired staging exhaustive gate remains mandatory before owner backmerge/release, master promotion or deployment.
   - Historical source4fd11ebd CI39806090414 remains RED from one flaky provenance case; its retry pass was not accepted. Corrected implementationd32151b3 has actual local browser proof; final closing HEAD still requires full exact CI.
