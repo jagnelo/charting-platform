@@ -1,6 +1,30 @@
 # feat/tc2000-frontend-rework
 
-## Current status — 2026-10-22: bounded checkpoint accepted
+## Current status — 2026-10-22: combined staging adopted; roadmap continues
+
+The original TC branch fast-forwarded from `febc6fbb7a033534f3c486f766dd437780954d09`
+to the exact coordinator-released combined staging SHA
+`0e342512e53ba2268425294d61c50e219eaafa4f`; `origin/staging` and an independent
+`ls-remote` both confirmed that exact release, and the TC feature ref was pushed
+and independently verified at the same SHA. The release receipt records green
+CI `39827786248`; it authorizes only this exact accepted release, not other
+worktrees or staging changes.
+
+The ownership guard now accepts a receipt-approved exact fast-forward as well
+as the existing non-first-parent merge path. Its regenerated snapshot pins all
+858 frozen imported paths to exact 0e tree blobs/deletions, while preserving
+the 29 narrow approved TC adaptations separately. Guard self-tests (35), the
+987-path scope validation, and workstream validation pass. The preflight's
+local `session.json` refresh remains preserved for this next coherent record
+publication. No product/browser/Compose/provider operation was performed.
+
+Next branch-owned roadmap item: implement the V25 Custom Date Sort consumer
+using only persisted OHLCV/history and explicit coverage/classification
+contracts, with no provider routing or acquisition. Official
+`REF-HELP-V25`, broader AC1-AC9 completion, and integration beyond this exact
+released baseline remain open.
+
+## Previous bounded-checkpoint status — 2026-10-22
 
 Root accepted the bounded TC2000 checkpoint on validated implementation
 `f206029f16c94e32616ccccf81f65675f224e67c` under the recorded 2026-10-20

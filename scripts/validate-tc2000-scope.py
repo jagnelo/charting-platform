@@ -89,7 +89,7 @@ def index_entry(root: Path, path: str) -> tuple[str, str] | None:
     return mode, blob
 
 
-def has_import_merge_provenance(root: Path, baseline: str, source: str) -> bool:
+def has_import_adoption_provenance(root: Path, baseline: str, source: str) -> bool:
     try:
         git_at(root, "merge-base", "--is-ancestor", baseline, "HEAD")
     except RuntimeError:
@@ -104,6 +104,15 @@ def has_import_merge_provenance(root: Path, baseline: str, source: str) -> bool:
         git_at(root, "merge-base", "--is-ancestor", source, "HEAD")
     except RuntimeError:
         return False
+    first_parent_commits = git_at(
+        root, "rev-list", "--first-parent", f"{baseline}..HEAD"
+    ).splitlines()
+    if source in first_parent_commits:
+        # A coordinator-approved staging release may be consumed by the
+        # explicitly authorized fast-forward workflow. The release receipt is
+        # validated separately; this proves the exact release lies on the
+        # branch's adopted first-parent history after the fixed scope baseline.
+        return True
     for line in git_at(
         root, "rev-list", "--merges", "--parents", f"{baseline}..HEAD"
     ).splitlines():
@@ -287,9 +296,9 @@ def validate_frozen_imports(
             "limitations"
         ].strip():
             raise ValueError(f"frozen manifest must state its limitations: {reference}")
-        if not has_import_merge_provenance(root, baseline, source):
+        if not has_import_adoption_provenance(root, baseline, source):
             raise ValueError(
-                f"frozen source is not a non-first-parent import after {baseline}: {source}"
+                f"frozen source is not an approved fast-forward or non-first-parent import after {baseline}: {source}"
             )
         entries = manifest.get("paths")
         if not isinstance(entries, list) or not entries:
@@ -379,7 +388,7 @@ def validate_provider_contract_adaptations(
             raise ValueError(f"Provider adaptation lacks an approved pinned source: {path}")
         if not delta or not rationale:
             raise ValueError(f"Provider adaptation must state its exact delta and rationale: {path}")
-        if not has_import_merge_provenance(root, baseline, source):
+        if not has_import_adoption_provenance(root, baseline, source):
             raise ValueError(f"Provider adaptation source is not merged from approved staging: {path}")
         source_entry = tree_entry(root, source, path)
         if source_entry is None or source_entry[1] != accepted_blob:
@@ -541,8 +550,6 @@ def self_test() -> int:
         fixture_git("merge", "--no-ff", "-m", "green staging release", imported_change)
         source = fixture_git("rev-parse", "HEAD")
         foreign_blob = fixture_git("rev-parse", f"{source}:foreign.txt")
-        fixture_git("checkout", "main")
-        fixture_git("merge", "--no-ff", "-m", "import released", source)
         reference = FROZEN_MANIFEST_PREFIX + source + ".yaml"
         receipt_reference = RELEASE_RECEIPT_PREFIX + source + ".json"
         receipt_payload: dict[str, Any] = {
@@ -591,6 +598,13 @@ def self_test() -> int:
             ],
         }
         write_yaml(reference, valid_manifest)
+        fixture_git("checkout", "-b", "fast-forward-import", baseline)
+        fixture_git("merge", "--ff-only", source)
+        checks["approved fast-forward release accepts exact imported blobs"] = set(
+            validate_frozen_imports(fixture_plan, root=root)
+        ) == {"foreign.txt", "gone.txt"}
+        fixture_git("checkout", "main")
+        fixture_git("merge", "--no-ff", "-m", "import released", source)
         frozen = validate_frozen_imports(fixture_plan, root=root)
         checks["approved merged snapshot accepts exact present and deleted paths"] = (
             set(frozen) == {"foreign.txt", "gone.txt"}
@@ -872,7 +886,7 @@ def self_test() -> int:
             }
         ]
         checks["consistent approved but unmerged snapshot fails ancestry check"] = (
-            "not a non-first-parent import"
+            "not an approved fast-forward or non-first-parent import"
             in validation_error(unmerged_manifest, unmerged_plan)
         )
 

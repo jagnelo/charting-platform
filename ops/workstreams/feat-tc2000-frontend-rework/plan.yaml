@@ -3,9 +3,9 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: 628c1634f4894403339687586adee74d45637d51
-latest_staging_merge_sha: enclosing_merge_commit
-dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; coordinator released exact combined Provider+ETF staging628c1634f4894403339687586adee74d45637d51 for TC-owned consumer reconciliation."
+latest_staging_parent_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
+latest_staging_merge_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
+dependency_authorization: "Human-approved four-feature integration; coordinator released exact synchronized Provider+ETF+TC2000+Strategy staging0e342512e53ba2268425294d61c50e219eaafa4f (CI39827786248) for guarded TC fast-forward and continued branch-owned roadmap work."
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
   and, on 2026-09-15, explicitly approved a scope replan so this branch consumes
@@ -60,26 +60,39 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Root accepted bounded checkpoint acceptance for validated implementation
-  f206029f16c94e32616ccccf81f65675f224e67c after exact CI39701994384 passed
-  every mandatory job. The final workstream-record publication still requires
-  exact branch-head CI before coordinator staging integration. This checkpoint
-  does not complete the full AC1-AC9 roadmap or official REF-HELP-V25 parity;
-  no deployment, provider activation, paid access, live provider/ETF test, or
-  staging integration is claimed.
+  The TC branch has fast-forwarded to exact combined staging
+  0e342512e53ba2268425294d61c50e219eaafa4f; the feature remote was independently
+  verified at the same SHA. The frozen-import snapshot/guard now passes its
+  987-path validation and 35 self-tests for this exact fast-forward adoption.
+  No external dependency blocks continued TC-owned roadmap work. Next is Custom
+  Date Sort over persisted history and explicit coverage/classification
+  evidence. No provider transport, acquisition, live test, deployment or
+  visual-reference change is authorized. Official REF-HELP-V25 and broader
+  AC1-AC9 work remain open.
 current_checkpoint_status: >-
-  Bounded TC2000 implementation checkpoint accepted by Root on 2026-10-22 under
-  the recorded human standing authorization and literal checkpoint delegation.
-  Validated implementation is f206029f16c94e32616ccccf81f65675f224e67c; exact
-  attempt-1 CI39701994384 is fully green for mandatory Backend (3421 unit + 459
-  integration, 83%), Frontend Unit, Branch Declared and E2E (191 passed,110
-  declared skips,0 failures,0 flakes,0 retry markers). EIG is an expected
-  skip. Local functional is 195 passed/2 unchanged declared skips/0 retries on
-  f206; strict104 visual, frontend coverage/build and 628c-to-6a6e migration
-  compatibility remain qualified to their unchanged inputs. Apply the staged
-  four-record packet after Root's cached-diff review; after publication capture
-  the resulting exact branch HEAD and require its CI before Root's staging
-  integration. Preserve full roadmap and official REF-HELP-V25 gap.
+  The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
+  implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
+  human standing authorization and literal checkpoint delegation. Its exact
+  attempt-1 CI39701994384 was green for mandatory Backend (3421 unit +459
+  integration,83%), Frontend Unit, Branch Declared and E2E (191 passed/110
+  declared skips/0 failures/0 flakes/0 retry markers); EIG was an expected skip.
+  Local functional (195 passed/2 unchanged declared skips/0 retries), strict104
+  visual, frontend coverage/build, and 628c-to-6a6e migration compatibility
+  remain qualified to their unchanged inputs. The four-record closing packet
+  was published on febc6fbb7a033534f3c486f766dd437780954d09 before the later
+  staging adoption.
+
+  On 2026-10-22, the coordinator released exact combined Provider+ETF+TC2000+
+  Strategy staging 0e342512e53ba2268425294d61c50e219eaafa4f with green CI
+  39827786248. This TC branch fast-forwarded to that exact SHA, pushed only its
+  assigned feature ref, and independently verified local/remote parity. The
+  scope guard passes for that receipt-approved fast-forward and pins 858
+  frozen paths to exact release blobs/deletions; 29 approved TC adaptations
+  remain separate. This is not full AC1-AC9 or official REF-HELP-V25 completion.
+  The next TC-owned roadmap item is Custom Date Sort over persisted history and
+  explicit coverage/classification evidence, without provider transport or
+  acquisition. No deployment, live provider/ETF test, paid access, or visual
+  reference change is claimed.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -851,7 +864,7 @@ dependencies:
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/628c1634f4894403339687586adee74d45637d51.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/0e342512e53ba2268425294d61c50e219eaafa4f.yaml
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
     source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -1077,11 +1090,15 @@ approved_frozen_upstream_snapshots:
   - source_sha: 628c1634f4894403339687586adee74d45637d51
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/628c1634f4894403339687586adee74d45637d51.json
     receipt_sha256: a70713a499032714740fc332b295a1644500e25d3c6d03a40729ed6c701146bc
+  - source_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/0e342512e53ba2268425294d61c50e219eaafa4f.json
+    receipt_sha256: 5159729a3231a658b1b7331d59f63f77f7bc41155b66698a988b880d12af5429
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
-    exact released green staging snapshot that entered this branch through a
-    non-first-parent merge after the fixed 2b92c642 scope checkpoint.
+    exact released green staging snapshot that this branch adopted by an
+    approved fast-forward or non-first-parent merge after the fixed 2b92c642
+    scope checkpoint.
   fail_closed_boundary: >-
     Ordinary authorized(path, plan) remains unchanged. Every imported file must
     be listed exactly with snapshot blob/mode or explicit deletion state, and
@@ -1173,12 +1190,15 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "bounded_checkpoint_accepted_by_root;validated_implementation_f206029;final_closure_head_CI_required_before_coordinator_staging_integration;full_AC1_AC9_roadmap_and_official_REF_HELP_V25_open"
+  current_phase: "combined_green_staging_0e342512_adopted_and_scope_guarded;continuing_full_TC_roadmap_custom_date_sort;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Complete final four-record cached-diff review, publish once, capture the
-    resulting exact branch HEAD and verify its automatic CI. Only then may Root
-    proceed with coordinator-owned staging integration. Do not create an
-    acknowledgment-only commit or claim whole-roadmap/V25 completion.
+    Publish the validated 0e342512 adoption/manifest/guard checkpoint
+    coherently, then implement the TC-owned Custom Date Sort consumer over
+    persisted source/history and explicit coverage states.
+    Preserve native goal/session accounting, disabled live/provider operations,
+    protected visual oracles, the official REF-HELP-V25 gap, and the full
+    AC1-AC9 roadmap. Do not create an acknowledgment-only commit or claim
+    whole-roadmap/V25 completion.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
