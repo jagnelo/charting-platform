@@ -16012,3 +16012,53 @@ to the test file; final Ruff check/format, `git diff --check`, and workstream/JS
 The focused two-file MyPy pass remains valid after this formatting-only adjustment. The initial
 seven typing errors remain in the journal; no production typing was weakened and no assertion was
 removed or altered. This is the only test rerun for the typing seam; no suite or service gate ran.
+
+### Released Provider + ETF + TC staging reconciliation — 2026-10-22
+
+Root released exact synchronized staging `77af863902ac6f48fbefd7a0d332f6f39c5f829d`, canonical
+receipt `20261022T040010Z-77af863902ac.json`, hosted CI `39711763791` attempt 1, and Exhaustive
+job `119609491175`, all terminal green. Canonical `make staging-reconcile` exited 0 and the pending
+watch marker is absent. Accepted producer sources are Provider
+`74d114aa6a174c723b01da25d83e7a49470bdc93`, ETF `c2c232596cf848d83c20e5f2b9f5c502ddd01808`, and
+TC `febc6fbb7a033534f3c486f766dd437780954d09`. Git confirms staging contains all three accepted
+producer commits and Strategy `e5e80c3c0daa13cd1347b5673c302e1f5f5017f3` is a clean/pushed ancestor
+boundary; the actual merge base is accepted Provider+ETF staging `628c1634f4894403339687586adee74d45637d51`.
+This is permission to merge that exact release into this Strategy branch, not Strategy checkpoint
+acceptance, deployment, provider replay, or full-roadmap completion.
+
+The required five shared-path changes were compared as exact diffs from the merge base on both
+sides. In `Makefile`, Strategy adds `app/strategy_lab_v2/tests` to the ordinary unit collection;
+TC's comment and existing integration coverage append retain separate bounded processes and the
+aggregate coverage gate. `config.py` combines Strategy's migration settings and FMP/type-annotation
+fixes with TC's dense-universe seed settings, which remain disabled by default. `main.py` keeps
+Strategy's optional migration startup before normal lifespan work and its additive router alongside
+TC's disabled-by-default large-universe seed, favorites router, and health fields. In
+`instrument_event.py`, TC contributes the mapped nullable adjustment-factor field and Strategy's
+tail-only `TYPE_CHECKING` import remains outside mapped class bodies. In `ohlcv.py`, TC's mapped
+derived-bar lineage fields coexist with Strategy's tail-only forward-reference imports; no field
+or class-body overlap was found. These are semantic source-review findings, not post-merge schema
+proof; inspect the actual merge result and mapped metadata before closing the overlap audit.
+
+TC brings five additive migration files (`a7c91e03d54b`, `e9c23a7b1d40`, `ff0a1b2c3d4e`,
+`ff1a2b3c4d5e`, `ff2a3b4c5d6e`) alongside Strategy's existing `slv2_0001..0010`. The pre-merge
+candidate graph is not authoritative: recompute heads and ancestry after the exact merge, then add
+an additive no-DDL merge revision only if the actual graph requires it. Preserve upstream bytes,
+applied history, and all data; no stamp, reparent, reset, alias, or dropped state.
+
+Managed preflight `agent-context` and `agent-session-status` confirmed the existing exclusive
+session claim `02d5ffaa-53b5-4dec-b39c-0f36612b5436`, expected worktree, clean/pushed source
+`e5e80c3`, and the existing unavailable formal-goal state. No new session, goal, takeover, or
+accounting reset was made. The only initial preflight dirt was generated `session.json` source/remote
+sync metadata; it is being folded into this owned release transition. Next: merge only `77af863`,
+then wire the private resolver at actual Strategy API persistence and persisted dispatch/restart
+boundaries; do not merely remove the public denial. Revalidate owner, terminal/evaluation state,
+artifact identity/type and all pinned digests on admission and every worker rehydration. Preserve
+immutable no-reference fingerprints, Provider local-only/no-hidden-HTTP behavior, ETF PIT lineage,
+and strict terminal settlement/reservation/owner-isolation semantics. Do not label fixtures as
+native execution proof.
+
+No local DB/Compose/native/browser/full-profile run has started. Before any such launch, prepare the
+exact validation commands, fixture scope, memory/process/time caps, and preserved resources for
+Root review. Public checkpoint acceptance, exact-source full validation, PostgreSQL fresh/upgrade/
+restart proof, final migration graph, full `full_stack_browser`, Exhaustive and all 18 roadmap
+criteria remain open.

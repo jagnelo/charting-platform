@@ -9,37 +9,59 @@ integration_checkpoint:
       status: complete
       source_commit: b2fbcabf822041b41410f982a8ed45eed76815ce
       integration_capture: exact branch HEAD
+    - name: strategy-private-selected-study-artifact-resolver-preparation
+      status: complete
+      source_commit: e5e80c3c0daa13cd1347b5673c302e1f5f5017f3
+      validation: 27 focused cases, two-file MyPy, exact-source CI 39667164392 green
+      scope: >-
+        Private owner-scoped resolver and fake-session contract only; no public API,
+        worker or persistence activation. Superseded by the accepted TC release below.
+      integration_capture: exact branch HEAD
   active_changeset:
-    name: strategy-private-selected-study-artifact-resolver-preparation
+    name: strategy-tc-three-feature-consumer-reconciliation
     status: in_progress
-    base_source_commit: 05e5df177abe9c264f163566635daeebbb488fa9
+    base_source_commit: e5e80c3c0daa13cd1347b5673c302e1f5f5017f3
+    released_staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
+    phase: pre_merge_release_verified
     integration_capture: exact branch HEAD
     intent: >-
-      Prepare one internal, owner-scoped, fail-closed selected Study artifact resolver from
-      existing Strategy and shared ORM contracts. Bind exact completed run, Study CodeVersion,
-      unique named supported artifact, run reproducibility hash, source/version semantics,
-      dataset manifest and artifact content digests. Add fake async-session positive and rejection
-      tests only. Do not wire API/worker/persistence, claim native proof, import TC source, or admit
-      public non-null references before actual accepted TC staging.
+      Reconcile only the exact released three-feature staging SHA. Review the five real shared-path
+      overlaps, preserve Provider/ETF/TC semantics, complete owner-scoped selected Study reference
+      authentication at the API mutation boundary and persisted dispatch/restart path, and
+      recompute the actual Alembic graph before an additive no-DDL merge if needed. Preserve all
+      terminal settlement, reservation, admission and owner-isolation guarantees. No provider or
+      broker activation, no fabricated execution proof, and no broader checkpoint acceptance.
     owned_paths:
       - backend/app/strategy_lab_v2/study_artifact_resolver.py
-      - backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py
+      - backend/app/strategy_lab_v2/application.py
+      - backend/app/strategy_lab_v2/search_dispatch_rpc.py
+      - backend/app/strategy_lab_v2/search_preparation_composition.py
+      - backend/app/strategy_lab_v2/worker_callbacks.py
+      - backend/app/strategy_lab_v2/trial_hydration.py
+      - backend/app/strategy_lab_v2/persistence.py
+      - backend/alembic/versions
+      - backend/app/strategy_lab_v2/tests
+      - backend/tests/integration/strategy_lab_v2
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
       - ops/workstreams/feat-strategy-lab-v2/session.json
   post_release_reconciliation_map: ops/workstreams/feat-strategy-lab-v2/post-release-reconciliation.md
   current_coordination_boundary:
-    staging_sha: 628c1634f4894403339687586adee74d45637d51
-    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261021T103732Z-628c1634f489.json
-    exact_ci_run: 39575596904
-    exhaustive_job: 119148454190
-    scope: Accepted Provider and ETF product checkpoints plus synchronized repairs; Strategy may reconcile Provider and ETF/PIT consumers.
+    staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261022T040010Z-77af863902ac.json
+    exact_ci_run: 39711763791
+    exhaustive_job: 119609491175
+    accepted_producer_sources:
+      provider: 74d114aa6a174c723b01da25d83e7a49470bdc93
+      etf: c2c232596cf848d83c20e5f2b9f5c502ddd01808
+      tc2000: febc6fbb7a033534f3c486f766dd437780954d09
+    scope: Accepted Provider, ETF and TC2000 product checkpoints plus the synchronized common repairs.
     status: >-
-      Provider and ETF are released for bounded Strategy consumer reconciliation.
-      TC2000 immutable CodeVersion/Study contracts remain gated on the accepted
-      green TC staging release. The full dependency-ordered combined checkpoint,
-      final migration-head reconciliation, and every full validation gate remain open.
+      Root released exact synchronized green three-feature staging after canonical staging-reconcile
+      exit 0 and absent pending-watch marker. Merge this SHA only into the Strategy branch. It is
+      not Strategy checkpoint acceptance or full-roadmap completion. Recompute all cross-feature
+      consumers and migration heads; full combined database/application and browser gates remain open.
   released_auxiliary_reconciliation:
     staging_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
     canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261019T230653Z-281a57bd9fb7.json
