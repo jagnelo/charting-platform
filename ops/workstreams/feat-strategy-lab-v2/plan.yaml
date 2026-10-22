@@ -1635,15 +1635,20 @@ roadmap_progress_history:
     The owner-scoped resolver, hydration graph and bounded runtime context streams now carry the
     exact typed immutable producer payload; no-reference fingerprint/wire compatibility is
     preserved and focused offline tests, Ruff and changed-boundary MyPy pass. The added real
-    PostgreSQL API/reconstructed-worker test module now collects 28 cases, including post-dispatch
-    run, owner, version, dataset and artifact drift denials, but no PostgreSQL fixture has run for
-    this source. Persisted restart revalidation and the complete accepted runtime path are therefore
-    not yet database-proven. Native execution is not inferred from generic Study output; heavier
-    PostgreSQL/combined runtime/browser/native gates remain open.
+    PostgreSQL API/reconstructed-worker test module now collects 30 cases, including post-dispatch
+    run/evaluation, owner, version, dataset and artifact ambiguity/content/identity drift denials,
+    but no PostgreSQL fixture has run locally for this source. Persisted restart revalidation and
+    the complete accepted runtime path are therefore not yet locally database-proven. Exact CI
+    39856591934 is running for published source485bea63f314cdffcd6d4cf571d6158a215ef2c5; it
+    includes the prior 28-case module but not the two latest test-only cases. Native execution is
+    not inferred from generic Study output; heavier PostgreSQL/combined runtime/browser/native gates
+    remain open.
   next_action: >-
-    c45 run39850802077 is terminal green for its exact base SHA; it does not cover the four local
-    commits or current PostgreSQL test expansion. Complete scoped workstream validation and publish
-    the coherent source/test changes for exact-tip CI. Then use the assigned PostgreSQL slot for the
-    28-case persisted API/reconstructed-hydrator matrix and record its actual fixture evidence; after
-    that, complete remaining combined runtime and full local/full_stack_browser/native gates under
+    Preserve published 485bea63f314cdffcd6d4cf571d6158a215ef2c5's exact CI39856591934 through a
+    terminal result. The two additional persisted-restart denials are validated by collect-only,
+    focused MyPy and Ruff; close this scoped test/evidence changeset locally without pushing until
+    the current cancel-in-progress run is terminal. Then publish for exact-source CI. Use the
+    assigned PostgreSQL slot for the resulting 30-case persisted API/reconstructed-hydrator matrix
+    if hosted integration does not establish it, and record actual fixture evidence; after that,
+    complete remaining combined runtime and full local/full_stack_browser/native gates under
     coordinator resource assignment. Keep all provider/live/quota/paid/trial/broker/capital holds.

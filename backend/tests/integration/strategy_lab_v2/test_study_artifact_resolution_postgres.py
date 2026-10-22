@@ -720,6 +720,7 @@ async def _persist_graph(adapter: PostgresStrategyLabV2Adapter, graph: Any, suff
     (
         "changed_dataset",
         "failed_run",
+        "failed_evaluation",
         "changed_run_hash",
         "changed_code_version",
         "changed_asset_owner",
@@ -727,6 +728,7 @@ async def _persist_graph(adapter: PostgresStrategyLabV2Adapter, graph: Any, suff
         "changed_artifact_payload",
         "changed_artifact_identity",
         "changed_artifact_type",
+        "ambiguous_artifact_name",
         "deleted_artifact",
     ),
 )
@@ -780,6 +782,12 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drif
                 await session.execute(
                     update(ResearchRun).where(ResearchRun.id == 30).values(status="failed")
                 )
+            elif post_dispatch_drift == "failed_evaluation":
+                await session.execute(
+                    update(ResearchRun)
+                    .where(ResearchRun.id == 30)
+                    .values(resource_usage={"evaluation": {"status": "failed"}})
+                )
             elif post_dispatch_drift == "changed_run_hash":
                 await session.execute(
                     update(ResearchRun)
@@ -815,6 +823,16 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drif
                     update(ResearchArtifact)
                     .where(ResearchArtifact.id == 40)
                     .values(artifact_type="table")
+                )
+            elif post_dispatch_drift == "ambiguous_artifact_name":
+                session.add(
+                    ResearchArtifact(
+                        id=41,
+                        research_run_id=30,
+                        artifact_type="series",
+                        name="signal",
+                        payload={"type": "series", "value": [3.0]},
+                    )
                 )
             else:
                 await session.execute(delete(ResearchArtifact).where(ResearchArtifact.id == 40))
