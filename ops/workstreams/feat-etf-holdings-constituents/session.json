@@ -88,17 +88,18 @@
     }
   ],
   "active_changeset": {
-    "baseline": "a3fbba69beabecfea5d998e950dc8380512f50b1",
-    "intent": "Pin RiverFront's historically documented starting_status independently of its unchanged current terminal status and disposition, protecting the AC2 historical queue classification from future simultaneous status/rank edits.",
-    "name": "RiverFront historical starting-status regression",
+    "baseline": "e4816268eb0c5effaad97979d13be843b50fc950",
+    "intent": "Route Voya's registered native holdings fetch through the shared Provider-backed HTTPX facade, preserving per-hop shared admission and redirect behavior instead of calling the intentionally fail-closed legacy requests namespace.",
+    "name": "Voya guarded transport compatibility",
     "owned_paths": [
+      "backend/app/services/etf_holdings_adapters.py",
       "backend/tests/unit/services/test_etf_holdings_adapters.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
     ],
-    "state": "substantive_AC2_ledger_and_queue_order_fix_published_at_a3fbba69;run_39850572582_pending_on_a3;new_direct_RiverFront_starting_status_and_terminal_disposition_assertions_passed_1_in_7_45s;Ruff_format_diff_passed;test_only_followup_uncommitted_and_not_covered_by_a3_CI;no_external_HTTP_quota_or_profile;MSMR_QQQ_and_Militia_GOOG_quarantined"
+    "state": "Exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f_is_ancestor_of_current_e481626_and_remote_independently_matches;Voya_routes_through_guarded_HTTPX;focused1_adapter611_bridge_refresh34_passed;full_declared_branch_suite_green_adapter611_consumer15_route_drift23_offline_live9_pass_537_skip_frontend_typecheck_tests17_build;count_sentinel_workstream_schema_plan_hash_diff_passed;exact_CI_39850920455_active_on_pre_fix_e481_and_does_not_cover_this_change;dirty_owner_records_preserved;no_live_HTTP_or_full_stack_claim"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -149,8 +150,9 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22: Accepted ETF checkpoint is synchronized at green staging 0e342512e53ba2268425294d61c50e219eaafa4f; all fourteen criteria, issuer onboarding, and the post-integration 30-day observation remain open. AC1 chronology is published at 281368f and f11a798. AC2 ledger/queue-order repair is published at a3fbba69beabecfea5d998e950dc8380512f50b1; exact CI 39850572582 is pending on that SHA. Latest own-branch change pins RiverFront's original needs_first_party_route_discovery starting status separately from its unchanged current terminal disposition; the focused test passed 1/1 in 7.45s, with Ruff, format, and diff checks. This assertion-only follow-up is uncommitted and not covered by run 39850572582. Preserve all prior partial/red evidence, 15 Tier-0 and 156 Tier-1, unresolved/quarantined MSMR/QQQ and Militia/GOOG, and disabled unknown/quota-held/unreviewed/paid/trial/unsafe routes. Full local full_stack_browser remains required and awaits Root's safe slot. No issuer/provider/SEC HTTP, quota replay, data reset, cleanup, deployment, or sibling/staging write.",
+  "current_blocker_latest": "2026-10-22 21:00Z: Canonical synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of ETF HEAD e4816268eb0c5effaad97979d13be843b50fc950; GitHub independently confirms the remote at e481626. The expected worktree and claim f206bbc5-abbf-473a-a44f-fb5706c81282 were verified. Normal session-start refuses the existing dirty owner-record boundary, which is preserved; no merge/push was needed for baseline adoption. Static review found Voya's native adapter used the deliberately fail-closed requests namespace; it now uses the shared Provider-backed HTTPX facade and a test checks timeout, redirect behavior, URL and Referer. Voya test 1/1, full adapter module 611/611, bridge+refresh 34/34, and the complete branch-declared suite passed (adapter611, consumer15, route-drift23, offline contracts9 passed/537 skipped, Ruff, workstream validation, frontend type-check, 17 frontend tests, build). Final narrative-count sentinel, workstream validation, Ruff/format, session JSON and validation JSONL parsing, plan-hash match, and diff checks passed. Exact CI 39850920455 is still in progress on pre-fix e481 and does not cover this uncommitted source. No live route or full_stack_browser pass is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all route holds, and the 30-day observation gate.",
   "dirty_paths": [
+    "backend/app/services/etf_holdings_adapters.py",
     "backend/tests/unit/services/test_etf_holdings_adapters.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
@@ -181,7 +183,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "a3fbba69beabecfea5d998e950dc8380512f50b1",
+  "head": "e4816268eb0c5effaad97979d13be843b50fc950",
   "implementation_sha": "535f8928da53da9c20838007336d71b6e627e4c9",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -330,8 +332,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the narrow RiverFront historical starting-status regression assertion, verify exact remote parity and inspect exact-head CI, then continue offline evidence-backed AC2/AC4/AC5 issuer audit and Tier-0 capability work in relevance order. Do not refresh blocked routes without new retained evidence. Obtain Root's safe slot before the required full_stack_browser matrix. Preserve all fourteen criteria, histories, quarantines, route/cost holds, and 30-day observation; no live HTTP, quota action, unsafe activation, data reset, retained-resource cleanup, sibling/staging/master write, deployment, or self-integration.",
-  "plan_hash": "3483df78c51ca809baf6d4f7cae590fd3115a9d0cbea7a25f3b80bb2bc46cc3c",
+  "next_action": "Commit and push the substantive Voya guarded-transport adapter/test change with its coherent owner-record evidence, then inspect exact-source CI without replaying completed jobs. Continue AC2/AC4/AC5 and Tier-0 work from retained evidence. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation; no issuer/provider/SEC HTTP, quota use, unsafe activation, data reset/cleanup, sibling/staging/master write, deployment, self-integration, or full-stack/browser matrix without Root's safe slot.",
+  "plan_hash": "ad56f9ddade7fbd7049604a64f81d4d335652433cbf69b65a62d140153a5aaaa",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -382,11 +384,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The accepted initial checkpoint remains exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f and is already in branch history. The complete roadmap remains open with 15 Tier-0 and 156 Tier-1 investigations preserved. AC1 count chronology is published at 281368f and f11a798; AC2 ledger/order correction is published at a3fbba69. Exact CI 39850572582 is pending on a3 and does not cover this follow-up. The uncommitted regression pins RiverFront's original needs_first_party_route_discovery starting status while retaining current provider_not_a_portfolio_publisher state; focused test passed 1/1 in 7.45s with Ruff/format/diff. MSMR/QQQ and Militia/GOOG remain quarantined; unsafe/unknown/paid/trial routes stay disabled. Full_stack_browser still awaits Root's safe slot.",
+    "current_blocker": "The accepted initial checkpoint's exact green staging SHA 0e342512e53ba2268425294d61c50e219eaafa4f is an ancestor of current ETF source e4816268eb0c5effaad97979d13be843b50fc950; GitHub confirms remote parity at e481. The full roadmap remains open with 15 Tier-0 and 156 Tier-1. Voya's fail-closed legacy requests defect is corrected locally through Provider-backed HTTPX; the complete branch-declared suite is green including 611 adapter, 15 consumer, 23 route-drift, 9 offline contract tests/537 network skips, frontend type-check, 17 frontend tests, and build. Exact CI 39850920455 covers only pre-fix e481 and remains in progress. Dirty owner records remain preserved and no new full-stack profile/live route is claimed. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/unreviewed/paid/trial/unsafe routes stay disabled.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Publish and verify the narrow RiverFront historical starting-status regression assertion, then continue offline evidence-backed AC2/AC4/AC5 audit and Tier-0 capability work in relevance order. Do not refresh blocked routes without new retained evidence. Obtain Root's safe slot before the required full_stack_browser matrix. Preserve all fourteen criteria, history, quarantines, route/cost holds, and the 30-day observation.",
+    "next_action": "Commit/push the substantive Voya adapter/test plus coherent owner-record checkpoint and inspect exact-source CI. Continue retained-evidence AC2/AC4/AC5 and Tier-0 work. Do not issue live HTTP or alter blocked routes without new evidence; obtain Root's safe slot before full_stack_browser. Preserve all fourteen criteria, history, quarantines, route/cost holds, and the 30-day observation.",
     "total": 14,
-    "updated_at": "2026-10-22T20:40:11Z"
+    "updated_at": "2026-10-22T21:00:00Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -398,8 +400,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "a3fbba69beabecfea5d998e950dc8380512f50b1",
-  "remote_sha": "a3fbba69beabecfea5d998e950dc8380512f50b1",
+  "remote": "e4816268eb0c5effaad97979d13be843b50fc950",
+  "remote_sha": "e4816268eb0c5effaad97979d13be843b50fc950",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

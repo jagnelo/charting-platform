@@ -13477,3 +13477,83 @@ The full fourteen-criterion roadmap, `15 Tier-0 and 156 Tier-1` investigations,
 MSMR/QQQ and Militia/GOOG quarantines, and post-integration 30-day observation
 remain open. Do not issue issuer/provider/SEC traffic, spend quota, activate
 held routes, or start the unassigned full-stack profile.
+
+## RiverFront regression publication and continuation status — 2026-10-22
+
+The RiverFront starting-status regression is published at exact source
+`e4816268eb0c5effaad97979d13be843b50fc950`; the accepted initial checkpoint's
+green staging source `0e342512e53ba2268425294d61c50e219eaafa4f` remains an
+ancestor. Normal session preflight confirmed the existing claim
+`f206bbc5-abbf-473a-a44f-fb5706c81282`, the assigned ETF worktree, and local /
+origin parity at e481. Exact Actions run `39850920455` is still in progress on
+that same SHA: Frontend Unit Tests passed, while Backend Tests are in the unit
+phase and integration is pending. The complete deterministic adapter,
+capability, and refresh unit modules previously passed locally with 611, 106,
+and 19 tests respectively; those results do not substitute for terminal exact
+CI or the required `full_stack_browser` profile. Continue offline AC2/AC4/AC5
+audit and Tier-0 consumer work from retained evidence; obtain Root's safe slot
+before the full profile. Keep all fourteen criteria, `15 Tier-0 and 156 Tier-1`,
+MSMR/QQQ and Militia/GOOG quarantines, held routes, historical/red evidence,
+and the post-integration 30-day observation intact. No issuer/provider/SEC
+HTTP, quota use, paid/trial/unsafe activation, data reset, retained-resource
+cleanup, staging/sibling/master write, deployment, or self-acceptance occurred.
+
+The branch's default live-provider contract module was also run explicitly
+offline with `RUN_LIVE_ETF_HOLDINGS_TESTS=0`: 9 passed, 537 network-bearing
+cases skipped. This verifies the offline opt-in guard/contracts only; it does
+not validate any live issuer route or the full opt-in matrix. Exact CI
+`39850920455` remained active on e481 when checked (Frontend Unit Tests passed;
+Backend unit phase still running, integration pending). The next safe work is
+offline AC2/AC4/AC5 and Tier-0 consumer progression from already retained
+evidence, not replaying held issuer probes. The complete roadmap and all
+existing quarantines/holds remain open.
+
+## Four-feature green release adoption and Voya transport correction — 2026-10-22
+
+The canonical release record and receipt confirm synchronized green staging at
+`0e342512e53ba2268425294d61c50e219eaafa4f` (CI `39827786248`, Exhaustive Gate
+`120006510572`, canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`).
+That exact SHA is already an ancestor of this ETF branch's current source
+`e4816268eb0c5effaad97979d13be843b50fc950`; GitHub independently reports the
+ETF remote at the same `e481626` tip. Adoption is therefore already present in
+history; no redundant merge or push was performed.
+
+The existing owner claim is `f206bbc5-abbf-473a-a44f-fb5706c81282` for this
+exact worktree. `make agent-context` classified it as the expected
+implementation checkout. The UV-managed `agent-session-start` preflight
+refused the dirty bootstrap boundary; the four dirty paths were already
+ETF-owned handoff/plan/session/validation records and were preserved. The
+released staging tree also changes overlapping ETF record/test paths, so no
+fast-forward was attempted over that dirty context. The current records remain
+part of this coherent source-and-evidence changeset, not a standalone
+acknowledgment commit.
+
+Offline review found Voya's registered native adapter calling the
+intentionally fail-closed `requests.get` namespace, while its unit test mocked
+that blocked namespace and concealed the defect. The adapter now uses the
+shared Provider-backed HTTPX client with `follow_redirects=True` (handled as
+individually admitted hops), preserving URL, timeout, headers, parsing, source
+metadata, and response error handling. Its regression verifies the configured
+timeout/redirect policy, request URL, and Referer without issuer traffic.
+Validation on the current worktree source: Voya-focused test 1/1; complete
+adapter unit module 611/611; Provider bridge plus refresh unit modules 34/34;
+changed-file Ruff check, format check, and `git diff --check` passed. The full
+declared branch suite also passed: adapter 611, checkpoint consumer 15,
+route-drift 23, offline live contracts 9 passed/537 network cases skipped,
+Ruff/workstream validation, frontend type-check, 17 frontend tests, and
+frontend build. The exact count sentinel and all workstream/schema/hash checks
+passed after the final record edit. This does not establish a live Voya route
+or replace the required full profile. CI
+`39850920455` remains in progress on the pre-fix published source e481 and does
+not cover this uncommitted change.
+
+Next: publish this substantive adapter/test/evidence change as one coherent
+ETF-owned source checkpoint and inspect its exact-source CI. Continue
+the AC2/AC4/AC5 and Tier-0 roadmap from retained evidence. Preserve the exact
+“15 Tier-0 and 156 Tier-1” text, all fourteen roadmap criteria, unresolved
+MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/quota-held/unreviewed/
+paid/trial/unsafe routes, historical/red/partial evidence, and the 30-day
+observation gate. Do not issue issuer/provider/SEC requests or spend quota; do
+not launch a full-stack/browser matrix without Root's slot; no sibling/staging/
+master/deployment/data/retained-resource action occurred.

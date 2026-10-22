@@ -18636,21 +18636,32 @@ async def test_voya_adapter_filters_symbol_daily_holdings_csv(monkeypatch):
 07/10/2026,VMSB,,7707194,ICE: (CDX.NA.HY.46.V1),-33334937.0,-8.08,2692063.00,0.8666%,310430774.67,6280000.0
 07/10/2026,VCOB,,91282CQX2,US TREASURY N/B 4.125 6/30/2031,2120500.0,99.36,2106998.37,0.6783%,310430774.67,6280000.0
 """
-    requested = []
+    client_options = {}
 
-    def fake_get(url, **kwargs):
-        requested.append((url, kwargs))
-        return FakeResponse(
+    class CapturingClient(FakeAsyncClient):
+        def __init__(self, *args, **kwargs):
+            client_options.update(kwargs)
+            super().__init__(*args, **kwargs)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
             text=raw_csv,
             content_type="text/csv",
             url="https://vimetfs.com/vmsb/holdings",
         )
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", CapturingClient)
 
     result = await adapter.fetch_latest(symbol="VMSB", identifiers={})
 
-    assert requested[0][0] == "https://vimetfs.com/vmsb/holdings"
+    assert client_options == {
+        "timeout": settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+        "follow_redirects": True,
+    }
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == "https://vimetfs.com/vmsb/holdings"
+    assert request_kwargs["headers"]["Referer"] == "https://vimetfs.com/"
     assert result.rows[0].cusip == "95002YAE3"
     assert result.rows[0].holding_type == "fixed_income"
     assert result.rows[0].weight == Decimal("0.016318")

@@ -5882,13 +5882,14 @@ class VoyaHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not resolved_url:
             raise ValueError(f"Voya holdings route not found for {normalized_symbol}.")
-        response = await asyncio.to_thread(
-            requests.get,
-            resolved_url,
-            headers=self.source_request_headers(source_url=resolved_url),
+        async with httpx.AsyncClient(
             timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+            follow_redirects=True,
+        ) as client:
+            response = await client.get(
+                resolved_url,
+                headers=self.source_request_headers(source_url=resolved_url),
+            )
         response.raise_for_status()
 
         rows, composition_date = self._parse_csv(response.text, symbol=normalized_symbol)
