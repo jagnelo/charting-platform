@@ -13703,3 +13703,29 @@ paid/trial/unsafe routes, historical/red/partial evidence, and the 30-day
 observation gate. Do not issue issuer/provider/SEC requests or spend quota; do
 not launch a full-stack/browser matrix without Root's slot; no sibling/staging/
 master/deployment/data/retained-resource action occurred.
+
+## Kensington guarded CSV transport — 2026-10-22 21:43Z
+
+The accepted green staging release `0e342512e53ba2268425294d61c50e219eaafa4f`
+is already an ancestor of this branch. Published source `61dea5d3d22ffd6a1f04e301bc7e688001251953`
+contains the PublicCsv/NEOS guarded-403 correction; its exact hosted CI outcome
+was not independently available in this session. A bounded static audit then
+found that registered Kensington holdings still used raw `requests.get`, a
+transport the shared ETF facade deliberately blocks. The adapter now uses the
+Provider-backed HTTPX facade and keeps redirects on that governed path. Its
+existing deterministic success case now exercises the fake HTTPX client for
+both identity and CSV requests, and a 403 regression asserts no requests
+fallback. Focused Kensington tests passed 2/2.
+
+The already-running full declared offline branch command completed with exit 0
+and covered this exact worktree diff: adapters615 passed, checkpoint consumers15,
+route drift23, offline live contracts9 passed/537 skipped, Ruff/workstream
+validation, frontend type-check, ETF frontend tests17, and frontend build. Both
+live switches were explicitly 0. This run is not a full_stack_browser profile
+or live issuer validation. No issuer/provider/SEC HTTP or quota operation was
+made. This change remains uncommitted until the workstream is coherently updated
+and checked; fresh exact-source CI will be required after publication. Do not
+start another heavy local job while Root owns the slot. Preserve the full
+AC1-AC14 roadmap, `15 Tier-0 and 156 Tier-1`, all historic partial/red evidence,
+MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/quota-held/unreviewed/
+paid/trial/unsafe routes, and the post-integration 30-day observation.

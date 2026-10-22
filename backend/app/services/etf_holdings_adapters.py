@@ -6705,8 +6705,6 @@ class KensingtonHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
     async def _fetch_holdings_csv(self, symbol: str) -> tuple[str, str]:
-        # Kensington's Cloudflare edge accepts its public CSV through the same
-        # browser-compatible requests transport used by the issuer's own site.
         headers = _issuer_page_request_headers(accept="text/csv,*/*")
         headers.update(
             {
@@ -6720,27 +6718,13 @@ class KensingtonHoldingsAdapter(IssuerCsvHoldingsAdapter):
             }
         )
 
-        def _request() -> requests.Response:
-            return requests.get(
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
                 self.HOLDINGS_URL,
                 headers=headers,
-                allow_redirects=True,
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                follow_redirects=True,
             )
-
-        response = await asyncio.to_thread(_request)
-        if response.status_code >= 400:
-            request = httpx.Request("GET", self.HOLDINGS_URL)
-            httpx_response = httpx.Response(
-                response.status_code,
-                request=request,
-                text=response.text,
-            )
-            raise httpx.HTTPStatusError(
-                f"Client error '{response.status_code}' for url '{self.HOLDINGS_URL}'",
-                request=request,
-                response=httpx_response,
-            )
+        response.raise_for_status()
         return response.text, str(response.url)
 
     @classmethod

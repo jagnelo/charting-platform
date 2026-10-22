@@ -2018,25 +2018,26 @@ async def test_kensington_adapter_filters_account_validates_identity_and_preserv
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         FakeResponse(text=identity_json, content_type="application/json"),
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url=adapter.HOLDINGS_URL,
+        ),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    def fake_get(url, **kwargs):
-        assert url == (
-            "https://www.kensingtonassetmanagement.com/data/" "KensingtonWeb2.40K4.ETF_Holdings.csv"
-        )
-        assert kwargs["headers"]["Referer"].endswith("/solutions/etfs-khpi/")
-        response = FakeResponse(text=holdings_csv, content_type="text/csv", url=url)
-        response.status_code = 200
-        return response
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("holdings CSV must use admitted HTTPX"),
+    )
 
     result = await adapter.fetch_latest(symbol="KHPI")
 
     assert [url for url, _kwargs in FakeAsyncClient.requested] == [
         "https://www.kensingtonassetmanagement.com/wp-json/wp/v2/investment/249",
+        adapter.HOLDINGS_URL,
     ]
+    assert FakeAsyncClient.requested[1][1]["follow_redirects"] is True
+    assert FakeAsyncClient.requested[1][1]["headers"]["Referer"].endswith("/solutions/etfs-khpi/")
     assert len(result.rows) == 3
     assert result.rows[0].symbol is None
     assert result.rows[0].holding_type == "derivative"
@@ -2056,6 +2057,44 @@ async def test_kensington_adapter_filters_account_validates_identity_and_preserv
         await adapter.fetch_latest(symbol="KHPI", source_url="https://example.test/holdings")
     with pytest.raises(ValueError, match="must match"):
         await adapter.fetch_latest(symbol="KHPI", issuer_product_id="KAMO")
+
+
+@pytest.mark.asyncio
+async def test_kensington_holdings_csv_403_stays_on_admitted_httpx(monkeypatch):
+    adapter = get_holdings_adapter("kensington")
+    assert adapter is not None
+    identity_json = json.dumps(
+        {
+            "title": {"rendered": "Hedged Premium Income ETF"},
+            "acf": {"ticker": "KHPI"},
+        }
+    )
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=identity_json, content_type="application/json"),
+        ForbiddenResponse(url=adapter.HOLDINGS_URL),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="KHPI")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_API_URLS["KHPI"],
+        adapter.HOLDINGS_URL,
+    ]
+    assert FakeAsyncClient.requested[1][1]["follow_redirects"] is True
 
 
 @pytest.mark.asyncio

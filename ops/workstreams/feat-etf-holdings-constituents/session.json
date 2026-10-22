@@ -150,7 +150,7 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22 21:35Z: Exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of this ETF branch; no merge was needed. The published branch/origin baseline is 4823bcf889b5ef0a51808fbfa39aa83ed6359953 and exact CI39857543318 is in_progress on that SHA but does not include the current local source change. Removed raw requests.get fallback after HTTPX 403 from both PublicCsvHoldingsAdapter and the aggregate CSV helper used by registered NEOS. Focused tests pass3/3, complete adapter module614/614, checkpoint consumers plus route drift38/38, offline live contracts9 passed/537 network cases skipped, Ruff and format checks, frontend type-check, ETF UI17 and production build pass. Final narrative-count sentinel, workstream validator, plan hash, JSON/JSONL parsing and diff check also pass; commit/push and fresh exact-source CI remain pending. No issuer/provider/SEC HTTP, quota operation, full_stack_browser pass, route promotion or full-roadmap completion is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all holds and the 30-day observation gate.",
+  "current_blocker_latest": "2026-10-22 21:43Z: Exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published ETF source is 61dea5d3d22ffd6a1f04e301bc7e688001251953; its exact hosted CI outcome was not independently available in this session. Kensington's registered CSV route was found using raw requests.get despite the shared fail-closed transport. It now uses the Provider-backed HTTPX facade, with deterministic success and 403/no-fallback tests. Kensington tests passed 2/2 and the already-running declared offline branch suite passed: adapter615, checkpoint consumers15, route drift23, offline contracts9 passed/537 skipped, Ruff/workstream validation, frontend type-check, UI17 and production build. Live flags were0; no issuer/provider/SEC HTTP or quota use occurred. The Kensington correction is uncommitted and needs coherent owner-record validation, publication and exact-source CI. Do not start another heavy job while Root owns the slot. The full roadmap remains open with 15 Tier-0 and 156 Tier-1; full_stack_browser and the 30-day observation are incomplete. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/unreviewed/paid/trial/unsafe routes remain disabled.",
   "dirty_paths": [],
   "docker": {
     "available": false,
@@ -176,8 +176,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "4823bcf889b5ef0a51808fbfa39aa83ed6359953",
-  "implementation_sha": "535f8928da53da9c20838007336d71b6e627e4c9",
+  "head": "61dea5d3d22ffd6a1f04e301bc7e688001251953",
+  "implementation_sha": "61dea5d3d22ffd6a1f04e301bc7e688001251953",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -325,8 +325,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Finish final count/schema/JSONL/plan-hash/diff checks for ETF Architect's guarded-retry change, commit and push only the coherent ETF-owned source/test/workstream paths, verify exact remote parity and inspect the resulting exact-source CI. Continue the complete AC1-AC14 roadmap from retained evidence; no issuer/provider/SEC HTTP, quota use, unsafe activation, live-test execution, data reset/cleanup, sibling/staging/master write, deployment, self-integration, or full-stack/browser matrix without Root's safe slot. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation.",
-  "plan_hash": "01816de9de0b8d5d1331b3bc8ab2e85e1a2f4d1e901872c93fd6864c744a76cf",
+  "next_action": "Run the fast narrative-count sentinel, workstream/schema/JSONL/plan-hash/diff checks for the Kensington guarded-transport correction, then commit and push only this coherent ETF-owned source/test/workstream change and verify exact remote parity and exact-source CI. Continue the complete AC1-AC14 roadmap from retained evidence. Do not issue issuer/provider/SEC requests, spend quota, activate held routes, or start another heavy local job while Root owns the slot. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation.",
+  "plan_hash": "337986528caa5cf2392f82d1033b4f7b7b05860ded6104f2862d96ac8cf4dfcb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -377,11 +377,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Exact green staging release 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Saracen is published at 5f4117ad4df3f239bf4df8d12bb3a237293836de with exact CI39856500578 in progress; that run does not contain this ETF Architect change. The local ETF Architect fix keeps retries on governed HTTPX and does not bypass 403; its three focused tests, adapter613, and the full declared offline branch suite pass with live switches disabled. Final owner-record checks and exact-head CI remain pending. The full roadmap remains open with 15 Tier-0 and 156 Tier-1; no full-stack profile or live route is claimed. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/unreviewed/paid/trial/unsafe routes stay disabled.",
+    "current_blocker": "The accepted green staging SHA 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published ETF source is 61dea5d3d22ffd6a1f04e301bc7e688001251953; exact hosted CI was not independently available in this session. Kensington's registered CSV route now uses the Provider-backed HTTPX facade instead of the fail-closed raw requests transport; focused tests passed 2/2 and the already-running offline branch suite passed adapters615, checkpoint consumers15, route drift23, offline contracts9 passed/537 skipped, Ruff/workstream validation, frontend type-check, UI17 and build with live flags0. No external HTTP or quota operation occurred. This uncommitted Kensington change requires owner-record validation, publication and exact-source CI. Do not start another heavy job while Root owns the slot. The full roadmap remains open with 15 Tier-0 and 156 Tier-1; full_stack_browser and 30-day observation are incomplete. MSMR/QQQ and Militia/GOOG remain quarantined and held routes stay disabled.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Finish final workstream count/schema/JSONL/plan-hash/diff checks for the ETF Architect fix, then commit/push only the ETF-owned change and verify exact remote SHA/CI. Continue full AC1-AC14 work from retained evidence; no issuer/provider/SEC requests, quota use, unsafe route changes or live-test execution. Obtain Root's safe slot before full_stack_browser. Preserve all criteria, historical evidence, quarantines, route/cost holds, and the 30-day observation.",
+    "next_action": "Run the fast narrative-count sentinel, workstream/schema/JSONL/plan-hash/diff checks for the Kensington correction, then publish only the coherent ETF-owned source/test/workstream change and verify exact-source CI. Continue AC1-AC14 from retained evidence; no issuer/provider/SEC requests, quota, unsafe activation or heavy local jobs while Root owns the slot. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation.",
     "total": 14,
-    "updated_at": "2026-10-22T21:26:54Z"
+    "updated_at": "2026-10-22T21:43:35Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -393,8 +393,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "4823bcf889b5ef0a51808fbfa39aa83ed6359953",
-  "remote_sha": "4823bcf889b5ef0a51808fbfa39aa83ed6359953",
+  "remote": "61dea5d3d22ffd6a1f04e301bc7e688001251953",
+  "remote_sha": "61dea5d3d22ffd6a1f04e301bc7e688001251953",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
