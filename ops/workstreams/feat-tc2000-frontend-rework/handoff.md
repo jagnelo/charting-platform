@@ -1,30 +1,41 @@
 # feat/tc2000-frontend-rework
 
-## Current candidate — 2026-10-23: parent-path E2E added, runtime pending
+## Current candidate — 2026-10-23: published parent-path E2E, runtime pending
 
-Published HEAD is `45b1d09b8fc59a59e3d3ff373bbb70f3eb19439b`, clean and
-origin-matched before this candidate. The older exact CI `39866293985` reports
-69.08% function coverage against the unchanged 70% threshold on source
-`fd567b418d9566310bafab9115cee067539b69ef`; do not rebind it to 45b or this
-candidate. The focused Tag Columns helper/component suites passed 103/103 and
-Vue type-check passed on the prior 45b source.
+Published HEAD commit `570c1cd9827cf3d00fdc0235146ec98f6809da23` matches
+origin; the connected GitHub compare confirmed identical refs. The worktree
+currently has only the four workstream-record corrections described in this
+handoff pending the next coherent publication. The
+older exact CI `39866293985` reports 69.08% function coverage against the
+unchanged 70% threshold on source `fd567b418d9566310bafab9115cee067539b69ef`;
+that result is historical and must not be rebound to 45b or 570c. The focused
+Tag Columns helper/component suites have now been rerun on exact published
+source 570c and passed 103/103; vue-tsc --noEmit also exited 0. These remain
+unit/type evidence only, not parent-event runtime proof. Full frontend coverage
+has now passed on 570c (143 files/1364 tests, 75.56% functions against the
+unchanged 70% threshold), and the production build passed (vue-tsc plus Vite,
+12.70 seconds). The build emitted only its existing large-chunk advisory.
 
-`frontend/tests/e2e/flows.spec.ts` now adds an ordinary-click case through the
-actual workstation parent: it creates source, target, and control personal
-WatchLists, configures the target Tag Column, clicks its row context-menu action,
-observes the target-list POST, and checks the separate control list remains
-empty. Playwright `--list` collected one case with exit 0; the scope
-self-tests/guard, workstream validator, and diff check pass. The case has NOT
-run in a browser, so positive/negative host-to-mutation runtime proof remains
-pending until Root releases the full local fixture slot and the required
-profile executes it. No parent acceptance is claimed from collection or the
-earlier SFC parser. Exact candidate CI, full frontend coverage/build, and browser
-execution remain pending; the 70% threshold and all existing behavior/assertions
-are unchanged.
+`frontend/tests/e2e/flows.spec.ts` adds an ordinary-click case through the real
+workstation parent: it creates source, target, and control personal WatchLists,
+configures the target Tag Column, clicks the row context-menu action, observes
+the target-list POST, and checks the separate control list remains empty. On
+570c, Playwright `--list` collected exactly one case with exit 0. This is
+collection evidence only: the case has NOT run in a browser, so positive and
+negative parent-host-to-mutation runtime proof remains pending until Root
+releases the full local fixture slot and the required profile executes it. No
+parent acceptance is claimed from helper tests, template parsing, or collection.
+No exact-source CI result has been confirmed for 570c. Browser execution remains
+pending; the coverage/build results do not establish parent-event runtime
+proof. The 70% threshold and all existing behavior/assertions are unchanged.
+The recorded 0e342512 combined
+staging release remains the adopted ancestor; no unaccepted Root repair has
+been imported. The complete AC1–AC9 and official REF-HELP-V25 roadmap remains
+open.
 
 ## Previous candidate — 2026-10-23: Tag Columns coverage recovery
 
-The current candidate was prepared on published TC base
+That earlier candidate was prepared on published TC base
 `fd567b418d9566310bafab9115cee067539b69ef`, whose exact branch CI
 `39866293985` had a Frontend Unit failure on the unchanged
 function-coverage threshold (69.08% against 70%); the backend job was still in

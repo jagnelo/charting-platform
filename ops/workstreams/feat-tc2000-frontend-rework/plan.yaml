@@ -60,67 +60,45 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The latest accepted synchronized staging ancestor remains
-  0e342512e53ba2268425294d61c50e219eaafa4f. Root reports its separate Market Map
-  repair at staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad, but exact staging CI
-  39866387942 was live and not accepted at the last coordinator update; do not
-  adopt it until Root supplies the actual green release. The last published TC
-  base was fd567b418d9566310bafab9115cee067539b69ef, synchronized with origin
-  at last observation; the current candidate is based on that source. Its exact
-  branch CI 39866293985 has a Frontend Unit
-  failure at 69.08% function coverage versus the unchanged 70% threshold; the
-  backend job was still in progress at last observation, so no whole-run result
-  is claimed. This 69.08% failure is qualified to source
-  fd567b418d9566310bafab9115cee067539b69ef, not published commit 45b1d09b8 or
-  the current candidate. The failure is attributable to the focused Tag Columns suite
-  importing the large WorkstationToolContent component and adding unrelated
-  component functions to the coverage denominator. Local commit 45b1d09b8
-  extracts production Tag Columns target/configuration/membership logic into
-  the tested tagColumns seam. Its six-host SFC binding parse is supplementary
-  only: the focused tests do NOT mount WorkstationToolContent or prove the
-  parent event-to-mutation path. The new ordinary-click F8y-tag-columns E2E
-  case creates source/target/control lists, invokes the actual row context-menu
-  action, observes the target-list POST, and checks that the control remains
-  empty; Playwright collection passes, but the case has NOT run in a browser.
-  Positive/negative runtime proof remains explicitly PENDING and must be
-  supplied by a real parent mount under the
-  appropriate full coverage profile or an ordinary-click browser regression
-  in the required full local profile after the reserved fixture slot is
-  released. Do not claim parent runtime acceptance from helper tests or
-  template parsing. Preserve the 70% coverage threshold and all existing
-  behavior/assertions. The candidate's exact-source CI remains pending: the
-  three affected frontend suites pass 103/103, Vue type-check exits 0, TC scope guard passes for
-  994 paths (858 immutable imports and 29 exact adaptations), and all 35 scope
-  self-tests pass. The failed 69.08% receipt remains qualified to published
-  source fd; full frontend coverage/build and exact candidate CI remain pending.
-  Custom Date Sort remains at published implementation
-  5ca3423e553e27e36dc8002be5f11996bbd4cf9e; exact-range coverage, canonical local
-  OHLCV, four-symbol concurrency and explicit unavailable outcomes remain intact.
-  No source-backed arbitrary-date industry/sub-industry comparator exists, so
-  relative modes remain unavailable. No browser/Compose fixture was launched;
-  the full local profile remains coordinator-capacity gated. No provider
-  acquisition, live test, deployment or visual-reference change occurred.
-  Official REF-HELP-V25 and broader AC1-AC9 work remain open.
+  Published TC HEAD 570c1cd9827cf3d00fdc0235146ec98f6809da23 matches origin;
+  the connected GitHub compare confirmed identical refs. The worktree currently
+  contains only the four own-record corrections for this checkpoint. The
+  exact older Frontend coverage failure 39866293985 (69.08% functions against
+  the unchanged 70% threshold) belongs only to source
+  fd567b418d9566310bafab9115cee067539b69ef and is not evidence about 570c.
+  The ordinary-click F8y Tag Column browser test is part of 570c and Playwright
+  collection on that source found exactly one case. It has NOT executed in a
+  browser: positive/negative parent-host-to-mutation runtime proof remains
+  explicitly pending the released full local fixture slot and required profile.
+  Do not substitute the SFC parser, helper tests, or collection for that proof.
+  Exact-source CI is unconfirmed. Full frontend coverage on exact 570c passed
+  143 files/1364 tests with 75.56% function coverage, above the unchanged 70%
+  threshold; the production build (vue-tsc plus Vite) exited 0. The required
+  browser profile remains pending. Preserve all assertions. The recorded
+  synchronized staging release
+  0e342512e53ba2268425294d61c50e219eaafa4f remains the adopted ancestor; no
+  newer unreleased repair is imported. Custom Date Sort implementation
+  5ca3423e553e27e36dc8002be5f11996bbd4cf9e remains published, with relative
+  modes unavailable absent a source-backed arbitrary-date comparator series.
+  No provider acquisition, live test, deployment, or visual-reference change
+  occurred. Official REF-HELP-V25 and broader AC1–AC9 work remain open.
 current_checkpoint_status: >-
-  Current continuation (2026-10-23): local commit 45b1d09b8 is the branch-owned
-  Tag Columns helper extraction on top of published HEAD
-  fd567b418d9566310bafab9115cee067539b69ef. The exact published-source branch run
-  39866293985 has a Frontend Unit failure at 69.08% functions versus the unchanged
-  70% threshold; this is not a product assertion failure, and the backend job
-  was still running at last observation. The candidate moves production-owned
-  Tag Columns configuration and mutation behavior into the focused
-  `tagColumns.ts` seam, tests the same guards/errors/in-flight coalescing, and
-  parses the parent SFC to assert all six direct host bindings. That parser
-  check is supplementary. The new ordinary-click F8y-tag-columns E2E case
-  collects successfully but has not executed in a browser; the required
-  positive and negative parent-event path remains pending. Run the case in the
-  required full local profile after Root releases the fixture slot (or prove
-  the same path with a real parent mount under the appropriate full coverage
-  profile). The three affected suites pass 103/103 and `vue-tsc --noEmit`
-  exits0. No full frontend coverage/build or browser profile has yet qualified
-  this candidate. Root's later staging repair remains unaccepted until its
-  exact CI is green and Root releases it; no merge or shared-source import is
-  performed here.
+  Current published candidate (2026-10-22): exact branch HEAD and origin are
+  570c1cd9827cf3d00fdc0235146ec98f6809da23. The ordinary-click F8y E2E test
+  exercises the actual workstation parent path: configure a Tag Column, invoke
+  the row context-menu action, observe the target WatchList POST, and assert a
+  separate control WatchList remains unchanged. Playwright `--list` collected
+  one test on this source; no browser assertion has run. Parent-to-mutation
+  runtime proof is pending and must come from the required full local profile
+  (or a real parent mount under the approved full coverage profile), not helper
+  tests, template parsing, or collection. Exact-source CI is unconfirmed.
+  Frontend coverage and production build passed on this source; the full browser
+  profile remains pending. The old
+  69.08% coverage result is strictly source-qualified to fd567 and the
+  unchanged 70% threshold remains. The accepted staging ancestor remains
+  0e342512e53ba2268425294d61c50e219eaafa4f; no unreleased coordinator repair
+  is adopted. TCP1–TCP5 checkpoint acceptance does not close the complete
+  AC1–AC9 roadmap or official REF-HELP-V25 parity.
 
   The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
   implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
@@ -572,9 +550,9 @@ historical_blocker_archive: >-
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
   name: TC2000 personal WatchList Tag Columns
-  status: published_focused_tests_and_typecheck_green_full_coverage_build_browser_and_exact_CI_pending
-  commit_sha: 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74
-  remote_sha: 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74
+  status: published_ordinary_click_parent_mutation_E2E_collected_frontend_coverage_build_green_browser_runtime_and_exact_CI_pending
+  commit_sha: 570c1cd9827cf3d00fdc0235146ec98f6809da23
+  remote_sha: 570c1cd9827cf3d00fdc0235146ec98f6809da23
   intent: >-
     Persist explicit personal WatchList targets as Tag Columns, display membership
     from canonical target-list rows, and let Alt+click or the accessible row menu
@@ -587,11 +565,14 @@ active_changeset_context:
     - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
     - frontend/tests/unit/components/test_workstation_tool_content_tag_columns.test.ts
     - frontend/tests/unit/lib/test_tag_columns.test.ts
+    - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Qualify automatic exact-source branch CI for 786ff4c9, then complete the
-    full local functional/strict104 browser gates only after Root releases the
-    existing runtime slot. Do not create a fixture or change screenshot
-    references, masks, retries or tolerance.
+    Confirm exact-source CI for 570c when an authoritative receipt is available.
+    After Root releases the full local fixture slot, run the ordinary-click
+    F8y parent-host-to-mutation regression in the required full local profile;
+    it has only been collected and browser runtime proof remains pending. Do
+    not substitute helper tests, template parsing, or collection; preserve all
+    behavior assertions, screenshot references, masks, retries, and tolerance.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -1256,22 +1237,17 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "combined_green_staging_0e342512_ancestor;root_market_map_staging_4687bd0d_CI39866387942_not_accepted;local_Tag_Columns_candidate_45b1d09b8;published_TC_HEAD_fd567b41_exact_CI39866293985_frontend_coverage_red_69.08_vs_70_backend_in_progress_last_seen;focused_103_green_typecheck_green_scope994_selftests35_green;parent_host_event_runtime_proof_pending;candidate_coverage_build_exact_CI_pending;no_local_browser_or_compose;Custom_Date_Sort_relative_comparator_unavailable;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "published_Tag_Columns_parent_mutation_E2E_570c;origin_ref_identical;Playwright_collection1_exit0;focused_103_tests_typecheck_green;full_frontend_coverage_143_files_1364_tests_75.56_functions_and_production_build_green;parent_host_to_mutation_runtime_pending_fixture_slot;exact_570c_CI_unconfirmed;accepted_staging_0e342512_ancestor;no_newer_staging_repair_adopted;Custom_Date_Sort_relative_comparator_unavailable;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Publish local Tag Columns candidate 45b1d09b8 for exact-source branch CI,
-    preserving the unchanged 70% coverage threshold. Its helper tests and
-    parent-template parse do not prove runtime host-event delivery; keep that
-    proof pending until a real parent mount under the full coverage profile or
-    an ordinary-click browser regression in the required full local profile
-    can run after the reserved fixture slot is released. Do not claim parent
-    acceptance from structural parsing. Do not adopt Root's 4687bd0d staging
-    repair until its exact CI is green and released.
-    Continue Custom Date Sort only after this current published-source coverage
-    failure is resolved; relative modes remain unavailable without a
-    source-backed arbitrary-date comparator series. Preserve the full AC1-AC9
-    roadmap, official REF-HELP-V25 gap, provider/live holds, screenshots and
-    thresholds. Do not create an acknowledgment-only commit or claim
-    whole-roadmap/V25 completion.
+    Await Root's release of the full local fixture slot, then run the existing
+    ordinary-click F8y Tag Column case within the required full local profile;
+    its parent-host-to-mutation positive/negative runtime proof is still
+    pending. Do not substitute collection, helper tests, or template parsing.
+    Confirm exact-source CI for 570c when an authoritative receipt is available.
+    Preserve the 70% coverage threshold, all assertions, full AC1–AC9 roadmap,
+    official REF-HELP-V25 gap, provider/live holds, and visual policy. Do not
+    adopt an unreleased coordinator repair or create an acknowledgment-only
+    commit.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
