@@ -13263,3 +13263,20 @@ then publish one coherent workstream checkpoint recording the exact staging
 adoption, accepted checkpoint boundary, results, and full-roadmap continuation.
 Keep MSMR/QQQ and Militia/GOOG unresolved/quarantined; no unknown, held,
 unreviewed, paid, trial, or unsafe route is enabled.
+
+The coherent record update is now being published at the same branch-owned
+checkpoint boundary: staging adoption and the legacy-label source fix are
+recorded separately from the full AC1-AC14 roadmap. The bounded EICP checkpoint
+goal was completed only after coordinator acceptance and same-branch adoption;
+the original goal accounting was preserved. A new unbudgeted full-roadmap goal
+is active in this same native thread, with no accounting reset. The focused fix
+is at `c7fb559a57b5d66dfd1a8f5ab252e0c88abf5156`, synchronized to the ETF
+remote. Exact push-CI was not returned by the PR-filtered GitHub connector, so
+its status is unverified here; do not infer green. The full local
+`full_stack_browser` profile remains required and awaits Root's safe-slot
+assignment. Continue offline AC2/AC4/AC5 audit and capability work meanwhile;
+preserve every prior partial/red receipt, all 14 roadmap criteria, `15 Tier-0
+and 156 Tier-1`, unresolved/quarantined MSMR/QQQ and Militia/GOOG, all route and
+cost holds, and the 30-day observation gate. No live issuer/provider/SEC
+request, quota replay, data reset, retained-resource cleanup, deployment, or
+cross-worktree mutation occurred.
