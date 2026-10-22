@@ -1,0 +1,331 @@
+from datetime import UTC, date, datetime, timedelta, timezone
+from types import SimpleNamespace
+
+import pytest
+
+from app.services import watchlist_history as history
+from app.services import watchlist_sources as sources
+
+
+def test_watchlist_membership_cutoffs_normalize_persisted_timestamps_to_utc():
+    item = SimpleNamespace(
+        instrument_id=17,
+        added_at=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
+        left_screener_at=datetime(2024, 2, 1, 0, 0, tzinfo=UTC),
+    )
+
+    assert sources._watchlist_item_active_at(item, datetime(2024, 1, 15))
+    assert sources._watchlist_item_active_at(
+        item,
+        datetime(2024, 2, 1, 1, 0, tzinfo=timezone(timedelta(hours=2))),
+    )
+    assert not sources._watchlist_item_active_at(
+        item,
+        datetime(2024, 2, 1, 2, 0, tzinfo=timezone(timedelta(hours=2))),
+    )
+    assert sources._watchlist_item_as_of_exclusion(
+        item,
+        datetime(2024, 2, 1, 2, 0, tzinfo=timezone(timedelta(hours=2))),
+    ) == {
+        "instrument_id": 17,
+        "reason": "membership_not_active_at_as_of",
+        "left_screener_at": "2024-02-01T00:00:00Z",
+    }
+
+
+def test_saved_explicit_source_known_at_cutoff_normalizes_to_utc():
+    item = SimpleNamespace(
+        updated_at=datetime(2024, 1, 1, 0, 0, tzinfo=UTC),
+        created_at=None,
+    )
+
+    before_known_at = datetime(2024, 1, 1, 1, 0, tzinfo=timezone(timedelta(hours=2)))
+    at_known_at = datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2)))
+
+    assert sources._saved_explicit_known_at_exclusions(item, [17, 23], before_known_at) == (
+        {
+            "instrument_id": 17,
+            "reason": "membership_not_known_at_as_of",
+            "known_at": "2024-01-01T00:00:00Z",
+        },
+        {
+            "instrument_id": 23,
+            "reason": "membership_not_known_at_as_of",
+            "known_at": "2024-01-01T00:00:00Z",
+        },
+    )
+    assert sources._saved_explicit_known_at_exclusions(item, [17, 23], at_known_at) == ()
+
+
+def test_combo_definition_as_of_exclusion_normalizes_known_at_to_utc():
+    combo = SimpleNamespace(
+        updated_at=datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2)))
+    )
+
+    assert sources._combo_definition_as_of_exclusion(combo) == {
+        "reason": "combo_definition_not_known_at_as_of",
+        "known_at": "2024-01-01T00:00:00Z",
+    }
+
+
+@pytest.mark.asyncio
+async def test_combo_resolver_excludes_future_definition_without_members():
+    combo = SimpleNamespace(
+        id=41,
+        stable_key="future",
+        version=2,
+        name="Future Combo",
+        payload={},
+        updated_at=datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2))),
+    )
+
+    class Result:
+        def scalar_one_or_none(self):
+            return combo
+
+    class FakeDB:
+        async def execute(self, _statement):
+            return Result()
+
+    result = await sources.resolve_watchlist_source(
+        FakeDB(),
+        1,
+        "combo:future",
+        as_of=datetime(2023, 12, 31, 23, 0, tzinfo=UTC),
+    )
+
+    assert result.members == ()
+    assert result.exclusions == (
+        {
+            "reason": "combo_definition_not_known_at_as_of",
+            "known_at": "2024-01-01T00:00:00Z",
+        },
+    )
+
+
+def test_holdings_route_provenance_serializes_published_at_as_canonical_utc():
+    profile = SimpleNamespace(
+        adapter_key="demo",
+        adapter_status="verified",
+        adapter_confidence=0.9,
+        instrument=SimpleNamespace(symbol="DEMO"),
+    )
+    snapshot = SimpleNamespace(
+        id=41,
+        provenance="issuer_public",
+        source_quality="provider",
+        completeness_status="complete",
+        row_count=2,
+        resolved_count=2,
+        unresolved_count=0,
+        composition_date=date(2024, 1, 1),
+        snapshot_hash="snapshot-41",
+        known_at=datetime(2024, 1, 1, 1, 0, tzinfo=UTC),
+        total_weight=1.0,
+        published_at=datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2))),
+        source_provider="demo",
+        source_url="https://issuer.example/current.csv",
+        extra_data={},
+    )
+
+    provenance = sources._holdings_route_provenance(profile, snapshot)
+
+    assert provenance["snapshot_published_at"] == "2024-01-01T00:00:00Z"
+    assert provenance["snapshot_parser_version"] is None
+    assert provenance["snapshot_source_identifier"] is None
+    assert provenance["availability"] == "unknown"
+    assert provenance["usable_for_current_analysis"] is None
+
+
+def test_source_versions_and_membership_digests_are_invariant_to_timestamp_offsets():
+    utc_value = datetime(2024, 1, 1, 0, 0, tzinfo=UTC)
+    offset_value = datetime(2024, 1, 1, 2, 0, tzinfo=timezone(timedelta(hours=2)))
+    utc_item = SimpleNamespace(
+        instrument_id=17,
+        position=1,
+        weight=0.5,
+        relationship_type="member",
+        source="provider",
+        verification_state="verified",
+        added_at=utc_value,
+        left_screener_at=None,
+        effective_at=utc_value,
+        known_at=utc_value,
+    )
+    offset_item = SimpleNamespace(
+        instrument_id=17,
+        position=1,
+        weight=0.5,
+        relationship_type="member",
+        source="provider",
+        verification_state="verified",
+        added_at=offset_value,
+        left_screener_at=None,
+        effective_at=offset_value,
+        known_at=offset_value,
+    )
+
+    assert sources._version("source", "demo", offset_value) == "source:demo:2024-01-01T00:00:00Z"
+    assert sources._membership_digest([utc_item]) == sources._membership_digest([offset_item])
+
+
+def test_family_canonical_holding_dedup_aggregates_only_eligible_native_weights():
+    eligible_a = SimpleNamespace(
+        id=1,
+        constituent_instrument_id=17,
+        position=1,
+        weight=0.12,
+        row_type="security",
+        holding_type="equity",
+        is_resolved=True,
+        constituent_instrument=SimpleNamespace(symbol="AAA"),
+    )
+    duplicate_a = SimpleNamespace(
+        id=2,
+        constituent_instrument_id=17,
+        position=2,
+        weight=0.08,
+        row_type="security",
+        holding_type="equity",
+        is_resolved=True,
+        constituent_instrument=SimpleNamespace(symbol="AAA"),
+    )
+    eligible_b = SimpleNamespace(
+        id=3,
+        constituent_instrument_id=23,
+        position=3,
+        weight=0.80,
+        row_type="security",
+        holding_type="equity",
+        is_resolved=True,
+        constituent_instrument=SimpleNamespace(symbol="BBB"),
+    )
+    unsupported_duplicate = SimpleNamespace(
+        id=4,
+        constituent_instrument_id=17,
+        position=4,
+        weight=0.50,
+        row_type="security",
+        holding_type="cash",
+        is_resolved=True,
+        constituent_instrument=SimpleNamespace(symbol="AAA"),
+    )
+    snapshot = SimpleNamespace(row_count=4, resolved_count=4, snapshot_hash="raw-snapshot-hash")
+    rows = [eligible_a, duplicate_a, eligible_b, unsupported_duplicate]
+
+    canonical = sources._canonical_holding_rows_with_native_weights(rows)
+
+    assert [(holding.id, weight) for holding, weight in canonical] == [(1, 0.20), (3, 0.80)]
+    assert [1.0 / len(canonical)] * len(canonical) == [0.5, 0.5]
+    assert (snapshot.row_count, snapshot.resolved_count, snapshot.snapshot_hash) == (
+        4,
+        4,
+        "raw-snapshot-hash",
+    )
+
+
+@pytest.mark.asyncio
+async def test_market_group_resolver_normalizes_membership_cutoff():
+    item = SimpleNamespace(
+        id=1,
+        instrument_id=17,
+        position=1,
+        weight=None,
+        relationship_type="member",
+        source="provider",
+        verification_state="verified",
+        added_at=None,
+        left_screener_at=None,
+        effective_at=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
+        known_at=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
+    )
+    group = SimpleNamespace(
+        stable_key="demo",
+        group_type="market_group",
+        name="Demo",
+        members=[item],
+        source="provider",
+        provenance={},
+        effective_at=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
+        known_at=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
+    )
+
+    class Result:
+        def scalar_one_or_none(self):
+            return group
+
+    class FakeDB:
+        async def execute(self, _statement):
+            return Result()
+
+    before_known_at = datetime(2024, 1, 1, 13, 0, tzinfo=timezone(timedelta(hours=2)))
+    at_known_at = datetime(2024, 1, 1, 14, 0, tzinfo=timezone(timedelta(hours=2)))
+
+    before = await sources.resolve_watchlist_source(
+        FakeDB(), 1, "market-group:demo", as_of=before_known_at
+    )
+    at = await sources.resolve_watchlist_source(FakeDB(), 1, "market-group:demo", as_of=at_known_at)
+
+    assert before.members == ()
+    assert before.exclusions == ({"instrument_id": 17, "reason": "membership_not_known_at_as_of"},)
+    assert [member.instrument_id for member in at.members] == [17]
+
+
+@pytest.mark.asyncio
+async def test_watchlist_history_bars_bind_normalized_cutoff(monkeypatch):
+    as_of = datetime(2024, 1, 1, 14, 0, tzinfo=timezone(timedelta(hours=2)))
+
+    async def fake_plan(*_args, **_kwargs):
+        return {
+            "source_ids": ["watchlist:one"],
+            "timeframes": ["D1"],
+            "as_of": as_of,
+            "max_instruments": 5000,
+            "instrument_ids": [17],
+            "available_instrument_count": 1,
+            "selected_instrument_count": 1,
+            "limited": False,
+            "sources": [
+                {
+                    "source_id": "watchlist:one",
+                    "source_kind": "personal",
+                    "name": "One",
+                    "locked": False,
+                    "status": "ready",
+                    "excluded_count": 0,
+                    "member_disposition": {
+                        "canonical": 1,
+                        "placeholder": 0,
+                        "unresolved": 0,
+                        "excluded": 0,
+                    },
+                }
+            ],
+        }
+
+    class FakeResult:
+        def all(self):
+            return []
+
+    class FakeDB:
+        def __init__(self):
+            self.statements = []
+
+        async def execute(self, statement):
+            self.statements.append(statement)
+            return FakeResult()
+
+    monkeypatch.setattr(history, "plan_watchlist_source_history_refresh", fake_plan)
+    db = FakeDB()
+    await history.build_watchlist_source_history_status(
+        db, 1, source_id="watchlist:one", as_of=as_of, timeframes=["D1"]
+    )
+
+    expected = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
+    bound_values = [
+        value
+        for statement in db.statements
+        for value in statement.compile().params.values()
+        if isinstance(value, datetime)
+    ]
+    assert expected in bound_values

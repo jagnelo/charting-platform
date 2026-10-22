@@ -17,6 +17,7 @@ from app.models.instrument_event import (
     InstrumentEventPageSnapshot,
     InstrumentEventType,
 )
+from app.models.ohlcv import OHLCVBar
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
@@ -25,6 +26,10 @@ from app.providers.errors import (
     ProviderNotConfiguredError,
     ProviderRateLimitError,
     ProviderResponseError,
+)
+from app.services.adjustment_factors import (
+    materialize_local_provider_adjusted_view,
+    persist_adjustment_factor_observations,
 )
 from app.services.instrument_mastering import ensure_external_identifier
 from app.services.provider_runtime import (
@@ -113,6 +118,51 @@ def _event_page_invocation(
         )
     result = provider.fetch_instrument_events(provider_symbol)
     return _page_from_legacy_result(result)
+
+
+async def _materialize_provider_adjusted_views(
+    db: AsyncSession,
+    instrument: Instrument,
+    events: list[InstrumentEvent],
+) -> None:
+    """Rebuild TC-local adjusted views only when explicit factor evidence exists."""
+
+    if not any(
+        event.event_type in {InstrumentEventType.SPLIT, InstrumentEventType.DIVIDEND}
+        and event.adjustment_factor is not None
+        for event in events
+    ):
+        return
+
+    raw_timeframes = (
+        (
+            await db.execute(
+                select(OHLCVBar.timeframe)
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.is_adjusted.is_(False),
+                    OHLCVBar.is_derived.is_(False),
+                )
+                .distinct()
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for timeframe in raw_timeframes:
+        result = await materialize_local_provider_adjusted_view(
+            db,
+            instrument_id=instrument.id,
+            timeframe=timeframe,
+        )
+        if result.status not in {"applied", "not_observed"}:
+            logger.info(
+                "Provider-factor materialization for %s %s remained %s: %s",
+                instrument.symbol,
+                timeframe.value,
+                result.status,
+                result.reason,
+            )
 
 
 async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instrument) -> int:
@@ -225,6 +275,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
             "eps_surprise_pct": event.eps_surprise_pct,
             "dividend_amount": event.dividend_amount,
             "split_ratio": event.split_ratio,
+            "adjustment_factor": event.adjustment_factor,
             "source_event_key": event.source_event_key,
             "raw_payload": event.raw_payload,
             "fetched_at": event.fetched_at,
@@ -250,6 +301,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
                     "eps_surprise_pct": values.get("eps_surprise_pct"),
                     "dividend_amount": values.get("dividend_amount"),
                     "split_ratio": values.get("split_ratio"),
+                    "adjustment_factor": values.get("adjustment_factor"),
                     "currency": values.get("currency"),
                     "raw_payload": values.get("raw_payload"),
                     "fetched_at": values["fetched_at"],
@@ -258,6 +310,30 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         )
         await db.execute(stmt)
         inserted += 1
+
+    # The normalized event table is an up-to-date projection. Rebuild the
+    # existing TC observation/version from that complete persisted source set,
+    # not just this page, so pagination order cannot produce partial versions.
+    persisted_events = (
+        (
+            await db.execute(
+                select(InstrumentEvent).where(
+                    InstrumentEvent.instrument_id == instrument.id,
+                    InstrumentEvent.source == execution.provider_name,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    await persist_adjustment_factor_observations(
+        db,
+        instrument_id=instrument.id,
+        data_source_id=execution.data_source.id,
+        provider_symbol=provider_symbol,
+        events=persisted_events,
+    )
+    await _materialize_provider_adjusted_views(db, instrument, persisted_events)
 
     # Persist every successful provider page, including an explicitly empty
     # JSON envelope. An empty response is still quota-consuming evidence and

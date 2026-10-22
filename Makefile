@@ -166,6 +166,10 @@ test-backend: test-unit test-int
 test-backend-coverage:
 	@echo "▶  Combined backend unit + integration coverage (Docker required)..."
 	@$(MAKE) agent-docker-ready
+# Keep the unit and Docker-backed integration runs in separate Python processes.
+# The coverage database is appended so the reported result is still the complete
+# unit-plus-integration total, while PostgreSQL is not kept alive through the
+# cumulative memory/resource pressure of one instrumented process.
 	@set -e; \
 	status=0; \
 	trap 'status=$$?; $(MAKE) agent-resource-cleanup || true; exit $$status' EXIT INT TERM; \

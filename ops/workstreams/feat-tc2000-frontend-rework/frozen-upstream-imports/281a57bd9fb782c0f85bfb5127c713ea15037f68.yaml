@@ -1,0 +1,102 @@
+schema_version: 1
+source_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
+release:
+  state: green
+  run_id: 39335198284
+  approved_by: staging-coordinator
+  approval_scope: frozen_upstream_import_only
+  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/281a57bd9fb782c0f85bfb5127c713ea15037f68.json
+  receipt_sha256: cb71f88b6df454161d373f6208ef868d2d257febb31f2f19e2ad86db795d565c
+limitations: >-
+  This manifest authorizes immutable import of only the exact regular-file
+  blobs below. It is not write permission, a directory wildcard, a Provider or
+  ETF product release, or authority to import any sibling feature branch.
+paths:
+  - path: ops/workflow-validation.jsonl
+    state: present
+    mode: "100644"
+    blob: 3b7835a5938d390b060e8ce0bcdefb783cc7fc41
+  - path: ops/workstreams/fix-chart-template-key-generation/handoff.md
+    state: present
+    mode: "100644"
+    blob: 6e5720dead83378b5eb253253b177902e0be03c4
+  - path: ops/workstreams/fix-chart-template-key-generation/plan.yaml
+    state: present
+    mode: "100644"
+    blob: 80dbe90aca5d7f42b48ff7604bff2b3f56e1409a
+  - path: ops/workstreams/fix-chart-template-key-generation/session.json
+    state: present
+    mode: "100644"
+    blob: df7e59e7fdb38faa461ec9d669ca495262c1ec5f
+  - path: ops/workstreams/fix-chart-template-key-generation/validation.jsonl
+    state: present
+    mode: "100644"
+    blob: 6149ad41cbf3cd696d4428fa55fcf69fece1ffce
+  - path: ops/workstreams/fix-chart-template-pointer-interaction/handoff.md
+    state: present
+    mode: "100644"
+    blob: 4d17f43ec9b7fb368eeb0dfd590351777c38ceb3
+  - path: ops/workstreams/fix-chart-template-pointer-interaction/plan.yaml
+    state: present
+    mode: "100644"
+    blob: b0479a17030f51543589671ec5cd73df3ff12d7a
+  - path: ops/workstreams/fix-chart-template-pointer-interaction/validation.jsonl
+    state: present
+    mode: "100644"
+    blob: ea5a0e908f81669e6f1948946502e3feb8f18c08
+  - path: ops/workstreams/fix-tc-occurrence-date-hydration/handoff.md
+    state: present
+    mode: "100644"
+    blob: af40050fa6eb4aecc0d792728728420f579190b6
+  - path: ops/workstreams/fix-tc-occurrence-date-hydration/plan.yaml
+    state: present
+    mode: "100644"
+    blob: 18a3b77e0ee39e06340ee6dfbba753d379afaa1e
+  - path: ops/workstreams/fix-tc-occurrence-date-hydration/session.json
+    state: present
+    mode: "100644"
+    blob: 3be1842d37ace49baf9906350486fd7e2bbe619e
+  - path: ops/workstreams/fix-tc-occurrence-date-hydration/validation.jsonl
+    state: present
+    mode: "100644"
+    blob: 7a441e2a8cadc8fdc50a64cf932caf798995bb1e
+  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/handoff.md
+    state: present
+    mode: "100644"
+    blob: 64d583cc3ccd06da9ca710ccbc2a445d18ac8403
+  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/plan.yaml
+    state: present
+    mode: "100644"
+    blob: 68bc5e412d141e86793ecffe12145095244d5523
+  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/session.json
+    state: present
+    mode: "100644"
+    blob: 629a87f02ccd7fa1ccfa2c95fe8e2c7d50ea45a8
+  - path: ops/workstreams/fix-tc2000-desktop-plots-rsp-overlap/validation.jsonl
+    state: present
+    mode: "100644"
+    blob: 10ce238e521455f2ea86b644dfec441d4852c2d8
+  - path: ops/workstreams/fix-watchlist-plot-live-configuration/handoff.md
+    state: present
+    mode: "100644"
+    blob: 96787166bcb3f5db26500cd803d75001f66901d0
+  - path: ops/workstreams/fix-watchlist-plot-live-configuration/plan.yaml
+    state: present
+    mode: "100644"
+    blob: c2deb2939ec2cda9b0c2813347e842729e39fd94
+  - path: ops/workstreams/fix-watchlist-plot-live-configuration/session.json
+    state: present
+    mode: "100644"
+    blob: f89e5c1acfea00bc8fd0aa88bc55cc27ee1f6d89
+  - path: ops/workstreams/fix-watchlist-plot-live-configuration/validation.jsonl
+    state: present
+    mode: "100644"
+    blob: 236b087a615baed6c1bf146faac9398a45105c0c
+  - path: scripts/integration_queue.py
+    state: present
+    mode: "100644"
+    blob: caa4b414c0ef4e8bab8d97f3039a1ec472409029
+  - path: tests/workflow/test_integration_queue.py
+    state: present
+    mode: "100644"
+    blob: b13bc1e3de61690feb896871282a10f36f9db6e9

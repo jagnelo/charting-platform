@@ -1,4 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia'
+import { computed } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost, apiPut, apiPatch, apiDelete } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiPatch: vi.fn(), apiDelete: vi.fn() }))
@@ -404,6 +405,45 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyCoverageErrors['sp500:latest:256']).toBeNull()
   })
 
+  it('loads the provider-neutral all-family readiness matrix with explicit as-of bounds', async () => {
+    apiGet.mockResolvedValue({
+      as_of: '2026-08-01T00:00:00Z',
+      snapshot_limit: 8,
+      family_count: 8,
+      ready_family_count: 0,
+      role_count: 32,
+      ready_role_count: 0,
+      readiness_status: 'coverage_limited',
+      universe_provenance: { provider_calls: false },
+      provider_probe_evidence: [
+        {
+          provider: 'fixture',
+          capability: 'price_history',
+          classification: 'healthy',
+          success: true,
+          consecutive_failures: 0,
+          recovered: false,
+          observed_at: '2026-08-01T12:00:00Z',
+        },
+      ],
+      families: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyReadiness({ as_of: '2026-08-01T00:00:00Z', limit: 8 })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/readiness', {
+      as_of: '2026-08-01T00:00:00Z',
+      limit: 8,
+    })
+    expect(result?.readiness_status).toBe('coverage_limited')
+    expect(result?.universe_provenance.provider_calls).toBe(false)
+    expect(result?.provider_probe_evidence?.[0]?.provider).toBe('fixture')
+    expect(result?.provider_probe_evidence?.[0]?.success).toBe(true)
+    expect(store.benchmarkFamilyReadiness?.role_count).toBe(32)
+    expect(store.benchmarkFamilyReadinessError).toBeNull()
+  })
+
   it('loads role-specific family constituents without substituting a missing leg', async () => {
     apiGet.mockResolvedValue({
       group_key: 'benchmark-family:sp500:equal_weight',
@@ -678,6 +718,8 @@ describe('workspace store layout tabs', () => {
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
     store.workspace.tabs[0].windows[0].configuration = { expression: '=NVDA/XLK' }
     store.scheduleSnapshot()
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(apiPut).toHaveBeenCalledTimes(1)
     oldResponse.resolve({ ...store.workspace, revision: 5, tabs: [{ ...store.workspace.tabs[0], windows: [{ ...store.workspace.tabs[0].windows[0], configuration: { expression: '=SPY/RSP' } }] }] })
 
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })
@@ -813,6 +855,45 @@ describe('workspace store layout tabs', () => {
     expect(store.workspace?.tabs[0].active_window_key).toBe(opened?.instance_key)
   })
 
+  it('keeps recovery semantics when a late local callback follows the mutation under test', async () => {
+    const baseline = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: {}, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+      ] }],
+    }
+    apiGet.mockResolvedValueOnce(baseline)
+    const store = useWorkspaceStore()
+    await store.loadDefault()
+    const opened = store.openTool({ tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: {} })
+    expect(opened).toBeTruthy()
+
+    let rejectOld!: (cause: Error) => void
+    const oldResponse = new Promise<any>((_resolve, reject) => { rejectOld = reject })
+    const latest = JSON.parse(JSON.stringify(baseline))
+    latest.revision = 5
+    latest.name = 'Remote Personal'
+    const recovery = { ...store.workspace, id: 11, name: 'Personal Recovery', is_default: false, settings: { recovery_of_workspace_id: 10, recovery_of_revision: 4 } }
+    apiPut.mockImplementationOnce(() => oldResponse)
+    apiGet.mockResolvedValueOnce(latest)
+    apiPost.mockResolvedValueOnce(recovery)
+
+    const savePromise = store.saveSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
+    // Simulate a late configuration/layout callback while the request is in
+    // flight. The request already contained the locally opened Notes window,
+    // so the conflict must still preserve that edit in a recovery copy.
+    store.workspace!.tabs[0].windows[0].configuration = { symbol: 'SPY' }
+    store.scheduleSnapshot()
+    rejectOld(new Error('API PUT /workspaces/10/snapshot → 409: conflict'))
+
+    await savePromise
+
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/10')
+    expect(apiPost).toHaveBeenCalledWith('/workspaces', expect.objectContaining({ name: 'Personal Recovery', is_default: false }))
+    expect(store.error).toContain('preserved as')
+  })
+
   it('persists layout geometry without deleting tools from an observational key list', async () => {
     const store = useWorkspaceStore()
     store.workspace = {
@@ -930,6 +1011,34 @@ describe('workspace store layout tabs', () => {
     expect(store.updateToolLinkGroup('chart', 'grey')).toBe(true)
     expect(store.activeTab?.windows[0].configuration.symbol).toBe('XLK')
     expect(store.symbolForLinkGroup('grey', String(store.activeTab?.windows[0].configuration.symbol))).toBe('XLK')
+  })
+
+  it('persists Yellow wildcard symbol identity and captures it when the receiver becomes Grey', () => {
+    const store = useWorkspaceStore()
+    vi.spyOn(store, 'scheduleSnapshot').mockImplementation(() => {})
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'yellow-chart', layout_config: {},
+        windows: [
+          { id: 30, instance_key: 'red-list', tool_type: 'watchlist', title: 'Red list', link_group: 'red', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'yellow-chart', tool_type: 'chart', title: 'Yellow chart', link_group: 'yellow', configuration: { symbol: 'SPY', instrument_id: 7 }, style: {}, state_schema_version: 1, position: 1 },
+        ],
+      }],
+    }
+
+    store.publishSymbol({ symbol: 'XLK', instrumentId: 42, group: 'red', sourceWindowKey: 'red-list' })
+
+    expect(store.workspace?.settings.linked_symbols).toMatchObject({
+      red: { symbol: 'XLK', instrument_id: 42 },
+      yellow: { symbol: 'XLK', instrument_id: 42, source_group: 'red' },
+    })
+    expect(store.symbolForLinkGroup('yellow')).toBe('XLK')
+    expect(store.updateToolLinkGroup('yellow-chart', 'grey', 'XLK')).toBe(true)
+    expect(store.activeTab?.windows[1]).toMatchObject({
+      link_group: 'grey',
+      configuration: { symbol: 'XLK', instrument_id: 42 },
+    })
   })
 
   it('publishes a selected row only to its owning link group and retains grey isolation', () => {
@@ -1112,7 +1221,7 @@ describe('workspace store layout tabs', () => {
     expect(store.linkedTimeframe).toBe('W1')
     expect(store.timeframeForLinkGroup('red')).toBe('MN')
     expect(store.timeframeForLinkGroup('yellow')).toBe('MN')
-    expect(store.workspace.settings.linked_timeframes).toEqual({ blue: 'W1', red: 'MN' })
+    expect(store.workspace.settings.linked_timeframes).toEqual({ blue: 'W1', red: 'MN', yellow: 'MN' })
     expect(store.timeframeForLinkGroup('grey', 'MN')).toBe('MN')
   })
 
@@ -1140,8 +1249,11 @@ describe('workspace store layout tabs', () => {
       }] }],
     }
 
+    const visibleTimeframe = computed(() => store.timeframeForTool('grey-chart'))
+    expect(visibleTimeframe.value).toBe('D1')
     expect(store.updateToolTimeframe('grey-chart', 'MN')).toBe(true)
     expect(store.activeTab?.windows[0]?.configuration.timeframe).toBe('MN')
+    expect(visibleTimeframe.value).toBe('MN')
     expect(store.linkedTimeframe).toBe('D1')
     expect(store.timeframeForLinkGroup('grey', 'MN')).toBe('MN')
   })
@@ -1258,16 +1370,28 @@ describe('workspace store layout tabs', () => {
     ]))
   })
 
-  it('preserves a local recovery workspace when snapshot revision is stale', async () => {
+  it('preserves local recovery when unrelated workspace settings conflict', async () => {
     const store = useWorkspaceStore()
-    store.workspace = {
-      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: { factory_id: 'us-top-down' },
+    const baseline = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1,
+      settings: { factory_id: 'us-top-down', custom_layout: 'baseline' },
       tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: null, layout_config: { root: { type: 'row', content: [] } }, windows: [] }],
     }
-    const latest = { ...store.workspace, revision: 5, name: 'Remote Personal' }
-    const recovery = { ...store.workspace, id: 11, name: 'Personal Recovery', is_default: false, settings: { recovery_of_workspace_id: 10, recovery_of_revision: 4 } }
+    apiGet.mockResolvedValueOnce(baseline)
+    await store.loadDefault()
+    store.workspace!.settings.custom_layout = 'local'
+    const latest = structuredClone(baseline)
+    latest.revision = 5
+    latest.settings.custom_layout = 'remote'
+    const recovery = {
+      ...store.workspace,
+      id: 11,
+      name: 'Personal Recovery',
+      is_default: false,
+      settings: { custom_layout: 'local', recovery_of_workspace_id: 10, recovery_of_revision: 4 },
+    }
     apiPut.mockRejectedValue(new Error('API PUT /workspaces/10/snapshot → 409: conflict'))
-    apiGet.mockResolvedValue(latest)
+    apiGet.mockResolvedValueOnce(latest)
     apiPost.mockResolvedValue(recovery)
 
     await store.saveSnapshot()
@@ -1303,6 +1427,64 @@ describe('workspace store layout tabs', () => {
     expect(apiPost).not.toHaveBeenCalled()
     expect(apiPut).toHaveBeenCalledTimes(2)
     expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({ base_revision: 5 }))
+    expect(store.workspace?.revision).toBe(6)
+  })
+
+  it('merges per-group link settings when a snapshot revision changes concurrently', async () => {
+    const baseline = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1,
+      settings: {
+        linked_timeframe: 'D1',
+        linked_timeframes: { blue: 'D1', red: 'D1', yellow: 'D1' },
+        linked_symbols: {
+          blue: { symbol: 'SPY', instrument_id: 1 },
+          red: { symbol: 'SPY', instrument_id: 1 },
+          yellow: { symbol: 'SPY', instrument_id: 1, source_group: 'blue' },
+        },
+      },
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: {}, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+      ] }],
+    }
+    apiGet.mockResolvedValueOnce(baseline)
+    const store = useWorkspaceStore()
+    await store.loadDefault()
+    store.workspace!.settings = {
+      ...store.workspace!.settings,
+      linked_timeframe: 'W1',
+      linked_timeframes: { blue: 'W1', red: 'D1', yellow: 'W1' },
+      linked_symbols: {
+        blue: { symbol: 'QQQ', instrument_id: 42 },
+        red: { symbol: 'SPY', instrument_id: 1 },
+        yellow: { symbol: 'QQQ', instrument_id: 42, source_group: 'blue' },
+      },
+    }
+    const remote = structuredClone(baseline)
+    remote.revision = 5
+    remote.settings.linked_timeframes.red = 'MN'
+    remote.settings.linked_symbols.blue = { symbol: 'XLE', instrument_id: 14 }
+    remote.settings.linked_symbols.red = { symbol: 'XLF', instrument_id: 15 }
+    remote.settings.linked_symbols.yellow = { symbol: 'XLE', instrument_id: 14, source_group: 'blue' }
+    apiPut.mockRejectedValueOnce(new Error('API PUT /workspaces/10/snapshot → 409: conflict'))
+      .mockImplementationOnce(async (_path, payload) => ({ ...remote, revision: 6, settings: payload.settings, tabs: payload.tabs }))
+    apiGet.mockResolvedValueOnce(remote)
+
+    await store.saveSnapshot()
+
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1]).toMatchObject({
+      base_revision: 5,
+      settings: {
+        linked_timeframe: 'W1',
+        linked_timeframes: { blue: 'W1', red: 'MN', yellow: 'W1' },
+        linked_symbols: {
+          blue: { symbol: 'QQQ', instrument_id: 42 },
+          red: { symbol: 'XLF', instrument_id: 15 },
+          yellow: { symbol: 'QQQ', instrument_id: 42, source_group: 'blue' },
+        },
+      },
+    })
     expect(store.workspace?.revision).toBe(6)
   })
 
@@ -1459,6 +1641,41 @@ describe('workspace store layout tabs', () => {
     expect(store.linkedSymbol).toBe('XLK')
     expect(store.symbolForLinkGroup('blue')).toBe('XLK')
     expect(store.linkedSymbols.blue).toMatchObject({ symbol: 'XLK', instrumentId: 77 })
+  })
+
+  it('restores group symbols, Yellow wildcard identity, and wildcard timeframe from workspace settings', async () => {
+    apiGet.mockResolvedValue({
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1,
+      settings: {
+        linked_timeframe: 'D1',
+        linked_timeframes: { blue: 'D1', red: 'W1', yellow: 'W1' },
+        linked_symbols: {
+          blue: { symbol: 'SPY', instrument_id: 1 },
+          red: { symbol: 'XLK', instrument_id: 42 },
+          yellow: { symbol: 'XLK', instrument_id: 42, source_group: 'red' },
+        },
+      },
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'blue-chart', layout_config: {},
+        windows: [
+          { id: 30, instance_key: 'blue-chart', tool_type: 'chart', title: 'Blue chart', link_group: 'blue', configuration: { symbol: 'SPY', instrument_id: 1 }, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'red-chart', tool_type: 'chart', title: 'Red chart', link_group: 'red', configuration: { symbol: 'XLF' }, style: {}, state_schema_version: 1, position: 1 },
+          { id: 32, instance_key: 'yellow-chart', tool_type: 'chart', title: 'Yellow chart', link_group: 'yellow', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 2 },
+        ],
+      }],
+    })
+    const store = useWorkspaceStore()
+
+    await store.loadDefault()
+
+    expect(store.symbolForLinkGroup('blue')).toBe('SPY')
+    expect(store.symbolForLinkGroup('red')).toBe('XLK')
+    expect(store.symbolForLinkGroup('yellow')).toBe('XLK')
+    expect(store.linkedSymbols.red).toMatchObject({ symbol: 'XLK', instrumentId: 42 })
+    expect(store.linkedSymbols.yellow).toMatchObject({ symbol: 'XLK', instrumentId: 42, group: 'red' })
+    expect(store.timeframeForLinkGroup('blue')).toBe('D1')
+    expect(store.timeframeForLinkGroup('red')).toBe('W1')
+    expect(store.timeframeForLinkGroup('yellow')).toBe('W1')
   })
 
   it('releases leadership when its owning window disconnects', () => {

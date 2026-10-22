@@ -1,5 +1,6 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,12 +11,30 @@ from app.services.strategy_lab import (
     _apply_portfolio_constraints,
     _build_benchmark_summary,
     _build_dense_portfolio_history,
+    _build_universe_coverage_summary,
     _extract_risk_and_exit_config,
+    _promotion_lineage_from_diagnostics,
     _queue_python_signal_research,
+    _run_rules_paper_forward,
     _symbol_performance_snapshot,
     _trade_distributions,
 )
 from app.services.strategy_lab_nautilus import NautilusOpenPosition, NautilusTrade
+
+
+def test_study_fallback_timestamp_uses_canonical_utc_z(monkeypatch):
+    from app.services import strategy_lab
+
+    class FrozenDateTime:
+        @classmethod
+        def now(cls, tz=None):
+            assert tz is UTC
+            return datetime(2026, 9, 12, 16, 30, tzinfo=UTC)
+
+    monkeypatch.setattr(strategy_lab, "datetime", FrozenDateTime)
+
+    assert strategy_lab._study_fallback_timestamp(None) == "2026-09-12T16:30:00Z"
+    assert strategy_lab._study_fallback_timestamp(date(2026, 9, 11)) == "2026-09-11"
 
 
 class _ScalarResult:
@@ -24,6 +43,22 @@ class _ScalarResult:
 
     def scalar_one_or_none(self):
         return self.value
+
+
+class _RowsResult:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def all(self):
+        return self._rows
+
+
+class _CoverageDB:
+    def __init__(self, *results):
+        self._results = list(results)
+
+    async def execute(self, _statement):
+        return _RowsResult(self._results.pop(0))
 
 
 class _ResearchQueueDB:
@@ -89,6 +124,169 @@ async def test_python_signal_strategy_queues_immutable_isolated_research(monkeyp
     assert run.result_summary["output_contract"] == "events"
 
 
+@pytest.mark.asyncio
+async def test_universe_coverage_summary_serializes_all_timestamps_as_canonical_utc():
+    offset = timezone(timedelta(hours=2))
+    available_from = datetime(2024, 1, 1, 2, tzinfo=offset)
+    available_to = datetime(2024, 1, 2, 2, tzinfo=offset)
+    instrument = SimpleNamespace(id=1, symbol="SPY", equity_detail=None)
+    db = _CoverageDB(
+        [(1, 2, available_from, available_to)],
+        [(1, 2, available_from, available_to)],
+    )
+
+    summary = await _build_universe_coverage_summary(
+        db,
+        instrument_rows=[instrument],
+        timeframe=Timeframe.D1,
+        date_from=datetime(2024, 1, 1, tzinfo=UTC),
+        date_to=datetime(2024, 1, 2, tzinfo=UTC),
+    )
+
+    assert summary["requested_first_bar_at"] == "2024-01-01T00:00:00Z"
+    assert summary["requested_last_bar_at"] == "2024-01-02T00:00:00Z"
+    assert summary["any_coverage_from"] == "2024-01-01T00:00:00Z"
+    assert summary["any_coverage_to"] == "2024-01-02T00:00:00Z"
+    assert summary["collective_coverage_from"] == "2024-01-01T00:00:00Z"
+    assert summary["collective_coverage_to"] == "2024-01-02T00:00:00Z"
+    assert summary["instruments"][0]["available_from"] == "2024-01-01T00:00:00Z"
+    assert summary["instruments"][0]["available_to"] == "2024-01-02T00:00:00Z"
+
+
+@pytest.mark.asyncio
+async def test_python_signal_strategy_carries_study_threshold_adapter_into_research_job(
+    monkeypatch,
+):
+    code_version = CodeVersion(
+        id=11,
+        code_asset_id=21,
+        version_number=1,
+        source="output.series('trend', [1, 2, 3])",
+        output_contract="boolean",
+        output_name="trend",
+        diagnostics=[
+            {
+                "code": "promotion_lineage",
+                "lineage": {
+                    "output_adapter": "series_target_to_boolean",
+                    "series_target": {"operator": "gte", "threshold": 2.5},
+                    "source_output_name": "trend",
+                },
+            }
+        ],
+    )
+    db = _ResearchQueueDB(code_version)
+
+    async def materialize(*_args, **_kwargs):
+        return {"symbols": ["SPY"], "datasets": []}
+
+    monkeypatch.setattr("app.routers.research._materialize_declared_dataset", materialize)
+    queued = []
+    monkeypatch.setattr("app.services.strategy_lab.enqueue_research_run", queued.append)
+    strategy = StrategyDefinition(user_id=4, name="Threshold signal", definition_type="python")
+    version = StrategyVersion(
+        strategy=strategy,
+        definition_snapshot={"code_version_id": 11, "output_contract": "boolean"},
+    )
+    run = StrategyRun(
+        strategy=strategy,
+        strategy_version=version,
+        requested_by_user_id=4,
+        engine_type="nautilus",
+        test_mode="backtest",
+        universe_config={"symbols": ["SPY"]},
+    )
+
+    await _queue_python_signal_research(db, strategy=strategy, version=version, run=run)
+
+    research_run = queued[0]
+    assert research_run.run_config["output_adapter"] == "series_target_to_boolean"
+    assert research_run.run_config["series_target"] == {"operator": "gte", "threshold": 2.5}
+    assert research_run.run_config["output_name"] == "trend"
+
+
+def test_promotion_lineage_normalizes_canonical_and_legacy_diagnostics():
+    tree = {"kind": "all", "params": {"conditions": []}}
+    diagnostics = [
+        {
+            "output_adapter": "condition_tree_to_boolean",
+            "condition_tree": tree,
+        },
+        {
+            "promotion_lineage": {
+                "type": "python_breadth_research_run",
+                "source_run_id": 42,
+                "source_output_name": "trend",
+            }
+        },
+        {
+            "code": "promotion_lineage",
+            "lineage": {"series_target": {"operator": "gte", "threshold": 2.5}},
+        },
+    ]
+
+    assert _promotion_lineage_from_diagnostics(diagnostics) == {
+        "output_adapter": "condition_tree_to_boolean",
+        "condition_tree": tree,
+        "type": "python_breadth_research_run",
+        "source_run_id": 42,
+        "source_output_name": "trend",
+        "series_target": {"operator": "gte", "threshold": 2.5},
+    }
+
+
+@pytest.mark.asyncio
+async def test_python_signal_strategy_carries_legacy_breadth_tree_lineage_into_research_job(
+    monkeypatch,
+):
+    tree = {"kind": "all", "params": {"conditions": []}}
+    code_version = CodeVersion(
+        id=12,
+        code_asset_id=22,
+        version_number=1,
+        source="output.boolean('match', True)",
+        output_contract="boolean",
+        diagnostics=[
+            {"output_adapter": "condition_tree_to_boolean", "condition_tree": tree},
+            {
+                "promotion_lineage": {
+                    "type": "python_breadth_research_run",
+                    "source_run_id": 42,
+                    "source_output_name": "match",
+                }
+            },
+        ],
+    )
+    db = _ResearchQueueDB(code_version)
+
+    async def materialize(*_args, **_kwargs):
+        return {"symbols": ["SPY"], "datasets": []}
+
+    monkeypatch.setattr("app.routers.research._materialize_declared_dataset", materialize)
+    queued = []
+    monkeypatch.setattr("app.services.strategy_lab.enqueue_research_run", queued.append)
+    strategy = StrategyDefinition(user_id=4, name="Breadth tree signal", definition_type="python")
+    version = StrategyVersion(
+        strategy=strategy,
+        definition_snapshot={"code_version_id": 12, "output_contract": "boolean"},
+    )
+    run = StrategyRun(
+        strategy=strategy,
+        strategy_version=version,
+        requested_by_user_id=4,
+        engine_type="nautilus",
+        test_mode="backtest",
+        universe_config={"symbols": ["SPY"]},
+    )
+
+    await _queue_python_signal_research(db, strategy=strategy, version=version, run=run)
+
+    research_run = queued[0]
+    assert research_run.run_config["output_adapter"] == "condition_tree_to_boolean"
+    assert research_run.run_config["condition_tree"] == tree
+    assert research_run.run_config["output_name"] == "match"
+
+
 def _trade(
     symbol: str,
     entry_at: str,
@@ -131,7 +329,7 @@ def _bar(instrument_id: int, ts: datetime, close: float) -> OHLCVBar:
 
 
 def test_trade_distributions_include_bar_based_mae_and_mfe():
-    trade = _trade("AAPL", "2026-01-01T00:00:00+00:00", "2026-01-03T00:00:00+00:00", 200.0)
+    trade = _trade("AAPL", "2026-01-01T02:00:00+02:00", "2026-01-03T02:00:00+02:00", 200.0)
     bars = {
         1: [
             OHLCVBar(
@@ -172,6 +370,8 @@ def test_trade_distributions_include_bar_based_mae_and_mfe():
     distributions = _trade_distributions([trade], bars_by_instrument=bars)
     excursion = distributions["mae_mfe"]
     assert excursion["sample_size"] == 1
+    assert excursion["rows"][0]["entry_at"] == "2026-01-01T00:00:00Z"
+    assert excursion["rows"][0]["exit_at"] == "2026-01-03T00:00:00Z"
     assert excursion["rows"][0]["mae_pct"] == -2.0
     assert excursion["rows"][0]["mfe_pct"] == 6.0
     assert excursion["mae_histogram"]
@@ -366,7 +566,9 @@ def test_build_dense_portfolio_history_tracks_full_bar_timeline():
 
     assert len(equity_curve) == 5
     assert len(portfolio_timeline) == 5
-    assert equity_curve[0]["ts"] == "2026-01-01T00:00:00+00:00"
+    assert equity_curve[0]["ts"] == "2026-01-01T00:00:00Z"
+    assert all(point["ts"].endswith("Z") for point in equity_curve)
+    assert all(point["ts"].endswith("Z") for point in portfolio_timeline)
     assert portfolio_timeline[1]["open_position_count"] == 1
     assert portfolio_timeline[2]["open_position_count"] == 2
     assert portfolio_timeline[-1]["open_position_count"] == 0
@@ -376,13 +578,13 @@ def test_build_dense_portfolio_history_tracks_full_bar_timeline():
 def test_apply_portfolio_constraints_includes_open_positions_in_execution_log():
     result = _apply_portfolio_constraints(
         [
-            _trade("AAPL", "2026-01-01T00:00:00+00:00", "2026-01-05T00:00:00+00:00", 200.0),
+            _trade("AAPL", "2026-01-01T02:00:00+02:00", "2026-01-05T02:00:00+02:00", 200.0),
         ],
         open_positions=[
             _open_position(
                 "MSFT",
-                "2026-01-06T00:00:00+00:00",
-                "2026-01-08T00:00:00+00:00",
+                "2026-01-06T02:00:00+02:00",
+                "2026-01-08T02:00:00+02:00",
                 125.0,
                 quantity=5.0,
                 instrument_id=2,
@@ -407,6 +609,12 @@ def test_apply_portfolio_constraints_includes_open_positions_in_execution_log():
     ]
     assert result["execution_log"][-1]["symbol"] == "MSFT"
     assert result["execution_log"][-1]["pnl"] == 125.0
+    assert [event["ts"] for event in result["execution_log"]] == [
+        "2026-01-01T00:00:00Z",
+        "2026-01-05T00:00:00Z",
+        "2026-01-06T00:00:00Z",
+        "2026-01-08T00:00:00Z",
+    ]
 
 
 def test_symbol_performance_snapshot_splits_realized_and_unrealized_pnl():
@@ -483,3 +691,45 @@ async def test_build_benchmark_summary_returns_buy_and_hold_artifacts(monkeypatc
     assert summary["execution_log"][-1]["event_type"] == "open_at_end"
     assert summary["portfolio_timeline"][-1]["open_position_count"] == 1
     assert summary["coverage"]["requested_status"] == "full"
+    assert summary["equity_curve"][0]["ts"] == "2026-01-01T00:00:00Z"
+    assert summary["position_timeline"]["entry_at"] == "2026-01-01T00:00:00Z"
+    assert summary["execution_log"][0]["ts"] == "2026-01-01T00:00:00Z"
+
+
+@pytest.mark.asyncio
+async def test_paper_forward_snapshot_uses_canonical_utc_z_timestamp(monkeypatch):
+    async def fake_backtest(*_args, **_kwargs):
+        return {
+            "equity_curve": [{"ts": "2026-01-01T00:00:00Z", "equity": 101000.0}],
+            "performance": {"trade_count": 2},
+        }
+
+    monkeypatch.setattr("app.services.strategy_lab._run_rules_backtest", fake_backtest)
+    run = SimpleNamespace(
+        strategy_id=1,
+        strategy_version_id=2,
+        requested_by_user_id=3,
+        engine_type="rules",
+        test_mode="paper_forward",
+        status="running",
+        timeframe="D1",
+        date_from=None,
+        date_to=None,
+        parameter_values={},
+        universe_config={},
+        benchmark_config={},
+        execution_assumptions={"paper_forward_bars": 5},
+        result_summary={},
+        artifact_manifest={},
+        warning_log=[],
+    )
+
+    result = await _run_rules_paper_forward(
+        object(),
+        strategy=SimpleNamespace(),
+        version=SimpleNamespace(universe_config={}),
+        run=run,
+    )
+
+    assert result["paper_forward"]["monitor_snapshots"][0]["snapshot_at"].endswith("Z")
+    assert "+00:00" not in result["paper_forward"]["monitor_snapshots"][0]["snapshot_at"]

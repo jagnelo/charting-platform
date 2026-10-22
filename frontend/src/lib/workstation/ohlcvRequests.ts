@@ -16,14 +16,19 @@ export function dedupeOhlcvRequest<T>(
   key: string,
   request: () => Promise<T>,
   ttlMs = DEFAULT_TTL_MS,
+  options: { ignoreCompleted?: boolean } = {},
 ): Promise<T> {
-  const now = Date.now()
-  const cached = completed.get(key)
-  if (cached && cached.expiresAt > now) return Promise.resolve(cached.value as T)
-  if (cached) completed.delete(key)
-
+  // An explicit refresh ignores only a settled value. All consumers still
+  // join the same pending transport, and its result replaces the shared cache.
   const pending = inFlight.get(key)
   if (pending) return pending as Promise<T>
+
+  const now = Date.now()
+  const cached = completed.get(key)
+  if (!options.ignoreCompleted && cached && cached.expiresAt > now) {
+    return Promise.resolve(cached.value as T)
+  }
+  if (cached) completed.delete(key)
 
   const promise = request()
     .then(value => {

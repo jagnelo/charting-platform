@@ -1,5 +1,5 @@
 <template>
-  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" :aria-busy="loading ? 'true' : 'false'" @click="contextMenu = null" @keydown.esc="handleWatchlistEscape" @dragenter.prevent="dragOverPlot" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
+  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" :aria-busy="loading ? 'true' : 'false'" :data-row-count="filteredRows.length" :data-rendered-row-count="virtualItems.length" :data-row-budget="workstationRowBudgetState(filteredRows.length)" @click="contextMenu = null; pinContextMenu = null" @keydown.esc="handleWatchlistEscape" @dragenter.prevent="dragOverPlot" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
     <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status" aria-live="polite" aria-atomic="true">Drop to add the chart plot as a numeric column</p>
     <p v-if="dropError" class="watchlist__drop-error" role="alert" aria-live="assertive" aria-atomic="true">{{ dropError }}</p>
     <p v-if="loading" class="watchlist__loading-status" role="status" aria-live="polite" aria-atomic="true">{{ loadingLabel }}</p>
@@ -28,26 +28,26 @@
       <select v-if="pythonCondition" :value="pythonCondition.timeframe ?? timeframe" :aria-label="`${label} Python condition timeframe`" @change="setPythonConditionTimeframe(($event.target as HTMLSelectElement).value)">
         <option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
       </select>
-      <button ref="columnMenuTrigger" class="watchlist__columns-button" type="button" aria-label="Columns" aria-haspopup="dialog" :aria-expanded="columnMenuOpen" @click="toggleColumnMenu" @keydown="handleEditorTriggerKeydown('columns', $event)">Columns</button>
-      <button ref="columnSetMenuTrigger" class="watchlist__columns-button" type="button" aria-label="Column sets" aria-haspopup="dialog" :aria-expanded="columnSetMenuOpen" @click="toggleColumnSetMenu" @keydown="handleEditorTriggerKeydown('sets', $event)">Sets</button>
+      <button :id="columnMenuTriggerId" ref="columnMenuTrigger" class="watchlist__columns-button" type="button" aria-label="Columns" aria-haspopup="dialog" :aria-expanded="columnMenuOpen" :aria-controls="columnMenuId" @click="toggleColumnMenu" @keydown="handleEditorTriggerKeydown('columns', $event)">Columns</button>
+      <button :id="columnSetMenuTriggerId" ref="columnSetMenuTrigger" class="watchlist__columns-button" type="button" aria-label="Column sets" aria-haspopup="dialog" :aria-expanded="columnSetMenuOpen" :aria-controls="columnSetMenuId" @click="toggleColumnSetMenu" @keydown="handleEditorTriggerKeydown('sets', $event)">Sets</button>
       <b>{{ selectedSymbols.length ? `${selectedSymbols.length} selected · ` : '' }}{{ filteredRows.length }}</b>
-      <button v-if="selectedSymbols.length > 1" type="button" class="watchlist__compare-button" @click="emit('compare', selectedSymbols)">Compare</button>
+      <button v-if="selectedSymbols.length > 1" type="button" class="watchlist__compare-button" :aria-label="`Compare ${selectedSymbols.length} selected symbols`" @click="emit('compare', selectedSymbols)">Compare</button>
       <button v-if="marketMapSourceId" type="button" class="watchlist__map-button" aria-label="Open Market Map" :title="`Open ${label} in Market Map`" @click="emit('market-map', marketMapSourceId)">Map</button>
     </header>
     <p v-if="conditionFilterState" class="watchlist__condition-state">{{ conditionFilterState }}</p>
     <p v-if="pythonConditionState" class="watchlist__condition-state">{{ pythonConditionState }}<button v-if="pythonRunIds.python_condition" type="button" aria-label="Cancel Python condition" @click="cancelPythonRun('python_condition')">Cancel</button><button v-if="pythonCondition?.mode === 'active' && !pythonAlertBusy" type="button" aria-label="Create alert from Python condition" @click="createPythonConditionAlert">Alert</button><small v-if="pythonAlertState">{{ pythonAlertState }}</small></p>
-    <div v-if="columnMenuOpen" ref="columnMenuRoot" class="watchlist__column-menu" role="dialog" aria-label="Column editor" @keydown="handleEditorKeydown('columns', $event)">
-      <div class="watchlist__column-clipboard"><button type="button" @click="pasteColumn">Paste column settings</button><small v-if="columnClipboardState">{{ columnClipboardState }}</small></div>
-      <label v-for="column in effectiveColumns" :key="column.key" class="watchlist__column-editor-row" :class="{ 'watchlist__column-editor-row--dragging': draggedColumnKey === column.key }" draggable="true" @dragstart="dragColumn(column.key)" @dragover.prevent @drop.prevent="dropColumn(column.key)" @dragend="draggedColumnKey = null"><input type="checkbox" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" /><input class="watchlist__label-input" :aria-label="`${column.label} label`" :value="column.label" @change="setColumnOverride(column.key, { label: ($event.target as HTMLInputElement).value })" /><input class="watchlist__width-input" :aria-label="`${column.label} width`" :value="column.width ?? ''" placeholder="px/fr" @change="setColumnOverride(column.key, { width: ($event.target as HTMLInputElement).value })" /><select v-if="column.kind !== 'boolean'" class="watchlist__format-input" :aria-label="`${column.label} format`" :value="column.format ?? 'percent'" @change="setColumnOverride(column.key, { format: ($event.target as HTMLSelectElement).value as 'percent' | 'number' })"><option value="percent">%</option><option value="number">#</option></select><input v-if="column.kind !== 'boolean'" class="watchlist__decimals-input" type="number" min="0" max="6" :aria-label="`${column.label} decimals`" :value="column.decimals ?? ''" placeholder="dp" @change="setColumnOverride(column.key, { decimals: Number(($event.target as HTMLInputElement).value) })" /><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)"><WorkstationGlyph kind="move-left" /></button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)"><WorkstationGlyph kind="move-right" /></button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @input="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button><button class="watchlist__copy-button" type="button" :aria-label="`Copy ${column.label} settings`" @click="copyColumn(column)">Copy</button></label>
-      <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button><label v-for="column in pythonColumns" :key="`timeframe-${column.code_version_id}`">{{ column.name }} <select :aria-label="`${column.name} timeframe`" :value="column.timeframe ?? timeframe" @change="setPythonColumnTimeframe(column.code_version_id, ($event.target as HTMLSelectElement).value)"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label><template v-for="column in pythonColumns" :key="`progress-${column.code_version_id}`"><small v-if="pythonProgress[pythonKey(column.code_version_id)]">{{ column.name }} · {{ pythonProgress[pythonKey(column.code_version_id)] }}<button v-if="pythonRunIds[pythonKey(column.code_version_id)]" type="button" :aria-label="`Cancel ${column.name}`" @click="cancelPythonRun(pythonKey(column.code_version_id))">Cancel</button></small></template></div>
+    <div v-if="columnMenuOpen" :id="columnMenuId" ref="columnMenuRoot" class="watchlist__column-menu" role="dialog" aria-label="Column editor" @keydown="handleEditorKeydown('columns', $event)">
+      <div class="watchlist__column-clipboard"><button type="button" aria-label="Paste column settings" @click="pasteColumn">Paste column settings</button><small v-if="columnClipboardState">{{ columnClipboardState }}</small></div>
+      <label v-for="column in effectiveColumns" :key="column.key" class="watchlist__column-editor-row" :class="{ 'watchlist__column-editor-row--dragging': draggedColumnKey === column.key }" draggable="true" @dragstart="dragColumn(column.key)" @dragover.prevent @drop.prevent="dropColumn(column.key)" @dragend="draggedColumnKey = null"><input type="checkbox" :aria-label="`Show ${column.label} column`" :checked="activeColumnKeys.includes(column.key)" @change="toggleColumn(column.key)" /><input class="watchlist__label-input" :aria-label="`${column.label} label`" :value="column.label" @change="setColumnOverride(column.key, { label: ($event.target as HTMLInputElement).value })" /><input class="watchlist__width-input" :aria-label="`${column.label} width`" :value="column.width ?? ''" placeholder="px/fr" @change="setColumnOverride(column.key, { width: ($event.target as HTMLInputElement).value })" /><select v-if="column.kind !== 'boolean'" class="watchlist__format-input" :aria-label="`${column.label} format`" :value="column.format ?? 'percent'" @change="setColumnOverride(column.key, { format: ($event.target as HTMLSelectElement).value as 'percent' | 'number' })"><option value="percent">%</option><option value="number">#</option></select><input v-if="column.kind !== 'boolean'" class="watchlist__decimals-input" type="number" min="0" max="6" :aria-label="`${column.label} decimals`" :value="column.decimals ?? ''" placeholder="dp" @change="setColumnOverride(column.key, { decimals: Number(($event.target as HTMLInputElement).value) })" /><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} left`" :disabled="!canMoveColumn(column.key, -1)" @click="moveColumn(column.key, -1)"><WorkstationGlyph kind="move-left" /></button><button class="watchlist__order-button" type="button" :aria-label="`Move ${column.label} right`" :disabled="!canMoveColumn(column.key, 1)" @click="moveColumn(column.key, 1)"><WorkstationGlyph kind="move-right" /></button><input class="watchlist__group-input" :aria-label="`${column.label} group`" :value="columnGroups[column.key] ?? ''" placeholder="Group" @input="setColumnGroup(column.key, ($event.target as HTMLInputElement).value)" /><button class="watchlist__stack-button" type="button" :aria-label="`${stackedColumnKeys.includes(column.key) ? 'Unstack' : 'Stack'} ${column.label} column`" :aria-pressed="stackedColumnKeys.includes(column.key)" @click="toggleStackedColumn(column.key)">Stack</button><button v-if="column.kind === 'boolean'" class="watchlist__pin-button" type="button" :aria-label="`${pinnedBooleanKeys.includes(column.key) ? 'Unpin' : 'Pin'} ${column.label} column`" :aria-pressed="pinnedBooleanKeys.includes(column.key)" @click="togglePinnedBoolean(column.key)">Pin</button><button class="watchlist__copy-button" type="button" :aria-label="`Copy ${column.label} settings`" @click="copyColumn(column)">Copy</button></label>
+      <div class="watchlist__python"><select v-model="selectedPythonVersion" aria-label="Python column asset"><option value="">Add Python column…</option><option v-for="asset in pythonAssets" :key="asset.versionId" :value="String(asset.versionId)">{{ asset.name }}</option></select><button type="button" aria-label="Add selected Python column" :disabled="!selectedPythonVersion" @click="addPythonColumn">Add</button><label v-for="column in pythonColumns" :key="`timeframe-${column.code_version_id}`">{{ column.name }} <select :aria-label="`${column.name} timeframe`" :value="column.timeframe ?? timeframe" @change="setPythonColumnTimeframe(column.code_version_id, ($event.target as HTMLSelectElement).value)"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label><template v-for="column in pythonColumns" :key="`progress-${column.code_version_id}`"><small v-if="pythonProgress[pythonKey(column.code_version_id)]">{{ column.name }} · {{ pythonProgress[pythonKey(column.code_version_id)] }}<button v-if="pythonRunIds[pythonKey(column.code_version_id)]" type="button" :aria-label="`Cancel ${column.name}`" @click="cancelPythonRun(pythonKey(column.code_version_id))">Cancel</button></small></template></div>
     </div>
-    <div v-if="columnSetMenuOpen" ref="columnSetMenuRoot" class="watchlist__column-set-menu" role="dialog" aria-label="Saved column sets" @keydown="handleEditorKeydown('sets', $event)">
+    <div v-if="columnSetMenuOpen" :id="columnSetMenuId" ref="columnSetMenuRoot" class="watchlist__column-set-menu" role="dialog" aria-label="Saved column sets" @keydown="handleEditorKeydown('sets', $event)">
       <input ref="columnSetNameInput" v-model.trim="columnSetName" aria-label="Column set name" placeholder="Column set name" @keydown.enter.prevent="saveColumnSet" />
-      <button type="button" :disabled="!columnSetName || columnSetBusy" @click="saveColumnSet">Save set</button>
+      <button type="button" aria-label="Save column set" :disabled="!columnSetName || columnSetBusy" @click="saveColumnSet">Save set</button>
       <small v-if="columnSetError" class="watchlist__column-set-error">{{ columnSetError }}</small>
       <small v-else-if="columnSetLoading">Loading saved sets…</small>
       <template v-else-if="columnSets.length">
-        <span v-for="set in columnSets" :key="set.stable_key"><button type="button" @click="applyColumnSet(set)">{{ set.name }} <small>v{{ set.version }}</small></button><button class="watchlist__column-set-delete" type="button" :aria-label="`Delete column set ${set.name}`" :disabled="columnSetBusy" @click="deleteColumnSet(set)"><WorkstationGlyph kind="close" /></button></span>
+        <span v-for="set in columnSets" :key="set.stable_key"><button type="button" :aria-label="`Apply column set ${set.name} version ${set.version}`" @click="applyColumnSet(set)">{{ set.name }} <small>v{{ set.version }}</small></button><button class="watchlist__column-set-delete" type="button" :aria-label="`Delete column set ${set.name}`" :disabled="columnSetBusy" @click="deleteColumnSet(set)"><WorkstationGlyph kind="close" /></button></span>
       </template>
       <small v-else>No saved column sets.</small>
     </div>
@@ -56,31 +56,33 @@
         <template v-for="item in columnRenderItems" :key="item.column.key">
         <div class="watchlist__header-cell" :style="columnCellStyle(item)" @mousedown.capture="handleColumnMouseDown($event, item)">
           <div v-if="item.column.key === stackedColumnKey" class="watchlist__stack-header">
-            <button v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" type="button" @click="toggleSort(stackedColumn.key)"><em v-if="columnGroups[stackedColumn.key]">{{ columnGroups[stackedColumn.key] }}</em>{{ stackedColumn.label }}<small v-if="sortKey === stackedColumn.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small></button>
+            <button v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" type="button" :aria-label="sortButtonLabel(stackedColumn.key, stackedColumn.label)" :aria-pressed="sortKey === stackedColumn.key ? 'true' : 'false'" :aria-haspopup="stackedColumn.kind === 'boolean' ? 'menu' : undefined" :aria-expanded="stackedColumn.kind === 'boolean' ? (pinContextMenu?.key === stackedColumn.key ? 'true' : 'false') : undefined" :aria-controls="pinContextMenu?.key === stackedColumn.key ? pinContextMenuId : undefined" @click="handleColumnHeaderClick($event, stackedColumn)" @contextmenu="openColumnPinContextMenu($event, stackedColumn)" @keydown="handleColumnPinMenuKeydown($event, stackedColumn)"><em v-if="columnGroups[stackedColumn.key]">{{ columnGroups[stackedColumn.key] }}</em>{{ stackedColumn.label }}<WorkstationGlyph v-if="isBooleanColumnPinned(stackedColumn.key)" kind="pin" title="Pinned to top" /><small v-if="sortKey === stackedColumn.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small></button>
           </div>
-          <button v-else type="button" @click="toggleSort(item.column.key)">
-            <em v-if="columnGroups[item.column.key]">{{ columnGroups[item.column.key] }}</em>{{ item.column.label }}<small v-if="sortKey === item.column.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small>
+          <button v-else type="button" :aria-label="sortButtonLabel(item.column.key, item.column.label)" :aria-pressed="sortKey === item.column.key ? 'true' : 'false'" :aria-haspopup="item.column.kind === 'boolean' ? 'menu' : undefined" :aria-expanded="item.column.kind === 'boolean' ? (pinContextMenu?.key === item.column.key ? 'true' : 'false') : undefined" :aria-controls="pinContextMenu?.key === item.column.key ? pinContextMenuId : undefined" @click="handleColumnHeaderClick($event, item.column)" @contextmenu="openColumnPinContextMenu($event, item.column)" @keydown="handleColumnPinMenuKeydown($event, item.column)">
+            <em v-if="columnGroups[item.column.key]">{{ columnGroups[item.column.key] }}</em>{{ item.column.label }}<WorkstationGlyph v-if="isBooleanColumnPinned(item.column.key)" kind="pin" title="Pinned to top" /><small v-if="sortKey === item.column.key">{{ sortDirection === 'asc' ? ' ▲' : ' ▼' }}</small>
           </button>
-          <span v-if="item.column.key !== stackedColumnKey" class="watchlist__column-resize-handle" role="separator" tabindex="0" :aria-label="`Resize ${item.column.label} column`" @mousedown.prevent.stop="beginColumnMouseResize($event, item)" />
+          <span v-if="item.column.key !== stackedColumnKey" class="watchlist__column-resize-handle" role="separator" tabindex="0" aria-orientation="horizontal" :aria-valuemin="48" :aria-valuemax="600" :aria-valuenow="columnWidths[item.index]" :aria-valuetext="`${columnWidths[item.index]} pixels`" :aria-label="`Resize ${item.column.label} column`" @mousedown.prevent.stop="beginColumnMouseResize($event, item)" @keydown.stop="handleColumnResizeKeydown($event, item)" />
         </div>
         </template>
       </div>
     </div>
     <div ref="scrollElement" class="watchlist__scroll" role="listbox" :aria-label="`${label} symbols`" :aria-multiselectable="true" :aria-activedescendant="activeDescendantId" tabindex="0" @scroll="syncHeaderScroll" @keydown.stop="onKeydown" @wheel.ctrl.prevent.stop="onCtrlWheel">
       <div :data-render-epoch="renderEpoch" :style="rowCanvasStyle">
-        <button
-          v-for="virtualRow in virtualItems"
-          :key="filteredRows[virtualRow.index].instrumentId ?? filteredRows[virtualRow.index].symbol"
+        <template v-for="virtualRow in virtualItems" :key="filteredRows[virtualRow.index].instrumentId ?? filteredRows[virtualRow.index].symbol">
+          <button
           type="button"
           role="option"
           :id="rowDomId(filteredRows[virtualRow.index])"
-          :aria-label="`${filteredRows[virtualRow.index].symbol} ${filteredRows[virtualRow.index].name}`"
+          :aria-label="rowAccessibilityLabel(filteredRows[virtualRow.index], virtualRow.index)"
+          :aria-setsize="filteredRows.length"
+          :aria-posinset="virtualRow.index + 1"
           :aria-selected="selectedSymbols.includes(filteredRows[virtualRow.index].symbol) || filteredRows[virtualRow.index].symbol === selected"
           class="watchlist__row"
           :class="{ 'watchlist__row--active': filteredRows[virtualRow.index].symbol === selected, 'watchlist__row--selected': selectedSymbols.includes(filteredRows[virtualRow.index].symbol) }"
           :draggable="reorderable && filteredRows[virtualRow.index].itemId != null"
           :style="rowStyle(virtualRow)"
           @click="selectRow(filteredRows[virtualRow.index], $event)"
+          @keydown="handleRowKeydown($event, filteredRows[virtualRow.index])"
           @dragstart="dragStart(filteredRows[virtualRow.index])"
           @dragover.prevent
           @drop.prevent="dropRow(filteredRows[virtualRow.index])"
@@ -90,7 +92,8 @@
             <span v-if="item.column.key !== stackedColumnKey" :style="columnCellStyle(item)" :class="cellClasses(filteredRows[virtualRow.index], item.column.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], item.column.key)" :title="cellTitle(filteredRows[virtualRow.index], item.column.key)"><b v-if="item.column.key === 'symbol' && filteredRows[virtualRow.index].flagged" class="watchlist__flag" aria-label="Flagged">⚑</b><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], item.column.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], item.column.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], item.column.key) }}</span>
             <span v-else :style="columnCellStyle(item)" class="watchlist__stack-cell"><small v-for="stackedColumn in stackedColumns" :key="stackedColumn.key" :class="cellClasses(filteredRows[virtualRow.index], stackedColumn.key)" :data-cell-state="cellState(filteredRows[virtualRow.index], stackedColumn.key)" :title="cellTitle(filteredRows[virtualRow.index], stackedColumn.key)"><em>{{ stackedColumn.label }}</em><WorkstationGlyph v-if="cellWarning(filteredRows[virtualRow.index], stackedColumn.key)" kind="warning" :title="cellWarning(filteredRows[virtualRow.index], stackedColumn.key) ?? undefined" />{{ display(filteredRows[virtualRow.index], stackedColumn.key) }}</small></span>
           </template>
-        </button>
+          </button>
+        </template>
       </div>
     </div>
     <div v-if="contextMenu" ref="contextMenuRoot" class="watchlist__context-menu" role="menu" :aria-label="`${contextMenu.row.symbol} actions`" :style="{ left: `${contextMenu.left}px`, top: `${contextMenu.top}px` }" @click.stop @keydown="handleContextMenuKeydown">
@@ -102,9 +105,17 @@
       <button type="button" role="menuitem" tabindex="-1" @click="runContextAction('alert')">Open alerts</button>
       <button type="button" role="menuitem" tabindex="-1" @click="runContextAction('copy')">Copy symbol</button>
       <button v-if="contextMarketMapSourceId" type="button" role="menuitem" tabindex="-1" @click="openContextMarketMap">Open constituents in Market Map</button>
-      <button v-if="contextMenu.row.itemId != null" type="button" role="menuitem" tabindex="-1" @click="runContextAction('flag')">{{ contextMenu.row.flagged ? 'Unflag' : 'Flag' }}</button>
-      <button v-if="relatedLists.length" type="button" role="menuitem" tabindex="-1" @click="membershipInspectionOpen = !membershipInspectionOpen">{{ membershipInspectionOpen ? 'Hide list membership' : 'Show list membership' }}</button>
-      <div v-if="membershipInspectionOpen" class="watchlist__membership-inspection" aria-label="List membership">
+      <button v-if="contextMenu.row.itemId != null && !favoriteList" type="button" role="menuitem" tabindex="-1" @click="runContextAction('flag')">{{ contextMenu.row.flagged ? 'Unflag' : 'Flag' }}</button>
+      <button
+        v-if="relatedLists.length"
+        type="button"
+        role="menuitem"
+        tabindex="-1"
+        :aria-controls="membershipInspectionId"
+        :aria-expanded="membershipInspectionOpen ? 'true' : 'false'"
+        @click="membershipInspectionOpen = !membershipInspectionOpen"
+      >{{ membershipInspectionOpen ? 'Hide list membership' : 'Show list membership' }}</button>
+      <div v-if="membershipInspectionOpen" :id="membershipInspectionId" class="watchlist__membership-inspection" role="region" aria-label="List membership">
         <small v-for="target in relatedLists" :key="target.id">{{ target.name }}{{ target.id === sourceWatchlistId ? ' · current' : '' }}</small>
       </div>
       <template v-if="membershipTargets.length">
@@ -112,10 +123,14 @@
           <option value="">List actions…</option>
           <option v-for="target in membershipTargets" :key="target.id" :value="String(target.id)" :disabled="target.locked || target.id === contextSourceWatchlistId">{{ target.name }}{{ target.locked ? ' · Locked' : '' }}</option>
         </select>
-        <button type="button" role="menuitem" tabindex="-1" :disabled="!canCopyToTarget" @click="runContextAction('copy-to-watchlist')">{{ contextSelectionRows.length > 1 ? `Copy ${contextSelectionRows.length} selected to list` : 'Copy to list' }}</button>
-        <button type="button" role="menuitem" tabindex="-1" :disabled="!canMoveToTarget" @click="runContextAction('move-to-watchlist')">{{ contextSelectionRows.length > 1 ? `Move ${contextSelectionRows.length} selected to list` : 'Move to list' }}</button>
+        <button type="button" role="menuitem" tabindex="-1" data-membership-action="copy" :disabled="!canCopyToTarget" @click="runContextAction('copy-to-watchlist')">{{ contextSelectionRows.length > 1 ? `Copy ${contextSelectionRows.length} selected to list` : 'Copy to list' }}</button>
+        <button type="button" role="menuitem" tabindex="-1" data-membership-action="move" :disabled="!canMoveToTarget" @click="runContextAction('move-to-watchlist')">{{ contextSelectionRows.length > 1 ? `Move ${contextSelectionRows.length} selected to list` : 'Move to list' }}</button>
       </template>
       <button v-if="allowRemove" type="button" role="menuitem" tabindex="-1" @click="runContextAction('remove')">Remove from list</button>
+    </div>
+    <div v-if="pinContextMenu" :id="pinContextMenuId" ref="pinContextMenuRoot" class="watchlist__context-menu watchlist__pin-context-menu" role="menu" :aria-label="`Column actions for ${pinContextMenu.label}`" :style="{ left: `${pinContextMenu.left}px`, top: `${pinContextMenu.top}px` }" @click.stop @keydown="handlePinContextMenuKeydown">
+      <strong>{{ pinContextMenu.label }}</strong>
+      <button ref="pinMenuItem" type="button" role="menuitem" tabindex="0" @click="applyColumnPinMenuAction">{{ isBooleanColumnPinned(pinContextMenu.key) ? 'Unpin from Top (ctrl-click)' : 'Pin to Top (ctrl-click)' }}</button>
     </div>
   </section>
 </template>
@@ -123,10 +138,11 @@
 <script setup lang="ts">
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useQueryClient } from '@tanstack/vue-query'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type CSSProperties } from 'vue'
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch, type CSSProperties } from 'vue'
 import { api } from '@/lib/api'
 import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
 import { CHART_PLOT_DRAG_MIME, clearAnalysisDrag, hasActiveAnalysisDrag, readAnalysisDrag, scheduleAnalysisDragCleanup, type ChartAnalysisDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
+import { workstationRowBudgetState } from '@/lib/workstation/performanceBudget'
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
 export interface WatchlistRow {
@@ -206,6 +222,7 @@ const props = withDefaults(defineProps<{
   pythonCondition?: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null
   reorderable?: boolean
   allowRemove?: boolean
+  favoriteList?: boolean
   sourceWatchlistId?: number | null
   /** Canonical source consumed by Market Map; may be a locked system source. */
   marketMapSourceId?: string | null
@@ -240,6 +257,7 @@ const props = withDefaults(defineProps<{
   pythonCondition: null,
   reorderable: false,
   allowRemove: false,
+  favoriteList: false,
   sourceWatchlistId: null,
   marketMapSourceId: null,
   marketMapSourceForRow: undefined,
@@ -247,7 +265,7 @@ const props = withDefaults(defineProps<{
   columnOverrides: () => ({}),
 })
 const queryClient = useQueryClient()
-const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'market-map': [sourceId: string]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartAnalysisDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove', row: WatchlistRow, targetWatchlistId?: number, selectedRows?: WatchlistRow[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
+const emit = defineEmits<{ select: [row: WatchlistRow]; compare: [symbols: string[]]; 'market-map': [sourceId: string]; reorder: [itemIds: number[]]; 'plot-drop': [payload: ChartAnalysisDragPayload]; 'condition-drop': [payload: TechnicalConditionDragPayload]; 'row-action': [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'favorite' | 'remove', row: WatchlistRow, targetWatchlistId?: number, selectedRows?: WatchlistRow[]]; 'update:visibleColumnKeys': [keys: string[]]; 'update:filterText': [value: string]; 'update:conditionScreenerId': [id: number | null]; 'update:conditionFilterMode': [mode: 'active' | 'inactive' | 'off']; 'update:pinnedBooleanKeys': [keys: string[]]; 'update:columnGroups': [groups: Record<string, string>]; 'update:stackedColumnKeys': [keys: string[]]; 'update:columnOverrides': [overrides: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>]; 'update:pythonColumns': [columns: Array<{ code_version_id: number; name: string; timeframe?: string }>]; 'update:pythonCondition': [condition: { code_version_id: number; name: string; mode: 'active' | 'inactive' | 'off'; timeframe?: string } | null] }>()
 const scrollElement = ref<HTMLElement | null>(null)
 const filter = ref(props.filterText)
 const conditionFilter = ref(props.conditionScreenerId == null ? '' : String(props.conditionScreenerId))
@@ -269,6 +287,12 @@ const keyboardActiveSymbol = ref<string | null>(props.selected || null)
 const contextMenu = ref<{ row: WatchlistRow; left: number; top: number } | null>(null)
 const contextMenuRoot = ref<HTMLElement | null>(null)
 const contextRowElement = ref<HTMLElement | null>(null)
+const pinContextMenu = ref<{ key: string; label: string; left: number; top: number } | null>(null)
+// Keep the conditional menu relationship unique across docked and detached watchlists.
+const pinContextMenuId = `watchlist-column-pin-menu-${getCurrentInstance()?.uid ?? 0}`
+const pinContextMenuRoot = ref<HTMLElement | null>(null)
+const pinMenuItem = ref<HTMLButtonElement | null>(null)
+const pinMenuTriggerElement = ref<HTMLButtonElement | null>(null)
 const columnMenuTrigger = ref<HTMLButtonElement | null>(null)
 const columnMenuRoot = ref<HTMLElement | null>(null)
 const columnSetMenuTrigger = ref<HTMLButtonElement | null>(null)
@@ -276,7 +300,7 @@ const columnSetMenuRoot = ref<HTMLElement | null>(null)
 const columnSetNameInput = ref<HTMLInputElement | null>(null)
 
 function contextMenuItems() {
-  return Array.from(contextMenuRoot.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])
+  return Array.from(contextMenuRoot.value?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled), select:not(:disabled)') ?? [])
 }
 
 function focusContextMenuItem(index: number) {
@@ -295,10 +319,25 @@ function handleContextMenuKeydown(event: KeyboardEvent) {
   const items = contextMenuItems()
   if (!items.length) return
   const target = event.target instanceof HTMLElement ? event.target : null
-  const currentIndex = target ? items.indexOf(target as HTMLButtonElement) : -1
+  const currentIndex = target ? items.indexOf(target) : -1
   if (event.key === 'Escape') {
     event.preventDefault()
     closeContextMenuToRow()
+  } else if (target instanceof HTMLSelectElement) {
+    // The explicit watchlist destination is a native select inside the row
+    // action menu. Keep its arrow/Enter behavior native; Tab proceeds to the
+    // selected membership action, which is enabled after choosing a target.
+    if (event.key === 'Tab') {
+      event.preventDefault()
+      if (event.shiftKey) {
+        items[Math.max(0, currentIndex - 1)]?.focus()
+      } else {
+        const action = contextMenuRoot.value?.querySelector<HTMLButtonElement>(
+          'button[data-membership-action="copy"]:not(:disabled), button[data-membership-action="move"]:not(:disabled)',
+        )
+        action?.focus()
+      }
+    }
   } else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
     event.preventDefault()
     focusContextMenuItem((currentIndex + 1 + items.length) % items.length)
@@ -342,6 +381,10 @@ const rowsGeneration = ref(0)
 const conditionRequestGeneration = ref(0)
 const pythonConditionRequestGeneration = ref(0)
 const pythonColumnRequestGenerations = new Map<number, number>()
+let mounted = false
+let screenersLoadGeneration = 0
+let pythonAssetsLoadGeneration = 0
+let columnSetsLoadGeneration = 0
 const timeframeOptions = [{ value: 'M15', label: '15m' }, { value: 'D1', label: 'Daily' }, { value: 'W1', label: 'Weekly' }, { value: 'MN', label: 'Monthly' }]
 const renderEpoch = ref(0)
 const resizingColumn = ref<{ key: string; startX: number; startWidth: number; width: number } | null>(null)
@@ -353,9 +396,24 @@ type WatchlistEditor = 'columns' | 'sets'
 // mount several copies of the same watchlist (including browser pop-outs), so
 // instrument IDs alone are not sufficient for aria-activedescendant targets.
 const watchlistDomId = `watchlist-${globalThis.crypto?.randomUUID?.().replace(/-/g, '').slice(0, 12) ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`}`
+const columnMenuTriggerId = `${watchlistDomId}-columns-trigger`
+const columnMenuId = `${watchlistDomId}-columns-dialog`
+const columnSetMenuTriggerId = `${watchlistDomId}-column-sets-trigger`
+const columnSetMenuId = `${watchlistDomId}-column-sets-dialog`
+const membershipInspectionId = `${watchlistDomId}-membership-inspection`
 function rowDomId(row: WatchlistRow) {
   const identity = row.instrumentId != null ? String(row.instrumentId) : row.symbol
   return `${watchlistDomId}-row-${identity.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+}
+function rowAccessibilityLabel(row: WatchlistRow, filteredIndex: number) {
+  const position = filteredIndex + 1
+  const cells = visibleColumns.value.map(column => {
+    const warning = cellWarning(row, column.key)
+    const value = display(row, column.key)
+    return `${column.label}: ${value}${warning ? ` (${warning})` : ''}`
+  })
+  const flag = row.flagged ? ' Flagged.' : ''
+  return `${row.symbol} ${row.name}. Position ${position} of ${filteredRows.value.length}.${flag} ${cells.join('. ')}`
 }
 const activeDescendantId = computed(() => {
   const symbol = keyboardActiveSymbol.value || props.selected
@@ -415,6 +473,9 @@ function handleEditorKeydown(editor: WatchlistEditor, event: KeyboardEvent) {
     closeEditorToTrigger(editor)
     return
   }
+  // Inputs and selects own these keys for caret movement and value selection;
+  // only use the editor's roving focus behavior from non-editable controls.
+  if (event.target instanceof Element && event.target.closest('input, select, textarea, [contenteditable="true"]')) return
   const focusable = editorFocusable(editor)
   const current = focusable.indexOf(document.activeElement as HTMLElement)
   let next: number | null = null
@@ -432,6 +493,7 @@ function handleWatchlistEscape(event: KeyboardEvent) {
     return
   }
   if (columnSetMenuOpen.value) closeEditorToTrigger('sets')
+  else if (pinContextMenu.value) closePinContextMenu()
   else closeContextMenuToRow()
 }
 type PythonColumn = { code_version_id: number; name: string; timeframe?: string }
@@ -564,6 +626,19 @@ function beginColumnMouseResize(event: MouseEvent, item: ColumnRenderItem) {
   const target = event.currentTarget as HTMLElement
   const width = Math.max(48, Math.round(target.parentElement?.getBoundingClientRect().width ?? estimateColumnWidth(item.column)))
   resizingColumn.value = { key: item.column.key, startX: event.clientX, startWidth: width, width }
+}
+function handleColumnResizeKeydown(event: KeyboardEvent, item: ColumnRenderItem) {
+  if (item.column.key === stackedColumnKey) return
+  const step = event.shiftKey ? 32 : 8
+  const current = columnWidths.value[item.index] ?? estimateColumnWidth(item.column)
+  let next: number
+  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = current + step
+  else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = current - step
+  else if (event.key === 'Home') next = 48
+  else if (event.key === 'End') next = 600
+  else return
+  event.preventDefault()
+  setColumnOverride(item.column.key, { width: `${Math.min(600, Math.max(48, next))}px` })
 }
 function handleColumnMouseDown(event: MouseEvent, item: ColumnRenderItem) {
   const cell = event.currentTarget as HTMLElement
@@ -782,24 +857,33 @@ watch(pythonConditionMode, mode => {
 })
 
 async function loadScreeners() {
+  const generation = ++screenersLoadGeneration
   try {
-    screeners.value = await queryClient.fetchQuery<SavedScreener[]>({
+    const nextScreeners = await queryClient.fetchQuery<SavedScreener[]>({
       queryKey: ['workstation', 'screeners'],
       queryFn: async () => (await api.get<SavedScreener[]>('/screeners')) ?? [],
       staleTime: 30_000,
     })
+    if (mounted && generation === screenersLoadGeneration) screeners.value = nextScreeners
   } catch {
-    conditionFilterState.value = 'Saved condition filters are unavailable.'
+    if (mounted && generation === screenersLoadGeneration) conditionFilterState.value = 'Saved condition filters are unavailable.'
   }
 }
 
 function pythonKey(versionId: number) { return `python:${versionId}` }
 async function loadPythonAssets() {
+  const generation = ++pythonAssetsLoadGeneration
   try {
     const assets = await fetchCodeAssets(queryClient)
+    if (!mounted || generation !== pythonAssetsLoadGeneration) return
     pythonAssets.value = assets.filter(asset => asset.kind === 'column' || asset.kind === 'study').flatMap(asset => asset.versions.slice(-1).flatMap(version => version.id != null && (asset.kind === 'column' || version.output_contract === 'scalar') ? [{ versionId: version.id, name: `${asset.name} v${version.version_number}` }] : []))
     pythonConditionAssets.value = assets.filter(asset => asset.kind === 'condition' || asset.kind === 'study').flatMap(asset => asset.versions.slice(-1).flatMap(version => version.id != null && (asset.kind === 'condition' || version.output_contract === 'boolean') ? [{ versionId: version.id, name: `${asset.name} v${version.version_number}` }] : []))
-  } catch { pythonAssets.value = []; pythonConditionAssets.value = [] }
+  } catch {
+    if (mounted && generation === pythonAssetsLoadGeneration) {
+      pythonAssets.value = []
+      pythonConditionAssets.value = []
+    }
+  }
 }
 function sleep(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)) }
 type PythonBatchResult = { status: string; progress?: { completed_cells?: number; total_cells?: number; status?: string }; cells: Array<{ symbol: string; status: string; value?: number | boolean; error?: string }> }
@@ -1023,17 +1107,23 @@ function columnSetConfiguration() {
 }
 
 async function loadColumnSets() {
+  const generation = ++columnSetsLoadGeneration
   columnSetLoading.value = true
   columnSetError.value = ''
   try {
-    columnSets.value = await queryClient.fetchQuery<ColumnSetItem[]>({
+    const nextColumnSets = await queryClient.fetchQuery<ColumnSetItem[]>({
       queryKey: ['workstation', 'library-items', 'column_set'],
       queryFn: async () => (await api.get<ColumnSetItem[]>('/workspaces/library/items', { kind: 'column_set' })) ?? [],
       staleTime: 30_000,
     })
+    if (mounted && generation === columnSetsLoadGeneration) columnSets.value = nextColumnSets
   }
-  catch (cause: any) { columnSetError.value = cause?.message ?? 'Unable to load saved column sets' }
-  finally { columnSetLoading.value = false }
+  catch (cause: any) {
+    if (mounted && generation === columnSetsLoadGeneration) columnSetError.value = cause?.message ?? 'Unable to load saved column sets'
+  }
+  finally {
+    if (mounted && generation === columnSetsLoadGeneration) columnSetLoading.value = false
+  }
 }
 
 async function saveColumnSet() {
@@ -1163,6 +1253,7 @@ watch(rowUniverseKey, () => {
 })
 
 onMounted(() => {
+  mounted = true
   // Golden Layout can attach a virtual tool after the initial Vue mount. At
   // that moment the scroll element may still report a zero rectangle, which
   // intentionally selects the one-row detached fallback above. Re-measure on
@@ -1193,6 +1284,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  mounted = false
+  screenersLoadGeneration += 1
+  pythonAssetsLoadGeneration += 1
+  columnSetsLoadGeneration += 1
   window.removeEventListener('mousemove', handleWindowColumnMouseMove)
   window.removeEventListener('mouseup', handleWindowColumnMouseEnd)
   if (virtualizerAnimationFrame != null) window.cancelAnimationFrame(virtualizerAnimationFrame)
@@ -1308,6 +1403,22 @@ function toggleSort(key: string) {
     sortDirection.value = 'asc'
   }
 }
+function sortButtonLabel(key: string, label: string) {
+  const pinned = isBooleanColumnPinned(key) ? ', pinned to top' : ''
+  if (sortKey.value !== key) return `Sort by ${label}${pinned}`
+  return `Sort by ${label}, ${sortDirection.value === 'asc' ? 'ascending' : 'descending'}${pinned}`
+}
+function handleColumnHeaderClick(event: MouseEvent, column: WatchlistColumn) {
+  if (column.kind === 'boolean' && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault()
+    event.stopPropagation()
+    contextMenu.value = null
+    closePinContextMenu(false)
+    togglePinnedBoolean(column.key)
+    return
+  }
+  toggleSort(column.key)
+}
 
 function selectRow(row: WatchlistRow, event: MouseEvent) {
   contextMenu.value = null
@@ -1329,13 +1440,95 @@ function selectRow(row: WatchlistRow, event: MouseEvent) {
   emit('select', row)
 }
 
-function openContextMenu(event: MouseEvent, row: WatchlistRow) {
-  const bounds = (event.currentTarget as HTMLElement).closest('.watchlist')?.getBoundingClientRect()
-  contextRowElement.value = event.currentTarget as HTMLElement
+function handleRowKeydown(event: KeyboardEvent, row: WatchlistRow) {
+  if (event.key !== 'ContextMenu' && event.code !== 'ContextMenu' && !(event.key === 'F10' && event.shiftKey)) return
+  event.preventDefault()
+  event.stopPropagation()
+  openContextMenu(event, row)
+}
+
+function openContextMenu(event: MouseEvent | KeyboardEvent, row: WatchlistRow, focusMembership = false) {
+  const currentTarget = event.currentTarget as HTMLElement
+  const rowElement = event.type === 'keydown' && !currentTarget.matches('.watchlist__row')
+    ? document.getElementById(rowDomId(row)) ?? currentTarget
+    : currentTarget
+  const bounds = rowElement.closest('.watchlist')?.getBoundingClientRect()
+  const rowBounds = rowElement.getBoundingClientRect()
+  const clientX = event.type === 'keydown' ? rowBounds.left : (event as MouseEvent).clientX
+  const clientY = event.type === 'keydown' ? rowBounds.bottom : (event as MouseEvent).clientY
+  contextRowElement.value = rowElement
+  pinContextMenu.value = null
   membershipTargetId.value = ''
   membershipInspectionOpen.value = false
-  contextMenu.value = { row, left: Math.max(2, event.clientX - (bounds?.left ?? 0)), top: Math.max(2, event.clientY - (bounds?.top ?? 0)) }
-  void nextTick(() => focusContextMenuItem(0))
+  contextMenu.value = { row, left: Math.max(2, clientX - (bounds?.left ?? 0)), top: Math.max(2, clientY - (bounds?.top ?? 0)) }
+  void nextTick(() => {
+    if (!focusMembership) {
+      focusContextMenuItem(0)
+      return
+    }
+    const targetSelect = contextMenuRoot.value?.querySelector<HTMLSelectElement>('select[aria-label="Target watchlist"]')
+    if (targetSelect) {
+      targetSelect.focus()
+      return
+    }
+    const inspection = contextMenuRoot.value?.querySelector<HTMLButtonElement>('button[aria-controls$="-membership-inspection"]')
+    if (inspection) inspection.focus()
+    else focusContextMenuItem(0)
+  })
+}
+
+function handleColumnPinMenuKeydown(event: KeyboardEvent, column: WatchlistColumn) {
+  if (column.kind !== 'boolean') return
+  if (event.key !== 'ContextMenu' && event.code !== 'ContextMenu' && !(event.key === 'F10' && event.shiftKey)) return
+  event.preventDefault()
+  event.stopPropagation()
+  openColumnPinContextMenu(event, column)
+}
+
+function openColumnPinContextMenu(event: MouseEvent | KeyboardEvent, column: WatchlistColumn) {
+  if (column.kind !== 'boolean') return
+  event.preventDefault()
+  event.stopPropagation()
+  const trigger = event.currentTarget as HTMLButtonElement
+  const bounds = trigger.closest('.watchlist')?.getBoundingClientRect()
+  const triggerBounds = trigger.getBoundingClientRect()
+  const clientX = event.type === 'keydown' ? 0 : (event as MouseEvent).clientX
+  const clientY = event.type === 'keydown' ? 0 : (event as MouseEvent).clientY
+  const left = clientX || triggerBounds.left
+  const top = clientY || triggerBounds.bottom
+  contextMenu.value = null
+  pinMenuTriggerElement.value = trigger
+  pinContextMenu.value = {
+    key: column.key,
+    label: column.label,
+    left: Math.max(2, left - (bounds?.left ?? 0)),
+    top: Math.max(2, top - (bounds?.top ?? 0)),
+  }
+  void nextTick(() => pinMenuItem.value?.focus())
+}
+
+function closePinContextMenu(restoreFocus = true) {
+  if (!pinContextMenu.value) return
+  pinContextMenu.value = null
+  if (restoreFocus) void nextTick(() => pinMenuTriggerElement.value?.focus())
+}
+
+function handlePinContextMenuKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    closePinContextMenu()
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+    event.preventDefault()
+    pinMenuItem.value?.focus()
+  }
+}
+
+function applyColumnPinMenuAction() {
+  const key = pinContextMenu.value?.key
+  if (!key) return
+  togglePinnedBoolean(key)
+  closePinContextMenu()
 }
 
 function openContextMarketMap() {
@@ -1467,6 +1660,10 @@ function togglePinnedBoolean(key: string) {
   emit('update:pinnedBooleanKeys', current.includes(key) ? current.filter(item => item !== key) : [...current, key])
 }
 
+function isBooleanColumnPinned(key: string) {
+  return props.pinnedBooleanKeys.includes(key)
+}
+
 function setColumnGroup(key: string, value: string) {
   const group = value.trim()
   const groups = { ...props.columnGroups }
@@ -1481,7 +1678,53 @@ function toggleStackedColumn(key: string) {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter', ' '].includes(event.key)) return
+  const isFavoritesShortcut = event.key.toLowerCase() === 'v' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey
+  if (isFavoritesShortcut) {
+    event.preventDefault()
+    const activeSymbol = keyboardActiveSymbol.value || props.selected
+    const activeRow = filteredRows.value.find(row => row.symbol === activeSymbol)
+    if (!activeRow) return
+    const rows = selectedSymbols.value.includes(activeRow.symbol)
+      ? filteredRows.value.filter(row => selectedSymbols.value.includes(row.symbol))
+      : [activeRow]
+    if (!rows.length || rows.some(row => row.instrumentId == null)) return
+    if (rows.length > 1) emit('row-action', 'favorite', activeRow, undefined, rows)
+    else emit('row-action', 'favorite', activeRow)
+    return
+  }
+  const isMembershipShortcut = event.key.toLowerCase() === 'm' && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+  if (isMembershipShortcut) {
+    event.preventDefault()
+    const activeSymbol = keyboardActiveSymbol.value || props.selected
+    const activeRow = filteredRows.value.find(row => row.symbol === activeSymbol)
+    if (activeRow) openContextMenu(event, activeRow, true)
+    return
+  }
+  const isNoteShortcut = event.key.toLowerCase() === 'n' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey
+  if (isNoteShortcut) {
+    event.preventDefault()
+    const activeSymbol = keyboardActiveSymbol.value || props.selected
+    const activeRow = filteredRows.value.find(row => row.symbol === activeSymbol)
+    if (activeRow) emit('row-action', 'note', activeRow)
+    return
+  }
+  const isFlagShortcut = event.key.toLowerCase() === 'f' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey
+  if (isFlagShortcut) {
+    event.preventDefault()
+    const activeSymbol = keyboardActiveSymbol.value || props.selected
+    const activeRow = filteredRows.value.find(row => row.symbol === activeSymbol)
+    if (!activeRow) return
+    const targets = selectedSymbols.value.includes(activeRow.symbol)
+      ? filteredRows.value.filter(row => selectedSymbols.value.includes(row.symbol))
+      : [activeRow]
+    if (!targets.length || targets.some(row => row.itemId == null || (row.sourceWatchlistId ?? props.sourceWatchlistId) == null)) return
+    if (targets.length > 1) emit('row-action', 'flag', activeRow, undefined, targets)
+    else emit('row-action', 'flag', activeRow)
+    return
+  }
+  const isSpaceTraversal = event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+  const isReverseSpaceTraversal = event.key === ' ' && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter'].includes(event.key) && !isSpaceTraversal && !isReverseSpaceTraversal) return
   event.preventDefault()
   const current = filteredRows.value.findIndex(row => row.symbol === (keyboardActiveSymbol.value || props.selected))
   if (event.key === 'Enter') {
@@ -1493,7 +1736,7 @@ function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Home') next = 0
   else if (event.key === 'End') next = filteredRows.value.length - 1
   else {
-    const forward = event.key === 'ArrowDown' || (event.key === ' ' && !event.shiftKey)
+    const forward = event.key === 'ArrowDown' || (event.key === ' ' && !event.ctrlKey)
     const origin = current < 0 ? (forward ? -1 : filteredRows.value.length) : current
     next = Math.max(0, Math.min(filteredRows.value.length - 1, origin + (forward ? 1 : -1)))
   }
@@ -1501,7 +1744,8 @@ function onKeydown(event: KeyboardEvent) {
   if (!row) return
   keyboardActiveSymbol.value = row.symbol
   virtualizer.value.scrollToIndex(next, { align: 'auto' })
-  selectRow(row, { shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey } as MouseEvent)
+  // Ctrl+Space is a traversal command, not a multi-select modifier.
+  selectRow(row, { shiftKey: event.shiftKey, ctrlKey: event.ctrlKey && event.key !== ' ', metaKey: event.metaKey } as MouseEvent)
 }
 
 function onCtrlWheel(event: WheelEvent) {

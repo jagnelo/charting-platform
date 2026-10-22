@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+from app.lib.time_utils import wire_datetime
 
 
 class WorkspaceWindowInput(BaseModel):
@@ -26,6 +28,10 @@ class WorkspaceWindowOut(WorkspaceWindowInput):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value)
+
 
 class WorkspaceTabInput(BaseModel):
     stable_key: str = Field(min_length=1, max_length=80)
@@ -44,6 +50,10 @@ class WorkspaceTabOut(WorkspaceTabInput):
     windows: list[WorkspaceWindowOut] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value)
 
 
 class WorkspaceCreate(BaseModel):
@@ -78,6 +88,10 @@ class WorkspaceOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value)
+
 
 class WorkspaceSnapshotWrite(BaseModel):
     base_revision: int = Field(ge=1)
@@ -104,6 +118,10 @@ class WorkspaceLibraryItemOut(WorkspaceLibraryItemCreate):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value)
+
 
 class InstrumentNoteWrite(BaseModel):
     content: str = Field(default="", max_length=100_000)
@@ -117,6 +135,10 @@ class InstrumentNoteOut(InstrumentNoteWrite):
     instrument_id: int
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value)
 
 
 class InstrumentReferenceOut(BaseModel):
@@ -143,6 +165,10 @@ class MarketGroupMemberOut(BaseModel):
     provenance: dict
     instrument: InstrumentReferenceOut
 
+    @field_serializer("effective_at", "known_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class MarketGroupProxyOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -156,6 +182,10 @@ class MarketGroupProxyOut(BaseModel):
     known_at: datetime | None
     provenance: dict
     instrument: InstrumentReferenceOut
+
+    @field_serializer("effective_at", "known_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class MarketGroupOut(BaseModel):
@@ -174,6 +204,10 @@ class MarketGroupOut(BaseModel):
     known_at: datetime | None
     members: list[MarketGroupMemberOut] = Field(default_factory=list)
     proxies: list[MarketGroupProxyOut] = Field(default_factory=list)
+
+    @field_serializer("effective_at", "known_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class ETFIndustryOut(BaseModel):
@@ -200,6 +234,10 @@ class ETFIndustryProxyOut(BaseModel):
     source: str = "curated_industry_proxy_registry_v1"
     verification_state: str = "holdings_classification_verified"
 
+    @field_serializer("known_at")
+    def serialize_timestamp(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class ETFIndustryProxyListOut(BaseModel):
     etf_symbol: str
@@ -221,6 +259,10 @@ class ETFIndustryCompositionOut(BaseModel):
     classification_systems: list[str] = Field(default_factory=list)
     classification_coverage: float = Field(default=0, ge=0, le=1)
 
+    @field_serializer("known_at")
+    def serialize_timestamp(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class ETFIndustryConstituentsOut(BaseModel):
     etf_symbol: str
@@ -233,3 +275,7 @@ class ETFIndustryConstituentsOut(BaseModel):
     exclusions: list[str] = Field(default_factory=list)
     classification_systems: list[str] = Field(default_factory=list)
     classification_coverage: float = Field(default=0, ge=0, le=1)
+
+    @field_serializer("known_at")
+    def serialize_timestamp(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)

@@ -7,6 +7,7 @@ import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, render, 
 import { GoldenLayout, type LayoutConfig } from 'golden-layout'
 import '../../../node_modules/golden-layout/dist/css/goldenlayout-base.css'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
+import { resizePanesEvenly, type PaneResizeSide } from '@/lib/workstation/modifier-pane-resize'
 
 interface DockToolState {
   instance_key: string
@@ -46,6 +47,7 @@ let initialEventsSuppressed = true
 let activationGuardKey: string | null = null
 let activationRetryTimer: number | null = null
 let activationGuardTimer: number | null = null
+let activationRequestSequence = 0
 let lastLayoutFingerprint: string | null = null
 let installedTabKey: string | null | undefined = null
 let layoutGeneration = 0
@@ -56,6 +58,120 @@ const mountedToolRoots: HTMLElement[] = []
 const componentItems = new Map<string, any>()
 let resizeObserver: ResizeObserver | null = null
 let installTimer: number | null = null
+let modifierResizeCleanup: (() => void) | null = null
+
+function splitterItem(element: HTMLElement): { row: any; index: number } | null {
+  const visit = (item: any): { row: any; index: number } | null => {
+    if (!item) return null
+    if (item.element === element.parentElement && Array.isArray(item._splitter)) {
+      const index = item._splitter.findIndex((splitter: any) => splitter.element === element)
+      if (index >= 0) return { row: item, index }
+    }
+    for (const child of item.contentItems ?? []) {
+      const match = visit(child)
+      if (match) return match
+    }
+    return null
+  }
+  for (const item of (goldenLayout as any)?.root?.contentItems ?? []) {
+    const match = visit(item)
+    if (match) return match
+  }
+  return null
+}
+
+function persistCurrentLayout() {
+  if (!goldenLayout) return
+  const saved = normaliseGoldenLayoutConfig(
+    goldenLayout.saveLayout() as unknown as Record<string, unknown>,
+  )
+  const fingerprint = layoutFingerprint(saved as LayoutConfig)
+  if (fingerprint === lastLayoutFingerprint) return
+  lastLayoutFingerprint = fingerprint
+  if (installedTabKey === undefined) emit('changed', saved, extractToolKeys(saved))
+  else emit('changed', saved, extractToolKeys(saved), installedTabKey)
+}
+
+function beginModifierResize(event: PointerEvent) {
+  const target = event.target
+  if (!(target instanceof Element)) return
+  const splitter = target.closest<HTMLElement>('.lm_splitter.lm_vertical')
+  // TC2000's Shift/Ctrl modifier gestures are explicitly for panes above or
+  // below a horizontal divider. Leave vertical dividers and ordinary drags to
+  // Golden Layout unchanged.
+  if (!splitter || event.button !== 0 || (event.shiftKey === event.ctrlKey)) return
+  const match = splitterItem(splitter)
+  if (!match || !Array.isArray(match.row.contentItems)) return
+  const items: any[] = match.row.contentItems
+  if (match.index < 0 || match.index >= items.length - 1) return
+
+  const dimension = 'height'
+  const sizes = items.map(item => item.element.getBoundingClientRect()[dimension]) as number[]
+  if (sizes.some(size => !Number.isFinite(size) || size <= 0)) return
+  const minimumSizes = items.map(item => {
+    try {
+      return Number(match.row.calculateContentItemMinSize(item))
+    } catch {
+      return 50
+    }
+  })
+  const side: PaneResizeSide = event.shiftKey ? 'above' : 'below'
+  const startY = event.clientY
+  const originalItemSizes = items.map(item => Number(item.size))
+  const totalItemSize = originalItemSizes.reduce((sum, size) => sum + size, 0)
+  const totalPixelSize = sizes.reduce((sum, size) => sum + size, 0)
+  const pointerId = event.pointerId
+  let moved = false
+
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  modifierResizeCleanup?.()
+
+  const applyDelta = (delta: number) => {
+    const nextSizes = resizePanesEvenly(sizes, minimumSizes, match.index, delta, side)
+    if (!nextSizes) return
+    moved ||= nextSizes.some((size, index) => Math.abs(size - sizes[index]) > 0.5)
+    nextSizes.forEach((size, index) => {
+      items[index].size = (size / totalPixelSize) * totalItemSize
+    })
+    const width = host.value?.clientWidth ?? 0
+    const height = host.value?.clientHeight ?? 0
+    if (width > 0 && height > 0) goldenLayout?.setSize(width, height)
+  }
+
+  const matchesPointer = (candidate: PointerEvent) => candidate.pointerId === pointerId
+  const onMove = (moveEvent: PointerEvent) => {
+    if (!matchesPointer(moveEvent)) return
+    moveEvent.preventDefault()
+    applyDelta(moveEvent.clientY - startY)
+  }
+  const finish = (finishEvent: PointerEvent, commit: boolean) => {
+    if (!matchesPointer(finishEvent)) return
+    document.removeEventListener('pointermove', onMove, true)
+    document.removeEventListener('pointerup', onPointerUp, true)
+    document.removeEventListener('pointercancel', onPointerCancel, true)
+    modifierResizeCleanup = null
+    if (!commit) {
+      items.forEach((item, index) => { item.size = originalItemSizes[index] })
+      const width = host.value?.clientWidth ?? 0
+      const height = host.value?.clientHeight ?? 0
+      if (width > 0 && height > 0) goldenLayout?.setSize(width, height)
+    } else if (moved) {
+      persistCurrentLayout()
+    }
+  }
+  const onPointerUp = (upEvent: PointerEvent) => finish(upEvent, true)
+  const onPointerCancel = (cancelEvent: PointerEvent) => finish(cancelEvent, false)
+  document.addEventListener('pointermove', onMove, { capture: true, passive: false })
+  document.addEventListener('pointerup', onPointerUp, true)
+  document.addEventListener('pointercancel', onPointerCancel, true)
+  modifierResizeCleanup = () => {
+    document.removeEventListener('pointermove', onMove, true)
+    document.removeEventListener('pointerup', onPointerUp, true)
+    document.removeEventListener('pointercancel', onPointerCancel, true)
+    modifierResizeCleanup = null
+  }
+}
 
 function scheduleInstall(layout: LayoutConfig, windowKey: string | null | undefined, reloadKey: number | undefined) {
   // A workspace action can be emitted from a Golden Layout component's click
@@ -76,9 +192,16 @@ function changeSuppressed() {
   return initialEventsSuppressed || suppressChange || Date.now() < suppressChangeUntil
 }
 
-function releaseInitialSuppression() {
+function releaseInitialSuppression(event?: Event) {
   initialEventsSuppressed = false
   suppressChangeUntil = 0
+  // A real tab interaction outranks the short-lived persisted-selection guard.
+  // Otherwise a late bootstrap notification can undo the user's tab choice.
+  if (event?.target instanceof Element && event.target.closest('.lm_tab')) {
+    activationGuardKey = null
+    if (activationGuardTimer !== null) window.clearTimeout(activationGuardTimer)
+    activationGuardTimer = null
+  }
 }
 
 function layoutFingerprint(layout: LayoutConfig) {
@@ -125,8 +248,11 @@ function normaliseComponentStacks(value: Record<string, unknown>): Record<string
 }
 
 function activateWindow(windowKey: string | null | undefined) {
+  if (!windowKey) return
+  const requestSequence = ++activationRequestSequence
+  const isCurrentRequest = () => requestSequence === activationRequestSequence && props.activeWindowKey === windowKey
   const root = (goldenLayout as any)?.root
-  if (!windowKey || !root) return
+  if (!root || !isCurrentRequest()) return
   const items: any[] = []
   const visit = (item: any) => {
     if (!item) return
@@ -139,7 +265,7 @@ function activateWindow(windowKey: string | null | undefined) {
   if (component && stack?.setActiveComponentItem) {
     const generation = layoutGeneration
     const ownsComponent = () => {
-      if (generation !== layoutGeneration || goldenLayout == null) return false
+      if (generation !== layoutGeneration || goldenLayout == null || !isCurrentRequest()) return false
       const parent = component.parentItem as any
       return Boolean(parent
         && Array.isArray(parent.contentItems)
@@ -155,7 +281,7 @@ function activateWindow(windowKey: string | null | undefined) {
     if (!ownsComponent()) {
       const generation = layoutGeneration
       window.setTimeout(() => {
-        if (generation === layoutGeneration) activateWindow(windowKey)
+        if (generation === layoutGeneration && isCurrentRequest()) activateWindow(windowKey)
       }, 25)
       return
     }
@@ -174,6 +300,7 @@ function activateWindow(windowKey: string | null | undefined) {
     // that construction so opening a tool never leaves it hidden behind the
     // previous tab.
     const reassert = () => {
+      if (!isCurrentRequest()) return
       if (ownsComponent() && component.parentItem?.setActiveComponentItem) {
         const parent = component.parentItem as any
         const wasSuppressed = suppressChange
@@ -196,7 +323,7 @@ function activateWindow(windowKey: string | null | undefined) {
         if (Array.isArray(headerTabs) && headerTabs.some((tab: any) => tab.contentItem === component)) {
           parent.header.processActiveComponentChanged?.(component)
         }
-        if (component.parentItem.activeComponentItem !== component) {
+        if (parent.getActiveComponentItem?.() !== component) {
           const tab = component.parentItem.header?.tabs?.find((candidate: any) => candidate.contentItem === component)
           tab?.element?.click?.()
         }
@@ -213,12 +340,12 @@ function activateWindow(windowKey: string | null | undefined) {
     let attempts = 0
     activationRetryTimer = window.setInterval(() => {
       attempts += 1
-      if (generation !== layoutGeneration) {
+      if (generation !== layoutGeneration || !isCurrentRequest()) {
         if (activationRetryTimer !== null) window.clearInterval(activationRetryTimer)
         activationRetryTimer = null
         return
       }
-      if (component.parentItem?.activeComponentItem === component) {
+      if (component.parentItem?.getActiveComponentItem?.() === component) {
         if (activationRetryTimer !== null) window.clearInterval(activationRetryTimer)
         activationRetryTimer = null
         return
@@ -244,6 +371,8 @@ function clearMountedTools() {
 }
 
 function teardown() {
+  modifierResizeCleanup?.()
+  activationRequestSequence += 1
   layoutGeneration += 1
   goldenLayout?.destroy()
   goldenLayout = null
@@ -467,6 +596,7 @@ watch(
 )
 onMounted(() => {
   host.value?.addEventListener('pointerdown', releaseInitialSuppression, true)
+  host.value?.addEventListener('pointerdown', beginModifierResize, true)
   host.value?.addEventListener('keydown', releaseInitialSuppression, true)
   install(props.layout)
   if (host.value) {
@@ -483,6 +613,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (installTimer !== null) window.clearTimeout(installTimer)
   host.value?.removeEventListener('pointerdown', releaseInitialSuppression, true)
+  host.value?.removeEventListener('pointerdown', beginModifierResize, true)
   host.value?.removeEventListener('keydown', releaseInitialSuppression, true)
   teardown()
 })

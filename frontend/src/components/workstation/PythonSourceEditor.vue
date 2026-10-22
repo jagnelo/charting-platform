@@ -8,9 +8,11 @@
       ref="editor"
       :value="modelValue"
       :aria-label="ariaLabel"
+      :aria-invalid="invalid ? 'true' : undefined"
       :aria-controls="showSuggestions && suggestions.length ? suggestionListId : undefined"
       :aria-expanded="showSuggestions && suggestions.length ? 'true' : 'false'"
       :aria-activedescendant="showSuggestions && suggestions.length ? suggestionId(selectedSuggestionIndex) : undefined"
+      :aria-describedby="editorDescribedBy"
       aria-autocomplete="list"
       aria-haspopup="listbox"
       :placeholder="placeholder"
@@ -27,7 +29,7 @@
         <code>{{ suggestion.insert }}</code><small>{{ suggestion.signature }}</small>
       </button>
     </div>
-    <p v-if="suggestionStatus" class="python-source-editor__sr-status" role="status" aria-live="polite" aria-atomic="true">{{ suggestionStatus }}</p>
+    <p v-if="suggestionStatus" :id="suggestionStatusId" class="python-source-editor__sr-status" role="status" aria-live="polite" aria-atomic="true">{{ suggestionStatus }}</p>
   </div>
 </template>
 
@@ -45,7 +47,9 @@ const props = withDefaults(defineProps<{
   ariaLabel: string
   placeholder?: string
   minHeight?: string
-}>(), { placeholder: '', minHeight: '90px' })
+  invalid?: boolean
+  describedBy?: string
+}>(), { placeholder: '', minHeight: '90px', invalid: false, describedBy: '' })
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const root = ref<HTMLElement | null>(null)
@@ -55,6 +59,7 @@ const editorPrefix = ref('')
 const selectedSuggestionIndex = ref(0)
 const instanceId = `python-source-editor-${typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`
 const suggestionListId = `${instanceId}-suggestions`
+const suggestionStatusId = `${instanceId}-status`
 const suggestionsCatalog: Suggestion[] = [
   { prefix: 'market', insert: 'market.close()', signature: 'series[float]' },
   { prefix: 'market', insert: 'market.open()', signature: 'series[float]' },
@@ -128,6 +133,10 @@ const suggestionStatus = computed(() => {
   if (!showSuggestions.value || !suggestions.value.length) return ''
   const selected = suggestions.value[selectedSuggestionIndex.value]
   return `${suggestions.value.length} SDK suggestions. ${selected?.insert ?? ''} selected.`
+})
+const editorDescribedBy = computed(() => {
+  const ids = [props.describedBy, suggestionStatus.value ? suggestionStatusId : ''].filter(Boolean)
+  return ids.length ? ids.join(' ') : undefined
 })
 function suggestionId(index: number) {
   return `${instanceId}-suggestion-${index}`

@@ -50,6 +50,19 @@ describe('ohlcBarsPlugin', () => {
     expect(plot.ctx.strokeStyle).toBe('#ef5350')
   })
 
+  it('draws HLC bars without the open tick while retaining the close tick', () => {
+    const plot = makePlot()
+
+    ohlcBarsPlugin({ showOpenTick: false }).hooks?.draw?.[0](plot)
+
+    expect(plot.ctx.moveTo).toHaveBeenCalledTimes(4)
+    expect(plot.ctx.lineTo).toHaveBeenCalledTimes(4)
+    expect(plot.ctx.moveTo).toHaveBeenNthCalledWith(1, 10, 110)
+    expect(plot.ctx.lineTo).toHaveBeenNthCalledWith(1, 10, 95)
+    expect(plot.ctx.moveTo).toHaveBeenNthCalledWith(2, 10, 105)
+    expect(plot.ctx.lineTo).toHaveBeenNthCalledWith(2, 16, 105)
+  })
+
   it('returns early when no timestamps exist', () => {
     const plot = makePlot()
     plot.data = [[], [], [], [], []]

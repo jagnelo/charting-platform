@@ -36,6 +36,7 @@
               'returns-heatmap__cell--positive': (cell.value ?? 0) > 0,
               'returns-heatmap__cell--negative': (cell.value ?? 0) < 0,
             }"
+            :aria-label="`${cell.period}: ${cell.value == null ? 'No realized P&L' : compactPercent(cell.value)}`"
             :style="cellStyle(cell.value)"
             @mouseenter="showCellPopover(cell, $event, false)"
             @mouseleave="hideCellPopover(false)"
@@ -120,7 +121,13 @@
     </div>
   </div>
 
-  <div v-else class="returns-heatmap__empty">
+  <div
+    v-else
+    class="returns-heatmap__empty"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     {{ emptyLabel }}
   </div>
 </template>

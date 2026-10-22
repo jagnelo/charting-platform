@@ -10,7 +10,12 @@
       <div class="panel-sym-wrap" ref="symWrapRef">
         <button
           class="panel-sym-btn"
+          type="button"
           :title="store.symbol ? 'Change symbol for this panel' : 'Search symbol'"
+          aria-haspopup="listbox"
+          :aria-expanded="searchOpen ? 'true' : 'false'"
+          :aria-controls="symbolSearchResultsId"
+          :aria-label="store.symbol ? `Change chart symbol from ${store.symbol}` : 'Search chart symbol'"
           @click.stop="toggleSearch"
         >
           <span v-if="store.symbol" class="psym">{{ store.symbol }}</span>
@@ -22,23 +27,33 @@
             ref="searchInputRef"
             v-model="searchQuery"
             class="panel-search-input"
+            type="search"
+            role="combobox"
+            aria-label="Search chart symbol"
             placeholder="Symbol…"
+            :aria-expanded="searchOpen ? 'true' : 'false'"
+            :aria-controls="symbolSearchResultsId"
+            :aria-activedescendant="activeSearchOptionId"
             @input="onSearchInput"
             @keydown.escape="closeSearch"
             @keydown.enter="selectFirst"
             @keydown.arrow-down.prevent="moveDown"
             @keydown.arrow-up.prevent="moveUp"
           />
-          <div v-if="searchResults.length || isExpression || searchMessage" class="panel-search-results">
-            <div
+          <div v-if="searchResults.length || isExpression || searchMessage" :id="symbolSearchResultsId" class="panel-search-results" role="listbox" aria-label="Chart symbol search results">
+            <button
               v-if="canResolveExpression"
+              :id="symbolExpressionOptionId"
               :class="['psr-item', 'psr-item--expr', { highlighted: hlIdx === 0 }]"
+              type="button"
+              role="option"
+              :aria-selected="hlIdx === 0 ? 'true' : 'false'"
               @click="selectExpression"
               @mouseenter="hlIdx = 0"
             >
               <span class="psr-sym">f(x)</span>
               <span class="psr-name">Create expression chart: {{ searchQuery }}</span>
-            </div>
+            </button>
             <div
               v-else-if="expressionHint || searchMessage"
               class="panel-search-message"
@@ -47,16 +62,20 @@
               {{ searchMessage || expressionHint }}
             </div>
             <template v-else>
-              <div
+              <button
                 v-for="(r, i) in searchResults"
                 :key="r.symbol"
+                :id="symbolOptionId(i)"
                 :class="['psr-item', { highlighted: i === hlIdx }]"
+                type="button"
+                role="option"
+                :aria-selected="i === hlIdx ? 'true' : 'false'"
                 @click="selectResult(r)"
                 @mouseenter="hlIdx = i"
               >
                 <span class="psr-sym">{{ r.symbol }}</span>
                 <span class="psr-name">{{ r.name }}</span>
-              </div>
+              </button>
             </template>
           </div>
         </div>
@@ -66,22 +85,35 @@
       <div class="panel-link-wrap" ref="linkWrapRef">
         <button
           class="panel-link-btn"
+          type="button"
           :class="{ linked: !!linkGroup }"
           :style="{ borderColor: linkGroup ? linkColor : undefined, color: linkGroup ? linkColor : undefined }"
           :title="linkGroup ? `Symbol link group: ${linkGroup}` : 'Symbol link disabled'"
+          aria-haspopup="menu"
+          :aria-label="linkGroup ? `Symbol link group: ${linkGroup}` : 'Symbol link disabled'"
+          :aria-expanded="linkMenuOpen"
+          :aria-controls="linkMenuId"
           @click.stop="linkMenuOpen = !linkMenuOpen"
         >
           <span class="link-dot" :style="{ background: linkColor }" />
         </button>
-        <div v-if="linkMenuOpen" class="panel-link-menu" @click.stop>
-          <button class="plm-item" :class="{ active: !linkGroup }" @click="setLinkGroup(null)">
-            <span class="plm-dot plm-dot--none" /> None
-          </button>
+        <div
+          v-if="linkMenuOpen"
+          :id="linkMenuId"
+          class="panel-link-menu"
+          role="menu"
+          aria-label="Symbol link group"
+          @click.stop
+          @keydown.esc.stop.prevent="linkMenuOpen = false"
+        >
           <button
             v-for="group in PANEL_LINK_GROUPS"
             :key="group.id"
+            type="button"
+            role="menuitemradio"
             class="plm-item"
             :class="{ active: linkGroup === group.id }"
+            :aria-checked="linkGroup === group.id ? 'true' : 'false'"
             @click="setLinkGroup(group.id)"
           >
             <span class="plm-dot" :style="{ background: group.color }" /> {{ group.label }}
@@ -156,6 +188,25 @@ const searchInputRef = ref<HTMLInputElement | null>(null)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 const linkMenuOpen = ref(false)
 const searchMessage = ref('')
+const linkMenuId = `panel-link-menu-${props.panelId}`
+const symbolSearchResultsId = `chart-panel-search-results-${props.panelId}`
+const symbolExpressionOptionId = `${symbolSearchResultsId}-expression`
+let lifecycleGeneration = 0
+let selectionGeneration = 0
+
+function symbolOptionId(index: number) {
+  return `${symbolSearchResultsId}-option-${index}`
+}
+
+const activeSearchOptionId = computed(() => {
+  if (isExpression.value && canResolveExpression.value) return symbolExpressionOptionId
+  if (hlIdx.value >= 0 && searchResults.value[hlIdx.value]) return symbolOptionId(hlIdx.value)
+  return undefined
+})
+
+function isCurrent(generation: number, selection = selectionGeneration) {
+  return generation === lifecycleGeneration && selection === selectionGeneration
+}
 
 const linkGroup = computed(() => panelLinks.groupFor(props.panelId))
 const linkColor = computed(() => panelLinks.colorFor(props.panelId))
@@ -191,8 +242,11 @@ async function onSearchInput() {
     return
   }
   searchTimer = setTimeout(async () => {
+    const generation = lifecycleGeneration
     try {
-      searchResults.value = await api.get('/instruments/search', { q: searchQuery.value })
+      const results = await api.get<SearchResult[]>('/instruments/search', { q: searchQuery.value })
+      if (!isCurrent(generation)) return
+      searchResults.value = results
       hlIdx.value = 0
     } catch { /* ignore */ }
   }, 250)
@@ -206,8 +260,10 @@ async function selectResult(r: SearchResult) {
 async function selectExpression() {
   const expr = searchQuery.value.trim()
   if (!expr) return
+  const generation = lifecycleGeneration
   try {
     const instr = { symbol: await ensureKnownInstrumentSymbol(expr) }
+    if (!isCurrent(generation)) return
     closeSearch()
     await onSymbolSelect(instr.symbol)
   } catch (e) {
@@ -228,8 +284,17 @@ function handleClickOutside(e: MouseEvent) {
   if (linkWrapRef.value && !linkWrapRef.value.contains(e.target as Node)) linkMenuOpen.value = false
 }
 
-onMounted(() => document.addEventListener('mousedown', handleClickOutside))
-onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
+onMounted(() => {
+  lifecycleGeneration += 1
+  document.addEventListener('mousedown', handleClickOutside)
+})
+onUnmounted(() => {
+  lifecycleGeneration += 1
+  selectionGeneration += 1
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = null
+  document.removeEventListener('mousedown', handleClickOutside)
+})
 
 // ── Symbol / link actions ──────────────────────────────────────────────────
 function setLinkGroup(group: ReturnType<typeof panelLinks.groupFor>) {
@@ -238,8 +303,11 @@ function setLinkGroup(group: ReturnType<typeof panelLinks.groupFor>) {
 }
 
 async function onSymbolSelect(symbol: string) {
+  const generation = lifecycleGeneration
+  const selection = ++selectionGeneration
   const targetIds = panelLinks.linkedPanelIds(props.panelId, layoutStore.panels.map(p => p.id))
   for (const id of targetIds) {
+    if (!isCurrent(generation, selection)) return
     const panel = layoutStore.panels.find(p => p.id === id)
     if (!panel) continue
     const tf = id === props.panelId ? localTf.value : panel.timeframe
@@ -247,18 +315,24 @@ async function onSymbolSelect(symbol: string) {
     layoutStore.updatePanel(id, { symbol, timeframe: tf })
     await pStore.loadBars(symbol, tf)
   }
+  if (!isCurrent(generation, selection)) return
   if (store.instrument) {
     await drawStore.loadDrawings(store.instrument.id, localTf.value)
+    if (!isCurrent(generation, selection)) return
     await alertsStore.loadAlerts(store.instrument.id)
   }
 }
 
 watch(localTf, async (tf) => {
+  const generation = lifecycleGeneration
+  const selection = ++selectionGeneration
   layoutStore.updatePanel(props.panelId, { timeframe: tf })
   if (!store.symbol) return
   await store.loadBars(store.symbol, tf)
+  if (!isCurrent(generation, selection)) return
   if (store.instrument) {
     await drawStore.loadDrawings(store.instrument.id, tf)
+    if (!isCurrent(generation, selection)) return
     await alertsStore.loadAlerts(store.instrument.id)
   }
 })
@@ -275,11 +349,15 @@ watch(
 
 // Restore symbol from layout config on mount
 onMounted(async () => {
+  const generation = lifecycleGeneration
+  const selection = ++selectionGeneration
   const cfg = panelConfig.value
   if (cfg?.symbol) {
     await store.loadBars(cfg.symbol, cfg.timeframe)
+    if (!isCurrent(generation, selection)) return
     if (store.instrument) {
       await drawStore.loadDrawings(store.instrument.id, cfg.timeframe)
+      if (!isCurrent(generation, selection)) return
       await alertsStore.loadAlerts(store.instrument.id)
     }
   }
@@ -358,11 +436,16 @@ onMounted(async () => {
 .panel-search-results { max-height: 200px; overflow-y: auto; }
 
 .psr-item {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
   cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
   font-size: 11px;
 }
 .psr-item.highlighted { background: #1a2a3a; }

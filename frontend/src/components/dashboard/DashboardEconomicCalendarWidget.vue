@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 
 interface CalendarEvent {
@@ -39,6 +39,7 @@ const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
 const error = ref('')
 let loadSeq = 0
+let mounted = false
 
 async function load() {
   const seq = ++loadSeq
@@ -52,14 +53,14 @@ async function load() {
   error.value = ''
   try {
     const loaded = await api.get<CalendarEvent[]>(`/calendar/instruments/${encodeURIComponent(symbol.value)}/calendar`)
-    if (seq === loadSeq) events.value = loaded
+    if (mounted && seq === loadSeq) events.value = loaded
   } catch (e: any) {
-    if (seq === loadSeq) {
+    if (mounted && seq === loadSeq) {
       error.value = e?.message ?? 'Calendar unavailable'
       events.value = []
     }
   } finally {
-    if (seq === loadSeq) loading.value = false
+    if (mounted && seq === loadSeq) loading.value = false
   }
 }
 
@@ -74,8 +75,17 @@ function valueFor(event: CalendarEvent) {
   return event.is_estimate ? 'estimate' : ''
 }
 
-watch(symbol, load)
-onMounted(load)
+watch(symbol, () => {
+  if (mounted) void load()
+})
+onMounted(() => {
+  mounted = true
+  void load()
+})
+onBeforeUnmount(() => {
+  mounted = false
+  loadSeq += 1
+})
 </script>
 
 <style scoped>

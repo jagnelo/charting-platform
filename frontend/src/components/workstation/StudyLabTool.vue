@@ -5,13 +5,16 @@
         <input v-model.trim="name" aria-label="Study name" placeholder="Study name" />
         <input v-model.trim="symbol" aria-label="Study symbol" placeholder="Symbol" />
         <select v-model="factoryStudyKey" aria-label="Factory study" @change="applyFactoryStudy"><option value="custom">Custom Python</option><option v-for="template in factoryStudyTemplates" :key="template.key" :value="template.key">{{ template.name }}</option></select>
-        <button type="button" :disabled="busy" @click="validate">Validate</button>
-        <button type="button" :disabled="busy || !validation?.valid" @click="saveAndRun">Run</button>
+        <button type="button" aria-label="Validate study" :disabled="busy" @click="validate">Validate</button>
+        <button type="button" aria-label="Run study" :disabled="busy || !validationMatchesSource || !validation?.valid" @click="saveAndRun">Run</button>
       </div>
       <div class="study-lab-tool__dataset" aria-label="Study dataset controls">
         <label>Timeframe <select v-model="timeframe" aria-label="Study timeframe"><option v-for="option in timeframeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
         <label>Benchmark <input v-model.trim="benchmark" aria-label="Study benchmark" placeholder="SPY" /></label>
-        <label>Universe source <input v-model.trim="universeSourceId" aria-label="Study universe source" placeholder="watchlist:123 or market-group:sp500" /></label>
+        <label>Universe source <input v-model.trim="universeSourceId" aria-label="Study universe source" :list="universeSourceListId" placeholder="watchlist:123 or market-group:sp500" /></label>
+        <datalist :id="universeSourceListId">
+          <option v-for="source in universeSourceSuggestions" :key="source.source_id" :value="source.source_id" :label="`${universeSourceKindLabels[source.source_kind]} · ${source.name}`" />
+        </datalist>
         <label>Universe <input v-model.trim="universeSymbols" aria-label="Study universe" :disabled="Boolean(universeSourceId)" placeholder="SPY, XLK, XLE" /></label>
         <label>Adjustment <select v-model="adjustment" aria-label="Study adjustment"><option value="split_adjusted">Split adjusted</option><option value="raw">Raw</option></select></label>
         <label>Session <select v-model="session" aria-label="Study session"><option value="regular">Regular</option><option value="all">All</option></select></label>
@@ -28,7 +31,7 @@
       >{{ selectedSourceLineage.label }} · Parent source {{ selectedSourceLineage.parentSourceId }}</p>
       <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status" aria-live="polite" aria-atomic="true">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
       <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
-        <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
+        <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" :aria-invalid="parameterSchemaError ? 'true' : undefined" :aria-describedby="parameterSchemaError ? parameterSchemaErrorId : undefined" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
         <div v-if="parameterDefinitions.length" class="study-lab-tool__parameter-grid">
           <label v-for="definition in parameterDefinitions" :key="definition.name">{{ definition.name }}
             <select v-if="definition.enum?.length" :value="String(parameterDrafts[definition.name] ?? '')" :aria-label="`Study parameter ${definition.name}`" @change="setParameterDraft(definition.name, ($event.target as HTMLSelectElement).value)">
@@ -37,13 +40,15 @@
             <input v-else :type="definition.type === 'boolean' ? 'checkbox' : definition.type === 'number' || definition.type === 'integer' ? 'number' : 'text'" :step="definition.type === 'integer' ? '1' : 'any'" :min="definition.minimum" :max="definition.maximum" :checked="definition.type === 'boolean' ? parameterDrafts[definition.name] === true : undefined" :value="definition.type === 'boolean' ? undefined : String(parameterDrafts[definition.name] ?? '')" :aria-label="`Study parameter ${definition.name}`" @change="setParameterDraft(definition.name, definition.type === 'boolean' ? ($event.target as HTMLInputElement).checked : ($event.target as HTMLInputElement).value)" />
           </label>
         </div>
-        <small v-if="parameterSchemaError" class="study-lab-tool__parameter-error">{{ parameterSchemaError }}</small>
+        <small v-if="parameterSchemaError" :id="parameterSchemaErrorId" class="study-lab-tool__parameter-error">{{ parameterSchemaError }}</small>
       </section>
     </header>
     <div class="study-lab-tool__editor-shell">
       <PythonSourceEditor
         v-model="source"
         ariaLabel="Study Python source"
+        :invalid="sourceValidationInvalid"
+        :described-by="sourceValidationDescriptionId"
         min-height="110px"
         @update:model-value="markCustomSource"
       />
@@ -55,22 +60,48 @@
       <span><b>stats</b>: positive_close_streaks, streaks, mean, median, std, percentile, ranks, rolling, correlation, regression, distribution</span><span><b>research</b>: forward_returns, conditional_outcomes, regimes, historical_comparison, occurrences, cross_sectional_rank, breadth_snapshot, breadth_thrust, breadth_thrust_history, breadth_condition</span>
       <span><b>output</b>: scalar, boolean, series, table, events, bar, histogram, range, scatter, heatmap, dashboard</span>
     </details>
-    <section v-if="validation" class="study-lab-tool__validation" :role="validation.valid ? 'status' : 'alert'" :aria-live="validation.valid ? 'polite' : 'assertive'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': !validation.valid }">
-      <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
-      <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
-      <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
+    <section v-if="validation" :id="sourceValidationFeedbackId" class="study-lab-tool__validation" :role="validationMatchesSource && !validation.valid ? 'alert' : 'status'" :aria-live="validationMatchesSource && !validation.valid ? 'assertive' : 'polite'" aria-atomic="true" :class="{ 'study-lab-tool__validation--bad': validationMatchesSource && !validation.valid }">
+      <template v-if="validationMatchesSource">
+        <strong>{{ validation.valid ? 'Validated for isolated execution' : 'Validation errors' }}</strong>
+        <pre v-if="validation.diagnostics.length">{{ validation.diagnostics }}</pre>
+        <span v-else>Dependencies: {{ validation.dependencies.join(', ') || 'none' }} · Lookback: {{ validation.lookback_hint ?? 'none' }} · Outputs: {{ validation.output_contracts.join(', ') || 'none' }}</span>
+      </template>
+      <span v-else>Study source changed since validation. Validate the current source before running.</span>
     </section>
     <section v-if="run" class="study-lab-tool__run">
-      <div><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Study run status: ${runStatusLabel}`" :data-status="run.status" :class="`study-lab-tool__run-status--${run.status}`">{{ runStatusLabel }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" @click="cancel">Cancel</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
+      <div><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Study run status: ${runStatusLabel}`" :data-status="run.status" :class="`study-lab-tool__run-status--${run.status}`">{{ runStatusLabel }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" aria-label="Cancel study run" @click="cancel">Cancel</button><button v-if="canRerun" type="button" aria-label="Rerun study snapshot" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" aria-label="Rerun study with latest data" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
       <p class="study-lab-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ runGuidance }}</p>
       <div v-if="promotableKind || artifactPromotions.length" class="study-lab-tool__promotions" aria-label="Promote study result">
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
-        <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
+        <div v-if="promotableKind === 'scalar' && scalarObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study scalar threshold condition">
+          <label>When <select v-model="activeConditionDraft.operator" aria-label="Study scalar condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+          <label>Value <input v-model.number="activeConditionDraft.threshold" type="number" step="any" aria-label="Study scalar condition threshold" /></label>
+          <button type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteScalarCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
+          <button v-for="target in seriesConditionTargets" :key="`scalar-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteScalarCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
+        </div>
+        <button v-if="promotableKind === 'series' && promotableSeriesCanBePlotted" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
+        <button v-if="promotableKind === 'series' && latestSeriesObservation != null" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save latest column' }}</button>
+        <div v-if="promotableKind === 'series' && latestSeriesObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study series threshold condition">
+          <label>When <select v-model="activeConditionDraft.operator" aria-label="Study series condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+          <label>Value <input v-model.number="activeConditionDraft.threshold" type="number" step="any" aria-label="Study series condition threshold" /></label>
+          <button type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteSeriesCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
+          <button v-for="target in seriesConditionTargets" :key="`series-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteSeriesCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
+        </div>
+        <div v-if="latestRangeCenterObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study range center threshold condition">
+          <label>Center when <select v-model="activeConditionDraft.operator" aria-label="Study range center condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+          <label>Value <input v-model.number="activeConditionDraft.threshold" type="number" step="any" aria-label="Study range center condition threshold" /></label>
+          <button type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteRangeCenterCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
+          <button v-for="target in seriesConditionTargets" :key="`range-center-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(activeConditionDraft.threshold)" @click="promoteRangeCenterCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
+        </div>
+        <button v-if="promotableKind === 'range'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save center as chart plot' }}</button>
+        <button v-if="promotableKind === 'range' && latestRangeCenterObservation != null" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save latest center column' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('filter')">{{ promotionBusy ? 'Promoting…' : 'Save as watchlist filter' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as Boolean column' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('gauge')">{{ promotionBusy ? 'Promoting…' : 'Use as Market Gauge' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('alert')">{{ promotionBusy ? 'Promoting…' : 'Promote to alert' }}</button>
+        <button v-if="promotableKind === 'events'" type="button" :disabled="promotionBusy" @click="promote('filter')">{{ promotionBusy ? 'Promoting…' : 'Save as watchlist filter' }}</button>
+        <button v-if="promotableKind === 'events'" type="button" :disabled="promotionBusy" @click="promote('alert')">{{ promotionBusy ? 'Promoting…' : 'Promote events to alert' }}</button>
         <button v-if="promotableKind === 'boolean' || promotableKind === 'events'" type="button" :disabled="promotionBusy" @click="promote('signal')">{{ promotionBusy ? 'Promoting…' : 'Save as Strategy signal' }}</button>
         <template v-for="item in artifactPromotions" :key="`promote-${item.artifact.id}-${item.target}`">
           <button type="button" :disabled="promotionBusy" @click="promote(item.target, item.artifact.name)">{{ promotionBusy ? 'Promoting…' : `${item.label}: ${item.artifact.name}` }}</button>
@@ -82,9 +113,12 @@
       <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary><pre>{{ formatMessages(run.warnings) }}</pre></details>
       <details v-if="run.logs" class="study-lab-tool__run-details"><summary>Execution log</summary><pre>{{ run.logs }}</pre></details>
       <details v-if="Object.keys(run.resource_usage ?? {}).length" class="study-lab-tool__run-details"><summary>Resource usage</summary><pre>{{ formatObject(run.resource_usage) }}</pre></details>
-      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></article></div>
-      <article v-for="artifact in nonScalarArtifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`">
+      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :aria-describedby="artifactSummaryId(artifact.id)" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><span :id="artifactSummaryId(artifact.id)" class="sr-only">{{ describeStudyArtifact(artifact) }}</span><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button><div v-if="structuredThresholdType(artifact) === 'scalar'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="conditionDraft(artifact).operator" :aria-label="`Structured scalar condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="conditionDraft(artifact).threshold" type="number" step="any" :aria-label="`Structured scalar condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-scalar-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div></article></div>
+      <article v-for="artifact in nonScalarArtifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`" :aria-describedby="artifactSummaryId(artifact.id)">
+        <span :id="artifactSummaryId(artifact.id)" class="sr-only">{{ describeStudyArtifact(artifact) }}</span>
         <div class="study-lab-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></div>
+        <small v-if="seriesCapabilityNote(artifact)" role="note">{{ seriesCapabilityNote(artifact) }}</small>
+        <div v-if="structuredThresholdType(artifact) === 'series' || structuredThresholdType(artifact) === 'range'" class="study-lab-tool__artifact-threshold" role="group" :aria-label="`${artifact.name} threshold condition`"><label>When <select v-model="conditionDraft(artifact).operator" :aria-label="`Structured ${structuredThresholdType(artifact)} condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label><input v-model.number="conditionDraft(artifact).threshold" type="number" step="any" :aria-label="`Structured ${structuredThresholdType(artifact)} condition threshold: ${artifact.name}`" /><button type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, 'column')">Save Boolean column</button><button v-for="target in seriesConditionTargets" :key="`${artifact.id}-${structuredThresholdType(artifact)}-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(conditionDraft(artifact).threshold)" :aria-label="`${seriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredThreshold(artifact, target)">{{ seriesConditionLabel(target) }}</button></div>
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
         <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
         <StudyBarsUPlot v-else-if="artifact.artifact_type === 'bar' && barData(artifact)" :name="artifact.name" :labels="barData(artifact)!.labels" :values="barData(artifact)!.values" />
@@ -93,7 +127,7 @@
         <StudyScatterUPlot v-else-if="artifact.artifact_type === 'scatter' && scatterData(artifact)" :name="artifact.name" :x="scatterData(artifact)!.x" :y="scatterData(artifact)!.y" />
         <StudyHeatmap v-else-if="artifact.artifact_type === 'heatmap' && heatmapData(artifact)" :name="artifact.name" :rows="heatmapData(artifact)!.rows" :columns="heatmapData(artifact)!.columns" :values="heatmapData(artifact)!.values" />
         <StudyDashboard v-else-if="artifact.artifact_type === 'dashboard' && dashboardData(artifact)" :name="artifact.name" :panels="dashboardData(artifact)!" :artifacts="run?.artifacts ?? []" @occurrence="emit('occurrence', $event)" />
-        <div v-else-if="artifact.artifact_type === 'events' && eventRows(artifact).length" class="study-lab-tool__events" role="list" :aria-label="`${artifact.name} occurrences`"><button v-for="(event, index) in eventRows(artifact)" :key="`${event.timestamp}-${index}`" type="button" role="listitem" :aria-label="`${event.symbol} ${event.timestamp} ${event.kind ?? 'Event'}`" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span><small>{{ event.kind ?? 'Event' }}</small></button></div>
+        <div v-else-if="artifact.artifact_type === 'events' && eventRows(artifact).length" class="study-lab-tool__events" role="list" :aria-label="`${artifact.name} occurrences`"><div v-for="(event, index) in eventRows(artifact)" :key="`${event.timestamp}-${index}`" role="listitem"><button type="button" :aria-label="`${event.symbol} ${event.timestamp} ${event.kind ?? 'Event'}`" @keydown.stop @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span><small>{{ event.kind ?? 'Event' }}</small></button></div></div>
         <pre v-else>{{ artifactText(artifact.payload) }}</pre>
       </article>
     </section>
@@ -104,11 +138,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
+import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
+import { describeStudyArtifact } from '@/lib/workstation/studyArtifactAccessibility'
+import { useWatchlistStore } from '@/stores/watchlist'
+import type { WatchlistSourceKind } from '@/types'
 import StudyBarsUPlot from './StudyBarsUPlot.vue'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudyHeatmap from './StudyHeatmap.vue'
@@ -161,8 +199,15 @@ const crossSectionalBreadthSource = "field = str(parameters.get('field', 'close'
 const relativeStrengthHistorySource = "closes = market.close()\nbenchmark = market.benchmark_close()\nratio = [value / base if base else None for value, base in zip(closes, benchmark)]\noutput.series('relative_strength_ratio', ratio)\noutput.scalar('latest_relative_strength', ratio[-1] if ratio else None)"
 const currentHistorySource = "closes = market.close()\nreturns = [(closes[index] / closes[index - 1]) - 1 for index in range(1, len(closes)) if closes[index - 1]]\nhistory = returns[:-1]\ncurrent = returns[-1] if returns else None\ncomparison = research.historical_comparison(history, current)\noutput.scalar('historical_sample_size', comparison['sample_size'])\noutput.scalar('current_return', comparison['current'] if comparison['current'] is not None else 0)\noutput.scalar('historical_mean_return', comparison['mean'] if comparison['mean'] is not None else 0)\noutput.scalar('historical_median_return', comparison['median'] if comparison['median'] is not None else 0)\noutput.scalar('historical_percentile_rank', comparison['percentile_rank'] if comparison['percentile_rank'] is not None else 0)\noutput.scalar('historical_z_score', comparison['z_score'] if comparison['z_score'] is not None else 0)\noutput.histogram('historical_return_distribution', history, 12, comparison['current'])\noutput.table('current_vs_history', [comparison])"
 const source = ref(positiveStreakSource)
+const studyLabInstanceId = (() => {
+  const scope = globalThis as typeof globalThis & { __tc2000StudyLabInstanceSequence?: number }
+  const next = (scope.__tc2000StudyLabInstanceSequence ?? 0) + 1
+  scope.__tc2000StudyLabInstanceSequence = next
+  return `study-lab-${next}`
+})()
+const artifactSummaryId = (artifactId: number) => `${studyLabInstanceId}-study-artifact-${artifactId}-summary`
 const lookbackParameterSchema = JSON.stringify({ properties: { lookback: { type: 'integer', default: 20, minimum: 2, maximum: 252 } } })
-const factoryStudyTemplates = [
+const factoryStudyTemplates: Array<{ key: string; name: string; source: string; parameterSchema?: string; requiresUniverse?: boolean; resultScope?: 'member' | 'cross_sectional' }> = [
   { key: 'positive_streak', name: 'Consecutive positive closes', source: positiveStreakSource },
   { key: 'negative_streak', name: 'Consecutive negative closes', source: negativeStreakSource },
   { key: 'moving_average_participation', name: 'Moving-average participation', source: movingAverageParticipationSource, parameterSchema: lookbackParameterSchema },
@@ -172,13 +217,13 @@ const factoryStudyTemplates = [
   { key: 'volatility_regime', name: 'Volatility regime', source: volatilityRegimeSource },
   { key: 'seasonality', name: 'Month/day seasonality', source: seasonalitySource },
   { key: 'relative_strength_regime', name: 'Relative-strength regime changes', source: relativeStrengthRegimeSource },
-  { key: 'cross_sectional_rank', name: 'Cross-sectional ranking', source: crossSectionalRankSource, requiresUniverse: true },
-  { key: 'breadth_participation', name: 'Breadth participation', source: breadthParticipationSource, requiresUniverse: true },
-  { key: 'breadth_thrust_90_90', name: '90/90 breadth thrust', source: breadthThrustSource, requiresUniverse: true },
-  { key: 'breadth_thrust_history_90_90', name: 'Historical 90/90 breadth thrust', source: breadthThrustHistorySource, requiresUniverse: true },
-  { key: 'generic_breadth_above_average', name: 'Generic breadth above moving average', source: genericBreadthSource, requiresUniverse: true, parameterSchema: JSON.stringify({ properties: { period: { type: 'integer', default: 200, minimum: 2, maximum: 252 }, average: { type: 'string', default: 'sma' } } }) },
-  { key: 'generic_breadth_near_high', name: 'Generic breadth within 1% of 52-week high', source: genericHighBreadthSource, requiresUniverse: true, parameterSchema: JSON.stringify({ properties: { lookback: { type: 'integer', default: 252, minimum: 2, maximum: 504 }, threshold: { type: 'number', default: 0.01, minimum: 0.001, maximum: 0.5 } } }) },
-  { key: 'generic_breadth_cross_sectional_percentile', name: 'Cross-sectional percentile breadth', source: crossSectionalBreadthSource, requiresUniverse: true, parameterSchema: JSON.stringify({ properties: { field: { type: 'string', default: 'close' }, percentile: { type: 'number', default: 0.5, minimum: 0, maximum: 1 }, operator: { type: 'string', default: 'gte' } } }) },
+  { key: 'cross_sectional_rank', name: 'Cross-sectional ranking', source: crossSectionalRankSource, requiresUniverse: true, resultScope: 'cross_sectional' },
+  { key: 'breadth_participation', name: 'Breadth participation', source: breadthParticipationSource, requiresUniverse: true, resultScope: 'cross_sectional' },
+  { key: 'breadth_thrust_90_90', name: '90/90 breadth thrust', source: breadthThrustSource, requiresUniverse: true, resultScope: 'cross_sectional' },
+  { key: 'breadth_thrust_history_90_90', name: 'Historical 90/90 breadth thrust', source: breadthThrustHistorySource, requiresUniverse: true, resultScope: 'cross_sectional' },
+  { key: 'generic_breadth_above_average', name: 'Generic breadth above moving average', source: genericBreadthSource, requiresUniverse: true, resultScope: 'cross_sectional', parameterSchema: JSON.stringify({ properties: { period: { type: 'integer', default: 200, minimum: 2, maximum: 252 }, average: { type: 'string', default: 'sma' } } }) },
+  { key: 'generic_breadth_near_high', name: 'Generic breadth within 1% of 52-week high', source: genericHighBreadthSource, requiresUniverse: true, resultScope: 'cross_sectional', parameterSchema: JSON.stringify({ properties: { lookback: { type: 'integer', default: 252, minimum: 2, maximum: 504 }, threshold: { type: 'number', default: 0.01, minimum: 0.001, maximum: 0.5 } } }) },
+  { key: 'generic_breadth_cross_sectional_percentile', name: 'Cross-sectional percentile breadth', source: crossSectionalBreadthSource, requiresUniverse: true, resultScope: 'cross_sectional', parameterSchema: JSON.stringify({ properties: { field: { type: 'string', default: 'close' }, percentile: { type: 'number', default: 0.5, minimum: 0, maximum: 1 }, operator: { type: 'string', default: 'gte' } } }) },
   { key: 'relative_strength_history', name: 'Relative-strength history', source: relativeStrengthHistorySource },
   { key: 'current_history_comparison', name: 'Current versus history', source: currentHistorySource },
 ]
@@ -189,6 +234,28 @@ const timeframeOptions = [
   { value: 'M15', label: '15 minute' },
 ]
 const configString = (key: string, fallback: string) => typeof props.configuration?.[key] === 'string' ? String(props.configuration[key]) : fallback
+const configNumber = (key: string) => {
+  const value = Number(props.configuration?.[key])
+  return Number.isInteger(value) && value > 0 ? value : null
+}
+const configRecord = (key: string): Record<string, unknown> => {
+  const value = props.configuration?.[key]
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+const universeSourceKindLabels: Record<WatchlistSourceKind, string> = {
+  index_membership: 'Indexes',
+  etf_holdings: 'ETF holdings',
+  market_group: 'Market groups',
+  personal: 'Personal watchlists',
+  screener_managed: 'Screener results',
+  combo: 'Combined sources',
+  explicit: 'Explicit sources',
+}
+const universeSourceKindOrder = Object.keys(universeSourceKindLabels) as WatchlistSourceKind[]
+const watchlistStore = useWatchlistStore()
+const universeSourceListId = `study-universe-sources-${getCurrentInstance()?.uid ?? 0}`
+const universeSourceSuggestions = computed(() => [...watchlistStore.watchlistSources]
+  .sort((left, right) => universeSourceKindOrder.indexOf(left.source_kind) - universeSourceKindOrder.indexOf(right.source_kind) || left.name.localeCompare(right.name)))
 const factoryStudyKey = ref('positive_streak')
 const selectedFactoryStudy = computed(() => factoryStudyTemplates.find(item => item.key === factoryStudyKey.value))
 const requiresDeclaredUniverse = computed(() => selectedFactoryStudy.value?.requiresUniverse === true)
@@ -216,13 +283,32 @@ const startDate = ref(configString('start_date', ''))
 const endDate = ref(configString('end_date', ''))
 const asOf = ref(configString('as_of', '').slice(0, 16))
 const parameterSchemaText = ref(typeof props.configuration?.parameter_schema === 'string' ? String(props.configuration.parameter_schema) : '')
+const parameterSchemaErrorId = `study-parameter-schema-error-${getCurrentInstance()?.uid ?? 0}`
+const sourceValidationFeedbackId = `${studyLabInstanceId}-source-validation`
 const parameterDrafts = ref<Record<string, string | boolean>>({})
+const openedStudyVersionId = ref<number | null>(configNumber('study_asset_version_id'))
+const openedStudySource = ref(configString('study_source', ''))
+const openedStudyOutputContract = ref(configString('study_output_contract', ''))
+const openedStudyDefaultParameters = ref<Record<string, unknown>>(configRecord('study_default_parameters'))
+if (openedStudySource.value) {
+  name.value = configString('study_name', name.value)
+  source.value = openedStudySource.value
+  factoryStudyKey.value = 'custom'
+}
 const busy = ref(false)
 const promotionBusy = ref(false)
 const promotionStatus = ref('')
 const rerunBusy = ref(false)
 const validation = ref<Validation | null>(null)
+const validatedSource = ref<string | null>(null)
+const validationMatchesSource = computed(() => validation.value !== null && validatedSource.value === source.value)
+const sourceValidationInvalid = computed(() => validationMatchesSource.value && validation.value !== null && !validation.value.valid)
+const sourceValidationDescriptionId = computed(() => validation.value && (!validationMatchesSource.value || !validation.value.valid) ? sourceValidationFeedbackId : '')
 const promotedScanId = ref<number | null>(null)
+const promotedSeriesConditionScans = ref<Record<string, { id?: number; codeVersionId?: number; columnCodeVersionId?: number }>>({})
+type ConditionOperator = 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'
+type ConditionDraft = { operator: ConditionOperator; threshold: number }
+const conditionDrafts = ref<Record<string, ConditionDraft>>({})
 const cacheKey = props.toolKey ? `study:${props.toolKey}` : null
 const cachedRun = cacheKey ? studyRunCache.get(cacheKey) : null
 const run = ref<Run | null>(cachedRun?.run ?? null)
@@ -347,14 +433,37 @@ const runGuidance = computed(() => {
     default: return 'Study status is being resolved.'
   }
 })
-const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | null>(() => {
+const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | 'range' | null>(() => {
   // Keep promotion controls available after the first promotion.  A completed
   // research run can be refreshed by the durable-run query while the scan
   // creation request is settling; that transient status must not remove the
   // already valid boolean result or strand the newly-created scan before it
   // can be promoted to an alert/signal.
   if (!run.value || !runSource.value || (run.value.status !== 'completed' && promotedScanId.value == null)) return null
-  return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'events' ? runContract.value : null
+  if (runContract.value === 'series') {
+    const series = run.value.artifacts?.find(item => item.artifact_type === 'series')
+    if (!series || latestSeriesValue(series) == null) return null
+  }
+  if (runContract.value === 'range') {
+    const range = run.value.artifacts?.find(item => item.artifact_type === 'range')
+    if (!range || !rangeCenterCanBePromoted(range)) return null
+  }
+  const eventCount = (run.value.artifacts ?? []).filter(item => item.artifact_type === 'events').length
+  return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'range'
+    || (runContract.value === 'events' && eventCount === 1)
+    ? runContract.value
+    : null
+})
+const activeConditionArtifact = computed(() => {
+  const artifactType = runContract.value
+  if (artifactType !== 'scalar' && artifactType !== 'series' && artifactType !== 'range') return undefined
+  return run.value?.artifacts?.find(item => item.artifact_type === artifactType)
+})
+const activeConditionDraft = computed(() => conditionDraft(activeConditionArtifact.value))
+const promotableSeriesCanBePlotted = computed(() => {
+  if (runContract.value !== 'series') return false
+  const series = run.value?.artifacts?.find(item => item.artifact_type === 'series')
+  return series ? seriesCanBePlotted(series) : false
 })
 const progressLabel = computed(() => {
   const progress = run.value?.progress
@@ -362,18 +471,137 @@ const progressLabel = computed(() => {
   const total = Number(progress.total_cells ?? 0)
   return total > 0 ? `running ${Number(progress.completed_cells ?? 0)}/${total}` : 'runner active'
 })
+const latestSeriesObservation = computed(() => {
+  if (runContract.value !== 'series') return null
+  const artifact = run.value?.artifacts?.find(item => item.artifact_type === 'series')
+  return artifact ? latestSeriesValue(artifact) : null
+})
+const scalarObservation = computed(() => {
+  if (runContract.value !== 'scalar') return null
+  const artifact = run.value?.artifacts?.find(item => item.artifact_type === 'scalar')
+  const value = artifact?.payload?.value
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+})
+const latestRangeCenterObservation = computed(() => {
+  const artifact = run.value?.artifacts?.find(item => item.artifact_type === 'range')
+  if (!artifact) return null
+  return latestRangeCenterValue(artifact)
+})
 const metricArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => ['scalar', 'boolean'].includes(artifact.artifact_type)))
 const nonScalarArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => !['scalar', 'boolean'].includes(artifact.artifact_type)))
 type PromotionTarget = 'column' | 'plot' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
 type ArtifactPromotion = { artifact: Artifact; target: PromotionTarget; label: string }
+type SeriesConditionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
+const seriesConditionTargets: SeriesConditionTarget[] = ['filter', 'scan', 'gauge', 'alert', 'signal']
+function seriesConditionLabel(target: SeriesConditionTarget) {
+  return target === 'column' ? 'Save Boolean column' : target === 'filter' ? 'Save watchlist filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use as Market Gauge' : target === 'alert' ? 'Promote alert' : 'Save as Strategy signal'
+}
+function conditionDraft(artifact?: Artifact, sourceRun = run.value): ConditionDraft {
+  if (!artifact || !sourceRun) return { operator: 'gte', threshold: 0 }
+  const key = `${sourceRun.id}:${artifact.id}:${artifact.name}:${artifact.artifact_type}`
+  return conditionDrafts.value[key] ?? (conditionDrafts.value[key] = { operator: 'gte', threshold: 0 })
+}
+function seriesConditionKey(artifact: Artifact, adapter: string, draft: ConditionDraft) {
+  return `${run.value?.id ?? 'run'}:${artifact.id}:${artifact.name}:${adapter}:${draft.operator}:${draft.threshold}`
+}
+function declaredStudyInstrumentIds() {
+  const manifest = run.value?.dataset_manifest ?? {}
+  const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : []
+  return [...new Set([
+    ...(typeof manifest.instrument_id === 'number' ? [manifest.instrument_id] : []),
+    ...datasets
+      .filter(item => item && typeof item === 'object')
+      .map(item => (item as Record<string, unknown>).instrument_id)
+      .filter((item): item is number => typeof item === 'number' && Number.isInteger(item) && item > 0),
+  ])]
+}
+function studySourceId() {
+  const sourceRunConfig = run.value?.run_config ?? {}
+  if (typeof sourceRunConfig.universe_source_id === 'string' && sourceRunConfig.universe_source_id.trim()) return sourceRunConfig.universe_source_id
+  const sourceManifest = run.value?.dataset_manifest ?? {}
+  return typeof sourceManifest.universe_source_id === 'string' && sourceManifest.universe_source_id.trim() ? sourceManifest.universe_source_id : null
+}
+function studyMembershipVersion() {
+  const sourceManifest = run.value?.dataset_manifest ?? {}
+  return typeof sourceManifest.universe_membership_version === 'string' && sourceManifest.universe_membership_version.trim() ? sourceManifest.universe_membership_version : null
+}
+
+async function promoteThresholdedStrategySignal(
+  studyRun: Run,
+  artifact: Artifact,
+  seriesTarget: { operator: string; threshold: number },
+  outputAdapter: 'scalar_target_to_boolean' | 'series_target_to_boolean' | 'range_center_target_to_boolean',
+  semantics: 'study_scalar_threshold_as_strategy_signal' | 'study_series_threshold_as_strategy_signal' | 'study_range_center_threshold_as_strategy_signal',
+) {
+  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the Strategy signal universe.')
+  if (!runSource.value) throw new Error('The immutable source code version for this study is unavailable.')
+  const sourceManifest = studyRun.dataset_manifest ?? {}
+  const sourceRunConfig = studyRun.run_config ?? {}
+  const lineage = {
+    type: 'study_run_promotion',
+    source_run_id: studyRun.id,
+    source_code_version_id: studyRun.code_version_id ?? runCodeVersionId.value,
+    source_reproducibility_hash: studyRun.reproducibility_hash ?? null,
+    source_dataset_manifest: sourceManifest,
+    source_run_config: sourceRunConfig,
+    source_output_name: artifact.name,
+    source_instrument_ids: declaredInstrumentIds,
+    source_universe_source_id: studySourceId(),
+    source_membership_version: studyMembershipVersion(),
+    target: 'signal',
+    output_adapter: outputAdapter,
+    series_target: seriesTarget,
+    semantics,
+    point_in_time_source_preserved: false,
+  }
+  const asset = await api.post<{ id?: number; name?: string; versions?: Array<{ id?: number }> }>('/code/assets', {
+    stable_key: uniqueAssetKey(`${name.value}-${artifact.name}-signal`, 'signal'),
+    name: `${artifact.name} Strategy signal`,
+    kind: 'signal',
+    initial_version: {
+      source: runSource.value,
+      output_contract: 'boolean',
+      output_name: artifact.name,
+      parameter_schema: parsedParameterSchema.value ?? {},
+      default_parameters: buildParameters(),
+      lineage,
+    },
+  })
+  void invalidateCodeAssets(queryClient)
+  const codeVersionId = asset.versions?.[0]?.id ?? asset.id
+  if (typeof codeVersionId !== 'number') throw new Error('The thresholded Strategy signal asset did not return an immutable code version.')
+  const promoted = await api.post<{ id: number; name: string }>(`/strategy-lab/signals/from-code/${codeVersionId}`, {})
+  const targetLabel = outputAdapter === 'range_center_target_to_boolean' ? 'range center' : outputAdapter === 'scalar_target_to_boolean' ? 'scalar' : 'series'
+  promotionStatus.value = `Saved thresholded ${targetLabel} “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}).`
+}
 const artifactPromotions = computed<ArtifactPromotion[]>(() => {
   if (!run.value || run.value.status !== 'completed' || !runSource.value) return []
   // Compatible single-output runs reuse their immutable version directly;
   // named promotion controls are reserved for structured/multi-output runs.
-  if (runContract.value && runContract.value !== 'study') return []
+  if (runContract.value && runContract.value !== 'study') {
+    if (runContract.value !== 'events' || (run.value.artifacts ?? []).filter(item => item.artifact_type === 'events').length < 2) return []
+  }
   const promotions: ArtifactPromotion[] = []
+  const aggregate = isCrossSectionalStudyRun(run.value)
   for (const artifact of run.value.artifacts ?? []) {
-    if (artifact.artifact_type === 'series') promotions.push({ artifact, target: 'plot', label: 'Save plot' })
+    if (aggregate) {
+      // Cross-sectional outputs describe the prepared universe, not the
+      // active symbol. Only the explicit aggregate-series chart adapter is
+      // safe; scalar/Boolean coercions would invent member semantics.
+      if (artifact.artifact_type === 'series' && seriesData(artifact)) {
+        promotions.push({ artifact, target: 'plot', label: 'Save aggregate chart plot' })
+      }
+      continue
+    }
+    if (artifact.artifact_type === 'series') {
+      if (seriesCanBePlotted(artifact)) promotions.push({ artifact, target: 'plot', label: 'Save plot' })
+      if (latestSeriesValue(artifact) != null) promotions.push({ artifact, target: 'column', label: 'Save latest column' })
+    }
+    else if (artifact.artifact_type === 'range' && rangeCenterCanBePromoted(artifact)) {
+      promotions.push({ artifact, target: 'plot', label: 'Save center plot' })
+      promotions.push({ artifact, target: 'column', label: 'Save latest center column' })
+    }
     else if (artifact.artifact_type === 'scalar') promotions.push({ artifact, target: 'column', label: 'Save column' })
     else if (artifact.artifact_type === 'boolean') {
       promotions.push(
@@ -382,8 +610,15 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
         { artifact, target: 'scan', label: 'Promote scan' },
         { artifact, target: 'gauge', label: 'Use Gauge' },
         { artifact, target: 'alert', label: 'Promote alert' },
+        { artifact, target: 'signal', label: 'Save signal' },
       )
-    } else if (artifact.artifact_type === 'events') promotions.push({ artifact, target: 'signal', label: 'Save signal' })
+    } else if (artifact.artifact_type === 'events') {
+      promotions.push(
+        { artifact, target: 'signal', label: 'Save signal' },
+        { artifact, target: 'filter', label: 'Save filter' },
+        { artifact, target: 'alert', label: 'Promote alert' },
+      )
+    }
   }
   return promotions
 })
@@ -412,6 +647,15 @@ const parameterDefinitions = computed<ParameterDefinition[]>(() => {
 const parameterSchemaError = computed(() => parameterSchemaText.value.trim() && !parsedParameterSchema.value ? 'Parameter schema must be a JSON object.' : '')
 watch(() => props.activeSymbol, value => { if (!symbol.value || symbol.value === 'SPY') symbol.value = value })
 watch(() => props.configuration, configuration => {
+  if (typeof configuration?.study_asset_version_id === 'number' && Number.isInteger(configuration.study_asset_version_id) && configuration.study_asset_version_id > 0) openedStudyVersionId.value = configuration.study_asset_version_id
+  if (typeof configuration?.study_source === 'string' && configuration.study_source.trim()) {
+    openedStudySource.value = configuration.study_source
+    source.value = configuration.study_source
+    factoryStudyKey.value = 'custom'
+  }
+  if (typeof configuration?.study_name === 'string' && configuration.study_name.trim()) name.value = configuration.study_name
+  if (typeof configuration?.study_output_contract === 'string') openedStudyOutputContract.value = configuration.study_output_contract
+  if (configuration && typeof configuration.study_default_parameters === 'object' && configuration.study_default_parameters && !Array.isArray(configuration.study_default_parameters)) openedStudyDefaultParameters.value = configuration.study_default_parameters as Record<string, unknown>
   if (typeof configuration?.timeframe === 'string') timeframe.value = normaliseTimeframe(configuration.timeframe)
   if (configuration && !('benchmark' in configuration)) benchmark.value = ''
   else if (typeof configuration?.benchmark === 'string') benchmark.value = configuration.benchmark
@@ -461,6 +705,21 @@ watch(parameterDefinitions, definitions => {
   parameterDrafts.value = next
 }, { immediate: true })
 function setParameterDraft(name: string, value: string | boolean) { parameterDrafts.value = { ...parameterDrafts.value, [name]: value } }
+function clearOpenedStudyDefinition(persist = true) {
+  openedStudyVersionId.value = null
+  openedStudySource.value = ''
+  openedStudyOutputContract.value = ''
+  openedStudyDefaultParameters.value = {}
+  if (persist) {
+    const configuration = { ...(props.configuration ?? {}) }
+    delete configuration.study_asset_version_id
+    delete configuration.study_name
+    delete configuration.study_source
+    delete configuration.study_output_contract
+    delete configuration.study_default_parameters
+    emit('configuration', configuration)
+  }
+}
 function applyFactoryStudy() {
   const template = factoryStudyTemplates.find(item => item.key === factoryStudyKey.value)
   if (!template) {
@@ -469,6 +728,11 @@ function applyFactoryStudy() {
   }
   name.value = template.name
   source.value = template.source
+  // Factory selection is a local authoring transition. Persist the new
+  // template configuration through the existing parameter-schema watcher
+  // after this function finishes instead of emitting an intermediate config
+  // that briefly omits the template schema.
+  clearOpenedStudyDefinition(false)
   parameterSchemaText.value = template.parameterSchema ?? ''
   validation.value = null
   run.value = null
@@ -480,12 +744,20 @@ function applyFactoryStudy() {
 function markCustomSource() {
   factoryStudyKey.value = 'custom'
   parameterSchemaText.value = ''
+  // PythonSourceEditor can emit while a factory template is being applied.
+  // Keep this local so that event cannot publish an intermediate configuration
+  // that races the template's parameter schema.
+  clearOpenedStudyDefinition(false)
 }
 function buildParameters() {
-  const values: Record<string, unknown> = {}
+  const values: Record<string, unknown> = { ...openedStudyDefaultParameters.value }
   for (const definition of parameterDefinitions.value) {
     const value = parameterDrafts.value[definition.name]
     if (value === '' || value === undefined) continue
+    // Object-valued defaults (for example a Market Map breadth condition)
+    // cannot be represented by the compact parameter editor. Preserve the
+    // immutable definition value instead of serialising it as "[object Object]".
+    if (definition.type === 'object' && Object.prototype.hasOwnProperty.call(openedStudyDefaultParameters.value, definition.name)) continue
     values[definition.name] = definition.type === 'number' || definition.type === 'integer' ? Number(value) : value
   }
   return values
@@ -519,11 +791,50 @@ function tableRows(artifact: Artifact): Array<Record<string, unknown>> {
 function tableColumns(artifact: Artifact) { return [...new Set(tableRows(artifact).flatMap(row => Object.keys(row)))] }
 function formatCell(value: unknown) { return value == null ? '—' : typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 6 }) : String(value) }
 function seriesData(artifact: Artifact): { timestamps: string[]; values: Array<number | null> } | null {
-  const value = artifact.payload.value
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const candidate = value as { timestamps?: unknown; values?: unknown }
-  if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || candidate.timestamps.length !== candidate.values.length || !candidate.values.every(item => item == null || typeof item === 'number')) return null
-  return { timestamps: candidate.timestamps, values: candidate.values }
+  return normalizeStructuredNumericSeries(artifact.payload.value)
+}
+function seriesCanBePlotted(artifact: Artifact) {
+  return seriesData(artifact) != null
+}
+function seriesCapabilityNote(artifact: Artifact) {
+  if (artifact.artifact_type !== 'series' || seriesCanBePlotted(artifact)) return ''
+  if (Array.isArray(artifact.payload.value) && latestSeriesValue(artifact) != null) {
+    return 'Chart plot unavailable: this series has no aligned timestamp axis. Latest-value promotion remains available because it has a finite observation.'
+  }
+  return 'View/export only: this series needs valid aligned timestamps and at least one finite observation before it can be plotted or promoted.'
+}
+function latestSeriesValue(artifact: Artifact): number | null {
+  const structuredValues = seriesData(artifact)?.values
+  const rawValue = artifact.payload.value
+  const values = structuredValues ?? (Array.isArray(rawValue) ? rawValue : null)
+  if (!values) return null
+  for (const value of values.slice().reverse()) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+  return null
+}
+function latestRangeCenterValue(artifact: Artifact): number | null {
+  const center = rangeData(artifact)?.center
+  if (!center) return null
+  for (const value of center.slice().reverse()) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+  return null
+}
+function isCrossSectionalStudyRun(studyRun: Run | null | undefined) {
+  return studyRun?.run_config?.result_scope === 'cross_sectional'
+}
+function structuredThresholdType(artifact: Artifact): 'scalar' | 'series' | 'range' | null {
+  if (!run.value || run.value.status !== 'completed' || (runContract.value && runContract.value !== 'study') || isCrossSectionalStudyRun(run.value)) return null
+  // A named artifact in a structured Study run is safe to threshold only when
+  // its latest observation is finite. Aggregate results intentionally remain
+  // chart-only so they cannot be replayed as per-symbol conditions.
+  if (artifact.artifact_type === 'scalar') {
+    return typeof artifact.payload.value === 'number' && Number.isFinite(artifact.payload.value) ? 'scalar' : null
+  }
+  if (artifact.artifact_type === 'series') return latestSeriesValue(artifact) == null ? null : 'series'
+  if (artifact.artifact_type === 'range') return latestRangeCenterValue(artifact) == null ? null : 'range'
+  return null
 }
 function barData(artifact: Artifact): { labels: string[]; values: number[] } | null {
   const value = artifact.payload.value
@@ -538,6 +849,10 @@ function rangeData(artifact: Artifact): { timestamps: string[]; lower: number[];
   if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.lower) || !Array.isArray(candidate.upper) || candidate.lower.length !== candidate.upper.length || candidate.timestamps.length !== candidate.lower.length || !candidate.lower.every(item => typeof item === 'number' && Number.isFinite(item)) || !candidate.upper.every(item => typeof item === 'number' && Number.isFinite(item))) return null
   const center = candidate.center == null ? null : Array.isArray(candidate.center) && candidate.center.length === candidate.lower.length && candidate.center.every(item => typeof item === 'number' && Number.isFinite(item)) ? candidate.center : null
   return { timestamps: candidate.timestamps, lower: candidate.lower, upper: candidate.upper, center }
+}
+function rangeCenterCanBePromoted(artifact: Artifact) {
+  const center = rangeData(artifact)?.center
+  return Boolean(center?.length && center.some(value => Number.isFinite(value)))
 }
 function histogramData(artifact: Artifact): { bins: Array<{ start: number; end: number; count: number }>; current: number | null } | null {
   const value = artifact.payload.value
@@ -577,15 +892,20 @@ function eventRows(artifact: Artifact): Array<{ symbol: string; timestamp: strin
 }
 
 async function validate() {
+  const sourceToValidate = source.value
+  validatedSource.value = null
   busy.value = true; error.value = ''
-  try { validation.value = await api.post<Validation>('/code/validate', { source: source.value }) }
+  try {
+    validation.value = await api.post<Validation>('/code/validate', { source: sourceToValidate })
+    validatedSource.value = sourceToValidate
+  }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to validate study source' }
   finally { busy.value = false }
 }
 async function saveAndRun() {
   if (disposed) return
   const generation = ++runGeneration
-  if (!validation.value?.valid || parameterSchemaError.value) return
+  if (!validationMatchesSource.value || !validation.value?.valid || parameterSchemaError.value) return
   if (requiresDeclaredUniverse.value && !universeSymbols.value.split(',').some(value => value.trim())) {
     error.value = 'This factory study requires a declared comma-separated universe before it can run.'
     return
@@ -603,13 +923,21 @@ async function saveAndRun() {
     const directContracts = new Set(['scalar', 'series', 'boolean', 'events'])
     const candidateContract = validation.value.output_contracts.length === 1 ? validation.value.output_contracts[0] : null
     const executionContract = candidateContract && directContracts.has(candidateContract) ? candidateContract : 'study'
-    const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
-      stable_key: uniqueAssetKey(name.value),
-      name: name.value,
-      kind: 'study',
-      initial_version: { source: source.value, output_contract: executionContract, parameter_schema: parsedParameterSchema.value ?? {}, default_parameters: parameters },
-    })
-    void invalidateCodeAssets(queryClient)
+    const reuseOpenedVersion = openedStudyVersionId.value != null && source.value === openedStudySource.value
+    let codeVersionId: number
+    if (reuseOpenedVersion) {
+      codeVersionId = openedStudyVersionId.value!
+      runContract.value = openedStudyOutputContract.value || executionContract
+    } else {
+      const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
+        stable_key: uniqueAssetKey(name.value),
+        name: name.value,
+        kind: 'study',
+        initial_version: { source: source.value, output_contract: executionContract, parameter_schema: parsedParameterSchema.value ?? {}, default_parameters: parameters },
+      })
+      codeVersionId = asset.versions[0].id
+      void invalidateCodeAssets(queryClient)
+    }
     if (disposed || generation !== runGeneration) return
     const datasetControls: Record<string, string> = {
       timeframe: timeframe.value,
@@ -621,13 +949,15 @@ async function saveAndRun() {
     if (endDate.value) datasetControls.end_date = endDate.value
     if (asOf.value) datasetControls.as_of = new Date(asOf.value).toISOString()
     const symbols = universeSymbols.value.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
+    const resultScope = selectedFactoryStudy.value?.resultScope
     const runConfig: Record<string, unknown> = universeSourceId.value
       ? { universe_source_id: universeSourceId.value, parameters, ...datasetControls }
       : symbols.length
         ? { symbols, parameters, ...datasetControls }
         : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
+    if (resultScope) runConfig.result_scope = resultScope
     const createdRun = await api.post<Run>('/research/runs', {
-      code_version_id: asset.versions[0].id,
+      code_version_id: codeVersionId,
       run_config: runConfig,
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
     })
@@ -643,28 +973,163 @@ async function saveAndRun() {
       return
     }
     run.value = createdRun
-    runCodeVersionId.value = createdRun.code_version_id ?? asset.versions[0]?.id ?? null
+    runCodeVersionId.value = createdRun.code_version_id ?? codeVersionId
     scheduleRunPolling(createdRun.id, generation)
-    emit('configuration', {
+    const persistedConfiguration: Record<string, unknown> = {
       ...(props.configuration ?? {}),
       study_run_id: run.value.id,
       study_run_source: runSource.value,
       study_run_contract: runContract.value,
       promoted_scan_id: null,
-    })
+    }
+    if (!reuseOpenedVersion) {
+      delete persistedConfiguration.study_asset_version_id
+      delete persistedConfiguration.study_name
+      delete persistedConfiguration.study_source
+      delete persistedConfiguration.study_output_contract
+      delete persistedConfiguration.study_default_parameters
+    }
+    emit('configuration', persistedConfiguration)
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to start isolated study run' }
   finally { busy.value = false }
 }
 async function promote(target: PromotionTarget, selectedOutputName?: string) {
   if (disposed) return
   const selectedArtifact = selectedOutputName ? (run.value?.artifacts ?? []).find(artifact => artifact.name === selectedOutputName) : null
-  const contract = selectedArtifact ? (selectedArtifact.artifact_type as 'scalar' | 'series' | 'boolean' | 'events') : promotableKind.value
+  const contract = selectedArtifact ? (selectedArtifact.artifact_type as 'scalar' | 'series' | 'boolean' | 'events' | 'range') : promotableKind.value
+  // A single-output range run has no named-artifact picker, but its center is
+  // still a named artifact in the durable result. Resolve that artifact here
+  // so the direct controls use the same lineage-preserving adapters as the
+  // named multi-output path.
+  const promotionArtifact = selectedArtifact ?? (
+    !selectedOutputName && contract === 'range'
+      ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'range')
+      : undefined
+  )
   if (!contract || promotionBusy.value) return
+  const seriesPlotArtifact = selectedArtifact?.artifact_type === 'series'
+    ? selectedArtifact
+    : contract === 'series' ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series') : undefined
+  if (target === 'plot' && seriesPlotArtifact && !seriesCanBePlotted(seriesPlotArtifact)) {
+    promotionStatus.value = 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.'
+    return
+  }
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
+    if (contract === 'events' && (target === 'filter' || target === 'alert')) {
+      if (!run.value?.id) throw new Error('A completed event study run is required before creating a current-data filter.')
+      const eventArtifacts = (run.value.artifacts ?? []).filter(artifact => artifact.artifact_type === 'events')
+      const eventArtifact = selectedArtifact?.artifact_type === 'events'
+        ? selectedArtifact
+        : eventArtifacts.length === 1
+          ? eventArtifacts[0]
+          : null
+      if (!eventArtifact) throw new Error('Select a named event artifact before creating a current-data filter.')
+      const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.value.id}/promote-event-filter`, {
+        artifact_name: eventArtifact.name,
+      })
+      if (target === 'alert') {
+        await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event study run ${run.value.id}` })
+        promotionStatus.value = `Promoted event artifact “${eventArtifact.name}” to an active alert.`
+      } else {
+        promotionStatus.value = `Saved event artifact “${eventArtifact.name}” as a reusable watchlist filter.`
+      }
+      return
+    }
+    if (selectedArtifact?.artifact_type === 'events' && (target === 'filter' || target === 'alert')) {
+      if (!selectedOutputName || run.value?.id == null) throw new Error('Select a named event artifact before creating a current-data filter.')
+      const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.value.id}/promote-event-filter`, {
+        artifact_name: selectedOutputName,
+      })
+      if (target === 'alert') {
+        await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event study run ${run.value.id}` })
+        promotionStatus.value = `Promoted event artifact “${selectedOutputName}” to an active alert.`
+      } else {
+        promotionStatus.value = `Saved event artifact “${selectedOutputName}” as a reusable watchlist filter.`
+      }
+      return
+    }
+    if (target === 'signal' && contract === 'events') {
+      const eventArtifact = selectedArtifact ?? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'events')
+      const eventOutputName = selectedOutputName ?? eventArtifact?.name
+      if (!eventArtifact || !eventOutputName || run.value?.code_version_id == null) {
+        throw new Error('A named event artifact and immutable source version are required for a Strategy signal.')
+      }
+      const sourceVersions = await api.get<Array<{
+        versions?: Array<{
+          id?: number
+          source?: string
+          parameter_schema?: Record<string, unknown>
+          default_parameters?: Record<string, unknown>
+        }>
+      }>>('/code/assets')
+      const sourceVersion = (sourceVersions ?? [])
+        .flatMap(asset => asset.versions ?? [])
+        .find(version => version.id === run.value?.code_version_id)
+      if (!sourceVersion?.source) throw new Error('The immutable source code version for this event study is unavailable.')
+      const sourceManifest = run.value.dataset_manifest ?? {}
+      const sourceRunConfig = run.value.run_config ?? {}
+      const asset = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: uniqueAssetKey(`${name.value}-${eventOutputName}`, 'signal'),
+        name: `${eventOutputName} signal`,
+        kind: 'signal',
+        initial_version: {
+          source: sourceVersion.source,
+          output_contract: 'events',
+          output_name: eventOutputName,
+          parameter_schema: sourceVersion.parameter_schema ?? parsedParameterSchema.value ?? {},
+          default_parameters: sourceVersion.default_parameters ?? buildParameters(),
+          lineage: {
+            type: 'study_run_promotion',
+            source_run_id: run.value.id,
+            source_code_version_id: run.value.code_version_id,
+            source_reproducibility_hash: run.value.reproducibility_hash ?? null,
+            source_dataset_manifest: sourceManifest,
+            source_run_config: sourceRunConfig,
+            source_output_name: eventOutputName,
+            target: 'signal',
+            output_adapter: 'events_to_signal',
+            semantics: 'study_event_result_as_strategy_signal',
+            point_in_time_source_preserved: false,
+          },
+        },
+      })
+      void invalidateCodeAssets(queryClient)
+      const codeVersionId = asset.versions?.[0]?.id ?? asset.id
+      if (typeof codeVersionId !== 'number') throw new Error('The event signal asset did not return an immutable code version.')
+      await api.post(`/strategy-lab/signals/from-code/${codeVersionId}`, {})
+      promotionStatus.value = `Saved event artifact “${eventOutputName}” as a reusable Strategy Lab signal.`
+      return
+    }
     const isBooleanTarget = target === 'filter' || target === 'scan' || target === 'gauge' || target === 'alert'
-    const requiredContract = isBooleanTarget ? 'boolean' : contract
+    const aggregateSeriesPlot = target === 'plot'
+      && selectedArtifact?.artifact_type === 'series'
+      && isCrossSectionalStudyRun(run.value)
+    const latestSeriesColumn = target === 'column' && (
+      selectedArtifact?.artifact_type === 'series'
+        ? latestSeriesValue(selectedArtifact) != null
+        : contract === 'series' && latestSeriesObservation.value != null
+    )
+    const rangeCenterPlot = target === 'plot' && promotionArtifact?.artifact_type === 'range' && rangeCenterCanBePromoted(promotionArtifact)
+    const rangeCenterColumn = target === 'column' && promotionArtifact?.artifact_type === 'range' && rangeCenterCanBePromoted(promotionArtifact)
+    if (target === 'column' && contract === 'series' && !latestSeriesColumn) {
+      throw new Error('A numeric Study series needs a finite observation before it can become a latest-value column.')
+    }
+    if (target === 'plot' && contract === 'range' && !rangeCenterPlot) {
+      throw new Error('A Study range needs an aligned finite center series before it can become a chart plot.')
+    }
+    if (target === 'column' && contract === 'range' && !rangeCenterColumn) {
+      throw new Error('A Study range needs an aligned finite center series before it can become a latest-value column.')
+    }
+    const promotionOutputName = selectedOutputName ?? (
+      latestSeriesColumn
+        ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series')?.name
+        : rangeCenterPlot || rangeCenterColumn
+          ? promotionArtifact?.name
+          : undefined
+    )
+    const requiredContract = isBooleanTarget ? 'boolean' : latestSeriesColumn || rangeCenterColumn ? 'scalar' : rangeCenterPlot || aggregateSeriesPlot ? 'series' : contract
     // A column is a separately typed library asset even when the study has a
     // compatible scalar/Boolean output. This keeps the target kind explicit
     // and lets its immutable promotion lineage survive independently of the
@@ -683,7 +1148,7 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
         initial_version: {
           source: runSource.value,
           output_contract: requiredContract,
-          ...(selectedOutputName ? { output_name: selectedOutputName } : {}),
+          ...(promotionOutputName ? { output_name: promotionOutputName } : {}),
           parameter_schema: parsedParameterSchema.value ?? {},
           default_parameters: buildParameters(),
           lineage: {
@@ -692,11 +1157,20 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
             source_reproducibility_hash: run.value?.reproducibility_hash ?? null,
             source_dataset_manifest: sourceManifest,
             source_run_config: sourceRunConfig,
-            source_output_name: selectedOutputName ?? null,
+            source_output_name: promotionOutputName ?? null,
             target,
+            output_adapter: latestSeriesColumn ? 'latest_series_to_scalar' : rangeCenterColumn ? 'range_center_to_scalar' : rangeCenterPlot ? 'range_center_to_series' : aggregateSeriesPlot ? 'study_series_to_series' : undefined,
             semantics: target === 'column' && requiredContract === 'boolean'
               ? 'study_boolean_result_as_typed_watchlist_column'
-              : 'study_result_promotion',
+              : latestSeriesColumn
+                ? 'study_series_latest_result_as_watchlist_column'
+                : rangeCenterColumn
+                  ? 'study_range_center_result_as_latest_watchlist_column'
+                : aggregateSeriesPlot
+                  ? 'study_cross_sectional_aggregate_series_as_chart_plot'
+                : rangeCenterPlot
+                  ? 'study_range_center_result_as_chart_plot'
+                  : 'study_result_promotion',
           },
         },
       })
@@ -773,6 +1247,329 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     promotionStatus.value = cause?.message ?? 'Unable to promote study result'
   } finally { promotionBusy.value = false }
 }
+async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArtifact?: Artifact) {
+  const studyRun = run.value
+  const artifact = selectedArtifact ?? studyRun?.artifacts?.find(item => item.artifact_type === 'series')
+  if (!studyRun || studyRun.status !== 'completed' || (!selectedArtifact && runContract.value !== 'series') || (selectedArtifact != null && selectedArtifact.artifact_type !== 'series') || !artifact || latestSeriesValue(artifact) == null || promotionBusy.value) return
+  const draft = conditionDraft(artifact, studyRun)
+  if (!Number.isFinite(draft.threshold)) {
+    promotionStatus.value = 'Enter a finite numeric threshold before promoting the series.'
+    return
+  }
+  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  if (!declaredInstrumentIds.length) {
+    promotionStatus.value = 'The study dataset has no declared canonical members; refusing to widen the promoted condition universe.'
+    return
+  }
+  if (!runSource.value) {
+    promotionStatus.value = 'The immutable source code version for this series study is unavailable.'
+    return
+  }
+  promotionBusy.value = true
+  promotionStatus.value = ''
+  try {
+    const key = seriesConditionKey(artifact, 'series_target_to_boolean', draft)
+    const cached = promotedSeriesConditionScans.value[key] ?? {}
+    const seriesTarget = { operator: draft.operator, threshold: Number(draft.threshold) }
+    const sourceManifest = studyRun.dataset_manifest ?? {}
+    const sourceRunConfig = studyRun.run_config ?? {}
+    const lineage = {
+      type: 'study_run_promotion',
+      source_run_id: studyRun.id,
+      source_code_version_id: studyRun.code_version_id ?? runCodeVersionId.value,
+      source_reproducibility_hash: studyRun.reproducibility_hash ?? null,
+      source_dataset_manifest: sourceManifest,
+      source_run_config: sourceRunConfig,
+      source_output_name: artifact.name,
+      source_instrument_ids: declaredInstrumentIds,
+      source_universe_source_id: studySourceId(),
+      source_membership_version: studyMembershipVersion(),
+      target,
+      output_adapter: 'series_target_to_boolean',
+      series_target: seriesTarget,
+      semantics: 'study_series_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    if (target === 'signal') {
+      await promoteThresholdedStrategySignal(
+        studyRun,
+        artifact,
+        seriesTarget,
+        'series_target_to_boolean',
+        'study_series_threshold_as_strategy_signal',
+      )
+      return
+    }
+    let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
+    if (typeof codeVersionId !== 'number') {
+      const kind = target === 'column' ? 'column' : 'condition'
+      const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: `${stableKey(name.value)}-series-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
+        name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
+        kind,
+        initial_version: {
+          source: runSource.value,
+          output_contract: 'boolean',
+          output_name: artifact.name,
+          parameter_schema: parsedParameterSchema.value ?? {},
+          default_parameters: buildParameters(),
+          lineage,
+        },
+      })
+      codeVersionId = promoted.versions?.[0]?.id ?? promoted.id
+      if (typeof codeVersionId !== 'number') throw new Error('Series condition promotion did not return an immutable code version.')
+      promotedSeriesConditionScans.value = {
+        ...promotedSeriesConditionScans.value,
+        [key]: target === 'column' ? { ...cached, columnCodeVersionId: codeVersionId } : { ...cached, codeVersionId },
+      }
+    }
+    if (target === 'column') {
+      promotionStatus.value = `Saved series artifact “${artifact.name}” as a thresholded Boolean column.`
+      return
+    }
+    let scanId = cached.id
+    if (typeof scanId !== 'number') {
+      const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
+      const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
+        name: `${artifact.name} ${draft.operator} ${draft.threshold} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
+        description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; source series, threshold, membership, and dataset lineage are retained.`,
+        universe_type: 'custom',
+        universe_instrument_ids: declaredInstrumentIds,
+        timeframe: typeof configuredTimeframe === 'string' && configuredTimeframe.trim() ? configuredTimeframe : timeframe.value,
+        provenance: lineage,
+      })
+      scanId = screener.id
+      promotedSeriesConditionScans.value = { ...promotedSeriesConditionScans.value, [key]: { ...promotedSeriesConditionScans.value[key], id: scanId, codeVersionId } }
+    }
+    if (target === 'filter') promotionStatus.value = `Saved series artifact “${artifact.name}” as a thresholded watchlist filter.`
+    else if (target === 'scan') promotionStatus.value = `Promoted series artifact “${artifact.name}” to a thresholded scan.`
+    else if (target === 'gauge') promotionStatus.value = `Series artifact “${artifact.name}” is available as a thresholded Market Gauge.`
+    else {
+      await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true, notes: `Created from Study Lab series run ${studyRun.id} (${artifact.name})` })
+      promotionStatus.value = `Promoted series artifact “${artifact.name}” to a thresholded scan alert.`
+    }
+  } catch (cause: any) {
+    promotionStatus.value = cause?.message ?? 'Unable to promote the Study series to a thresholded condition'
+  } finally { promotionBusy.value = false }
+}
+type ScalarConditionTarget = 'column' | SeriesConditionTarget
+async function promoteScalarCondition(target: ScalarConditionTarget, selectedArtifact?: Artifact) {
+  const studyRun = run.value
+  const artifact = selectedArtifact ?? studyRun?.artifacts?.find(item => item.artifact_type === 'scalar')
+  const scalarValue = artifact?.artifact_type === 'scalar' && typeof artifact.payload.value === 'number' && Number.isFinite(artifact.payload.value) ? artifact.payload.value : null
+  if (!studyRun || studyRun.status !== 'completed' || (!selectedArtifact && runContract.value !== 'scalar') || (selectedArtifact != null && selectedArtifact.artifact_type !== 'scalar') || !artifact || scalarValue == null || promotionBusy.value) return
+  const draft = conditionDraft(artifact, studyRun)
+  if (!Number.isFinite(draft.threshold)) {
+    promotionStatus.value = 'Enter a finite numeric threshold before promoting the scalar.'
+    return
+  }
+  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  if (!declaredInstrumentIds.length) {
+    promotionStatus.value = 'The study dataset has no declared canonical members; refusing to widen the promoted condition universe.'
+    return
+  }
+  if (!runSource.value) {
+    promotionStatus.value = 'The immutable source code version for this scalar study is unavailable.'
+    return
+  }
+  promotionBusy.value = true
+  promotionStatus.value = ''
+  try {
+    const key = seriesConditionKey(artifact, 'scalar_target_to_boolean', draft)
+    const cached = promotedSeriesConditionScans.value[key] ?? {}
+    const scalarTarget = { operator: draft.operator, threshold: Number(draft.threshold) }
+    const sourceManifest = studyRun.dataset_manifest ?? {}
+    const sourceRunConfig = studyRun.run_config ?? {}
+    const lineage = {
+      type: 'study_run_promotion',
+      source_run_id: studyRun.id,
+      source_code_version_id: studyRun.code_version_id ?? runCodeVersionId.value,
+      source_reproducibility_hash: studyRun.reproducibility_hash ?? null,
+      source_dataset_manifest: sourceManifest,
+      source_run_config: sourceRunConfig,
+      source_output_name: artifact.name,
+      source_instrument_ids: declaredInstrumentIds,
+      source_universe_source_id: studySourceId(),
+      source_membership_version: studyMembershipVersion(),
+      target,
+      output_adapter: 'scalar_target_to_boolean',
+      series_target: scalarTarget,
+      semantics: 'study_scalar_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    if (target === 'signal') {
+      await promoteThresholdedStrategySignal(
+        studyRun,
+        artifact,
+        scalarTarget,
+        'scalar_target_to_boolean',
+        'study_scalar_threshold_as_strategy_signal',
+      )
+      return
+    }
+    const kind = target === 'column' ? 'column' : 'condition'
+    let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
+    if (typeof codeVersionId !== 'number') {
+      const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: `${stableKey(name.value)}-scalar-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
+        name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
+        kind,
+        initial_version: {
+          source: runSource.value,
+          output_contract: 'boolean',
+          output_name: artifact.name,
+          parameter_schema: parsedParameterSchema.value ?? {},
+          default_parameters: buildParameters(),
+          lineage,
+        },
+      })
+      codeVersionId = promoted.versions?.[0]?.id ?? promoted.id
+      if (typeof codeVersionId !== 'number') throw new Error('Scalar condition promotion did not return an immutable code version.')
+      promotedSeriesConditionScans.value = {
+        ...promotedSeriesConditionScans.value,
+        [key]: target === 'column' ? { ...cached, columnCodeVersionId: codeVersionId } : { ...cached, codeVersionId },
+      }
+    }
+    if (target === 'column') {
+      promotionStatus.value = `Saved scalar artifact “${artifact.name}” as a thresholded Boolean column.`
+      return
+    }
+    let scanId = cached.id
+    if (typeof scanId !== 'number') {
+      const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
+      const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
+        name: `${artifact.name} ${draft.operator} ${draft.threshold} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
+        description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; source scalar, threshold, membership, and dataset lineage are retained.`,
+        universe_type: 'custom',
+        universe_instrument_ids: declaredInstrumentIds,
+        timeframe: typeof configuredTimeframe === 'string' && configuredTimeframe.trim() ? configuredTimeframe : timeframe.value,
+        provenance: lineage,
+      })
+      scanId = screener.id
+      promotedSeriesConditionScans.value = { ...promotedSeriesConditionScans.value, [key]: { ...promotedSeriesConditionScans.value[key], id: scanId, codeVersionId } }
+    }
+    if (target === 'filter') promotionStatus.value = `Saved scalar artifact “${artifact.name}” as a thresholded watchlist filter.`
+    else if (target === 'scan') promotionStatus.value = `Promoted scalar artifact “${artifact.name}” to a thresholded scan.`
+    else if (target === 'gauge') promotionStatus.value = `Scalar artifact “${artifact.name}” is available as a thresholded Market Gauge.`
+    else {
+      await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true, notes: `Created from Study Lab scalar run ${studyRun.id} (${artifact.name})` })
+      promotionStatus.value = `Promoted scalar artifact “${artifact.name}” to a thresholded scan alert.`
+    }
+  } catch (cause: any) {
+    promotionStatus.value = cause?.message ?? 'Unable to promote the Study scalar to a thresholded condition'
+  } finally { promotionBusy.value = false }
+}
+async function promoteRangeCenterCondition(target: SeriesConditionTarget, selectedArtifact?: Artifact) {
+  const studyRun = run.value
+  const artifact = selectedArtifact ?? studyRun?.artifacts?.find(item => item.artifact_type === 'range')
+  if (!studyRun || studyRun.status !== 'completed' || (selectedArtifact != null && selectedArtifact.artifact_type !== 'range') || !artifact || latestRangeCenterValue(artifact) == null || promotionBusy.value) return
+  const draft = conditionDraft(artifact, studyRun)
+  if (!Number.isFinite(draft.threshold)) {
+    promotionStatus.value = 'Enter a finite numeric threshold before promoting the range center.'
+    return
+  }
+  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  if (!declaredInstrumentIds.length) {
+    promotionStatus.value = 'The study dataset has no declared canonical members; refusing to widen the promoted condition universe.'
+    return
+  }
+  if (!runSource.value) {
+    promotionStatus.value = 'The immutable source code version for this range study is unavailable.'
+    return
+  }
+  promotionBusy.value = true
+  promotionStatus.value = ''
+  try {
+    const key = seriesConditionKey(artifact, 'range_center_target_to_boolean', draft)
+    const cached = promotedSeriesConditionScans.value[key] ?? {}
+    const seriesTarget = { operator: draft.operator, threshold: Number(draft.threshold) }
+    const sourceManifest = studyRun.dataset_manifest ?? {}
+    const sourceRunConfig = studyRun.run_config ?? {}
+    const lineage = {
+      type: 'study_run_promotion',
+      source_run_id: studyRun.id,
+      source_code_version_id: studyRun.code_version_id ?? runCodeVersionId.value,
+      source_reproducibility_hash: studyRun.reproducibility_hash ?? null,
+      source_dataset_manifest: sourceManifest,
+      source_run_config: sourceRunConfig,
+      source_output_name: artifact.name,
+      source_instrument_ids: declaredInstrumentIds,
+      source_universe_source_id: studySourceId(),
+      source_membership_version: studyMembershipVersion(),
+      target,
+      output_adapter: 'range_center_target_to_boolean',
+      series_target: seriesTarget,
+      semantics: 'study_range_center_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    if (target === 'signal') {
+      await promoteThresholdedStrategySignal(
+        studyRun,
+        artifact,
+        seriesTarget,
+        'range_center_target_to_boolean',
+        'study_range_center_threshold_as_strategy_signal',
+      )
+      return
+    }
+    const kind = target === 'column' ? 'column' : 'condition'
+    let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
+    if (typeof codeVersionId !== 'number') {
+      const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: `${stableKey(name.value)}-range-center-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
+        name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
+        kind,
+        initial_version: {
+          source: runSource.value,
+          output_contract: 'boolean',
+          output_name: artifact.name,
+          parameter_schema: parsedParameterSchema.value ?? {},
+          default_parameters: buildParameters(),
+          lineage,
+        },
+      })
+      codeVersionId = promoted.versions?.[0]?.id ?? promoted.id
+      if (typeof codeVersionId !== 'number') throw new Error('Range center condition promotion did not return an immutable code version.')
+      promotedSeriesConditionScans.value = {
+        ...promotedSeriesConditionScans.value,
+        [key]: target === 'column' ? { ...cached, columnCodeVersionId: codeVersionId } : { ...cached, codeVersionId },
+      }
+    }
+    if (target === 'column') {
+      promotionStatus.value = `Saved range center “${artifact.name}” as a thresholded Boolean column.`
+      return
+    }
+    let scanId = cached.id
+    if (typeof scanId !== 'number') {
+      const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
+      const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
+        name: `${artifact.name} ${draft.operator} ${draft.threshold} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
+        description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; range center, threshold, membership, and dataset lineage are retained.`,
+        universe_type: 'custom',
+        universe_instrument_ids: declaredInstrumentIds,
+        timeframe: typeof configuredTimeframe === 'string' && configuredTimeframe.trim() ? configuredTimeframe : timeframe.value,
+        provenance: lineage,
+      })
+      scanId = screener.id
+      promotedSeriesConditionScans.value = { ...promotedSeriesConditionScans.value, [key]: { ...promotedSeriesConditionScans.value[key], id: scanId, codeVersionId } }
+    }
+    if (target === 'filter') promotionStatus.value = `Saved range center “${artifact.name}” as a thresholded watchlist filter.`
+    else if (target === 'scan') promotionStatus.value = `Promoted range center “${artifact.name}” to a thresholded scan.`
+    else if (target === 'gauge') promotionStatus.value = `Range center “${artifact.name}” is available as a thresholded Market Gauge.`
+    else {
+      await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true, notes: `Created from Study Lab range center run ${studyRun.id} (${artifact.name})` })
+      promotionStatus.value = `Promoted range center “${artifact.name}” to a thresholded scan alert.`
+    }
+  } catch (cause: any) {
+    promotionStatus.value = cause?.message ?? 'Unable to promote the Study range center to a thresholded condition'
+  } finally { promotionBusy.value = false }
+}
+function promoteStructuredThreshold(artifact: Artifact, target: ScalarConditionTarget) {
+  const kind = structuredThresholdType(artifact)
+  if (kind === 'scalar') return void promoteScalarCondition(target, artifact)
+  if (kind === 'series') return void promoteSeriesCondition(target, artifact)
+  if (kind === 'range') return void promoteRangeCenterCondition(target, artifact)
+}
 async function rerun(snapshot: boolean) {
   if (!run.value || rerunBusy.value) return
   const generation = ++runGeneration
@@ -787,19 +1584,24 @@ async function rerun(snapshot: boolean) {
       scheduleRunPolling(rerunResult.id, generation)
     }
   } catch (cause: any) {
-    error.value = cause?.message ?? 'Unable to rerun study'
-  } finally { rerunBusy.value = false }
+    if (!disposed && generation === runGeneration) error.value = cause?.message ?? 'Unable to rerun study'
+  } finally {
+    if (!disposed && generation === runGeneration) rerunBusy.value = false
+  }
 }
 async function cancel() {
   if (!run.value) return
+  const generation = runGeneration
   try {
     const canceled = await api.post<Run>(`/research/runs/${run.value.id}/cancel`, {})
+    if (disposed || generation !== runGeneration) return
     run.value = canceled
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
     await runQuery.refetch()
+    if (disposed || generation !== runGeneration) return
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
   }
-  catch (cause: any) { error.value = cause?.message ?? 'Unable to cancel study run' }
+  catch (cause: any) { if (!disposed && generation === runGeneration) error.value = cause?.message ?? 'Unable to cancel study run' }
 }
 onMounted(() => {
   document.addEventListener('visibilitychange', updateDocumentVisibility)
@@ -830,6 +1632,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   disposed = true
+  runGeneration += 1
   stopRunPolling()
   if (run.value && canCancel.value) {
     // Teardown is best-effort. A queued run may become terminal between the
@@ -858,8 +1661,8 @@ onBeforeUnmount(() => {
 .study-lab-tool__header { display:grid; gap:4px; } .study-lab-tool__header-main { display:grid; grid-template-columns:minmax(120px,1fr) 56px minmax(150px,1fr) 48px 38px; gap:4px; } .study-lab-tool__dataset { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; color:#8ea3b0; } .study-lab-tool__dataset label { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:3px; white-space:nowrap; } .study-lab-tool__dataset input,.study-lab-tool__dataset select { width:100%; min-width:0; }
 .study-lab-tool__source-lineage { margin:0; padding:3px 4px; border:1px solid #49667a; background:#17232b; color:#b9d9eb; font-size:9px; }
 input,textarea,button,select { min-width:0; border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; } input,select { padding:2px 4px; } textarea { width:100%; resize:none; padding:5px; font:11px/1.35 ui-monospace,SFMono-Regular,monospace; } button { cursor:pointer; } button:disabled { cursor:default; opacity:.5; }
-.study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__universe-warning { margin:0; color:#e0b47d; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }
-.study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }.study-lab-tool__run-guidance { margin:3px 0 0!important; color:#9ab1bf!important; }.study-lab-tool__run-status--failed + .study-lab-tool__run-guidance { color:#f0a2a2!important; }.study-lab-tool__run-status--canceled + .study-lab-tool__run-guidance { color:#e0b47d!important; }
+.study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__universe-warning { margin:0; color:#e0b47d; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events [role="listitem"] { display:grid; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }
+.study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__series-condition { display:flex; flex-wrap:wrap; align-items:center; gap:4px; width:100%; padding:3px 0; }.study-lab-tool__series-condition label { display:inline-flex; align-items:center; gap:3px; }.study-lab-tool__series-condition input { width:88px; }.study-lab-tool__artifact-threshold { display:flex; flex-wrap:wrap; align-items:center; gap:3px; width:100%; margin-top:3px; padding-top:3px; border-top:1px solid #29343c; }.study-lab-tool__artifact-threshold label { display:inline-flex; align-items:center; gap:3px; color:#91a8b8; }.study-lab-tool__artifact-threshold input { width:70px; }.study-lab-tool__artifact-threshold button { padding:1px 3px; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }.study-lab-tool__run-guidance { margin:3px 0 0!important; color:#9ab1bf!important; }.study-lab-tool__run-status--failed + .study-lab-tool__run-guidance { color:#f0a2a2!important; }.study-lab-tool__run-status--canceled + .study-lab-tool__run-guidance { color:#e0b47d!important; }
 .study-lab-tool__metrics article button { justify-self:start; padding:1px 4px; }
 .study-lab-tool__run-details { margin-top:4px; border-top:1px solid #29343c; padding-top:3px; }.study-lab-tool__run-details summary { color:#9db0bc; cursor:pointer; }.study-lab-tool__run-details pre { max-height:90px; margin:3px 0 0; }
 .study-lab-tool__artifact-header { display:flex; align-items:center; gap:5px; }.study-lab-tool__artifact-header button { margin-left:auto; padding:1px 4px; }

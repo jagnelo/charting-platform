@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
@@ -42,6 +42,7 @@ const symbol = computed(() =>
   (props.overrideSymbol?.trim() || String(props.config.symbol ?? '').trim()).toUpperCase()
 )
 let refreshSeq = 0
+let mounted = false
 const changePct = computed(() => {
   if (lastClose.value == null || prevClose.value == null || prevClose.value === 0) return 0
   return (lastClose.value - prevClose.value) / prevClose.value
@@ -61,18 +62,20 @@ async function refresh() {
   error.value = null
   try {
     const target = await resolveTarget(symbol.value)
-    if (seq !== refreshSeq) return
-    instrument.value = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
+    if (!mounted || seq !== refreshSeq) return
+    const loadedInstrument = await api.get<Instrument>(`/instruments/${encodeURIComponent(target)}`)
+    if (!mounted || seq !== refreshSeq) return
+    instrument.value = loadedInstrument
     const bars = await api.get<Array<{ close: number }>>(`/ohlcv/${encodeURIComponent(target)}/D1`, { limit: 2 })
-    if (seq !== refreshSeq) return
+    if (!mounted || seq !== refreshSeq) return
     const latest = bars[bars.length - 1]
     const prev = bars[bars.length - 2] ?? latest
     lastClose.value = latest ? Number(latest.close) : null
     prevClose.value = prev ? Number(prev.close) : null
   } catch (e: any) {
-    if (seq === refreshSeq) error.value = e?.message ?? 'Quote unavailable'
+    if (mounted && seq === refreshSeq) error.value = e?.message ?? 'Quote unavailable'
   } finally {
-    if (seq === refreshSeq) loading.value = false
+    if (mounted && seq === refreshSeq) loading.value = false
   }
 }
 
@@ -81,7 +84,14 @@ async function resolveTarget(target: string) {
 }
 
 watch(symbol, refresh)
-onMounted(refresh)
+onMounted(() => {
+  mounted = true
+  void refresh()
+})
+onBeforeUnmount(() => {
+  mounted = false
+  refreshSeq += 1
+})
 </script>
 
 <style scoped>

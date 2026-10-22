@@ -2,7 +2,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+from app.lib.time_utils import wire_datetime
 
 
 class ETFHoldingsSymbolAuditOut(BaseModel):
@@ -193,6 +195,10 @@ class ETFHoldingsAdapterStateOut(BaseModel):
     rate_limit_state: str | None = None
     extra_data: dict | None = None
 
+    @field_serializer("last_success_at", "last_failure_at", "last_checked_at", "published_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class ETFHoldingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -250,6 +256,10 @@ class ETFHoldingsSnapshotOut(BaseModel):
     notes: str | None = None
     extra_data: dict | None = None
     holdings: list[ETFHoldingOut] = Field(default_factory=list)
+
+    @field_serializer("known_at", "published_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class ETFHoldingsPageOut(BaseModel):
@@ -422,12 +432,21 @@ class ETFHoldingsDateOut(BaseModel):
     composition_date: date
     as_of_date: date | None = None
     known_at: datetime | None = None
+    published_at: datetime | None = None
+    cadence: str | None = None
+    parser_version: str | None = None
+    timing_provenance: dict[str, str] = Field(default_factory=dict)
     provenance: str
     source_provider: str
+    source_identifier: str | None = None
     row_count: int
     resolved_count: int
     unresolved_count: int
     source_quality: str
+
+    @field_serializer("known_at", "published_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class ETFUnresolvedHoldingOut(BaseModel):
@@ -448,20 +467,42 @@ class ETFConstituentTimelinePoint(BaseModel):
     composition_date: date
     as_of_date: date | None = None
     known_at: datetime | None = None
+    published_at: datetime | None = None
     weight: Decimal | None = None
     weight_delta_from_previous: Decimal | None = None
     shares: Decimal | None = None
     market_value: Decimal | None = None
     source_provider: str
+    source_identifier: str | None = None
+    cadence: str | None = None
+    parser_version: str | None = None
+    timing_provenance: dict[str, str] = Field(default_factory=dict)
     provenance: str
+
+    @field_serializer("known_at", "published_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class ETFHoldingsWeightEvolutionPointOut(BaseModel):
     snapshot_id: int
     composition_date: date
+    as_of_date: date | None = None
+    known_at: datetime | None = None
+    published_at: datetime | None = None
     weight: Decimal | None = None
     shares: Decimal | None = None
     market_value: Decimal | None = None
+    source_provider: str | None = None
+    source_identifier: str | None = None
+    cadence: str | None = None
+    parser_version: str | None = None
+    timing_provenance: dict[str, str] = Field(default_factory=dict)
+    provenance: str | None = None
+
+    @field_serializer("known_at", "published_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
 
 
 class ETFHoldingsWeightEvolutionSeriesOut(BaseModel):
@@ -743,6 +784,10 @@ class ETFHoldingsBackfillFilingOut(BaseModel):
     ingested_at: datetime | None = None
     extra_data: dict | None = None
 
+    @field_serializer("acceptance_datetime", "ingested_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)
+
 
 class ETFHoldingsBackfillJobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -766,3 +811,7 @@ class ETFHoldingsBackfillJobOut(BaseModel):
     summary: dict | None = None
     extra_data: dict | None = None
     filings: list[ETFHoldingsBackfillFilingOut] = Field(default_factory=list)
+
+    @field_serializer("started_at", "completed_at")
+    def serialize_timestamps(self, value: datetime | None) -> str | None:
+        return wire_datetime(value)

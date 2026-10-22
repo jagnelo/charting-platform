@@ -22,6 +22,28 @@ describe('CodeLibraryTool', () => {
       : Promise.resolve({}))
   })
 
+  it('announces loading and filtered-empty library states politely', async () => {
+    let resolveAssets!: (value: unknown[]) => void
+    apiGet.mockImplementationOnce(() => new Promise(resolve => { resolveAssets = resolve }))
+    const wrapper = mount(CodeLibraryTool)
+    await Promise.resolve()
+
+    const loading = wrapper.get('.code-library-tool__notice')
+    expect(loading.text()).toContain('Loading user-owned assets')
+    expect(loading.attributes('role')).toBe('status')
+    expect(loading.attributes('aria-live')).toBe('polite')
+    expect(loading.attributes('aria-atomic')).toBe('true')
+
+    resolveAssets([])
+    await flushPromises()
+    const empty = wrapper.get('.code-library-tool__notice')
+    expect(empty.text()).toContain('No matching Python assets')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+    wrapper.unmount()
+  })
+
   it('loads, filters, clones, and archives user-owned assets', async () => {
     apiPost.mockImplementation((path: string, body: Record<string, unknown>) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
@@ -43,9 +65,58 @@ describe('CodeLibraryTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/versions', expect.objectContaining({ source: "output.scalar('n', 2)", output_contract: 'study' }))
-    await wrapper.findAll('button').find(button => button.text() === 'Archive')!.trigger('click')
+    const archive = wrapper.findAll('button').find(button => button.text() === 'Archive')!
+    expect(archive.attributes('aria-label')).toBe('Archive asset')
+    expect(archive.attributes('aria-pressed')).toBe('false')
+    await archive.trigger('click')
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/archive', { is_archived: true })
+  })
+
+  it('opens the latest immutable study version in Study Lab', async () => {
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Open Streak study in Study Lab"]').trigger('click')
+
+    expect(wrapper.emitted('open-study')).toEqual([[
+      {
+        name: 'Streak study',
+        versionId: 8,
+        source: "output.scalar('n', 1)",
+        outputContract: 'study',
+        parameterSchema: {},
+        defaultParameters: {},
+      },
+    ]])
+  })
+
+  it('opens the selected historical immutable study version in Study Lab', async () => {
+    const versionedAsset = {
+      ...asset,
+      versions: [
+        { id: 8, version_number: 1, source: "output.scalar('n', 1)", output_contract: 'study', parameter_schema: {}, default_parameters: {} },
+        { id: 9, version_number: 2, source: "output.scalar('n', 2)", output_contract: 'study', parameter_schema: { properties: { lookback: { type: 'integer' } } }, default_parameters: { lookback: 20 } },
+      ],
+    }
+    apiGet.mockResolvedValueOnce([versionedAsset])
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+
+    await wrapper.get('summary').trigger('click')
+    await wrapper.get('[aria-label="Base version for Streak study"]').setValue('1')
+    await wrapper.get('[aria-label="Open version 1 of Streak study in Study Lab"]').trigger('click')
+
+    expect(wrapper.emitted('open-study')).toEqual([[
+      {
+        name: 'Streak study',
+        versionId: 8,
+        source: "output.scalar('n', 1)",
+        outputContract: 'study',
+        parameterSchema: {},
+        defaultParameters: {},
+      },
+    ]])
   })
 
   it('creates a typed new study asset from the library form', async () => {
@@ -54,13 +125,34 @@ describe('CodeLibraryTool', () => {
       : path === '/code/assets' ? Promise.resolve({ ...asset, id: 9, stable_key: 'breadth-study', name: 'Breadth study' }) : Promise.resolve({}))
     const wrapper = mount(CodeLibraryTool)
     await flushPromises()
-    await wrapper.findAll('button').find(button => button.text() === 'New')!.trigger('click')
+    const newButton = wrapper.findAll('button').find(button => button.text() === 'New')!
+    expect(newButton.attributes('aria-expanded')).toBe('false')
+    const createFormId = newButton.attributes('aria-controls')
+    expect(createFormId).toBeTruthy()
+    await newButton.trigger('click')
+    expect(newButton.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('form[aria-label="Create Python asset"]').attributes('id')).toBe(createFormId)
     await wrapper.find('[aria-label="New Python asset name"]').setValue('Breadth study')
     await wrapper.find('[aria-label="New Python asset key"]').setValue('breadth-study')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({ stable_key: 'breadth-study', kind: 'study', initial_version: expect.objectContaining({ output_contract: 'study' }) }))
     expect(wrapper.text()).toContain('Breadth study')
+  })
+
+  it('keeps create-form control IDs unique across detached Code Library roots', async () => {
+    const first = mount(CodeLibraryTool)
+    const second = mount(CodeLibraryTool)
+    await flushPromises()
+
+    const firstId = first.get('button[aria-controls^="code-library-create-"]').attributes('aria-controls')
+    const secondId = second.get('button[aria-controls^="code-library-create-"]').attributes('aria-controls')
+    expect(firstId).toBeTruthy()
+    expect(secondId).toBeTruthy()
+    expect(firstId).not.toBe(secondId)
+
+    first.unmount()
+    second.unmount()
   })
 
   it('creates a numeric-series condition asset for isolated breadth targets', async () => {
@@ -97,7 +189,38 @@ describe('CodeLibraryTool', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('Validation errors')
     expect(wrapper.text()).toContain('Imports are not permitted')
+    const validation = wrapper.get('.code-library-tool__validation')
+    expect(validation.attributes('role')).toBe('alert')
+    expect(validation.attributes('aria-live')).toBe('assertive')
+    expect(validation.attributes('aria-atomic')).toBe('true')
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+  })
+
+  it('announces successful source validation as a polite status', async () => {
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'New')!.trigger('click')
+    await wrapper.find('[aria-label="New Python asset source"]').setValue("output.scalar('value', 1)")
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await flushPromises()
+
+    const validation = wrapper.get('.code-library-tool__validation')
+    expect(validation.text()).toContain('Validated')
+    expect(validation.attributes('role')).toBe('status')
+    expect(validation.attributes('aria-live')).toBe('polite')
+    expect(validation.attributes('aria-atomic')).toBe('true')
+  })
+
+  it('announces library request failures as assertive alerts', async () => {
+    apiGet.mockRejectedValueOnce(new Error('Library unavailable'))
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+
+    const error = wrapper.get('.code-library-tool__error')
+    expect(error.text()).toBe('Library unavailable')
+    expect(error.attributes('role')).toBe('alert')
+    expect(error.attributes('aria-live')).toBe('assertive')
+    expect(error.attributes('aria-atomic')).toBe('true')
   })
 
   it('blocks a syntactically valid source whose output contract disagrees with the asset kind', async () => {
@@ -115,5 +238,19 @@ describe('CodeLibraryTool', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('Asset declares series')
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+  })
+
+  it('does not publish a late refresh after the tool unmounts', async () => {
+    let resolveAssets!: (value: typeof asset[]) => void
+    apiGet.mockReturnValue(new Promise(resolve => { resolveAssets = resolve }))
+    const wrapper = mount(CodeLibraryTool)
+    await Promise.resolve()
+    expect(apiGet).toHaveBeenCalledWith('/code/assets')
+
+    wrapper.unmount()
+    resolveAssets([asset])
+    await flushPromises()
+
+    expect((wrapper.vm as any).assets).toEqual([])
   })
 })

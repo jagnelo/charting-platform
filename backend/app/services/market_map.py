@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.lib.time_utils import wire_datetime
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
@@ -26,7 +27,7 @@ from app.models.provider_runtime import (
     ProviderEntitlementRevision,
     ProviderPolicy,
 )
-from app.models.research import ResearchRun
+from app.models.research import CodeVersion, ResearchRun
 from app.providers import list_provider_capabilities
 from app.schemas.market_map import (
     MarketMapCell,
@@ -43,6 +44,7 @@ from app.services.breadth import (
     required_bars_for_condition,
 )
 from app.services.evaluator_preflight import EvaluatorCoverageItem, preflight_ohlcv
+from app.services.ohlcv_coverage import bar_visible_through_clause
 from app.services.watchlist_sources import (
     CurrentAnalysisSourceError,
     current_analysis_source_error_detail,
@@ -74,24 +76,25 @@ def _membership_evaluation_timestamp(
     """
 
     if request.as_of is not None:
-        return request.as_of
+        return _as_utc(request.as_of)
     source = source_id or request.source_id
     if request.end is not None and source.startswith(
         ("benchmark-family:", "etf-holdings:", "market-group:", "explicit-list:")
     ):
-        return request.end
+        return _as_utc(request.end)
     return None
 
 
 def _period_bounds(request: MarketMapRequest, latest: datetime) -> tuple[datetime | None, datetime]:
     period = request.period.upper()
-    end = min(item for item in (request.end, request.as_of, latest) if item is not None)
+    start = _as_utc(request.start) if request.start is not None else None
+    end = min(_as_utc(item) for item in (request.end, request.as_of, latest) if item is not None)
     if period == "CUSTOM":
-        return request.start, end
+        return start, end
     if period in {"YTD", "MTD"}:
         if period == "MTD":
-            return datetime(end.year, end.month, 1, tzinfo=end.tzinfo or UTC), end
-        return datetime(end.year, 1, 1, tzinfo=end.tzinfo or UTC), end
+            return datetime(end.year, end.month, 1, tzinfo=UTC), end
+        return datetime(end.year, 1, 1, tzinfo=UTC), end
     offset = _OFFSETS.get(period)
     if offset is None:
         return None, end
@@ -123,13 +126,20 @@ def _market_map_required_bars(request: MarketMapRequest) -> int:
 
 
 def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: datetime):
-    eligible = [bar for bar in bars if bar.ts <= end]
+    end_utc = _as_utc(end)
+    start_utc = _as_utc(start) if start is not None else None
+    eligible = [bar for bar in bars if _as_utc(bar.ts) <= end_utc]
     if not eligible:
         return None, None, "no_bars", "No local bars are available."
     latest = eligible[-1]
     if period.upper() == "CUSTOM":
         base = next(
-            (bar for bar in reversed(eligible) if start is not None and bar.ts < start), None
+            (
+                bar
+                for bar in reversed(eligible)
+                if start_utc is not None and _as_utc(bar.ts) < start_utc
+            ),
+            None,
         )
     elif period.upper() in {"YTD", "MTD"}:
         # MTD/YTD performance is measured from the last completed session before
@@ -140,7 +150,12 @@ def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: date
         # the result explicitly uncovered instead of silently changing the
         # calculation to an in-window return.
         base = next(
-            (bar for bar in reversed(eligible) if start is not None and bar.ts < start), None
+            (
+                bar
+                for bar in reversed(eligible)
+                if start_utc is not None and _as_utc(bar.ts) < start_utc
+            ),
+            None,
         )
     else:
         offset = _OFFSETS.get(period.upper(), 1)
@@ -149,7 +164,7 @@ def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: date
         return None, latest.ts, "insufficient_history", f"{period} requires more aligned history."
     if not base.close:
         return None, latest.ts, "zero_base_price", "The base close is zero."
-    return float(latest.close / base.close - 1), latest.ts, None, None
+    return float(latest.close / base.close - 1), _as_utc(latest.ts), None, None
 
 
 def _rsi(bars: list[OHLCVBar]):
@@ -269,6 +284,75 @@ def _is_cross_sectional_condition(condition: object) -> bool:
     )
 
 
+def _contains_python_condition(condition: object) -> bool:
+    if not isinstance(condition, dict):
+        return False
+    if str(condition.get("kind", "")).lower() in {
+        "python_series",
+        "python_series_comparison",
+    }:
+        return True
+    params = condition.get("params")
+    if not isinstance(params, dict):
+        return False
+    children = params.get("conditions")
+    return isinstance(children, list) and any(
+        _contains_python_condition(child) for child in children
+    )
+
+
+_PYTHON_CONDITION_RUNTIME_PARAMS = {
+    "source",
+    "output_name",
+    "left_source",
+    "right_source",
+    "left_output_name",
+    "right_output_name",
+    "left_asset_key",
+    "right_asset_key",
+    "parameters",
+    "left_parameters",
+    "right_parameters",
+}
+
+
+def _condition_tree_matches_declared(requested: object, resolved: object) -> bool:
+    """Compare a requested tree with its API-resolved immutable counterpart.
+
+    The isolated breadth API adds owned source text, output names, and empty
+    parameter maps to Python leaves. Those execution details are intentionally
+    ignored here; the user-authored predicate, asset IDs, target scopes, and
+    operators must still match before a completed run can colour a map.
+    """
+
+    if not isinstance(requested, dict) or not isinstance(resolved, dict):
+        return False
+    if str(requested.get("kind", "")).lower() != str(resolved.get("kind", "")).lower():
+        return False
+    kind = str(requested.get("kind", "")).lower()
+    requested_params = requested.get("params") if isinstance(requested.get("params"), dict) else {}
+    resolved_params = resolved.get("params") if isinstance(resolved.get("params"), dict) else {}
+    if kind in {"all", "any", "not"}:
+        requested_children = requested_params.get("conditions")
+        resolved_children = resolved_params.get("conditions")
+        if not isinstance(requested_children, list) or not isinstance(resolved_children, list):
+            return False
+        return len(requested_children) == len(resolved_children) and all(
+            _condition_tree_matches_declared(requested_child, resolved_child)
+            for requested_child, resolved_child in zip(requested_children, resolved_children)
+        )
+    if "target_scope" in requested and requested.get("target_scope") != resolved.get(
+        "target_scope"
+    ):
+        return False
+    for key, value in requested_params.items():
+        if key in _PYTHON_CONDITION_RUNTIME_PARAMS or key == "conditions":
+            continue
+        if key not in resolved_params or resolved_params.get(key) != value:
+            return False
+    return True
+
+
 async def _events_by_instrument(
     db: AsyncSession,
     instrument_ids: list[int],
@@ -285,6 +369,12 @@ async def _events_by_instrument(
                 .where(
                     InstrumentEvent.instrument_id.in_(instrument_ids),
                     InstrumentEvent.event_time <= period_end,
+                    # ``fetched_at`` is the knowledge boundary for a
+                    # reproducible historical map. An event whose disclosed
+                    # event date is old but was only fetched after the map's
+                    # cutoff is future information and must not be projected
+                    # backwards into the result.
+                    InstrumentEvent.fetched_at <= period_end,
                 )
                 .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
             )
@@ -303,20 +393,34 @@ async def _events_by_instrument(
         .scalars()
         .all()
     )
-    loaded_ids = {int(state.instrument_id) for state in fetch_states}
+    # Fetch state is source-scoped. Keep the source association so a future
+    # state for one provider cannot make an older event from that provider look
+    # historically loaded merely because another provider was fetched earlier.
+    loaded_sources_by_instrument: dict[int, set[str]] = defaultdict(set)
+    eligible_fetch_timestamps: list[datetime] = []
+    for state in fetch_states:
+        fetched_at = getattr(state, "fetched_at", None)
+        if not isinstance(fetched_at, datetime) or _as_utc(fetched_at) > _as_utc(period_end):
+            continue
+        loaded_sources_by_instrument[int(state.instrument_id)].add(str(state.source))
+        eligible_fetch_timestamps.append(fetched_at)
     events: dict[int, list[InstrumentEvent] | None] = {
-        instrument_id: [] if instrument_id in loaded_ids else None
+        instrument_id: ([] if loaded_sources_by_instrument.get(instrument_id) else None)
         for instrument_id in instrument_ids
     }
     for event in rows:
-        events.setdefault(event.instrument_id, []).append(event)
+        loaded_sources = loaded_sources_by_instrument.get(int(event.instrument_id), set())
+        if str(event.source) in loaded_sources:
+            events.setdefault(event.instrument_id, []).append(event)
+    included_event_timestamps = [
+        getattr(event, "fetched_at", None)
+        for event in rows
+        if str(event.source) in loaded_sources_by_instrument.get(int(event.instrument_id), set())
+    ]
     timestamps = [
         timestamp
-        for timestamp in [
-            *(getattr(event, "fetched_at", None) for event in rows),
-            *(getattr(state, "fetched_at", None) for state in fetch_states),
-        ]
-        if isinstance(timestamp, datetime)
+        for timestamp in [*included_event_timestamps, *eligible_fetch_timestamps]
+        if isinstance(timestamp, datetime) and _as_utc(timestamp) <= _as_utc(period_end)
     ]
     return events, max(timestamps, default=None)
 
@@ -325,7 +429,9 @@ async def _python_colour_values(
     db: AsyncSession,
     user_id: int,
     run_id: int,
-) -> tuple[dict[int, tuple[float | None, str | None, bool | None, float | None]], str]:
+) -> tuple[
+    dict[int, tuple[float | None, str | None, bool | None, float | None]], str, int, str | None
+]:
     """Read completed isolated batch cells for one user-owned Python run.
 
     Python is never executed by the Market Map request. The run must already be
@@ -336,7 +442,10 @@ async def _python_colour_values(
     run = (
         await db.execute(
             select(ResearchRun)
-            .options(selectinload(ResearchRun.artifacts))
+            .options(
+                selectinload(ResearchRun.artifacts),
+                selectinload(ResearchRun.code_version).selectinload(CodeVersion.asset),
+            )
             .where(ResearchRun.id == run_id, ResearchRun.user_id == user_id)
         )
     ).scalar_one_or_none()
@@ -345,7 +454,20 @@ async def _python_colour_values(
     if run.status != "completed":
         raise ValueError("python_run_not_completed")
     config = run.run_config if isinstance(run.run_config, dict) else {}
-    output_contract = str(config.get("output_contract") or "series")
+    version = run.code_version
+    if (
+        version is None
+        or version.asset is None
+        or version.asset.user_id != user_id
+        or version.asset.kind != "condition"
+        or version.asset.is_archived
+    ):
+        raise ValueError("python_run_condition_unavailable")
+    output_contract = str(version.output_contract)
+    if config.get("output_contract") not in {None, output_contract}:
+        raise ValueError("python_run_output_contract_mismatch")
+    if "output_name" in config and config.get("output_name") != version.output_name:
+        raise ValueError("python_run_output_name_mismatch")
     artifact = next(
         (
             item
@@ -393,7 +515,97 @@ async def _python_colour_values(
             values[instrument_id] = (None, "python_numeric_invalid", None, numeric_metric)
         else:
             values[instrument_id] = (numeric_value, None, None, numeric_value)
-    return values, output_contract
+    return values, output_contract, version.id, version.output_name
+
+
+async def _python_breadth_condition_values(
+    db: AsyncSession,
+    user_id: int,
+    run_id: int,
+    condition: object,
+    member_ids: list[int],
+) -> dict[int, tuple[float | None, str | None, bool | None, float | None]]:
+    """Read one completed isolated Boolean breadth run for Market Map colour.
+
+    Market Map never executes user Python. It consumes only the immutable
+    ``batch_cells`` artifact produced by the dedicated breadth worker and
+    requires the persisted tree and declared universe to match the request.
+    """
+
+    run = (
+        await db.execute(
+            select(ResearchRun)
+            .options(selectinload(ResearchRun.artifacts))
+            .where(ResearchRun.id == run_id, ResearchRun.user_id == user_id)
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        raise ValueError("python_run_not_found")
+    if run.status != "completed":
+        raise ValueError("python_run_not_completed")
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    if config.get("execution_mode") != "breadth_current":
+        raise ValueError("python_breadth_condition_requires_current_run")
+    if config.get("output_contract") != "boolean":
+        raise ValueError("python_breadth_condition_requires_boolean")
+    resolved_condition = config.get("condition_tree")
+    if not _condition_tree_matches_declared(condition, resolved_condition):
+        raise ValueError("python_breadth_condition_mismatch")
+    artifact = next(
+        (
+            item
+            for item in run.artifacts
+            if item.name == "batch_cells" and isinstance(item.payload, dict)
+        ),
+        None,
+    )
+    if artifact is None or not isinstance(artifact.payload.get("value"), dict):
+        raise ValueError("python_breadth_condition_artifact_unavailable")
+    raw_cells = artifact.payload["value"].get("cells")
+    if not isinstance(raw_cells, list):
+        raise ValueError("python_breadth_condition_artifact_unavailable")
+    cells_by_id = {
+        raw.get("instrument_id"): raw
+        for raw in raw_cells
+        if isinstance(raw, dict) and isinstance(raw.get("instrument_id"), int)
+    }
+    if set(cells_by_id) != set(member_ids):
+        raise ValueError("python_breadth_condition_universe_mismatch")
+    values: dict[int, tuple[float | None, str | None, bool | None, float | None]] = {}
+    for instrument_id in member_ids:
+        raw = cells_by_id[instrument_id]
+        metric = raw.get("metric")
+        numeric_metric = (
+            float(metric)
+            if isinstance(metric, int | float)
+            and not isinstance(metric, bool)
+            and math.isfinite(float(metric))
+            else None
+        )
+        if raw.get("status") != "completed":
+            values[instrument_id] = (
+                None,
+                str(raw.get("error") or "python_condition_cell_excluded"),
+                None,
+                numeric_metric,
+            )
+            continue
+        condition_value = raw.get("value")
+        if not isinstance(condition_value, bool):
+            values[instrument_id] = (
+                None,
+                "python_condition_value_invalid",
+                None,
+                numeric_metric,
+            )
+            continue
+        values[instrument_id] = (
+            1.0 if condition_value else -1.0,
+            None,
+            condition_value,
+            numeric_metric,
+        )
+    return values
 
 
 def _node_metric(cells: list[MarketMapCell], area_metric: str) -> tuple[float | None, str]:
@@ -489,16 +701,23 @@ def _snapshot_classification(snapshot: InstrumentProfileSnapshot) -> dict[str, o
         "snapshot_id": snapshot.id,
         "data_source_id": snapshot.data_source_id,
         "provider_name": snapshot.data_source.name if snapshot.data_source is not None else None,
-        "observed_at": snapshot.observed_at.isoformat(),
-        "fetched_at": snapshot.fetched_at.isoformat(),
+        "observed_at": _utc_iso(snapshot.observed_at),
+        "fetched_at": _utc_iso(snapshot.fetched_at),
         "point_in_time": True,
     }
 
 
 def _as_utc(value: datetime) -> datetime:
-    """Normalize SQLite's naive timestamps before historical comparisons."""
+    """Normalize API and SQLite timestamps to the canonical UTC timeline."""
 
-    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC)
+
+
+def _utc_iso(value: datetime | None) -> str | None:
+    """Serialize an optional timestamp on the canonical UTC timeline."""
+
+    return wire_datetime(value)
 
 
 def _entitlement_revision_for(
@@ -551,8 +770,8 @@ def _profile_area_provenance(
             if provider_rank is not None
             else "unranked_snapshot_fallback"
         ),
-        "observed_at": snapshot.observed_at.isoformat(),
-        "fetched_at": snapshot.fetched_at.isoformat(),
+        "observed_at": _utc_iso(snapshot.observed_at),
+        "fetched_at": _utc_iso(snapshot.fetched_at),
         "point_in_time": True,
     }
     if conflict is not None:
@@ -602,7 +821,7 @@ def _profile_field_conflict(
                 "snapshot_id": snapshot.id,
                 "data_source_id": snapshot.data_source_id,
                 "provider_name": snapshot.data_source.name if snapshot.data_source else None,
-                "observed_at": snapshot.observed_at.isoformat(),
+                "observed_at": _utc_iso(snapshot.observed_at),
                 "value": value,
             }
             for snapshot, value in sorted(candidates, key=lambda item: item[0].id)
@@ -719,22 +938,12 @@ async def _profile_snapshot_provider_policy(
             "entitlement_revision": (
                 revision.revision if revision is not None else entitlement.revision
             ),
-            "entitlement_effective_at": (
-                entitlement_view.effective_at.isoformat()
-                if entitlement_view.effective_at is not None
-                else None
-            ),
-            "entitlement_review_due_at": (
-                entitlement_view.review_due_at.isoformat()
-                if entitlement_view.review_due_at is not None
-                else None
-            ),
-            "entitlement_known_at": (
-                revision.created_at.isoformat() if revision is not None else None
-            ),
+            "entitlement_effective_at": _utc_iso(entitlement_view.effective_at),
+            "entitlement_review_due_at": _utc_iso(entitlement_view.review_due_at),
+            "entitlement_known_at": _utc_iso(revision.created_at if revision is not None else None),
             "entitlement_historical": revision is not None,
             "entitlement_revision_missing": historical_revision_missing,
-            "policy_evaluation_at": evaluation_at.isoformat(),
+            "policy_evaluation_at": _utc_iso(evaluation_at),
             "eligible": eligible_now,
         }
         provider_metadata[data_source.id] = metadata
@@ -756,7 +965,7 @@ async def _profile_snapshot_provider_policy(
                 "adapter_capable": adapter_capable,
                 "eligible": eligible_now,
                 "environment": environment,
-                "evaluation_at": evaluation_at.isoformat(),
+                "evaluation_at": _utc_iso(evaluation_at),
             }
         )
         if eligible_now:
@@ -800,25 +1009,30 @@ def _cache_key(
     therefore cannot silently reuse an older map result.
     """
 
-    payload = request.model_dump(mode="json") | {
+    payload = request.model_dump(mode="json")
+    for field in ("start", "end", "as_of"):
+        value = getattr(request, field)
+        if value is not None:
+            payload[field] = wire_datetime(value)
+    payload |= {
         "calculation_version": "market-map-v2",
         "membership_version": membership_version,
         "member_ids": sorted(member_ids),
-        "bar_watermark": bar_watermark.isoformat() if bar_watermark else None,
-        "reference_bar_watermark": (
-            reference_watermark.isoformat() if reference_watermark else None
-        ),
-        "event_watermark": event_watermark.isoformat() if event_watermark else None,
+        "bar_watermark": _utc_iso(bar_watermark),
+        "reference_bar_watermark": (_utc_iso(reference_watermark)),
+        "event_watermark": _utc_iso(event_watermark),
         "reference_membership_version": reference_membership_version,
         "reference_member_ids": sorted(reference_member_ids or []),
-        "profile_snapshot_watermark": (
-            profile_snapshot_watermark.isoformat() if profile_snapshot_watermark else None
-        ),
+        "profile_snapshot_watermark": (_utc_iso(profile_snapshot_watermark)),
         "profile_snapshot_ids": sorted(profile_snapshot_ids or []),
         "profile_snapshot_policy_fingerprint": profile_snapshot_policy_fingerprint,
         "classification_snapshot_ids": sorted(classification_snapshot_ids or []),
         "freshness_stale_ids": sorted(freshness_stale_ids or []),
     }
+    if request.color_metric == "python" or request.area_metric == "python":
+        # Python maps now expose the immutable selected-output lineage. Avoid
+        # reusing cache rows created before that response contract existed.
+        payload["python_output_lineage_version"] = 2
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
 
@@ -847,6 +1061,12 @@ async def read_market_map_cache(
 async def build_market_map(
     db: AsyncSession, user_id: int, request: MarketMapRequest
 ) -> MarketMapOut:
+    if (
+        request.color_metric == "breadth"
+        and _contains_python_condition(request.condition)
+        and request.python_run_id is None
+    ):
+        raise ValueError("breadth_python_condition_requires_python_run_id")
     # Imported lazily to avoid the analysis router/service import cycle.  The
     # existing helper is intentionally reused so freshness semantics stay
     # identical across batch analysis surfaces.
@@ -893,8 +1113,10 @@ async def build_market_map(
         )
         for item in sorted(missing_ids)
     ]
-    end_hint = request.end or request.as_of or datetime.now(UTC)
-    history_start = (request.start or end_hint) - timedelta(days=500)
+    end_hint = _as_utc(request.end or request.as_of or datetime.now(UTC))
+    history_start = (_as_utc(request.start) if request.start is not None else end_hint) - timedelta(
+        days=500
+    )
     try:
         timeframe = Timeframe(request.timeframe)
     except ValueError as exc:
@@ -909,6 +1131,7 @@ async def build_market_map(
                     OHLCVBar.is_adjusted.is_(request.adjusted),
                     OHLCVBar.ts >= history_start,
                     OHLCVBar.ts <= end_hint,
+                    bar_visible_through_clause(end_hint),
                 )
                 .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
             )
@@ -919,6 +1142,7 @@ async def build_market_map(
     bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
     for bar in bars:
         bars_by_id[bar.instrument_id].append(bar)
+    latest = max((_as_utc(bar.ts) for rows in bars_by_id.values() for bar in rows), default=None)
     # Current maps must never calculate signals from an explicitly expired
     # persisted OHLCV snapshot.  An explicit ``as_of`` or a disclosed
     # point-in-time source evaluation retains historical semantics and skips
@@ -938,7 +1162,6 @@ async def build_market_map(
                 instrument_id,
             )
         )
-    latest = max((bar.ts for rows in bars_by_id.values() for bar in rows), default=None)
     if latest is None:
         latest = end_hint
     period_start, period_end = _period_bounds(request, latest)
@@ -1120,6 +1343,7 @@ async def build_market_map(
                             OHLCVBar.is_adjusted.is_(request.adjusted),
                             OHLCVBar.ts >= history_start,
                             OHLCVBar.ts <= period_end,
+                            bar_visible_through_clause(end_hint),
                         )
                         .order_by(OHLCVBar.ts)
                     )
@@ -1192,6 +1416,7 @@ async def build_market_map(
                         OHLCVBar.is_adjusted.is_(request.adjusted),
                         OHLCVBar.ts >= history_start,
                         OHLCVBar.ts <= period_end,
+                        bar_visible_through_clause(end_hint),
                     )
                     .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
                 )
@@ -1217,7 +1442,7 @@ async def build_market_map(
         reference_bars, reference_summary = build_equal_reference_series(reference_bars_by_id)
         reference_series_method = str(reference_summary.get("method"))
         if reference_bars and reference_source_bars:
-            first_timestamp = min(bar.ts for bar in reference_source_bars)
+            first_timestamp = min(_as_utc(bar.ts) for bar in reference_source_bars)
             reference_bars = [
                 SimpleNamespace(ts=first_timestamp, close=100.0, volume=None),
                 *reference_bars,
@@ -1235,16 +1460,32 @@ async def build_market_map(
         else (None, None, None, None)
     )
     source_bar_watermark = max(
-        (bar.ts for rows in bars_by_id.values() for bar in rows), default=None
+        (_as_utc(bar.ts) for rows in bars_by_id.values() for bar in rows), default=None
     )
-    reference_bar_watermark = max((bar.ts for bar in reference_bars), default=None)
+    reference_bar_watermark = max((_as_utc(bar.ts) for bar in reference_bars), default=None)
     events_by_id, event_watermark = (
         await _events_by_instrument(db, member_ids, period_end)
         if request.color_metric == "breadth" and _condition_requires_events(request.condition)
         else ({}, None)
     )
-    cross_sectional_condition = request.color_metric == "breadth" and _is_cross_sectional_condition(
+    python_breadth_condition = request.color_metric == "breadth" and _contains_python_condition(
         request.condition
+    )
+    python_breadth_values: dict[
+        int, tuple[float | None, str | None, bool | None, float | None]
+    ] = {}
+    if python_breadth_condition and request.python_run_id is not None:
+        python_breadth_values = await _python_breadth_condition_values(
+            db,
+            user_id,
+            request.python_run_id,
+            request.condition,
+            member_ids,
+        )
+    cross_sectional_condition = (
+        request.color_metric == "breadth"
+        and not python_breadth_condition
+        and _is_cross_sectional_condition(request.condition)
     )
     cross_sectional_results = {}
     if cross_sectional_condition:
@@ -1289,13 +1530,21 @@ async def build_market_map(
         classification_snapshot_ids,
         freshness_stale_ids,
     )
-    python_values, python_output_contract = ({}, "")
+    python_values, python_output_contract, python_code_version_id, python_output_name = (
+        {},
+        "",
+        None,
+        None,
+    )
     if (
         request.color_metric == "python" or request.area_metric == "python"
     ) and request.python_run_id is not None:
-        python_values, python_output_contract = await _python_colour_values(
-            db, user_id, request.python_run_id
-        )
+        (
+            python_values,
+            python_output_contract,
+            python_code_version_id,
+            python_output_name,
+        ) = await _python_colour_values(db, user_id, request.python_run_id)
     if request.area_metric == "python" and python_output_contract != "series":
         raise ValueError("python_area_requires_series")
     cached_result = await read_market_map_cache(db, user_id, cache_key)
@@ -1306,7 +1555,7 @@ async def build_market_map(
         instrument = instruments.get(instrument_id)
         if instrument is None:
             continue
-        rows = [bar for bar in bars_by_id.get(instrument_id, []) if bar.ts <= period_end]
+        rows = [bar for bar in bars_by_id.get(instrument_id, []) if _as_utc(bar.ts) <= period_end]
         result, observed, code, message = _return(rows, request.period, period_start, period_end)
         warnings: list[MarketMapWarning] = []
         if instrument_id in stale_member_ids:
@@ -1332,6 +1581,11 @@ async def build_market_map(
                 "stale_data",
                 None,
                 None,
+            )
+        elif python_breadth_condition:
+            colour, colour_code, condition_value, condition_metric = python_breadth_values.get(
+                instrument_id,
+                (None, "python_breadth_member_missing", None, None),
             )
         elif cross_sectional_condition:
             cross_sectional_result = cross_sectional_results.get(instrument_id)
@@ -1391,6 +1645,8 @@ async def build_market_map(
                 if cross_sectional_condition
                 else "The isolated Python colour output is unavailable for this member."
                 if request.color_metric == "python"
+                else "The isolated Python breadth condition is unavailable for this member."
+                if python_breadth_condition
                 else "The requested colour metric is not covered by available local data."
             )
             warnings.append(_warning(colour_code, message, instrument_id=instrument_id))
@@ -1432,6 +1688,8 @@ async def build_market_map(
                 area_provenance = {
                     "kind": "isolated_python",
                     "run_id": request.python_run_id,
+                    "code_version_id": python_code_version_id,
+                    "output_name": python_output_name,
                     "output_contract": python_output_contract,
                 }
         elif request.area_metric == "weight":
@@ -1440,10 +1698,8 @@ async def build_market_map(
                 area_provenance = {
                     "kind": "point_in_time_membership",
                     "source": member.source,
-                    "effective_at": member.effective_at.isoformat()
-                    if member.effective_at
-                    else None,
-                    "known_at": member.known_at.isoformat() if member.known_at else None,
+                    "effective_at": _utc_iso(member.effective_at),
+                    "known_at": _utc_iso(member.known_at),
                     "membership_version": resolved.descriptor.membership_version,
                 }
             if area is None:
@@ -1460,7 +1716,7 @@ async def build_market_map(
                 area_provenance = {
                     "kind": "local_ohlcv",
                     "field": "volume",
-                    "observed_at": rows[-1].ts.isoformat(),
+                    "observed_at": _utc_iso(rows[-1].ts),
                     "adjustment": "raw_volume",
                 }
             if area is None:
@@ -1509,20 +1765,34 @@ async def build_market_map(
                         )
                     )
             else:
-                area, area_provenance, area_code = _numeric_area_field(
-                    instrument, request.area_field
-                )
-                if area is not None and isinstance(area_provenance, dict):
+                if historical_grouping:
+                    area = None
                     area_provenance = {
-                        **area_provenance,
-                        "point_in_time": bool(area_provenance.get("point_in_time", False)),
-                        "selection": "current_stats_fallback",
+                        "kind": "point_in_time_unavailable",
+                        "field": request.area_field or "unknown",
+                        "evaluation_at": _utc_iso(end_hint),
                     }
+                    area_code = "historical_area_field_unavailable"
+                else:
+                    area, area_provenance, area_code = _numeric_area_field(
+                        instrument, request.area_field
+                    )
+                    if area is not None and isinstance(area_provenance, dict):
+                        area_provenance = {
+                            **area_provenance,
+                            "point_in_time": bool(area_provenance.get("point_in_time", False)),
+                            "selection": "current_stats_fallback",
+                        }
                 if area_code:
                     warnings.append(
                         _warning(
                             area_code,
-                            f"The provider numeric field {request.area_field or 'unknown'} is unavailable or unproven.",
+                            (
+                                f"No eligible point-in-time profile snapshot contains the numeric area field "
+                                f"{request.area_field or 'unknown'}."
+                                if historical_grouping
+                                else f"The provider numeric field {request.area_field or 'unknown'} is unavailable or unproven."
+                            ),
                             instrument_id=instrument_id,
                         )
                     )
@@ -1575,28 +1845,43 @@ async def build_market_map(
                         )
                     )
             else:
-                area = (
-                    float(instrument.stats.market_cap)
-                    if instrument.stats and instrument.stats.market_cap is not None
-                    else None
-                )
-                if area is not None:
-                    market_cap_provenance = (
-                        (instrument.stats.field_provenance or {}).get("market_cap")
-                        if instrument.stats
+                if historical_grouping:
+                    area = None
+                    area_provenance = {
+                        "kind": "point_in_time_unavailable",
+                        "field": "market_cap",
+                        "evaluation_at": _utc_iso(end_hint),
+                    }
+                    warnings.append(
+                        _warning(
+                            "historical_market_cap_unavailable",
+                            "No eligible point-in-time profile snapshot contains market-cap area data.",
+                            instrument_id=instrument_id,
+                        )
+                    )
+                else:
+                    area = (
+                        float(instrument.stats.market_cap)
+                        if instrument.stats and instrument.stats.market_cap is not None
                         else None
                     )
-                    area_provenance = (
-                        market_cap_provenance
-                        if isinstance(market_cap_provenance, dict)
-                        else {
-                            "kind": "current_metadata",
-                            "field": "market_cap",
-                            "source": "local_instrument_stats",
-                            "point_in_time": False,
-                        }
-                    )
-                if area is None:
+                    if area is not None:
+                        market_cap_provenance = (
+                            (instrument.stats.field_provenance or {}).get("market_cap")
+                            if instrument.stats
+                            else None
+                        )
+                        area_provenance = (
+                            market_cap_provenance
+                            if isinstance(market_cap_provenance, dict)
+                            else {
+                                "kind": "current_metadata",
+                                "field": "market_cap",
+                                "source": "local_instrument_stats",
+                                "point_in_time": False,
+                            }
+                        )
+                if area is None and not historical_grouping:
                     warnings.append(
                         _warning(
                             "missing_market_cap",
@@ -1604,7 +1889,7 @@ async def build_market_map(
                             instrument_id=instrument_id,
                         )
                     )
-                else:
+                elif area is not None and not historical_grouping:
                     warnings.append(
                         _warning(
                             "current_market_cap",
@@ -1798,6 +2083,9 @@ async def build_market_map(
             "required_bars": required_bars,
         },
         python_run_id=request.python_run_id,
+        python_code_version_id=python_code_version_id,
+        python_output_name=python_output_name,
+        python_output_contract=python_output_contract or None,
         reference_symbol=request.reference_symbol.upper() if request.reference_symbol else None,
         reference_source=reference_source,
         reference_source_id=request.reference_source_id,
@@ -1889,6 +2177,40 @@ async def build_market_map(
                     if request.area_metric == "field"
                     and any(
                         any(item.code == "current_area_field_fallback" for item in cell.warnings)
+                        for cell in cells
+                    )
+                    else []
+                ),
+                *(
+                    [
+                        _warning(
+                            "historical_market_cap_unavailable",
+                            "Some historical cells have no eligible point-in-time market-cap area data; current metadata was not used.",
+                        )
+                    ]
+                    if request.area_metric == "market_cap"
+                    and any(
+                        any(
+                            item.code == "historical_market_cap_unavailable"
+                            for item in cell.warnings
+                        )
+                        for cell in cells
+                    )
+                    else []
+                ),
+                *(
+                    [
+                        _warning(
+                            "historical_area_field_unavailable",
+                            "Some historical cells have no eligible point-in-time numeric area field; current metadata was not used.",
+                        )
+                    ]
+                    if request.area_metric == "field"
+                    and any(
+                        any(
+                            item.code == "historical_area_field_unavailable"
+                            for item in cell.warnings
+                        )
                         for cell in cells
                     )
                     else []

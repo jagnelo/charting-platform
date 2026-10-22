@@ -196,7 +196,10 @@
         :panel-id="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
         :key="layoutStore.layout === '1' ? 'main' : layoutStore.activePanelId"
         :panel-width="layoutStore.panelWidths.indicatorPanel"
+        :panel-open="indicatorPanelOpen"
         @select-symbol="onSymbolSelect"
+        @update:panel-open="onIndicatorPanelOpenChange"
+        @instrument-available="onIndicatorPanelInstrumentAvailable"
       />
     </div>
   </div>
@@ -245,6 +248,21 @@ const presetsStore    = usePresetsStore()
 const optionsExposureStore = useOptionsExposureStore()
 const radarStore      = useRadarStore()
 
+// Keep the shared right-rail disclosure outside the keyed panel subtree. The
+// keyed IndicatorPanel remounts when the active chart changes; a temporarily
+// missing instrument during that handoff must not resize the chart grid.
+const indicatorPanelOpen = ref(false)
+const indicatorPanelOpenPreference = ref<boolean | null>(null)
+
+function onIndicatorPanelOpenChange(open: boolean) {
+  indicatorPanelOpen.value = open
+  indicatorPanelOpenPreference.value = open
+}
+
+function onIndicatorPanelInstrumentAvailable() {
+  if (indicatorPanelOpenPreference.value === null) indicatorPanelOpen.value = true
+}
+
 // Active panel store — in single mode this is the global chart store, in multi mode it's the active panel
 const activePanelStore = computed(() =>
   layoutStore.layout === '1' ? chartStore : usePanelStore(layoutStore.activePanelId)
@@ -283,6 +301,12 @@ const comparisonTargets = ref<Array<{
   bars: OHLCVBar[]
 }>>([])
 let comparisonSeq = 0
+let selectionGeneration = 0
+let lifecycleGeneration = 0
+
+function isCurrentLifecycle(generation: number) {
+  return generation === lifecycleGeneration
+}
 
 const COMPARE_COLORS = ['#ffb74d', '#64b5f6', '#81c784', '#ba68c8', '#f06292', '#4dd0e1']
 
@@ -399,6 +423,7 @@ function removeComparison(symbol: string) {
 
 async function loadComparisonBars() {
   if (!chartStore.symbol || !comparisonTargets.value.length) return
+  const generation = lifecycleGeneration
   const seq = ++comparisonSeq
   const tf = currentTf.value
   const targets = [...comparisonTargets.value]
@@ -422,7 +447,7 @@ async function loadComparisonBars() {
       return { symbol: target.symbol, bars: [] as OHLCVBar[] }
     }
   }))
-  if (seq !== comparisonSeq) return
+  if (!isCurrentLifecycle(generation) || seq !== comparisonSeq) return
   comparisonTargets.value = comparisonTargets.value.map(target => ({
     ...target,
     bars: loaded.find(item => item.symbol === target.symbol)?.bars ?? [],
@@ -430,6 +455,10 @@ async function loadComparisonBars() {
 }
 
 async function onSymbolSelect(symbol: string) {
+  const generation = lifecycleGeneration
+  const selection = ++selectionGeneration
+  const selectionIndicatorEdit = chartStore.indicatorEditGeneration
+  const isCurrentSelection = () => isCurrentLifecycle(generation) && selection === selectionGeneration
   if (chartStore.symbol !== symbol) {
     radarStore.clearChartDetections()
   }
@@ -442,15 +471,21 @@ async function onSymbolSelect(symbol: string) {
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store
     await chartStore.loadBars(symbol, currentTf.value)
+    if (!isCurrentSelection()) return
     const inst = chartStore.instrument
     if (inst) {
       await drawStore.loadDrawings(inst.id, currentTf.value)
+      if (!isCurrentSelection()) return
       await alertsStore.loadAlerts(inst.id)
+      if (!isCurrentSelection()) return
       const def = presetsStore.getDefault()
-      if (def) chartStore.setIndicators([...def.indicators])
+      if (def && chartStore.indicatorEditGeneration === selectionIndicatorEdit) {
+        chartStore.setIndicators([...def.indicators])
+      }
     }
     lastClose.value = currentPrice.value
     await loadComparisonBars()
+    if (!isCurrentSelection()) return
     await syncRadarOverlays()
   } else {
     // Multi-panel: broadcast symbol to panels in the same colour link group.
@@ -461,18 +496,23 @@ async function onSymbolSelect(symbol: string) {
       const pStore = usePanelStore(p.id)
       layoutStore.updatePanel(p.id, { symbol })
       await pStore.loadBars(symbol, p.timeframe)
+      if (!isCurrentSelection()) return
     }
     const activeStore = usePanelStore(layoutStore.activePanelId)
     const activeInst = activeStore.instrument
     if (activeInst) {
       await drawStore.loadDrawings(activeInst.id, activeStore.timeframe)
+      if (!isCurrentSelection()) return
       await alertsStore.loadAlerts(activeInst.id)
+      if (!isCurrentSelection()) return
     }
     await syncRadarOverlays()
   }
 }
 
 async function syncRadarOverlays() {
+  const generation = lifecycleGeneration
+  if (!isCurrentLifecycle(generation)) return
   if (!chartStore.instrument) {
     radarStore.clearChartDetections()
     return
@@ -482,6 +522,7 @@ async function syncRadarOverlays() {
     chartStore.instrument.symbol,
   )
   await radarStore.loadChartDetections(chartStore.instrument.id, chartStore.timeframe, detectionId)
+  if (!isCurrentLifecycle(generation)) return
 }
 
 function stripLegacyRadarDetectionQuery() {
@@ -492,13 +533,17 @@ function stripLegacyRadarDetectionQuery() {
 }
 
 watch(currentTf, async (tf) => {
+  const generation = lifecycleGeneration
   if (!chartStore.symbol) return
   lastClose.value = currentPrice.value
   await chartStore.loadBars(chartStore.symbol, tf)
+  if (!isCurrentLifecycle(generation)) return
   const inst = chartStore.instrument
   if (inst) {
     await drawStore.loadDrawings(inst.id, tf)
+    if (!isCurrentLifecycle(generation)) return
     await alertsStore.loadAlerts(inst.id)
+    if (!isCurrentLifecycle(generation)) return
   }
   await loadComparisonBars()
   await syncRadarOverlays()
@@ -510,23 +555,27 @@ watch(() => chartStore.bars.length, () => {
 
 // When switching from single to multi-panel, carry the current symbol into all panels
 watch(() => layoutStore.layout, async (newLayout, oldLayout) => {
+  const generation = lifecycleGeneration
   if (oldLayout === '1' && newLayout !== '1' && chartStore.symbol) {
     for (const p of layoutStore.panels) {
       if (!p.linkedToGlobal) continue
       layoutStore.updatePanel(p.id, { symbol: chartStore.symbol })
       const pStore = usePanelStore(p.id)
       await pStore.loadBars(chartStore.symbol, p.timeframe)
+      if (!isCurrentLifecycle(generation)) return
     }
   }
 })
 
 // When the active panel changes in multi-panel mode, sync drawings and alerts to that panel
 watch(() => layoutStore.activePanelId, async (panelId) => {
+  const generation = lifecycleGeneration
   if (layoutStore.layout === '1') return
   const pStore = usePanelStore(panelId)
   const inst = pStore.instrument
   if (inst) {
     await drawStore.loadDrawings(inst.id, pStore.timeframe)
+    if (!isCurrentLifecycle(generation)) return
     await alertsStore.loadAlerts(inst.id)
   }
 })
@@ -575,20 +624,47 @@ async function confirmCreateWatchlist(name: string) {
 }
 
 onMounted(async () => {
+  const generation = lifecycleGeneration
   document.addEventListener('click', onDocClick, true)
-  await presetsStore.loadPresets()
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
   const pending = radarStore.pendingChartDetection
   if (sym && pending?.instrumentSymbol === sym.toUpperCase() && currentTf.value !== pending.timeframe) {
     currentTf.value = pending.timeframe
   }
+  const presetsLoad = presetsStore.loadPresets()
   if (sym) {
-    await onSymbolSelect(sym)
+    // Do not serialize URL-symbol hydration behind preset I/O. A user can
+    // switch from one chart to a multi-panel layout while presets are still
+    // loading; starting the symbol now lets the existing 1→multi watcher carry
+    // it into every linked panel instead of leaving the original panel blank.
+    const symbolSelection = onSymbolSelect(sym)
+    const bootstrapSelection = selectionGeneration
+    const bootstrapIndicatorEdit = chartStore.indicatorEditGeneration
+    await Promise.all([presetsLoad, symbolSelection])
+    if (!isCurrentLifecycle(generation)) return
+    // onSymbolSelect may have completed before presets were available. Apply
+    // the default once both operations settle only while this exact selection
+    // still owns the chart and no explicit indicator mutation has superseded
+    // it. Multi-panel stores retain their own indicator state.
+    if (
+      layoutStore.layout === '1'
+      && selectionGeneration === bootstrapSelection
+      && chartStore.indicatorEditGeneration === bootstrapIndicatorEdit
+      && chartStore.symbol === sym
+    ) {
+      const def = presetsStore.getDefault()
+      if (def) chartStore.setIndicators([...def.indicators])
+    }
+  } else {
+    await presetsLoad
   }
 })
 
 onUnmounted(() => {
+  lifecycleGeneration += 1
+  selectionGeneration += 1
+  comparisonSeq += 1
   document.removeEventListener('click', onDocClick, true)
   radarStore.clearPendingChartDetection()
 })

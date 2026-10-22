@@ -37,4 +37,27 @@ describe('OHLCV request coordinator', () => {
       expect(request).toHaveBeenCalledTimes(2)
     } finally { vi.useRealTimers() }
   })
+
+  it('refreshes a settled value while all linked consumers join the new request', async () => {
+    let releaseFresh!: (value: string[]) => void
+    const request = vi.fn()
+      .mockResolvedValueOnce(['old'])
+      .mockImplementationOnce(() => new Promise<string[]>(resolve => { releaseFresh = resolve }))
+
+    await expect(dedupeOhlcvRequest('SPY:D1:refresh', request)).resolves.toEqual(['old'])
+
+    const fresh = dedupeOhlcvRequest('SPY:D1:refresh', request, 5_000, { ignoreCompleted: true })
+    const linkedFresh = dedupeOhlcvRequest('SPY:D1:refresh', request, 5_000, { ignoreCompleted: true })
+    const linkedOrdinary = dedupeOhlcvRequest('SPY:D1:refresh', request)
+    expect(request).toHaveBeenCalledTimes(2)
+
+    releaseFresh(['new'])
+    await expect(Promise.all([fresh, linkedFresh, linkedOrdinary])).resolves.toEqual([
+      ['new'],
+      ['new'],
+      ['new'],
+    ])
+    await expect(dedupeOhlcvRequest('SPY:D1:refresh', request)).resolves.toEqual(['new'])
+    expect(request).toHaveBeenCalledTimes(2)
+  })
 })

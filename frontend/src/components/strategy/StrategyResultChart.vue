@@ -5,7 +5,7 @@
     :class="{ 'result-chart--hovering': !!tooltip }"
     @mouseleave="clearHover"
   >
-    <div v-if="!hasValidData" class="result-chart__empty">
+    <div v-if="!hasValidData" class="result-chart__empty" role="status" aria-live="polite" aria-atomic="true">
       {{ emptyLabel }}
     </div>
     <template v-else>
@@ -27,6 +27,8 @@
             type="button"
             class="result-chart__range-button"
             :class="{ 'result-chart__range-button--active': selectedRangeKey === option.key }"
+            :aria-label="`Show ${option.label} chart period`"
+            :aria-pressed="selectedRangeKey === option.key ? 'true' : 'false'"
             @click="selectRange(option.key)"
           >
             {{ option.label }}

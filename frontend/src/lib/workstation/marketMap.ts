@@ -1,6 +1,138 @@
 import { api } from '@/lib/api'
 import type { MarketMap, MarketMapCell, MarketMapRequest, MarketMapSnapshot, MarketMapSnapshotSummary } from '@/types'
 
+export type BenchmarkFamilyRole = 'cap_weight' | 'equal_weight' | 'value' | 'growth'
+
+export interface BenchmarkFamilyMemberBarHistoryTimeframe {
+  timeframe: string
+  member_count: number
+  covered_member_count: number
+  coverage_percent: number
+  analysis_ready_member_count: number
+  analysis_ready_percent: number
+  analysis_ready_status?: 'ready' | 'partial' | 'pending' | 'unavailable' | string
+  bar_count: number
+  provider_member_count?: number
+  derived_member_count?: number
+  provider_only_member_count?: number
+  derived_only_member_count?: number
+  mixed_member_count?: number
+  provider_bar_count?: number
+  derived_bar_count?: number
+  source_lineage?: 'provider_only' | 'derived_only' | 'provider_and_derived' | 'unavailable'
+  adjustment_provenance?: {
+    mode?: string
+    source_kind?: string
+    factor_status?: string
+    factor_version?: string | null
+    factor_versioned_member_count?: number
+    factor_opaque_member_count?: number
+    factor_unavailable_member_count?: number
+    contract_version?: number
+  }
+  oldest?: string | null
+  newest?: string | null
+  required_bar_count?: number
+}
+
+export interface BenchmarkFamilyCoverageSnapshot {
+  snapshot_id: number
+  composition_date: string
+  as_of_date?: string | null
+  known_at?: string | null
+  published_at?: string | null
+  cadence?: string | null
+  parser_version?: string | null
+  timing_provenance?: Record<string, string>
+  provenance?: string | null
+  source_provider?: string | null
+  source_identifier?: string | null
+  source_quality?: string | null
+  completeness_status?: string | null
+  row_count: number
+  resolved_count: number
+  unresolved_count: number
+}
+
+export interface BenchmarkFamilyCoverageRole {
+  role: BenchmarkFamilyRole
+  symbol?: string | null
+  label: string
+  verification_state?: string | null
+  instrument_id?: number | null
+  adapter_key?: string | null
+  adapter_status?: string | null
+  adapter_confidence?: string | null
+  available: boolean
+  status: string
+  holdings_completeness_status?: string | null
+  snapshots?: BenchmarkFamilyCoverageSnapshot[]
+  continuity_status?: string | null
+  continuity_gap_count?: number
+  continuity_max_interval_days?: number | null
+  continuity_gaps?: Array<{ from_date: string; to_date: string; interval_days: number }>
+  continuity_snapshot_limit_reached?: boolean
+  observed_cadence_status?: 'not_applicable' | 'no_snapshot' | 'single_snapshot' | 'observed_cadence' | 'no_interval' | string
+  observed_cadence_sample_count?: number
+  observed_cadence_median_interval_days?: number | null
+  observed_cadence_min_interval_days?: number | null
+  observed_cadence_max_interval_days?: number | null
+  holdings_route_adapter_key?: string | null
+  holdings_route_provider?: string | null
+  holdings_route_status?: string | null
+  history_route_status?: string | null
+  history_route_provider?: string | null
+  history_route_policy?: string | null
+  history_route_source_url?: string | null
+  holdings_refresh_provider?: string | null
+  holdings_refresh_status?: string | null
+  holdings_refresh_last_checked_at?: string | null
+  holdings_refresh_last_success_at?: string | null
+  holdings_refresh_last_failure_at?: string | null
+  holdings_refresh_failure_reason?: string | null
+  holdings_refresh_composition_date?: string | null
+  member_bar_history?: {
+    status: string
+    snapshot_id?: number | null
+    composition_date?: string | null
+    member_disposition?: Record<string, number>
+    placeholder_member_count: number
+    unresolved_member_count?: number
+    timeframes: BenchmarkFamilyMemberBarHistoryTimeframe[]
+  }
+  entitlement_status?: string | null
+  entitlement_provider?: string | null
+  entitlement_capabilities?: Record<string, string>
+  entitlement_revision?: number | null
+  entitlement_effective_at?: string | null
+  entitlement_review_due_at?: string | null
+  entitlement_live_probe_status?: string | null
+  point_in_time_supported: boolean
+  member_count: number
+  placeholder_member_count: number
+  weighted_member_count: number
+  weights_status: string
+  classified_member_count: number
+  classification_status: string
+  history_ready: boolean
+  composite_readiness_status: string
+  composite_readiness_reasons: string[]
+}
+
+export interface BenchmarkFamilyCoverage {
+  family_key: string
+  name: string
+  official_index_symbol: string
+  official_index_name: string
+  as_of?: string | null
+  membership_version: number
+  universe_provenance: Record<string, unknown>
+  coverage: number
+  roles: BenchmarkFamilyCoverageRole[]
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  freshness: string
+}
+
 export type WatchlistHistoryStatusKind = 'pending' | 'partial' | 'fetching' | 'failed' | 'ready' | 'unavailable'
 
 export interface WatchlistHistoryTimeframeStatus {
@@ -8,7 +140,29 @@ export interface WatchlistHistoryTimeframeStatus {
   member_count: number
   covered_member_count: number
   coverage_percent: number
+  analysis_ready_member_count?: number
+  analysis_ready_percent?: number
+  required_bar_count?: number | null
+  analysis_ready_status?: WatchlistHistoryStatusKind
   bar_count: number
+  provider_member_count?: number
+  derived_member_count?: number
+  provider_only_member_count?: number
+  derived_only_member_count?: number
+  mixed_member_count?: number
+  provider_bar_count?: number
+  derived_bar_count?: number
+  source_lineage?: 'provider_only' | 'derived_only' | 'provider_and_derived' | 'unavailable' | string
+  adjustment_provenance?: {
+    mode?: string
+    source_kind?: string
+    factor_status?: string
+    factor_version?: string | null
+    factor_versioned_member_count?: number
+    factor_opaque_member_count?: number
+    factor_unavailable_member_count?: number
+    contract_version?: number
+  }
   oldest?: string | null
   newest?: string | null
   in_progress_count: number
@@ -29,8 +183,33 @@ export interface WatchlistSourceHistoryStatus {
   selected_instrument_count: number
   limited: boolean
   excluded_count: number
+  member_disposition?: Record<string, number>
+  effective_at?: string | null
+  known_at?: string | null
+  timing_provenance?: Record<string, string>
+  published_at?: string | null
+  cadence?: string | null
+  parser_version?: string | null
+  source_identifier?: string | null
   overall_status: WatchlistHistoryStatusKind
+  analysis_ready?: boolean
+  analysis_ready_status?: WatchlistHistoryStatusKind
   timeframes: WatchlistHistoryTimeframeStatus[]
+  message?: string | null
+}
+
+export interface WatchlistSourceHistoryRefreshSource {
+  source_id: string
+  source_kind?: string | null
+  name: string
+  locked: boolean
+  status: string
+  member_count: number
+  selected_count: number
+  deduplicated_count: number
+  excluded_count: number
+  member_disposition?: Record<string, number>
+  membership_version?: string | null
   message?: string | null
 }
 
@@ -46,6 +225,7 @@ export interface WatchlistSourceHistoryRefreshResult {
   queued: number
   already_queued: number
   queue_unavailable: boolean
+  sources?: WatchlistSourceHistoryRefreshSource[]
   message?: string | null
 }
 
@@ -74,14 +254,26 @@ export function fetchMarketMap(request: MarketMapRequest): Promise<MarketMap> {
   return api.post<MarketMap>('/analysis/market-map', request)
 }
 
+export function fetchBenchmarkFamilyCoverage(
+  familyKey: string,
+  asOf?: string | null,
+  limit = 256,
+): Promise<BenchmarkFamilyCoverage> {
+  return api.get<BenchmarkFamilyCoverage>(
+    `/analysis/benchmark-families/${encodeURIComponent(familyKey)}/coverage`,
+    { limit, ...(asOf ? { as_of: asOf } : {}) },
+  )
+}
+
 export function fetchWatchlistSourceHistoryStatus(
   sourceId: string,
   timeframes: string[] = ['D1'],
   maxInstruments = 5000,
+  asOf?: string | null,
 ): Promise<WatchlistSourceHistoryStatus> {
   return api.get<WatchlistSourceHistoryStatus>(
     `/watchlists/sources/history-status/${encodeURIComponent(sourceId)}`,
-    { timeframes, max_instruments: maxInstruments },
+    { timeframes, max_instruments: maxInstruments, ...(asOf ? { as_of: asOf } : {}) },
   )
 }
 
@@ -89,11 +281,13 @@ export function refreshWatchlistSourceHistory(
   sourceId: string,
   timeframes: string[] = ['D1'],
   maxInstruments = 5000,
+  asOf?: string | null,
 ): Promise<WatchlistSourceHistoryRefreshResult> {
   return api.post<WatchlistSourceHistoryRefreshResult>('/watchlists/sources/history-refresh', {
     source_ids: [sourceId],
     timeframes,
     max_instruments: maxInstruments,
+    ...(asOf ? { as_of: asOf } : {}),
   })
 }
 
@@ -142,6 +336,70 @@ export interface MarketMapLayoutGroup {
   width: number
   height: number
   member_count: number
+}
+
+/**
+ * Fixed normalized-space grid used for large canvas hit testing.  The canvas
+ * itself is responsive, so indexing the layout in the same 0..100 coordinate
+ * space keeps pointer lookup independent of device pixels and viewport size.
+ */
+export const MARKET_MAP_HIT_TEST_GRID_SIZE = 32
+
+export type MarketMapHitTestIndex = Map<number, MarketMapLayoutCell[]>
+
+function hitTestBucketCoordinate(value: number, gridSize: number): number {
+  return Math.min(gridSize - 1, Math.max(0, Math.floor((value / 100) * gridSize)))
+}
+
+function hitTestBucketKey(x: number, y: number, gridSize: number): number {
+  return hitTestBucketCoordinate(y, gridSize) * gridSize + hitTestBucketCoordinate(x, gridSize)
+}
+
+/**
+ * Index layout cells into a uniform grid while retaining source order in each
+ * bucket.  The latter preserves the existing first-match behaviour for exact
+ * shared edges and any malformed overlapping geometry.
+ */
+export function buildMarketMapHitTestIndex(
+  cells: MarketMapLayoutCell[],
+  gridSize = MARKET_MAP_HIT_TEST_GRID_SIZE,
+): MarketMapHitTestIndex {
+  const index: MarketMapHitTestIndex = new Map()
+  if (gridSize < 1 || !Number.isFinite(gridSize)) return index
+  const buckets = Math.max(1, Math.floor(gridSize))
+  for (const cell of cells) {
+    if (![cell.x, cell.y, cell.width, cell.height].every(Number.isFinite)) continue
+    const left = Math.min(cell.x, cell.x + cell.width)
+    const right = Math.max(cell.x, cell.x + cell.width)
+    const top = Math.min(cell.y, cell.y + cell.height)
+    const bottom = Math.max(cell.y, cell.y + cell.height)
+    const minX = hitTestBucketCoordinate(left, buckets)
+    const maxX = hitTestBucketCoordinate(right, buckets)
+    const minY = hitTestBucketCoordinate(top, buckets)
+    const maxY = hitTestBucketCoordinate(bottom, buckets)
+    for (let bucketY = minY; bucketY <= maxY; bucketY += 1) {
+      for (let bucketX = minX; bucketX <= maxX; bucketX += 1) {
+        const key = bucketY * buckets + bucketX
+        const bucket = index.get(key)
+        if (bucket) bucket.push(cell)
+        else index.set(key, [cell])
+      }
+    }
+  }
+  return index
+}
+
+/** Resolve a normalized-space pointer through the precomputed hit-test grid. */
+export function findMarketMapCell(
+  index: MarketMapHitTestIndex,
+  x: number,
+  y: number,
+  gridSize = MARKET_MAP_HIT_TEST_GRID_SIZE,
+): MarketMapLayoutCell | null {
+  if (gridSize < 1 || !Number.isFinite(gridSize) || !Number.isFinite(x) || !Number.isFinite(y)) return null
+  const buckets = Math.max(1, Math.floor(gridSize))
+  const candidates = index.get(hitTestBucketKey(x, y, buckets)) ?? []
+  return candidates.find(cell => x >= cell.x && x <= cell.x + cell.width && y >= cell.y && y <= cell.y + cell.height) ?? null
 }
 
 interface LayoutItem {

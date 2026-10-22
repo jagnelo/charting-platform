@@ -102,6 +102,19 @@ class OHLCVBar(Base):
     adjustment_version: Mapped[str] = mapped_column(String(80), nullable=False, default="legacy")
     provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
+    # TC-owned derived-bar lineage remains in the existing columns created by
+    # ff0a1b2c3d4e. These are nullable except the provider/derived discriminator
+    # so legacy rows retain their original unknown values without inference.
+    is_derived: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+    source_timeframe: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    derivation_method: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    derived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_bar_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     instrument: Mapped["Instrument"] = relationship(back_populates="ohlcv_bars")
     data_source: Mapped["DataSource"] = relationship(back_populates="ohlcv_bars")
     market_series: Mapped["MarketSeries | None"] = relationship(overlaps="market_series")

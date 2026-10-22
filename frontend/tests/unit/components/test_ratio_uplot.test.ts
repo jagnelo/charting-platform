@@ -74,6 +74,27 @@ describe('RatioUPlot', () => {
     expect(data?.[2]).toEqual([1.0])
   })
 
+  it('announces the empty ratio state politely', async () => {
+    vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
+    const wrapper = mountTool({ props: { symbol: 'XLK', benchmarks: ['SPY'] } })
+
+    const empty = wrapper.get('.ratio-chart__state')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+  })
+
+  it('announces ratio request failures assertively', async () => {
+    vi.mocked(api.get).mockRejectedValue(new Error('Ratio service unavailable'))
+    const wrapper = mountTool({ props: { symbol: 'XLK', benchmarks: ['SPY'] } })
+
+    await vi.waitFor(() => expect(wrapper.get('.ratio-chart__state--error').text()).toBe('Ratio service unavailable'))
+    const error = wrapper.get('.ratio-chart__state--error')
+    expect(error.attributes('role')).toBe('alert')
+    expect(error.attributes('aria-live')).toBe('assertive')
+    expect(error.attributes('aria-atomic')).toBe('true')
+  })
+
   it('reloads ratios using the active linked timeframe', async () => {
     vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
     const wrapper = mountTool({ props: { symbol: 'XLK', benchmarks: ['SPY'], timeframe: 'D1' } })

@@ -96,6 +96,37 @@ def test_runner_adapts_latest_numeric_series_value_to_scalar_column_contract():
     ]
 
 
+def test_runner_adapts_thresholded_numeric_scalar_to_boolean_condition_contract():
+    result = execute_job(
+        {
+            "source": "output.scalar('target', market.close()[-1])",
+            "output_contract": "boolean",
+            "output_name": "target",
+            "output_adapter": "scalar_target_to_boolean",
+            "series_target": {"operator": "gte", "threshold": 11},
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "closes": [10, 12],
+                    }
+                ]
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {
+            "instrument_id": 1,
+            "symbol": "SPY",
+            "status": "completed",
+            "value": True,
+            "metric": 12.0,
+        },
+    ]
+
+
 def test_runner_adapts_thresholded_numeric_series_to_boolean_scan_contract():
     result = execute_job(
         {
@@ -119,6 +150,32 @@ def test_runner_adapts_thresholded_numeric_series_to_boolean_scan_contract():
     assert result["status"] == "completed"
     assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
         {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": True, "metric": 12.0},
+    ]
+
+
+def test_runner_adapts_thresholded_range_center_to_boolean_scan_contract():
+    result = execute_job(
+        {
+            "source": "output.range('target', [10, 11], [12, 14], [11, 12.5])",
+            "output_contract": "boolean",
+            "output_name": "target",
+            "output_adapter": "range_center_target_to_boolean",
+            "series_target": {"operator": "gte", "threshold": 12},
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": ["2026-01-01", "2026-01-02"],
+                        "closes": [10, 12],
+                    },
+                ]
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": True, "metric": 12.5},
     ]
 
 
@@ -149,6 +206,151 @@ def test_runner_executes_declared_event_signals_across_prepared_universe_cells()
     cells = result["artifacts"]["batch_cells"]["value"]["cells"]
     assert [cell["symbol"] for cell in cells] == ["SPY", "XLK"]
     assert cells[0]["value"][0]["timestamp"] == "2024-01-02T00:00:00+00:00"
+
+
+def test_runner_adapts_event_artifacts_to_current_observation_booleans():
+    result = execute_job(
+        {
+            "source": (
+                "output.events('signals', ["
+                "{'timestamp': market.timestamps()[-1], 'kind': 'signal'}])"
+            ),
+            "output_contract": "boolean",
+            "output_name": "signals",
+            "output_adapter": "events_to_boolean",
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"],
+                        "closes": [100, 101],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "XLK",
+                        "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"],
+                        "closes": [200, 202],
+                    },
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    cells = result["artifacts"]["batch_cells"]["value"]["cells"]
+    assert cells == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": True, "metric": 1.0},
+        {"instrument_id": 2, "symbol": "XLK", "status": "completed", "value": True, "metric": 1.0},
+    ]
+
+
+def test_runner_event_boolean_adapter_rejects_future_events_and_preserves_false():
+    result = execute_job(
+        {
+            "source": (
+                "output.events('signals', ["
+                "{'timestamp': '2024-01-03T00:00:00+00:00', 'kind': 'future'}])"
+            ),
+            "output_contract": "boolean",
+            "output_name": "signals",
+            "output_adapter": "events_to_boolean",
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"],
+                        "closes": [100, 101],
+                    }
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": False, "metric": 0.0},
+    ]
+
+
+def test_runner_event_boolean_adapter_keeps_symbol_and_instrument_lineage_scoped():
+    result = execute_job(
+        {
+            "source": (
+                "output.events('signals', [{"
+                "'symbol': dataset['symbol'], 'instrument_id': 1, "
+                "'timestamp': market.timestamps()[-1], 'kind': 'signal'}])"
+            ),
+            "output_contract": "boolean",
+            "output_name": "signals",
+            "output_adapter": "events_to_boolean",
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": [
+                            "2024-01-01T00:00:00+00:00",
+                            "2024-01-02T00:00:00+00:00",
+                        ],
+                        "closes": [100, 101],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "XLK",
+                        "timestamps": [
+                            "2024-01-01T00:00:00+00:00",
+                            "2024-01-02T00:00:00+00:00",
+                        ],
+                        "closes": [200, 202],
+                    },
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": True, "metric": 1.0},
+        {"instrument_id": 2, "symbol": "XLK", "status": "completed", "value": False, "metric": 0.0},
+    ]
+
+
+def test_runner_adapts_named_event_output_from_structured_study():
+    result = execute_job(
+        {
+            "source": (
+                "output.scalar('sample_size', 1)\n"
+                "output.events('signals', [{"
+                "'symbol': dataset['symbol'], 'instrument_id': dataset['instrument_id'], "
+                "'timestamp': market.timestamps()[-1], 'kind': 'signal'}])"
+            ),
+            # The source is a multi-output Study Lab program, while the screener
+            # contract is the explicit event-to-Boolean adapter result.
+            "output_contract": "boolean",
+            "output_name": "signals",
+            "output_adapter": "events_to_boolean",
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"],
+                        "closes": [100, 101],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "XLK",
+                        "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"],
+                        "closes": [200, 202],
+                    },
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": True, "metric": 1.0},
+        {"instrument_id": 2, "symbol": "XLK", "status": "completed", "value": True, "metric": 1.0},
+    ]
 
 
 def test_runner_rejects_non_object_parameters():
@@ -1293,6 +1495,53 @@ def test_runner_selects_one_named_output_from_a_multi_output_typed_adapter():
     ]
 
 
+def test_runner_promotes_one_named_structured_study_series_over_the_prepared_universe():
+    result = execute_job(
+        {
+            "source": (
+                "output.scalar('member_count', len(market.universe()))\n"
+                "output.series('aggregate', {'timestamps': ['2024-01-01', '2024-01-02'], 'values': [0.5, None]})\n"
+                "output.table('evidence', market.universe())"
+            ),
+            "output_contract": "series",
+            "output_name": "aggregate",
+            "output_adapter": "study_series_to_series",
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]},
+                    {"instrument_id": 2, "symbol": "XLK", "closes": [20, 21]},
+                ]
+            },
+        }
+    )
+
+    assert result["status"] == "completed"
+    assert result["artifacts"] == {
+        "aggregate": {
+            "type": "series",
+            "value": {
+                "timestamps": ["2024-01-01", "2024-01-02"],
+                "values": [0.5, None],
+            },
+        }
+    }
+
+
+def test_runner_rejects_malformed_structured_study_series_adapter_payload():
+    result = execute_job(
+        {
+            "source": "output.series('aggregate', {'timestamps': ['2024-01-01'], 'values': ['bad']})",
+            "output_contract": "series",
+            "output_name": "aggregate",
+            "output_adapter": "study_series_to_series",
+            "dataset": {"datasets": [{"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]}]},
+        }
+    )
+
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "study_series_adapter_non_numeric"
+
+
 def test_runner_batch_uses_one_outer_time_budget(monkeypatch):
     calls = []
 
@@ -1556,6 +1805,91 @@ def test_runner_emits_typed_range_band_with_aligned_timestamps():
             "center": [2.0, 3.0],
         },
     }
+
+
+def test_runner_adapts_explicit_range_center_to_chart_series():
+    result = execute_job(
+        {
+            "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+            "output_contract": "series",
+            "output_name": "band",
+            "output_adapter": "range_center_to_series",
+            "dataset": {"timestamps": ["2026-01-01", "2026-01-02"]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"] == {
+        "band": {
+            "type": "series",
+            "value": {
+                "timestamps": ["2026-01-01", "2026-01-02"],
+                "values": [2.0, 3.0],
+            },
+        }
+    }
+
+
+def test_runner_adapts_range_center_to_numeric_batch_cells():
+    result = execute_job(
+        {
+            "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+            "output_contract": "series",
+            "output_name": "band",
+            "output_adapter": "range_center_to_series",
+            "dataset": {"datasets": [{"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]}]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {
+            "instrument_id": 1,
+            "symbol": "SPY",
+            "status": "completed",
+            "value": 3.0,
+            "metric": 3.0,
+        }
+    ]
+
+
+def test_runner_adapts_range_center_to_latest_numeric_batch_cells():
+    result = execute_job(
+        {
+            "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+            "output_contract": "scalar",
+            "output_name": "band",
+            "output_adapter": "range_center_to_scalar",
+            "dataset": {"datasets": [{"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]}]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {
+            "instrument_id": 1,
+            "symbol": "SPY",
+            "status": "completed",
+            "value": 3.0,
+            "metric": 3.0,
+        }
+    ]
+
+
+def test_runner_reports_stable_range_center_adapter_error():
+    result = execute_job(
+        {
+            "source": "output.range('band', [1, 2], [3, 4])",
+            "output_contract": "series",
+            "output_name": "band",
+            "output_adapter": "range_center_to_series",
+            "dataset": {"timestamps": ["2026-01-01", "2026-01-02"]},
+        }
+    )
+    assert result["status"] == "failed"
+    assert result["diagnostics"] == [
+        {
+            "code": "range_center_adapter_unaligned",
+            "message": "Range center and timestamps must be aligned lists.",
+        }
+    ]
 
 
 def test_runner_emits_typed_scatter_points_for_study_relationships():

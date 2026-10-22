@@ -141,6 +141,49 @@ describe('DashboardRadarWidget', () => {
     expect(wrapper.text()).toContain('Open chart')
     expect(wrapper.text()).toContain('Close back below 181.20.')
   })
+
+  it('does not publish a late detection refresh after the widget unmounts', async () => {
+    let resolveRows!: (rows: any[]) => void
+    const rowsLoaded = new Promise<any[]>(resolve => { resolveRows = resolve })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => rowsLoaded)
+    const wrapper = mount(DashboardRadarWidget, {
+      props: { config: { timeframe: 'D1', state: 'confirmed', min_score: 0.6, limit: 6, active_only: true } },
+    })
+
+    await Promise.resolve()
+    const vm = wrapper.vm as unknown as { rows: any[]; loading: boolean }
+    wrapper.unmount()
+    resolveRows([buildDetection({ id: 99, instrument_symbol: 'MSFT' })])
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(vm.rows).toEqual([])
+    expect(vm.loading).toBe(true)
+  })
+
+  it('does not publish late detail state after the widget unmounts', async () => {
+    let resolveDetail!: (detail: any) => void
+    const detailLoaded = new Promise<any>(resolve => { resolveDetail = resolve })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((url: string, params: Record<string, any>) => {
+      if (url === '/radar/detections/9') return detailLoaded
+      if (params?.setup_type === 'breakdown') return Promise.resolve([])
+      return Promise.resolve([buildDetection()])
+    })
+    const wrapper = mount(DashboardRadarWidget, {
+      props: { config: { timeframe: 'D1', state: 'confirmed', min_score: 0.6, limit: 6, active_only: true } },
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('AAPL'))
+    await wrapper.get('.radar-widget-row').trigger('click')
+    await Promise.resolve()
+    const vm = wrapper.vm as unknown as { selectedDetail: any; detailLoading: boolean }
+    wrapper.unmount()
+    resolveDetail(buildDetection({ id: 9, summary: 'Late detail' }))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(vm.selectedDetail).toBe(null)
+    expect(vm.detailLoading).toBe(true)
+  })
 })
 
 function buildDetection(overrides: Record<string, any> = {}) {

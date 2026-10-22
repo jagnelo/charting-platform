@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-const props = withDefaults(defineProps<{ kind: 'close' | 'chevron-down' | 'chevron-up' | 'chevron-right' | 'chevron-left' | 'reset' | 'move-left' | 'move-right' | 'move-up' | 'move-down' | 'delete' | 'pause' | 'resume' | 'repeat' | 'visible' | 'hidden' | 'duplicate' | 'copy' | 'copy-linked' | 'promote' | 'edit' | 'export' | 'plus' | 'settings' | 'warning' | 'more' | 'bell' | 'lock' | 'unlock' | 'currency' | 'approx' | 'apply' | 'list' | 'scan' ; title?: string }>(), { kind: 'close' })
+const props = withDefaults(defineProps<{ kind: 'close' | 'chevron-down' | 'chevron-up' | 'chevron-right' | 'chevron-left' | 'reset' | 'move-left' | 'move-right' | 'move-up' | 'move-down' | 'delete' | 'pause' | 'resume' | 'repeat' | 'visible' | 'hidden' | 'duplicate' | 'copy' | 'copy-linked' | 'promote' | 'edit' | 'export' | 'plus' | 'settings' | 'warning' | 'more' | 'bell' | 'lock' | 'unlock' | 'currency' | 'approx' | 'apply' | 'list' | 'scan' | 'pin' ; title?: string }>(), { kind: 'close' })
 </script>
 
 <style scoped>
@@ -65,4 +65,6 @@ const props = withDefaults(defineProps<{ kind: 'close' | 'chevron-down' | 'chevr
 .workstation-glyph--list::before { content:''; position:absolute; left:1px; top:2px; width:9px; height:1px; background:currentColor; box-shadow:0 3px currentColor,0 6px currentColor; }
 .workstation-glyph--scan::before { content:''; position:absolute; left:1px; top:1px; width:8px; height:8px; border:1px solid currentColor; border-radius:50%; }
 .workstation-glyph--scan::after { content:''; position:absolute; right:0; bottom:0; width:5px; height:1px; background:currentColor; transform:rotate(45deg); transform-origin:right center; }
+.workstation-glyph--pin::before { content:''; position:absolute; left:2px; top:1px; width:6px; height:4px; border:1px solid currentColor; border-radius:1px 1px 0 0; }
+.workstation-glyph--pin::after { content:''; position:absolute; left:5px; top:5px; width:1px; height:6px; background:currentColor; transform:rotate(28deg); transform-origin:top center; }
 </style>

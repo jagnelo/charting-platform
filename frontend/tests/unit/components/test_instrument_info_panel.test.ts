@@ -148,14 +148,45 @@ describe('InstrumentInfoPanel', () => {
       props: { instrument: { id: 3, symbol: 'SPY', name: 'SPDR S&P 500 ETF', currency: 'USD', is_active: true } },
     })
     const region = wrapper.get('[role="region"][aria-label="SPY instrument report"]')
-    const header = wrapper.get('.section-header[role="button"]')
-    expect(header.attributes('tabindex')).toBe('0')
+    const header = wrapper.get('button.section-header')
+    expect(header.attributes('type')).toBe('button')
+    expect(header.attributes('role')).toBeUndefined()
     expect(header.attributes('aria-expanded')).toBe('true')
-    await header.trigger('keydown', { key: 'Enter' })
+    const bodyId = header.attributes('aria-controls')
+    expect(bodyId).toMatch(/-body$/)
+    expect(wrapper.find(`#${bodyId}`).exists()).toBe(true)
+    await header.trigger('click')
     expect(header.attributes('aria-expanded')).toBe('false')
-    await header.trigger('keydown', { key: ' ' })
+    expect(wrapper.find(`#${bodyId}`).exists()).toBe(false)
+    await header.trigger('click')
     expect(header.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find(`#${bodyId}`).exists()).toBe(true)
     expect(region.exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('exposes long instrument descriptions as an accessible disclosure', async () => {
+    const wrapper = mount(InstrumentInfoPanel, {
+      props: {
+        instrument: {
+          id: 11,
+          symbol: 'LONG',
+          name: 'Long description instrument',
+          is_active: true,
+          description: 'A'.repeat(200),
+        },
+      },
+    })
+
+    const toggle = wrapper.get('.desc-more')
+    const description = wrapper.get('.info-description')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(toggle.attributes('aria-controls')).toBe(description.attributes('id'))
+
+    await toggle.trigger('click')
+
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('.info-description').classes()).toContain('info-description--expanded')
     wrapper.unmount()
   })
 
@@ -174,7 +205,10 @@ describe('InstrumentInfoPanel', () => {
       },
     })
 
-    await wrapper.get('.constituent-chip').trigger('click')
+    const constituent = wrapper.get('.constituent-chip')
+    expect(constituent.attributes('type')).toBe('button')
+    expect(constituent.attributes('aria-label')).toBe('Open constituent XLK')
+    await constituent.trigger('click')
     expect(wrapper.emitted('select')).toEqual([['XLK', 91]])
     wrapper.unmount()
   })

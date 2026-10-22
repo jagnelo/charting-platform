@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
+from app.lib.time_utils import wire_datetime
 from app.models.ohlcv import Timeframe
 
 
@@ -47,3 +48,7 @@ class ChartDrawingOut(BaseModel):
     is_locked: bool
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_timestamps(self, value: datetime) -> str:
+        return wire_datetime(value) or ""

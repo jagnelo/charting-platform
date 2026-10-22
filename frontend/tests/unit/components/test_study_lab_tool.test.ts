@@ -1,11 +1,12 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+const { apiGet, apiPost, watchlistSourceState } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), watchlistSourceState: { sources: [] as unknown[] } }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
+vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: watchlistSourceState.sources }) }))
 vi.mock('@/components/workstation/StudyBarsUPlot.vue', () => ({ default: { template: '<div class="bars-chart" />', props: ['name', 'labels', 'values'] } }))
-vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" />', props: ['name', 'timestamps', 'values'] } }))
+vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" :data-values="JSON.stringify(values)" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
 vi.mock('@/components/workstation/StudyRangeUPlot.vue', () => ({ default: { template: '<div class="range-chart" />', props: ['name', 'timestamps', 'lower', 'upper', 'center'] } }))
 vi.mock('@/components/workstation/StudyScatterUPlot.vue', () => ({ default: { template: '<div class="scatter-chart" />', props: ['name', 'x', 'y'] } }))
@@ -13,16 +14,48 @@ vi.mock('@/components/workstation/StudyHeatmap.vue', () => ({ default: { templat
 vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { template: '<div class="dashboard-chart" />', props: ['name', 'panels', 'artifacts'] } }))
 
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
+import type { WatchlistSource } from '@/types'
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(res => { resolve = res })
+  return { promise, resolve }
+}
 
 describe('StudyLabTool', () => {
   beforeEach(() => {
     apiGet.mockReset()
     apiPost.mockReset()
+    watchlistSourceState.sources = []
   })
 
-  function mountTool(props: Record<string, unknown>, queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })) {
+  function mountTool(props: Record<string, unknown>, queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } }), sources: WatchlistSource[] = []) {
+    watchlistSourceState.sources = sources
     return mount(StudyLabTool, { props, global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
   }
+
+  it('offers canonical watchlist sources while retaining custom source IDs', async () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} }, undefined, [
+      { source_id: 'watchlist:7', source_kind: 'personal', name: 'Growth leaders', locked: false, can_follow: false, can_clone: true, can_edit_membership: true, provenance: {} },
+      { source_id: 'market-group:sp500', source_kind: 'market_group', name: 'S&P 500', locked: true, can_follow: true, can_clone: false, can_edit_membership: false, provenance: {} },
+    ])
+    const sourceInput = wrapper.get('[aria-label="Study universe source"]')
+    const sourceListId = sourceInput.attributes('list')
+    const sources = wrapper.findAll(`#${sourceListId} option`)
+
+    expect(sources).toHaveLength(2)
+    expect(sources[0].attributes('value')).toBe('market-group:sp500')
+    expect(sources[0].attributes('label')).toBe('Market groups · S&P 500')
+    expect(sources[1].attributes('value')).toBe('watchlist:7')
+    expect(sources[1].attributes('label')).toBe('Personal watchlists · Growth leaders')
+
+    await sourceInput.setValue('market-group:sp500')
+    expect(wrapper.find('[aria-label="Study universe"]').attributes('disabled')).toBeDefined()
+
+    await sourceInput.setValue('unpublished:alpha')
+    expect(sourceInput.element).toHaveProperty('value', 'unpublished:alpha')
+    wrapper.unmount()
+  })
 
   it('hydrates serializable dataset controls and normalizes legacy timeframe values', () => {
     const wrapper = mountTool({
@@ -35,6 +68,111 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Study adjustment"]').element).toHaveProperty('value', 'raw')
     expect(wrapper.find('[aria-label="Study session"]').element).toHaveProperty('value', 'all')
     expect(wrapper.find('[aria-label="Study as of"]').element).toHaveProperty('value', '2024-02-01T15:30')
+  })
+
+  it('associates parameter schema errors with the invalid schema field', async () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+    const schema = wrapper.get('[aria-label="Study parameter schema"]')
+
+    expect(schema.attributes('aria-invalid')).toBeUndefined()
+    expect(schema.attributes('aria-describedby')).toBeUndefined()
+
+    await schema.setValue('{')
+
+    const errorId = schema.attributes('aria-describedby')
+    expect(schema.attributes('aria-invalid')).toBe('true')
+    expect(errorId).toMatch(/^study-parameter-schema-error-/)
+    expect(wrapper.get(`#${errorId}`).text()).toBe('Parameter schema must be a JSON object.')
+
+    await schema.setValue(JSON.stringify({ properties: { lookback: { type: 'integer', default: 20 } } }))
+    expect(schema.attributes('aria-invalid')).toBeUndefined()
+    expect(schema.attributes('aria-describedby')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('associates current Python validation diagnostics with the source editor', async () => {
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: false, diagnostics: ['line 1: unsupported expression'], dependencies: [], lookback_hint: null, output_contracts: [] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+    const source = wrapper.get('[aria-label="Study Python source"]')
+
+    expect(source.attributes('aria-invalid')).toBeUndefined()
+    expect(source.attributes('aria-describedby')).toBeUndefined()
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(source.attributes('aria-invalid')).toBe('true'))
+
+    const describedBy = source.attributes('aria-describedby')?.split(' ')
+    expect(describedBy).toHaveLength(1)
+    expect(wrapper.get(`#${describedBy?.[0]}`).text()).toContain('line 1: unsupported expression')
+
+    await source.setValue("output.scalar('corrected', 1)")
+    expect(source.attributes('aria-invalid')).toBeUndefined()
+    expect(wrapper.get(`#${describedBy?.[0]}`).text()).toContain('Study source changed since validation')
+    wrapper.unmount()
+  })
+
+  it('gives study lifecycle controls stable accessible names', () => {
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+
+    expect(wrapper.get('button[aria-label="Validate study"]').text()).toBe('Validate')
+    expect(wrapper.get('button[aria-label="Run study"]').text()).toBe('Run')
+  })
+
+  it('requires the current source to match the latest validation before running', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 77 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 78, status: 'completed', artifacts: [] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+    const source = wrapper.find('[aria-label="Study Python source"]')
+    const validate = wrapper.get('button[aria-label="Validate study"]')
+    const run = wrapper.get('button[aria-label="Run study"]')
+
+    await validate.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    expect(run.attributes('disabled')).toBeUndefined()
+
+    await source.setValue("output.scalar('changed', 1)")
+    expect(run.attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Study source changed since validation. Validate the current source before running.')
+    await run.trigger('click')
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+
+    await validate.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    expect(run.attributes('disabled')).toBeUndefined()
+    await run.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #78'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      initial_version: expect.objectContaining({ source: "output.scalar('changed', 1)" }),
+    }))
+    wrapper.unmount()
+  })
+
+  it('does not let a late validation response bless source edited while it was pending', async () => {
+    const pendingValidation = deferred<unknown>()
+    apiPost.mockImplementation((path: string) => path === '/code/validate' ? pendingValidation.promise : Promise.resolve({}))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+    const source = wrapper.find('[aria-label="Study Python source"]')
+    const validate = wrapper.get('button[aria-label="Validate study"]')
+    const run = wrapper.get('button[aria-label="Run study"]')
+
+    await validate.trigger('click')
+    expect(validate.attributes('disabled')).toBeDefined()
+    await source.setValue("output.scalar('edited-during-validation', 1)")
+    pendingValidation.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+    await flushPromises()
+
+    expect(run.attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Study source changed since validation. Validate the current source before running.')
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    wrapper.unmount()
   })
 
   it('discloses selected Market Map source lineage without replacing the canonical source ID', () => {
@@ -64,7 +202,64 @@ describe('StudyLabTool', () => {
     const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77, study_run_source: 'output.scalar("event_count", 4)', study_run_contract: 'scalar' } })
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
     expect(wrapper.text()).toContain('event_count')
+    const summaryId = wrapper.find('[aria-label="event_count metric"]').attributes('aria-describedby')
+    expect(summaryId).toMatch(/-study-artifact-1-summary$/)
+    expect(wrapper.find(`#${summaryId}`).text()).toContain('event_count scalar result: 4.')
     expect(apiGet).toHaveBeenCalledWith('/research/runs/77')
+  })
+
+  it('keeps artifact summary relationships unique across linked Study Lab panes', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77'
+      ? Promise.resolve({ id: 77, status: 'completed', artifacts: [{ id: 1, name: 'event_count', artifact_type: 'scalar', payload: { value: 4 } }] })
+      : Promise.resolve(undefined))
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const props = { activeSymbol: 'SPY', configuration: { study_run_id: 77 } }
+    const first = mountTool(props, queryClient)
+    const second = mountTool(props, queryClient)
+    await vi.waitFor(() => expect(first.text()).toContain('Run #77'))
+    await vi.waitFor(() => expect(second.text()).toContain('Run #77'))
+
+    const firstSummaryId = first.find('[aria-label="event_count metric"]').attributes('aria-describedby')
+    const secondSummaryId = second.find('[aria-label="event_count metric"]').attributes('aria-describedby')
+    expect(firstSummaryId).toMatch(/-study-artifact-1-summary$/)
+    expect(secondSummaryId).toMatch(/-study-artifact-1-summary$/)
+    expect(firstSummaryId).not.toBe(secondSummaryId)
+    expect(first.find(`#${firstSummaryId}`).text()).toContain('event_count scalar result: 4.')
+    expect(second.find(`#${secondSummaryId}`).text()).toContain('event_count scalar result: 4.')
+  })
+
+  it('keeps an invalid single-output structured series view/export only', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/78'
+      ? Promise.resolve({ id: 78, status: 'completed', artifacts: [{ id: 2, name: 'invalid_history', artifact_type: 'series', payload: { value: { timestamps: ['not-a-date'], values: [0.4] } } }] })
+      : Promise.resolve(undefined))
+    const wrapper = mountTool({
+      activeSymbol: 'SPY',
+      configuration: { study_run_id: 78, study_run_source: "output.series('invalid_history', {'timestamps': ['not-a-date'], 'values': [0.4]})", study_run_contract: 'series' },
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #78'))
+
+    expect(wrapper.find('[aria-label="Promote study result"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Export invalid_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('View/export only: this series needs valid aligned timestamps and at least one finite observation before it can be plotted or promoted.')
+    expect(wrapper.find('.series-chart').exists()).toBe(false)
+  })
+
+  it('keeps an unaligned value series eligible for latest-value promotion but not chart plots', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/79'
+      ? Promise.resolve({ id: 79, status: 'completed', artifacts: [{ id: 3, name: 'unaligned_history', artifact_type: 'series', payload: { value: [0.4, 0.5] } }] })
+      : Promise.resolve(undefined))
+    const wrapper = mountTool({
+      activeSymbol: 'SPY',
+      configuration: { study_run_id: 79, study_run_source: "output.series('unaligned_history', [0.4, 0.5])", study_run_contract: 'series' },
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #79'))
+
+    const promotions = wrapper.find('[aria-label="Promote study result"]')
+    expect(promotions.exists()).toBe(true)
+    expect(promotions.text()).not.toContain('Save as chart plot')
+    expect(promotions.text()).toContain('Save latest column')
+    expect(wrapper.text()).toContain('Chart plot unavailable: this series has no aligned timestamp axis.')
+    expect(wrapper.find('.series-chart').exists()).toBe(false)
   })
 
   it('deduplicates concurrent persisted-run hydration across linked roots', async () => {
@@ -283,6 +478,9 @@ describe('StudyLabTool', () => {
   })
 
   it('validates, starts an immutable isolated study run, and renders artifacts', async () => {
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve([{ versions: [{ id: 42, source: 'output.events("signals", [])', parameter_schema: {}, default_parameters: {} }] }])
+      : Promise.resolve(undefined))
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['bar', 'histogram', 'range', 'scatter', 'scalar', 'table'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
@@ -300,6 +498,7 @@ describe('StudyLabTool', () => {
         { id: 11, name: 'matrix', artifact_type: 'heatmap', payload: { value: { rows: ['A', 'B'], columns: ['X', 'Y'], values: [[1, 2], [3, 4]] } } },
         { id: 12, name: 'overview', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'current_streak', title: 'Current streak', span: 4 }] } } },
       ] })
+      if (path === '/research/runs/9/promote-event-filter') return Promise.resolve({ id: 88, name: 'signals Filter' })
       return Promise.resolve({})
     })
     const wrapper = mountTool({ activeSymbol: 'SPY' })
@@ -356,6 +555,58 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ output_contract: 'series', output_name: 'trend' }),
     }))
+    const latestColumnButton = wrapper.findAll('button').find(button => button.text() === 'Save latest column: trend')
+    expect(latestColumnButton).toBeDefined()
+    await latestColumnButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'scalar',
+        output_name: 'trend',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_output_name: 'trend',
+          output_adapter: 'latest_series_to_scalar',
+          semantics: 'study_series_latest_result_as_watchlist_column',
+        }),
+      }),
+    }))
+    const rangeCenterButton = wrapper.findAll('button').find(button => button.text() === 'Save center plot: confidence')
+    expect(rangeCenterButton).toBeDefined()
+    await rangeCenterButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable chart plot.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        output_contract: 'series',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_output_name: 'confidence',
+          output_adapter: 'range_center_to_series',
+          semantics: 'study_range_center_result_as_chart_plot',
+        }),
+      }),
+    }))
+    const rangeCenterColumnButton = wrapper.findAll('button').find(button => button.text() === 'Save latest center column: confidence')
+    expect(rangeCenterColumnButton).toBeDefined()
+    await rangeCenterColumnButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'scalar',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_output_name: 'confidence',
+          target: 'column',
+          output_adapter: 'range_center_to_scalar',
+          semantics: 'study_range_center_result_as_latest_watchlist_column',
+        }),
+      }),
+    }))
     await wrapper.findAll('button').find(button => button.text() === 'Save column: qualifies')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
@@ -377,6 +628,7 @@ describe('StudyLabTool', () => {
     expect(wrapper.findAll('button').some(button => button.text() === 'Promote scan: qualifies')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Use Gauge: qualifies')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Promote alert: qualifies')).toBe(true)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Save signal: qualifies')).toBe(true)
     await wrapper.findAll('button').find(button => button.text() === 'Save filter: qualifies')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist filter through EasyScan.'))
     await wrapper.findAll('button').find(button => button.text() === 'Promote scan: qualifies')!.trigger('click')
@@ -386,6 +638,51 @@ describe('StudyLabTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Promote alert: qualifies')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to an active scan alert.'))
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.any(Object))
+    await wrapper.findAll('button').find(button => button.text() === 'Save signal: qualifies')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'qualifies',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_output_name: 'qualifies',
+          target: 'signal',
+          semantics: 'study_result_promotion',
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/42', {})
+    expect(wrapper.findAll('button').some(button => button.text() === 'Save filter: signals')).toBe(true)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Promote alert: signals')).toBe(true)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Save signal: signals')).toBe(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Save signal: signals')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable Strategy Lab signal.'))
+    expect(apiGet).toHaveBeenCalledWith('/code/assets')
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'events',
+        output_name: 'signals',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_code_version_id: 42,
+          source_reproducibility_hash: 'sha256:test',
+          source_output_name: 'signals',
+          target: 'signal',
+          output_adapter: 'events_to_signal',
+          semantics: 'study_event_result_as_strategy_signal',
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/42', {})
+    await wrapper.findAll('button').find(button => button.text() === 'Save filter: signals')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable watchlist filter.'))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/9/promote-event-filter', { artifact_name: 'signals' })
+    await wrapper.findAll('button').find(button => button.text() === 'Promote alert: signals')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted event artifact “signals” to an active alert.'))
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 88, trigger_type: 'both', repeat: true, notes: 'Created from event study run 9' })
     await wrapper.find('.study-lab-tool__events button').trigger('click')
     expect(wrapper.emitted('occurrence')?.[0]).toEqual([{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'positive_close' }])
   })
@@ -412,7 +709,113 @@ describe('StudyLabTool', () => {
     expect(metric.attributes('aria-live')).toBe('polite')
     expect(metric.attributes('aria-atomic')).toBe('true')
     expect(wrapper.get('[aria-label="records table result"] caption').text()).toBe('records table')
-    expect(wrapper.get('[aria-label="events occurrences"] [role="listitem"]').attributes('aria-label')).toBe('SPY 2026-01-02 streak')
+    const eventListItem = wrapper.get('[aria-label="events occurrences"] [role="listitem"]')
+    const eventButton = eventListItem.get('button')
+    expect(eventButton.attributes('aria-label')).toBe('SPY 2026-01-02 streak')
+    expect(eventButton.attributes('type')).toBe('button')
+  })
+
+  it('offers threshold fan-out for a finite named scalar in a structured Study run', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: 1, output_contracts: ['scalar', 'table'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 201 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 202,
+        code_version_id: 201,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'D1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [
+          { id: 1, name: 'score', artifact_type: 'scalar', payload: { value: 12 } },
+          { id: 2, name: 'records', artifact_type: 'table', payload: { value: [{ score: 12 }] } },
+        ],
+      })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.scalar('score', market.close()[-1])\noutput.table('records', [])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #202'))
+
+    const threshold = wrapper.get('[aria-label="score threshold condition"]')
+    expect(threshold.exists()).toBe(true)
+    await threshold.get('[aria-label="Structured scalar condition operator: score"]').setValue('gt')
+    await threshold.get('[aria-label="Structured scalar condition threshold: score"]').setValue('10')
+    await threshold.get('[aria-label="Save Boolean column: score"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved scalar artifact “score” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'score',
+        lineage: expect.objectContaining({
+          source_run_id: 202,
+          source_output_name: 'score',
+          output_adapter: 'scalar_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 10 },
+          semantics: 'study_scalar_threshold_as_boolean',
+        }),
+      }),
+    }))
+  })
+
+  it('keeps structured output threshold drafts independent per artifact', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: 1, output_contracts: ['scalar', 'series'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 301 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 302,
+        code_version_id: 301,
+        status: 'completed',
+        run_config: { symbol: 'SPY', timeframe: 'D1' },
+        dataset_manifest: { datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [
+          { id: 1, name: 'score', artifact_type: 'scalar', payload: { value: 12 } },
+          { id: 2, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01'], values: [0.7] } } },
+        ],
+      })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.scalar('score', market.close()[-1])\noutput.series('trend', market.close())")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #302'))
+
+    const scoreCondition = wrapper.get('[aria-label="score threshold condition"]')
+    const trendCondition = wrapper.get('[aria-label="trend threshold condition"]')
+    await scoreCondition.get('[aria-label="Structured scalar condition operator: score"]').setValue('gt')
+    await scoreCondition.get('[aria-label="Structured scalar condition threshold: score"]').setValue('10')
+    await trendCondition.get('[aria-label="Structured series condition operator: trend"]').setValue('lt')
+    await trendCondition.get('[aria-label="Structured series condition threshold: trend"]').setValue('0.5')
+
+    expect(scoreCondition.get('[aria-label="Structured scalar condition operator: score"]').element).toHaveProperty('value', 'gt')
+    expect(scoreCondition.get('[aria-label="Structured scalar condition threshold: score"]').element).toHaveProperty('value', '10')
+    expect(trendCondition.get('[aria-label="Structured series condition operator: trend"]').element).toHaveProperty('value', 'lt')
+    expect(trendCondition.get('[aria-label="Structured series condition threshold: trend"]').element).toHaveProperty('value', '0.5')
+
+    await scoreCondition.get('[aria-label="Save Boolean column: score"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved scalar artifact “score” as a thresholded Boolean column.'))
+    await trendCondition.get('[aria-label="Save Boolean column: trend"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved series artifact “trend” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_name: 'score',
+        lineage: expect.objectContaining({ series_target: { operator: 'gt', threshold: 10 } }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_name: 'trend',
+        lineage: expect.objectContaining({ series_target: { operator: 'lt', threshold: 0.5 } }),
+      }),
+    }))
+    wrapper.unmount()
   })
 
   it('renders schema-defined parameter controls and sends typed values to the immutable run', async () => {
@@ -435,6 +838,43 @@ describe('StudyLabTool', () => {
       initial_version: expect.objectContaining({ parameter_schema: { properties: { lookback: { type: 'integer', default: 20, minimum: 1 } } }, default_parameters: { lookback: 30 } }),
     }))
     expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({ run_config: expect.objectContaining({ symbols: ['SPY', 'XLK'], parameters: { lookback: 30 } }) }))
+  })
+
+  it('reuses an opened immutable Study definition version without creating a duplicate asset', async () => {
+    const source = "condition = parameters.get('condition', {'kind': 'above_moving_average'})\noutput.scalar('current_percentage', 0.5)"
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['parameters', 'output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/research/runs') return Promise.resolve({ id: 314, code_version_id: 91, status: 'completed', artifacts: [{ id: 1, name: 'current_percentage', artifact_type: 'scalar', payload: { value: 0.5 } }] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({
+      activeSymbol: 'SPY',
+      configuration: {
+        study_asset_version_id: 91,
+        study_name: 'Saved breadth definition',
+        study_source: source,
+        study_output_contract: 'study',
+        study_default_parameters: { condition: { kind: 'above_moving_average' }, source_id: 'explicit:4,2' },
+        parameter_schema: JSON.stringify({ properties: { condition: { type: 'object' }, source_id: { type: 'string' } } }),
+        universe_source_id: 'explicit:4,2',
+      },
+    })
+
+    expect(wrapper.find('[aria-label="Study name"]').element).toHaveProperty('value', 'Saved breadth definition')
+    expect((wrapper.find('[aria-label="Study Python source"]').element as HTMLTextAreaElement).value).toBe(source)
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #314'))
+
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+    expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.objectContaining({
+      code_version_id: 91,
+      run_config: expect.objectContaining({
+        universe_source_id: 'explicit:4,2',
+        parameters: { condition: { kind: 'above_moving_average' }, source_id: 'explicit:4,2' },
+      }),
+    }))
   })
 
   it('cancels an active study run when the Study Lab tool is destroyed', async () => {
@@ -606,12 +1046,398 @@ describe('StudyLabTool', () => {
     expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(0)
   })
 
+  it('offers the latest-value column for a single-output raw numeric series', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['series'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 146 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 147, code_version_id: 146, status: 'completed', artifacts: [{ id: 1, name: 'trend', artifact_type: 'series', payload: { value: [null, 4, 6] } }] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.series('trend', [None, 4, 6])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #147'))
+    const latestColumn = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save latest column')
+    expect(latestColumn).toBeDefined()
+    await latestColumn!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'scalar',
+        output_name: 'trend',
+        lineage: expect.objectContaining({ output_adapter: 'latest_series_to_scalar', semantics: 'study_series_latest_result_as_watchlist_column' }),
+      }),
+    }))
+  })
+
+  it('promotes a declared cross-sectional Study series only through the aggregate chart adapter', async () => {
+    const source = "output.scalar('current_percentage', 0.5)\noutput.series('percentage_history', {'timestamps': ['2026-01-01', '2026-01-02'], 'values': [0.5, None]})"
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve([{ versions: [{ id: 151, source, output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }])
+      : Promise.resolve(undefined))
+    apiPost.mockImplementation((path: string, body: any) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['research', 'output'], lookback_hint: null, output_contracts: ['scalar', 'series', 'table'] })
+      if (path === '/code/assets' && body?.kind === 'study') return Promise.resolve({ versions: [{ id: 151 }] })
+      if (path === '/code/assets' && body?.kind === 'plot') return Promise.resolve({ id: 152, name: 'Aggregate percentage plot', versions: [{ id: 152 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 153,
+        code_version_id: 151,
+        status: 'completed',
+        run_config: { symbols: ['SPY', 'XLK'], result_scope: 'cross_sectional' },
+        dataset_manifest: { datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'XLK' }] },
+        artifacts: [
+          { id: 1, name: 'current_percentage', artifact_type: 'scalar', payload: { value: 0.5 } },
+          { id: 2, name: 'percentage_history', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [0.5, null] } } },
+          { id: 3, name: 'members', artifact_type: 'table', payload: { value: [] } },
+        ],
+      })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Factory study"]').setValue('generic_breadth_cross_sectional_percentile')
+    await wrapper.find('[aria-label="Study universe"]').setValue('SPY, XLK')
+    await wrapper.findAll('button')[0].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #153'))
+
+    expect(wrapper.findAll('[aria-label="Promote study result"] button').map(button => button.text())).toEqual(['Save aggregate chart plot: percentage_history'])
+    expect(wrapper.find('.series-chart').attributes('data-values')).toBe('[0.5,null]')
+    await wrapper.get('[aria-label="Promote study result"] button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable chart plot.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        output_contract: 'series',
+        output_name: 'percentage_history',
+        lineage: expect.objectContaining({
+          output_adapter: 'study_series_to_series',
+          semantics: 'study_cross_sectional_aggregate_series_as_chart_plot',
+        }),
+      }),
+    }))
+  })
+
+  it.each([
+    { label: 'misaligned aggregate axes', value: { timestamps: ['2026-01-01'], values: [0.4, 0.5] }, resultScope: 'cross_sectional' },
+    { label: 'invalid aggregate timestamp', value: { timestamps: ['not-a-date'], values: [0.4] }, resultScope: 'cross_sectional' },
+    { label: 'aggregate series with no finite observations', value: { timestamps: ['2026-01-01'], values: [null] }, resultScope: 'cross_sectional' },
+    { label: 'invalid single-symbol timestamp', value: { timestamps: ['not-a-date'], values: [0.4] }, resultScope: 'per_symbol' },
+  ])('keeps malformed Study series view/export only: $label', async ({ value, resultScope }) => {
+    const source = "output.series('invalid_history', {'timestamps': ['not-a-date'], 'values': [0.4]})"
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve([{ versions: [{ id: 161, source, output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }])
+      : Promise.resolve(undefined))
+    apiPost.mockImplementation((path: string, body: any) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['series'] })
+      if (path === '/code/assets' && body?.kind === 'study') return Promise.resolve({ versions: [{ id: 161 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 162,
+        code_version_id: 161,
+        status: 'completed',
+        run_config: { symbols: ['SPY', 'XLK'], result_scope: resultScope },
+        dataset_manifest: { datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'XLK' }] },
+        artifacts: [{ id: 1, name: 'invalid_history', artifact_type: 'series', payload: { value } }],
+      })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Factory study"]').setValue('generic_breadth_cross_sectional_percentile')
+    await wrapper.find('[aria-label="Study universe"]').setValue('SPY, XLK')
+    await wrapper.findAll('button')[0].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #162'))
+
+    expect(wrapper.find('[aria-label="Promote study result"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Export invalid_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('View/export only: this series needs valid aligned timestamps and at least one finite observation before it can be plotted or promoted.')
+    expect(wrapper.find('.series-chart').exists()).toBe(false)
+  })
+
+  it('promotes a direct Study Lab series through one explicit threshold condition', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['series'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 148 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 149,
+        code_version_id: 148,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'W1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'W1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [{ id: 1, name: 'trend', artifact_type: 'series', payload: { value: [null, 4, 6] } }],
+      })
+      if (path === '/screeners/from-python-condition/148') return Promise.resolve({ id: 150 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.series('trend', [None, 4, 6])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #149'))
+    expect(wrapper.find('[aria-label="Study series threshold condition"]').exists()).toBe(true)
+    await wrapper.find('[aria-label="Study series condition operator"]').setValue('gt')
+    await wrapper.find('[aria-label="Study series condition threshold"]').setValue('5')
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Save Boolean column')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved series artifact “trend” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'trend',
+        lineage: expect.objectContaining({
+          source_run_id: 149,
+          source_instrument_ids: [7],
+          source_universe_source_id: 'watchlist:7',
+          source_membership_version: 'watchlist:7:v2',
+          output_adapter: 'series_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 5 },
+          semantics: 'study_series_threshold_as_boolean',
+        }),
+      }),
+    }))
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Save watchlist filter')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved series artifact “trend” as a thresholded watchlist filter.'))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/148', expect.objectContaining({
+      universe_type: 'custom',
+      universe_instrument_ids: [7],
+      timeframe: 'W1',
+      provenance: expect.objectContaining({ output_adapter: 'series_target_to_boolean', series_target: { operator: 'gt', threshold: 5 } }),
+    }))
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Promote scan')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan.'))
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Use as Market Gauge')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Series artifact “trend” is available as a thresholded Market Gauge.'))
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Promote alert')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan alert.'))
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 150, trigger_type: 'entered', repeat: true, notes: 'Created from Study Lab series run 149 (trend)' })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 154 }] })
+      if (path === '/strategy-lab/signals/from-code/154') return Promise.resolve({ id: 155, name: 'trend Strategy signal' })
+      return Promise.resolve({})
+    })
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Save as Strategy signal')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved thresholded series “trend” as Strategy signal “trend Strategy signal” (#155).'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'trend',
+        lineage: expect.objectContaining({
+          target: 'signal',
+          output_adapter: 'series_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 5 },
+          semantics: 'study_series_threshold_as_strategy_signal',
+          source_instrument_ids: [7],
+          source_universe_source_id: 'watchlist:7',
+          source_membership_version: 'watchlist:7:v2',
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/154', {})
+  })
+
+  it('promotes a direct Study Lab scalar through an explicit threshold condition', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 159 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 160,
+        code_version_id: 159,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'D1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [{ id: 1, name: 'score', artifact_type: 'scalar', payload: { value: 12 } }],
+      })
+      if (path === '/screeners/from-python-condition/159') return Promise.resolve({ id: 161 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.scalar('score', market.close()[-1])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #160'))
+    expect(wrapper.find('[aria-label="Study scalar threshold condition"]').exists()).toBe(true)
+    await wrapper.find('[aria-label="Study scalar condition operator"]').setValue('gte')
+    await wrapper.find('[aria-label="Study scalar condition threshold"]').setValue('10')
+    await wrapper.findAll('[aria-label="Study scalar threshold condition"] button').find(button => button.text() === 'Save Boolean column')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved scalar artifact “score” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'score',
+        lineage: expect.objectContaining({
+          source_run_id: 160,
+          source_instrument_ids: [7],
+          output_adapter: 'scalar_target_to_boolean',
+          series_target: { operator: 'gte', threshold: 10 },
+          semantics: 'study_scalar_threshold_as_boolean',
+        }),
+      }),
+    }))
+  })
+
+  it('promotes a direct Study Lab range center through an explicit threshold condition', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['range'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 151 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 152,
+        code_version_id: 151,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'D1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [{ id: 2, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } }],
+      })
+      if (path === '/screeners/from-python-condition/151') return Promise.resolve({ id: 153 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.range('confidence', [1, 2], [3, 4], [2, 3])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #152'))
+    expect(wrapper.find('[aria-label="Study range center threshold condition"]').exists()).toBe(true)
+    await wrapper.find('[aria-label="Study range center condition operator"]').setValue('gt')
+    await wrapper.find('[aria-label="Study range center condition threshold"]').setValue('2.5')
+    await wrapper.findAll('[aria-label="Study range center threshold condition"] button').find(button => button.text() === 'Save Boolean column')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved range center “confidence” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          output_adapter: 'range_center_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 2.5 },
+          semantics: 'study_range_center_threshold_as_boolean',
+        }),
+      }),
+    }))
+    await wrapper.findAll('[aria-label="Study range center threshold condition"] button').find(button => button.text() === 'Save watchlist filter')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved range center “confidence” as a thresholded watchlist filter.'))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/151', expect.objectContaining({
+      provenance: expect.objectContaining({ output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gt', threshold: 2.5 } }),
+    }))
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 156 }] })
+      if (path === '/strategy-lab/signals/from-code/156') return Promise.resolve({ id: 157, name: 'confidence Strategy signal' })
+      return Promise.resolve({})
+    })
+    await wrapper.findAll('[aria-label="Study range center threshold condition"] button').find(button => button.text() === 'Save as Strategy signal')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved thresholded range center “confidence” as Strategy signal “confidence Strategy signal” (#157).'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          target: 'signal',
+          output_adapter: 'range_center_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 2.5 },
+          semantics: 'study_range_center_threshold_as_strategy_signal',
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/156', {})
+  })
+
+  it('promotes direct single-output range centers as chart plots and latest columns', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['range'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 161 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 162,
+        code_version_id: 160,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'D1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [{ id: 4, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } }],
+      })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.range('confidence', [1, 2], [3, 4], [2, 3])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #162'))
+
+    const plotButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save center as chart plot')
+    expect(plotButton).toBeDefined()
+    await plotButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable chart plot.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        output_contract: 'series',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 162,
+          source_output_name: 'confidence',
+          output_adapter: 'range_center_to_series',
+          semantics: 'study_range_center_result_as_chart_plot',
+        }),
+      }),
+    }))
+
+    const columnButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save latest center column')
+    expect(columnButton).toBeDefined()
+    await columnButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'scalar',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 162,
+          source_output_name: 'confidence',
+          output_adapter: 'range_center_to_scalar',
+          semantics: 'study_range_center_result_as_latest_watchlist_column',
+        }),
+      }),
+    }))
+  })
+
+  it('keeps a range without a finite aligned center view/export only', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/163'
+      ? Promise.resolve({
+        id: 163,
+        status: 'completed',
+        artifacts: [{ id: 5, name: 'uncertain_range', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [null, 3] } } }],
+      })
+      : Promise.resolve(undefined))
+    const wrapper = mountTool({
+      activeSymbol: 'SPY',
+      configuration: { study_run_id: 163, study_run_source: "output.range('uncertain_range', [1, 2], [3, 4], [None, 3])", study_run_contract: 'range' },
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #163'))
+
+    expect(wrapper.find('[aria-label="Promote study result"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Export uncertain_range"]').exists()).toBe(true)
+    expect(wrapper.find('.range-chart').exists()).toBe(true)
+  })
+
   it('promotes a completed event study without coercing its event contract', async () => {
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve([{ versions: [{ id: 144, source: "output.events('signals', [])", parameter_schema: {}, default_parameters: {} }] }])
+      : Promise.resolve(undefined))
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['market', 'output'], lookback_hint: 1, output_contracts: ['events'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 144 }] })
       if (path === '/research/runs') return Promise.resolve({ id: 145, code_version_id: 144, status: 'completed', artifacts: [{ id: 1, name: 'signals', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'signal' }] } }] })
+      if (path === '/research/runs/145/promote-event-filter') return Promise.resolve({ id: 147, name: 'signals Filter' })
       if (path.startsWith('/strategy-lab/signals/from-code/')) return Promise.resolve({ id: 146 })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 148 })
       return Promise.resolve({})
     })
     const wrapper = mountTool({ activeSymbol: 'SPY' })
@@ -623,8 +1449,33 @@ describe('StudyLabTool', () => {
     const signalButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')
     expect(signalButton).toBeTruthy()
     await signalButton!.trigger('click')
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable Strategy Lab signal.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'events',
+        output_name: 'signals',
+        lineage: expect.objectContaining({
+          source_run_id: 145,
+          source_code_version_id: 144,
+          source_output_name: 'signals',
+          target: 'signal',
+          output_adapter: 'events_to_signal',
+          semantics: 'study_event_result_as_strategy_signal',
+        }),
+      }),
+    }))
     expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/144', {})
+    const filterButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as watchlist filter')
+    expect(filterButton).toBeTruthy()
+    await filterButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable watchlist filter.'))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/145/promote-event-filter', { artifact_name: 'signals' })
+    const alertButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Promote events to alert')
+    expect(alertButton).toBeTruthy()
+    await alertButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted event artifact “signals” to an active alert.'))
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 147, trigger_type: 'both', repeat: true, notes: 'Created from event study run 145' })
   })
 
   it('reruns a completed study against its snapshot or latest canonical data', async () => {
@@ -655,5 +1506,32 @@ describe('StudyLabTool', () => {
     await rerunLatest!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #92'))
     expect(apiPost).toHaveBeenCalledWith('/research/runs/91/rerun?snapshot=false', {})
+  })
+
+  it('does not publish a late rerun response after the Study Lab tool unmounts', async () => {
+    const run = { id: 150, status: 'completed', code_version_id: 4, artifacts: [] }
+    const rerun = deferred<typeof run>()
+    apiGet.mockResolvedValue(undefined)
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
+      if (path === '/research/runs') return Promise.resolve(run)
+      if (path === '/research/runs/150/rerun?snapshot=true') return rerun.promise
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await flushPromises()
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #150'))
+    const rerunButton = wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')
+    expect(rerunButton).toBeDefined()
+    await rerunButton!.trigger('click')
+    wrapper.unmount()
+    rerun.resolve({ ...run, id: 151, status: 'queued' })
+    await flushPromises()
+
+    expect((wrapper.vm as unknown as { run: typeof run | null }).run).toEqual(run)
   })
 })

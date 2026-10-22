@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, provide, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import { usePanelStore } from '@/stores/chart'
 import { api } from '@/lib/api'
@@ -50,6 +50,7 @@ const showAlerts = computed(() => props.config.showAlerts !== false)
 const drawings = ref<ChartDrawing[]>([])
 const priceAlerts = ref<PriceAlert[]>([])
 let refreshSeq = 0
+let mounted = false
 
 async function refresh() {
   const seq = ++refreshSeq
@@ -62,16 +63,17 @@ async function refresh() {
   }
   try {
     const target = await resolveTarget(symbol.value)
-    if (seq !== refreshSeq) return
+    if (!mounted || seq !== refreshSeq) return
     await store.loadBars(target, timeframe.value, chartType.value)
-    if (seq !== refreshSeq) return
+    if (!mounted || seq !== refreshSeq) return
     await loadReadOnlyOverlays(seq)
   } catch (e: any) {
-    if (seq === refreshSeq) store.error = e?.message ?? 'Chart unavailable'
+    if (mounted && seq === refreshSeq) store.error = e?.message ?? 'Chart unavailable'
   }
 }
 
 async function loadReadOnlyOverlays(seq: number) {
+  if (!mounted || seq !== refreshSeq) return
   const instrumentId = store.instrument?.id
   if (!instrumentId) {
     drawings.value = []
@@ -87,7 +89,7 @@ async function loadReadOnlyOverlays(seq: number) {
       ? api.get<PriceAlert[]>('/alerts/price', { instrument_id: instrumentId }).catch(() => [])
       : Promise.resolve([]),
   ])
-  if (seq !== refreshSeq) return
+  if (!mounted || seq !== refreshSeq) return
   drawings.value = loadedDrawings
   priceAlerts.value = loadedAlerts
 }
@@ -97,7 +99,14 @@ async function resolveTarget(target: string) {
 }
 
 watch(() => [symbol.value, timeframe.value, chartType.value, showDrawings.value, showAlerts.value], refresh)
-onMounted(refresh)
+onMounted(() => {
+  mounted = true
+  void refresh()
+})
+onBeforeUnmount(() => {
+  mounted = false
+  refreshSeq += 1
+})
 </script>
 
 <style scoped>

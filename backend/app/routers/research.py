@@ -1,19 +1,27 @@
 """Study Lab run lifecycle; only the isolated runner executes source."""
 
+import hashlib
+import json
 from datetime import UTC, date, datetime, time
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
+from app.models.screener import ScreenerDefinition
+from app.models.strategy import StrategyDefinition, StrategyVersion
 from app.models.user import User
 from app.schemas.code import ResearchBatchResultOut, ResearchRunCreate, ResearchRunOut
+from app.schemas.strategy import StrategyDefinitionDetailOut
+from app.services.breadth import build_equal_reference_series
 from app.services.evaluator_preflight import EvaluatorPreflight, preflight_ohlcv
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
@@ -42,6 +50,54 @@ BATCH_HISTORY_LIMIT = 500
 MAX_HISTORY_LIMIT = 5_000
 BATCH_QUERY_SIZE = 500
 RESEARCH_ADJUSTMENTS = {"split_adjusted": True, "raw": False}
+
+
+def _wire_timestamps(values: list[datetime]) -> list[str]:
+    """Serialize a returned dataset timeline on the canonical UTC wire format."""
+
+    return [wire_datetime(value) or "" for value in values]
+
+
+class ResearchEventSignalPromotionRequest(BaseModel):
+    """Naming and output selection metadata for a lineage-preserving event promotion."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=500)
+    artifact_name: str | None = Field(default=None, min_length=1, max_length=128)
+
+
+def _research_manifest_fingerprint(manifest: object) -> str:
+    """Fingerprint the exact persisted dataset manifest used by one research run."""
+
+    try:
+        encoded = json.dumps(
+            manifest if isinstance(manifest, dict) else {},
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+    except (TypeError, ValueError):
+        encoded = "{}"
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _research_manifest_summary(manifest: dict) -> dict:
+    """Keep small, human-readable manifest fields beside the immutable run link."""
+
+    keys = (
+        "source",
+        "timeframe",
+        "adjustment",
+        "session",
+        "start_date",
+        "end_date",
+        "as_of",
+        "membership_version",
+        "requested_symbols",
+        "batch_history_limit",
+        "exclusions",
+    )
+    return {key: manifest[key] for key in keys if key in manifest}
 
 
 async def _research_coverage_preflight(
@@ -180,7 +236,7 @@ def _dataset_manifest_fields(manifest: dict, options: dict) -> dict:
     if options["end"]:
         fields["end_date"] = options["end"].date().isoformat()
     if options.get("as_of"):
-        fields["as_of"] = options["as_of"].isoformat()
+        fields["as_of"] = wire_datetime(options["as_of"])
     return fields
 
 
@@ -274,7 +330,7 @@ async def _materialize_instrument_dataset(
         "symbol": instrument.symbol,
         "instrument_id": instrument.id,
         "metadata": _instrument_metadata(instrument),
-        "timestamps": [bar.ts.isoformat() for bar in bars],
+        "timestamps": _wire_timestamps([bar.ts for bar in bars]),
         **_bar_series(bars),
     }
 
@@ -315,8 +371,136 @@ async def _materialize_benchmark_dataset(
         "timeframe": options["timeframe"].value,
         "adjustment": options["adjustment"],
         "session": options["session"],
-        "timestamps": [bar.ts.isoformat() for bar in bars],
+        "timestamps": _wire_timestamps([bar.ts for bar in bars]),
         **_bar_series(bars),
+    }
+
+
+async def _load_bars_for_ids(
+    db: AsyncSession, instrument_ids: list[int], options: dict, *, limit: int
+) -> dict[int, list[OHLCVBar]]:
+    """Load a bounded, per-instrument bar window for derived reference targets."""
+    if not instrument_ids:
+        return {}
+    conditions = [
+        OHLCVBar.instrument_id.in_(instrument_ids),
+        OHLCVBar.timeframe == options["timeframe"],
+        OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
+    ]
+    if options["session"] == "regular":
+        conditions.append(OHLCVBar.session == "regular")
+    if options["start"]:
+        conditions.append(OHLCVBar.ts >= options["start"])
+    if options["end"]:
+        conditions.append(OHLCVBar.ts <= options["end"])
+    ranked_bars = (
+        select(
+            OHLCVBar.id.label("bar_id"),
+            func.row_number()
+            .over(
+                partition_by=OHLCVBar.instrument_id,
+                order_by=OHLCVBar.ts.desc(),
+            )
+            .label("bar_rank"),
+        )
+        .where(*conditions)
+        .subquery()
+    )
+    bars = (
+        await db.execute(
+            select(OHLCVBar)
+            .join(ranked_bars, OHLCVBar.id == ranked_bars.c.bar_id)
+            .where(ranked_bars.c.bar_rank <= limit)
+            .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+        )
+    ).scalars()
+    result: dict[int, list[OHLCVBar]] = {}
+    for bar in bars:
+        result.setdefault(bar.instrument_id, []).append(bar)
+    return result
+
+
+async def _materialize_reference_dataset(
+    db: AsyncSession,
+    options: dict,
+    run_config: dict,
+    *,
+    history_limit: int,
+) -> dict | None:
+    """Materialize a canonical equal-weight peer index for Python comparisons."""
+    raw_ids = run_config.get("reference_instrument_ids")
+    if raw_ids is None:
+        return None
+    if not isinstance(raw_ids, list):
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "invalid_reference_universe_membership"},
+        )
+    instrument_ids = list(
+        dict.fromkeys(
+            value
+            for value in raw_ids
+            if isinstance(value, int) and not isinstance(value, bool) and value > 0
+        )
+    )
+    if not instrument_ids:
+        return {
+            "status": "unavailable",
+            "reason": "reference_universe_empty",
+            "target": "derived_equal_weight_return_index",
+        }
+    if len(instrument_ids) > MAX_BATCH_SYMBOLS:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "reference_universe_too_large",
+                "maximum": MAX_BATCH_SYMBOLS,
+            },
+        )
+    bars_by_id = await _load_bars_for_ids(
+        db, instrument_ids, options, limit=max(1, min(history_limit, MAX_HISTORY_LIMIT))
+    )
+    series, summary = build_equal_reference_series(bars_by_id)
+    target = run_config.get("reference_target")
+    target = dict(target) if isinstance(target, dict) else {}
+    summary = {
+        **summary,
+        "requested_member_count": len(instrument_ids),
+        "covered_member_count": sum(bool(bars) for bars in bars_by_id.values()),
+        "universe": run_config.get("reference_universe"),
+        "provenance": target,
+    }
+    if not series:
+        return {
+            "status": "unavailable",
+            "reason": "reference_history_unavailable",
+            "target": "derived_equal_weight_return_index",
+            "summary": summary,
+        }
+    timestamps = _wire_timestamps([point.ts for point in series])
+    closes = [float(point.close) for point in series]
+    return {
+        "status": "ready",
+        "source": "canonical_database",
+        "symbol": "REFERENCE:EQUAL_WEIGHT",
+        "instrument_id": None,
+        "metadata": {
+            "name": "Derived equal-weight reference index",
+            "reference_target": summary,
+        },
+        "timeframe": options["timeframe"].value,
+        "adjustment": options["adjustment"],
+        "session": options["session"],
+        "timestamps": timestamps,
+        # The aggregate is a close-only return index.  Non-close fields remain
+        # explicit and unavailable rather than being inferred from members.
+        "opens": closes,
+        "highs": closes,
+        "lows": closes,
+        "closes": closes,
+        "volumes": [None] * len(closes),
+        "vwaps": [None] * len(closes),
+        "sessions": [options["session"]] * len(closes),
     }
 
 
@@ -354,6 +538,10 @@ async def _materialize_declared_dataset(
     benchmark_dataset = await _materialize_benchmark_dataset(
         db, options, history_limit=benchmark_history_limit
     )
+    reference_dataset = await _materialize_reference_dataset(
+        db, options, run_config, history_limit=benchmark_history_limit
+    )
+    comparison_dataset = reference_dataset if reference_dataset is not None else benchmark_dataset
     source_metadata: dict[str, object] = {}
     source_id_value = run_config.get("universe_source_id")
     if source_id_value not in (None, ""):
@@ -541,11 +729,11 @@ async def _materialize_declared_dataset(
                     "timeframe": options["timeframe"].value,
                     "adjustment": options["adjustment"],
                     "session": options["session"],
-                    "timestamps": [bar.ts.isoformat() for bar in bars],
+                    "timestamps": _wire_timestamps([bar.ts for bar in bars]),
                     **_bar_series(bars),
                     **(
-                        {"benchmark_dataset": benchmark_dataset}
-                        if benchmark_dataset and benchmark_dataset.get("status") == "ready"
+                        {"benchmark_dataset": comparison_dataset}
+                        if comparison_dataset and comparison_dataset.get("status") == "ready"
                         else {}
                     ),
                 }
@@ -561,6 +749,14 @@ async def _materialize_declared_dataset(
         }
         if benchmark_dataset is not None:
             result["benchmark_coverage"] = benchmark_dataset
+        if reference_dataset is not None:
+            result["reference_coverage"] = reference_dataset
+        if comparison_dataset is not None and comparison_dataset.get("status") == "ready":
+            # Batch members consume the selected comparison source through the
+            # per-member ``benchmark_dataset`` field, while callers also need
+            # the same immutable source at the manifest level for inspection
+            # and provenance assertions.
+            result["benchmark_dataset"] = comparison_dataset
         return result
     symbol = str(run_config.get("symbol") or manifest.get("symbol") or "").upper()
     if not symbol:
@@ -615,6 +811,10 @@ async def _materialize_declared_dataset(
         result["benchmark_coverage"] = benchmark_dataset
         if benchmark_dataset.get("status") == "ready":
             result["benchmark_dataset"] = benchmark_dataset
+    if reference_dataset is not None:
+        result["reference_coverage"] = reference_dataset
+        if reference_dataset.get("status") == "ready":
+            result["benchmark_dataset"] = reference_dataset
     return result
 
 
@@ -664,7 +864,10 @@ async def create_run(
     return (
         await db.execute(
             select(ResearchRun)
-            .options(selectinload(ResearchRun.artifacts))
+            .options(
+                selectinload(ResearchRun.artifacts),
+                selectinload(ResearchRun.code_version),
+            )
             .where(ResearchRun.id == run.id)
         )
     ).scalar_one()
@@ -674,19 +877,37 @@ async def create_run(
 async def list_runs(
     limit: int = 25,
     include_artifacts: bool = False,
+    before_created_at: datetime | None = None,
+    before_id: int | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Return the current user's newest persisted research runs for result panes."""
+    if (before_created_at is None) != (before_id is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="before_created_at and before_id must be provided together",
+        )
     bounded_limit = max(1, min(limit, 100))
+    statement = (
+        select(ResearchRun)
+        .options(
+            selectinload(ResearchRun.artifacts),
+            selectinload(ResearchRun.code_version),
+        )
+        .where(ResearchRun.user_id == current_user.id)
+    )
+    if before_created_at is not None and before_id is not None:
+        statement = statement.where(
+            (ResearchRun.created_at < before_created_at)
+            | ((ResearchRun.created_at == before_created_at) & (ResearchRun.id < before_id))
+        )
     runs = (
         (
             await db.execute(
-                select(ResearchRun)
-                .options(selectinload(ResearchRun.artifacts))
-                .where(ResearchRun.user_id == current_user.id)
-                .order_by(desc(ResearchRun.created_at), desc(ResearchRun.id))
-                .limit(bounded_limit)
+                statement.order_by(desc(ResearchRun.created_at), desc(ResearchRun.id)).limit(
+                    bounded_limit
+                )
             )
         )
         .scalars()
@@ -702,7 +923,9 @@ async def list_runs(
     return [
         {
             "id": run.id,
+            "created_at": run.created_at,
             "code_version_id": run.code_version_id,
+            "output_contract": run.code_version.output_contract if run.code_version else None,
             "status": run.status,
             "evaluation_status": run.evaluation_status,
             "run_config": run.run_config if include_artifacts else {},
@@ -727,7 +950,10 @@ async def get_run(
     run = (
         await db.execute(
             select(ResearchRun)
-            .options(selectinload(ResearchRun.artifacts))
+            .options(
+                selectinload(ResearchRun.artifacts),
+                selectinload(ResearchRun.code_version),
+            )
             .where(ResearchRun.id == run_id, ResearchRun.user_id == current_user.id)
         )
     ).scalar_one_or_none()
@@ -735,8 +961,412 @@ async def get_run(
         raise HTTPException(status_code=404, detail="Research run not found")
     collect_research_result(run)
     run.progress = read_research_progress(run.id)
+    # ResearchRunOut exposes the immutable source contract so result surfaces can
+    # offer only adapters that the source can execute safely.
+    if run.code_version is not None:
+        setattr(run, "output_contract", run.code_version.output_contract)
     await db.flush()
     return run
+
+
+@router.post(
+    "/runs/{run_id}/promote-event-signal",
+    response_model=StrategyDefinitionDetailOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def promote_event_artifact_to_strategy_signal(
+    run_id: int,
+    body: ResearchEventSignalPromotionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Promote one completed event artifact while retaining its research lineage.
+
+    This target is intentionally limited to a source CodeVersion whose declared contract is
+    ``events``.  A multi-output ``study`` that happens to contain an events artifact must use an
+    explicit adapter first; relabelling it as a signal would hide the other outputs and could
+    change the runner's contract.  Strategy execution re-evaluates the immutable source code on
+    current canonical data, so the originating run's manifest and reproducibility hash are
+    disclosed as lineage rather than misrepresented as a snapshot replay.
+    """
+    run = (
+        await db.execute(
+            select(ResearchRun)
+            .options(
+                selectinload(ResearchRun.artifacts),
+                selectinload(ResearchRun.code_version).selectinload(CodeVersion.asset),
+            )
+            .where(ResearchRun.id == run_id, ResearchRun.user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Research run not found")
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "research_signal_promotion_requires_completed_run",
+                "status": run.status,
+            },
+        )
+    source_version = run.code_version
+    event_artifacts = [item for item in run.artifacts if item.artifact_type == "events"]
+    event_artifact = next(
+        (
+            item
+            for item in event_artifacts
+            if body.artifact_name is None or item.name == body.artifact_name
+        ),
+        None,
+    )
+    if event_artifact is None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_signal_promotion_events_artifact_required",
+                "message": (
+                    "The completed run does not contain the requested events artifact."
+                    if body.artifact_name
+                    else "The completed run does not contain an events artifact."
+                ),
+            },
+        )
+    if (
+        source_version is not None
+        and source_version.output_contract == "events"
+        and body.artifact_name is None
+        and len(event_artifacts) > 1
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_signal_promotion_artifact_name_required",
+                "message": "A run with multiple events artifacts must select the artifact to promote.",
+            },
+        )
+    event_value = (
+        event_artifact.payload.get("value") if isinstance(event_artifact.payload, dict) else None
+    )
+    if not isinstance(event_value, list):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_signal_promotion_events_artifact_invalid",
+                "message": "The events artifact does not contain a persisted event list.",
+            },
+        )
+    source_asset = source_version.asset if source_version is not None else None
+    if (
+        source_version is None
+        or source_asset is None
+        or source_asset.user_id != current_user.id
+        or source_asset.is_archived
+        or source_asset.kind not in {"signal", "study"}
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "research_signal_promotion_source_unavailable"},
+        )
+    if source_version.output_contract != "events":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_signal_promotion_requires_events_contract",
+                "message": "Only an events CodeVersion can be promoted directly to a Strategy signal; multi-output studies require an explicit adapter.",
+                "output_contract": source_version.output_contract,
+            },
+        )
+
+    base_name = body.name or f"{source_asset.name} Events Signal"
+    name = base_name[:120]
+    suffix = 2
+    while (
+        await db.execute(
+            select(func.count())
+            .select_from(StrategyDefinition)
+            .where(
+                StrategyDefinition.user_id == current_user.id,
+                func.lower(StrategyDefinition.name) == name.lower(),
+            )
+        )
+    ).scalar_one():
+        suffix_text = f" ({suffix})"
+        name = f"{base_name[:120 - len(suffix_text)]}{suffix_text}"
+        suffix += 1
+
+    manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+    run_config = run.run_config if isinstance(run.run_config, dict) else {}
+    lineage = {
+        "origin": "research_run_event_promotion",
+        "source_run_id": run.id,
+        "source_code_asset_id": source_asset.id,
+        "source_code_version_id": source_version.id,
+        "source_artifact_id": event_artifact.id,
+        "source_artifact_name": event_artifact.name,
+        "source_reproducibility_hash": run.reproducibility_hash,
+        "source_dataset_manifest_sha256": _research_manifest_fingerprint(manifest),
+        "source_dataset_manifest": _research_manifest_summary(manifest),
+        "source_run_config": run_config,
+        "output_contract": source_version.output_contract,
+        "semantics": "re_evaluate_current_data_event_source",
+        "point_in_time_source_preserved": False,
+    }
+    strategy = StrategyDefinition(
+        user_id=current_user.id,
+        name=name,
+        description=body.description
+        or f"Event signal promoted from research run #{run.id}; current-data re-evaluation and source lineage are explicit.",
+        source_type="custom",
+        definition_type="python",
+        is_active=True,
+        tags=["study-lab", "python-signal", "events"],
+        metadata_json={**lineage, "code_version_id": source_version.id},
+    )
+    strategy.versions.append(
+        StrategyVersion(
+            version_number=1,
+            definition_snapshot={
+                "kind": "python_event_signal",
+                "code_version_id": source_version.id,
+                "output_contract": "events",
+                "source_run_id": run.id,
+                "source_artifact_name": event_artifact.name,
+                "source_dataset_manifest_sha256": lineage["source_dataset_manifest_sha256"],
+                "semantics": lineage["semantics"],
+            },
+            parameter_schema=source_version.parameter_schema or {},
+            default_parameters=source_version.default_parameters or {},
+            notes="Event artifact promoted from a completed research run; execution re-evaluates current canonical data.",
+            is_current=True,
+        )
+    )
+    db.add(strategy)
+    await db.commit()
+    return (
+        await db.execute(
+            select(StrategyDefinition)
+            .options(
+                selectinload(StrategyDefinition.versions),
+                selectinload(StrategyDefinition.run_batches),
+                selectinload(StrategyDefinition.runs),
+            )
+            .where(
+                StrategyDefinition.id == strategy.id,
+                StrategyDefinition.user_id == current_user.id,
+            )
+        )
+    ).scalar_one()
+
+
+@router.post(
+    "/runs/{run_id}/promote-event-filter",
+    status_code=status.HTTP_201_CREATED,
+)
+async def promote_event_artifact_to_screener(
+    run_id: int,
+    body: ResearchEventSignalPromotionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create an explicit current-observation Boolean adapter for an event artifact.
+
+    Event lists are not Boolean conditions by themselves.  This adapter keeps the source
+    CodeVersion and selected artifact name intact, scopes the screener to the run's declared
+    canonical member IDs, and asks the isolated runner to apply ``events_to_boolean``.  It
+    therefore cannot widen a single-symbol run to the whole security master or silently
+    reinterpret a multi-output study.
+    """
+
+    run = (
+        await db.execute(
+            select(ResearchRun)
+            .options(
+                selectinload(ResearchRun.artifacts),
+                selectinload(ResearchRun.code_version).selectinload(CodeVersion.asset),
+            )
+            .where(ResearchRun.id == run_id, ResearchRun.user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Research run not found")
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "research_filter_promotion_requires_completed_run",
+                "status": run.status,
+            },
+        )
+    source_version = run.code_version
+    event_artifacts = [item for item in run.artifacts if item.artifact_type == "events"]
+    event_artifact = next(
+        (
+            item
+            for item in event_artifacts
+            if body.artifact_name is None or item.name == body.artifact_name
+        ),
+        None,
+    )
+    if event_artifact is None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_filter_promotion_events_artifact_required",
+                "message": (
+                    "The completed run does not contain the requested events artifact."
+                    if body.artifact_name
+                    else "The completed run does not contain an events artifact."
+                ),
+            },
+        )
+    if (
+        source_version is not None
+        and source_version.output_contract == "events"
+        and body.artifact_name is None
+        and len(event_artifacts) > 1
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_filter_promotion_artifact_name_required",
+                "message": "A run with multiple events artifacts must select the artifact to adapt.",
+            },
+        )
+    event_value = (
+        event_artifact.payload.get("value") if isinstance(event_artifact.payload, dict) else None
+    )
+    if not isinstance(event_value, list):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_filter_promotion_events_artifact_invalid",
+                "message": "The events artifact does not contain a persisted event list.",
+            },
+        )
+    source_asset = source_version.asset if source_version is not None else None
+    if (
+        source_version is None
+        or source_asset is None
+        or source_asset.user_id != current_user.id
+        or source_asset.is_archived
+        or source_asset.kind not in {"signal", "study"}
+        or source_version.output_contract not in {"events", "study"}
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_filter_promotion_source_unavailable",
+                "message": "Only a user-owned events or explicitly selected multi-output study source can become a watchlist condition.",
+            },
+        )
+    if source_version.output_contract == "study" and not body.artifact_name:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_filter_promotion_artifact_name_required",
+                "message": "A multi-output study must select the events artifact to adapt.",
+            },
+        )
+
+    manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+    raw_datasets = manifest.get("datasets")
+    declared_ids: list[int] = []
+    if isinstance(raw_datasets, list):
+        declared_ids.extend(
+            item.get("instrument_id")
+            for item in raw_datasets
+            if isinstance(item, dict)
+            and isinstance(item.get("instrument_id"), int)
+            and not isinstance(item.get("instrument_id"), bool)
+            and item.get("instrument_id") > 0
+        )
+    if isinstance(manifest.get("instrument_id"), int) and not isinstance(
+        manifest.get("instrument_id"), bool
+    ):
+        declared_ids.append(manifest["instrument_id"])
+    declared_ids = list(dict.fromkeys(declared_ids))
+    if not declared_ids:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_filter_promotion_universe_required",
+                "message": "The source run has no declared canonical members; refusing to widen the filter universe.",
+            },
+        )
+
+    run_config = run.run_config if isinstance(run.run_config, dict) else {}
+    raw_timeframe = run_config.get("timeframe") or manifest.get("timeframe") or Timeframe.D1.value
+    try:
+        timeframe = Timeframe(str(raw_timeframe).strip().upper())
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "research_filter_promotion_timeframe_invalid"},
+        ) from exc
+
+    base_name = body.name or f"{source_asset.name} {event_artifact.name} Filter"
+    name = base_name[:100]
+    suffix = 2
+    while (
+        await db.execute(
+            select(func.count())
+            .select_from(ScreenerDefinition)
+            .where(
+                ScreenerDefinition.user_id == current_user.id,
+                func.lower(ScreenerDefinition.name) == name.lower(),
+            )
+        )
+    ).scalar_one():
+        suffix_text = f" ({suffix})"
+        name = f"{base_name[:100 - len(suffix_text)]}{suffix_text}"
+        suffix += 1
+
+    lineage = {
+        "origin": "research_run_event_filter_promotion",
+        "source_run_id": run.id,
+        "source_code_asset_id": source_asset.id,
+        "source_code_version_id": source_version.id,
+        "source_artifact_id": event_artifact.id,
+        "source_artifact_name": event_artifact.name,
+        "source_output_name": event_artifact.name,
+        "source_reproducibility_hash": run.reproducibility_hash,
+        "source_dataset_manifest_sha256": _research_manifest_fingerprint(manifest),
+        "source_dataset_manifest": _research_manifest_summary(manifest),
+        "source_run_config": run_config,
+        "output_contract": source_version.output_contract,
+        "output_adapter": "events_to_boolean",
+        "semantics": "event_presence_at_current_observation",
+        "point_in_time_source_preserved": False,
+    }
+    screener = ScreenerDefinition(
+        user_id=current_user.id,
+        name=name,
+        description=body.description
+        or f"Event filter promoted from research run #{run.id}; current-data event presence and source lineage are explicit.",
+        universe_type="custom",
+        universe_instrument_ids=declared_ids,
+        timeframe=timeframe,
+        conditions={
+            "type": "python_condition",
+            "code_version_id": source_version.id,
+            "output_name": event_artifact.name,
+            "output_adapter": "events_to_boolean",
+            "provenance": lineage,
+        },
+        is_active=True,
+    )
+    db.add(screener)
+    await db.commit()
+    return {
+        "id": screener.id,
+        "name": screener.name,
+        "description": screener.description,
+        "universe_type": screener.universe_type,
+        "universe_instrument_ids": declared_ids,
+        "timeframe": timeframe.value,
+        "conditions": screener.conditions,
+        "semantics": lineage["semantics"],
+    }
 
 
 @router.get("/runs/{run_id}/batch-results", response_model=ResearchBatchResultOut)
@@ -821,7 +1451,10 @@ async def rerun(
     return (
         await db.execute(
             select(ResearchRun)
-            .options(selectinload(ResearchRun.artifacts))
+            .options(
+                selectinload(ResearchRun.artifacts),
+                selectinload(ResearchRun.code_version),
+            )
             .where(ResearchRun.id == run.id)
         )
     ).scalar_one()

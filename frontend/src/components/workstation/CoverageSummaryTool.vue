@@ -10,7 +10,7 @@
         <span>Adjusted daily bars</span><b>{{ daily.bar_count.toLocaleString() }}</b>
         <span>Local range</span><b>{{ formatRange(daily.oldest, daily.newest) }}</b>
       </div>
-      <p v-else class="coverage-summary__state">No local adjusted daily observations.</p>
+      <p v-else class="coverage-summary__state" role="status" aria-live="polite" aria-atomic="true">No local adjusted daily observations.</p>
       <div v-if="datasetStates.length" class="coverage-summary__datasets">
         <span>Dataset state</span>
         <ul>
@@ -43,7 +43,8 @@
         </div>
         <p v-if="rangeValidationError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive" aria-atomic="true">{{ rangeValidationError }}</p>
         <p v-else-if="rangeError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive" aria-atomic="true">{{ rangeError }}</p>
-        <div v-else-if="rangeAssessment" class="coverage-summary__assessment" role="status" aria-live="polite" aria-atomic="true" :class="`coverage-summary__assessment--${rangeAssessment.status}`">
+        <div v-else-if="rangeAssessment" class="coverage-summary__assessment" role="status" aria-live="polite" aria-atomic="true" :class="`coverage-summary__assessment--${rangeAssessment.status}`" :aria-describedby="rangeAccessibilityId">
+          <span :id="rangeAccessibilityId" class="sr-only">{{ rangeAccessibilitySummary }}</span>
           <div><span>Status</span><strong>{{ rangeAssessment.status }}</strong></div>
           <div><span>Bars</span><strong>{{ rangeAssessment.bar_count.toLocaleString() }}</strong></div>
           <div><span>Covered</span><strong>{{ formatRange(rangeAssessment.covered_start, rangeAssessment.covered_end) }}</strong></div>
@@ -63,14 +64,55 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { describeOhlcvCoverage } from '@/lib/workstation/ohlcvCoverageAccessibility'
 
 interface CoverageRange { oldest: string | null; newest: string | null; bar_count: number }
-interface DatasetState { dataset_type: string; dataset_key: string; status: 'fresh' | 'stale' | 'pending' | 'failed'; updated_at?: string | null }
+interface DatasetState { dataset_type: string; dataset_key: string; status: 'fresh' | 'stale' | 'pending' | 'failed'; updated_at?: string | null; extra_data?: Record<string, unknown> | null }
 interface OhlcvCoverageSlice { start: string; end: string }
-interface OhlcvCoverageAssessment { status: 'ready' | 'partial' | 'missing' | 'stale'; covered_start: string | null; covered_end: string | null; bar_count: number; missing_slices: OhlcvCoverageSlice[]; explanation: string }
+interface OhlcvCoverageAssessment {
+  status: 'ready' | 'partial' | 'missing' | 'stale'
+  covered_start: string | null
+  covered_end: string | null
+  bar_count: number
+  missing_slices: OhlcvCoverageSlice[]
+  explanation: string
+  lineage?: {
+    provider_bar_count?: number
+    derived_bar_count?: number
+    unknown_bar_count?: number
+    source_lineage?: string
+    source_timeframes?: string[]
+  }
+  adjustment_provenance?: {
+    mode?: string
+    factor_status?: string
+    factor_version?: string | null
+    factor_observation_count?: number | null
+    factor_rebuildable_observation_count?: number | null
+    factor_opaque_observation_count?: number | null
+    factor_kinds?: string[]
+  }
+  storage_evidence?: {
+    status?: string
+    provider_bar_count?: number
+    observation_count?: number
+    matched_observation_count?: number
+    missing_observation_count?: number
+    mismatched_observation_count?: number
+    orphan_observation_count?: number
+  }
+  observed_cadence?: {
+    status?: string
+    sample_count?: number
+    median_interval_days?: number | null
+    min_interval_days?: number | null
+    max_interval_days?: number | null
+    semantics?: string
+  }
+}
 
 const props = defineProps<{ symbol: string; configuration?: Record<string, unknown> }>()
 const queryClient = useQueryClient()
@@ -92,8 +134,48 @@ const rangeAdjusted = ref(props.configuration?.coverage_adjusted !== false)
 const rangeLoading = ref(false)
 const rangeError = ref('')
 const rangeAssessment = ref<OhlcvCoverageAssessment | null>(null)
+const rangeAccessibilityId = useId()
+const rangeAccessibilitySummary = computed(() => {
+  const assessment = rangeAssessment.value
+  if (!assessment) return ''
+  const lineage = assessment.lineage ?? {}
+  const adjustment = assessment.adjustment_provenance ?? {}
+  const storage = assessment.storage_evidence ?? {}
+  const coverageDescription = describeOhlcvCoverage({
+    timeframe: rangeTimeframe.value,
+    status: assessment.status,
+    barCount: assessment.bar_count,
+    sourceLineage: lineage.source_lineage ?? 'unavailable',
+    providerBarCount: lineage.provider_bar_count ?? 0,
+    derivedBarCount: lineage.derived_bar_count ?? 0,
+    unknownBarCount: lineage.unknown_bar_count ?? 0,
+    sourceTimeframes: lineage.source_timeframes ?? [],
+    adjustmentMode: adjustment.mode ?? (rangeAdjusted.value ? 'split_adjusted' : 'raw'),
+    factorStatus: adjustment.factor_status ?? 'not_reported',
+    factorVersion: adjustment.factor_version,
+  })
+  const storageDescription = `Storage evidence ${storage.status ?? 'not_observed'}: ${storage.matched_observation_count ?? 0} matched, ${storage.missing_observation_count ?? 0} missing, ${storage.mismatched_observation_count ?? 0} mismatched, ${storage.orphan_observation_count ?? 0} orphan observations.`
+  const cadence = assessment.observed_cadence ?? {}
+  const cadenceLabel: Record<string, string> = {
+    no_observation: 'no observations',
+    single_observation: 'single observation',
+    observed_cadence: 'measured',
+    no_interval: 'no interval',
+  }
+  const medianInterval = cadence.median_interval_days == null
+    ? null
+    : Number.isInteger(cadence.median_interval_days)
+      ? String(cadence.median_interval_days)
+      : cadence.median_interval_days.toFixed(2)
+  const cadenceDescription = `Observed cadence ${cadenceLabel[cadence.status ?? ''] ?? cadence.status ?? 'not reported'}${cadence.sample_count ? ` · ${cadence.sample_count} interval${cadence.sample_count === 1 ? '' : 's'}` : ''}${medianInterval ? ` · median ${medianInterval}d` : ''}${cadence.min_interval_days != null ? ` · min ${cadence.min_interval_days}d` : ''}${cadence.max_interval_days != null ? ` · max ${cadence.max_interval_days}d` : ''}. This is diagnostic of returned bar timestamps only.`
+  const factorEvidenceDescription = adjustment.factor_observation_count == null
+    ? ''
+    : ` Adjustment inputs ${adjustment.factor_observation_count} observed; ${adjustment.factor_rebuildable_observation_count ?? 0} rebuildable, ${adjustment.factor_opaque_observation_count ?? 0} opaque${adjustment.factor_kinds?.length ? ` (${adjustment.factor_kinds.join(', ')})` : ''}. This is input audit evidence, not proof that prices were recalculated locally.`
+  return `${coverageDescription} ${storageDescription} ${cadenceDescription}${factorEvidenceDescription}`
+})
 let requestId = 0
 let rangeRequestId = 0
+let disposed = false
 
 const daily = computed(() => coverage.value.D1 ?? null)
 const rangeValidationError = computed(() => {
@@ -121,16 +203,16 @@ watch(() => props.symbol, async symbol => {
       }>(`/coverage/instruments/${encodeURIComponent(symbol)}`),
       staleTime: 30_000,
     })
-    if (id !== requestId) return
+    if (disposed || id !== requestId) return
     coverage.value = response.local_coverage ?? {}
     datasetStates.value = (response.dataset_states ?? []).slice(0, 6)
   } catch (caught: any) {
-    if (id !== requestId) return
+    if (disposed || id !== requestId) return
     coverage.value = {}
     datasetStates.value = []
     error.value = caught?.message ?? 'Coverage is unavailable.'
   } finally {
-    if (id === requestId) loading.value = false
+    if (!disposed && id === requestId) loading.value = false
   }
 }, { immediate: true })
 
@@ -176,16 +258,22 @@ async function checkRange() {
       queryFn: () => api.get<OhlcvCoverageAssessment>(`/coverage/instruments/${encodeURIComponent(props.symbol)}/ohlcv`, params),
       staleTime: 30_000,
     })
-    if (id === rangeRequestId) rangeAssessment.value = response
+    if (!disposed && id === rangeRequestId) rangeAssessment.value = response
   } catch (caught: any) {
-    if (id === rangeRequestId) {
+    if (!disposed && id === rangeRequestId) {
       rangeAssessment.value = null
       rangeError.value = caught?.message ?? 'OHLCV readiness is unavailable.'
     }
   } finally {
-    if (id === rangeRequestId) rangeLoading.value = false
+    if (!disposed && id === rangeRequestId) rangeLoading.value = false
   }
 }
+
+onBeforeUnmount(() => {
+  disposed = true
+  requestId += 1
+  rangeRequestId += 1
+})
 
 function formatRange(start: string | null, end: string | null) {
   if (!start || !end) return 'Unavailable'

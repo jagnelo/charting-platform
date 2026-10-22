@@ -4,8 +4,58 @@ import pytest
 
 from app.services.benchmark_family_coverage import (
     OBSERVED_CONTINUITY_MAX_INTERVAL_DAYS,
+    assess_observed_holdings_cadence,
     assess_observed_holdings_continuity,
+    classify_analysis_readiness,
 )
+
+
+@pytest.mark.parametrize(
+    ("member_count", "covered_count", "ready_count", "status"),
+    [
+        (0, 0, 0, "unavailable"),
+        (2, 0, 0, "pending"),
+        (2, 1, 0, "partial"),
+        (2, 2, 1, "partial"),
+        (2, 2, 2, "ready"),
+    ],
+)
+def test_analysis_readiness_keeps_short_history_distinct_from_missing_history(
+    member_count, covered_count, ready_count, status
+):
+    assert classify_analysis_readiness(member_count, covered_count, ready_count) == status
+
+
+def test_observed_cadence_collapses_same_date_revisions_and_reports_statistics():
+    result = assess_observed_holdings_cadence(
+        [
+            date(2026, 1, 31),
+            date(2026, 2, 28),
+            date(2026, 2, 28),
+            date(2026, 3, 31),
+            date(2026, 5, 31),
+        ]
+    )
+
+    assert result.status == "observed_cadence"
+    assert result.sample_count == 3
+    assert result.median_interval_days == 31.0
+    assert result.min_interval_days == 28
+    assert result.max_interval_days == 61
+
+
+@pytest.mark.parametrize(
+    ("dates", "status"),
+    [([], "no_snapshot"), ([date(2026, 6, 30)], "single_snapshot")],
+)
+def test_observed_cadence_distinguishes_missing_and_single_snapshot(dates, status):
+    result = assess_observed_holdings_cadence(dates)
+
+    assert result.status == status
+    assert result.sample_count == 0
+    assert result.median_interval_days is None
+    assert result.min_interval_days is None
+    assert result.max_interval_days is None
 
 
 def test_observed_continuity_collapses_same_date_revisions():

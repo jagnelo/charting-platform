@@ -48,6 +48,13 @@ class TestOHLCVRouter:
             "volume": 12345.0,
             "vwap": 102.5,
             "is_adjusted": True,
+            "is_derived": False,
+            "source_timeframe": None,
+            "derivation_method": None,
+            "derived_at": None,
+            "source_bar_count": None,
+            "source_start": None,
+            "source_end": None,
         }
         assert calls == [{"allow_provider_fetch": False}]
 

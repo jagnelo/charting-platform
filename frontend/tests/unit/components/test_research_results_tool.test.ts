@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
 vi.mock('@/components/workstation/StudyBarsUPlot.vue', () => ({ default: { template: '<div class="bars-chart" />', props: ['name', 'labels', 'values'] } }))
+vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" :data-values="JSON.stringify(values)" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
 vi.mock('@/components/workstation/StudyRangeUPlot.vue', () => ({ default: { template: '<div class="range-chart" />', props: ['name', 'timestamps', 'lower', 'upper', 'center'] } }))
 vi.mock('@/components/workstation/StudyScatterUPlot.vue', () => ({ default: { template: '<div class="scatter-chart" />', props: ['name', 'x', 'y'] } }))
@@ -13,6 +14,12 @@ vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { templ
 vi.mock('@/components/workstation/GenericBreadthHistoryUPlot.vue', () => ({ default: { template: '<div class="breadth-history-chart" />', props: ['history'] } }))
 
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(res => { resolve = res })
+  return { promise, resolve }
+}
 
 describe('ResearchResultsTool', () => {
   beforeEach(() => { apiGet.mockReset(); apiPost.mockReset() })
@@ -27,12 +34,118 @@ describe('ResearchResultsTool', () => {
     const wrapper = mountTool()
     await flushPromises()
 
-    expect(apiGet).toHaveBeenCalledWith('/research/runs', { limit: 25, include_artifacts: false })
+    expect(apiGet).toHaveBeenCalledWith('/research/runs', { limit: 26, include_artifacts: false })
     expect(wrapper.text()).toContain('Run #9')
     expect(wrapper.text()).toContain('current_streak')
     expect(wrapper.find('.histogram-chart').exists()).toBe(true)
     expect(wrapper.find('.bars-chart').exists()).toBe(true)
     expect(wrapper.find('.range-chart').exists()).toBe(true)
+    const summaryId = wrapper.find('[aria-label="confidence range result"]').attributes('aria-describedby')
+    expect(summaryId).toMatch(/-research-artifact-6-summary$/)
+    expect(wrapper.find(`#${summaryId}`).text()).toContain('confidence range result with 1 observations')
+  })
+
+  it('loads older runs with a stable cursor while preserving selection and comparison', async () => {
+    const makeRuns = (startId: number, count: number, offset: number) => Array.from({ length: count }, (_, index) => {
+      const age = offset + index
+      return {
+        id: startId - age,
+        created_at: new Date(Date.UTC(2026, 0, 2) - age * 60_000).toISOString(),
+        status: 'completed',
+        code_version_id: startId - age,
+        run_config: {},
+        dataset_manifest: {},
+        artifact_count: 0,
+        artifacts: [],
+      }
+    })
+    const firstPage = makeRuns(100, 26, 0)
+    const olderPage = makeRuns(100, 26, 25)
+    apiGet.mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path !== '/research/runs') return Promise.resolve({})
+      return Promise.resolve(params?.before_id ? olderPage : firstPage)
+    })
+
+    const wrapper = mountTool()
+    await flushPromises()
+    expect(wrapper.findAll('[role="listitem"]')).toHaveLength(25)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Load older runs')).toBe(true)
+
+    await wrapper.get('button[aria-label="Run 77, completed, 0 artifacts"]').trigger('click')
+    await wrapper.get('input[aria-label="Compare run 100"]').setValue(true)
+    await wrapper.get('input[aria-label="Compare run 77"]').setValue(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Compare')!.trigger('click')
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Load older runs')!.trigger('click')
+    await flushPromises()
+
+    expect(apiGet).toHaveBeenCalledWith('/research/runs', {
+      limit: 26,
+      include_artifacts: false,
+      before_created_at: firstPage[24].created_at,
+      before_id: firstPage[24].id,
+    })
+    expect(wrapper.findAll('[role="listitem"]')).toHaveLength(50)
+    expect(wrapper.get('[role="listitem"].research-results-tool__run[aria-current="true"]').text()).toContain('Run #77')
+    expect((wrapper.get('input[aria-label="Compare run 100"]').element as HTMLInputElement).checked).toBe(true)
+    expect((wrapper.get('input[aria-label="Compare run 77"]').element as HTMLInputElement).checked).toBe(true)
+    expect(wrapper.text()).toContain('Run 100 vs 77')
+  })
+
+  it('surfaces an older-run page error and allows retry', async () => {
+    const firstPage = Array.from({ length: 26 }, (_, index) => ({
+      id: 50 - index,
+      created_at: new Date(Date.UTC(2026, 0, 2) - index * 60_000).toISOString(),
+      status: 'completed',
+      code_version_id: 1,
+      run_config: {},
+      dataset_manifest: {},
+      artifact_count: 0,
+      artifacts: [],
+    }))
+    let olderAttempts = 0
+    apiGet.mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path !== '/research/runs') return Promise.resolve({})
+      if (!params?.before_id) return Promise.resolve(firstPage)
+      olderAttempts += 1
+      return olderAttempts === 1
+        ? Promise.reject(new Error('Older runs unavailable'))
+        : Promise.resolve(firstPage.slice(25))
+    })
+
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'Load older runs')!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('Older runs unavailable')
+    await wrapper.findAll('button').find(button => button.text() === 'Retry loading older runs')!.trigger('click')
+    await flushPromises()
+    expect(olderAttempts).toBe(2)
+    expect(wrapper.findAll('[role="listitem"]')).toHaveLength(26)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Load older runs')).toBe(false)
+  })
+
+  it('keeps artifact summary relationships unique across linked result panes', async () => {
+    const response = [{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 6, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01'], lower: [1], upper: [3], center: [2] } } }] }]
+    apiGet.mockResolvedValue(response)
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const plugin = [VueQueryPlugin, { queryClient }] as const
+    const first = mount(ResearchResultsTool, { global: { plugins: [plugin] } })
+    const second = mount(ResearchResultsTool, { global: { plugins: [plugin] } })
+    await flushPromises()
+
+    const firstId = first.find('[aria-label="confidence range result"]').attributes('aria-describedby')
+    const secondId = second.find('[aria-label="confidence range result"]').attributes('aria-describedby')
+    expect(firstId).toMatch(/-research-artifact-6-summary$/)
+    expect(secondId).toMatch(/-research-artifact-6-summary$/)
+    expect(firstId).not.toBe(secondId)
+    expect(first.find(`#${firstId}`).exists()).toBe(true)
+    expect(second.find(`#${secondId}`).exists()).toBe(true)
+    first.unmount()
+    second.unmount()
   })
 
   it('exposes selected-run and loading/error states as navigable live regions', async () => {
@@ -46,7 +159,14 @@ describe('ResearchResultsTool', () => {
 
     expect(wrapper.find('[role="region"][aria-label="Study Lab research results"]').exists()).toBe(true)
     expect(wrapper.find('[role="list"][aria-label="Persisted research runs"]').exists()).toBe(true)
-    expect(wrapper.find('.research-results-tool__run').attributes('aria-current')).toBe('true')
+    const selectedItem = wrapper.get('[role="listitem"].research-results-tool__run')
+    expect(selectedItem.attributes('aria-current')).toBe('true')
+    const selectedButton = selectedItem.get('button.research-results-tool__run-select')
+    expect(selectedButton.attributes('aria-label')).toBe('Run 10, completed, 1 artifacts')
+    expect(selectedButton.attributes('aria-pressed')).toBe('true')
+    const comparisonCheckbox = selectedItem.get('input[type="checkbox"]')
+    expect(selectedItem.element.contains(comparisonCheckbox.element)).toBe(true)
+    expect(selectedItem.get('button.research-results-tool__run-select').element.contains(comparisonCheckbox.element)).toBe(false)
     const loadingNotice = wrapper.find('.research-results-tool__notice[role="status"]')
     expect(loadingNotice.text()).toContain('Loading selected run details')
     expect(loadingNotice.attributes('aria-live')).toBe('polite')
@@ -55,6 +175,123 @@ describe('ResearchResultsTool', () => {
     resolveDetail({ id: 10, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 1, artifacts: [{ id: 1, name: 'sample', artifact_type: 'scalar', payload: { value: 1 } }] })
     await flushPromises()
     expect(wrapper.find('[aria-label="sample scalar result"]').exists()).toBe(true)
+  })
+
+  it('exposes comparison visibility as pressed state', async () => {
+    apiGet.mockResolvedValue([
+      { id: 10, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] },
+      { id: 11, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] },
+    ])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('input[aria-label="Compare run 10"]').setValue(true)
+    await wrapper.get('input[aria-label="Compare run 11"]').setValue(true)
+    const compare = wrapper.findAll('button').find(button => button.text() === 'Compare')!
+    expect(compare.attributes('aria-pressed')).toBe('false')
+    await compare.trigger('click')
+    expect(wrapper.findAll('button').find(button => button.text() === 'Hide compare')!.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.find('.research-results-tool__comparison').exists()).toBe(true)
+  })
+
+  it('loads full outputs only when comparison opens and reports changed and missing artifacts', async () => {
+    const compactRuns = [
+      { id: 10, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 3, artifacts: [] },
+      { id: 11, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, artifact_count: 4, artifacts: [] },
+    ]
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve(compactRuns)
+      if (path === '/research/runs/10') return Promise.resolve({ ...compactRuns[0], artifacts: [
+        { id: 1, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
+        { id: 2, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
+        { id: 3, name: 'config', artifact_type: 'custom', payload: { value: { alpha: 1, beta: 2 } } },
+        { id: 4, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-02'], lower: [1], upper: [3], center: [2] } } },
+        { id: 5, name: 'different_dates', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-02'], values: [2] } } },
+        { id: 6, name: 'different_range_dates', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-02'], lower: [4], upper: [6], center: [5] } } },
+      ] })
+      if (path === '/research/runs/11') return Promise.resolve({ ...compactRuns[1], artifacts: [
+        { id: 3, name: 'sample_size', artifact_type: 'scalar', payload: { value: 5 } },
+        { id: 4, name: 'trend', artifact_type: 'series', payload: { value: { values: [1, 3], timestamps: ['2026-01-01', '2026-01-02'] } } },
+        { id: 5, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
+        { id: 6, name: 'config', artifact_type: 'custom', payload: { value: { beta: 2, alpha: 1 } } },
+        { id: 7, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-02'], lower: [0], upper: [2], center: [1] } } },
+        { id: 8, name: 'different_dates', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-03'], values: [4] } } },
+        { id: 9, name: 'different_range_dates', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-03'], lower: [5], upper: [7], center: [6] } } },
+      ] })
+      return Promise.reject(new Error(`unexpected request: ${path}`))
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/10')
+    expect(apiGet).not.toHaveBeenCalledWith('/research/runs/11')
+    await wrapper.get('input[aria-label="Compare run 10"]').setValue(true)
+    await wrapper.get('input[aria-label="Compare run 11"]').setValue(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Compare')!.trigger('click')
+    await flushPromises()
+
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/10')
+    expect(apiGet).toHaveBeenCalledWith('/research/runs/11')
+    const comparison = wrapper.get('[aria-label="Study output comparison"]')
+    expect(comparison.text()).toContain('sample_size')
+    expect(comparison.text()).toContain('Value: 4')
+    expect(comparison.text()).toContain('Value: 5')
+    expect(comparison.text()).toContain('Changed')
+    expect(comparison.text()).toContain('Change (run 10 → 11): +1')
+    expect(comparison.text()).toContain('Latest aligned change on 2026-01-02 (run 10 → 11): +1')
+    expect(comparison.text()).toContain('Latest aligned center change on 2026-01-02 (run 10 → 11): -1')
+    const differentDatesRow = comparison.findAll('tr').find(row => row.text().includes('different_dates'))!
+    expect(differentDatesRow.text()).toContain('Changed')
+    expect(differentDatesRow.text()).not.toContain('Latest aligned change')
+    expect(comparison.text()).toContain('Only in run 11')
+    expect(comparison.text()).toContain('Not produced')
+    expect(comparison.text()).toContain('2 observations; latest 3 as of 2026-01-02')
+    expect(differentDatesRow.text()).toContain('1 observation; latest 2 as of 2026-01-02')
+    expect(differentDatesRow.text()).toContain('1 observation; latest 4 as of 2026-01-03')
+    expect(comparison.text()).toContain('1 observation; latest center 2 as of 2026-01-02')
+    const differentRangeDatesRow = comparison.findAll('tr').find(row => row.text().includes('different_range_dates'))!
+    expect(differentRangeDatesRow.text()).toContain('1 observation; latest center 5 as of 2026-01-02')
+    expect(differentRangeDatesRow.text()).toContain('1 observation; latest center 6 as of 2026-01-03')
+    expect(differentRangeDatesRow.text()).not.toContain('Latest aligned center change')
+    expect(comparison.text()).toContain('Same output')
+    expect(comparison.text()).toContain('Inspect output')
+    expect(comparison.text()).not.toContain('"values"')
+    const inspectTrend = comparison.findAll('details')[2]
+    const inspectElement = inspectTrend.element as HTMLDetailsElement
+    inspectElement.open = true
+    await inspectTrend.trigger('toggle')
+    await flushPromises()
+    expect(comparison.text()).toContain('"values"')
+  })
+
+  it('allows retrying a failed comparison detail request', async () => {
+    const compactRuns = [
+      { id: 12, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] },
+      { id: 13, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, artifact_count: 1, artifacts: [] },
+    ]
+    let detailAttempts = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve(compactRuns)
+      if (path === '/research/runs/13') {
+        detailAttempts += 1
+        if (detailAttempts === 1) return Promise.reject(new Error('run details unavailable'))
+      }
+      const id = Number(path.split('/').at(-1))
+      return Promise.resolve({ ...compactRuns.find(run => run.id === id), artifacts: [{ id, name: 'score', artifact_type: 'scalar', payload: { value: id } }] })
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+    await wrapper.get('input[aria-label="Compare run 12"]').setValue(true)
+    await wrapper.get('input[aria-label="Compare run 13"]').setValue(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Compare')!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('run details unavailable')
+    expect(wrapper.findAll('button').some(button => button.text() === 'Retry comparison')).toBe(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Retry comparison')!.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('score')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
   it('shows a bounded detail-loading state while compact run artifacts hydrate', async () => {
@@ -136,6 +373,68 @@ describe('ResearchResultsTool', () => {
     expect(queryClient.getQueryData(['workstation', 'research-runs'])).toEqual([canceled])
   })
 
+  it('preserves a newer run selection when a slower rerun response resolves', async () => {
+    const first = { id: 21, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const second = { id: 22, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const queued = { ...first, id: 23, status: 'queued' }
+    let resolveRerun!: (value: typeof queued) => void
+    let runReads = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path !== '/research/runs') return Promise.resolve([])
+      runReads += 1
+      return Promise.resolve(runReads === 1 ? [first, second] : [queued, second])
+    })
+    apiPost.mockImplementation((path: string) => path === '/research/runs/21/rerun?snapshot=true'
+      ? new Promise(resolve => { resolveRerun = resolve })
+      : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')!.trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
+    expect(wrapper.get('[aria-label="Research run 22 details"]').exists()).toBe(true)
+
+    resolveRerun(queued)
+    await flushPromises()
+    expect(wrapper.get('[aria-label="Research run 22 details"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Research run 23 details"]').exists()).toBe(false)
+  })
+
+  it('does not publish a late rerun response after the tool unmounts', async () => {
+    const run = { id: 24, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifacts: [] }
+    const rerun = deferred<typeof run>()
+    apiGet.mockResolvedValue([run])
+    apiPost.mockImplementation((path: string) => path === '/research/runs/24/rerun?snapshot=true' ? rerun.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')!.trigger('click')
+    wrapper.unmount()
+    rerun.resolve({ ...run, id: 25, status: 'queued' })
+    await flushPromises()
+
+    expect((wrapper.vm as unknown as { runs: typeof run[] }).runs).toEqual([run])
+  })
+
+  it('does not publish a late breadth promotion after the tool unmounts', async () => {
+    const run = { id: 25, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 12, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [], occurrences: [] } } },
+    ] }
+    const promotion = deferred<{ id: number; name: string }>()
+    apiGet.mockResolvedValue([run])
+    apiPost.mockImplementation((path: string) => path === '/analysis/breadth/python/runs/25/promote-scan' ? promotion.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Promote to EasyScan')!.trigger('click')
+    wrapper.unmount()
+    promotion.resolve({ id: 56, name: 'Detached breadth scan' })
+    await flushPromises()
+
+    expect((wrapper.vm as unknown as { promotedScans: Record<number, unknown> }).promotedScans).toEqual({})
+    expect((wrapper.vm as unknown as { promotionMessage: string }).promotionMessage).toBe('')
+  })
+
   it('renders persisted scatter and heatmap artifacts with native result surfaces', async () => {
     apiGet.mockResolvedValue([{ id: 13, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 5, name: 'relationship', artifact_type: 'scatter', payload: { value: { x: [1, 2], y: [3, 4] } } },
@@ -146,6 +445,19 @@ describe('ResearchResultsTool', () => {
 
     expect(wrapper.find('.scatter-chart').exists()).toBe(true)
     expect(wrapper.find('.heatmap-chart').exists()).toBe(true)
+    expect(wrapper.text()).toContain('View/export only: paired x/y observations have no compatible watchlist or chart-plot target.')
+    expect(wrapper.text()).toContain('View/export only: matrix dimensions and cell meaning must remain intact.')
+  })
+
+  it('keeps a range without a finite center view-only instead of offering a lossy promotion', async () => {
+    apiGet.mockResolvedValue([{ id: 35, status: 'completed', code_version_id: 4, output_contract: 'study', run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 25, name: 'confidence_band', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01'], lower: [1], upper: [3] } } },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save center chart plot: confidence_band"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('View/export only: this range has no aligned finite center series to promote; bounds remain source-only.')
   })
 
   it('renders persisted dashboard artifacts as structured panels', async () => {
@@ -154,10 +466,10 @@ describe('ResearchResultsTool', () => {
       { id: 8, name: 'overview', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'sample_size', title: 'Sample size', span: 12 }] } } },
     ] }])
     const wrapper = mountTool()
-    await flushPromises()
+      await flushPromises()
 
-    expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
-  })
+      expect(wrapper.find('.dashboard-chart').exists()).toBe(true)
+    })
 
   it('renders collected Python breadth history and publishes canonical occurrence identity', async () => {
     apiGet.mockResolvedValue([{ id: 19, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
@@ -204,11 +516,16 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
 
     expect(wrapper.find('.breadth-history-chart').exists()).toBe(true)
-    expect(wrapper.text()).toContain('2 shown')
+    expect(wrapper.text()).toContain('Showing 2 of 2 occurrences')
     await wrapper.get('[aria-label="Occurrence symbol filter"]').setValue('spy')
-    expect(wrapper.text()).toContain('1 shown')
+    expect(wrapper.text()).toContain('Showing 1 of 1 occurrences')
     expect(wrapper.text()).not.toContain('AAPL')
-    const occurrence = wrapper.get('[aria-label="SPY entered 2026-01-02T00:00:00+00:00"]')
+    const list = wrapper.get('[role="list"][aria-label="Historical breadth occurrences"]')
+    const item = list.get('[role="listitem"]')
+    const occurrence = item.get('button')
+    expect(item.findAll('button')).toHaveLength(1)
+    expect(occurrence.attributes('type')).toBe('button')
+    expect(occurrence.attributes('aria-label')).toBe('SPY entered 2026-01-02T00:00:00+00:00')
     await occurrence.trigger('click')
     expect(wrapper.emitted('occurrence')?.[0]?.[0]).toMatchObject({
       symbol: 'SPY',
@@ -216,6 +533,823 @@ describe('ResearchResultsTool', () => {
       instrument_id: 7,
       kind: 'member_entered',
     })
+  })
+
+  it('makes the complete breadth occurrence list available without overstating the visible count', async () => {
+    const occurrences = Array.from({ length: 101 }, (_, index) => ({
+      occurrence_id: `${index + 1}:2026-01-01T00:00:00Z:member_entered`,
+      timestamp: new Date(Date.UTC(2026, 0, 1) + index * 60_000).toISOString(),
+      kind: 'member_entered',
+      instrument_id: index + 1,
+      symbol: `SYM${index}`,
+      value: true,
+    }))
+    apiGet.mockResolvedValue([{ id: 20, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 11, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [{ timestamp: '2026-01-01T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }], occurrences } } },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const list = wrapper.get('[role="list"][aria-label="Historical breadth occurrences"]')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(100)
+    expect(wrapper.text()).toContain('Showing 100 of 101 occurrences')
+    await wrapper.findAll('button').find(button => button.text() === 'Load more occurrences (1 remaining)')!.trigger('click')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(101)
+    expect(wrapper.text()).toContain('Showing 101 of 101 occurrences')
+    expect(wrapper.findAll('button').some(button => button.text().startsWith('Load more occurrences'))).toBe(false)
+  })
+
+  it('filters generic event artifacts and publishes the selected event identity', async () => {
+    apiGet.mockResolvedValue([{ id: 27, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      {
+        id: 16,
+        name: 'signal_events',
+        artifact_type: 'events',
+        payload: {
+          value: [
+            { symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'member_entered', instrument_id: 7 },
+            { symbol: 'AAPL', timestamp: '2026-01-03T00:00:00Z', kind: 'member_exited', instrument_id: 8 },
+          ],
+        },
+      },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Showing 2 of 2 occurrences')
+    await wrapper.get('[aria-label="signal_events symbol filter"]').setValue('spy')
+    expect(wrapper.text()).toContain('Showing 1 of 1 occurrences')
+    expect(wrapper.text()).not.toContain('AAPL')
+    await wrapper.get('[aria-label="signal_events event type filter"]').setValue('member_entered')
+    const list = wrapper.get('[role="list"][aria-label="signal_events filtered occurrences"]')
+    const item = list.get('[role="listitem"]')
+    const event = item.get('button')
+    expect(item.findAll('button')).toHaveLength(1)
+    expect(event.attributes('type')).toBe('button')
+    expect(event.attributes('aria-label')).toBe('SPY 2026-01-02T00:00:00Z occurrence')
+    await event.trigger('click')
+    expect(wrapper.emitted('occurrence')?.[0]?.[0]).toMatchObject({
+      symbol: 'SPY',
+      timestamp: '2026-01-02T00:00:00Z',
+      instrument_id: 7,
+      kind: 'member_entered',
+    })
+  })
+
+  it('pages large event artifacts and reports visible versus matching occurrences', async () => {
+    const occurrences = Array.from({ length: 205 }, (_, index) => ({
+      symbol: `SYM${index}`,
+      timestamp: new Date(Date.UTC(2026, 0, 1) + index * 60_000).toISOString(),
+      kind: index % 2 ? 'member_exited' : 'member_entered',
+      instrument_id: index + 1,
+    }))
+    apiGet.mockResolvedValue([{ id: 29, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 18, name: 'large_events', artifact_type: 'events', payload: { value: occurrences } },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const list = wrapper.get('[role="list"][aria-label="large_events filtered occurrences"]')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(100)
+    expect(wrapper.text()).toContain('Showing 100 of 205 occurrences')
+    await wrapper.findAll('button').find(button => button.text() === 'Load more occurrences (105 remaining)')!.trigger('click')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(200)
+    expect(wrapper.text()).toContain('Showing 200 of 205 occurrences')
+    await wrapper.get('[aria-label="large_events symbol filter"]').setValue('SYM204')
+    expect(wrapper.text()).toContain('Showing 1 of 1 occurrences')
+    expect(list.findAll('[role="listitem"]')).toHaveLength(1)
+    expect(wrapper.findAll('button').some(button => button.text().startsWith('Load more occurrences'))).toBe(false)
+  })
+
+  it('promotes a completed event artifact to a Strategy signal with an explicit lineage message', async () => {
+    apiGet.mockResolvedValue([{ id: 28, status: 'completed', code_version_id: 12, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      {
+        id: 17,
+        name: 'breakout_events',
+        artifact_type: 'events',
+        payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout', instrument_id: 7 }] },
+      },
+    ] }])
+    apiPost.mockResolvedValue({ id: 61, name: 'Breakout events signal' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const promoteButton = wrapper.findAll('button').find(button => button.text() === 'Save events as Strategy signal')
+    expect(promoteButton).toBeDefined()
+    await promoteButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/28/promote-event-signal', {})
+    expect(wrapper.text()).toContain('Saved event artifact as Strategy signal “Breakout events signal” (#61)')
+    expect(wrapper.text()).toContain('Current-data re-evaluation and source lineage are preserved.')
+  })
+
+  it('promotes an events run to a scoped watchlist filter and alert through one adapter', async () => {
+    apiGet.mockResolvedValue([{ id: 29, status: 'completed', code_version_id: 13, output_contract: 'events', run_config: { symbols: ['SPY', 'XLK'], timeframe: 'D1' }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      {
+        id: 18,
+        name: 'breakout_events',
+        artifact_type: 'events',
+        payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout', instrument_id: 7 }] },
+      },
+    ] }])
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/research/runs/29/promote-event-filter') return Promise.resolve({ id: 62, name: 'Breakout event filter' })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 63 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Save events as watchlist filter')!.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/29/promote-event-filter', {})
+    expect(wrapper.text()).toContain('Watchlist filter “Breakout event filter” (#62) created')
+
+    await wrapper.findAll('button').find(button => button.text() === 'Promote events to alert')!.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 62, trigger_type: 'both', repeat: true, notes: 'Created from event research run 29' })
+    expect(wrapper.text()).toContain('Alert created from event filter “Breakout event filter”')
+  })
+
+  it('requires a named artifact when a direct events run contains multiple outputs', async () => {
+    const run = {
+      id: 31,
+      status: 'completed',
+      code_version_id: 15,
+      output_contract: 'events',
+      run_config: { symbols: ['SPY'], timeframe: 'D1' },
+      dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+      diagnostics: [],
+      artifacts: [
+        { id: 20, name: 'breakouts', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout' }] } },
+        { id: 21, name: 'breakdowns', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-03T00:00:00Z', kind: 'breakdown' }] } },
+      ],
+    }
+    const source = "output.events('breakouts', [])\noutput.events('breakdowns', [])"
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([run])
+      : Promise.resolve([{ name: 'Multi-event study', versions: [{ id: 15, source, output_contract: 'events', parameter_schema: {}, default_parameters: {} }] }]))
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') {
+        expect(body).toMatchObject({ kind: 'signal', initial_version: { output_contract: 'events', output_name: 'breakdowns', lineage: { source_output_name: 'breakdowns', target: 'signal' } } })
+        return Promise.resolve({ id: 90, name: 'Breakdowns signal', versions: [{ id: 90 }] })
+      }
+      if (path === '/strategy-lab/signals/from-code/90') return Promise.resolve({ id: 91, name: 'Breakdowns Strategy Signal' })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.findAll('button').some(button => button.text() === 'Save events as Strategy signal')).toBe(false)
+    const named = wrapper.get('[aria-label="Save Strategy signal: breakdowns"]')
+    await named.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Saved event artifact “breakdowns” as Strategy signal “Breakdowns Strategy Signal” (#91).')
+  })
+
+  it('exposes named filter and alert actions for structured-study event artifacts', async () => {
+    apiGet.mockResolvedValue([{ id: 30, status: 'completed', code_version_id: 14, output_contract: 'study', run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      {
+        id: 19,
+        name: 'occurrences',
+        artifact_type: 'events',
+        payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout', instrument_id: 7 }] },
+      },
+    ] }])
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/research/runs/30/promote-event-filter') return Promise.resolve({ id: 64, name: 'Occurrences filter' })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 65 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const saveFilter = wrapper.get('[aria-label="Save filter: occurrences"]')
+    const promoteAlert = wrapper.get('[aria-label="Promote alert: occurrences"]')
+    await saveFilter.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/30/promote-event-filter', { artifact_name: 'occurrences' })
+    expect(wrapper.text()).toContain('Saved event artifact “occurrences” as a reusable watchlist filter.')
+
+    await promoteAlert.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 64, trigger_type: 'both', repeat: true, notes: 'Created from structured event research run 30' })
+    expect(wrapper.text()).toContain('Promoted event artifact “occurrences” to an active alert.')
+  })
+
+  it('promotes a named structured-study event artifact to a Strategy signal with an explicit adapter', async () => {
+    const source = "output.events('occurrences', [{'symbol': dataset['symbol'], 'timestamp': market.timestamps()[-1], 'kind': 'breakout'}])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 37, status: 'completed', code_version_id: 85, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-37', diagnostics: [], artifacts: [
+        { id: 27, name: 'occurrences', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout', instrument_id: 7 }] } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 37', versions: [{ id: 85, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') return Promise.resolve({ id: 86, name: 'Occurrences signal', versions: [{ id: 86 }] })
+      if (path === '/strategy-lab/signals/from-code/86') return Promise.resolve({ id: 87, name: 'Occurrences Strategy Signal' })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Save Strategy signal: occurrences"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'events',
+        output_name: 'occurrences',
+        lineage: expect.objectContaining({
+          source_run_id: 37,
+          source_output_name: 'occurrences',
+          target: 'signal',
+          output_adapter: 'events_to_signal',
+          semantics: 'study_event_result_as_strategy_signal',
+          point_in_time_source_preserved: false,
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/86', {})
+    expect(wrapper.text()).toContain('Saved event artifact “occurrences” as Strategy signal “Occurrences Strategy Signal” (#87).')
+  })
+
+  it('exposes lineage-preserving column and chart promotions for structured scalar and series artifacts', async () => {
+    const source = "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 31, status: 'completed', code_version_id: 77, output_contract: 'study', run_config: { symbol: 'SPY' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-31', diagnostics: [], artifacts: [
+        { id: 20, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
+        { id: 21, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 31', versions: [{ id: 77, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve({ id: 71, name: 'sample_size column' })
+      : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.find('button[aria-label="Save column: sample_size"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'scalar',
+        output_name: 'sample_size',
+        lineage: expect.objectContaining({ source_run_id: 31, source_code_version_id: 77, source_output_name: 'sample_size', target: 'column' }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved scalar artifact “sample_size” as watchlist column')
+
+    await wrapper.find('button[aria-label="Save chart plot: trend"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({ source, output_contract: 'series', output_name: 'trend' }),
+    }))
+    expect(wrapper.text()).toContain('Saved series artifact “trend” as chart plot')
+  })
+
+  it('keeps cross-sectional structured outputs aggregate-only while exposing an explicit chart adapter', async () => {
+    const source = "output.scalar('current_percentage', 0.5)\noutput.series('percentage_history', {'timestamps': ['2026-01-01'], 'values': [0.5]})"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 40, status: 'completed', code_version_id: 90, output_contract: 'study', run_config: { result_scope: 'cross_sectional' }, dataset_manifest: { source: 'canonical_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'XLK' }] }, artifacts: [
+        { id: 40, name: 'current_percentage', artifact_type: 'scalar', payload: { value: 0.5 } },
+        { id: 41, name: 'percentage_history', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01'], values: [0.5] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 40', versions: [{ id: 90, source, output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 91, name: 'Aggregate percentage plot' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save column: current_percentage"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="percentage_history thresholded condition"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Save chart plot: percentage_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('cross-sectional aggregate cannot be reinterpreted')
+    expect(wrapper.text()).toContain('aggregate chart plot only')
+
+    await wrapper.get('[aria-label="Save chart plot: percentage_history"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        output_contract: 'series',
+        output_name: 'percentage_history',
+        lineage: expect.objectContaining({
+          output_adapter: 'study_series_to_series',
+          semantics: 'study_cross_sectional_aggregate_series_as_chart_plot',
+        }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved series artifact “percentage_history” as chart plot')
+  })
+
+  it.each([
+    ['misaligned axes', { timestamps: ['2026-01-01'], values: [0.4, 0.5] }],
+    ['invalid timestamp', { timestamps: ['not-a-date'], values: [0.4] }],
+    ['no finite observations', { timestamps: ['2026-01-01'], values: [null] }],
+    ['malformed value alongside a finite observation', { timestamps: ['2026-01-01', '2026-01-02'], values: [0.4, 'not-a-number'] }],
+  ])('keeps malformed cross-sectional series view-only (%s)', async (_case, value) => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 41, status: 'completed', code_version_id: 91, output_contract: 'study', run_config: { result_scope: 'cross_sectional' }, dataset_manifest: { source: 'canonical_database' }, artifacts: [
+        { id: 42, name: 'invalid_history', artifact_type: 'series', payload: { value } },
+      ] }])
+      : Promise.resolve([]))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save chart plot: invalid_history"]').exists()).toBe(false)
+    expect(wrapper.find('[title="Export invalid_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('View/export only: this cross-sectional series needs valid aligned timestamps and at least one finite observation for an aggregate chart plot.')
+  })
+
+  it.each([
+    ['invalid timestamp', { timestamps: ['not-a-date'], values: [0.4] }],
+    ['no finite observations', { timestamps: ['2026-01-01'], values: [null] }],
+    ['malformed value alongside a finite observation', { timestamps: ['2026-01-01', '2026-01-02'], values: [0.4, 'not-a-number'] }],
+  ])('keeps unusable single-symbol structured series view/export only (%s)', async (_case, value) => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 43, status: 'completed', code_version_id: 92, output_contract: 'study', run_config: {}, dataset_manifest: {}, artifacts: [
+        { id: 44, name: 'invalid_history', artifact_type: 'series', payload: { value } },
+      ] }])
+      : Promise.resolve([]))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save chart plot: invalid_history"]').exists()).toBe(false)
+    expect(wrapper.find('[title="Export invalid_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('View/export only: this series needs valid aligned timestamps and at least one finite observation before it can be plotted or promoted.')
+  })
+
+  it('preserves latest-value promotion for unaligned arrays without offering a chart plot', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 44, status: 'completed', code_version_id: 93, output_contract: 'study', run_config: {}, dataset_manifest: {}, artifacts: [
+        { id: 45, name: 'unaligned_history', artifact_type: 'series', payload: { value: [0.4, 0.5] } },
+      ] }])
+      : Promise.resolve([]))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save chart plot: unaligned_history"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Save latest column: unaligned_history"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Save Boolean column: unaligned_history"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Chart plot unavailable: this series has no aligned timestamp axis.')
+  })
+
+  it('keeps valid structured series with null gaps eligible for chart and latest-value promotion', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 45, status: 'completed', code_version_id: 93, output_contract: 'study', run_config: {}, dataset_manifest: {}, artifacts: [
+        { id: 46, name: 'gapped_history', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [0.4, null] } } },
+      ] }])
+      : Promise.resolve([]))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save chart plot: gapped_history"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Save latest column: gapped_history"]').exists()).toBe(true)
+    expect(wrapper.find('.series-chart').attributes('data-values')).toBe('[0.4,null]')
+  })
+
+  it('promotes a structured scalar through an explicit thresholded Boolean condition', async () => {
+    const source = "output.scalar('score', market.close()[-1])"
+    const lineage = {
+      source_run_id: 32,
+      source_code_version_id: 78,
+      source_output_name: 'score',
+      source_instrument_ids: [7, 8],
+      target: 'filter',
+      output_adapter: 'scalar_target_to_boolean',
+      series_target: { operator: 'gte', threshold: 11 },
+      semantics: 'study_scalar_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 32, status: 'completed', code_version_id: 78, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_local_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'QQQ' }] }, reproducibility_hash: 'hash-32', diagnostics: [], artifacts: [
+        { id: 29, name: 'score', artifact_type: 'scalar', payload: { value: 12 } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 32', versions: [{ id: 78, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') return Promise.resolve({ id: 102, name: 'score condition', versions: [{ id: 102 }] })
+      if (path === '/screeners/from-python-condition/102') return Promise.resolve({ id: 103, name: 'score threshold filter' })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Scalar condition operator: score"]').exists()).toBe(true)
+    await wrapper.get('[aria-label="Scalar condition operator: score"]').setValue('gte')
+    await wrapper.get('[aria-label="Scalar condition threshold: score"]').setValue('11')
+    await wrapper.get('[aria-label="Save filter: score"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'condition',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'score',
+        lineage: expect.objectContaining(lineage),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/102', expect.objectContaining({
+      name: 'score gte 11 Filter 32',
+      universe_type: 'custom',
+      universe_instrument_ids: [7, 8],
+      timeframe: 'D1',
+      provenance: expect.objectContaining(lineage),
+    }))
+    expect(wrapper.text()).toContain('Saved scalar artifact “score” as a thresholded watchlist filter.')
+  })
+
+  it('keeps threshold drafts and promotion payloads independent for each structured output', async () => {
+    const source = "output.scalar('score', market.close()[-1])\noutput.scalar('risk', market.open()[-1])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 39, status: 'completed', code_version_id: 83, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_local_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, reproducibility_hash: 'hash-39', diagnostics: [], artifacts: [
+        { id: 31, name: 'score', artifact_type: 'scalar', payload: { value: 12 } },
+        { id: 32, name: 'risk', artifact_type: 'scalar', payload: { value: 4 } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 39', versions: [{ id: 83, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve({ id: 103, name: 'condition', versions: [{ id: 103 }] })
+      : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const scoreCondition = wrapper.get('[aria-label="score scalar thresholded condition"]')
+    const riskCondition = wrapper.get('[aria-label="risk scalar thresholded condition"]')
+    await scoreCondition.get('[aria-label="Scalar condition operator: score"]').setValue('gt')
+    await scoreCondition.get('[aria-label="Scalar condition threshold: score"]').setValue('10')
+    await riskCondition.get('[aria-label="Scalar condition operator: risk"]').setValue('lt')
+    await riskCondition.get('[aria-label="Scalar condition threshold: risk"]').setValue('5')
+
+    expect(scoreCondition.get('[aria-label="Scalar condition operator: score"]').element).toHaveProperty('value', 'gt')
+    expect(scoreCondition.get('[aria-label="Scalar condition threshold: score"]').element).toHaveProperty('value', '10')
+    expect(riskCondition.get('[aria-label="Scalar condition operator: risk"]').element).toHaveProperty('value', 'lt')
+    expect(riskCondition.get('[aria-label="Scalar condition threshold: risk"]').element).toHaveProperty('value', '5')
+
+    await scoreCondition.get('[aria-label="Save Boolean column: score"]').trigger('click')
+    await flushPromises()
+    await riskCondition.get('[aria-label="Save Boolean column: risk"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_name: 'score',
+        lineage: expect.objectContaining({ series_target: { operator: 'gt', threshold: 10 } }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_name: 'risk',
+        lineage: expect.objectContaining({ series_target: { operator: 'lt', threshold: 5 } }),
+      }),
+    }))
+    wrapper.unmount()
+  })
+
+  it('promotes a structured range center through an explicit chart-series adapter', async () => {
+    const source = "output.range('confidence', [1, 2], [3, 4], [2, 3])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 34, status: 'completed', code_version_id: 82, output_contract: 'study', run_config: { symbol: 'SPY' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-34', diagnostics: [], artifacts: [
+        { id: 24, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 34', versions: [{ id: 82, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 83, name: 'confidence center plot' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.find('button[aria-label="Save center chart plot: confidence"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'series',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 34,
+          source_output_name: 'confidence',
+          target: 'plot',
+          output_adapter: 'range_center_to_series',
+          semantics: 'study_range_center_result_as_chart_plot',
+        }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved range center “confidence” as chart plot')
+  })
+
+  it('promotes a structured range center latest value into a typed watchlist column', async () => {
+    const source = "output.range('confidence', [1, 2], [3, 4], [2, 3])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 35, status: 'completed', code_version_id: 83, output_contract: 'study', run_config: { symbol: 'SPY' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-35', diagnostics: [], artifacts: [
+        { id: 25, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 35', versions: [{ id: 83, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 84, name: 'confidence latest column' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Save latest center column: confidence"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'scalar',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 35,
+          source_output_name: 'confidence',
+          target: 'column',
+          output_adapter: 'range_center_to_scalar',
+          semantics: 'study_range_center_result_as_latest_watchlist_column',
+        }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved range center “confidence” as watchlist column “confidence latest column”')
+  })
+
+  it('promotes a finite numeric series latest value into a typed watchlist column', async () => {
+    const source = "output.series('trend', market.close())"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 36, status: 'completed', code_version_id: 84, output_contract: 'study', run_config: { symbol: 'SPY' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-36', diagnostics: [], artifacts: [
+        { id: 26, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 36', versions: [{ id: 84, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 85, name: 'trend latest column' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Save latest column: trend"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'scalar',
+        output_name: 'trend',
+        lineage: expect.objectContaining({
+          source_run_id: 36,
+          source_output_name: 'trend',
+          target: 'column',
+          output_adapter: 'latest_series_to_scalar',
+          semantics: 'study_series_latest_result_as_watchlist_column',
+        }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved series artifact “trend” as watchlist column “trend latest column”')
+  })
+
+  it('promotes a finite numeric series through an explicit thresholded Boolean condition', async () => {
+    const source = "output.series('trend', market.close())"
+    const lineage = {
+      source_run_id: 38,
+      source_code_version_id: 86,
+      source_output_name: 'trend',
+      source_instrument_ids: [7, 8],
+      target: 'filter',
+      output_adapter: 'series_target_to_boolean',
+      series_target: { operator: 'gte', threshold: 11 },
+      semantics: 'study_series_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 38, status: 'completed', code_version_id: 86, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_local_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'QQQ' }] }, reproducibility_hash: 'hash-38', diagnostics: [], artifacts: [
+        { id: 28, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [10, 12] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 38', versions: [{ id: 86, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') {
+        const payload = body as { kind?: string }
+        if (payload.kind === 'signal') return Promise.resolve({ id: 96, name: 'trend Strategy signal', versions: [{ id: 96 }] })
+        return Promise.resolve({ id: 95, name: 'trend condition', versions: [{ id: 95 }] })
+      }
+      if (path === '/screeners/from-python-condition/95') return Promise.resolve({ id: 96, name: 'trend threshold filter' })
+      if (path === '/strategy-lab/signals/from-code/96') return Promise.resolve({ id: 97, name: 'Trend Strategy Signal' })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 97 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Series condition operator: trend"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Series condition threshold: trend"]').exists()).toBe(true)
+    await wrapper.get('[aria-label="Series condition operator: trend"]').setValue('gte')
+    await wrapper.get('[aria-label="Series condition threshold: trend"]').setValue('11')
+    await wrapper.get('[aria-label="Save filter: trend"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'condition',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'trend',
+        lineage: expect.objectContaining(lineage),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/95', expect.objectContaining({
+      name: 'trend gte 11 Filter 38',
+      universe_type: 'custom',
+      universe_instrument_ids: [7, 8],
+      timeframe: 'D1',
+      provenance: expect.objectContaining(lineage),
+    }))
+    expect(wrapper.text()).toContain('Saved series artifact “trend” as a thresholded watchlist filter.')
+
+    await wrapper.get('[aria-label="Promote scan: trend"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Use Gauge: trend"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Promote alert: trend"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan alert.')
+    await wrapper.get('[aria-label="Save Strategy signal: trend"]').trigger('click')
+    await flushPromises()
+    expect(apiPost.mock.calls.filter(call => call[0] === '/code/assets')).toHaveLength(2)
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 96, trigger_type: 'entered', repeat: true, notes: 'Created from structured series study run 38 (trend)' })
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/96', {})
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({ lineage: expect.objectContaining({ target: 'signal', output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 }, semantics: 'study_series_threshold_as_strategy_signal' }) }),
+    }))
+    expect(wrapper.text()).toContain('Saved thresholded series “trend” as Strategy signal “Trend Strategy Signal” (#97).')
+  })
+
+  it('promotes a structured range center through an explicit thresholded Boolean condition', async () => {
+    const source = "output.range('confidence', [1, 2], [3, 4], [2, 3])"
+    const lineage = {
+      source_run_id: 39,
+      source_code_version_id: 87,
+      source_output_name: 'confidence',
+      source_instrument_ids: [7, 8],
+      target: 'filter',
+      output_adapter: 'range_center_target_to_boolean',
+      series_target: { operator: 'gte', threshold: 2.5 },
+      semantics: 'study_range_center_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 39, status: 'completed', code_version_id: 87, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_local_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'QQQ' }] }, reproducibility_hash: 'hash-39', diagnostics: [], artifacts: [
+        { id: 29, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 39', versions: [{ id: 87, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') {
+        const payload = body as { kind?: string }
+        if (payload.kind === 'signal') return Promise.resolve({ id: 100, name: 'confidence Strategy signal', versions: [{ id: 100 }] })
+        return Promise.resolve({ id: 98, name: 'confidence condition', versions: [{ id: 98 }] })
+      }
+      if (path === '/screeners/from-python-condition/98') return Promise.resolve({ id: 99, name: 'confidence threshold filter' })
+      if (path === '/strategy-lab/signals/from-code/100') return Promise.resolve({ id: 101, name: 'Confidence Strategy Signal' })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Range center condition operator: confidence"]').exists()).toBe(true)
+    await wrapper.get('[aria-label="Range center condition operator: confidence"]').setValue('gte')
+    await wrapper.get('[aria-label="Range center condition threshold: confidence"]').setValue('2.5')
+    await wrapper.get('[aria-label="Save filter: confidence"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'condition',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'confidence',
+        lineage: expect.objectContaining(lineage),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/98', expect.objectContaining({
+      name: 'confidence gte 2.5 Filter 39',
+      universe_type: 'custom',
+      universe_instrument_ids: [7, 8],
+      timeframe: 'D1',
+      provenance: expect.objectContaining(lineage),
+    }))
+    expect(wrapper.text()).toContain('Saved range center “confidence” as a thresholded watchlist filter.')
+    await wrapper.get('[aria-label="Save Strategy signal: confidence"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/100', {})
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({ lineage: expect.objectContaining({ target: 'signal', output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gte', threshold: 2.5 }, semantics: 'study_range_center_threshold_as_strategy_signal' }) }),
+    }))
+    expect(wrapper.text()).toContain('Saved thresholded range center “confidence” as Strategy signal “Confidence Strategy Signal” (#101).')
+  })
+
+  it('exposes the complete lineage-preserving Boolean promotion matrix for structured results', async () => {
+    const source = "output.boolean('qualifies', True)\noutput.scalar('sample_size', 4)"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 32, status: 'completed', code_version_id: 78, output_contract: 'study', run_config: { symbol: 'SPY', timeframe: 'D1' }, dataset_manifest: { source: 'canonical_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, reproducibility_hash: 'hash-32', diagnostics: [], artifacts: [
+        { id: 22, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 32', versions: [{ id: 78, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') {
+        const payload = body as { kind?: string }
+        if (payload.kind === 'signal') return Promise.resolve({ id: 83, name: 'Qualifies Strategy signal', versions: [{ id: 83 }] })
+        return Promise.resolve({ id: payload.kind === 'column' ? 79 : 80, name: payload.kind === 'column' ? 'Qualifies column' : 'Qualifies condition', versions: [{ id: payload.kind === 'column' ? 79 : 80 }] })
+      }
+      if (path === '/screeners/from-python-condition/80') return Promise.resolve({ id: 81, name: 'Qualifies scan' })
+      if (path === '/strategy-lab/signals/from-code/83') return Promise.resolve({ id: 84, name: 'Qualifies Strategy Signal' })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 82 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies', 'Save Strategy signal: qualifies']) {
+      expect(wrapper.find(`[aria-label="${label}"]`).exists()).toBe(true)
+    }
+    await wrapper.get('[aria-label="Save column: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'qualifies',
+        lineage: expect.objectContaining({ source_run_id: 32, source_code_version_id: 78, source_output_name: 'qualifies', target: 'column', semantics: 'study_boolean_result_as_typed_watchlist_column' }),
+      }),
+    }))
+
+    await wrapper.get('[aria-label="Save filter: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/80', expect.objectContaining({
+      name: 'qualifies Filter 32',
+      universe_type: 'custom',
+      universe_instrument_ids: [7],
+      timeframe: 'D1',
+      provenance: expect.objectContaining({ source_run_id: 32, source_output_name: 'qualifies', source_instrument_ids: [7], point_in_time_source_preserved: false }),
+    }))
+    await wrapper.get('[aria-label="Promote scan: qualifies"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Use Gauge: qualifies"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Promote alert: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Promoted Boolean artifact “qualifies” to an active scan alert.')
+    await wrapper.get('[aria-label="Save Strategy signal: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'qualifies',
+        lineage: expect.objectContaining({ source_run_id: 32, source_code_version_id: 78, source_output_name: 'qualifies', target: 'signal', semantics: 'study_boolean_result_as_strategy_signal', point_in_time_source_preserved: false }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/83', {})
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 81, trigger_type: 'entered', repeat: true, notes: 'Created from structured Boolean research run 32 (qualifies)' })
+    expect(wrapper.text()).toContain('Saved Boolean artifact “qualifies” as Strategy signal “Qualifies Strategy Signal” (#84).')
+  })
+
+  it('refuses structured Boolean scan promotion when canonical members are absent', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 33, status: 'completed', code_version_id: 79, output_contract: 'study', run_config: {}, dataset_manifest: {}, artifacts: [{ id: 23, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] }])
+      : Promise.resolve([{ name: 'Study 33', versions: [{ id: 79, source: "output.boolean('qualifies', True)", output_contract: 'study' }] }]))
+    apiPost.mockResolvedValue({})
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Save filter: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('refusing to widen the promoted scan universe')
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(0)
   })
 
   it('promotes only a completed Python breadth history and reports the lineage-preserving scan', async () => {
@@ -259,7 +1393,7 @@ describe('ResearchResultsTool', () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/analysis/breadth/python/runs/25/promote-scan') return Promise.resolve({ id: 55, name: 'Boolean breadth scan 25', conditions: { code_version_id: 88 } })
       if (path === '/alerts/screener') return Promise.resolve({ id: 56 })
-      if (path === '/strategy-lab/signals/from-code/88') return Promise.resolve({ id: 57 })
+      if (path === '/analysis/breadth/python/runs/25/promote-signal') return Promise.resolve({ id: 57, name: 'Boolean breadth signal 25' })
       return Promise.resolve({})
     })
     const wrapper = mountTool()
@@ -274,8 +1408,9 @@ describe('ResearchResultsTool', () => {
 
     expect(apiPost.mock.calls.filter(call => call[0] === '/analysis/breadth/python/runs/25/promote-scan')).toHaveLength(1)
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 55, trigger_type: 'entered', repeat: true, notes: 'Created from Python breadth run 25' })
-    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/88', {})
-    expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.')
+    expect(apiPost).toHaveBeenCalledWith('/analysis/breadth/python/runs/25/promote-signal', {})
+    expect(apiPost).not.toHaveBeenCalledWith('/strategy-lab/signals/from-code/88', {})
+    expect(wrapper.text()).toContain('Saved Strategy Lab signal “Boolean breadth signal 25” (#57).')
   })
 
   it('offers aggregate Study Lab promotion for cross-sectional Python breadth history', async () => {
@@ -383,7 +1518,7 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Rerun snapshot')
     expect(wrapper.text()).toContain('Rerun latest')
 
-    await wrapper.findAll('button.research-results-tool__run')[1].trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
     await flushPromises()
     expect(wrapper.get('[data-status="canceled"]').text()).toBe('Canceled')
     expect(wrapper.get('.research-results-tool__run-guidance').text()).toContain('saved configuration is preserved')

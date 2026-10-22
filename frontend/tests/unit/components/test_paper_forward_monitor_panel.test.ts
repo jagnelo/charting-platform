@@ -4,6 +4,21 @@ import { describe, expect, it } from 'vitest'
 import PaperForwardMonitorPanel from '@/components/strategy/PaperForwardMonitorPanel.vue'
 
 describe('PaperForwardMonitorPanel', () => {
+  it('announces an empty monitor state to assistive technology', () => {
+    const wrapper = mount(PaperForwardMonitorPanel, {
+      props: {
+        snapshots: [],
+        forwardCurve: [],
+      },
+    })
+
+    const emptyState = wrapper.get('.paper-monitor__empty')
+    expect(emptyState.text()).toContain('No paper-forward monitor yet.')
+    expect(emptyState.attributes('role')).toBe('status')
+    expect(emptyState.attributes('aria-live')).toBe('polite')
+    expect(emptyState.attributes('aria-atomic')).toBe('true')
+  })
+
   it('renders monitor summary and recent snapshots', () => {
     const wrapper = mount(PaperForwardMonitorPanel, {
       props: {

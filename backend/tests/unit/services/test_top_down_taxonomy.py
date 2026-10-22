@@ -114,7 +114,7 @@ def test_every_curated_industry_proxy_has_a_canonical_issuer_route():
 def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
     """Family drill-down proxies must enter the holdings pipeline with issuer evidence."""
 
-    spdr_symbols = ("SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM")
+    spdr_symbols = ("SPY", "SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM")
     for symbol in spdr_symbols:
         metadata = known_etf_route_metadata(symbol)
         assert metadata["issuer"] == "State Street Global Advisors"
@@ -146,6 +146,97 @@ def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
     assert get_holdings_adapter("direxion").resolve_source_url(symbol="QQQE") == (
         "https://www.direxion.com/holdings/QQQE.csv"
     )
+
+
+def test_spdr_slyg_holds_unverified_sec_issuer_identity():
+    """A taxonomy mapping does not authorize an unverified SEC issuer identity."""
+    identifiers = known_etf_route_metadata("SLYG")["provider_aliases"]
+    assert identifiers["holdings_adapter"] == "spdr"
+    assert "sec_cik" not in identifiers
+    assert "sec_series_id" not in identifiers
+    assert "sec_class_id" not in identifiers
+
+
+def test_ishares_family_roles_declare_the_supported_as_of_history_route():
+    expected_symbols = {"IJR", "IWB", "IWD", "IWF", "IWM", "IWN", "IWO", "IWV"}
+    observed: set[str] = set()
+    for family in benchmark_family_registry():
+        for role in ("cap_weight", "equal_weight", "value", "growth"):
+            mapping = family[role]
+            if mapping.get("symbol") not in expected_symbols:
+                continue
+            observed.add(mapping["symbol"])
+            assert mapping["history_route"] == {
+                "status": "issuer_as_of_date",
+                "provider": "ishares",
+                "policy": "issuer_public_json_api_as_of_date",
+                "source_url": (
+                    "https://www.blackrock.com/varnish-api/blk-one01-product-data/"
+                    "product-data/api/v2/get-product-data"
+                ),
+            }
+    assert observed == expected_symbols
+
+
+def test_spdr_family_roles_declare_explicit_history_routes():
+    expected_symbols = {"SPY", "SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM"}
+    observed: set[str] = set()
+    for family in benchmark_family_registry():
+        for role in ("cap_weight", "equal_weight", "value", "growth"):
+            mapping = family[role]
+            if mapping.get("symbol") not in expected_symbols:
+                continue
+            observed.add(mapping["symbol"])
+            if mapping["symbol"] in {
+                "SPY",
+                "SPYV",
+                "SPYG",
+                "MDYG",
+                "MDYV",
+                "MDY",
+                "SLYV",
+                "SLYG",
+                "SPTM",
+            }:
+                assert mapping["history_route"] == {
+                    "status": "sec_filing_reconstruction",
+                    "provider": "sec",
+                    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+                    "source_url": (
+                        "https://data.sec.gov/submissions/CIK0000884394.json"
+                        if mapping["symbol"] == "SPY"
+                        else (
+                            "https://data.sec.gov/submissions/CIK0000936958.json"
+                            if mapping["symbol"] == "MDY"
+                            else "https://data.sec.gov/submissions/CIK0001064642.json"
+                        )
+                    ),
+                }
+            else:
+                assert mapping["history_route"] == {
+                    "status": "issuer_current_only",
+                    "provider": "spdr",
+                    "policy": "issuer_daily_workbook_current_snapshot_only",
+                    "source_url": (
+                        "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
+                        "products/fund-data/etfs/us/holdings-daily-us-en-"
+                        f"{mapping['symbol'].lower()}.xlsx"
+                    ),
+                }
+    assert observed == expected_symbols
+
+
+def test_invesco_family_roles_declare_sec_history_route():
+    mapping = next(
+        family for family in benchmark_family_registry() if family["logical_key"] == "sp500"
+    )["equal_weight"]
+    assert mapping["symbol"] == "RSP"
+    assert mapping["history_route"] == {
+        "status": "sec_filing_reconstruction",
+        "provider": "sec",
+        "policy": "latest_sec_filing_report_on_or_before_requested_date",
+        "source_url": "https://data.sec.gov/submissions/CIK0001209466.json",
+    }
 
 
 def test_every_configured_family_role_has_explicit_route_or_is_unavailable():
@@ -216,6 +307,21 @@ def test_source_classification_requires_timestamp_for_point_in_time_reads():
     )
     assert label is None
     assert system == "SEC_SIC"
+
+
+def test_source_classification_normalises_offsetless_historical_cutoff():
+    label, system = source_classification_for_as_of(
+        industry="Semiconductors",
+        sector=None,
+        field_provenance={
+            "industry": {
+                "classification_system": "SEC_SIC",
+                "observed_at": "2026-08-09T23:59:59+00:00",
+            }
+        },
+        as_of=datetime(2026, 8, 10),
+    )
+    assert (label, system) == ("Semiconductors", "SEC_SIC")
 
 
 def test_source_classification_keeps_unknown_namespace_visible_for_current_reads():

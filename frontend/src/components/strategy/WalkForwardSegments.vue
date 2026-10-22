@@ -15,6 +15,8 @@
         type="button"
         class="walk-forward-panel__row"
         :class="{ 'walk-forward-panel__row--active': activeSegment === segment.segment }"
+        :aria-label="`Segment ${segment.segment}: ${formatPercent(segment.outSample)} out-sample, ${segment.outRange}`"
+        :aria-pressed="activeSegment === segment.segment ? 'true' : 'false'"
         @mouseenter="hoveredSegment = segment.segment"
         @mouseleave="hoveredSegment = null"
         @focus="hoveredSegment = segment.segment"
@@ -53,7 +55,7 @@
       </div>
     </div>
   </div>
-  <div v-else class="walk-forward-panel__empty">
+  <div v-else class="walk-forward-panel__empty" role="status" aria-live="polite" aria-atomic="true">
     {{ emptyLabel }}
   </div>
 </template>

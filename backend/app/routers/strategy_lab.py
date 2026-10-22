@@ -23,12 +23,18 @@ from app.schemas.strategy import (
     StrategyVersionUpdate,
 )
 from app.services.strategy_lab import (
+    _promotion_lineage_from_diagnostics,
     _refresh_python_signal_research,
     execute_strategy_run,
     preview_strategy_coverage,
 )
 
 router = APIRouter(prefix="/strategy-lab", tags=["strategy-lab"])
+
+PYTHON_SIGNAL_IMMUTABLE_DETAIL = (
+    "Python signal code and version lineage are immutable in Strategy Lab; "
+    "make changes in Study Lab and promote a new signal."
+)
 
 
 def _definition_query_for_user(user_id: int):
@@ -58,6 +64,21 @@ async def _load_definition_or_404(
     if strategy is None:
         raise HTTPException(status_code=404, detail="Strategy definition not found")
     return strategy
+
+
+def _is_immutable_python_signal(strategy: StrategyDefinition) -> bool:
+    if strategy.definition_type == "python":
+        return True
+    return any(
+        isinstance(version.definition_snapshot, dict)
+        and str(version.definition_snapshot.get("kind", "")).startswith("python_")
+        for version in strategy.versions
+    )
+
+
+def _reject_python_signal_version_mutation(strategy: StrategyDefinition) -> None:
+    if _is_immutable_python_signal(strategy):
+        raise HTTPException(status_code=409, detail=PYTHON_SIGNAL_IMMUTABLE_DETAIL)
 
 
 @router.get("/definitions", response_model=list[StrategyDefinitionSummaryOut])
@@ -105,6 +126,22 @@ async def promote_code_signal(
             status_code=422, detail="Signal code must produce Boolean or event output"
         )
 
+    promotion_lineage = _promotion_lineage_from_diagnostics(version.diagnostics)
+    promotion_type = promotion_lineage.get("type") if promotion_lineage else None
+    origin = (
+        "chart_plot_promotion"
+        if promotion_type == "chart_plot_promotion"
+        else "breadth_history_promotion"
+        if promotion_type == "python_breadth_research_run"
+        else "study_lab_promotion"
+    )
+    description = (
+        "Canonical chart indicator threshold promoted as a Strategy Lab signal."
+        if origin == "chart_plot_promotion"
+        else "Historical Python breadth condition promoted as a Strategy Lab signal."
+        if origin == "breadth_history_promotion"
+        else "Unified-Python signal promoted from Study Lab."
+    )
     base_name = f"{version.asset.name} Strategy Signal"
     name = base_name
     suffix = 2
@@ -121,29 +158,60 @@ async def promote_code_signal(
         name = f"{base_name} ({suffix})"
         suffix += 1
 
+    strategy_metadata = {
+        "origin": origin,
+        "code_asset_id": version.code_asset_id,
+        "code_version_id": version.id,
+        "output_contract": version.output_contract,
+    }
+    if origin == "breadth_history_promotion":
+        strategy_metadata["promotion_lineage"] = promotion_lineage
+        for key in (
+            "source_run_id",
+            "source_code_version_id",
+            "source_execution_mode",
+            "source_definition_hash",
+            "source_reproducibility_hash",
+            "source_dataset_manifest_sha256",
+            "source_dataset_manifest",
+            "source_universe",
+            "source_instrument_ids",
+            "source_output_name",
+            "output_adapter",
+            "series_target",
+            "condition_tree",
+            "target_semantics",
+            "point_in_time_source_preserved",
+        ):
+            if key in promotion_lineage:
+                strategy_metadata[key] = promotion_lineage[key]
+
+    definition_snapshot = {
+        "kind": "python_signal",
+        "code_version_id": version.id,
+        "output_contract": version.output_contract,
+    }
+    if origin == "breadth_history_promotion":
+        definition_snapshot["promotion_lineage"] = promotion_lineage
+
     strategy = StrategyDefinition(
         user_id=current_user.id,
         name=name,
-        description="Unified-Python signal promoted from Study Lab.",
+        description=description,
         source_type="custom",
         definition_type="python",
         is_active=True,
-        tags=["study-lab", "python-signal"],
-        metadata_json={
-            "origin": "study_lab_promotion",
-            "code_asset_id": version.code_asset_id,
-            "code_version_id": version.id,
-            "output_contract": version.output_contract,
-        },
+        tags=["chart-plot", "python-signal"]
+        if origin == "chart_plot_promotion"
+        else ["breadth-history", "python-signal"]
+        if origin == "breadth_history_promotion"
+        else ["study-lab", "python-signal"],
+        metadata_json=strategy_metadata,
     )
     strategy.versions.append(
         StrategyVersion(
             version_number=1,
-            definition_snapshot={
-                "kind": "python_signal",
-                "code_version_id": version.id,
-                "output_contract": version.output_contract,
-            },
+            definition_snapshot=definition_snapshot,
             parameter_schema=version.parameter_schema or {},
             default_parameters=version.default_parameters or {},
             notes="Immutable unified-Python signal reference promoted from Study Lab.",
@@ -221,6 +289,12 @@ async def update_definition(
 ):
     strategy = await _load_definition_or_404(db, strategy_id=strategy_id, user_id=current_user.id)
     payload = body.model_dump(exclude_unset=True)
+    if _is_immutable_python_signal(strategy) and {
+        "source_type",
+        "definition_type",
+        "metadata",
+    }.intersection(payload):
+        raise HTTPException(status_code=409, detail=PYTHON_SIGNAL_IMMUTABLE_DETAIL)
     if "source_type" in payload:
         payload["source_type"] = payload["source_type"].value
     if "definition_type" in payload:
@@ -254,6 +328,7 @@ async def create_version(
     current_user: User = Depends(get_current_user),
 ):
     strategy = await _load_definition_or_404(db, strategy_id=strategy_id, user_id=current_user.id)
+    _reject_python_signal_version_mutation(strategy)
     next_version = max((version.version_number for version in strategy.versions), default=0) + 1
     for existing in strategy.versions:
         existing.is_current = False
@@ -295,11 +370,13 @@ async def update_version(
     version_stmt = (
         select(StrategyVersion)
         .join(StrategyDefinition, StrategyDefinition.id == StrategyVersion.strategy_id)
+        .options(selectinload(StrategyVersion.strategy).selectinload(StrategyDefinition.versions))
         .where(StrategyDefinition.user_id == current_user.id, StrategyVersion.id == version_id)
     )
     version = (await db.execute(version_stmt)).scalar_one_or_none()
     if version is None:
         raise HTTPException(status_code=404, detail="Strategy version not found")
+    _reject_python_signal_version_mutation(version.strategy)
 
     version.definition_snapshot = body.definition_snapshot
     version.parameter_schema = body.parameter_schema

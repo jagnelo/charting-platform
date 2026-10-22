@@ -1,4 +1,4 @@
-import { mount as vueMount } from '@vue/test-utils'
+import { flushPromises, mount as vueMount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -59,19 +59,50 @@ describe('ChartTemplateControl', () => {
     const wrapper = mount(ChartTemplateControl, {
       props: { configuration: { symbol: 'SPY', bar_type: 'candles' } },
     })
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
-    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
-    await wrapper.get('[aria-label="Chart template name"]').setValue('Trend template')
-    await wrapper.find('.chart-template__save button').trigger('click')
+    try {
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+      await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+      await wrapper.get('[aria-label="Chart template name"]').setValue('Trend template')
+      await wrapper.find('.chart-template__save button').trigger('click')
 
-    await vi.waitFor(() => expect(apiPut).toHaveBeenCalled())
-    expect(getRandomValues).toHaveBeenCalledOnce()
-    expect(apiPut).toHaveBeenCalledWith('/workspaces/library/items/chart_template/trend-template-deadbeef', expect.objectContaining({
-      kind: 'chart_template',
-      stable_key: 'trend-template-deadbeef',
-      payload: expect.objectContaining({ configuration: expect.objectContaining({ bar_type: 'candles' }) }),
-    }))
-    expect(wrapper.find('.chart-template__error').exists()).toBe(false)
+      await vi.waitFor(() => expect(apiPut).toHaveBeenCalled())
+      expect(getRandomValues).toHaveBeenCalledOnce()
+      expect(apiPut).toHaveBeenCalledWith('/workspaces/library/items/chart_template/trend-template-deadbeef', expect.objectContaining({
+        kind: 'chart_template',
+        stable_key: 'trend-template-deadbeef',
+        payload: expect.objectContaining({ configuration: expect.objectContaining({ bar_type: 'candles' }) }),
+      }))
+      expect(wrapper.find('.chart-template__error').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('reloads the saved template after a pre-save hydration settles stale', async () => {
+    let releaseInitialLoad!: (value: unknown[]) => void
+    apiGet
+      .mockImplementationOnce(() => new Promise(resolve => { releaseInitialLoad = resolve }))
+      .mockResolvedValueOnce([{
+        stable_key: 'f5-line-template',
+        name: 'F5 line template',
+        version: 1,
+        payload: { configuration: { bar_type: 'line' } },
+      }])
+    const wrapper = mount(ChartTemplateControl, {
+      props: { configuration: { symbol: 'SPY', bar_type: 'line' } },
+    })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(1))
+
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await wrapper.get('[aria-label="Chart template name"]').setValue('F5 line template')
+    await wrapper.find('.chart-template__save button').trigger('click')
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledOnce())
+
+    releaseInitialLoad([])
+
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('F5 line template'))
   })
 
   it('publishes a saved indicator stack for the active chart without template identity', async () => {
@@ -95,6 +126,83 @@ describe('ChartTemplateControl', () => {
         type: 'ema', params: { period: 20 }, style: { color: '#ffaa00', lineWidth: 1 }, pane: 'main',
       }],
     }])
+  })
+
+  it('persists a unique TC2000 function key on its chart template', async () => {
+    apiGet.mockResolvedValueOnce([{
+      stable_key: 'trend-20', name: 'Trend 20', version: 3,
+      payload: { configuration: { bar_type: 'line', indicators: [] } },
+    }])
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: { symbol: 'SPY' } } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Trend 20'))
+
+    await wrapper.get('select[aria-label="Function key for Trend 20"]').setValue('F3')
+
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/library/items/chart_template/trend-20', expect.objectContaining({
+      payload: expect.objectContaining({
+        function_key: 'F3',
+        configuration: { bar_type: 'line', indicators: [] },
+      }),
+    }))
+  })
+
+  it('prevents two templates from claiming the same function key', async () => {
+    apiGet.mockResolvedValueOnce([
+      { stable_key: 'one', name: 'One', version: 1, payload: { function_key: 'F1', configuration: {} } },
+      { stable_key: 'two', name: 'Two', version: 1, payload: { configuration: {} } },
+    ])
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: {} } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Two'))
+
+    await wrapper.get('select[aria-label="Function key for Two"]').setValue('F1')
+
+    expect(apiPut).not.toHaveBeenCalled()
+    expect(wrapper.get('[role="alert"]').text()).toContain('F1 is already assigned to One')
+  })
+
+  it('applies a function-key template only for its owning chart window', async () => {
+    apiGet.mockResolvedValueOnce([{
+      stable_key: 'weekly', name: 'Weekly', version: 1,
+      payload: { function_key: 'F5', configuration: { timeframe: 'W1', bar_type: 'line' } },
+    }])
+    const wrapper = mount(ChartTemplateControl, {
+      props: { sourceWindowKey: 'chart-a', configuration: { symbol: 'SPY' } },
+    })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await flushPromises()
+
+    window.dispatchEvent(new CustomEvent('tc2000:chart-template-key', {
+      detail: { windowKey: 'chart-b', functionKey: 'F5' },
+    }))
+    expect(wrapper.emitted('apply')).toBeUndefined()
+    window.dispatchEvent(new CustomEvent('tc2000:chart-template-key', {
+      detail: { windowKey: 'chart-a', functionKey: 'F5' },
+    }))
+
+    expect(wrapper.emitted('apply')?.[0]).toEqual([{ timeframe: 'W1', bar_type: 'line' }])
+    wrapper.unmount()
+  })
+
+  it('waits for initial template hydration before resolving a function key', async () => {
+    let resolveTemplates!: (value: unknown[]) => void
+    apiGet.mockImplementation(() => new Promise(resolve => { resolveTemplates = resolve }))
+    const wrapper = mount(ChartTemplateControl, {
+      props: { sourceWindowKey: 'chart-a', configuration: { symbol: 'SPY' } },
+    })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+
+    window.dispatchEvent(new CustomEvent('tc2000:chart-template-key', {
+      detail: { windowKey: 'chart-a', functionKey: 'F2' },
+    }))
+    expect(wrapper.emitted('apply')).toBeUndefined()
+    resolveTemplates([{ stable_key: 'daily', name: 'Daily', version: 1, payload: { function_key: 'F2', configuration: { timeframe: 'D1' } } }])
+
+    await vi.waitFor(() => expect(wrapper.emitted('apply')?.[0]).toEqual([{ timeframe: 'D1' }]))
+    wrapper.unmount()
   })
 
   it('persists alternative-bar parameters and clears them when chart defaults are reset', async () => {
@@ -167,15 +275,96 @@ describe('ChartTemplateControl', () => {
     second.unmount()
   })
 
+  it('announces loading and empty template states politely', async () => {
+    let resolveTemplates!: (value: unknown[]) => void
+    apiGet.mockImplementation(() => new Promise(resolve => { resolveTemplates = resolve }))
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: {} } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+
+    const loading = wrapper.get('.chart-template__state')
+    expect(loading.text()).toBe('Loading templates…')
+    expect(loading.attributes('role')).toBe('status')
+    expect(loading.attributes('aria-live')).toBe('polite')
+    expect(loading.attributes('aria-atomic')).toBe('true')
+
+    resolveTemplates([])
+    await vi.waitFor(() => expect(wrapper.get('.chart-template__state').text()).toBe('No saved templates.'))
+    const empty = wrapper.get('.chart-template__state')
+    expect(empty.attributes('role')).toBe('status')
+    expect(empty.attributes('aria-live')).toBe('polite')
+    expect(empty.attributes('aria-atomic')).toBe('true')
+  })
+
+  it('announces template load failures assertively', async () => {
+    apiGet.mockRejectedValueOnce(new Error('Template service unavailable'))
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: {} } })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalled())
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('.chart-template__error').text()).toBe('Template service unavailable'))
+
+    const error = wrapper.get('.chart-template__error')
+    expect(error.attributes('role')).toBe('alert')
+    expect(error.attributes('aria-live')).toBe('assertive')
+    expect(error.attributes('aria-atomic')).toBe('true')
+  })
+
   it('opens from the keyboard, focuses the editor, and returns focus on Escape', async () => {
     const wrapper = mount(ChartTemplateControl, { attachTo: document.body, props: { configuration: {} } })
     const trigger = wrapper.get('button[aria-label="Chart templates"]')
     await trigger.trigger('keydown', { key: 'ArrowDown' })
-    expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+    expect(wrapper.find('[role="dialog"][aria-label="Chart templates panel"]').exists()).toBe(true)
     await vi.waitFor(() => expect(document.activeElement).toBe(wrapper.get('[aria-label="Chart template name"]').element))
     await wrapper.get('[aria-label="Chart template name"]').trigger('keydown', { key: 'Escape' })
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(wrapper.find('[role="dialog"][aria-label="Chart templates panel"]').exists()).toBe(false)
     expect(document.activeElement).toBe(trigger.element)
+    wrapper.unmount()
+  })
+
+  it('links the template disclosure to its per-instance menu', async () => {
+    const first = mount(ChartTemplateControl, { props: { configuration: { symbol: 'SPY' } } })
+    const second = mount(ChartTemplateControl, { props: { configuration: { symbol: 'XLK' } } })
+    const firstTrigger = first.get('button[aria-label="Chart templates"]')
+    const secondTrigger = second.get('button[aria-label="Chart templates"]')
+    const firstId = firstTrigger.attributes('aria-controls')
+    const secondId = secondTrigger.attributes('aria-controls')
+    expect(firstId).toBeTruthy()
+    expect(secondId).toBeTruthy()
+    expect(firstId).not.toBe(secondId)
+    expect(firstTrigger.attributes('aria-expanded')).toBe('false')
+    expect(firstTrigger.attributes('aria-haspopup')).toBe('dialog')
+
+    await firstTrigger.trigger('click')
+    expect(first.get(`#${firstId}`).attributes('role')).toBe('dialog')
+    expect(first.get(`#${firstId}`).attributes('aria-label')).toBe('Chart templates panel')
+    expect(firstTrigger.attributes('aria-expanded')).toBe('true')
+    expect(second.find(`#${secondId}`).exists()).toBe(false)
+    first.unmount()
+    second.unmount()
+  })
+
+  it('opens at the last enabled chart-template control when ArrowUp is pressed', async () => {
+    const wrapper = mount(ChartTemplateControl, { attachTo: document.body, props: { configuration: {} } })
+    const trigger = wrapper.get('button[aria-label="Chart templates"]')
+    await trigger.trigger('keydown', { key: 'ArrowUp' })
+
+    expect(wrapper.get('[role="dialog"][aria-label="Chart templates panel"]').exists()).toBe(true)
+    await vi.waitFor(() => expect(document.activeElement).toBe(wrapper.get('[aria-label="Import chart template"]').element))
+    wrapper.unmount()
+  })
+
+  it('opens the file picker from a keyboard-accessible import button', async () => {
+    const wrapper = mount(ChartTemplateControl, { attachTo: document.body, props: { configuration: {} } })
+    await wrapper.get('button[aria-label="Chart templates"]').trigger('keydown', { key: 'ArrowDown' })
+
+    const importButton = wrapper.get('button[aria-label="Import chart template"]')
+    const fileInput = wrapper.get('input[type="file"]').element as HTMLInputElement
+    const click = vi.spyOn(fileInput, 'click')
+    importButton.element.focus()
+    expect(document.activeElement).toBe(importButton.element)
+    await importButton.trigger('click')
+
+    expect(click).toHaveBeenCalledOnce()
     wrapper.unmount()
   })
 
@@ -184,7 +373,7 @@ describe('ChartTemplateControl', () => {
     const trigger = wrapper.get('button[aria-label="Chart templates"]')
     await trigger.trigger('click')
     await wrapper.get('button[aria-label="Close chart templates"]').trigger('click')
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(wrapper.find('[role="dialog"][aria-label="Chart templates panel"]').exists()).toBe(false)
     expect(document.activeElement).toBe(trigger.element)
     wrapper.unmount()
   })
@@ -201,10 +390,10 @@ describe('ChartTemplateControl', () => {
       toJSON: () => ({}),
     })
     await wrapper.get('button[aria-label="Chart templates"]').trigger('click')
-    await vi.waitFor(() => expect(wrapper.get('[role="menu"]').exists()).toBe(true))
-    const menu = wrapper.get('[role="menu"]').element as HTMLElement
-    expect(menu.style.top).toBe('8px')
-    expect(menu.style.maxHeight).toBe('164px')
+    await vi.waitFor(() => expect(wrapper.get('[role="dialog"][aria-label="Chart templates panel"]').exists()).toBe(true))
+    const panel = wrapper.get('[role="dialog"][aria-label="Chart templates panel"]').element as HTMLElement
+    expect(panel.style.top).toBe('8px')
+    expect(panel.style.maxHeight).toBe('164px')
     expect(addSpy).toHaveBeenCalledWith('scroll', expect.any(Function), true)
     await wrapper.get('button[aria-label="Close chart templates"]').trigger('click')
     expect(removeSpy).toHaveBeenCalledWith('scroll', expect.any(Function), true)
@@ -212,5 +401,19 @@ describe('ChartTemplateControl', () => {
     vi.unstubAllGlobals()
     addSpy.mockRestore()
     removeSpy.mockRestore()
+  })
+
+  it('does not publish a late template load after the control unmounts', async () => {
+    let resolveTemplates!: (value: any[]) => void
+    apiGet.mockImplementation(() => new Promise(resolve => { resolveTemplates = resolve }))
+    const wrapper = mount(ChartTemplateControl, { props: { configuration: {} } })
+    await Promise.resolve()
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/library/items', { kind: 'chart_template' })
+
+    wrapper.unmount()
+    resolveTemplates([{ stable_key: 'late', name: 'Late template', version: 1, payload: { configuration: {} } }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).items).toEqual([])
   })
 })

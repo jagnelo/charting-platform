@@ -37,7 +37,8 @@
             tabindex="-1"
             :title="tool.label"
             :aria-label="tool.label"
-            @click="selectTool(tool.type)"
+            :aria-pressed="activeToolType === tool.type ? 'true' : 'false'"
+            @click="selectTool(tool.type, group.id)"
           >
             <span class="tool-icon" :class="`tool-icon--${tool.icon}`" aria-hidden="true" />
             <span class="popup-label">{{ tool.label }}</span>
@@ -53,6 +54,7 @@
       type="button"
       title="Anchored VWAP — click on chart to set anchor"
       aria-label="Anchored VWAP — click on chart to set anchor"
+      :aria-pressed="drawStore.avwapDropActive ? 'true' : 'false'"
       @click="toggleAvwapDrop"
     >
       <span class="tool-icon tool-icon--avwap" aria-hidden="true" />
@@ -64,10 +66,26 @@
     <button class="tool-btn" type="button" title="Delete selected" aria-label="Delete selected" @click="deleteSelected" :disabled="!selectedId">
       <span class="tool-icon tool-icon--delete" aria-hidden="true" />
     </button>
-    <button class="tool-btn" type="button" title="Toggle visibility" aria-label="Toggle visibility" @click="toggleVisibility" :disabled="!selectedId">
+    <button
+      class="tool-btn"
+      type="button"
+      :title="selectedDrawing ? (selectedDrawing.is_visible ? 'Hide drawing' : 'Show drawing') : 'Toggle visibility'"
+      :aria-label="selectedDrawing ? (selectedDrawing.is_visible ? 'Hide drawing' : 'Show drawing') : 'Toggle visibility'"
+      :aria-pressed="selectedDrawing ? (selectedDrawing.is_visible ? 'true' : 'false') : undefined"
+      @click="toggleVisibility"
+      :disabled="!selectedId"
+    >
       <span class="tool-icon tool-icon--visibility" aria-hidden="true" />
     </button>
-    <button class="tool-btn" type="button" title="Lock / Unlock drawing" aria-label="Lock / Unlock drawing" @click="lockDrawing" :disabled="!selectedId">
+    <button
+      class="tool-btn"
+      type="button"
+      :title="selectedDrawing ? (selectedDrawing.is_locked ? 'Unlock drawing' : 'Lock drawing') : 'Lock / Unlock drawing'"
+      :aria-label="selectedDrawing ? (selectedDrawing.is_locked ? 'Unlock drawing' : 'Lock drawing') : 'Lock / Unlock drawing'"
+      :aria-pressed="selectedDrawing ? (selectedDrawing.is_locked ? 'true' : 'false') : undefined"
+      @click="lockDrawing"
+      :disabled="!selectedId"
+    >
       <span class="tool-icon tool-icon--lock" aria-hidden="true" />
     </button>
 
@@ -87,6 +105,7 @@ import type { DrawingType } from '@/types'
 const drawStore      = useDrawingsStore()
 const activeToolType = computed(() => drawStore.activeToolType)
 const selectedId     = computed(() => drawStore.selectedId)
+const selectedDrawing = computed(() => drawStore.drawings.find(drawing => drawing.id === selectedId.value) ?? null)
 
 const toolbarRef = ref<HTMLElement | null>(null)
 const openPopup = ref<string | null>(null)
@@ -210,9 +229,9 @@ function handlePopupKeydown(id: string, event: KeyboardEvent) {
   }
 }
 
-function selectTool(type: DrawingType) {
+function selectTool(type: DrawingType, groupId: string) {
   drawStore.setActiveTool(activeToolType.value === type ? null : type)
-  setPopup(null)
+  closePopupToTrigger(groupId)
 }
 
 function toggleAvwapDrop() {

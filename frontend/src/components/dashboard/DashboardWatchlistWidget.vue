@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import DashboardInstrumentSearch from '@/components/dashboard/DashboardInstrumentSearch.vue'
 import Sparkline from '@/components/common/Sparkline.vue'
 import { useWatchlistStore } from '@/stores/watchlist'
@@ -81,6 +81,8 @@ const emit = defineEmits<{ patchConfig: [patch: Record<string, any>] }>()
 const store = useWatchlistStore()
 const addSymbol = ref('')
 const focusedSymbol = ref<string | null>(null)
+let mounted = false
+let actionSeq = 0
 
 const selectedId = computed(() => Number(props.config.watchlistId) || store.watchlists[0]?.id || null)
 const watchlist = computed(() => store.watchlists.find(w => w.id === selectedId.value) ?? null)
@@ -100,8 +102,9 @@ function selectWatchlist(event: Event) {
 }
 
 async function createWatchlist() {
+  const seq = ++actionSeq
   const created = await store.createWatchlist('New Watchlist')
-  if (created) emit('patchConfig', { watchlistId: created.id })
+  if (mounted && seq === actionSeq && created) emit('patchConfig', { watchlistId: created.id })
 }
 
 async function renameWatchlist(event: Event) {
@@ -112,15 +115,17 @@ async function renameWatchlist(event: Event) {
 
 async function deleteWatchlist() {
   if (!watchlist.value) return
+  const seq = ++actionSeq
   const id = watchlist.value.id
   await store.deleteWatchlist(id)
-  emit('patchConfig', { watchlistId: store.watchlists[0]?.id ?? null })
+  if (mounted && seq === actionSeq) emit('patchConfig', { watchlistId: store.watchlists[0]?.id ?? null })
 }
 
 async function copyWatchlist() {
   if (!watchlist.value) return
+  const seq = ++actionSeq
   const copied = await store.copyWatchlist(watchlist.value.id)
-  if (copied) emit('patchConfig', { watchlistId: copied.id })
+  if (mounted && seq === actionSeq && copied) emit('patchConfig', { watchlistId: copied.id })
 }
 
 async function toggleLock() {
@@ -131,9 +136,19 @@ async function toggleLock() {
 
 async function addToWatchlist(symbol: string) {
   if (!watchlist.value || watchlist.value.is_locked || watchlist.value.is_managed) return
+  const seq = ++actionSeq
   await store.addBySymbol(watchlist.value.id, symbol)
-  addSymbol.value = ''
+  if (mounted && seq === actionSeq) addSymbol.value = ''
 }
+
+onMounted(() => {
+  mounted = true
+})
+
+onBeforeUnmount(() => {
+  mounted = false
+  actionSeq += 1
+})
 </script>
 
 <style scoped>

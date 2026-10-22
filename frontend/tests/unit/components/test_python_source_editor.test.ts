@@ -18,8 +18,11 @@ describe('PythonSourceEditor', () => {
     expect(editor.attributes('aria-expanded')).toBe('true')
     expect(editor.attributes('aria-controls')).toBeTruthy()
     expect(editor.attributes('aria-activedescendant')).toBeTruthy()
+    const statusId = editor.attributes('aria-describedby')
+    expect(statusId).toBeTruthy()
     expect(wrapper.find(`#${editor.attributes('aria-controls')}`).attributes('role')).toBe('listbox')
     expect(wrapper.find(`#${editor.attributes('aria-activedescendant')}`).attributes('role')).toBe('option')
+    expect(wrapper.find(`#${statusId}`).attributes('role')).toBe('status')
     expect(wrapper.find('[aria-label="Python source SDK suggestions"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('market.close()')
     expect(wrapper.get('[role="status"]').text()).toContain('SDK suggestions')
@@ -29,6 +32,29 @@ describe('PythonSourceEditor', () => {
     expect(nextValue).toBe('market.close()')
     await wrapper.setProps({ modelValue: nextValue })
     expect((editor.element as HTMLTextAreaElement).value).toContain('market.close()')
+  })
+
+  it('preserves validation descriptions alongside the live SDK suggestion description', async () => {
+    const wrapper = mount(PythonSourceEditor, {
+      props: { modelValue: 'market.', ariaLabel: 'Python source', invalid: true, describedBy: 'source-validation-error' },
+    })
+    const editor = wrapper.find('[aria-label="Python source"]')
+
+    expect(editor.attributes('aria-invalid')).toBe('true')
+    expect(editor.attributes('aria-describedby')).toBe('source-validation-error')
+
+    await editor.trigger('focus')
+    await editor.trigger('keyup')
+
+    const describedBy = editor.attributes('aria-describedby')?.split(' ')
+    expect(describedBy).toHaveLength(2)
+    expect(describedBy?.[0]).toBe('source-validation-error')
+    expect(wrapper.find(`#${describedBy?.[1]}`).attributes('role')).toBe('status')
+
+    await wrapper.setProps({ invalid: false, describedBy: '' })
+    expect(editor.attributes('aria-invalid')).toBeUndefined()
+    expect(editor.attributes('aria-describedby')).toBe(describedBy?.[1])
+    wrapper.unmount()
   })
 
   it('normalizes line endings and trailing whitespace without changing code semantics', async () => {
@@ -60,6 +86,7 @@ describe('PythonSourceEditor', () => {
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
     expect(editor.attributes('aria-expanded')).toBe('false')
     expect(editor.attributes('aria-controls')).toBeUndefined()
+    expect(editor.attributes('aria-describedby')).toBeUndefined()
   })
 
   it('keeps suggestion popup identifiers unique across linked editor instances', async () => {
@@ -79,6 +106,11 @@ describe('PythonSourceEditor', () => {
     expect(firstOptionId).toBeTruthy()
     expect(secondOptionId).toBeTruthy()
     expect(firstOptionId).not.toBe(secondOptionId)
+    const firstStatusId = first.find('textarea').attributes('aria-describedby')
+    const secondStatusId = second.find('textarea').attributes('aria-describedby')
+    expect(firstStatusId).toBeTruthy()
+    expect(secondStatusId).toBeTruthy()
+    expect(firstStatusId).not.toBe(secondStatusId)
     first.unmount()
     second.unmount()
   })

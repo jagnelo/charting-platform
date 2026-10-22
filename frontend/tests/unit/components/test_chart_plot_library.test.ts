@@ -12,13 +12,25 @@ function mount(component: typeof ChartPlotLibrary, options: Record<string, any> 
   return vueMount(component, { ...options, global: { ...(options.global ?? {}), plugins: [[VueQueryPlugin, { queryClient }], ...((options.global?.plugins as any[]) ?? [])] } })
 }
 
-const apiMock = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue([]), put: vi.fn().mockResolvedValue({}), post: vi.fn().mockResolvedValue({}) }))
+const apiMock = vi.hoisted(() => ({
+  registry: [
+    { type: 'sma', params: [{ name: 'period', type: 'int', min_value: 1, max_value: null }] },
+    { type: 'rsi', params: [{ name: 'period', type: 'int', min_value: 2, max_value: null }] },
+    { type: 'bb', params: [
+      { name: 'period', type: 'int', min_value: 1, max_value: null },
+      { name: 'std_dev', type: 'float', min_value: 0.1, max_value: null },
+    ] },
+  ],
+  get: vi.fn(),
+  put: vi.fn().mockResolvedValue({}),
+  post: vi.fn().mockResolvedValue({}),
+}))
 vi.mock('@/lib/api', () => ({ api: apiMock }))
 
 describe('ChartPlotLibrary', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    apiMock.get.mockReset().mockResolvedValue([])
+    apiMock.get.mockReset().mockImplementation((path: string) => Promise.resolve(path === '/indicators/registry' ? apiMock.registry : []))
     apiMock.put.mockReset().mockResolvedValue({})
     apiMock.post.mockReset().mockResolvedValue({})
   })
@@ -32,8 +44,11 @@ describe('ChartPlotLibrary', () => {
     expect(chart.indicators).toHaveLength(2)
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
 
-    await wrapper.get('[aria-label="Hide SMA(20)"]').trigger('click')
+    const hideIndicator = wrapper.get('[aria-label="Hide SMA(20)"]')
+    expect(hideIndicator.attributes('aria-pressed')).toBe('true')
+    await hideIndicator.trigger('click')
     expect(chart.indicators[0].hidden).toBe(true)
+    expect(wrapper.get('[aria-label="Show SMA(20)"]').attributes('aria-pressed')).toBe('false')
     await wrapper.get('[aria-label="Duplicate EMA(50)"]').trigger('click')
     expect(chart.indicators).toHaveLength(3)
     await wrapper.get('[aria-label="Move EMA(50) up"]').trigger('click')
@@ -42,15 +57,357 @@ describe('ChartPlotLibrary', () => {
     expect(chart.indicators).toHaveLength(2)
   })
 
-  it('opens from the keyboard, focuses the first plot control, and restores focus on Escape', async () => {
+  it('filters the indicator picker by name or type and reports an empty result', async () => {
+    const chart = usePanelStore('plot-library-search-test')
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-search-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+
+    const search = wrapper.get('input[aria-label="Filter indicators"]')
+    const picker = wrapper.get('select[aria-label="Add indicator plot"]')
+    await search.setValue('relative strength index')
+    expect(picker.findAll('option').map(option => option.text())).toEqual(['Add indicator plot…', 'RSI - Relative Strength Index'])
+    await search.setValue('not-a-real-indicator')
+    expect(wrapper.get('[role="status"]').text()).toContain('No indicators match “not-a-real-indicator”.')
+
+    await search.setValue('sma')
+    await picker.setValue('sma')
+    expect(chart.indicators.map(indicator => indicator.type)).toEqual(['sma'])
+    wrapper.unmount()
+  })
+
+  it('keeps chart line widths inside the advertised range and quarter-pixel step', async () => {
+    const chart = usePanelStore('plot-library-line-width-constraints-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-line-width-constraints-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    const width = wrapper.get('input[aria-label="SMA(20) line width"]')
+
+    await width.setValue('0.1')
+    await width.trigger('change')
+    expect(chart.indicators[0].style.lineWidth).toBe(0.25)
+
+    await width.setValue('1.13')
+    await width.trigger('change')
+    expect(chart.indicators[0].style.lineWidth).toBe(1.25)
+
+    await width.setValue('7.3')
+    await width.trigger('change')
+    expect(chart.indicators[0].style.lineWidth).toBe(5)
+
+    await width.setValue('')
+    await width.trigger('change')
+    expect(chart.indicators[0].style.lineWidth).toBe(5)
+    wrapper.unmount()
+  })
+
+  it('edits an indicator from the primary plot library without dropping its existing configuration', async () => {
+    const chart = usePanelStore('plot-library-indicator-settings-test')
+    const original = { type: 'sma' as const, params: { period: 20, custom_source: 'close' }, style: { color: '#ff0000', lineWidth: 1.5 }, pane: 'main' as const, lockedTimeframes: ['D1' as const, 'W1' as const], hidden: true }
+    chart.setIndicators([original])
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-settings-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit SMA(20) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[role="dialog"][aria-label="Indicator settings: SMA(20)"]')!
+    const period = dialog.querySelector<HTMLInputElement>('input[aria-label="Period"]')!
+    expect(dialog).not.toBeNull()
+    expect(document.activeElement).toBe(period)
+    period.value = '50'
+    period.dispatchEvent(new Event('input', { bubbles: true }))
+    dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!.click()
+    await flushPromises()
+
+    expect(chart.indicators[0]).toEqual({ ...original, params: { period: 50, custom_source: 'close' } })
+    expect(apiMock.put).toHaveBeenCalledWith('/instrument-indicators/42', { indicators: [chart.indicators[0]] })
+    expect(document.body.querySelector('[aria-label="Indicator settings: SMA(20)"]')).toBeNull()
+    expect(document.activeElement).toBe(wrapper.get('button[aria-label="Chart plot library"]').element)
+    wrapper.unmount()
+  })
+
+  it('applies backend integer and minimum constraints before saving indicator settings', async () => {
+    const chart = usePanelStore('plot-library-indicator-constraints-test')
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ef9a9a', lineWidth: 1 }, pane: 'separate' }])
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-constraints-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit RSI(14) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: RSI(14)"]')!
+    const period = dialog.querySelector<HTMLInputElement>('input[aria-label="Period"]')!
+    const apply = dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!
+    expect(period.min).toBe('2')
+    expect(period.step).toBe('1')
+
+    period.value = '1'
+    period.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(true)
+    period.value = '2.5'
+    period.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(true)
+    apply.click()
+    await flushPromises()
+    expect(apiMock.put).not.toHaveBeenCalled()
+    period.value = '14'
+    period.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(false)
+    apply.click()
+    await flushPromises()
+
+    expect(chart.indicators[0].params.period).toBe(14)
+    expect(apiMock.put).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it('keeps settings-dialog line widths on quarter-pixel steps and preserves the last value when cleared', async () => {
+    const chart = usePanelStore('plot-library-dialog-line-width-constraints-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-dialog-line-width-constraints-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit SMA(20) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: SMA(20)"]')!
+    const lineWidth = dialog.querySelector<HTMLInputElement>('input[aria-label="Line width"]')!
+    const apply = dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!
+    lineWidth.value = '1.13'
+    lineWidth.dispatchEvent(new Event('input', { bubbles: true }))
+    lineWidth.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushPromises()
+    expect(lineWidth.value).toBe('1.25')
+
+    lineWidth.value = '7.3'
+    lineWidth.dispatchEvent(new Event('input', { bubbles: true }))
+    lineWidth.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushPromises()
+    expect(lineWidth.value).toBe('5')
+
+    lineWidth.value = ''
+    lineWidth.dispatchEvent(new Event('input', { bubbles: true }))
+    lineWidth.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushPromises()
+    expect(lineWidth.value).toBe('5')
+    expect(apply.disabled).toBe(false)
+    apply.click()
+    await flushPromises()
+
+    expect(chart.indicators[0].style.lineWidth).toBe(5)
+    wrapper.unmount()
+  })
+
+  it('traps keyboard focus in indicator settings and restores the library focus on Escape', async () => {
+    const chart = usePanelStore('plot-library-indicator-settings-keyboard-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-settings-keyboard-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit SMA(20) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: SMA(20)"]')!
+    const close = dialog.querySelector<HTMLButtonElement>('button[aria-label="Close indicator settings"]')!
+    const period = dialog.querySelector<HTMLInputElement>('input[aria-label="Period"]')!
+    const apply = dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!
+    expect(document.activeElement).toBe(period)
+
+    apply.focus()
+    apply.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
+    await flushPromises()
+    expect(document.activeElement).toBe(close)
+
+    close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }))
+    await flushPromises()
+    expect(document.activeElement).toBe(apply)
+
+    period.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await flushPromises()
+    expect(document.body.querySelector('[aria-label="Indicator settings: SMA(20)"]')).toBeNull()
+    expect(document.activeElement).toBe(wrapper.get('button[aria-label="Chart plot library"]').element)
+    wrapper.unmount()
+  })
+
+  it('uses floating-point parameter limits from the indicator registry', async () => {
+    const chart = usePanelStore('plot-library-indicator-float-constraints-test')
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' }])
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-float-constraints-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit BB(20,2) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: BB(20,2)"]')!
+    const standardDeviation = dialog.querySelector<HTMLInputElement>('input[aria-label="Std dev"]')!
+    const apply = dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!
+    expect(standardDeviation.min).toBe('0.1')
+    expect(standardDeviation.step).toBe('any')
+
+    standardDeviation.value = '0.05'
+    standardDeviation.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(true)
+    standardDeviation.value = '0.5'
+    standardDeviation.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    expect(apply.disabled).toBe(false)
+    apply.click()
+    await flushPromises()
+
+    expect(chart.indicators[0].params.std_dev).toBe(0.5)
+    expect(apiMock.put).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it('fails closed when the indicator constraint registry cannot be loaded', async () => {
+    apiMock.get.mockRejectedValueOnce(new Error('registry unavailable'))
+    const chart = usePanelStore('plot-library-indicator-registry-error-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ffb74d', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-registry-error-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit SMA(20) settings"]').trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: SMA(20)"]')!
+    expect(dialog.querySelector('[role="alert"]')?.textContent).toContain('registry unavailable')
+    expect(dialog.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true)
+    expect(apiMock.put).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('edits catalog select and datetime parameters with their declared input types', async () => {
+    const chart = usePanelStore('plot-library-indicator-typed-settings-test')
+    chart.setIndicators([
+      { type: 'pivot_points', params: { method: 'classic' }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' },
+      { type: 'avwap', params: { anchor_timestamp: 1704067200 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' },
+    ])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-indicator-typed-settings-test' } }, attachTo: document.body })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit PIVOTS(classic) settings"]').trigger('click')
+    let dialog = document.body.querySelector<HTMLElement>('[aria-label="Indicator settings: PIVOTS(classic)"]')!
+    expect(dialog.querySelector('select[aria-label="Method"]')?.value).toBe('classic')
+    const method = dialog.querySelector<HTMLSelectElement>('select[aria-label="Method"]')!
+    method.value = 'fibonacci'
+    method.dispatchEvent(new Event('change', { bubbles: true }))
+    dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!.click()
+    await flushPromises()
+    expect(chart.indicators[0].params.method).toBe('fibonacci')
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('button[aria-label="Edit AVWAP(2024-01-01) settings"]').trigger('click')
+    dialog = document.body.querySelector<HTMLElement>('[aria-label^="Indicator settings: AVWAP"]')!
+    const anchor = dialog.querySelector<HTMLInputElement>('input[aria-label="Anchor date"]')!
+    expect(anchor.type).toBe('datetime-local')
+    anchor.value = '2024-01-15T09:30'
+    anchor.dispatchEvent(new Event('input', { bubbles: true }))
+    dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!.click()
+    await flushPromises()
+    expect(chart.indicators[1].params.anchor_timestamp).toBe(Date.parse('2024-01-15T09:30') / 1000)
+    wrapper.unmount()
+  })
+
+  it('opens indicator settings when the chart requests an indicator edit', async () => {
+    const chart = usePanelStore('plot-library-chart-edit-request-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-chart-edit-request-test' } }, attachTo: document.body })
+
+    chart.requestEditIndicator(0)
+    await flushPromises()
+
+    expect(document.body.querySelector('[role="dialog"][aria-label="Indicator settings: SMA(20)"]')).not.toBeNull()
+    expect(chart.editRequestIndicatorIndex).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('lets users select an explicit output for multi-output indicators', async () => {
+    const chart = usePanelStore('plot-library-output-selection-test')
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-output-selection-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    const output = wrapper.get('[aria-label="BB(20,2) output"]')
+    expect((output.element as HTMLSelectElement).value).toBe('')
+    await output.setValue('bb_upper')
+    expect(chart.indicators[0].output).toBe('bb_upper')
+    expect((wrapper.get('[aria-label="BB(20,2) output"]').element as HTMLSelectElement).value).toBe('bb_upper')
+  })
+
+  it('opens from the keyboard, focuses indicator search, and restores focus on Escape', async () => {
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-keyboard-test' } }, attachTo: document.body })
     const trigger = wrapper.get('button[aria-label="Chart plot library"]')
     await trigger.trigger('keydown', { key: 'ArrowDown' })
-    expect(wrapper.get('[role="menu"]').exists()).toBe(true)
-    expect(document.activeElement).toBe(wrapper.get('[aria-label="Add indicator plot"]').element)
-    await wrapper.get('[role="menu"]').trigger('keydown', { key: 'Escape' })
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(wrapper.get('[role="dialog"]').exists()).toBe(true)
+    expect(document.activeElement).toBe(wrapper.get('[aria-label="Filter indicators"]').element)
+    await wrapper.get('[role="dialog"]').trigger('keydown', { key: 'Escape' })
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
     expect(document.activeElement).toBe(trigger.element)
+    wrapper.unmount()
+  })
+
+  it('links the chart plot disclosure to its per-instance menu', async () => {
+    const first = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'first', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-disclosure-first' } } })
+    const second = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'second', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-disclosure-second' } } })
+    const firstTrigger = first.get('button[aria-label="Chart plot library"]')
+    const secondTrigger = second.get('button[aria-label="Chart plot library"]')
+    const firstId = firstTrigger.attributes('aria-controls')
+    const secondId = secondTrigger.attributes('aria-controls')
+    expect(firstId).toBeTruthy()
+    expect(secondId).toBeTruthy()
+    expect(firstId).not.toBe(secondId)
+    expect(firstTrigger.attributes('aria-expanded')).toBe('false')
+    expect(firstTrigger.attributes('aria-haspopup')).toBe('dialog')
+
+    await firstTrigger.trigger('click')
+    expect(first.get(`#${firstId}`).attributes('role')).toBe('dialog')
+    expect(first.get(`#${firstId}`).attributes('aria-label')).toBe('Chart plot library panel')
+    expect(firstTrigger.attributes('aria-expanded')).toBe('true')
+    expect(second.find(`#${secondId}`).exists()).toBe(false)
+    first.unmount()
+    second.unmount()
+  })
+
+  it('announces empty reusable-plot states politely', async () => {
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-empty-state-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+
+    const emptyPlots = wrapper.get('p[role="status"]')
+    expect(emptyPlots.text()).toBe('No indicator or reusable plots.')
+    expect(emptyPlots.attributes('aria-live')).toBe('polite')
+    expect(emptyPlots.attributes('aria-atomic')).toBe('true')
+
+    await wrapper.findAll('button').find(button => button.text() === 'Load Python plots')!.trigger('click')
+    await flushPromises()
+    const pythonStatus = wrapper.get('.chart-plots__python small[role="status"]')
+    expect(pythonStatus.text()).toBe('No Python plot assets available')
+    expect(pythonStatus.attributes('aria-live')).toBe('polite')
+    expect(pythonStatus.attributes('aria-atomic')).toBe('true')
+
+    await wrapper.findAll('button').find(button => button.text() === 'Load EasyScan plots')!.trigger('click')
+    await flushPromises()
+    const scanStatus = wrapper.get('.chart-plots__scan small[role="status"]')
+    expect(scanStatus.text()).toBe('No retained scan history available')
+    expect(scanStatus.attributes('aria-live')).toBe('polite')
+    expect(scanStatus.attributes('aria-atomic')).toBe('true')
+  })
+
+  it('opens at the last enabled plot action when ArrowUp is pressed', async () => {
+    const chart = usePanelStore('plot-library-arrow-up-test')
+    chart.setIndicators([{ type: 'sma', params: { period: 20 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-arrow-up-test' } }, attachTo: document.body })
+    const trigger = wrapper.get('button[aria-label="Chart plot library"]')
+    await trigger.trigger('keydown', { key: 'ArrowUp' })
+
+    expect(wrapper.get('[role="dialog"]').exists()).toBe(true)
+    await vi.waitFor(() => expect(document.activeElement).toBe(wrapper.get('[aria-label="Delete SMA(20)"]').element))
     wrapper.unmount()
   })
 
@@ -59,7 +416,7 @@ describe('ChartPlotLibrary', () => {
     const trigger = wrapper.get('button[aria-label="Chart plot library"]')
     await trigger.trigger('click')
     await wrapper.get('button[aria-label="Close chart plot library"]').trigger('click')
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
     expect(document.activeElement).toBe(trigger.element)
     wrapper.unmount()
   })
@@ -71,7 +428,7 @@ describe('ChartPlotLibrary', () => {
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-library-viewport-test' } } })
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await flushPromises()
-    const menu = wrapper.get('[role="menu"]').element as HTMLElement
+    const menu = wrapper.get('[role="dialog"]').element as HTMLElement
     expect(menu.style.left).toBe('8px')
     expect(menu.style.width).toBe('204px')
     expect(addSpy).toHaveBeenCalledWith('resize', expect.any(Function))
@@ -96,7 +453,7 @@ describe('ChartPlotLibrary', () => {
     })
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await flushPromises()
-    const menu = wrapper.get('[role="menu"]').element as HTMLElement
+    const menu = wrapper.get('[role="dialog"]').element as HTMLElement
     expect(menu.style.top).toBe('8px')
     expect(menu.style.maxHeight).toBe('164px')
     expect(addSpy).toHaveBeenCalledWith('scroll', expect.any(Function), true)
@@ -125,7 +482,7 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     await wrapper.get('[aria-label="Add indicator plot"]').setValue('rsi')
     await flushPromises()
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
     expect(chart.indicators).toHaveLength(1)
   })
 
@@ -138,12 +495,12 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
     const insertion = wrapper.get('[aria-label="Add indicator plot"]').setValue('rsi')
     await Promise.resolve()
-    expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
     release()
     await insertion
     await flushPromises()
     expect(apiMock.put).toHaveBeenCalledWith('/instrument-indicators/42', { indicators: chart.indicators })
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
   })
 
   it('loads and adds a typed Python plot asset without executing frontend code', async () => {
@@ -154,7 +511,8 @@ describe('ChartPlotLibrary', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Load Python plots')!.trigger('click')
     await flushPromises()
     await wrapper.get('[aria-label="Python plot asset"]').setValue('91')
-    await wrapper.findAll('.chart-plots__python button').find(button => button.text() === 'Add')!.trigger('click')
+    expect(wrapper.get('button[aria-label="Add selected Python plot"]').exists()).toBe(true)
+    await wrapper.get('button[aria-label="Add selected Python plot"]').trigger('click')
     expect(wrapper.emitted('update:python-plots')?.at(-1)).toEqual([[{ code_version_id: 91, name: 'Breadth plot v2', color: '#ffb74d', timeframe: chart.timeframe, instance_key: expect.any(String) }]])
     expect(apiMock.get).toHaveBeenCalledWith('/code/assets')
   })
@@ -192,7 +550,8 @@ describe('ChartPlotLibrary', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Load EasyScan plots')!.trigger('click')
     await flushPromises()
     await wrapper.get('[aria-label="EasyScan plot asset"]').setValue('17:percentage')
-    await wrapper.findAll('.chart-plots__scan button').find(button => button.text() === 'Add')!.trigger('click')
+    expect(wrapper.get('button[aria-label="Add selected EasyScan plot"]').exists()).toBe(true)
+    await wrapper.get('button[aria-label="Add selected EasyScan plot"]').trigger('click')
     expect(wrapper.emitted('update:scan-plots')?.at(-1)).toEqual([[{ screener_id: 17, name: 'Breadth scan', metric: 'percentage', color: '#4dd0e1', instance_key: expect.any(String) }]])
     expect(apiMock.get).toHaveBeenCalledWith('/screeners/17/plot', { metric: 'percentage' })
   })
@@ -203,7 +562,9 @@ describe('ChartPlotLibrary', () => {
       global: { provide: { panelId: 'scan-plot-management-test' } },
     })
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
-    await wrapper.get('[aria-label="Hide Breadth scan"]').trigger('click')
+    const hideScan = wrapper.get('[aria-label="Hide Breadth scan"]')
+    expect(hideScan.attributes('aria-pressed')).toBe('true')
+    await hideScan.trigger('click')
     expect(wrapper.emitted('update:scan-plots')?.at(-1)).toEqual([[expect.objectContaining({ screener_id: 17, hidden: true })]])
     await wrapper.get('[aria-label="Remove Breadth scan"]').trigger('click')
     expect(wrapper.emitted('update:scan-plots')?.at(-1)).toEqual([[]])
@@ -235,7 +596,9 @@ describe('ChartPlotLibrary', () => {
       global: { provide: { panelId: 'python-plot-management-test' } },
     })
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
-    await wrapper.get('[aria-label="Hide Breadth plot"]').trigger('click')
+    const hidePython = wrapper.get('[aria-label="Hide Breadth plot"]')
+    expect(hidePython.attributes('aria-pressed')).toBe('true')
+    await hidePython.trigger('click')
     expect((wrapper.emitted('update:python-plots')?.at(-1)?.[0] as any[])[0]).toMatchObject({ code_version_id: 91, hidden: true })
     await wrapper.get('[aria-label="Move Volatility plot up"]').trigger('click')
     expect(wrapper.emitted('update:python-plots')?.at(-1)?.[0]).toMatchObject([{ code_version_id: 92 }, { code_version_id: 91 }])
@@ -270,7 +633,7 @@ describe('ChartPlotLibrary', () => {
     expect(workspace.activeTab?.windows[1].configuration.python_columns).toEqual([{ code_version_id: 91, name: 'Breadth plot', timeframe: 'D1' }])
   })
 
-  it('writes a versioned serializable payload when a plot is dragged', async () => {
+  it('writes a versioned serializable payload when a plot is dragged from its settings label', async () => {
     const chart = usePanelStore('plot-drag-test')
     chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
     const values = new Map<string, string>()
@@ -282,7 +645,7 @@ describe('ChartPlotLibrary', () => {
     const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'plot-drag-test' } } })
 
     await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
-    await wrapper.get('li').trigger('dragstart', { dataTransfer })
+    await wrapper.get('button[aria-label="Edit RSI(14) settings"]').trigger('dragstart', { dataTransfer })
 
     expect(values.has(CHART_PLOT_DRAG_MIME)).toBe(true)
     expect(JSON.parse(values.get(CHART_PLOT_DRAG_MIME) ?? '')).toMatchObject({
@@ -346,9 +709,15 @@ describe('ChartPlotLibrary', () => {
     await wrapper.get('[aria-label="Plot promotion target"]').setValue('scan')
     await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('70')
     await wrapper.get('[aria-label="Plot promotion name"]').setValue('Overbought RSI')
-    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    expect(wrapper.get('button[aria-label="Copy plot to selected promotion target"]').exists()).toBe(true)
+    await wrapper.get('button[aria-label="Copy plot to selected promotion target"]').trigger('click')
     await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
-    expect(apiMock.put).toHaveBeenCalledWith('/workspaces/library/conditions/overbought-rsi', expect.objectContaining({ name: 'Overbought RSI' }))
+    expect(apiMock.put).toHaveBeenCalledWith('/workspaces/library/conditions/overbought-rsi', expect.objectContaining({
+      name: 'Overbought RSI',
+      condition: expect.objectContaining({
+        conditions: [expect.objectContaining({ indicator: 'rsi', output: 'rsi' })],
+      }),
+    }))
     expect(apiMock.post).toHaveBeenCalledWith('/screeners/from-condition/overbought-rsi', expect.objectContaining({ name: 'Overbought RSI Scan', timeframe: 'D1' }))
     expect(wrapper.get('[role="status"]').text()).toContain('EasyScan')
   })
@@ -367,6 +736,45 @@ describe('ChartPlotLibrary', () => {
     await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
     expect(apiMock.post).toHaveBeenCalledWith('/alerts/indicator', expect.objectContaining({ instrument_id: 42, indicator_a_type: 'ema', threshold_value: 100 }))
     expect(wrapper.get('[role="status"]').text()).toContain('indicator alert')
+  })
+
+  it('carries an explicitly selected multi-output into an indicator alert', async () => {
+    const chart = usePanelStore('multi-output-alert-promotion-test')
+    chart.instrument = { id: 42 } as any
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#80cbc4', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'multi-output-alert-promotion-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="BB(20,2) output"]').setValue('bb_upper')
+    await wrapper.get('[aria-label="Promote BB(20,2)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('alert')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('100')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('Upper band alert')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
+    expect(apiMock.post).toHaveBeenCalledWith('/alerts/indicator', expect.objectContaining({
+      instrument_id: 42,
+      indicator_a_type: 'bb',
+      indicator_a_params: { period: 20, std_dev: 2, output: 'bb_upper' },
+    }))
+    expect(wrapper.get('[role="status"]').text()).toContain('indicator alert')
+  })
+
+  it('promotes a plot into a Market Gauge through the saved EasyScan condition', async () => {
+    apiMock.post.mockImplementation((path: string) => path.startsWith('/screeners/from-condition/') ? Promise.resolve({ id: 88 }) : Promise.resolve({}))
+    const chart = usePanelStore('gauge-promotion-test')
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'gauge-promotion-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote RSI(14)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('gauge')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('70')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('RSI breadth gauge')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
+
+    expect(apiMock.put).toHaveBeenCalledWith('/workspaces/library/conditions/rsi-breadth-gauge', expect.objectContaining({ name: 'RSI breadth gauge' }))
+    expect(apiMock.post).toHaveBeenCalledWith('/screeners/from-condition/rsi-breadth-gauge', expect.objectContaining({ name: 'RSI breadth gauge Scan', timeframe: 'D1' }))
+    expect(wrapper.get('[role="status"]').text()).toContain('Market Gauge')
   })
 
   it('promotes a plot into a selected watchlist filter and persists its active condition', async () => {
@@ -396,5 +804,201 @@ describe('ChartPlotLibrary', () => {
     expect(workspace.activeTab?.windows[1].configuration).toMatchObject({ condition_screener_id: 77, condition_filter_mode: 'active' })
     expect(scheduleSnapshot).toHaveBeenCalled()
     expect(wrapper.get('[role="status"]').text()).toContain('Momentum filter')
+  })
+
+  it('promotes a plot into a Boolean watchlist column backed by an EasyScan', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.workspace = {
+      id: 1, user_id: 1, name: 'Test', is_default: true, position: 0, revision: 1, schema_version: 1, settings: {},
+      tabs: [{ id: 1, stable_key: 'test', name: 'Test', position: 0, active_window_key: 'source', layout_config: {}, windows: [
+        { id: 1, instance_key: 'source', tool_type: 'chart', title: 'Source', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+        { id: 2, instance_key: 'target-list', tool_type: 'watchlist', title: 'Momentum', link_group: 'grey', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+      ] }],
+    }
+    workspace.activeTabKey = 'test'
+    const scheduleSnapshot = vi.spyOn(workspace, 'scheduleSnapshot').mockImplementation(() => {})
+    const targetConfiguration = workspace.activeTab!.windows[1].configuration
+    apiMock.post.mockImplementation((path: string) => path.startsWith('/screeners/from-condition/') ? Promise.resolve({ id: 99 }) : Promise.resolve({}))
+    const chart = usePanelStore('column-promotion-test')
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'column-promotion-test' } } })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote RSI(14)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('column')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('65')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('RSI bool column')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
+
+    expect(apiMock.post).toHaveBeenCalledWith('/screeners/from-condition/rsi-bool-column', expect.objectContaining({ name: 'RSI bool column Boolean', timeframe: 'D1' }))
+    expect(apiMock.post).toHaveBeenCalledWith('/screeners/99/run', {})
+    expect(workspace.activeTab?.windows[1].configuration).toMatchObject({
+      condition_columns: [{ key: 'condition:rsi-bool-column', name: 'RSI bool column', screener_id: 99, timeframe: 'D1' }],
+      column_keys: ['condition:rsi-bool-column'],
+    })
+    expect(workspace.activeTab?.windows[1].configuration).toBe(targetConfiguration)
+    expect(scheduleSnapshot).toHaveBeenCalled()
+    expect(wrapper.get('[role="status"]').text()).toContain('Boolean column')
+  })
+
+  it('promotes a canonical single-output chart indicator into a Strategy signal', async () => {
+    apiMock.post.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 121 }] })
+      if (path === '/strategy-lab/signals/from-code/121') return Promise.resolve({ id: 122, name: 'RSI signal Strategy Signal' })
+      return Promise.resolve({})
+    })
+    const chart = usePanelStore('signal-promotion-test')
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'signal-promotion-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote RSI(14)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('signal')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('70')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('RSI signal')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('Strategy signal'))
+    expect(apiMock.put).not.toHaveBeenCalledWith(expect.stringContaining('/workspaces/library/conditions/'), expect.anything())
+    expect(apiMock.post).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        source: expect.stringContaining('ta.indicator("rsi", {"period":14}, "rsi")'),
+        output_contract: 'boolean',
+        output_name: 'rsi',
+        lineage: expect.objectContaining({
+          type: 'chart_plot_promotion',
+          source_instrument_id: 42,
+          source_symbol: 'SPY',
+          indicator_type: 'rsi',
+          indicator_output: 'rsi',
+          output_adapter: 'indicator_threshold_to_boolean',
+          series_target: { operator: 'gt', threshold: 70 },
+          semantics: 'chart_indicator_threshold_as_strategy_signal',
+        }),
+      }),
+    }))
+    expect(apiMock.post).toHaveBeenCalledWith('/strategy-lab/signals/from-code/121', {})
+  })
+
+  it('resolves canonical instrument identity when a chart panel is still hydrating before Strategy signal promotion', async () => {
+    apiMock.get.mockImplementation((path: string) => {
+      if (path === '/indicators/registry') return Promise.resolve(apiMock.registry)
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY' })
+      return Promise.resolve([])
+    })
+    apiMock.post.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 121 }] })
+      if (path === '/strategy-lab/signals/from-code/121') return Promise.resolve({ id: 122, name: 'RSI signal Strategy Signal' })
+      return Promise.resolve({})
+    })
+    const chart = usePanelStore('signal-promotion-hydration-test')
+    chart.symbol = 'SPY'
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'signal-promotion-hydration-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote RSI(14)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('signal')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('70')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('RSI signal')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('Strategy signal'))
+
+    expect(apiMock.get).toHaveBeenCalledWith('/instruments/SPY')
+    expect(apiMock.post).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      initial_version: expect.objectContaining({ lineage: expect.objectContaining({ source_instrument_id: 42, source_symbol: 'SPY' }) }),
+    }))
+    expect(apiMock.post).toHaveBeenCalledWith('/strategy-lab/signals/from-code/121', {})
+    wrapper.unmount()
+  })
+
+  it('refuses an ambiguous multi-output chart indicator Strategy signal', async () => {
+    const chart = usePanelStore('multi-output-signal-test')
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'multi-output-signal-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote BB(20,2)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('signal')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('100')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('BB signal')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('multi-output'))
+    expect(apiMock.post).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+  })
+
+  it('refuses an ambiguous multi-output chart indicator condition promotion', async () => {
+    const chart = usePanelStore('multi-output-condition-test')
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'multi-output-condition-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote BB(20,2)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('scan')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('100')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('BB scan')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('explicit output'))
+    expect(apiMock.put).not.toHaveBeenCalledWith(expect.stringContaining('/workspaces/library/conditions/'), expect.anything())
+    expect(apiMock.post).not.toHaveBeenCalledWith(expect.stringContaining('/screeners/'), expect.anything())
+  })
+
+  it('does not copy an ambiguous multi-output chart indicator into a watchlist column', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.workspace = {
+      id: 1, user_id: 1, name: 'Test', is_default: true, position: 0, revision: 1, schema_version: 1, settings: {},
+      tabs: [{ id: 1, stable_key: 'test', name: 'Test', position: 0, active_window_key: 'source', layout_config: {}, windows: [
+        { id: 1, instance_key: 'source', tool_type: 'chart', title: 'Source', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+        { id: 2, instance_key: 'target-list', tool_type: 'watchlist', title: 'Momentum', link_group: 'grey', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+      ] }],
+    }
+    workspace.activeTabKey = 'test'
+    vi.spyOn(workspace, 'scheduleSnapshot').mockImplementation(() => {})
+    const chart = usePanelStore('multi-output-copy-test')
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'multi-output-copy-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Copy plot target"]').setValue('target-list')
+    await wrapper.get('[aria-label="Copy BB(20,2) to selected chart target"]').trigger('click')
+
+    expect(workspace.activeTab?.windows[1].configuration.indicator_columns).toBeUndefined()
+    expect(wrapper.get('[role="status"]').text()).toContain('explicit output')
+    wrapper.unmount()
+  })
+
+  it('does not publish a late Python asset load after the library unmounts', async () => {
+    let resolveAssets!: (value: any[]) => void
+    apiMock.get.mockImplementation((path: string) => path === '/code/assets'
+      ? new Promise(resolve => { resolveAssets = resolve })
+      : Promise.resolve([]))
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'python-plot-lifecycle-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.findAll('button').find(button => button.text() === 'Load Python plots')!.trigger('click')
+    await Promise.resolve()
+    expect(apiMock.get).toHaveBeenCalledWith('/code/assets')
+
+    wrapper.unmount()
+    resolveAssets([{ kind: 'plot', name: 'Late plot', versions: [{ id: 91, version_number: 1 }] }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).pythonAssets).toEqual([])
+  })
+
+  it('does not publish a late EasyScan plot load after the library unmounts', async () => {
+    let resolveScreeners!: (value: any[]) => void
+    apiMock.get.mockImplementation((path: string) => path === '/screeners'
+      ? new Promise(resolve => { resolveScreeners = resolve })
+      : Promise.resolve([]))
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'scan-plot-lifecycle-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.findAll('button').find(button => button.text() === 'Load EasyScan plots')!.trigger('click')
+    await Promise.resolve()
+    expect(apiMock.get).toHaveBeenCalledWith('/screeners')
+
+    wrapper.unmount()
+    resolveScreeners([{ id: 17, name: 'Late scan' }])
+    await flushPromises()
+
+    expect((wrapper.vm as any).scanAssets).toEqual([])
   })
 })

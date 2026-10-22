@@ -3,11 +3,16 @@
     <!-- Collapse toggle strip -->
     <button
       class="panel-toggle"
+      type="button"
       :title="isPanelOpen ? 'Hide panel' : 'Show panel'"
-      @click="isPanelOpen = !isPanelOpen"
+      :aria-label="isPanelOpen ? 'Hide indicator panel' : 'Show indicator panel'"
+      :aria-expanded="isPanelOpen ? 'true' : 'false'"
+      @click="setPanelOpen(!isPanelOpen)"
     ><WorkstationGlyph :kind="isPanelOpen ? 'chevron-left' : 'chevron-right'" /></button>
 
     <div v-show="isPanelOpen" class="panel-body">
+
+    <div v-if="!chartStore.instrument && chartStore.isLoading" class="empty-hint" role="status">Loading panel data…</div>
 
     <!-- ── Instrument info ───────────────────────────────────────────────── -->
     <InstrumentInfoPanel
@@ -22,24 +27,32 @@
 
     <!-- ── Watchlists membership ─────────────────────────────────────────── -->
     <div v-if="membership !== null" class="section" :class="{ collapsed: !watchlistsOpen }">
-      <div class="section-header" @click="watchlistsOpen = !watchlistsOpen">
+      <button
+        class="section-header"
+        type="button"
+        :aria-expanded="watchlistsOpen ? 'true' : 'false'"
+        :aria-controls="`${sectionIdPrefix}-watchlists`"
+        @click="watchlistsOpen = !watchlistsOpen"
+      >
         <span class="section-title">Watchlists</span>
         <span class="section-count">{{ membership!.watchlists.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="watchlistsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
       <Transition name="slide">
-        <div class="section-content" v-if="watchlistsOpen">
+        <div class="section-content" v-if="watchlistsOpen" :id="`${sectionIdPrefix}-watchlists`">
           <div class="section-body">
-            <div
+            <button
               v-for="wl in membership!.watchlists"
               :key="wl.id"
               class="list-row membership-row"
+              type="button"
+              :aria-label="`Open watchlist ${wl.name}`"
               @click="onWatchlistClick(wl.id)"
             >
               <WorkstationGlyph kind="list" />
               <span class="row-name">{{ wl.name }}</span>
               <span v-if="wl.is_managed" class="mem-badge">managed</span>
-            </div>
+            </button>
             <div v-if="!membership!.watchlists.length" class="empty-hint">Not in any watchlist</div>
           </div>
         </div>
@@ -48,23 +61,31 @@
 
     <!-- ── Screeners membership ───────────────────────────────────────────── -->
     <div v-if="membership !== null" class="section" :class="{ collapsed: !screenersOpen }">
-      <div class="section-header" @click="screenersOpen = !screenersOpen">
+      <button
+        class="section-header"
+        type="button"
+        :aria-expanded="screenersOpen ? 'true' : 'false'"
+        :aria-controls="`${sectionIdPrefix}-screeners`"
+        @click="screenersOpen = !screenersOpen"
+      >
         <span class="section-title">Screeners</span>
         <span class="section-count">{{ activeScreeners.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="screenersOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
       <Transition name="slide">
-        <div class="section-content" v-if="screenersOpen">
+        <div class="section-content" v-if="screenersOpen" :id="`${sectionIdPrefix}-screeners`">
           <div class="section-body">
-            <div
+            <button
               v-for="sc in activeScreeners"
               :key="sc.id"
               class="list-row membership-row"
+              type="button"
+              :aria-label="`Open screener ${sc.name}`"
               @click="onScreenerClick(sc.id)"
             >
               <WorkstationGlyph kind="scan" />
               <span class="row-name">{{ sc.name }}</span>
-            </div>
+            </button>
             <div v-if="!activeScreeners.length" class="empty-hint">No active screener matches</div>
           </div>
         </div>
@@ -73,13 +94,19 @@
 
     <!-- ── Radar detections ─────────────────────────────────────────────── -->
     <div v-if="chartStore.instrument" class="section" :class="{ collapsed: !radarsOpen }">
-      <div class="section-header" @click="radarsOpen = !radarsOpen">
+      <button
+        class="section-header"
+        type="button"
+        :aria-expanded="radarsOpen ? 'true' : 'false'"
+        :aria-controls="`${sectionIdPrefix}-radar`"
+        @click="radarsOpen = !radarsOpen"
+      >
         <span class="section-title">Radar</span>
         <span class="section-count">{{ radarStore.chartDetections.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="radarsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
       <Transition name="slide">
-        <div class="section-content" v-if="radarsOpen">
+        <div class="section-content" v-if="radarsOpen" :id="`${sectionIdPrefix}-radar`">
           <div class="section-body">
             <div
               v-for="(det, index) in radarStore.chartDetections"
@@ -89,22 +116,29 @@
                 'row--selected': radarStore.focusedChartDetectionId === det.id,
                 'row--hidden': !radarStore.isChartDetectionActive(det.id),
               }"
-              @click="radarStore.toggleChartDetection(det.id)"
             >
-              <span class="radar-sequence-tag">{{ formatRadarSequenceBadge(det) }}</span>
-              <span class="radar-toggle-indicator"><WorkstationGlyph :kind="radarStore.isChartDetectionActive(det.id) ? 'visible' : 'hidden'" /></span>
-              <span class="row-name radar-row-main">
-                <span class="radar-row-title">{{ formatRadarSetup(det.setup_type) }}</span>
-                <span class="radar-row-meta">
-                  <span v-if="det.thread_event_index != null || det.thread?.detection_count" class="draw-pane-tag">
-                    {{ formatRadarThreadTag(det) }}
+              <button
+                type="button"
+                class="list-row__select radar-row__select"
+                :aria-label="`Select ${formatRadarSetup(det.setup_type)} radar detection`"
+                :aria-pressed="radarStore.isChartDetectionActive(det.id) ? 'true' : 'false'"
+                @click.stop="radarStore.toggleChartDetection(det.id)"
+              >
+                <span class="radar-sequence-tag">{{ formatRadarSequenceBadge(det) }}</span>
+                <span class="radar-toggle-indicator"><WorkstationGlyph :kind="radarStore.isChartDetectionActive(det.id) ? 'visible' : 'hidden'" /></span>
+                <span class="row-name radar-row-main">
+                  <span class="radar-row-title">{{ formatRadarSetup(det.setup_type) }}</span>
+                  <span class="radar-row-meta">
+                    <span v-if="det.thread_event_index != null || det.thread?.detection_count" class="draw-pane-tag">
+                      {{ formatRadarThreadTag(det) }}
+                    </span>
+                    <span :class="['draw-pane-tag', `draw-pane-tag--${det.state}`]">{{ formatRadarState(det.state) }}</span>
+                    <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
+                    <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
+                    <span class="draw-pane-tag draw-pane-tag--dim">Recorded {{ formatRadarRecordedDate(det.created_at) }}</span>
                   </span>
-                  <span :class="['draw-pane-tag', `draw-pane-tag--${det.state}`]">{{ formatRadarState(det.state) }}</span>
-                  <span class="draw-pane-tag">{{ det.score.toFixed(2) }}</span>
-                  <span class="draw-pane-tag draw-pane-tag--dim">{{ formatRadarSignalDate(det) }}</span>
-                  <span class="draw-pane-tag draw-pane-tag--dim">Recorded {{ formatRadarRecordedDate(det.created_at) }}</span>
                 </span>
-              </span>
+              </button>
               <HoverTooltip :text="radarTooltipText(det)">
                 <button
                   type="button"
@@ -169,14 +203,20 @@
 
     <!-- ── Indicators section ──────────────────────────────────────────── -->
     <div class="section" :class="{ collapsed: !indicatorsOpen }">
-      <div class="section-header" @click="indicatorsOpen = !indicatorsOpen">
+      <button
+        class="section-header"
+        type="button"
+        :aria-expanded="indicatorsOpen ? 'true' : 'false'"
+        :aria-controls="`${sectionIdPrefix}-indicators`"
+        @click="indicatorsOpen = !indicatorsOpen"
+      >
         <span class="section-title">Indicators</span>
         <span class="section-count">{{ chartStore.indicators.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="indicatorsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
 
       <Transition name="slide">
-        <div class="section-content" v-if="indicatorsOpen">
+        <div class="section-content" v-if="indicatorsOpen" :id="`${sectionIdPrefix}-indicators`">
           <div class="section-body">
             <div class="ind-list">
               <VueDraggable
@@ -190,24 +230,31 @@
                   class="list-row"
                   :class="{ 'row--selected': i === chartStore.selectedIndicatorIndex, 'row--tf-inactive': !isActiveOnCurrentTf(ind) }"
                   :title="isActiveOnCurrentTf(ind) ? undefined : `Locked to: ${(ind.lockedTimeframes ?? []).join(', ')}`"
-                  @click.stop="chartStore.selectIndicator(i)"
-                  @dblclick.stop="openIndEditor(i)"
                 >
                   <span class="ind-drag-handle" title="Drag to reorder">⠿</span>
-                  <span class="color-dot" :style="{ background: ind.style.color }" />
-                  <span class="row-name">{{ displayName(ind) }}</span>
-                  <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked"><WorkstationGlyph kind="lock" /></span>
+                  <button
+                    type="button"
+                    class="list-row__select"
+                    :aria-label="`Select indicator ${displayName(ind)}`"
+                    :aria-pressed="i === chartStore.selectedIndicatorIndex ? 'true' : 'false'"
+                    @click.stop="chartStore.selectIndicator(i)"
+                    @dblclick.stop="openIndEditor(i)"
+                  >
+                    <span class="color-dot" :style="{ background: ind.style.color }" />
+                    <span class="row-name">{{ displayName(ind) }}</span>
+                    <span v-if="ind.lockedTimeframes?.length" class="tf-lock-badge" title="Timeframe locked"><WorkstationGlyph kind="lock" /></span>
+                  </button>
                   <div class="row-menu-wrap">
-                    <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ind-${i}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
+                    <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`ind-${i}`, $event)" title="More" :aria-label="`More options for ${displayName(ind)}`" :aria-expanded="menuOpenId === `ind-${i}` ? 'true' : 'false'" :aria-controls="`${sectionIdPrefix}-ind-${i}-menu`"><WorkstationGlyph kind="more" /></button>
                     <Teleport to="body">
-                      <div v-if="menuOpenId === `ind-${i}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
-                        <button class="dd-item" @click.stop="openIndEditor(i); closeMenu()"><WorkstationGlyph kind="settings" /> Settings</button>
-                        <button class="dd-item" @click.stop="alertForIndicator(i); closeMenu()"><WorkstationGlyph kind="bell" /> Create alert</button>
-                        <button class="dd-item" @click.stop="toggleIndProjection(i); closeMenu()">
+                      <div v-if="menuOpenId === `ind-${i}`" :id="`${sectionIdPrefix}-ind-${i}-menu`" class="row-dropdown row-dropdown--fixed" role="group" :aria-label="`Actions for ${displayName(ind)}`" :style="rowMenuStyle" @click.stop>
+                        <button type="button" class="dd-item" @click.stop="openIndEditor(i); closeMenu()"><WorkstationGlyph kind="settings" /> Settings</button>
+                        <button type="button" class="dd-item" @click.stop="alertForIndicator(i); closeMenu()"><WorkstationGlyph kind="bell" /> Create alert</button>
+                        <button type="button" class="dd-item" :aria-pressed="ind.showYProjection ? 'true' : 'false'" @click.stop="toggleIndProjection(i); closeMenu()">
                           <WorkstationGlyph :kind="ind.showYProjection ? 'visible' : 'hidden'" /> Y projection
                         </button>
                         <div class="dd-sep" />
-                        <button class="dd-item dd-item--danger" @click.stop="chartStore.removeIndicator(i); closeMenu()"><WorkstationGlyph kind="delete" /> Remove</button>
+                        <button type="button" class="dd-item dd-item--danger" @click.stop="chartStore.removeIndicator(i); closeMenu()"><WorkstationGlyph kind="delete" /> Remove</button>
                       </div>
                     </Teleport>
                   </div>
@@ -215,19 +262,20 @@
               </VueDraggable>
               <div v-if="!chartStore.indicators.length" class="empty-hint">
                 No indicators for this symbol
-                <button v-if="presetsStore.getDefault()" class="hint-btn" @click="applyDefault">Apply default preset</button>
+                <button v-if="presetsStore.getDefault()" type="button" class="hint-btn" @click="applyDefault">Apply default preset</button>
               </div>
             </div>
           </div>
 
           <!-- Footer: add button + picker + presets (outside scrollable area) -->
           <div class="add-bar">
-            <button class="add-btn" @click="showPicker = !showPicker">+ Add</button>
+            <button class="add-btn" type="button" :aria-expanded="showPicker ? 'true' : 'false'" :aria-controls="`${sectionIdPrefix}-indicator-picker`" @click="showPicker = !showPicker">+ Add</button>
           </div>
-          <div v-if="showPicker" class="picker-dropdown">
+          <div v-if="showPicker" :id="`${sectionIdPrefix}-indicator-picker`" class="picker-dropdown" role="group" aria-label="Add indicator">
             <button
               v-for="t in availableTypes"
               :key="t.type"
+              type="button"
               class="picker-item"
               @click="addIndicator(t.type)"
             >{{ t.label }}</button>
@@ -237,8 +285,8 @@
               <option value="">— Preset —</option>
               <option v-for="p in presetsStore.presets" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>
-            <button class="preset-btn" @click="applyPreset" title="Apply preset"><WorkstationGlyph kind="apply" /></button>
-            <button class="preset-btn" @click="saveAsPreset" title="Save as preset"><WorkstationGlyph kind="edit" /></button>
+            <button class="preset-btn" type="button" @click="applyPreset" title="Apply preset" aria-label="Apply selected indicator preset"><WorkstationGlyph kind="apply" /></button>
+            <button class="preset-btn" type="button" @click="saveAsPreset" title="Save as preset" aria-label="Save indicator preset"><WorkstationGlyph kind="edit" /></button>
           </div>
         </div>
       </Transition>
@@ -246,14 +294,20 @@
 
     <!-- ── Drawings section ────────────────────────────────────────────── -->
     <div class="section section--drawings" :class="{ collapsed: !drawingsOpen }">
-      <div class="section-header" @click="drawingsOpen = !drawingsOpen">
+      <button
+        class="section-header"
+        type="button"
+        :aria-expanded="drawingsOpen ? 'true' : 'false'"
+        :aria-controls="`${sectionIdPrefix}-drawings`"
+        @click="drawingsOpen = !drawingsOpen"
+      >
         <span class="section-title">Drawings</span>
         <span class="section-count">{{ drawStore.drawings.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="drawingsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
 
       <Transition name="slide">
-        <div class="section-content" v-if="drawingsOpen">
+        <div class="section-content" v-if="drawingsOpen" :id="`${sectionIdPrefix}-drawings`">
           <div class="section-body">
           <div class="ind-list">
             <VueDraggable
@@ -267,33 +321,40 @@
                 :key="d.id"
                 class="list-row"
                 :class="{ 'row--selected': d.id === drawStore.selectedId, 'row--hidden': !d.is_visible }"
-                @click="drawStore.selectDrawing(d.id)"
-                @dblclick.stop="openDrawEditor(d)"
               >
                 <span class="draw-drag-handle" title="Drag to reorder">⠿</span>
-                <span class="draw-icon">{{ drawingIcon(d.drawing_type) }}</span>
-                <span class="row-name">
-                  {{ drawingLabel(d) }}
-                  <span v-if="d.indicator_key" class="draw-pane-tag">{{ d.indicator_key.toUpperCase() }}</span>
-                </span>
+                <button
+                  type="button"
+                  class="list-row__select"
+                  :aria-label="`Select drawing ${drawingLabel(d)}`"
+                  :aria-pressed="d.id === drawStore.selectedId ? 'true' : 'false'"
+                  @click.stop="drawStore.selectDrawing(d.id)"
+                  @dblclick.stop="openDrawEditor(d)"
+                >
+                  <span class="draw-icon">{{ drawingIcon(d.drawing_type) }}</span>
+                  <span class="row-name">
+                    {{ drawingLabel(d) }}
+                    <span v-if="d.indicator_key" class="draw-pane-tag">{{ d.indicator_key.toUpperCase() }}</span>
+                  </span>
+                </button>
                 <div class="row-menu-wrap">
-                  <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`draw-${d.id}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
+                  <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`draw-${d.id}`, $event)" title="More" :aria-label="`More options for ${drawingLabel(d)}`" :aria-expanded="menuOpenId === `draw-${d.id}` ? 'true' : 'false'" :aria-controls="`${sectionIdPrefix}-draw-${d.id}-menu`"><WorkstationGlyph kind="more" /></button>
                   <Teleport to="body">
-                    <div v-if="menuOpenId === `draw-${d.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
-                      <button class="dd-item" @click.stop="toggleVisible(d); closeMenu()">
+                    <div v-if="menuOpenId === `draw-${d.id}`" :id="`${sectionIdPrefix}-draw-${d.id}-menu`" class="row-dropdown row-dropdown--fixed" role="group" :aria-label="`Actions for ${drawingLabel(d)}`" :style="rowMenuStyle" @click.stop>
+                      <button type="button" class="dd-item" :aria-pressed="d.is_visible ? 'true' : 'false'" @click.stop="toggleVisible(d); closeMenu()">
                         <WorkstationGlyph :kind="d.is_visible ? 'visible' : 'hidden'" /> {{ d.is_visible ? 'Hide' : 'Show' }}
                       </button>
-                      <button class="dd-item" @click.stop="toggleLock(d); closeMenu()">
+                      <button type="button" class="dd-item" :aria-pressed="d.is_locked ? 'true' : 'false'" @click.stop="toggleLock(d); closeMenu()">
                         <WorkstationGlyph :kind="d.is_locked ? 'unlock' : 'lock'" /> {{ d.is_locked ? 'Unlock' : 'Lock' }}
                       </button>
-                      <button class="dd-item" @click.stop="openDrawEditor(d); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
+                      <button type="button" class="dd-item" @click.stop="openDrawEditor(d); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
                       <template v-if="!['fibonacci_retracement','fibonacci_extension'].includes(d.drawing_type)">
-                        <button class="dd-item" @click.stop="drawStore.toggleDrawingProjection(d.id); closeMenu()">
+                        <button type="button" class="dd-item" :aria-pressed="drawStore.getDrawingProjection(d.id) ? 'true' : 'false'" @click.stop="drawStore.toggleDrawingProjection(d.id); closeMenu()">
                           <WorkstationGlyph :kind="drawStore.getDrawingProjection(d.id) ? 'visible' : 'hidden'" /> Y projection
                         </button>
                       </template>
                       <div class="dd-sep" />
-                      <button class="dd-item dd-item--danger" @click.stop="drawStore.deleteDrawing(d.id); closeMenu()"><WorkstationGlyph kind="delete" /> Delete</button>
+                      <button type="button" class="dd-item dd-item--danger" @click.stop="drawStore.deleteDrawing(d.id); closeMenu()"><WorkstationGlyph kind="delete" /> Delete</button>
                     </div>
                   </Teleport>
                 </div>
@@ -308,14 +369,20 @@
 
     <!-- ── Alerts section ──────────────────────────────────────────── -->
     <div class="section section--alerts" :class="{ collapsed: !alertsOpen }">
-      <div class="section-header" @click="alertsOpen = !alertsOpen">
+      <button
+        class="section-header"
+        type="button"
+        :aria-expanded="alertsOpen ? 'true' : 'false'"
+        :aria-controls="`${sectionIdPrefix}-alerts`"
+        @click="alertsOpen = !alertsOpen"
+      >
         <span class="section-title">Alerts</span>
         <span class="section-count">{{ instrumentAlerts.length }}</span>
         <span class="section-chevron"><WorkstationGlyph :kind="alertsOpen ? 'chevron-down' : 'chevron-right'" /></span>
-      </div>
+      </button>
 
       <Transition name="slide">
-        <div class="section-content" v-if="alertsOpen">
+        <div class="section-content" v-if="alertsOpen" :id="`${sectionIdPrefix}-alerts`">
           <div class="section-body">
           <div class="ind-list">
             <!-- Price alerts -->
@@ -324,30 +391,37 @@
               :key="'p'+a.id"
               class="list-row alert-row"
               :class="[`alert-row--${a.status}`, { 'row--selected': a.id === alertsStore.selectedAlertId }]"
-              @click.stop="alertsStore.selectAlert(a.id)"
-              @dblclick.stop="openAlertEditor(a, null)"
             >
-              <span class="alert-icon"><WorkstationGlyph kind="currency" /></span>
-              <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
+              <button
+                type="button"
+                class="list-row__select"
+                :aria-label="`Select price alert ${a.condition.replace(/_/g, ' ')}`"
+                :aria-pressed="a.id === alertsStore.selectedAlertId ? 'true' : 'false'"
+                @click.stop="alertsStore.selectAlert(a.id)"
+                @dblclick.stop="openAlertEditor(a, null)"
+              >
+                <span class="alert-icon"><WorkstationGlyph kind="currency" /></span>
+                <span class="row-name">{{ a.condition.replace(/_/g,' ') }} {{ formatMoney(Number(a.threshold_price), a.instrument_currency) }}</span>
+              </button>
               <div class="row-menu-wrap">
-                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`palert-${a.id}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
+                <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`palert-${a.id}`, $event)" title="More" :aria-label="`More options for price alert ${a.condition.replace(/_/g, ' ')}`" :aria-expanded="menuOpenId === `palert-${a.id}` ? 'true' : 'false'" :aria-controls="`${sectionIdPrefix}-palert-${a.id}-menu`"><WorkstationGlyph kind="more" /></button>
                 <Teleport to="body">
-                  <div v-if="menuOpenId === `palert-${a.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
-                    <button class="dd-item" @click.stop="openAlertEditor(a, null); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
-                    <button class="dd-item" @click.stop="alertsStore.updateAlert(a.id, { repeat: !a.repeat }); closeMenu()">
+                  <div v-if="menuOpenId === `palert-${a.id}`" :id="`${sectionIdPrefix}-palert-${a.id}-menu`" class="row-dropdown row-dropdown--fixed" role="group" :aria-label="`Actions for price alert ${a.condition.replace(/_/g, ' ')}`" :style="rowMenuStyle" @click.stop>
+                    <button type="button" class="dd-item" @click.stop="openAlertEditor(a, null); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
+                    <button type="button" class="dd-item" :aria-pressed="a.repeat ? 'true' : 'false'" @click.stop="alertsStore.updateAlert(a.id, { repeat: !a.repeat }); closeMenu()">
                       <WorkstationGlyph :kind="a.repeat ? 'visible' : 'hidden'" /> Repeat
                     </button>
-                    <button class="dd-item" v-if="a.status === 'active'"
+                    <button type="button" class="dd-item" v-if="a.status === 'active'"
                             @click.stop="alertsStore.updateAlert(a.id, { status: 'paused' }); closeMenu()"><WorkstationGlyph kind="pause" /> Pause</button>
-                    <button class="dd-item" v-if="a.status === 'paused'"
+                    <button type="button" class="dd-item" v-if="a.status === 'paused'"
                             @click.stop="alertsStore.updateAlert(a.id, { status: 'active' }); closeMenu()"><WorkstationGlyph kind="resume" /> Resume</button>
-                    <button class="dd-item" v-if="a.status === 'triggered'"
+                    <button type="button" class="dd-item" v-if="a.status === 'triggered'"
                             @click.stop="alertsStore.rearmAlert(a.id); closeMenu()"><WorkstationGlyph kind="repeat" /> Rearm</button>
-                    <button class="dd-item" @click.stop="alertsStore.toggleAlertProjection(a.id); closeMenu()">
+                    <button type="button" class="dd-item" :aria-pressed="alertsStore.getAlertProjection(a.id) ? 'true' : 'false'" @click.stop="alertsStore.toggleAlertProjection(a.id); closeMenu()">
                       <WorkstationGlyph :kind="alertsStore.getAlertProjection(a.id) ? 'visible' : 'hidden'" /> Y projection
                     </button>
                     <div class="dd-sep" />
-                    <button class="dd-item dd-item--danger" @click.stop="alertsStore.deleteAlert(a.id); closeMenu()"><WorkstationGlyph kind="delete" /> Delete</button>
+                    <button type="button" class="dd-item dd-item--danger" @click.stop="alertsStore.deleteAlert(a.id); closeMenu()"><WorkstationGlyph kind="delete" /> Delete</button>
                   </div>
                 </Teleport>
               </div>
@@ -359,27 +433,34 @@
               class="list-row alert-row"
               :class="[`alert-row--${a.status}`, { 'row--selected': a.id === alertsStore.selectedAlertId }]"
               :title="indAlertLabel(a)"
-              @click.stop="alertsStore.selectAlert(a.id)"
-              @dblclick.stop="openAlertEditor(null, a)"
             >
-              <span class="alert-icon"><WorkstationGlyph kind="approx" /></span>
-              <span class="row-name">{{ indAlertLabel(a) }}</span>
+              <button
+                type="button"
+                class="list-row__select"
+                :aria-label="`Select indicator alert ${indAlertLabel(a)}`"
+                :aria-pressed="a.id === alertsStore.selectedAlertId ? 'true' : 'false'"
+                @click.stop="alertsStore.selectAlert(a.id)"
+                @dblclick.stop="openAlertEditor(null, a)"
+              >
+                <span class="alert-icon"><WorkstationGlyph kind="approx" /></span>
+                <span class="row-name">{{ indAlertLabel(a) }}</span>
+              </button>
               <div class="row-menu-wrap">
-                <button class="row-btn row-menu-btn" @click.stop="toggleMenu(`ialert-${a.id}`, $event)" title="More"><WorkstationGlyph kind="more" /></button>
+                <button class="row-btn row-menu-btn" type="button" @click.stop="toggleMenu(`ialert-${a.id}`, $event)" title="More" :aria-label="`More options for ${indAlertLabel(a)}`" :aria-expanded="menuOpenId === `ialert-${a.id}` ? 'true' : 'false'" :aria-controls="`${sectionIdPrefix}-ialert-${a.id}-menu`"><WorkstationGlyph kind="more" /></button>
                 <Teleport to="body">
-                  <div v-if="menuOpenId === `ialert-${a.id}`" class="row-dropdown row-dropdown--fixed" :style="rowMenuStyle" @click.stop>
-                    <button class="dd-item" @click.stop="openAlertEditor(null, a); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
-                    <button class="dd-item" @click.stop="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat }); closeMenu()">
+                  <div v-if="menuOpenId === `ialert-${a.id}`" :id="`${sectionIdPrefix}-ialert-${a.id}-menu`" class="row-dropdown row-dropdown--fixed" role="group" :aria-label="`Actions for ${indAlertLabel(a)}`" :style="rowMenuStyle" @click.stop>
+                    <button type="button" class="dd-item" @click.stop="openAlertEditor(null, a); closeMenu()"><WorkstationGlyph kind="settings" /> Edit</button>
+                    <button type="button" class="dd-item" :aria-pressed="a.repeat ? 'true' : 'false'" @click.stop="alertsStore.updateIndicatorAlert(a.id, { repeat: !a.repeat }); closeMenu()">
                       <WorkstationGlyph :kind="a.repeat ? 'visible' : 'hidden'" /> Repeat
                     </button>
-                    <button class="dd-item" v-if="a.status === 'active'"
+                    <button type="button" class="dd-item" v-if="a.status === 'active'"
                             @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'paused' }); closeMenu()"><WorkstationGlyph kind="pause" /> Pause</button>
-                    <button class="dd-item" v-if="a.status === 'paused'"
+                    <button type="button" class="dd-item" v-if="a.status === 'paused'"
                             @click.stop="alertsStore.updateIndicatorAlert(a.id, { status: 'active' }); closeMenu()"><WorkstationGlyph kind="resume" /> Resume</button>
-                    <button class="dd-item" v-if="a.status === 'triggered'"
+                    <button type="button" class="dd-item" v-if="a.status === 'triggered'"
                             @click.stop="alertsStore.rearmIndicatorAlert(a.id); closeMenu()"><WorkstationGlyph kind="repeat" /> Rearm</button>
                     <div class="dd-sep" />
-                    <button class="dd-item dd-item--danger" @click.stop="alertsStore.deleteIndicatorAlert(a.id); closeMenu()"><WorkstationGlyph kind="delete" /> Delete</button>
+                    <button type="button" class="dd-item dd-item--danger" @click.stop="alertsStore.deleteIndicatorAlert(a.id); closeMenu()"><WorkstationGlyph kind="delete" /> Delete</button>
                   </div>
                 </Teleport>
               </div>
@@ -388,7 +469,7 @@
           </div>
           </div>
           <div class="add-bar">
-            <button class="add-btn" @click="openAlertEditor(null, null)">+ Add Alert</button>
+            <button class="add-btn" type="button" @click="openAlertEditor(null, null)">+ Add Alert</button>
           </div>
         </div>
       </Transition>
@@ -404,7 +485,7 @@
         <div class="editor-box">
           <div class="ed-header">
             <span>{{ editingInd?.type.toUpperCase() }} Settings</span>
-            <button class="ed-close" @click="closeIndEditor"><WorkstationGlyph kind="close" /></button>
+            <button class="ed-close" type="button" aria-label="Close indicator settings" @click="closeIndEditor"><WorkstationGlyph kind="close" /></button>
           </div>
           <div class="ed-body" v-if="editingInd">
             <div class="ed-row">
@@ -452,9 +533,9 @@
             <div class="ed-row" v-if="editingInd.type === 'avwap'">
               <label>Presets</label>
               <div class="avwap-presets">
-                <button class="preset-chip" @click="setAvwapPreset('yesterday')" title="Start of yesterday">Yesterday</button>
-                <button class="preset-chip" @click="setAvwapPreset('mtd')" title="Start of current month">MTD</button>
-                <button class="preset-chip" @click="setAvwapPreset('ytd')" title="Start of current year">YTD</button>
+                <button type="button" class="preset-chip" @click="setAvwapPreset('yesterday')" title="Start of yesterday">Yesterday</button>
+                <button type="button" class="preset-chip" @click="setAvwapPreset('mtd')" title="Start of current month">MTD</button>
+                <button type="button" class="preset-chip" @click="setAvwapPreset('ytd')" title="Start of current year">YTD</button>
               </div>
             </div>
             <div class="ed-sep" />
@@ -478,8 +559,8 @@
             </div>
           </div>
           <div class="ed-footer">
-            <button class="ed-btn ed-apply" @click="applyIndEdit">Apply</button>
-            <button class="ed-btn" @click="closeIndEditor">Cancel</button>
+            <button type="button" class="ed-btn ed-apply" @click="applyIndEdit">Apply</button>
+            <button type="button" class="ed-btn" @click="closeIndEditor">Cancel</button>
           </div>
         </div>
       </div>
@@ -510,7 +591,7 @@
         <div class="editor-box">
           <div class="ed-header">
             <span>{{ editingDraw ? drawingLabel(editingDraw) : '' }} Settings</span>
-            <button class="ed-close" @click="closeDrawEditor"><WorkstationGlyph kind="close" /></button>
+            <button class="ed-close" type="button" aria-label="Close drawing settings" @click="closeDrawEditor"><WorkstationGlyph kind="close" /></button>
           </div>
           <div class="ed-body" v-if="editingDraw">
             <div class="ed-row">
@@ -552,8 +633,8 @@
             </template>
           </div>
           <div class="ed-footer">
-            <button class="ed-btn ed-apply" @click="applyDrawEdit">Apply</button>
-            <button class="ed-btn" @click="closeDrawEditor">Cancel</button>
+            <button type="button" class="ed-btn ed-apply" @click="applyDrawEdit">Apply</button>
+            <button type="button" class="ed-btn" @click="closeDrawEditor">Cancel</button>
           </div>
         </div>
       </div>
@@ -578,7 +659,7 @@ export {}
 </script>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, useId } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAlertsStore } from '@/stores/alerts'
 import { useRadarStore } from '@/stores/radar'
@@ -596,6 +677,7 @@ import {
   INDICATOR_BY_TYPE,
   cloneDefaultIndicator,
   indicatorDisplayName,
+  indicatorSeriesDisplayName,
   indicatorDefaultPane,
   normalizeIndicatorParams,
 } from '@/lib/indicators/catalog'
@@ -605,8 +687,12 @@ import { api } from '@/lib/api'
 import { VueDraggable } from 'vue-draggable-plus'
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
-const props = defineProps<{ panelId: string; panelWidth?: number }>()
-const emit = defineEmits<{ selectSymbol: [symbol: string] }>()
+const props = defineProps<{ panelId: string; panelWidth?: number; panelOpen: boolean }>()
+const emit = defineEmits<{
+  selectSymbol: [symbol: string]
+  'update:panel-open': [open: boolean]
+  'instrument-available': []
+}>()
 
 const router         = useRouter()
 const alertsStore    = useAlertsStore()
@@ -615,6 +701,7 @@ const watchlistStore = useWatchlistStore()
 const chartStore     = usePanelStore(props.panelId)
 const drawStore      = useDrawingsStore()
 const presetsStore   = usePresetsStore()
+const sectionIdPrefix = useId()
 
 // ── DnD wiring ────────────────────────────────────────────────────────────────
 const draggableIndicators = computed({
@@ -650,7 +737,13 @@ const sessionRange = computed(() => {
 })
 
 // ── Panel & section collapse state ───────────────────────────────────────────
-const isPanelOpen    = ref(false)   // starts hidden until an instrument is loaded
+const isPanelOpen = computed(() => props.panelOpen)
+function setPanelOpen(open: boolean) {
+  emit('update:panel-open', open)
+}
+function markInstrumentAvailable() {
+  emit('instrument-available')
+}
 const alertsOpen     = ref(false)
 const indicatorsOpen = ref(false)
 const drawingsOpen   = ref(false)
@@ -711,8 +804,11 @@ const activeScreeners = computed(() =>
 )
 
 watch(() => chartStore.instrument?.id, async (id) => {
-  if (!id) { membership.value = null; isPanelOpen.value = false; return }
-  isPanelOpen.value = true
+  if (!id) {
+    membership.value = null
+    return
+  }
+  markInstrumentAvailable()
   // Reset section states for new instrument; content-based watches will re-open them
   watchlistsOpen.value = false
   screenersOpen.value  = false
@@ -1115,7 +1211,7 @@ function fmtTs(ts: number): string {
 }
 
 function fmtIndParams(type: string, params: Record<string, unknown>): string {
-  return indicatorDisplayName({ type: type as IndicatorType, params: params ?? {} })
+  return indicatorSeriesDisplayName({ type: type as IndicatorType, params: params ?? {} })
 }
 
 function indAlertLabel(a: IndicatorAlert): string {
@@ -1333,11 +1429,16 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 .section-header {
   display: flex;
   align-items: center;
+  width: 100%;
   padding: 7px 10px;
+  border: 0;
+  color: inherit;
   background: #141414;
   cursor: pointer;
+  font: inherit;
   gap: 6px;
   flex-shrink: 0;
+  text-align: left;
   user-select: none;
 }
 .section-header:hover { background: #1a1a1a; }
@@ -1374,8 +1475,14 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
   display: flex;
   align-items: center;
   gap: 4px;
+  width: 100%;
   padding: 4px 8px;
   cursor: pointer;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
   transition: background 0.1s;
 }
 .list-row:hover { background: #1a1a1a; }
@@ -1383,6 +1490,26 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 .list-row.row--hidden { opacity: 0.45; }
 .list-row.row--tf-inactive { opacity: 0.35; }
 .list-row.row--tf-inactive .color-dot { filter: grayscale(1); }
+
+.list-row__select {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: inherit;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.list-row__select:focus-visible {
+  outline: 1px solid #6ea8fe;
+  outline-offset: -1px;
+}
 
 .radar-row {
   align-items: flex-start;

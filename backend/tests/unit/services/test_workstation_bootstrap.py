@@ -10,11 +10,12 @@ from sqlalchemy import select
 import app.services.workstation_bootstrap as bootstrap
 from app.config import settings
 from app.models.data_source import DataSource
-from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.workstation import MarketGroup, MarketGroupMember
+from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
 from app.services.top_down_taxonomy import (
     BENCHMARK_FAMILY_REGISTRY,
     benchmark_family_proxy_symbols,
@@ -23,6 +24,7 @@ from app.services.workstation_bootstrap import (
     CORE_WORKSTATION_INSTRUMENTS,
     CORE_WORKSTATION_REGISTRY,
     MIN_CORE_D1_BARS,
+    _wire_datetime,
     ensure_core_workstation_identities,
     queue_core_family_member_history,
 )
@@ -63,6 +65,10 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
     assert first["created"] == len(expected)
     assert second["created"] == 0
     assert first["data_status"] == "identity_only_until_provider_history_and_holdings_load"
+    spy = db.execute(select(Instrument).where(Instrument.symbol == "SPY")).scalar_one()
+    assert spy.field_provenance["symbol"]["observed_at"].endswith("Z")
+    assert "+00:00" not in spy.field_provenance["symbol"]["observed_at"]
+    assert spy.field_provenance["name"]["observed_at"].endswith("Z")
 
     bindings = db.execute(select(InstrumentProviderSymbol)).scalars().all()
     assert len(bindings) == len(expected)
@@ -76,6 +82,14 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
     assert all(
         profile.legal_metadata["holdings_membership_status"] == "not_loaded" for profile in profiles
     )
+    profiles_by_symbol = {
+        profile.instrument.symbol: profile for profile in profiles if profile.instrument is not None
+    }
+    assert profiles_by_symbol["SPY"].adapter_key == "spdr"
+    assert profiles_by_symbol["RSP"].adapter_key == "invesco"
+    assert profiles_by_symbol["QQQE"].adapter_key == "direxion"
+    assert profiles_by_symbol["IWB"].adapter_key == "ishares"
+    assert profiles_by_symbol["SPY"].provider_aliases["holdings_adapter"] == "spdr"
 
     groups = db.execute(select(MarketGroup)).scalars().all()
     members = db.execute(select(MarketGroupMember)).scalars().all()
@@ -93,6 +107,30 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
         for family in BENCHMARK_FAMILY_REGISTRY
     )
     assert len(members) == 5 + 11 + expected_proxy_members
+
+
+def test_workstation_bootstrap_wire_datetime_normalizes_aware_and_naive_values():
+    assert _wire_datetime(datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)) == "2026-01-02T03:04:05Z"
+    assert _wire_datetime(datetime.fromisoformat("2026-01-02T05:04:05+02:00")) == (
+        "2026-01-02T03:04:05Z"
+    )
+    assert _wire_datetime(datetime(2026, 1, 2, 3, 4, 5)) == "2026-01-02T03:04:05Z"
+    assert _wire_datetime(None) is None
+
+
+def test_all_benchmark_family_proxy_routes_have_explicit_local_probe_support():
+    symbols = benchmark_family_proxy_symbols()
+
+    assert len(symbols) == 20
+    for symbol in symbols:
+        metadata = known_etf_route_metadata(symbol)
+        aliases = metadata.get("provider_aliases") or {}
+        adapter_key = aliases.get("holdings_adapter")
+        adapter = get_holdings_adapter(adapter_key)
+
+        assert adapter_key, f"No curated holdings adapter is mapped for {symbol}"
+        assert adapter is not None, f"Curated adapter {adapter_key!r} is not registered"
+        assert adapter.probe(symbol=symbol, name="", identifiers=aliases).status == "ready"
 
 
 def test_core_workstation_bootstrap_tolerates_venue_distinct_provider_symbols(db):
@@ -257,6 +295,64 @@ def test_core_bootstrap_retries_partial_holdings_snapshot(db, monkeypatch):
     assert result["holdings"]["SPY"]["status"] == "error"
 
 
+def test_core_bootstrap_retries_materialized_non_equity_snapshot(db, monkeypatch):
+    """A resolved non-equity disclosure must not suppress the holdings retry."""
+
+    facade = _AsyncSessionFacade(db)
+    asyncio.run(ensure_core_workstation_identities(facade))
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+    monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS", 1)
+
+    spy = db.execute(select(Instrument).where(Instrument.symbol == "SPY")).scalar_one()
+    profile = db.execute(select(ETFProfile).where(ETFProfile.instrument_id == spy.id)).scalar_one()
+    snapshot = ETFHoldingsSnapshot(
+        etf_profile_id=profile.id,
+        composition_date=datetime(2026, 1, 2, tzinfo=UTC).date(),
+        known_at=datetime(2026, 1, 3, tzinfo=UTC),
+        provenance="issuer_public",
+        source_provider="test-provider",
+        source_quality="issuer",
+        completeness_status="complete",
+        row_count=1,
+        resolved_count=1,
+        unresolved_count=0,
+        snapshot_hash="complete-spy-non-equity-snapshot",
+    )
+    db.add(snapshot)
+    db.flush()
+    db.add(
+        ETFHolding(
+            snapshot_id=snapshot.id,
+            constituent_instrument_id=spy.id,
+            position=0,
+            reported_symbol="SPY",
+            reported_name="Resolved cash disclosure",
+            weight=Decimal("1.0"),
+            holding_type="cash",
+            row_type="security",
+            source_row_hash="complete-spy-non-equity-row",
+            is_resolved=True,
+        )
+    )
+    db.flush()
+    holdings_calls: list[str] = []
+
+    async def fake_fetch(_session, _instrument, _timeframe, _start):
+        return []
+
+    async def fake_holdings(_session, *, symbol, name):
+        holdings_calls.append(symbol)
+        raise RuntimeError("holdings unavailable")
+
+    monkeypatch.setattr(bootstrap, "fetch_ohlcv", fake_fetch)
+    monkeypatch.setattr(bootstrap, "bootstrap_etf_holdings_profile", fake_holdings)
+
+    result = asyncio.run(bootstrap.bootstrap_core_workstation_data(facade))
+
+    assert "SPY" in holdings_calls
+    assert result["holdings"]["SPY"]["status"] == "error"
+
+
 def test_core_bootstrap_attempts_every_configured_family_proxy_role(db, monkeypatch):
     """The provider bootstrap must not omit a configured family leg."""
 
@@ -295,6 +391,7 @@ def test_core_bootstrap_queues_deduplicated_family_member_history(monkeypatch):
     plan = {
         "instrument_ids": [10, 20],
         "timeframes": ["MN", "W1", "D1"],
+        "as_of": datetime.fromisoformat("2026-01-02T03:04:05+02:00"),
         "available_instrument_count": 2,
         "selected_instrument_count": 2,
         "limited": False,
@@ -323,6 +420,61 @@ def test_core_bootstrap_queues_deduplicated_family_member_history(monkeypatch):
     assert result["status"] == "queued"
     assert result["queued"] == 2
     assert result["already_queued"] == 0
+    assert result["queue_errors"] == []
+    assert result["queue_error_count"] == 0
     assert len(redis.calls) == 2
-    assert redis.calls[0][0] == ("task_bulk_fetch_instrument", 10, ["MN", "W1", "D1"])
-    assert redis.calls[0][1]["_job_id"] == "watchlist-source-history:10:MN,W1,D1"
+    assert redis.calls[0][0] == (
+        "task_bulk_fetch_instrument",
+        10,
+        ["MN", "W1", "D1"],
+        None,
+        "2026-01-02T01:04:05Z",
+    )
+    assert redis.calls[0][1]["_job_id"] == (
+        "watchlist-source-history:10:D1,W1,MN:end=2026-01-02T01:04:05Z"
+    )
+
+
+def test_core_workstation_history_queue_retains_member_errors_and_continues(monkeypatch):
+    plan = {
+        "instrument_ids": [10, 20, 30],
+        "timeframes": ["MN", "W1", "D1"],
+        "available_instrument_count": 3,
+        "selected_instrument_count": 3,
+        "limited": False,
+        "legs": [],
+    }
+
+    async def fake_plan(*_args, **_kwargs):
+        return plan
+
+    monkeypatch.setattr(
+        "app.services.benchmark_family_history.plan_benchmark_family_history_refresh",
+        fake_plan,
+    )
+
+    class FakeRedis:
+        def __init__(self):
+            self.calls = []
+
+        async def enqueue_job(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+            if args[1] == 20:
+                raise RuntimeError("temporary Redis failure")
+            return object()
+
+    redis = FakeRedis()
+    result = asyncio.run(queue_core_family_member_history(object(), redis))
+
+    assert result["status"] == "queue_error"
+    assert result["queued"] == 2
+    assert result["already_queued"] == 0
+    assert result["queue_error_count"] == 1
+    assert result["queue_errors"] == [
+        {
+            "status": "queue_error",
+            "instrument_id": 20,
+            "error": "temporary Redis failure",
+        }
+    ]
+    assert [call[0][1] for call in redis.calls] == [10, 20, 30]

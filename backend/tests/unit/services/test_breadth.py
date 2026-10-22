@@ -256,6 +256,29 @@ def test_event_breadth_history_is_point_in_time_and_never_forward_fills_events()
     assert points[2]["members"][0].value is False
 
 
+def test_event_breadth_history_excludes_late_fetched_events_until_known():
+    bars = _bars([100, 101, 102])
+    events = [
+        SimpleNamespace(
+            event_type="split",
+            event_time=bars[0].ts,
+            fetched_at=bars[1].ts,
+        )
+    ]
+    points = evaluate_breadth_history(
+        [BreadthMember(1, "A", "A")],
+        {1: bars},
+        {
+            "kind": "event",
+            "params": {"event_type": "split", "lookback_days": 10},
+        },
+        limit=10,
+        events_by_instrument={1: events},
+    )
+
+    assert [point["members"][0].value for point in points] == [False, True, True]
+
+
 def test_breadth_keeps_insufficient_history_out_of_the_denominator():
     members = [
         BreadthMember(1, "A", "A"),
@@ -356,6 +379,30 @@ def test_history_occurrences_report_only_known_member_state_transitions():
     assert occurrences[1]["pass_count"] == 0
 
 
+def test_history_occurrences_serialize_offset_timestamps_on_the_utc_timeline():
+    points = [
+        {
+            "timestamp": datetime.fromisoformat("2026-01-01T02:00:00+02:00"),
+            "percentage": 0.0,
+            "pass_count": 0,
+            "eligible_count": 1,
+            "members": [{"instrument_id": 1, "symbol": "A", "name": "A", "value": False}],
+        },
+        {
+            "timestamp": datetime.fromisoformat("2026-01-02T02:00:00+02:00"),
+            "percentage": 1.0,
+            "pass_count": 1,
+            "eligible_count": 1,
+            "members": [{"instrument_id": 1, "symbol": "A", "name": "A", "value": True}],
+        },
+    ]
+
+    occurrences = detect_breadth_occurrences(points)
+
+    assert occurrences[0]["timestamp"] == datetime(2026, 1, 2, tzinfo=UTC)
+    assert occurrences[0]["occurrence_id"] == "1:2026-01-02T00:00:00Z:member_entered"
+
+
 def test_composite_conditions_and_comparison_fields_are_reusable():
     condition = {
         "kind": "all",
@@ -383,6 +430,37 @@ def test_composite_conditions_and_comparison_fields_are_reusable():
 
     assert value is True
     assert metric is not None and metric > 0
+    assert warning is None
+
+
+def test_not_group_preserves_the_semantics_of_its_compound_child():
+    condition = {
+        "kind": "not",
+        "params": {
+            "conditions": [
+                {
+                    "kind": "any",
+                    "params": {
+                        "conditions": [
+                            {
+                                "kind": "comparison",
+                                "params": {"field": "close", "operator": "gte", "threshold": 200},
+                            },
+                            {
+                                "kind": "comparison",
+                                "params": {"field": "return", "operator": "gte", "threshold": 0.01},
+                            },
+                        ]
+                    },
+                }
+            ]
+        },
+    }
+
+    value, metric, warning = evaluate_condition(_bars([100, 102]), condition)
+
+    assert value is False
+    assert metric is not None
     assert warning is None
 
 

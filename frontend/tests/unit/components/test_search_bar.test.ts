@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 
@@ -20,6 +20,14 @@ async function flushPromises() {
   await Promise.resolve()
 }
 
+const mountedSearchBars: Array<{ unmount: () => void }> = []
+
+function mountSearchBar(options: any = {}) {
+  const wrapper = mount(SearchBar, options)
+  mountedSearchBars.push(wrapper)
+  return wrapper
+}
+
 describe('SearchBar', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -27,11 +35,17 @@ describe('SearchBar', () => {
     vi.useFakeTimers()
   })
 
+  afterEach(() => {
+    for (const wrapper of mountedSearchBars.splice(0)) wrapper.unmount()
+    vi.clearAllTimers()
+    vi.useRealTimers()
+  })
+
   it('shows recently viewed instruments on focus with empty query', async () => {
     const recentStore = useRecentInstrumentsStore()
     recentStore.add('NVDA', 'NVIDIA')
 
-    const wrapper = mount(SearchBar, {
+    const wrapper = mountSearchBar({
       global: {
         stubs: {
           RouterLink: {
@@ -52,7 +66,7 @@ describe('SearchBar', () => {
       { symbol: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ', type: 'Equity' },
     ])
 
-    const wrapper = mount(SearchBar, {
+    const wrapper = mountSearchBar({
       global: {
         stubs: {
           RouterLink: { template: '<a><slot /></a>' },
@@ -78,7 +92,7 @@ describe('SearchBar', () => {
   it('does not offer or emit a raw direct symbol when search returns no provider matches', async () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
 
-    const wrapper = mount(SearchBar, {
+    const wrapper = mountSearchBar({
       global: {
         stubs: {
           RouterLink: { template: '<a><slot /></a>' },
@@ -105,7 +119,7 @@ describe('SearchBar', () => {
       { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'NYSEARCA', type: 'ETF' },
     ])
 
-    const wrapper = mount(SearchBar, {
+    const wrapper = mountSearchBar({
       props: {
         resultTypes: ['ETF', 'Fund'],
         allowExpressions: false,
@@ -133,7 +147,7 @@ describe('SearchBar', () => {
   it('resolves expression queries and emits the resulting symbol on enter', async () => {
     ;(api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ symbol: '=SPY-QQQ' })
 
-    const wrapper = mount(SearchBar, {
+    const wrapper = mountSearchBar({
       global: {
         stubs: {
           RouterLink: { template: '<a><slot /></a>' },
@@ -153,7 +167,7 @@ describe('SearchBar', () => {
   })
 
   it('shows a hint and skips API calls for incomplete expressions', async () => {
-    const wrapper = mount(SearchBar, {
+    const wrapper = mountSearchBar({
       global: {
         stubs: {
           RouterLink: { template: '<a><slot /></a>' },
@@ -171,7 +185,7 @@ describe('SearchBar', () => {
   })
 
   it('resets picker-mode draft text back to the committed instrument on escape', async () => {
-    const wrapper = mount(SearchBar, {
+    const wrapper = mountSearchBar({
       props: {
         mode: 'picker',
         modelValue: 'SPY',

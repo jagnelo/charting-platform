@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -41,6 +41,11 @@ describe('RelativeRotationTool', () => {
     await nextTick()
     expect(wrapper.text()).toContain('improving->leading')
     expect(wrapper.text()).toContain('63°')
+    expect(wrapper.get('.rotation-tool__plot').attributes('role')).toBe('group')
+    expect(wrapper.get('.rotation-tool__plot').attributes('tabindex')).toBe('0')
+    expect(wrapper.get('.rotation-tool__plot').attributes('aria-label')).toBe('Relative rotation trend and momentum plane')
+    expect(wrapper.get('.rotation-tool__plot').attributes('aria-describedby')).toBe(wrapper.get('.rotation-tool__sr-only').attributes('id'))
+    expect(wrapper.get('.rotation-tool__plot').attributes('aria-keyshortcuts')).toContain('ArrowRight')
     expect(observedHost).toBe(wrapper.get('.rotation-tool__plot').element)
     resize?.()
     expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1)
@@ -68,6 +73,13 @@ describe('RelativeRotationTool', () => {
     expect(wrapper.text()).toContain('120 history points')
   })
 
+  it('accepts an extended history window above the former thousand-point cap', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [] })
+    const wrapper = mountTool({ props: { configuration: { history_length: 1200 } } })
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/relative-rotation', expect.objectContaining({ history_length: 1200 })))
+    expect(wrapper.find('input[aria-label="Rotation history length"]').element).toHaveProperty('value', '1200')
+  })
+
   it('uses the benchmark-family role rotation contract without borrowing SPY', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'coverage_limited', benchmark: 'MDY', roles: [
       { role: 'cap_weight', instrument_id: 1, symbol: 'MDY', label: 'MDY', verification_state: 'verified', available: true, state: 'leading', trend: 0, momentum: 0, coverage: 1, tail: [] },
@@ -93,6 +105,30 @@ describe('RelativeRotationTool', () => {
     expect(rowSymbols).toEqual(['XLE', 'XLK'])
   })
 
+  it('exposes sortable headers and row context to assistive technology', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, distance: 0.14, coverage: 1, tail: [] },
+    ] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
+
+    expect(wrapper.get('.rotation-tool__table').attributes('role')).toBe('region')
+    expect(wrapper.get('.rotation-tool__head').attributes('aria-label')).toBe('Sort relative rotation rows')
+    const distanceHeader = wrapper.get('.rotation-tool__head button[aria-label="Sort by distance, currently descending"]')
+    expect(distanceHeader.exists()).toBe(true)
+    const symbolHeader = wrapper.get('.rotation-tool__head button[aria-label="Sort by sector"]')
+
+    const row = wrapper.get('.rotation-tool__row')
+    expect(row.attributes('aria-label')).toContain('XLK, leading, trend 10.00%')
+    expect(row.attributes('aria-label')).toContain('coverage 100.00%')
+
+    await symbolHeader.trigger('click')
+    expect(symbolHeader.attributes('aria-label')).toBe('Sort by sector, currently ascending')
+    expect(wrapper.get('.rotation-tool__head button[aria-label="Sort by distance"]').exists()).toBe(true)
+    await symbolHeader.trigger('click')
+    expect(symbolHeader.attributes('aria-label')).toBe('Sort by sector, currently descending')
+  })
+
   it('shows a plot-level tail tooltip and selects the hovered symbol', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
       { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, distance: 0.22, coverage: 1, tail: [{ timestamp: '2026-01-02', trend: 0.1, momentum: 0.2 }] },
@@ -108,6 +144,37 @@ describe('RelativeRotationTool', () => {
     expect(wrapper.emitted('select')).toEqual([['XLK', 1]])
   })
 
+  it('lets keyboard users inspect and select the latest points in the rotation plot', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, distance: 0.22, coverage: 1, tail: [
+        { timestamp: '2026-01-01', trend: 0.09, momentum: 0.18 },
+        { timestamp: '2026-01-02', trend: 0.1, momentum: 0.2 },
+      ] },
+      { instrument_id: 2, symbol: 'XLE', state: 'lagging', trend: -0.1, momentum: -0.2, distance: 0.22, coverage: 1, tail: [
+        { timestamp: '2026-01-02', trend: -0.1, momentum: -0.2 },
+      ] },
+    ] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLE'))
+    await nextTick()
+    resize?.()
+
+    const plot = wrapper.get('.rotation-tool__plot')
+    await plot.trigger('focus')
+    const tooltip = wrapper.get('.rotation-tool__tooltip')
+    expect(tooltip.text()).toContain('XLK')
+    expect(tooltip.text()).toContain('2026-01-02')
+
+    await plot.trigger('keydown', { key: 'ArrowRight' })
+    expect(tooltip.text()).toContain('XLE')
+    await plot.trigger('keydown', { key: 'Home' })
+    expect(tooltip.text()).toContain('XLK')
+    await plot.trigger('keydown', { key: 'End' })
+    expect(tooltip.text()).toContain('XLE')
+    await plot.trigger('keydown', { key: 'Enter' })
+    expect(wrapper.emitted('select')).toEqual([['XLE', 2]])
+  })
+
   it('deduplicates identical rotation requests across linked windows', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [] })
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
@@ -118,6 +185,19 @@ describe('RelativeRotationTool', () => {
     expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-live')).toBe('polite')
     expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-atomic')).toBe('true')
     expect(api.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not publish a late rotation response after the tool unmounts', async () => {
+    let resolveRotation!: (value: unknown) => void
+    vi.mocked(api.get).mockReturnValue(new Promise(resolve => { resolveRotation = resolve }))
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalled())
+    wrapper.unmount()
+
+    resolveRotation({ freshness: 'current', rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1, tail: [] }] })
+    await flushPromises()
+
+    expect((wrapper.vm as unknown as { rows: unknown[] }).rows).toEqual([])
   })
 
   it('surfaces backend coverage and insufficient-history warnings on the row', async () => {

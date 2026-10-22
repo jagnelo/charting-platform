@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getBarSpacingPx, getBodyWidthPx } from '@/lib/uplot/bar-metrics'
 
 describe('bar-metrics', () => {
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'devicePixelRatio', { configurable: true, value: 1 })
+  })
+
   it('computes bar spacing from x positions', () => {
     const plot = {
       valToPos: vi.fn()
@@ -33,4 +37,3 @@ describe('bar-metrics', () => {
     expect(getBodyWidthPx(plot, 0.5, 2)).toBe(10)
   })
 })
-

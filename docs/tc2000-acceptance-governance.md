@@ -1,5 +1,1926 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-09-15 - Verified Killir GARY dated holdings
+
+Product commit bb70fff142a7f4b247664ce4047f93ac37343523 hardens the
+issuer-declared GARY dated SEI text route. Every retained row must have one
+parseable date and all rows must share it; missing, invalid, and mixed dates
+fail closed, and the row date must match the selected report filename. The live
+public route returned 41 rows dated 2026-09-14, with no missing or mismatched
+dates.
+
+Focused Killir tests passed 5/5; the complete holdings-adapter module passed
+584/584; the opt-in GARY live route test passed 1/1; Ruff, formatting, and diff
+checks passed. After authorized Docker access, full integration completed all
+pre-visual stages: backend units 1618/1618, integration 405/405 at 82.23%
+combined coverage, frontend Vitest 1067/1067, type-check/build, Compose and
+research-runner checks, and functional Playwright 165 passed with 107
+documented skips. The visual stage exited 1 at 98/104 with exactly the six
+established protected watchlist-column-editor-open/workspace-floating diffs.
+The optional branch-tests suffix was not reached. Post-run resource audit
+found zero containers, volumes, sessions, or known attributable bytes. No
+provider/fallback or visual acceptance policy changed. Continue R1 family-wide
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+## 2026-09-15 - Verified Kingsview dated holdings
+
+Product commit `b375a4782` hardens Kingsview/Monarch's fund-ID-scoped
+FilePoint JSON holdings route. Every retained row must have the same parseable
+`asOfDate`; missing, invalid, and mixed-date snapshots fail closed; source IDs
+are date-scoped; and raw plus normalized metadata records composition/as-of
+date, row count, completeness, and
+`kingsview_native_fund_scoped_filepoint_holdings_json` provenance. The public
+MVFD route returned 42 rows dated 2026-09-11.
+
+Focused Kingsview assertions passed 3/3, the full holdings-adapter unit module
+passed 581/581, the opt-in public route test passed 1/1, and Ruff, formatting,
+and diff checks passed. The exact branch gate at product tip `b375a4782` passed
+backend units 1615/1615, integration 405/405 at 82.23% combined coverage,
+frontend Vitest 1067/1067, type-check/build, Compose and research-runner checks,
+and functional E2E 165 passed with 107 documented skips. Visual E2E remains
+98/104 with only the six established watchlist-column-editor/workspace-floating
+state-oracle diffs. Resource accounting confirmed zero containers, volumes,
+test-container sessions, or known attributable bytes; four generated images
+were removed. No provider/fallback, visual baseline, mask, threshold, skip, or
+acceptance policy changed. Continue R1 family-wide population/history,
+D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+## 2026-09-15 - Verified Arlington dated holdings
+
+Product commit `654bfe7e5` tightens Arlington's issuer-linked AQEC daily CSV:
+all retained rows must share exactly one parseable composition date; missing,
+invalid, and mixed dates fail closed; source IDs are date-scoped; and raw plus
+normalized metadata records composition/as-of date, row count, completeness,
+and `arlington_native_daily_holdings_csv` provenance. The public route probe
+passed with the live suite's 20-row minimum and asserted date/route metadata.
+
+The focused Arlington contract passed 2/2, the full holdings-adapter unit
+module passed 580/580, the opt-in public route probe passed 1/1, and Ruff,
+formatting, and diff checks passed. The exact branch gate at product tip
+`654bfe7e5` passed backend units 1614/1614, integration 405/405 at 82.22%
+combined coverage, frontend Vitest 1067/1067, type-check/build, Compose and
+research-runner checks, and functional E2E 165 passed with 107 documented
+skips. Visual E2E remains 98/104 with only the six established
+watchlist-column-editor/workspace-floating state-oracle diffs. Docker resource
+audit found zero containers, volumes, test-container sessions, or known
+attributable bytes; four generated images were removed. No fallback/provider,
+visual baseline, mask, threshold, skip, or acceptance policy changed. Continue
+R1 family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
+## 2026-09-15 - Verified Liberty One dated holdings
+
+Product commit 67a2fd65 hardens Liberty One's native fund-scoped holdings API
+route for SPCT. Retained rows require exactly one parseable asOfDate; undated,
+invalid, or mixed-date snapshots fail closed; row IDs are date-scoped; and
+composition/as-of date, row count, completeness, and
+liberty_one_native_fund_scoped_holdings_api provenance are recorded. The direct
+public endpoint returned 53 complete rows dated 2026-09-11.
+
+Focused assertions passed 2/2 including missing/invalid/mixed-date regressions;
+the opt-in live route assertion passed 1/1; direct probe, Ruff, formatting, and
+diff checks passed. The first exact gate attempt failed at the functional stage on F8u-boolean's
+final promoted-header visibility assertion (one failed, 164 passed, 107
+skipped); its visual matrix was 98/104 with the same six protected diffs.
+Without code changes, a complete rerun passed the functional suite
+165/165 with 107 skipped; backend unit tests passed 1613/1613, integration
+405/405, and frontend Vitest 1067/1067; type-check/build, Compose contracts,
+and research-runner probes passed. Visual E2E passed 98/104 with exactly the
+same six protected watchlist-column-editor/workspace-floating diffs, so the
+gate ended at its visual stage. Docker cleanup verified zero containers,
+volumes, or test-container sessions. No provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide canonical population/history, D1/W1/MN floors, rebalance
+continuity, and AC2-AC7/AC10.
+
+## 2026-09-15 - Verified Archer Investment dated holdings
+
+Product commit `556926982` hardens Archer Investment's product-page-linked
+daily CSV route for `ARWG`. Retained rows now require exactly one parseable
+snapshot date; undated, invalid, and mixed-date exports fail closed; source IDs
+are date-scoped; and complete composition/as-of, row-count, and
+`archer_investment_native_daily_holdings_csv` provenance metadata is recorded.
+The direct public export returned 42 complete rows dated 2026-09-14.
+
+Focused assertions passed 2/2 including missing/invalid/mixed-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+42 complete dated rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1612/1612, integration 405/405 at
+82.21% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six unchanged protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
+## 2026-09-15 - Verified Advent Capital dated holdings
+
+Product commit `e9bb8b476` hardens Advent Capital's issuer-native daily CSV
+route for `ACVT`. Retained rows now require exactly one parseable snapshot date;
+undated, invalid, and mixed-date exports fail closed; source IDs are
+date-scoped; and complete composition/as-of, row-count, and
+`advent_capital_native_daily_holdings_csv` provenance metadata is recorded. The
+direct public export returned 60 complete rows dated 2026-09-14.
+
+Focused assertions passed 2/2 including missing/invalid/mixed-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+60 complete dated rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1611/1611, integration 405/405 at
+82.20% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six unchanged protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
+## 2026-09-15 - Verified ACP Horizon dated holdings
+
+Product commit `7aa159a04` hardens ACP Horizon's issuer-native multi-fund
+daily CSV route for `HBTA`. Retained rows now require exactly one parseable
+snapshot date; undated, invalid, and mixed-date exports fail closed; source IDs
+are date-scoped; and complete composition/as-of, row-count, and
+`acp_horizon_native_multi_fund_daily_holdings_csv` provenance metadata is
+recorded. The direct public export returned 207 complete rows dated 2026-09-14.
+
+Focused assertions passed 2/2 including missing/invalid/mixed-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+207 complete dated rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1610/1610, integration 405/405
+at 82.20% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six unchanged protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
+## 2026-09-15 - Verified EMLes dated holdings
+
+Product commit `a001e82cd` hardens EMLes's native public fund-page,
+fund-scoped CSV route for the listed ETF lineup, focused on `EOPS`. Retained
+rows now require exactly one parseable snapshot date; undated, invalid, and
+mixed-date exports fail closed; source IDs are date-scoped; and complete
+composition/as-of, row-count, and `emles_native_fund_scoped_holdings_csv`
+provenance metadata is recorded. The direct public EOPS export returned 1
+complete row dated 2022-10-20 (cash-only disclosure).
+
+Focused assertions passed 2/2 including missing/invalid/mixed-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+1 complete dated row. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1609/1609, integration 405/405
+at 82.20% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six unchanged protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; a preceding attempt hit a transient
+PostgreSQL termination and was retried from a clean stack. No provider/fallback,
+migration, visual baseline, threshold, mask, skip, or acceptance policy
+changed. Continue R1 family-wide population/history, D1/W1/MN floors,
+rebalance continuity, and AC2-AC7/AC10.
+
+## 2026-09-14 - Verified Optimize dated holdings
+
+Product commit `a9cdd8829` hardens Optimize's native fund-scoped verified XLS
+route for `OPTZ`. Retained rows now require exactly one parseable
+holdings-specific `Data as of ... Holdings are subject to change` composition
+date; undated, invalid, and ambiguous pages fail closed; source IDs are
+date-scoped; and complete composition/as-of, row-count, and
+`optimize_native_fund_scoped_holdings_xls` provenance metadata is recorded. The
+direct public holdings export returned 339 rows dated 2026-09-14.
+
+Focused assertions passed 2/2 including invalid/mixed/missing-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+339 complete dated rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1608/1608, integration 405/405
+at 82.19% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six unchanged protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
+## 2026-09-14 - Verified Cultivar dated holdings
+
+Product commit `3de6e028b` hardens Cultivar's native fund-page holdings route
+for CVAR. Retained rows now require exactly one parseable `Fund Holdings as of`
+date; undated, invalid, and ambiguous pages fail closed; source IDs are
+date-scoped; and complete composition/as-of, row-count, and
+`cultivar_native_current_fund_page_holdings_table` provenance metadata is
+recorded. The direct public fund page returned 92 rows dated 2026-09-11.
+
+Focused assertions passed 3/3 including undated/invalid/ambiguous-date
+regressions, the opt-in live public-route assertion passed 1/1, and the direct
+probe returned 92 complete dated rows. Ruff, formatting, and diff checks passed.
+The exact Docker-backed branch gate passed backend units 1607/1607, integration
+405/405 at 82.18% combined coverage, frontend Vitest 1067/1067, type-check/
+build, compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six established protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
+## 2026-09-14 - Verified Canary dated holdings
+
+Product commit `ef1ca2eed` hardens Canary's native product-page holdings route
+for HBR. Retained rows now require exactly one parseable composition date;
+undated, invalid, and mixed-date snapshots fail closed; source IDs are
+date-scoped; and complete composition/as-of, row-count, and
+`canary_native_product_page_current_holdings_table` provenance metadata is
+recorded. The direct public product page returned 2 rows dated 2026-09-14.
+
+Focused assertions passed 1/1 including undated/invalid/mixed-date regressions,
+the opt-in live public-route assertion passed 1/1, and the direct probe returned
+2 complete dated rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1606/1606, integration 405/405
+at 82.18% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional
+Playwright 165 passed with 107 skipped. Visual parity remains 98/104 with
+exactly the six established protected watchlist-column-editor/workspace-floating
+diffs. Docker teardown was clean; no provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue R1
+family-wide population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
+## 2026-09-14 - Verified Water Island/AltShares dated holdings
+
+Product commit `0d7437b01` hardens the shared Water Island/AltShares native
+periodic portfolio-of-investments PDF route for `ARB` and `EVNT`. The adapter
+now requires a dated non-empty snapshot, excludes swap, forward, and footnote
+sections from the holdings parse, date-scopes source IDs, and records complete
+composition/as-of, row-count, and
+`water_island_native_periodic_complete_portfolio_report_pdf` provenance metadata.
+The reviewed public report published 66 `ARB` rows and 42 `EVNT` rows dated
+2026-02-28.
+
+Focused Water Island assertions passed 2/2 including the missing-date and
+non-holdings-section regressions; escalated opt-in live route assertions passed
+2/2 for the Water Island and AltShares discovery keys; and direct public probes
+returned the same complete dated snapshots. Ruff, formatting, and diff checks
+passed. The exact branch-scoped Docker-backed gate passed backend units
+1606/1606, integration 405/405 with 82.18% combined coverage, frontend Vitest
+1067/1067, type-check/build, compose/deployment contracts, research-runner
+sandbox/resource probes, and functional E2E 165 passed with 107 skipped. Visual
+E2E passed 98/104 with exactly the six unchanged protected
+watchlist-column-editor/workspace-floating diffs. Docker teardown removed all
+branch-scoped containers, volumes, network, four generated images, and
+testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+## 2026-09-14 - Verified Dhandho dated holdings
+
+Product commit `9ada7cb8e` hardens Pabrai Wagons' native complete-holdings PDF
+route for WAGN. The adapter now requires a dated non-empty snapshot, fails
+closed when the PDF lacks a parseable composition date or retained rows,
+date-scopes source IDs, and records complete composition/as-of, row-count, and
+`dhandho_native_complete_holdings_pdf` provenance metadata. The direct public
+route published 21 rows dated 2026-03-31.
+
+Focused Dhandho assertions passed 9/9 including the missing-date regression;
+the escalated opt-in live route assertion passed 1/1; and the direct public
+issuer probe returned 21 complete rows dated 2026-03-31. Ruff, formatting, and
+diff checks passed. The exact branch-scoped Docker-backed gate passed backend
+units 1606/1606, integration 405/405 with 82.18% combined coverage, frontend
+Vitest 1067/1067, type-check/build, compose/deployment contracts,
+research-runner sandbox/resource probes, and functional E2E 165 passed with
+107 skipped. Visual E2E passed 98/104 with exactly the six unchanged protected
+watchlist-column-editor/workspace-floating diffs. Docker teardown removed all
+branch-scoped containers, volumes, network, four generated images, and
+testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+## 2026-09-14 - Verified Convergence dated holdings
+
+Product commit `52771a08e` hardens Convergence's issuer page-linked holdings
+route for CLSE. The adapter now requires non-empty retained CSV rows with
+exactly one parseable `Date`, fails closed for missing, invalid, or mixed-date
+snapshots, date-scopes source IDs, and records complete composition/as-of,
+row-count, and `convergence_native_product_page_linked_holdings_csv` provenance
+metadata. The direct public route published 361 rows dated 2026-09-14.
+
+Focused Convergence assertions passed 8/8 including missing/invalid/mixed-date
+regressions; the escalated opt-in live route assertion passed 1/1; and the
+direct public issuer probe returned 361 complete rows dated 2026-09-14. Ruff,
+formatting, and diff checks passed. The exact branch-scoped Docker-backed gate
+passed backend units 1606/1606, integration 405/405 with 82.18% combined
+coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment
+contracts, research-runner sandbox/resource probes, and functional E2E 165
+passed with 107 skipped. Visual E2E passed 98/104 with exactly the six unchanged
+protected watchlist-column-editor/workspace-floating diffs. Docker teardown
+removed all branch-scoped containers, volumes, network, four generated images,
+and testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+## 2026-09-14 - Verified Corgi dated holdings
+
+Product commit `94f09137e` hardens Corgi Funds' issuer-native public holdings
+route for FDRS. The adapter now requires non-empty retained rows with exactly
+one parseable `position_date`, fails closed for missing, invalid, or mixed-date
+snapshots, date-scopes source IDs, and records complete composition/as-of,
+row-count, and `corgi_native_fund_holdings_api` provenance metadata. The direct
+public route published 52 rows dated 2026-09-14.
+
+Focused Corgi assertions passed 4/4 including missing/invalid/mixed-date
+regressions; the escalated opt-in live route assertion passed 1/1; and the direct
+public issuer probe returned 52 complete rows dated 2026-09-14. Ruff, formatting,
+and diff checks passed. The exact branch-scoped Docker-backed gate passed
+backend units 1603/1603, integration 405/405 with 82.17% combined coverage,
+frontend Vitest 1067/1067, type-check/build, compose/deployment contracts,
+research-runner sandbox/resource probes, and functional E2E 165 passed with 107
+skipped. Visual E2E passed 98/104 with exactly the six unchanged protected
+watchlist-column-editor/workspace-floating diffs. Docker teardown removed all
+branch-scoped containers, volumes, network, four generated images, and
+testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+## 2026-09-14 - Verified SS&C dated holdings
+
+Product commit `da0334842` hardens the shared Capital Impact adapter for the
+EntrepreneurShares and ERShares public SS&C full-holdings API routes. The
+adapter now requires non-empty retained rows with exactly one parseable
+`asofdate`, fails closed for undated, invalid, or mixed-date payloads,
+date-scopes source IDs, and records complete composition/as-of, row-count, and
+issuer-specific native SS&C provenance metadata. The reviewed public XOVR route
+published 33 rows dated 2026-09-11 for both EntrepreneurShares and ERShares.
+
+Focused SS&C assertions passed 7/7 including undated/mixed-date regressions;
+opt-in live public-route assertions passed 3/3; and direct public issuer probes
+returned 33 complete rows dated 2026-09-11 for each route. Ruff, formatting, and
+diff checks passed. The exact branch-scoped Docker-backed gate passed backend
+units 1600/1600, integration 405/405 with 82.17% combined coverage, frontend
+Vitest 1067/1067, type-check/build, compose/deployment contracts,
+research-runner sandbox/resource probes, and functional E2E 165 passed with
+107 skipped. Visual E2E passed 98/104 with exactly the six unchanged protected
+watchlist-column-editor/workspace-floating diffs. Docker teardown removed all
+branch-scoped containers, volumes, network, four generated images, and
+testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Continue family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10.
+
+
+## 2026-09-14 - Verified Cohen & Steers dated holdings
+
+Product commit `33f759bac` hardens Cohen & Steers' public WordPress fund API
+route for CSRE. The adapter now requires non-empty native holdings with exactly
+one parseable holding date across every retained row, fails closed for missing,
+invalid, or mixed-date payloads, date-scopes source IDs, and records complete
+composition/as-of, row-count, and `cohen_steers_native_public_fund_api`
+provenance metadata. The direct public issuer API route published 53 rows dated
+2026-09-14.
+
+Focused Cohen & Steers assertions passed 4/4 including missing/mixed-date
+regressions and mocked fetch metadata; the escalated opt-in live route assertion
+passed 1/1; and the direct public issuer probe returned 53 complete rows dated
+2026-09-14. Ruff, formatting, and diff checks passed. The exact branch-scoped
+Docker-backed gate passed backend units 1598/1598, integration 405/405 with
+82.16% combined coverage, frontend Vitest 1067/1067, type-check/build, compose/
+deployment contracts, research-runner sandbox/resource probes, and functional
+E2E 165 passed with 107 skipped. Visual E2E passed 98/104 with exactly the six
+unchanged protected watchlist-column-editor/workspace-floating diffs. Docker
+teardown removed all branch-scoped containers, volumes, network, four generated
+images, and testcontainer sessions. No provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Continue
+family-wide R1 population/history, D1/W1/MN floors, rebalance continuity, and
+AC2-AC7/AC10.
+
+## 2026-09-14 - Require dated Calvert holdings
+
+Product commit `3c07b4c6` hardens Calvert's official issuer-native daily JSON
+route for CVLC. The adapter requires non-empty holdings with exactly one
+parseable effective date, fails closed for undated snapshots, date-scopes source
+IDs, and records complete composition/as-of, row-count, and
+`calvert_native_issuer_json` provenance metadata. The direct public issuer route
+published 756 rows dated 2026-09-11.
+
+Focused Calvert assertions passed 4/4 including the undated-row regression; the
+dedicated live route assertions passed 2/2; the direct public issuer probe
+returned 756 dated rows; and Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1595/1595, integration 405/405
+with 82.14% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, research-runner probes, and functional E2E 165
+passed with 107 skipped. Visual E2E passed 98/104 with only the six unchanged
+protected watchlist-column-editor/workspace-floating diffs. Docker teardown
+removed all branch-scoped containers, volumes, network, four generated images,
+and testcontainer sessions. No provider/fallback, migration, visual baseline,
+threshold, mask, skip, or acceptance policy changed. Family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10
+remain open.
+
+## 2026-09-14 - Require dated Alerian holdings
+
+Product commit `f7f4ed33d` hardens Alerian's issuer-owned ALPS HubSpot proxy
+route for AMLP/ENFR. The adapter requires non-empty rows with exactly one
+parseable `asofdate`, fails closed for undated or mixed-date payloads,
+date-scopes source IDs, and records complete composition/as-of, row-count, and
+`alerian_native_issuer_json` provenance metadata. The reviewed live ENFR route
+published 29 rows dated 2026-09-11.
+
+Focused Alerian assertions passed 5/5 including the undated-row regression; the
+dedicated and generic live route assertions passed 2/2; and the direct public
+proxy probe returned 29 dated rows. Ruff, formatting, and diff checks passed.
+The exact branch-scoped Docker-backed gate passed backend units 1594/1594,
+integration 405/405 with 82.14% combined coverage, frontend Vitest 1067/1067,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+98/104; the same six protected watchlist-column-editor/workspace-floating diffs
+remain. Docker teardown removed all four generated images, containers, volumes,
+network, and testcontainer sessions. No provider/fallback, migration, visual
+baseline, threshold, mask, skip, or acceptance policy changed. Family-wide R1
+population/history, D1/W1/MN floors, rebalance continuity, and AC2-AC7/AC10
+remain open.
+
+## 2026-09-14 - Require dated ACSI holdings
+
+Product commit `b067dc884` promotes ACSI Funds' official daily holdings CSV to
+an issuer-native route for ACSI. The adapter now requires non-empty rows with
+exactly one parseable composition date, fails closed for undated or mixed-date
+exports, date-scopes source IDs, and records complete composition/as-of,
+row-count, and `issuer_native_acsi_daily_holdings_csv` provenance metadata. The
+reviewed live CSV published 33 rows dated 2026-09-14.
+
+Focused ACSI assertions passed 2/2 including the undated-row regression; the
+dedicated opt-in live provider assertion passed 1/1; and the direct public CSV
+probe returned 33 complete rows dated 2026-09-14. Ruff, formatting, and diff
+checks passed. The exact branch-scoped Docker-backed gate passed backend units
+1593/1593, integration 405/405 with 82.13% combined coverage, frontend Vitest
+1067/1067, type-check/build, compose/deployment contracts, expected
+research-runner probes, and functional E2E 165 passed with 107 skipped. Visual
+E2E passed 98/104; the same six protected watchlist-column-editor/workspace-
+floating diffs remain. Docker teardown removed all four generated images,
+containers, volumes, network, and testcontainer sessions. No provider/fallback,
+migration, visual baseline, threshold, mask, skip, or acceptance policy
+changed. Family-wide R1 population/history, D1/W1/MN floors, rebalance
+continuity, and AC2-AC7/AC10 remain open.
+
+## 2026-09-14 - Verified dated Oakmark holdings
+
+Commit `cef626151` promotes Oakmark's official symbol-scoped CSV holdings
+exports to the issuer-native OAKM/OAKI route. The adapter requires exactly one
+composition date and non-empty rows, fails closed for undated or ambiguous
+snapshots, date-scopes source IDs, and records complete composition/as-of,
+row-count, and `issuer_native_oakmark_symbol_holdings_csv` provenance metadata.
+The reviewed live OAKM route published 41 rows dated 2026-09-14.
+
+Focused Oakmark assertions passed 2/2 including the undated regression; the
+opt-in live provider assertions passed 3/3; and the direct live adapter probe
+returned 41 complete rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1592/1592, integration 405/405
+with 82.13% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E 165 passed with 107 skipped. Visual E2E passed 98/104; the same six
+protected baselines remain the only failures. Docker teardown removed all four
+generated images, containers, volumes, network, and testcontainer sessions.
+No provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2-AC7/AC10 remain open.
+
+## 2026-09-14 - Verified dated Wellington holdings
+
+Commit `4e76ab33d` requires Wellington-managed VUSV/VDIG/VUSG's issuer-native
+Vanguard publisher route to publish a parseable composition date before
+acceptance. Undated or empty publisher results fail closed; accepted rows receive
+date-scoped IDs and complete composition/as-of, row-count, and
+`issuer_native_vanguard_wellington_managed_etf` provenance metadata. The reviewed
+live VUSV route published 86 rows dated 2026-06-30.
+
+Focused Wellington assertions passed 3/3 including the undated regression; the
+opt-in live provider assertions passed 2/2; and the direct live adapter probe
+returned 86 complete rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1591/1591, integration 405/405
+with 82.13% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E 165 passed with 107 skipped. Visual E2E passed 98/104; the same six
+protected baselines remain the only failures. Docker teardown removed all four
+generated images, containers, volumes, network, and testcontainer sessions. No
+provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2-AC7/AC10 remain open.
+
+
+## 2026-09-14 - Verified dated AllianceBernstein holdings
+
+Commit 851d1f2af requires AllianceBernstein's issuer-native model workbook
+route to publish a composition date before acceptance. The shared route used
+by Equitable fails closed for undated workbooks; accepted rows receive
+date-scoped IDs and complete composition/as-of, row-count, and issuer-native
+model-workbook provenance metadata. The reviewed live FWD workbook published
+128 rows dated 2026-07-31.
+
+Focused AllianceBernstein/Equitable assertions passed 3/3; the opt-in live
+provider assertion passed 2/2; and the direct live adapter probe returned 128
+complete rows. Ruff, formatting, and diff checks passed. The exact Docker-backed
+branch gate passed backend units 1590/1590, integration 405/405 with 82.13%
+combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E 165 passed with 107 skipped. Visual E2E passed 98/104; the same six
+protected baselines remain the only failures. Docker teardown removed all four
+generated images, containers, volumes, network, and testcontainer sessions.
+No provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2-AC7/AC10 remain open.
+
+
+
+## 2026-09-14 - Verified dated Aptus holdings
+
+Commit `c481193f4` requires Aptus's issuer-native WordPress holdings table to
+publish a composition date before acceptance. Undated pages fail closed;
+accepted rows receive date-scoped IDs and complete native-route
+composition/as-of, row-count, and provenance metadata. The reviewed DRSK page
+published 33 rows dated 2026-09-11.
+
+Focused Aptus assertions passed 2/2, including the undated regression; the
+opt-in live provider assertion passed 1/1 and the direct live adapter probe
+returned 33 complete rows. Ruff, formatting, and diff checks passed. The exact
+Docker-backed branch gate passed backend units 1589/1589, integration 405/405
+with 82.12% combined coverage, frontend Vitest 1067/1067, type-check/build,
+compose/deployment contracts, expected research-runner probes, and functional
+E2E 165 passed with 107 skipped. Visual E2E passed 98/104; the same six
+protected baselines remain the only failures. Docker teardown removed all four
+generated images, containers, volumes, network, and testcontainer sessions. No
+provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2-AC7/AC10 remain open.
+
+
+## 2026-09-14 - Verified dated ALPS/SS&C holdings
+
+Commit f607797cd requires ALPS/SS&C native holdings JSON to publish a
+composition date before acceptance. Undated payloads fail closed; accepted
+rows receive date-scoped IDs and complete native-route composition/as-of,
+row-count, and provenance metadata. The O'Shares route uses the same ALPS
+contract.
+
+Focused ALPS/SS&C and O'Shares assertions passed 3/3, including the undated
+regression; live public probes passed 3/3; Ruff, formatting, and diff checks
+passed. The exact Docker-backed branch gate passed backend units 1588/1588,
+integration 405/405 at 82.11% combined coverage, frontend Vitest 1067/1067,
+type-check/build, compose/deployment contracts, expected research-runner
+probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed
+98/104; the same six protected baselines remain the only failures. Docker
+teardown was clean with no retained containers, volumes, networks,
+testcontainer sessions, or images. No provider/fallback, migration, visual
+baseline/mask/threshold/skip, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2-AC7/AC10 remain open.
+
+
+## 2026-09-14 - Verified Infrastructure Capital dated holdings
+
+Commit `619bd4826` requires and records Infrastructure Capital's publisher-declared composition date from the official product page before consuming its native XLS holdings workbook. The adapter verifies non-empty rows, fails closed for an undated product page, records composition/as-of and row-count metadata, marks the native route complete, and date-scopes row IDs.
+
+Focused Infrastructure Capital unit assertions passed `2/2`; the reviewed live workbook probe passed `1/1`; Ruff/format/diff checks passed. The exact gate passed backend units `1587/1587`, integration `405/405` with `82.10%` combined coverage, frontend Vitest `1067/1067`, type-check/build, compose/deployment contracts, expected research-runner probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`, with the same six protected baselines remaining the only failures. Docker resources were cleaned with no retained containers, volumes, networks, or testcontainer sessions. No generic provider/fallback, visual baseline/mask/threshold/skip, migration, or acceptance policy changed. R1 family-wide population/history, floors, continuity, and AC2-AC7/AC10 remain open.
+
+
+## 2026-09-14 - Verified Timothy Plan holdings and Add-tool cold-navigation fix
+
+Commit 86c4820f1 requires and records Timothy Plan's published holdings snapshot date for the native HTML holdings table. Commit ad97b1aae yields once in openTool so a shell click racing asynchronous workstation mount is not dropped on cold /chart navigation.
+
+Focused Timothy assertions passed 12/12; focused F8t-results-open passed 1/1; the corrected exact gate passed backend units 1586/1586, integration 405/405 with 82.10% combined coverage, frontend Vitest 1067/1067, type-check/build, compose/deployment, research-runner probes, and functional E2E 165 passed with 107 skipped. Visual E2E passed 98/104, with the same six protected baselines remaining the only failures. Docker resources were cleaned with no retained containers, volumes, networks, or testcontainer sessions. No generic provider/fallback, visual baseline/mask/threshold/skip, migration, or acceptance policy changed. R1 family-wide population/history, floors, continuity, and AC2-AC7/AC10 remain open.
+
+
+## 2026-09-14 — Verified Spear holdings completeness receipt
+
+Commit `045478c6e` requires and records the published composition date for
+Spear Funds' fixed issuer holdings CSV route for SPRX. The adapter verifies
+non-empty rows, fails closed for undated snapshots, records composition/as-of
+and row-count metadata, marks the native route complete, and date-scopes row
+IDs.
+
+Focused Spear assertions passed `10/10`; Ruff/format/diff checks passed. The
+exact gate passed backend units `1585/1585`, integration `405/405` with
+`82.10%` combined coverage, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, research-runner probes, and functional E2E `165 passed`
+with `107 skipped`. Visual E2E passed `98/104`, with the same six protected
+baselines remaining the only failures. Docker resources were cleaned with no
+retained containers, volumes, networks, or testcontainer sessions. No generic
+provider/fallback, visual baseline/mask/threshold/skip, migration, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-14 — Verified Allspring holdings completeness receipt
+
+Commit `1c9ee96ed` requires and records the published composition date for
+Allspring's issuer symbol-specific total-holdings CSV route. The adapter
+verifies non-empty rows, fails closed for undated snapshots, records
+composition/as-of and row-count metadata, marks the native route complete,
+and date-scopes row IDs.
+
+Focused Allspring assertions passed `8/8`; Ruff/format/diff checks passed. The
+exact gate passed backend units `1584/1584`, integration `405/405` with
+`82.09%` combined coverage, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, research-runner probes, and functional E2E `165 passed`
+with `107 skipped`. Visual E2E passed `98/104`, with the same six protected
+baselines remaining the only failures. Docker resources were cleaned with no
+retained containers, volumes, networks, or testcontainer sessions. No generic
+provider/fallback, visual baseline/mask/threshold/skip, migration, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-14 — Verified Tremblant holdings completeness receipt
+
+Commit `27b7b24dc` requires and records the published composition date for
+Tremblant TOGA's issuer-page-verified FilePoint holdings CSV. The adapter
+verifies non-empty rows, fails closed for undated snapshots, records
+composition/as-of and row-count metadata, marks the native route complete,
+and date-scopes row IDs.
+
+Focused Tremblant assertions passed `6/6`; Ruff/format/diff checks passed. The
+exact gate passed backend units `1583/1583`, integration `405/405` with
+`82.09%` combined coverage, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, research-runner probes, and functional E2E `165 passed`
+with `107 skipped`. Visual E2E passed `98/104`, with the same six protected
+baselines remaining the only failures. Docker resources were cleaned with no
+retained containers, volumes, networks, or testcontainer sessions. No generic
+provider/fallback, visual baseline/mask/threshold/skip, migration, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-14 — Verified FilePoint holdings completeness receipt
+
+Commit `245ac0a56` requires and records the published composition date for the
+FilePoint/LionShares and Twin Oak issuer-native holdings routes. The adapters
+verify non-empty rows, fail closed for undated snapshots, record composition/
+as-of and row-count metadata, mark native routes complete, and date-scope row
+IDs.
+
+Focused LionShares/Twin Oak assertions passed `4/4`; Ruff/format/diff checks
+passed. The exact gate passed backend units `1582/1582`, integration `405/405`
+with `82.09%` combined coverage, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, research-runner probes, and functional E2E `165 passed`
+with `107 skipped`. Visual E2E passed `98/104`, with the same six protected
+baselines remaining the only failures. Docker resources were cleaned with no
+retained containers, volumes, networks, or testcontainer sessions. No generic
+provider/fallback, visual baseline/mask/threshold/skip, migration, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-14 — Verified Cygnet holdings completeness receipt
+
+Commit `ce2353738` requires and records Cygnet Capital ELM's published
+composition date from the issuer-declared full holdings CSV. The adapter
+verifies account-scoped non-empty rows, fails closed for undated snapshots,
+records composition/as-of metadata, marks the native route complete, and
+date-scopes row IDs.
+
+Focused assertions passed `3/3`; the first exact gate had one transient
+F8u-boolean header-visibility failure, whose isolated reproduction passed
+`1/1` in 5.1s without code changes. The rerun exact gate passed backend units
+`1580/1580`, integration `405/405` with `82.07%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Sterling Capital holdings completeness receipt
+
+Commit `f8e071903` requires and records Sterling Capital's published
+composition date from the issuer-native fund-scoped holdings PDFs, including
+the Sterling Fund Management and Guardian wrappers. The shared adapter
+verifies non-empty rows, fails closed for undated snapshots, records
+composition/as-of metadata, marks the native route complete, and date-scopes
+row IDs.
+
+Focused Sterling family assertions passed `5/5`; the exact gate passed backend
+units `1579/1579`, integration `405/405` with `82.07%` combined coverage,
+frontend Vitest `1067/1067`, type-check/build, compose/deployment,
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Rareview holdings completeness receipt
+
+Commit `d227b50ba` requires and records Rareview RDFI's published composition
+date from the official issuer-native databaseInfo holdings payload. The
+adapter verifies non-empty rows, fails closed for undated snapshots, records
+composition/as-of metadata, marks the native route complete, and date-scopes
+row IDs.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1578/1578`, integration `405/405` with `82.07%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Miller Value holdings completeness receipt
+
+Commit `3e6dc61c4` requires and records Miller Value MVPA/MVPL's published
+composition date from the official issuer-native Nuxt holdings payloads. The
+adapter verifies non-empty rows, fails closed for undated pages, records
+composition/as-of metadata, marks native routes complete, and date-scopes row
+IDs.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1577/1577`, integration `405/405` with `82.06%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Adaptive Investments holdings completeness receipt
+
+Commit `71ea4f76c` requires and records Adaptive Investments ADPV's published
+composition date from the official issuer-native Nuxt holdings payload. The
+adapter verifies non-empty rows, fails closed for undated pages, records
+composition/as-of metadata, marks the native route complete, and date-scopes
+row IDs.
+
+Focused assertions passed `2/2`; the exact branch-tip gate passed backend
+units `1576/1576`, integration `405/405` with `82.06%` combined coverage,
+frontend Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified ETC/Bluemonte holdings completeness receipt
+
+Commit `6dd0521df` requires and records the published composition date from
+the official Exchange Traded Concepts/Bluemonte embedded holdings payloads.
+The adapters verify non-empty rows, fail closed for undated pages, record
+composition/as-of metadata, mark native routes complete, and date-scope row
+IDs. The branch-tip gate at `71ea4f76c` includes this commit.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1576/1576`, integration `405/405` with `82.06%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified WealthTrust holdings completeness receipt
+
+Commit `481d60892` requires and records WealthTrust WLTG's published holdings
+snapshot date from the official complete holdings table's labeled `Current as
+of`/`As of Date` metadata. The adapter verifies official product identity and
+non-empty native rows; undated pages fail closed and generic labels remain
+unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1574/1574`, integration `405/405` with `82.05%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified linked-workbook holdings completeness receipt
+
+Commit `c2671c2c9` requires and records a holdings-specific published
+`Data as of` date for Little Harbor, Pettee/Hoya, Sound Capital/River1, and
+Sovereign official linked-workbook routes. The adapters verify non-empty native
+rows and issuer-page holdings identity; undated holdings pages fail closed and
+generic labels remain unchanged.
+
+Focused assertions passed `8/8`; the exact gate passed backend units
+`1573/1573`, integration `405/405` with `82.05%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified GraniteShares holdings completeness receipt
+
+Commit `8b4b6129d` requires a published composition date and preserves
+explicit `completeness_status: complete` only for GraniteShares' official NVD
+holdings workbook route. The adapter derives the date from the issuer's
+published workbook filename and verifies non-empty rows; undated workbooks
+fail closed and generic labels remain unchanged.
+
+Focused assertions passed `4/4`; the exact gate passed backend units
+`1569/1569`, integration `405/405` with `82.04%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+visual baseline/mask/threshold/skip, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Range ETFs holdings completeness receipt
+
+Commit `827ae2b02` requires a published composition date and preserves
+explicit `completeness_status: complete` only for Range ETFs' official COAL/
+NUKZ Nuxt holdings payloads. It verifies non-empty rows and the issuer-native
+holdings component; undated pages fail closed and generic labels remain
+unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1568/1568`, integration `405/405` with `82.04%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Palmer Square holdings completeness receipt
+
+Commit `4effca228` requires a published composition date and preserves
+explicit `completeness_status: complete` only for Palmer Square's official
+PSQO/PSQA product-page embedded Full Investment Holdings payload. It verifies
+non-empty rows and issuer-native payload identity; undated pages fail closed
+and generic labels remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1567/1567`, integration `405/405` with `82.04%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Retireful/Mohr holdings completeness receipt
+
+Commit `697b51d00` requires a published composition date and preserves
+explicit `completeness_status: complete` only for Retireful/Mohr's official
+paginated holdings tables for RULE, SNAV, MFUL, and CNAV. It verifies
+non-empty rows, declared-count reconciliation, and the published `As of`
+snapshot date; undated tables fail closed and generic labels remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1566/1566`, integration `405/405` with `82.04%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Indexperts holdings completeness receipt
+
+Commit `81d551a48` requires a published composition date and preserves
+explicit `completeness_status: complete` only for Indexperts' official
+QIDX/RILA/YFFI holdings JSON feed. It verifies parseable non-empty rows and
+dated `holdingdates.medata`; undated payloads fail closed and generic labels
+remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1565/1565`, integration `405/405` with `82.04%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Soundwatch holdings completeness receipt
+
+Commit `7f8c1abe5` requires a published composition date and preserves
+explicit `completeness_status: complete` only for Soundwatch SHDG's official
+issuer-linked XLS workbook. It verifies parseable non-empty rows and the
+product-page `Data as of` snapshot date; undated workbooks fail closed and
+generic labels remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1564/1564`, integration `405/405` with `82.03%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining
+the only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-14 — Verified Artemis and X-Square holdings completeness receipt
+
+Commit `05971d070` requires a published composition date and preserves
+explicit `completeness_status: complete` only for Artemis Capital's official
+holdings table and X-Square Capital's official holdings payload. It verifies
+parseable non-empty rows and a published snapshot date; undated payloads fail
+closed and generic labels remain unchanged.
+
+Focused assertions passed `4/4`; the exact gate passed backend units
+`1563/1563`, integration `405/405`, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment, expected research-runner probes, and
+functional E2E `165 passed` with `107 skipped`. Visual E2E passed `98/104`,
+with the same six protected baselines remaining the only failures. Docker
+resources were cleaned with no retained containers, volumes, networks, or
+testcontainer sessions. No generic provider/fallback, migration, visual
+baseline/mask/threshold/skip, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-14 — Verified MUFG, McIvy/Genter, and Langar holdings completeness receipt
+
+Commit `6fcc3c382` requires a published composition date and preserves
+explicit `completeness_status: complete` only for MUFG Japan Small Cap's
+official product-page Nuxt holdings component and McIvy/Genter and Langar's
+issuer-scoped Nottingham holdings JSON routes. It verifies parseable non-empty
+rows and a published snapshot date; undated payloads fail closed and generic
+labels remain unchanged.
+
+Focused assertions passed `6/6`; the exact gate passed backend units
+`1561/1561`, integration `405/405` with `82.03%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-14 — Verified National Security Index holdings completeness receipt
+
+Commit `325bb4762` requires a published composition date and preserves
+explicit `completeness_status: complete` only for the National Security Index
+ETF's official product-page declared holdings CSV. It verifies issuer/product
+identity and parseable non-empty rows; undated payloads fail closed and generic
+labels remain unchanged.
+
+Focused assertions passed `24/24`; the exact gate passed backend units
+`1558/1558`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-14 — Verified AOT, SMI 3Fourteen, and Abacus Global holdings completeness receipt
+
+Commit `56f982a39` requires a published composition date and adds explicit
+`completeness_status: complete` only to AOT's official holdings table, SMI
+3Fourteen's official holdings table, and Abacus Global's official holdings CSV
+route. It verifies parseable non-empty rows and a published snapshot date;
+undated payloads fail closed and generic labels remain unchanged.
+
+Focused assertions passed `6/6`; the exact gate passed backend units
+`1557/1557`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Verified Victory, DWS/Xtrackers, and Principal holdings completeness receipt
+
+Commit `ce4937c71` requires a published composition date and adds explicit
+`completeness_status: complete` only to VictoryShares' official product API,
+DWS/Xtrackers' official PDP holdings JSON, and Principal's official holdings
+workbook routes. It verifies parseable non-empty rows and a published snapshot
+date; undated payloads fail closed and generic labels remain unchanged.
+
+Focused assertions passed `7/7`; the exact gate passed backend units
+`1554/1554`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Verified Polen and Founder holdings completeness receipt
+
+Commit `c581637ba` requires a published composition date and adds explicit
+`completeness_status: complete` only to Polen's configured official holdings
+export and Founder's official holdings PDF route. It verifies issuer/product
+identity, parseable non-empty rows, and a published snapshot date; undated
+payloads fail closed and generic labels remain unchanged.
+
+Focused assertions passed `5/5`; the exact gate passed backend units
+`1551/1551`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Verified Hedgeye holdings completeness receipt
+
+Commit `a3f07cb79` requires a published composition date and adds explicit
+`completeness_status: complete` only to Hedgeye's official daily holdings
+payload routes and the S.C.M. Edge subclass using those routes. It verifies the
+latest requested fund snapshot, non-empty holdings, and a published snapshot
+date; undated payloads fail closed and generic labels remain unchanged.
+
+Focused assertions passed `3/3`; the exact gate passed backend units
+`1548/1548`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Verified Liquid Strategies holdings completeness receipt
+
+Commit `45ac854c3` requires a published composition date and adds explicit
+`completeness_status: complete` only to Liquid Strategies' official Overlay
+Shares holdings-table routes (OVL, OVS, OVF, OVLH, OVB, OVT, OVM). It verifies
+configured product-page identity, required holdings schema, parseable non-empty
+rows, and a published composition date; undated tables fail closed and generic
+labels remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1547/1547`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Verified Fortuna holdings completeness receipt
+
+Commit `23ed4643c` requires a published composition date and adds explicit
+`completeness_status: complete` only to Fortuna's official holdings-table
+route. It verifies official product/table identity, parseable non-empty rows,
+and a published composition date; undated tables fail closed and generic
+labels remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1546/1546`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Verified Hotchkis & Wiley holdings completeness receipt
+
+Commit `22de7e669` requires dated holdings metadata and adds explicit
+`completeness_status: complete` only to Hotchkis & Wiley's HWSM official
+literature-page linked monthly holdings PDF route. It verifies HWSM product
+identity, issuer-declared PDF linkage, PDF fund identity, parseable non-empty
+rows, and a published composition date; undated PDFs fail closed and generic
+labels remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1545/1545`, integration `405/405` with `81.98%` combined coverage, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`, with the same six protected baselines remaining the
+only failures. Docker resources were cleaned with no retained containers,
+volumes, networks, or testcontainer sessions. No generic provider/fallback,
+migration, visual baseline/mask/threshold/skip, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Verified Nomura and Delaware holdings completeness receipt
+
+Commit `68e059423` requires dated holdings metadata and adds explicit
+`completeness_status: complete` only to Nomura's configured daily product-page
+routes and Delaware/Macquarie successor routes using the official Nomura
+table. It verifies official product identity, exact seven-column daily schema,
+non-empty rows, and parsed issuer date; generic current/daily/table labels
+remain unchanged and ambiguous routes remain fail-closed.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1544/1544`, integration `405/405`, frontend Vitest `1067/1067`, type-check/
+build, compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`, with the same six
+protected baselines remaining the only failures. Docker resources were cleaned
+with no retained containers, volumes, networks, or testcontainer sessions. No
+generic provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified IronHorse holdings completeness receipt
+
+Commit `f2e00d61f` adds explicit `completeness_status: complete` only to
+IronHorse/Conductor's CGV official product-page declared full CSV route. It
+verifies official product identity, declared download linkage, exact CSV
+schema, dated holdings metadata, and non-empty rows; undated or empty native
+downloads continue to fail into the existing SEC fallback and generic labels
+remain unchanged.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1544/1544`, integration `405/405`, frontend Vitest `1067/1067`, type-check/
+build, compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`, with the same six
+protected baselines remaining the only failures. Docker resources were cleaned
+with no retained containers, volumes, networks, or testcontainer sessions. No
+generic provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Cyber Hornet holdings completeness receipt
+
+Commit `e0cc62996` adds explicit `completeness_status: complete` only to
+Cyber Hornet's BBB, EEE, SSS, and XXX official issuer-page declared full
+holdings CSV routes. It verifies issuer download linkage, current dated
+holdings disclosure, exact CSV schema, and non-empty rows; generic
+current/daily/table labels remain unchanged and ambiguous routes remain
+fail-closed.
+
+Focused assertion passed `1/1`; the exact gate passed backend units `1544/1544`,
+integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`, with the same six
+protected baselines remaining the only failures. Docker resources were cleaned
+with no retained containers, volumes, networks, or testcontainer sessions. No
+generic provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Dividend Assets holdings completeness receipt
+
+Commit `7f7a32ef1` adds explicit `completeness_status: complete` only to
+Dividend Assets Capital's DVGR official product-page holdings table. It
+verifies official product identity/ticker, exact table schema, one consistent
+effective date across issuer rows, and non-empty holdings; generic
+current/daily/table labels remain unchanged and ambiguous routes remain
+fail-closed.
+
+Focused assertion passed `1/1`; the exact gate passed backend units `1544/1544`,
+integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`, with the same six
+protected baselines remaining the only failures. Docker resources were cleaned
+with no retained containers, volumes, networks, or testcontainer sessions. No
+generic provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Morgan Stanley holdings completeness receipt
+
+Commit `d50362dfe` adds explicit `completeness_status: complete` only to
+Morgan Stanley's MSLC official product-page-linked current XLSX route. It
+verifies the official product page and workbook linkage, fund identity, exact
+schema and identifiers, dated holdings metadata, and non-empty rows; generic
+current/daily/table labels remain unchanged and ambiguous routes remain
+fail-closed.
+
+Focused assertions passed `2/2`; the exact gate passed backend units
+`1544/1544`, integration `405/405`, frontend Vitest `1067/1067`, type-check/
+build, compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`, with the same six
+protected baselines remaining the only failures. The provider-probe stage was
+skipped because this change was not classified as provider-related. Docker
+resources were cleaned with no retained containers, volumes, networks, or
+testcontainer sessions. No generic provider/fallback, migration, visual
+baseline/mask/threshold/skip, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Golden Eagle holdings completeness receipt
+
+Commit `9b793f88e` adds explicit `completeness_status: complete` only to
+Golden Eagle's HYP official product-page holdings route. It verifies official
+product identity/ticker, the exact holdings-table schema, issuer-declared
+holding count against parsed security rows, dated `As of` metadata, and
+non-empty holdings; generic current/daily/table labels remain unchanged and
+ambiguous routes remain fail-closed.
+
+Focused assertions passed `2/2`; full backend units passed `1544/1544` and
+integration passed `405/405` with `81.98%` combined coverage. The exact gate
+passed frontend Vitest `1067/1067`, type-check/build, compose/deployment,
+expected research-runner probes, and functional E2E `165 passed` with `107
+skipped`; visual E2E passed `98/104`, with the same six protected baselines
+remaining the only failures. Docker resources were cleaned with no retained
+containers, volumes, networks, or testcontainer sessions. No generic
+provider/fallback, migration, visual baseline/mask/threshold/skip, or
+acceptance policy changed. R1 family-wide population/history, floors,
+continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Mairs & Power holdings completeness receipt
+
+Commit `4e71fd4f5` adds explicit `completeness_status: complete` only to
+Mairs & Power's MINN official product-page portfolio route. The adapter
+verifies exact product identity, dated `FULL PORTFOLIO AS OF` marker, the
+normalized issuer table schema, and non-empty rows; generic current/daily/table
+labels remain unchanged and ambiguous routes remain fail-closed.
+
+Focused Mairs & Power assertion passed `1/1`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`;
+backend units also passed `1544/1544`. Visual E2E passed `98/104`; the same
+six protected baselines remain the only failures. Docker resources were
+cleaned. No visual baseline/mask/threshold/skip, provider/fallback,
+migration, or acceptance policy changed. R1 family-wide population/history,
+floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Retireful holdings completeness receipt
+
+Commit `afcdebe3d` adds explicit `completeness_status: complete` only to
+Retireful/Mohr RULE, SNAV, MFUL, and CNAV official product-page holdings
+routes. The adapter verifies product identity, dated composition, issuer-
+declared holding count, pagination integrity, and exact row-count
+reconciliation; generic current/daily/table labels remain unchanged and
+ambiguous routes remain fail-closed.
+
+Focused Retireful assertion passed `1/1`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`;
+backend units also passed `1544/1544`. Visual E2E passed `98/104`; the same
+six protected baselines remain the only failures. Docker resources were
+cleaned. No visual baseline/mask/threshold/skip, provider/fallback,
+migration, or acceptance policy changed. R1 family-wide population/history,
+floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Artemis holdings completeness receipt
+
+Commit `180228b40` adds explicit `completeness_status: complete` only to
+Artemis ACEP and AFOS official product-page holdings routes. The adapter
+verifies product identity, the exact `FUND HOLDINGS` eight-column schema,
+dated rows, and non-empty holdings; generic current/daily/table labels remain
+unchanged and ambiguous routes remain fail-closed.
+
+Focused Artemis assertion passed `1/1`; full backend units passed `1544/1544`.
+The exact gate passed backend integration `405/405`, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`; backend units also
+passed `1544/1544`. Visual E2E passed `98/104`; the same six protected
+baselines remain the only failures. Docker resources were cleaned. No visual
+baseline/mask/threshold/skip, provider/fallback, migration, or acceptance
+policy changed. R1 family-wide population/history, floors, continuity, and
+AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified X-Square holdings completeness receipt
+
+Commit `538c18fbd` adds explicit `completeness_status: complete` only to
+X-Square's verified ZTAX product-page/API route. It verifies official product
+page ticker/fund identity, the declared Full Holdings client/API route,
+returned fund symbol, `full` portfolio marker, dated rows, and non-empty
+holdings; generic current/daily/table labels remain unchanged and ambiguous
+routes remain fail-closed.
+
+Focused assertion passed `1/1`; full backend units passed `1544/1544`. The
+exact gate passed backend integration `405/405`, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment, expected research-runner probes, and
+functional E2E `165 passed` with `107 skipped`; backend units also passed
+`1544/1544`. Visual E2E passed `98/104`; the same six protected baselines
+remain the only failures. Docker resources were cleaned. No visual
+baseline/mask/threshold/skip, provider/fallback, migration, or acceptance
+policy changed. R1 family-wide population/history, floors, continuity, and
+AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Focus Financial holdings completeness receipt
+
+Commit `8d97540ec` adds explicit `completeness_status: complete` only to the
+verified Focus Financial EQTY Kovitz FilePoint JSON and EBI Longview fund-data
+table routes. They verify official route/product identity, composition date,
+route-specific schema, and minimum 10/100-row floors; generic current/daily/
+table labels remain unchanged and ambiguous routes remain fail-closed.
+
+Focused assertions passed `1/1`; full backend units passed `1544/1544`. The
+exact gate passed backend integration `405/405`, frontend Vitest `1067/1067`,
+type-check/build, compose/deployment, expected research-runner probes, and
+functional E2E `165 passed` with `107 skipped`; backend units also passed
+`1544/1544`. Visual E2E passed `98/104`; the same six protected baselines
+remain the only failures. Docker resources were cleaned. No visual
+baseline/mask/threshold/skip, provider/fallback, migration, or acceptance
+policy changed. R1 family-wide population/history, floors, continuity, and
+AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Vident/MM VAM holdings completeness receipt
+
+Commit `3378e533f` adds explicit `completeness_status: complete` only to the
+verified Vident/MM VAM VUSE, VIDI, VBND, and PPTY product-page holdings routes.
+They verify requested ticker/product identity, exact table headers, one dated
+composition, and at least ten non-empty rows; generic current/daily/table
+labels remain unchanged and ambiguous routes remain fail-closed.
+
+Focused Vident/MM VAM assertions passed `2/2`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner sandbox/resource probes, and functional E2E `165 passed` with
+`107 skipped`; backend units also passed `1544/1544`. Visual E2E passed
+`98/104`; the same six protected baselines remain the only failures. Docker
+resources were cleaned. No visual baseline/mask/threshold/skip,
+provider/fallback, migration, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified native holdings completeness receipt
+
+Commit `ce18a1b7b` adds explicit `completeness_status: complete` only to the
+verified Soundwatch SHDG issuer-linked XLS, WealthTrust WLTG public complete
+holdings table, Eighth Wonder/Fundsmith ETFT product-page payload, and Range
+COAL/NUKZ official Nuxt fund-page routes. Each route verifies official product
+identity, its route-specific source contract, and non-empty holdings; generic
+current/daily/table labels remain unchanged and ambiguous routes remain
+fail-closed.
+
+Focused native adapter assertions passed `4/4`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner sandbox/resource probes, and functional E2E `165 passed` with
+`107 skipped`; backend units also passed `1544/1544`. Visual E2E passed
+`98/104`; the same six protected baselines remain the only failures. Docker
+resources were cleaned. No visual baseline/mask/threshold/skip,
+provider/fallback, migration, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified linked workbook holdings completeness receipt
+
+Commit `ce00fa0fa` adds explicit `completeness_status: complete` only to the
+verified Little Harbor MSTB/MSTQ/RMIF, Pettee/Hoya HOMZ/RIET, Sound Capital
+RVER, and Sovereign SOVF issuer-linked workbook routes. They verify product
+identity, declared download linkage, workbook schema/identity, and non-empty
+rows; generic current/daily/table labels remain unchanged and ambiguous routes
+remain fail-closed.
+
+Focused adapter coverage passed `4/4`; full backend units passed `1544/1544`.
+The exact gate passed backend integration `405/405`, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected baselines remain the only failures. Docker
+resources were cleaned. No visual baseline/mask/threshold/skip,
+provider/fallback, migration, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified Indexperts holdings completeness receipt
+
+Commit `d3fa295a9` adds explicit `completeness_status: complete` only to the
+verified Indexperts RILA/QIDX/YFFI product-page and fund-scoped holdings
+routes. They verify the public product page and holdings marker, payload
+ticker/fund identity, dated metadata, and non-empty rows; generic
+current/daily/table labels remain unchanged and ambiguous routes remain
+fail-closed.
+
+Focused Indexperts adapter coverage passed `1/1`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected baselines remain the only
+failures. Docker resources were cleaned. No visual baseline/mask/threshold/
+skip, provider/fallback, migration, or acceptance policy changed. R1
+family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Verified MUFG holdings completeness receipt
+
+Commit `96b13c816` adds explicit `completeness_status: complete` only to the
+verified Mitsubishi UFJ MJSC public product-page Nuxt holdings component.
+The route verifies exact product identity, route slug, named holdings
+component, dated hydration payload, and non-empty rows; Japanese venue
+tickers remain source metadata and generic current/daily/table labels remain
+unchanged.
+
+Focused MUFG adapter assertions passed `1/1`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected baselines remain the only
+failures. Docker resources were cleaned. No visual baseline/mask/threshold/
+skip, provider/fallback, migration, or acceptance policy changed. R1
+family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Verified publisher fund-scoped holdings completeness receipt
+
+Commit `829ed19f2` adds explicit `completeness_status: complete` only to the
+verified McIvy/Genter GENT/GEND/GENM/GENW and Langar LGHT fund-scoped publisher
+routes. They verify public fund identity, payload ticker/fund/name identity,
+dated `pricing.effdate`, and non-empty holdings; live probes require at least
+30 rows with CUSIPs. Generic current/daily/table labels remain unchanged and
+ambiguous routes remain fail-closed.
+
+Focused adapter assertions passed `2/2`; full backend units passed `1544/1544`.
+The exact gate passed backend integration `405/405`, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected baselines remain the only failures. Docker
+resources were cleaned. No visual baseline/mask/threshold/skip,
+provider/fallback, migration, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified native holdings completeness receipt
+
+Commit `c8ba7a600` adds explicit `completeness_status: complete` only to the
+verified NSI product-page CSV, Palmer Square dated Full Investment Holdings
+payload, and Weitz dated identity-checked payload. Their curated
+complete-daily/full-investment labels remain scoped to these routes; generic
+current/daily/table labels remain unchanged and ambiguous routes remain
+fail-closed.
+
+Focused adapter assertions passed `4/4`; declared-completeness refresh checks
+passed `8/8`; full backend units passed `1544/1544`. The exact gate passed
+backend integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`; the same six
+protected baselines remain the only failures. Provider probes were skipped
+because no provider-related changes were detected; Docker resources were
+cleaned. No visual baseline/mask/threshold/skip, provider/fallback,
+migration, or acceptance policy changed. R1 family-wide population/history,
+floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified dated holdings completeness receipt
+
+Commit `df0952777` adds explicit `completeness_status: complete` only to the
+verified Absolute Investment Advisers ABEQ financial-statement result and STF
+Management TUG quarterly-schedule result. Both routes verify issuer-page
+identity, dated complete PDF selection, and complete parser contracts; ABEQ
+requires at least ten rows and 85% aggregate weight. Generic dated labels
+remain unchanged and ambiguous routes remain fail-closed.
+
+Focused ABEQ/TUG adapter assertions passed `2/2`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected baselines remain the only
+failures. Provider probes were skipped because no provider-related changes
+were detected; Docker resources were cleaned. No visual baseline/mask/
+threshold/skip, provider/fallback, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-13 — Verified Distribution Cognizant completeness receipt
+
+Commit `ba9f9a6eb` adds explicit `completeness_status: complete` only to the
+verified Distribution Cognizant VOXP result. Its adapter verifies the
+account-scoped CSV, required holdings schema, symbol/account filter, dated
+snapshot, and at least ten rows. The generic `issuer_reported_daily_holdings`
+quality label remains unchanged and ambiguous routes remain fail-closed.
+
+Focused Concourse/Distribution adapter assertions passed `2/2`; full backend
+units passed `1544/1544`. The exact gate passed backend integration `405/405`,
+frontend Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected baselines remain the only
+failures. Provider probes were skipped because no provider-related changes
+were detected; Docker resources were cleaned. No visual baseline/mask/
+threshold/skip, provider/fallback, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-13 — Verified Concourse completeness receipt
+
+Commit `2c9444ab0` adds explicit `completeness_status: complete` only to the
+Concourse CCFE result. Its adapter verifies the official product-page
+identity, exact holdings-table headers, effective date, and at least ten
+rows. The generic `issuer_reported_current_holdings` quality label remains
+unchanged and ambiguous routes remain fail-closed.
+
+The focused adapter regression passed `1/1`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected baselines remain the only
+failures. Provider probes were skipped because no provider-related changes
+were detected; Docker resources were cleaned. No visual baseline/mask/
+threshold/skip, provider/fallback, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10 remain
+open.
+
+## 2026-09-13 — Issuer-linked workbook completeness receipt
+
+Commit `6287f6900` promotes only four issuer-linked workbook adapters after
+their issuer-page identity, declared workbook route, required workbook
+identity/schema, and non-empty-row checks pass: Little Harbor,
+Pettee/Hoya, Sound Capital/River1, and Sovereign/SOVF. They emit the existing
+`issuer_page_declared_current_complete_holdings` evidence label; generic
+current/daily/table labels remain fail-closed as `unknown`.
+
+Focused adapter assertions passed `4/4`; related refresh mapping checks passed
+`7/7`; full backend units passed `1544/1544`. The exact gate passed backend
+integration `405/405`, frontend Vitest `1067/1067`, type-check/build,
+compose/deployment, expected research-runner probes, and functional E2E
+`165 passed` with `107 skipped`. Visual E2E passed `98/104`; the same six
+protected baselines remain the only failures. Provider probes were skipped
+because no provider-related changes were detected; Docker resources were
+cleaned. No visual baseline/mask/threshold/skip, provider/fallback,
+migration, or acceptance policy changed. R1 family-wide population/history,
+floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Verified product-page holdings receipt
+
+Commit `9ef91c40d` promotes only the unique Vident/MM VAM
+`issuer_reported_product_page_holdings_table` source label. Its adapter
+verifies the issuer page, date, schema, and minimum row count before emitting
+the label; generic product-page/table labels remain fail-closed as unknown.
+
+Focused adapter/refresh coverage passed `519/519`; full backend units passed
+`1544/1544`. The exact gate passed backend integration `405/405`, frontend
+Vitest `1067/1067`, type-check/build, compose/deployment, expected
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the same six protected baselines remain the only
+failures. Provider probes were skipped because no provider-related changes
+were detected; Docker resources were cleaned. No visual baseline/mask/
+threshold/skip, provider/fallback, migration, or acceptance policy changed.
+R1 family-wide population/history, floors, continuity, and AC2–AC7/AC10
+remain open.
+
+## 2026-09-13 — Issuer-page declared current completeness receipt
+
+Commit `d0598946f` maps the explicit curated source-quality label
+`issuer_page_declared_current_complete_holdings` to persisted `complete`
+holdings evidence. This is limited to a declared-current-complete adapter
+contract; generic current-only or ambiguous labels remain fail-closed as
+`unknown`.
+
+Focused refresh coverage passed `8/8`; full backend units passed `1543/1543`.
+The exact gate passed backend integration `405/405`, frontend Vitest
+`1067/1067`, type-check/build, compose/deployment, expected research-runner
+probes, and functional E2E `165 passed` with `107 skipped`. Visual E2E passed
+`98/104`; the same six protected baselines remain the only failures. Provider
+probes were skipped because no provider-related changes were detected; Docker
+resources were cleaned. No visual baseline/mask/threshold/skip,
+provider/fallback, migration, or acceptance policy changed. R1 family-wide
+population/history, floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Latest refresh preserves profile source lineage
+
+Commit `9ed31ba86` keeps the profile-declared `holdings_source_quality` alias
+on the latest/current holdings persistence route, matching the dated route's
+source lineage and preserving the resulting `complete` or
+`filing_reconstructed` status. Focused bootstrap/refresh coverage passed
+`24/24`; Ruff, formatting, and `git diff --check` passed; full backend units
+passed `1542/1542`.
+
+The exact branch-scoped gate passed backend unit `1542/1542`, integration
+`405/405`, frontend Vitest `1067/1067`, type-check/build, compose/deployment,
+expected research-runner probes, and functional E2E `165 passed` with `107
+skipped`. Visual E2E passed `98/104`; the six unchanged protected baselines
+remain the only visual failures. Provider probes were skipped because no
+provider-related changes were detected. Docker resources were cleaned. No
+visual, provider/fallback, migration, threshold, mask, skip, or acceptance
+policy changed; family-wide R1 population/history, floors, continuity, and
+AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Curated source-quality declarations feed readiness
+
+Commit `42ffb4418` maps only explicit curated source-quality labels to holdings
+completeness: filing-reconstructed evidence maps to
+`filing_reconstructed`, and the three issuer-reported complete labels map to
+`complete`. An explicit completeness field or alias remains authoritative;
+ambiguous/current-only labels stay `unknown`. This preserves the fail-closed
+readiness rule without treating provider prose as proof by substring.
+
+The focused refresh regression passed `7/7`; full backend units passed
+`1541/1541`. The exact branch-scoped gate passed backend integration `405/405`,
+frontend Vitest `1067/1067`, type-check/build, compose/deployment,
+research-runner probes, and functional E2E `165 passed` with `107 skipped`.
+Visual E2E passed `98/104`; the six unchanged protected baselines remain the
+only visual failures. Docker resources were cleaned. No visual, provider/
+fallback, migration, or acceptance policy changed; family-wide R1 population,
+history, floors, continuity, and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Re-ingest must preserve the strongest holdings evidence
+
+Commit `0b2f03070` makes duplicate holdings snapshot reconciliation monotonic.
+For an existing content hash, a later `complete` or
+`filing_reconstructed` fetch upgrades the persisted snapshot and adapter
+state; a weaker `partial`/`unknown` retry cannot erase stronger evidence.
+Focused resolution coverage passed `30/30`, related refresh/family suites
+passed `43/43`, and full backend units passed `1536/1536`.
+
+The exact branch-scoped gate passed backend unit, frontend, build,
+compose/deployment, research-runner, and functional stages
+(`165 passed`, `107 skipped`); visual E2E passed `98/104` with the six
+unchanged protected watchlist-column-editor/workspace-floating baselines as
+the only failures. This is a bounded R1 persistence fix and does not waive
+family-wide population/history, D1/W1/MN floors, continuity, or AC2–AC7/AC10.
+No visual, provider/fallback, migration, or acceptance policy changed.
+
+## 2026-09-13 — Holdings completeness is a prerequisite for composite readiness
+
+The canonical family-role readiness rule now requires source completeness in
+addition to entitlement, point-in-time support, resolved weighted/classified
+members, and D1/W1/MN history floors. Only persisted snapshot statuses
+`complete` and `filing_reconstructed` are promotable; `partial` and `unknown`
+must remain non-ready and are returned as `holdings_completeness_status` plus a
+machine-readable reason. This prevents numeric floors from masking incomplete
+source evidence.
+
+The focused role and real-Postgres regressions, full backend units (`1535/1535`),
+frontend Vitest (`1067/1067`), type-check/build, Ruff, formatting, and diff
+checks passed. The clean exact gate at product tip `87f9a7a43` passed backend
+integration `405/405`, functional E2E `165 passed` with `107 skipped`, and
+visual E2E `98/104`; the same six protected visual diffs remain. A transient
+F8u drag miss was disproved by a passing rerun and `5/5` repeats. This receipt
+changes no visual baseline/mask/threshold/skip, provider/fallback, migration,
+or acceptance policy and does not waive the remaining R1 family
+population/history, continuity, or V25 gates.
+
+## 2026-09-13 — Canonical family readiness composition gate receipt
+
+Commit `62d4ac8de` adds a deterministic real-Postgres proof that one SPY
+cap-weight role can compose verified SPDR entitlement, a complete point-in-
+time snapshot, two resolved weighted/classified members, and D1/W1/MN
+adjusted-history floors (252/52/24 bars per member). The focused integration
+passed `1/1`; this is a single-family composition proof and does not waive
+family-wide population/history, continuity, or the remaining acceptance
+criteria.
+
+The exact gate at `4d1a05db4` passed backend unit `1534/1534`, integration
+`405/405`, frontend Vitest `1067/1067`, functional E2E `165 passed` with
+`107 skipped`, and visual E2E `98/104`. Provider probes were skipped because
+no provider-related paths changed. The six known protected visual diffs are
+unchanged. The `4d1a05db4` locator change is test-only and removes an outer
+Golden Layout wrapper-label dependency. No visual baseline, mask, threshold,
+skip, provider/fallback, migration, or acceptance-policy change was made.
+
+## 2026-09-13 — Non-iShares family route matrix receipt
+## 2026-09-13 — Non-iShares family route matrix receipt
+
+Product tip `7df91ec76` adds 12 date-aware live route cases for the canonical
+non-iShares family legs `SPY`, `SPYV`, `SPYG`, `MDY`, `MDYV`, `MDYG`, `SLYV`,
+`SLYG`, `SPTM`, `RSP`, `QQQ`, and `QQQE` at `2026-06-30`. Each route used its
+curated SEC-backed adapter, reported `sec_filing`/`sec` lineage, verified
+filing identity, echoed the requested cutoff, and returned composition no
+later than that cutoff. The focused live matrix passed `12/12`; the focused
+deterministic taxonomy/family-history/refresh matrix passed `46/46`.
+
+The exact branch-scoped `full_stack_browser` gate at this product tip passed
+backend units `1534/1534`, integration `404/404`, frontend Vitest `1067/1067`,
+functional E2E `165 passed` with `107 skipped`, and visual E2E `98/104`.
+Provider probes were `not configured` because `RUN_LIVE_PROVIDER_TESTS` was
+unset. The six unchanged protected visual diffs remain; branch-scoped Docker
+resources were cleaned. This is route evidence only, not proof of persisted
+snapshots/member bars, complete family readiness, D1/W1/MN floors, or
+rebalance continuity. No visual threshold/mask/skip, provider/fallback,
+migration, or acceptance policy changed; R1 and AC2–AC7/AC10 remain open.
+
+## 2026-09-13 — Older iShares family route matrix
+
+Product tip `32e1ab645` adds older-date coverage for every canonical iShares
+family leg at `2025-12-31`. The complete bounded date matrix passed `17/17`
+(eight new older-date routes, eight existing `2026-06-30` routes, and the
+dedicated older IWM case). Every route used the issuer public JSON as-of
+adapter, returned at least 100 rows, and stayed at or before the requested
+composition cutoff. Full backend units passed `1534/1534`; Ruff, formatting,
+and `git diff --check` passed. This proves route selection only; it does not
+claim persisted family population, member-bar floors, continuity, or readiness.
+The exact branch-scoped gate at docs tip `d7bbc4564` completed backend
+integration `404/404`, frontend Vitest `1067/1067`, functional E2E `165 passed`
+with `107 skipped`, and visual E2E `98/104`; provider probes were skipped
+because no provider-related paths changed. The six unchanged protected visual
+diffs remain open. No provider/fallback, visual, migration, or acceptance
+policy changed.
+
+## 2026-09-13 — Older IWM point-in-time history and exact gate receipt
+
+The final captured gate output confirms the receipt below rather than a
+partial or interrupted run: all non-visual stages completed, functional E2E
+was `165 passed` with `107 skipped`, visual E2E was `98/104`, and provider
+probes were `not configured`. The six protected baseline diffs are unchanged;
+all branch-scoped Docker resources were cleaned.
+
+Product tip `5caacf901` adds an older-date IWM history regression. The focused
+live suite passed `10/10` for the date-aware iShares cases, including
+2025-12-31 and 2026-06-30 with matching composition dates. The exact
+branch-scoped gate completed all stages: backend unit `1534/1534`, integration
+`404/404`, frontend Vitest `1067/1067`, functional browser `165 passed` with
+`107 skipped`, and visual `98/104`. Provider probes reported `not configured`
+because `RUN_LIVE_PROVIDER_TESTS` was unset. Only the six unchanged protected
+watchlist-column-editor/workspace-floating baselines failed; all Docker
+resources were cleaned. This remains a receipt rather than a waiver of R1
+population/history, D1/W1/MN floors and continuity, or AC2–AC7/AC10. No
+provider/fallback, visual threshold/mask/skip, migration, or acceptance policy
+changed.
+
+## 2026-09-13 — IWM historical route coverage and exact gate receipt
+
+The date-aware iShares family-history route matrix now covers IWM; the opt-in
+focused suite passed `9/9`, including the 2026-06-30 historical route with
+`2009` rows. At product tip `f36421f49`, the exact branch-scoped gate passed
+repository/workstream, dependency/migration, Ruff/format, TypeScript, backend
+unit (`1534/1534`), backend integration (`404/404`), frontend Vitest
+(`1067/1067`), compose/deployment, research-runner, and functional browser
+checks (`165 passed`, `107 skipped`). Provider probes reported `not
+configured` because the opt-in live probe variable was unset. Visual E2E
+passed `98/104`; only the six unchanged protected watchlist-column-editor and
+workspace-floating baselines failed. Docker resources were cleaned. This is
+a receipt, not a waiver of R1 provider population/history, D1/W1/MN floors and
+continuity, or AC2–AC7/AC10; no visual, provider/fallback, migration, or
+acceptance policy changed.
+
+## 2026-09-13 — Exact gate at corrected SLYG SEC identity tip
+
+At product tip `c7d84436f` and documentation/session tip `e7f37222a`, the
+exact branch-scoped gate passed repository/workstream, dependency/migration,
+Ruff/format, TypeScript, backend unit (`1534/1534`), backend integration
+(`404/404`), frontend Vitest (`1067/1067`), compose/deployment,
+research-runner, and functional browser checks (`165 passed`, `107 skipped`).
+Provider probes were skipped by the gate's no-provider-path-change detector.
+Visual E2E passed `98/104`; only the six unchanged protected
+watchlist-column-editor and workspace-floating baselines failed. Docker
+resources were cleaned. This is a receipt, not a waiver of R1 provider
+population/history, D1/W1/MN floors and continuity, or AC2–AC7/AC10.
+
+## 2026-09-13 — Correct SLYG SEC class route
+
+Product commit `c7d84436f` corrects SLYG's curated SEC series/class identity
+to `S000006990` / `C000019043` and makes identity-constrained SEC fallback
+reject parseable legacy filings whose fund identity does not match. The
+bounded identity search reaches 400 registrant-wide filings so the dated
+2025-12-31 SLYG N-PORT filing is reachable. Focused coverage passed `535/535`,
+full backend units passed `1534/1534`, and the corrected SLYG plus selected
+SPDR live routes passed `1/1` and `9/9`. No fallback, visual, threshold, skip,
+migration, or acceptance rule changed. This closes one R1 lineage seam only;
+provider population, history breadth, D1/W1/MN floors, continuity, and the
+remaining Version 25 gates remain required.
+
+## 2026-09-13 — Dock activation robustness and exact gate receipt
+
+Product commit `c9e3819c4` raises the bounded Golden Layout activation wait to
+four seconds so a cold component reinstall can acquire its real stack/header
+before the open action is judged complete. F9g/F9h passed as a sequence, five
+repeated F9h runs passed, and the exact branch-scoped gate completed all
+functional checks (`165 passed`, `107 skipped`) and `98/104` visual assertions.
+The six unchanged protected visual diffs remain watchlist-column-editor at
+1080p 100/125 and workspace-floating at 1080p 100/125 and 1440p 100/125. No
+visual threshold, mask, skip, provider, fallback, migration, or acceptance
+policy changed; this receipt does not waive provider completeness, D1/W1/MN
+floors, continuity, or the remaining Version 25 acceptance work.
+
+## 2026-09-13 — Bulk provider lineage promotion
+
+Product commit `a4ce2447c3` makes bulk OHLCV maintenance use the canonical
+provider upsert for every returned bar. A late provider-native observation can
+therefore promote a matching local adjusted row from derived to provider
+lineage while clearing derivation metadata; new-row counts remain stable.
+Focused bulk/market-data coverage passed `39/39`; full backend units passed
+`1532/1532` at 69.01% total coverage; Ruff, format, and diff checks passed.
+No provider, fallback, migration, visual, threshold, skip, or acceptance rule
+changed. This closes one R1 lineage seam only and does not waive family
+population, D1/W1/MN floors, continuity, or the remaining V25 gates.
+
+## 2026-09-13 — Reviewed family issuer/SEC history routes
+
+Nineteen selected opt-in iShares, SPDR, Invesco, and SEC-backed family-history
+route tests passed. The narrow pytest invocation exited only on its 15.13%
+subset coverage being below the repository 55% threshold; this is route-level
+evidence, not a full provider or acceptance gate. No code, provider/fallback,
+visual, threshold, skip, or acceptance policy changed.
+
+## 2026-09-12 — Event-first provider-factor refresh closure
+
+Product commit `d0bdba6d1` runs the existing provider-factor materializer after
+raw OHLCV persistence across range, latest-page, historical-page, and bulk
+refresh paths. This makes event-first and price-first arrival ordering
+equivalent while preserving fail-closed handling for unsupported, incomplete,
+mixed, or ambiguous factor evidence and preserving provider-native adjusted
+rows. Focused event/bulk/market-data coverage passes `41/41`; full backend
+units pass `1531/1531` at 69.01% total coverage; Ruff, format, and diff checks
+pass. No provider, fallback, migration, visual, or acceptance rule changed;
+provider completeness, bar floors, and the remaining V25 gates remain open.
+
+## 2026-09-12 — Exact full-stack gate at event-first provider-factor tip
+
+At product tip `d0bdba6d1`, the exact branch-scoped gate passed repository and
+workstream validation, locked dependencies and migration checks, Ruff
+check/format, TypeScript, backend unit (`1531/1531`), backend integration
+(`404/404`, `81.97%` combined coverage), research-runner sandbox/resource
+probes, and functional E2E (`165 passed`, `107 skipped`). Visual E2E passed
+`98/104`; the six unchanged protected diffs remain watchlist-column-editor at
+1080p 100/125 and workspace-floating at 1080p 100/125 and 1440p 100/125. The
+branch-scoped stack, volumes, and four built images were cleaned. No visual
+threshold, mask, skip, provider, fallback, migration, or acceptance rule
+changed. This receipt does not waive provider completeness, bar floors, or the
+remaining Version 25 acceptance work.
+
+## 2026-09-12 — Exact full-stack gate rechecked at provider-factor refresh tip
+
+At clean branch tip `04a7e283f` (product tip `77f63e7c5`, documentation tip
+`efff81c9f`), the exact branch-scoped gate passed locked dependency and
+migration checks, Ruff check/format, TypeScript, backend unit (`1530/1530`),
+backend integration (`404/404`, `81.98%` combined coverage), frontend unit
+(`1067/1067`), research-runner sandbox/resource probes, and functional E2E
+(`165 passed`, `107 skipped`). Visual acceptance remains `98/104` with only
+the six unchanged protected watchlist-column-editor and workspace-floating
+diffs. The stack, volumes, and four built images were cleaned. No visual
+threshold, mask, skip, provider, fallback, migration, or acceptance rule
+changed; this receipt does not waive provider completeness, bar floors, or the
+remaining V25 acceptance work.
+
+## 2026-09-12 — Backfill uses the latest-known effective disclosure
+
+The scheduled benchmark-family member-history maintenance contract now
+collapses persisted revisions sharing one symbol and effective composition
+date, selecting the latest-known row using the existing `known_at`/ID ordering.
+Corrected disclosures remain available for source-history and audit inspection;
+only redundant queue work and bounded snapshot-cap consumption are removed.
+The focused regression passes `27/27` and the full backend unit suite passes
+`1529/1529`. This does not waive provider-backed population, D1/W1/MN floors,
+or the remaining rebalance and Version 25 acceptance gates. No provider,
+fallback, visual, migration, or acceptance policy changed.
+
+## 2026-09-12 — Provider-factor event refresh wiring
+
+Instrument-event refreshes now trigger the existing local provider-factor
+materializer for raw timeframes already cached when the event response
+contains an explicit provider-supplied factor. The operation is fail-closed
+for amount-only, split-only, mixed, or incomplete evidence, preserves raw and
+provider-adjusted rows, and records the same provider-neutral derived lineage
+as the explicit route. Focused event/adjustment-factor coverage passes `22/22`
+and full backend units pass `1530/1530`; no provider, fallback, visual,
+migration, or acceptance rule changed. This is an R1 wiring gate, not a waiver
+of provider completeness, bar floors, or the remaining V25 acceptance work.
+
+## 2026-09-12 — Exact full-stack gate rechecked at revision-aware history tip
+
+The exact branch-scoped gate passed backend unit (`1529/1529`), backend
+integration (`404/404`, `81.98%` combined coverage), functional E2E (`165
+passed`, `107 skipped`), and all dependency, migration, build, contract,
+provider, sandbox, and research-runner checks. Visual acceptance remains
+`98/104` with only the six already protected watchlist-column-editor and
+workspace-floating diffs. Stack, volumes, and built images were cleaned. No
+visual threshold, mask, skip, provider, fallback, migration, or acceptance
+rule changed; this receipt does not waive the remaining provider/history or
+V25 work.
+
+## 2026-09-12 — Exact full-stack gate rechecked at point-in-time history tip
+
+The exact branch-scoped gate passed backend unit (`1528/1528`), backend
+integration (`404/404`, `81.98%` combined coverage), functional E2E (`165
+passed`, `107 skipped`), and all build, contract, provider, sandbox, and
+migration checks. Visual acceptance remains `98/104` with only the six already
+protected watchlist-column-editor and workspace-floating diffs. No visual
+threshold, mask, skip, provider, fallback, migration, or acceptance rule
+changed; stack and testcontainer resources were cleaned. This receipt keeps the
+existing protected-diff policy explicit and does not waive the remaining
+provider/history or exact V25 work.
+
+## 2026-09-12 — Point-in-time membership is now explicit in derived history
+
+The derived equal-weight history acceptance contract now requires membership
+selection at each observation timestamp, including effective and known-at
+semantics for canonical constituents. The regression proves a later-added
+constituent does not back-propagate into earlier observations and that the
+response exposes membership-selection semantics and version evidence. Focused
+Docker-backed integration coverage passes `2/2`; no visual baseline, mask,
+threshold, skip, provider, fallback, migration, or acceptance rule changed.
+This is a correctness gate for represented canonical history, not approval of
+provider completeness or the remaining V25 reference-state work.
+
+## 2026-09-12 — Structured Study Lab visual baseline synchronization
+
+The structured-result Study Lab fixture now shows the promotion fan-out that
+is part of the current product contract: named event filter/alert actions and
+finite scalar threshold actions are rendered alongside the scalar, bar,
+histogram, table, and occurrence outputs. The two affected Darwin 1080p local
+baselines were regenerated from the unchanged fixture with Playwright and
+rerun successfully (`2/2`). The exact branch gate subsequently passed backend
+unit (`1528/1528`), backend integration (`403/403`, `81.98%` combined
+coverage), functional E2E (`165 passed`, `107 skipped`), and `98/104` visual
+assertions; only the six already-protected watchlist-column-editor and
+workspace-floating diffs remain. No visual threshold, mask, skip, provider,
+fallback, or acceptance rule changed, and no acceptance flexibility was used.
+
 ## 2026-08-19 — Generic breadth-to-Study-Lab reuse gate
 
 The generic breadth acceptance contract now includes a direct save action: after evaluating a

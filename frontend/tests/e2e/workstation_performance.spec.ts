@@ -18,6 +18,40 @@ async function closePopupWhenOpen(popup: Page) {
 }
 
 test.describe('TC2000 workstation performance guards', () => {
+  test('defers optional research tools until they are opened', async ({ page, loggedIn, browserDiagnostics }) => {
+    test.setTimeout(90_000)
+    const requestedScripts: string[] = []
+    page.on('request', request => {
+      const url = new URL(request.url())
+      if (url.pathname.startsWith('/assets/') && url.pathname.endsWith('.js')) requestedScripts.push(url.pathname)
+    })
+
+    // The authenticated fixture resets this account to the factory workspace;
+    // reload after attaching the listener so this captures the real cold load.
+    await page.reload()
+    await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.rotation-tool')).toHaveCount(1, { timeout: 30_000 })
+
+    const deferredToolChunks = ['MarketMapTool', 'StudyLabTool', 'ResearchResultsTool', 'CodeLibraryTool', 'InstrumentInfoPanel']
+    expect(requestedScripts.some(path => deferredToolChunks.some(name => path.includes(`/${name}-`)))).toBe(false)
+
+    const toolsOpened = [
+      { title: 'Market Map', chunk: 'MarketMapTool', selector: '.market-map-tool' },
+      { title: 'Study Lab', chunk: 'StudyLabTool', selector: '.study-lab-tool' },
+      { title: 'Study Results', chunk: 'ResearchResultsTool', selector: '.research-results-tool' },
+      { title: 'Python Library', chunk: 'CodeLibraryTool', selector: '.code-library-tool' },
+      { title: 'Instrument Report', chunk: 'InstrumentInfoPanel', selector: '.instrument-report' },
+    ]
+
+    for (const tool of toolsOpened) {
+      await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+      await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: tool.title, exact: true }).click()
+      await expect(page.locator(`${tool.selector}:visible`).last()).toBeVisible({ timeout: 15_000 })
+      await expect.poll(() => requestedScripts.some(path => path.includes(`/${tool.chunk}-`))).toBe(true)
+    }
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('initializes multiple chart windows and recovers without canvas or tool growth', async ({ page, context, loggedIn, browserDiagnostics }) => {
     await page.goto('/chart')
     await expect(page.locator('.tool-window').first()).toBeVisible({ timeout: 10_000 })
@@ -49,6 +83,10 @@ test.describe('TC2000 workstation performance guards', () => {
     const ratioTools = page.locator('.ratio-chart')
     if (await ratioTools.count()) {
       await expect.poll(() => page.locator('.ratio-chart[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await ratioTools.count())
+    }
+    const chartRoots = page.locator('.chart-root')
+    if (await chartRoots.count()) {
+      await expect.poll(() => page.locator('.chart-root[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await chartRoots.count())
     }
     const rotationTools = page.locator('.rotation-tool')
     if (await rotationTools.count()) {
@@ -134,6 +172,10 @@ test.describe('TC2000 workstation performance guards', () => {
     if (await ratioTools.count()) {
       await expect.poll(() => page.locator('.ratio-chart[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await ratioTools.count())
     }
+    const chartRoots = page.locator('.chart-root')
+    if (await chartRoots.count()) {
+      await expect.poll(() => page.locator('.chart-root[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await chartRoots.count())
+    }
     const rotationTools = page.locator('.rotation-tool')
     if (await rotationTools.count()) {
       await expect.poll(() => page.locator('.rotation-tool[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await rotationTools.count())
@@ -193,6 +235,220 @@ test.describe('TC2000 workstation performance guards', () => {
       expect(Math.max(...memorySamples)).toBeLessThan(512 * 1024 * 1024)
       expect(Math.max(...memorySamples) - memorySamples[0]).toBeLessThan(256 * 1024 * 1024)
     }
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('hydrates a 10,000-row personal watchlist over the network within the row budget', async ({ page, request, loggedIn, browserDiagnostics }) => {
+    test.skip(process.env.E2E_SEED_LARGE_UNIVERSE !== 'true', 'requires the opt-in controlled dense-universe fixture')
+    test.setTimeout(120_000)
+
+    const token = await page.evaluate(() => localStorage.getItem('access_token'))
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+    const instrumentIds: number[] = []
+    let pageNumber = 1
+    while (instrumentIds.length < 10_000) {
+      const response = await request.get('/api/v1/instruments/browse', {
+        headers,
+        params: { q: 'E2E_ROW_', page: pageNumber, page_size: 200 },
+      })
+      expect(response.ok()).toBeTruthy()
+      const body = await response.json() as { total: number; items: Array<{ id: number }> }
+      expect(body.total).toBeGreaterThanOrEqual(10_000)
+      instrumentIds.push(...body.items.map(item => item.id))
+      if (!body.items.length) break
+      pageNumber += 1
+    }
+    expect(instrumentIds).toHaveLength(10_000)
+
+    const name = `E2E 10k network budget ${Date.now().toString(36)}`
+    const created = await request.post('/api/v1/watchlists', {
+      headers,
+      data: { name },
+    })
+    expect(created.status()).toBe(200)
+    const watchlist = await created.json() as { id: number }
+    const seeded = await request.post(`/api/v1/watchlists/${watchlist.id}/seed`, {
+      headers,
+      data: { instrument_ids: instrumentIds },
+    })
+    expect(seeded.status()).toBe(200)
+    await seeded.dispose()
+
+    try {
+      await page.goto('/chart')
+      await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+      const toolMenu = page.locator('.workstation__tool-library-menu')
+      await expect(toolMenu).toBeVisible({ timeout: 10_000 })
+      await toolMenu.getByRole('menuitem', { name: 'WatchList', exact: true }).click()
+      const watchlistTab = page.locator('.lm_tab').filter({ hasText: 'WatchList' }).last()
+      await expect(watchlistTab).toBeVisible({ timeout: 10_000 })
+      if (!(await watchlistTab.evaluate(node => node.classList.contains('lm_active')))) await watchlistTab.click()
+      const personal = page.locator('.tool-window--active .personal-watchlist-tool').last()
+      await expect(personal).toBeVisible({ timeout: 10_000 })
+      const select = personal.getByRole('combobox', { name: 'Personal watchlist', exact: true })
+      await expect(select.locator('option', { hasText: name })).toHaveCount(1, { timeout: 30_000 })
+      await select.selectOption({ label: name })
+      const virtualWatchlist = personal.locator('.watchlist')
+      await expect(virtualWatchlist).toHaveAttribute('data-row-count', '10000', { timeout: 30_000 })
+      await expect(virtualWatchlist).toHaveAttribute('data-row-budget', 'within')
+      await expect.poll(async () => Number(await virtualWatchlist.getAttribute('data-rendered-row-count'))).toBeLessThan(100)
+      await expect.poll(() => virtualWatchlist.locator('.watchlist__row').count()).toBeLessThan(100)
+      await browserDiagnostics.expectNoCriticalIssues()
+    } finally {
+      const deleted = await request.delete(`/api/v1/watchlists/${watchlist.id}`, { headers })
+      expect([200, 204, 404]).toContain(deleted.status())
+    }
+  })
+
+  test('renders and interacts with a 10,000-cell Market Map within the canvas budget', async ({ page, loggedIn, browserDiagnostics }, testInfo) => {
+    test.setTimeout(90_000)
+
+    // This is a consumer-side stress fixture: the map is supplied by the
+    // existing Market Map read contract, so the test exercises TC geometry,
+    // canvas painting, hit testing, keyboard search, zoom and pan without
+    // manufacturing provider or canonical-history evidence.
+    const source = {
+      source_id: 'watchlist:tc2000-10k-map',
+      source_kind: 'personal',
+      name: 'TC2000 10k canvas fixture',
+      locked: false,
+      can_follow: true,
+      can_clone: true,
+      can_edit_membership: true,
+      member_count: 10_000,
+      membership_version: 'watchlist:tc2000-10k-map:v1',
+      provenance: { availability: 'available' },
+    }
+    const cells = Array.from({ length: 10_000 }, (_, index) => ({
+      instrument_id: index + 1,
+      symbol: index === 9_999 ? 'SPY' : `E2E_MAP_${String(index).padStart(5, '0')}`,
+      name: `Synthetic Market Map member ${index}`,
+      sector: null,
+      industry: null,
+      group_path: [],
+      area_value: 1,
+      color_value: (index % 21 - 10) / 100,
+      return_value: (index % 21 - 10) / 100,
+      coverage: 1,
+      color_coverage: 1,
+      area_coverage: 1,
+      warnings: [],
+    }))
+    await page.route('**/api/v1/watchlists/sources**', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      if (pathname.includes('/history-status/')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          source_id: source.source_id,
+          source_kind: source.source_kind,
+          name: source.name,
+          locked: false,
+          membership_version: source.membership_version,
+          max_instruments: 10_000,
+          available_instrument_count: 10_000,
+          selected_instrument_count: 10_000,
+          limited: false,
+          excluded_count: 0,
+          overall_status: 'ready',
+          timeframes: [],
+        }) })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([source]) })
+    })
+    await page.route('**/api/v1/watchlists', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    })
+    await page.route('**/api/v1/analysis/market-map/snapshots**', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    })
+    await page.route('**/api/v1/analysis/market-map', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        source,
+        group_by: 'sector_industry',
+        period: '1D',
+        period_start: '2026-10-05T00:00:00Z',
+        period_end: '2026-10-06T00:00:00Z',
+        timeframe: 'D1',
+        adjustment: 'split_adjusted',
+        area_metric: 'equal',
+        color_metric: 'return',
+        membership_version: source.membership_version,
+        calculation_version: 'market-map-performance-fixture-v1',
+        cache_key: 'tc2000-10k-map-performance-fixture',
+        cache_hit: false,
+        freshness: 'current',
+        freshness_detail: { requested: 10_000, current: 10_000, stale: 0, other: 0 },
+        requested_count: 10_000,
+        evaluated_count: 10_000,
+        coverage: 1,
+        color_coverage: 1,
+        area_coverage: 1,
+        warnings: [],
+        exclusions: [],
+        nodes: [{ node_id: 'root', level: 'root', label: 'All members', group_path: [], member_count: 10_000, covered_count: 10_000, area_total: 10_000, color_value: 0, coverage: 1, color_coverage: 1, area_coverage: 1, aggregation_method: 'equal_member_mean', warnings: [] }],
+        cells,
+      }) })
+    })
+
+    await page.goto('/chart/SPY')
+    await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Market Map', exact: true }).click()
+    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    await expect(mapWindow).toBeVisible({ timeout: 15_000 })
+    const sourcePicker = mapWindow.getByRole('combobox', { name: 'Market Map universe' })
+    await expect(sourcePicker).toContainText(source.name, { timeout: 15_000 })
+    await sourcePicker.selectOption(source.source_id)
+
+    await page.evaluate(() => { (window as Window & { __tc2000MapStart?: number }).__tc2000MapStart = performance.now() })
+    await mapWindow.getByRole('button', { name: 'Refresh Market Map', exact: true }).click()
+    const canvas = mapWindow.locator('canvas.market-map-tool__canvas-map')
+    await expect(canvas).toBeVisible({ timeout: 15_000 })
+    await expect(canvas).toHaveAttribute('aria-label', '10000 Market Map members')
+    await expect.poll(() => canvas.evaluate(element => (element as HTMLCanvasElement).width)).toBeGreaterThan(0)
+    expect(await mapWindow.locator('.market-map-tool__tile').count()).toBe(0)
+    const renderMilliseconds = await page.evaluate(() => performance.now() - ((window as Window & { __tc2000MapStart?: number }).__tc2000MapStart ?? performance.now()))
+    expect(renderMilliseconds, '10,000 cells must reach a painted canvas within the declared 5-second local budget').toBeLessThan(5_000)
+    await testInfo.attach('market-map-10k-render-budget.json', {
+      body: JSON.stringify({ cells: 10_000, render_milliseconds: Math.round(renderMilliseconds * 100) / 100, budget_milliseconds: 5_000 }),
+      contentType: 'application/json',
+    })
+
+    // Canvas pointer hit-testing selects a real cell; the search affordance
+    // then provides deterministic keyboard selection for the dense mode.
+    // Scroll the map viewport, which remains mounted while its map data is
+    // present, rather than targeting its conditional canvas child. Re-resolve
+    // the canvas after scrolling before preserving the real pointer hit-test.
+    const viewport = mapWindow.locator('.market-map-tool__tiles')
+    await viewport.scrollIntoViewIfNeeded()
+    const pointerCanvas = mapWindow.locator('canvas.market-map-tool__canvas-map')
+    await expect(pointerCanvas).toBeVisible()
+    await expect(pointerCanvas).toHaveAttribute('aria-label', '10000 Market Map members')
+    const canvasBounds = await pointerCanvas.boundingBox()
+    expect(canvasBounds).not.toBeNull()
+    await pointerCanvas.hover()
+    await expect(mapWindow.locator('.market-map-tool__hover')).toBeVisible()
+    await expect(mapWindow.locator('.market-map-tool__hover')).toContainText('Synthetic Market Map member')
+
+    const memberSearch = mapWindow.getByRole('textbox', { name: 'Find Large Market Map member' })
+    await memberSearch.fill('SPY')
+    await memberSearch.press('Enter')
+    await expect(mapWindow.locator('.market-map-tool__source-analysis-actions')).toContainText('1 selected members')
+    await expect(mapWindow.locator('.market-map-tool__selection-announcement'))
+      .toHaveText('1 selected member: SPY')
+
+    const mapCanvas = mapWindow.locator('.market-map-tool__canvas')
+    await mapWindow.getByRole('button', { name: 'Zoom in Market Map' }).click()
+    await expect(mapCanvas).toHaveAttribute('style', /scale\(1\.25\)/)
+    await viewport.scrollIntoViewIfNeeded()
+    const viewportBounds = await viewport.boundingBox()
+    expect(viewportBounds).not.toBeNull()
+    const panStartX = viewportBounds!.x + viewportBounds!.width / 2
+    const panStartY = viewportBounds!.y + viewportBounds!.height / 2
+    await page.mouse.move(panStartX, panStartY)
+    await page.mouse.down()
+    await page.mouse.move(panStartX - 60, panStartY - 30, { steps: 4 })
+    await page.mouse.up()
+    await expect(mapCanvas).toHaveAttribute('style', /translate\((?!0%, 0%)[^)]+\) scale\(1\.25\)/)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 })

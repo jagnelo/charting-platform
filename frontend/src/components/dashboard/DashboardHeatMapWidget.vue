@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { useAlertsStore } from '@/stores/alerts'
 import { useWatchlistStore } from '@/stores/watchlist'
@@ -162,6 +162,7 @@ const error = ref('')
 const canvasW = ref(0)
 const canvasH = ref(0)
 let loadSeq = 0
+let mounted = false
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 let resizeObserver: ResizeObserver | null = null
 
@@ -213,12 +214,13 @@ async function resolveInstrumentIds(): Promise<number[]> {
 // ── Data loading ──────────────────────────────────────────────────────────────
 async function load() {
   const seq = ++loadSeq
+  if (!mounted) return
   loading.value = true
   error.value = ''
 
   try {
     const ids = await resolveInstrumentIds()
-    if (seq !== loadSeq) return
+    if (!mounted || seq !== loadSeq) return
     if (!ids.length) { rows.value = []; return }
 
     const data = await api.post<HeatRow[]>('/instruments/heatmap-data', {
@@ -227,11 +229,12 @@ async function load() {
       sparkline_bars: 40,
       include_sparklines: showSparklines.value,
     })
-    if (seq !== loadSeq) return
+    if (!mounted || seq !== loadSeq) return
 
     // Apply live 1D price from watchlistStore if available and metric is perf_1d
     const symbols = data.map(r => r.symbol).filter(Boolean)
     if (symbols.length) await watchlistStore.fetchPrices(symbols, false)
+    if (!mounted || seq !== loadSeq) return
 
     for (const row of data) {
       const live = watchlistStore.priceMap[row.symbol]
@@ -243,12 +246,12 @@ async function load() {
 
     rows.value = data
   } catch (e: any) {
-    if (seq === loadSeq) {
+    if (mounted && seq === loadSeq) {
       error.value = e?.message ?? 'Heat map unavailable'
       rows.value = []
     }
   } finally {
-    if (seq === loadSeq) loading.value = false
+    if (mounted && seq === loadSeq) loading.value = false
   }
 }
 
@@ -606,11 +609,11 @@ function measureCanvas() {
 // ── Watchers / lifecycle ──────────────────────────────────────────────────────
 watch(
   () => [props.config.universeType, props.config.watchlistId, props.config.screenerId, props.config.timeframe, props.config.showSparklines],
-  load,
+  () => { if (mounted) void load() },
 )
 watch(() => watchlistStore.priceMap, () => {
   // refresh live 1D pct values reactively
-  if (!rows.value.length) return
+  if (!mounted || !rows.value.length) return
   for (const row of rows.value) {
     const live = watchlistStore.priceMap[row.symbol]
     if (live) {
@@ -621,7 +624,8 @@ watch(() => watchlistStore.priceMap, () => {
 }, { deep: false })
 
 onMounted(() => {
-  load()
+  mounted = true
+  void load()
   resizeObserver = new ResizeObserver(measureCanvas)
   const target = canvasEl.value ?? rootEl.value
   if (target) resizeObserver.observe(target)
@@ -637,6 +641,11 @@ watch(canvasEl, (el) => {
     resizeObserver = new ResizeObserver(measureCanvas)
     resizeObserver.observe(el)
   }
+})
+
+onBeforeUnmount(() => {
+  mounted = false
+  loadSeq += 1
 })
 
 onUnmounted(() => {

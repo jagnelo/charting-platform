@@ -10,6 +10,8 @@
       type="button"
       class="symbol-list__row"
       :class="{ 'symbol-list__row--active': symbol === selected }"
+      :aria-pressed="symbol === selected ? 'true' : 'false'"
+      :aria-label="symbolRowLabel(symbol)"
       @click="emit('select', symbol)"
     >
       <strong>{{ symbol }}</strong>
@@ -21,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   label: string
   symbols: string[]
   selected?: string
@@ -37,6 +39,12 @@ withDefaults(defineProps<{
 
 const emit = defineEmits<{ select: [symbol: string] }>()
 const formatMetric = (value: number | null) => value == null ? '—' : `${(value * 100).toFixed(2)}%`
+function symbolRowLabel(symbol: string) {
+  const description = props.descriptions[symbol] ?? 'Loading canonical metadata'
+  const metric = props.metrics[symbol] != null ? `, ${formatMetric(props.metrics[symbol])}` : ''
+  const ratio = props.comparison ? `, ratio ${symbol}/${props.comparison}` : ''
+  return `${symbol}, ${description}${metric}${ratio}`
+}
 </script>
 
 <style scoped>

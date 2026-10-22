@@ -19,6 +19,7 @@ from app.routers import (
     dashboards,
     drawings,
     etf_holdings,
+    favorites,
     indicators,
     instrument_indicators,
     instruments,
@@ -42,6 +43,7 @@ from app.services.alert_engine import run_alert_check
 from app.services.distributed_locks import close_shared_redis_lock_client
 from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
 from app.services.provider_runtime import seed_provider_runtime
+from app.services.tc_e2e_seed import seed_e2e_large_universe
 from app.services.workstation_bootstrap import ensure_core_workstation_identities
 
 logging.basicConfig(
@@ -60,6 +62,8 @@ async def lifespan(app: FastAPI):
             await seed_e2e_instruments(db)
         if settings.E2E_SEED_MARKET_DATA:
             await seed_e2e_market_data(db)
+        if settings.E2E_SEED_LARGE_UNIVERSE:
+            await seed_e2e_large_universe(db, settings.E2E_SEED_LARGE_UNIVERSE_COUNT)
         # The curated identity bootstrap is not market-data or holdings
         # fixture data. It makes a clean deployment's immutable US Top Down
         # layout immediately navigable while provider-backed bars and
@@ -119,6 +123,7 @@ app.include_router(strategy_lab.router, prefix=PREFIX)
 app.include_router(indicators.router, prefix=PREFIX)
 app.include_router(instrument_indicators.router, prefix=PREFIX)
 app.include_router(watchlists.router, prefix=PREFIX)
+app.include_router(favorites.router, prefix=PREFIX)
 app.include_router(screener_alerts.router, prefix=PREFIX)
 app.include_router(calendar.router, prefix=PREFIX)
 app.include_router(coverage.router, prefix=PREFIX)
@@ -141,4 +146,8 @@ async def health():
         "version": "2.0.0",
         "e2e_seed_instruments": settings.E2E_SEED_INSTRUMENTS,
         "e2e_seed_market_data": settings.E2E_SEED_MARKET_DATA,
+        "e2e_seed_large_universe": settings.E2E_SEED_LARGE_UNIVERSE,
+        "e2e_seed_large_universe_count": (
+            settings.E2E_SEED_LARGE_UNIVERSE_COUNT if settings.E2E_SEED_LARGE_UNIVERSE else 0
+        ),
     }

@@ -81,7 +81,15 @@ class InstrumentEventRecord:
     eps_surprise_pct: Decimal | None = None
     dividend_amount: Decimal | None = None
     split_ratio: Decimal | None = None
+    adjustment_factor: Decimal | None = None
     raw_payload: str | None = None
+
+    def __post_init__(self) -> None:
+        factor = self.adjustment_factor
+        if factor is None:
+            return
+        if not isinstance(factor, Decimal) or not factor.is_finite() or factor <= 0:
+            raise ValueError("adjustment_factor must be a finite positive Decimal")
 
 
 @dataclass(slots=True)

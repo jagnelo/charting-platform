@@ -12,6 +12,7 @@ from app.database import AsyncSessionLocal
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.errors import bounded_redact_provider_message
+from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import fetch_ohlcv
 from app.services.market_data_monitoring import build_shadow_report
 from app.services.market_refresh_queue import (
@@ -83,14 +84,18 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
 
         logger.info(f"Refreshing data for {len(instruments)} instruments")
         total_bars = 0
+        derived_bars = {Timeframe.W1.value: 0, Timeframe.MN.value: 0}
 
         for instrument in instruments:
+            has_daily_history = False
             for tf in NIGHTLY_REFRESH_TIMEFRAMES:
                 try:
                     newest = await _get_newest_bar_ts(db, instrument.id, tf)
                     if newest is None:
                         # No data for this TF yet — bulk fetch handles this, skip
                         continue
+                    if tf == Timeframe.D1:
+                        has_daily_history = True
                     # Small overlap buffer to catch any late-arriving bars
                     start = newest - timedelta(hours=1)
                     bars = await fetch_ohlcv(db, instrument, tf, start, redis=ctx.get("redis"))
@@ -103,7 +108,27 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
                         bounded_redact_provider_message(e),
                     )
 
-        return {"instruments_refreshed": len(instruments), "total_bars": total_bars}
+            # Coarse views are derived only from persisted canonical D1 bars;
+            # this adds no provider request and cannot fabricate observations.
+            if has_daily_history:
+                try:
+                    derived = await materialize_derived_timeframes(db, instrument.id)
+                    for timeframe in (Timeframe.W1.value, Timeframe.MN.value):
+                        derived_bars[timeframe] += int(derived.get(timeframe, 0))
+                    await db.commit()
+                except Exception as exc:  # noqa: BLE001 - continue the nightly refresh safely
+                    await db.rollback()
+                    logger.error(
+                        "Coarse history materialization failed %s: %s",
+                        instrument.symbol,
+                        bounded_redact_provider_message(exc),
+                    )
+
+        return {
+            "instruments_refreshed": len(instruments),
+            "total_bars": total_bars,
+            "derived_bars": derived_bars,
+        }
 
 
 async def enqueue_core_refresh_jobs(ctx: dict) -> dict:

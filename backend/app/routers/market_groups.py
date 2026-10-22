@@ -1,6 +1,6 @@
 """Canonical, point-in-time market-group read APIs."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -67,13 +67,17 @@ async def _historical_profile_payloads(
 
     if as_of is None or not instrument_ids:
         return {}
+    evaluation_at = as_of if as_of.tzinfo is not None else as_of.replace(tzinfo=UTC)
+    evaluation_at = evaluation_at.astimezone(UTC)
     snapshots = (
         (
             await db.execute(
                 select(InstrumentProfileSnapshot)
                 .where(
                     InstrumentProfileSnapshot.instrument_id.in_(instrument_ids),
-                    InstrumentProfileSnapshot.observed_at <= as_of,
+                    InstrumentProfileSnapshot.observed_at <= evaluation_at,
+                    InstrumentProfileSnapshot.fetched_at.is_not(None),
+                    InstrumentProfileSnapshot.fetched_at <= evaluation_at,
                 )
                 .order_by(
                     InstrumentProfileSnapshot.instrument_id,

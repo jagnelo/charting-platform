@@ -207,6 +207,422 @@ describe('useChartStore', () => {
     expect(api.get).not.toHaveBeenCalledWith('/ohlcv/SPY/D1', expect.anything())
   })
 
+  it('starts local workstation bars while canonical instrument metadata is resolving', async () => {
+    let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    let localBarsRequested = false
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/XLB') {
+        return new Promise(resolve => { releaseInstrument = resolve }) as any
+      }
+      if (path === '/ohlcv/local/XLB/D1') {
+        localBarsRequested = true
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const loading = store.loadBars('XLB', 'D1', 'candles', true)
+
+    await vi.waitFor(() => expect(localBarsRequested).toBe(true))
+    expect(api.get).not.toHaveBeenCalledWith('/instrument-indicators/42')
+    releaseInstrument({ id: 42, symbol: 'XLB', stats: { week52_high: 1 } })
+    await loading
+
+    expect(store.bars).toHaveLength(1)
+    expect(api.get).toHaveBeenCalledWith('/instrument-indicators/42')
+  })
+
+  it('publishes workstation bars before slow indicator hydration completes', async () => {
+    let releaseIndicators!: (value: { indicators: unknown[] }) => void
+    const indicator = { type: 'rsi', params: { period: 14 }, style: { color: '#f5a623' }, pane: 'separate' }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/POINTER') {
+        return Promise.resolve({ id: 42, symbol: 'POINTER', stats: { week52_high: 1 } }) as any
+      }
+      if (path === '/ohlcv/local/POINTER/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') {
+        return new Promise(resolve => { releaseIndicators = resolve }) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const loading = store.loadBars('POINTER', 'D1', 'candles', true)
+
+    await vi.waitFor(() => expect(store.bars).toHaveLength(1))
+    const loadingWhileIndicatorsPending = store.loading
+    const barsWhileIndicatorsPending = store.uplotData[0].length
+    releaseIndicators({ indicators: [indicator] })
+    await loading
+
+    expect(loadingWhileIndicatorsPending).toBe(false)
+    expect(barsWhileIndicatorsPending).toBe(1)
+    expect(store.loading).toBe(false)
+    expect(store.indicators).toEqual([indicator])
+  })
+
+  it('coalesces concurrent identical chart hydration from shared mounted roots', async () => {
+    let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/COALESCE') {
+        return new Promise(resolve => { releaseInstrument = resolve }) as any
+      }
+      if (path === '/ohlcv/local/COALESCE/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const firstMountedRoot = store.loadBars('COALESCE', 'D1', 'candles', true)
+    await vi.waitFor(() => expect(releaseInstrument).toBeTypeOf('function'))
+    const secondMountedRoot = store.loadBars('COALESCE', 'D1', 'candles', true)
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/COALESCE')).toHaveLength(1)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/COALESCE/D1')).toHaveLength(1)
+
+    releaseInstrument({ id: 42, symbol: 'COALESCE', stats: { week52_high: 1 } })
+    await Promise.all([firstMountedRoot, secondMountedRoot])
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(1)
+    expect(store.bars).toHaveLength(1)
+    expect(store.loading).toBe(false)
+  })
+
+  it('starts a fresh identical hydration after the prior request settles', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH') return Promise.resolve({ id: 42, symbol: 'REFRESH', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/REFRESH/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH', 'D1', 'candles', true)
+    await store.loadBars('REFRESH', 'D1', 'candles', true)
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/REFRESH')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(2)
+  })
+
+  it('refreshes a settled identical selection without replacing its rendered state', async () => {
+    let barsRequest = 0
+    let indicatorRequest = 0
+    let releaseRefreshedIndicators!: (value: { indicators: any[] }) => void
+    const indicator = {
+      type: 'rsi',
+      params: { period: 14 },
+      style: { color: '#f5a623', lineWidth: 1 },
+      pane: 'separate',
+    }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH-STABLE') return Promise.resolve({ id: 42, symbol: 'REFRESH-STABLE', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/REFRESH-STABLE/D1') {
+        barsRequest += 1
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: barsRequest === 1 ? 2 : 2.5, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') {
+        indicatorRequest += 1
+        if (indicatorRequest === 1) return Promise.resolve({ indicators: [{ ...indicator, params: { ...indicator.params }, style: { ...indicator.style } }] }) as any
+        return new Promise(resolve => { releaseRefreshedIndicators = resolve }) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH-STABLE', 'D1', 'candles', true)
+    const renderedBars = store.bars
+    const renderedIndicators = store.indicators
+
+    const refresh = store.loadBars('REFRESH-STABLE', 'D1', 'candles', true)
+    await vi.waitFor(() => expect(releaseRefreshedIndicators).toBeTypeOf('function'))
+
+    expect(store.loading).toBe(false)
+    expect(store.bars).toBe(renderedBars)
+    expect(store.indicators).toBe(renderedIndicators)
+
+    releaseRefreshedIndicators({ indicators: [{ ...indicator, params: { ...indicator.params }, style: { ...indicator.style } }] })
+    await refresh
+
+    expect(store.bars[0].close).toBe(2.5)
+    expect(store.indicators).toBe(renderedIndicators)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/REFRESH-STABLE')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/REFRESH-STABLE/D1')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(2)
+  })
+
+  it('applies a changed indicator stack during a settled same-scope refresh', async () => {
+    let indicatorRequest = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH-CHANGED') return Promise.resolve({ id: 42, symbol: 'REFRESH-CHANGED', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/REFRESH-CHANGED/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') {
+        indicatorRequest += 1
+        return Promise.resolve({
+          indicators: [{
+            type: 'rsi',
+            params: { period: indicatorRequest === 1 ? 14 : 21 },
+            style: { color: '#f5a623', lineWidth: 1 },
+            pane: 'separate',
+          }],
+        }) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH-CHANGED', 'D1', 'candles', true)
+    const renderedIndicators = store.indicators
+
+    await store.loadBars('REFRESH-CHANGED', 'D1', 'candles', true)
+
+    expect(store.indicators).not.toBe(renderedIndicators)
+    expect(store.indicators[0].params).toEqual({ period: 21 })
+  })
+
+  it('keeps rendered bars and reports an error when a settled same-scope refresh fails', async () => {
+    let barsRequest = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/REFRESH-FAIL') return Promise.resolve({ id: 42, symbol: 'REFRESH-FAIL', stats: { week52_high: 1 } }) as any
+      if (path === '/ohlcv/local/REFRESH-FAIL/D1') {
+        barsRequest += 1
+        if (barsRequest === 2) return Promise.reject(new Error('refresh unavailable')) as any
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('REFRESH-FAIL', 'D1', 'candles', true)
+    const renderedBars = store.bars.map(bar => ({ ...bar }))
+
+    await store.loadBars('REFRESH-FAIL', 'D1', 'candles', true)
+
+    expect(store.loading).toBe(false)
+    expect(store.bars).toEqual(renderedBars)
+    expect(store.error).toBe('refresh unavailable')
+  })
+
+  it('clears rendered local bars while the same symbol switches to the provider route', async () => {
+    let instrumentRequest = 0
+    let releaseProviderInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/ROUTE') {
+        instrumentRequest += 1
+        if (instrumentRequest === 1) return Promise.resolve({ id: 42, symbol: 'ROUTE', stats: { week52_high: 1 } }) as any
+        return new Promise(resolve => { releaseProviderInstrument = resolve }) as any
+      }
+      if (path === '/ohlcv/local/ROUTE/D1' || path === '/ohlcv/ROUTE/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('ROUTE', 'D1', 'candles', true)
+    expect(store.bars).toHaveLength(1)
+
+    const providerLoad = store.loadBars('ROUTE', 'D1', 'candles', false)
+    await vi.waitFor(() => expect(releaseProviderInstrument).toBeTypeOf('function'))
+
+    expect(store.loading).toBe(true)
+    expect(store.bars).toEqual([])
+
+    releaseProviderInstrument({ id: 42, symbol: 'ROUTE', stats: { week52_high: 1 } })
+    await providerLoad
+    expect(store.localOnlyMode).toBe(false)
+    expect(store.bars).toHaveLength(1)
+  })
+
+  it('clears rendered bars when prechanged chart refs request a new transform scope', async () => {
+    let instrumentRequest = 0
+    let releaseTransformedInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/SCOPE') {
+        instrumentRequest += 1
+        if (instrumentRequest === 1) return Promise.resolve({ id: 42, symbol: 'SCOPE', stats: { week52_high: 1 } }) as any
+        return new Promise(resolve => { releaseTransformedInstrument = resolve }) as any
+      }
+      if (path === '/ohlcv/local/SCOPE/D1' || path === '/ohlcv/SCOPE/D1/transformed') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('SCOPE', 'D1', 'candles', true)
+    expect(store.bars).toHaveLength(1)
+
+    store.setBarType('renko')
+    store.transformParams = { brick_size: 4 }
+    const transformedLoad = store.loadBars('SCOPE', 'D1', 'renko', true, { brick_size: 4 })
+    await vi.waitFor(() => expect(releaseTransformedInstrument).toBeTypeOf('function'))
+
+    expect(store.loading).toBe(true)
+    expect(store.bars).toEqual([])
+
+    releaseTransformedInstrument({ id: 42, symbol: 'SCOPE', stats: { week52_high: 1 } })
+    await transformedLoad
+    expect(store.barType).toBe('renko')
+    expect(store.transformParams).toEqual({ brick_size: 4 })
+    expect(store.bars).toHaveLength(1)
+  })
+
+  it('does not coalesce in-flight timeframe, transform, or route-mode changes', async () => {
+    let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    const instrument = new Promise(resolve => { releaseInstrument = resolve })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/VARIANT') return instrument as any
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path.startsWith('/ohlcv/')) {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const requests = [
+      store.loadBars('VARIANT', 'D1', 'candles', true),
+      store.loadBars('VARIANT', 'W1', 'candles', true),
+      store.loadBars('VARIANT', 'W1', 'renko', true, { brick_size: 4 }),
+      store.loadBars('VARIANT', 'W1', 'renko', false, { brick_size: 4 }),
+    ]
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/VARIANT')).toHaveLength(4)
+    releaseInstrument({ id: 42, symbol: 'VARIANT', stats: { week52_high: 1 } })
+    await Promise.all(requests)
+
+    expect(store.symbol).toBe('VARIANT')
+    expect(store.timeframe).toBe('W1')
+    expect(store.barType).toBe('renko')
+    expect(store.localOnlyMode).toBe(false)
+  })
+
+  it('does not coalesce changed-symbol or ABA selections while prior loads are pending', async () => {
+    const pendingInstruments = new Map<string, Array<{
+      resolve: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    }>>()
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path.startsWith('/instruments/')) {
+        const symbol = path.slice('/instruments/'.length)
+        return new Promise(resolve => {
+          const pending = pendingInstruments.get(symbol) ?? []
+          pending.push({ resolve: resolve as (value: { id: number; symbol: string; stats: { week52_high: number } }) => void })
+          pendingInstruments.set(symbol, pending)
+        }) as any
+      }
+      if (path.startsWith('/ohlcv/local/')) return Promise.resolve([]) as any
+      if (path.startsWith('/instrument-indicators/')) return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const firstA = store.loadBars('AAA', 'D1', 'candles', true)
+    const middleB = store.loadBars('BBB', 'D1', 'candles', true)
+    const latestA = store.loadBars('AAA', 'D1', 'candles', true)
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/AAA')).toHaveLength(2)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/BBB')).toHaveLength(1)
+
+    pendingInstruments.get('AAA')?.[0].resolve({ id: 1, symbol: 'AAA', stats: { week52_high: 1 } })
+    pendingInstruments.get('BBB')?.[0].resolve({ id: 2, symbol: 'BBB', stats: { week52_high: 1 } })
+    pendingInstruments.get('AAA')?.[1].resolve({ id: 3, symbol: 'AAA', stats: { week52_high: 1 } })
+    await Promise.all([firstA, middleB, latestA])
+
+    expect(store.symbol).toBe('AAA')
+    expect(store.instrument?.id).toBe(3)
+  })
+
+  it('keeps a newer in-flight load coalesced when an older failed request settles', async () => {
+    let rejectOldInstrument!: (reason?: unknown) => void
+    let resolveNewInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/OLD') {
+        return new Promise((_resolve, reject) => { rejectOldInstrument = reject }) as any
+      }
+      if (path === '/instruments/NEW') {
+        return new Promise(resolve => { resolveNewInstrument = resolve }) as any
+      }
+      if (path.startsWith('/ohlcv/local/')) return Promise.resolve([]) as any
+      if (path === '/instrument-indicators/2') return Promise.resolve({ indicators: [] }) as any
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const oldLoad = store.loadBars('OLD', 'D1', 'candles', true)
+    const newLoad = store.loadBars('NEW', 'D1', 'candles', true)
+
+    rejectOldInstrument(new Error('old request failed'))
+    await oldLoad
+    const duplicateNewLoad = store.loadBars('NEW', 'D1', 'candles', true)
+
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instruments/NEW')).toHaveLength(1)
+    resolveNewInstrument({ id: 2, symbol: 'NEW', stats: { week52_high: 1 } })
+    await Promise.all([newLoad, duplicateNewLoad])
+
+    expect(store.symbol).toBe('NEW')
+    expect(store.instrument?.id).toBe(2)
+  })
+
+  it('keeps provider-capable bars behind canonical instrument resolution', async () => {
+    let releaseInstrument!: (value: { id: number; symbol: string; stats: { week52_high: number } }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/XLU') {
+        return new Promise(resolve => { releaseInstrument = resolve }) as any
+      }
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/XLU/D1') {
+        return Promise.resolve([
+          { ts: '2026-01-02T00:00:00Z', open: 2, high: 3, low: 1, close: 2, volume: 10 },
+        ]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const loading = store.loadBars('XLU', 'D1', 'candles', false)
+
+    await vi.waitFor(() => expect(releaseInstrument).toBeTypeOf('function'))
+    expect(api.get).not.toHaveBeenCalledWith('/ohlcv/XLU/D1', expect.anything())
+    releaseInstrument({ id: 42, symbol: 'XLU', stats: { week52_high: 1 } })
+    await loading
+
+    expect(api.get).toHaveBeenCalledWith('/ohlcv/XLU/D1', expect.anything())
+    expect(store.bars).toHaveLength(1)
+  })
+
   it('passes alternative-bar transform parameters and refetches when they change', async () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
       if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: { week52_high: 1 } }) as any

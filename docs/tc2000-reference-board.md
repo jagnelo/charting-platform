@@ -1059,6 +1059,7 @@ continue without disguising the absence of authoritative Version 25 evidence.
 | Gap ID | Missing reference and affected acceptance cases | Current implementation treatment | Interim test/oracle | Evidence required to close the gap |
 |---|---|---|---|---|
 | `REF-SHELL-V25` | Any shell detail not sufficiently represented by the board, including exact pinned-build-only variants | Use the board’s factory-layout/product-image groups as the visual authority for represented density, proportions, chrome, and token direction; track only uncovered details as limited | Four seeded environment geometry/containment audits, deterministic screenshot harness, and browser shell interaction tests | Additional exact-build evidence only for the identified uncovered detail; it is not a blanket gate |
+| `REF-HELP-V25` | The exact Version 25 keyboard-help dialog appearance, wording, and layout are not represented by a permission-cleared V25 capture | Use the human-approved local-only four-Linux-profile Help baselines as an interim staging-checkpoint oracle; preserve the V25 gap and full roadmap | Existing local screenshots reviewed for readability; `F9e-shell-menus-keyboard` checks PageUp/PageDown access to the final shortcut row, Escape focus recovery, and editor-focus dismissal; visual spec retains the unchanged 0.5% comparison | A permission-cleared V25 Help capture with verifiable build, state, environment, provenance, and review; interim acceptance never closes official parity |
 | `REF-STATE-VARIANTS` | Loading, stale, partial, provider-error, blocked-pop-out, recovery, focused, keyboard-selected, and disabled states | Implement explicit freshness/error/recovery states from platform contracts; do not infer their exact V25 styling from unrelated screenshots | Browser tests for stale/partial/error/recovery flows, including `F8i-a` provider-error, `F8i-b` loading, `F8i-c` stale, `F8i-d` partial, and `F8k-a` blocked pop-out, plus four-environment `chart-loading-gap`, `stale-freshness-gap`, `partial-coverage-gap`, and `blocked-popout-gap` baselines, accessibility/focus assertions, structured cell warnings, and the official V25 hotkey behavior article | Complete state capture set from the pinned build at a reviewed target environment |
 | `REF-LINKING-V25` | All normal link groups, yellow wildcard, grey isolation, timeframe propagation, linked crosshair, and cross-window propagation | Preserve canonical-ID link bus and test behavioral semantics independently of missing visual proof | Link-group, keyboard, cross-window, and chart crosshair integration tests; official timeframe-linking behavior evidence is recorded in the manifest | Authoritative captures covering every link state and interaction, with timing and environment metadata |
 | `REF-STUDY-LAB-V25` | Open-ended research editor, structured renderers, occurrence browser, sandbox-error and promotion surfaces | This is an original surface with no direct TC2000 analogue; use the board’s dense editor/grid language for composition and the product contracts for behavior | Four-environment `Study Lab original surface` local baselines (manifest-linked for `editor`) plus validation, run, cancellation, recovery, structured-output, occurrence-link, and promotion tests | A reviewed V25 analogue only if one is discovered; otherwise retain the original-surface exception and its local baseline |
@@ -1117,3 +1118,23 @@ visual backend. The four-environment board-guided matrix passed `104/104` at 192
 2560×1440, both at 100% and 125% display scale. No threshold, baseline, or mask changed. This is
 the documented board-plus-deterministic-fixture interim track; exact-build, permission, and the
 unrepresented state gaps remain unchanged and actionable.
+
+## 2026-10-06 — Refreshed stale seeded local screenshots; V25 gaps remain open
+
+At product source `f0e946000e15336d972f33f24520d72b06e5cf7e`, ten deterministic
+local screenshots were refreshed after the full pinned Playwright matrix
+reproduced the same screenshot-only differences while every preceding state
+assertion passed. The old workspace-floating captures showed an empty table
+despite the test asserting five seeded rows; the Study structured-result
+captures predated the currently asserted promotion controls; and the two
+1080p sandbox-error captures showed a stale lookback value rather than the
+current default. The updated local captures now agree with those asserted
+states, and the unchanged four-profile matrix passes `104/104`.
+
+These are seeded current-product-state regression oracles, not captures from
+TC2000 V25 and not approval of V25 parity. The floating-window benchmark state
+is not represented by the board's chart-window captures, and Study Lab remains
+an original product surface with no V25 analogue. `REF-SHELL-V25` and
+`REF-STUDY-LAB-V25` remain open/`required_missing`. No assertions, visual
+thresholds, masks, reference-board claims, skips, or acceptance policy were
+changed.

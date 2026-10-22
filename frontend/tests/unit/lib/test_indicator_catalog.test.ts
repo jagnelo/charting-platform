@@ -10,6 +10,7 @@ import {
   indicatorDefaultPane,
   cloneDefaultIndicator,
   indicatorDisplayName,
+  indicatorSeriesDisplayName,
 } from '@/lib/indicators/catalog'
 import type { IndicatorType } from '@/types'
 
@@ -112,6 +113,18 @@ describe('indicatorDisplayName', () => {
     const anchor = new Date('2024-01-15T00:00:00Z').getTime() / 1000
     const name = indicatorDisplayName({ type: 'avwap', params: { anchor_timestamp: anchor } })
     expect(name).toMatch(/^AVWAP\(2024-01-/)
+  })
+})
+
+describe('indicatorSeriesDisplayName', () => {
+  it('preserves the selected output for multi-output indicators', () => {
+    expect(indicatorSeriesDisplayName({ type: 'bb', params: { period: 20, std_dev: 2, output: 'bb_upper' } }))
+      .toBe('BB(20,2) [bb_upper]')
+  })
+
+  it('does not add an empty output suffix', () => {
+    expect(indicatorSeriesDisplayName({ type: 'sma', params: { period: 20, output: '  ' } }))
+      .toBe('SMA(20)')
   })
 })
 

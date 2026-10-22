@@ -8,8 +8,8 @@
       <input v-model="value" aria-label="Condition threshold" inputmode="decimal" placeholder="Value" />
       <button type="button" :disabled="busy || !validCondition" @click="saveCondition">Save</button>
     </div>
-    <button ref="advancedToggle" type="button" class="easy-scan__advanced-toggle" aria-controls="easy-scan-advanced-conditions" :aria-expanded="advancedMode" @click="toggleAdvancedConditions">{{ advancedMode ? 'Use simple condition' : 'Build technical condition tree' }}</button>
-    <div v-if="advancedMode" id="easy-scan-advanced-conditions" ref="advancedRoot" class="easy-scan__advanced-drag-source" role="region" aria-label="Advanced technical condition builder" draggable="true" @dragstart="startConditionDrag">
+    <button ref="advancedToggle" type="button" class="easy-scan__advanced-toggle" :aria-controls="advancedConditionId" :aria-expanded="advancedMode" @click="toggleAdvancedConditions">{{ advancedMode ? 'Use simple condition' : 'Build technical condition tree' }}</button>
+    <div v-if="advancedMode" :id="advancedConditionId" ref="advancedRoot" class="easy-scan__advanced-drag-source" role="region" aria-label="Advanced technical condition builder" draggable="true" @dragstart="startConditionDrag">
       <ConditionGroupEditor v-model="advancedGroup" class="easy-scan__advanced" aria-label="Technical condition tree" />
     </div>
     <div class="easy-scan__controls">
@@ -39,20 +39,20 @@
       <input v-model.trim="scanName" :disabled="busy || (!selectedKey && !selectedPythonVersion)" aria-label="Scan name" placeholder="EasyScan name" />
       <button type="button" :disabled="busy || (!selectedKey && !selectedPythonVersion) || !scanName" @click="run">Run</button>
     </div>
-    <p v-if="error" class="easy-scan__error">{{ error }}</p>
+    <p v-if="error" class="easy-scan__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-if="plotDropStatus" class="easy-scan__drop-status" role="status" aria-live="polite" aria-atomic="true">{{ plotDropStatus }}</p>
-    <p v-else-if="busy" class="easy-scan__state"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
+    <p v-else-if="busy" class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
     <div v-else-if="result" class="easy-scan__result">
       <label v-if="resultHistory.length" class="easy-scan__history">Result <select v-model="selectedResultId" aria-label="Scan result history"><option value="">Latest</option><option v-for="item in resultHistory" :key="item.id" :value="String(item.id)">{{ item.run_at ? new Date(item.run_at).toLocaleString() : `Run ${item.id}` }}</option></select></label>
       <span><b>{{ result.matched_ids?.length ?? 0 }}</b> matches · {{ coverageText }}</span>
       <span class="easy-scan__alert"><select v-model="alertTrigger" aria-label="Scan alert trigger"><option value="entered">Entry</option><option value="left">Exit</option><option value="both">Entry/exit</option></select><button type="button" :disabled="busy || !scanId" @click="createAlert">{{ alertCreated ? 'Alert active' : 'Alert' }}</button></span>
     </div>
-    <p v-else class="easy-scan__state">Save a price/volume condition, then run it against local canonical data.</p>
+    <p v-else class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true">Save a price/volume condition, then run it against local canonical data.</p>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
@@ -66,6 +66,8 @@ type ScanResult = { id?: number; run_at?: string; matched_ids?: number[]; result
 
 const props = withDefaults(defineProps<{ sourceWindowKey?: string }>(), { sourceWindowKey: 'easy-scan' })
 const queryClient = useQueryClient()
+const easyScanInstanceId = useId()
+const advancedConditionId = `${easyScanInstanceId}-advanced-conditions`
 
 const conditions = ref<ConditionAsset[]>([])
 const pythonConditions = ref<Array<{ versionId: number; name: string }>>([])
@@ -97,6 +99,8 @@ const plotDropActive = ref(false)
 const plotDropStatus = ref('')
 const advancedToggle = ref<HTMLButtonElement | null>(null)
 const advancedRoot = ref<HTMLElement | null>(null)
+let mounted = false
+let loadGeneration = 0
 const pythonResearchRunId = computed(() => {
   const value = result.value?.result_data?._python_research_run_id
   return Number.isInteger(value) ? value as number : null
@@ -112,6 +116,7 @@ const coverageText = computed(() => {
 })
 
 async function load() {
+  const generation = ++loadGeneration
   try {
     const [saved, assets] = await Promise.all([
       queryClient.fetchQuery<ConditionAsset[]>({
@@ -121,10 +126,13 @@ async function load() {
       }),
       fetchCodeAssets(queryClient),
     ])
+    if (!mounted || generation !== loadGeneration) return
     conditions.value = saved
     pythonConditions.value = assets.filter(asset => asset.kind === 'condition').flatMap(asset => asset.versions.filter(version => version.id != null && version.output_contract === 'boolean').slice(-1).map(version => ({ versionId: version.id as number, name: `${asset.name} v${version.version_number}` })))
   }
-  catch (cause: any) { error.value = cause?.message ?? 'Unable to load conditions' }
+  catch (cause: any) {
+    if (mounted && generation === loadGeneration) error.value = cause?.message ?? 'Unable to load conditions'
+  }
 }
 function stableKey(name: string) {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 72) || 'condition'
@@ -154,8 +162,13 @@ function dropPlot(event: DragEvent) {
   plotDropActive.value = false
   const payload = readChartPlotDrag(event.dataTransfer)
   if (!payload) return
+  const condition = technicalConditionFromPlot(payload)
+  if (!condition) {
+    plotDropStatus.value = 'This multi-output indicator cannot be added until an explicit output is selected.'
+    return
+  }
   advancedMode.value = true
-  advancedGroup.value = { ...advancedGroup.value, conditions: [...advancedGroup.value.conditions, technicalConditionFromPlot(payload)] }
+  advancedGroup.value = { ...advancedGroup.value, conditions: [...advancedGroup.value.conditions, condition] }
   if (!conditionName.value) conditionName.value = `${payload.indicator.label} condition`
   plotDropStatus.value = `Added ${payload.indicator.label} to technical conditions`
   error.value = ''
@@ -297,10 +310,15 @@ watch(selectedResultId, id => {
   const selected = resultHistory.value.find(item => String(item.id) === id)
   if (selected) result.value = selected
 })
-onMounted(() => { void load() })
+onMounted(() => {
+  mounted = true
+  void load()
+})
 onBeforeUnmount(() => {
   const runId = pythonResearchRunId.value
   const state = String(result.value?.result_data?._status ?? '')
+  mounted = false
+  loadGeneration += 1
   if (runId && !['completed', 'failed', 'canceled'].includes(state)) void api.post(`/research/runs/${runId}/cancel`, {})
 })
 </script>

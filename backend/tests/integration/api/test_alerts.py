@@ -156,6 +156,59 @@ class TestPriceAlerts:
 
 
 class TestIndicatorAlerts:
+    def test_multi_output_indicator_requires_explicit_output(
+        self, client, auth_headers, instrument
+    ):
+        res = client.post(
+            "/api/v1/alerts/indicator",
+            headers=auth_headers,
+            json={
+                "instrument_id": instrument.id,
+                "timeframe": "D1",
+                "indicator_a_type": "bb",
+                "indicator_a_params": {"period": 20, "std_dev": 2},
+                "condition": "crosses_below",
+                "threshold_value": "100",
+            },
+        )
+        assert res.status_code == 422
+        assert res.json()["detail"]["code"] == "explicit_indicator_output_required"
+        assert res.json()["detail"]["output_options"] == ["bb_upper", "bb_mid", "bb_lower"]
+
+    def test_multi_output_indicator_preserves_explicit_output(
+        self, client, auth_headers, instrument
+    ):
+        res = client.post(
+            "/api/v1/alerts/indicator",
+            headers=auth_headers,
+            json={
+                "instrument_id": instrument.id,
+                "timeframe": "D1",
+                "indicator_a_type": "bb",
+                "indicator_a_params": {"period": 20, "std_dev": 2, "output": "bb_upper"},
+                "condition": "crosses_below",
+                "threshold_value": "100",
+            },
+        )
+        assert res.status_code == 201
+        assert res.json()["indicator_a_params"]["output"] == "bb_upper"
+
+    def test_multi_output_indicator_rejects_invalid_output(self, client, auth_headers, instrument):
+        res = client.post(
+            "/api/v1/alerts/indicator",
+            headers=auth_headers,
+            json={
+                "instrument_id": instrument.id,
+                "timeframe": "D1",
+                "indicator_a_type": "bb",
+                "indicator_a_params": {"period": 20, "std_dev": 2, "output": "bb_middle"},
+                "condition": "crosses_below",
+                "threshold_value": "100",
+            },
+        )
+        assert res.status_code == 422
+        assert res.json()["detail"]["code"] == "invalid_indicator_output"
+
     def test_create_indicator_alert_vs_value(self, client, auth_headers, instrument):
         res = client.post(
             "/api/v1/alerts/indicator",
