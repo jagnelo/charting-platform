@@ -13217,3 +13217,49 @@ task cancellation), the exact full 31-case coverage module was run again on
 that final test diff: `31 passed, 352.94s`, exit 0. The direct wait does not
 force termination through deferred settlement; do not describe this result as
 proving a hard 10-second cancellation bound.
+
+## Green staging adoption and legacy-label reconciliation — 2026-10-22
+
+The coordinator's exact green release at staging
+`0e342512e53ba2268425294d61c50e219eaafa4f` was read from
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`
+and canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`.
+The release record reports exact Actions run `39827786248` and successful
+Exhaustive Integration Gate `120006510572`. Actual remote staging resolved to
+the same SHA. The original ETF tip was clean/synchronized at
+`c2c232596cf848d83c20e5f2b9f5c502ddd01808` and an ancestor of the release, so
+this worktree fast-forwarded to the exact release and pushed only
+`feat/etf-holdings-constituents`; independent remote verification confirmed
+the ETF branch now resolves to `0e342512e53ba2268425294d61c50e219eaafa4f`.
+The initial integration checkpoint is therefore accepted in green staging;
+this does not complete the full fourteen-criterion ETF roadmap, issuer
+onboarding, unresolved live-source cases, or the later 30-day observation.
+
+The next ETF-owned correction addresses persisted legacy holdings whose raw
+classification labels are title-cased or punctuated. Initial ingestion and
+the resolver already normalize classification for equity-only identity
+resolution, but `_holding_needs_reconcile` compared persisted `row_type` and
+`holding_type` as raw strings. Such a row could be excluded from a later
+reconciliation pass despite being a supported security/equity classification.
+The fix normalizes labels only for this eligibility decision; raw persisted
+labels and snapshot evidence remain untouched, and cash/currency/collateral
+rows remain excluded before the equity-only resolver. The regression simulates
+a persisted unresolved `Common Stock` / `Security` row and verifies local
+reconciliation attaches its existing canonical equity identity without
+identifier-provider calls. A companion guard verifies title-case
+cash/currency/collateral remain ineligible.
+
+For the implementation diff based on
+`0e342512e53ba2268425294d61c50e219eaafa4f`, the full focused resolution module
+passed 58/58 in 23.98 seconds; changed-file Ruff check, format check, Python
+compilation, and `git diff --check` passed. These deterministic tests used no external
+issuer/provider/SEC traffic, quota operation, Compose/browser fixture, or
+service cleanup. The pre-existing `make agent-docker-ready` validation row
+records a sandbox Docker-socket permission denial, not proof that the daemon is
+stopped. Full local profile work remains subject to Root's safe-slot direction;
+it is not waived. Next: commit and push this bounded ETF-owned source/test fix,
+then publish one coherent workstream checkpoint recording the exact staging
+adoption, accepted checkpoint boundary, results, and full-roadmap continuation.
+Keep MSMR/QQQ and Militia/GOOG unresolved/quarantined; no unknown, held,
+unreviewed, paid, trial, or unsafe route is enabled.

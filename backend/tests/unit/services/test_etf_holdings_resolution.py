@@ -447,6 +447,82 @@ async def test_ingest_normalizes_legacy_equity_labels_without_rewriting_audit_ev
     assert snapshot.snapshot_hash == _snapshot_hash([row])
 
 
+@pytest.mark.parametrize("holding_type", ["Cash", "Currency", "Collateral"])
+def test_reconcile_does_not_treat_legacy_non_equity_labels_as_securities(holding_type):
+    row = ETFHolding(
+        reported_symbol="CASHROW",
+        row_type="Security",
+        holding_type=holding_type,
+        is_resolved=False,
+    )
+
+    assert _holding_needs_reconcile(row) is False
+
+
+@pytest.mark.asyncio
+async def test_reconcile_retries_legacy_equity_labels_without_rewriting_source_evidence(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "test")
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: FakeMetadataProvider(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: pytest.fail("local reconciliation must not call identifier providers"),
+    )
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="LEGACYRECONETF",
+        name="Legacy Reconciliation ETF",
+    )
+    canonical_row = CanonicalHoldingRow(
+        symbol="LEGACYRECON",
+        name="Legacy Reconciliation Corporation",
+        currency="USD",
+        holding_type="Common Stock",
+        row_type="Security",
+    )
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[canonical_row],
+        composition_date=date(2026, 9, 30),
+        provenance="issuer_native",
+        source_provider="issuer-test",
+        completeness_status="complete",
+        allow_provider_enrichment=False,
+    )
+    db.flush()
+    db.refresh(snapshot)
+    holding = snapshot.rows[0]
+    instrument_id = holding.constituent_instrument_id
+    assert instrument_id is not None
+
+    # Model a persisted legacy row that remains unresolved and must be revisited
+    # by the later classification/reconciliation pass.
+    holding.constituent_instrument_id = None
+    holding.constituent_instrument = None
+    holding.is_resolved = False
+    snapshot.resolved_count = 0
+    snapshot.unresolved_count = 1
+    db.flush()
+
+    await reconcile_snapshot_constituents(async_db, snapshot)
+    db.flush()
+    db.refresh(snapshot)
+    db.refresh(holding)
+
+    assert holding.constituent_instrument_id == instrument_id
+    assert holding.is_resolved is True
+    assert holding.holding_type == "Common Stock"
+    assert holding.row_type == "Security"
+    assert snapshot.resolved_count == 1
+    assert snapshot.unresolved_count == 0
+
+
 @pytest.mark.asyncio
 async def test_ingest_keeps_unsupported_reit_label_unresolved_and_auditable(db):
     async_db = AsyncSessionAdapter(db)

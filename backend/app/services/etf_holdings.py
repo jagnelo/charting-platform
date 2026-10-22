@@ -1334,7 +1334,9 @@ async def ingest_holdings_snapshot(
 
 
 def _holding_needs_reconcile(row: ETFHolding) -> bool:
-    if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
+    row_type = _normalize_holding_classification(row.row_type)
+    holding_type = _normalize_holding_classification(row.holding_type)
+    if row_type != "security" or holding_type in {"cash", "currency", "collateral"}:
         return False
     if not row.is_resolved or row.constituent_instrument is None:
         return True
