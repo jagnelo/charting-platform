@@ -12,12 +12,16 @@ def test_compose_declares_isolated_backtest_worker_boundary() -> None:
 
     assert 'profiles: ["strategy-lab-v2"]' in service
     assert "python -m app.strategy_lab_v2.worker_entrypoint" in service
+    sync_database_url = (
+        "postgresql+psycopg2://${POSTGRES_USER:-postgres}:"
+        "${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}"
+    )
     assert (
         "DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:"
         "${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}"
     ) in service
-    assert "STRATEGY_LAB_V2_DATABASE_URL_SYNC:" in service
-    assert "\n      DATABASE_URL_SYNC:" not in service
+    assert f"\n      DATABASE_URL_SYNC: {sync_database_url}\n" in service
+    assert f"\n      STRATEGY_LAB_V2_DATABASE_URL_SYNC: {sync_database_url}\n" in service
     assert "STRATEGY_LAB_V2_CALLBACK_FACTORY:" in service
     assert "STRATEGY_LAB_V2_EVIDENCE_RESOLVER:" in service
     assert "read_only: true" in service

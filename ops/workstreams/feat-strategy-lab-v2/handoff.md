@@ -16709,3 +16709,46 @@ backend gate; no fixture, app, browser, worker, or other full-profile resources
 are authorized before that release. Actual DB/Redis worker readiness/restart,
 full application/browser/visual, migration, Exhaustive, and all original
 roadmap criteria remain open.
+
+## Worker Alembic URL correction — 2026-10-22 12:27 UTC
+
+The later released app runtime attempt exposed a real configuration defect in
+the opt-in backtest worker. The shared image entrypoint runs Alembic before
+either dedicated Python worker entrypoint, and Alembic reads generic
+`DATABASE_URL_SYNC`; both v2 worker services provided only their namespaced
+synchronous migration URL, so Alembic fell back to localhost and the backtest
+worker restarted with a PostgreSQL connection error. Preserve that exact
+runtime failure. This is separate from the Redis observer's missing-consumer
+group message. No job was dispatched and no native execution, provider request,
+or broker operation occurred.
+
+The reviewed repair adds the generic synchronous URL to both opt-in Compose
+workers, equal to each service's namespaced synchronous URL and async
+`DATABASE_URL`. The Compose regressions now anchor the complete generic and
+namespaced lines, so a namespaced variable cannot satisfy the generic
+assertion by substring. An in-memory mutation removing only the generic line
+from each service was rejected by both checks. The two Compose modules and two
+entrypoint modules passed locally (18 tests, 1.37s); Root independently ran the
+same four modules offline without fixtures/cache writes (18 passed, 1.45s).
+Documentation now describes the common-entrypoint ordering and URL alignment.
+
+This is configuration/contract evidence, not proof of worker readiness. The
+runtime source tested before this repair had API and bounded sandbox probes
+passing; its worker-restart phase failed at Alembic's localhost connection.
+The first cleanup record's raw 607-byte container diff reflected the owned
+opt-in worker still running at that capture. Root later confirmed that exact
+container absent and independently verified current full container
+ID/state, volume and network inventories equal their baseline; retain both
+facts without rewriting the earlier receipt as zero-diff.
+
+The full-backend evidence available before this Compose-only repair is
+input-qualified to its then-current source: unit and integration cases passed
+through separately bounded runs with combined coverage above threshold, but
+the wrapper did not capture an independent pytest exit for the integration
+invocation. The exact hosted CI on the prior source is also historical. Do not
+relabel either as validation of this repair. Current status remains
+in_progress and unaccepted. After publication, Root is monitoring the new
+exact-source CI. A corrected actual worker DB/Redis readiness/restart and
+remaining full application/browser/strict-visual, migration, Exhaustive and
+full-checkpoint gates remain required; no full local backend replay, fixture,
+archive, or browser run is authorized in this phase.

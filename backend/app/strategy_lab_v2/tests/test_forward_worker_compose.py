@@ -12,6 +12,10 @@ def test_compose_declares_separate_fail_closed_forward_worker_service() -> None:
 
     assert 'profiles: ["strategy-lab-v2"]' in service
     assert "python -m app.strategy_lab_v2.forward_worker_entrypoint" in service
+    sync_database_url = (
+        "postgresql+psycopg2://${POSTGRES_USER:-postgres}:"
+        "${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}"
+    )
     assert (
         "DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:"
         "${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chartingdb}"
@@ -21,8 +25,8 @@ def test_compose_declares_separate_fail_closed_forward_worker_service() -> None:
     assert "read_only: true" in service
     assert 'cap_drop: ["ALL"]' in service
     assert "no-new-privileges:true" in service
-    assert "STRATEGY_LAB_V2_FORWARD_DATABASE_URL_SYNC:" in service
-    assert "\n      DATABASE_URL_SYNC:" not in service
+    assert f"\n      DATABASE_URL_SYNC: {sync_database_url}\n" in service
+    assert f"\n      STRATEGY_LAB_V2_FORWARD_DATABASE_URL_SYNC: {sync_database_url}\n" in service
     assert "/var/run/docker.sock" not in service
     assert "strategy_lab_artifacts:/strategy-lab-artifacts" in service
     assert "postgres:" in service and "redis:" in service

@@ -61,14 +61,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "f9e138e4cc80847f1127cf5b3b3e021f6f56e383",
+  "head": "bff78375e87f80193d694bb10cbfc34143cfba94",
   "implementation_sha": "f9e138e4cc80847f1127cf5b3b3e021f6f56e383",
-  "last_checkpoint": "2026-10-22T10:24:56Z",
+  "last_checkpoint": "2026-10-22T12:27:54Z",
   "last_human_progress_update": "2026-10-20T21:20:08.693731+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root is monitoring exact push CI 39762599907 for source f9e138e4cc80847f1127cf5b3b3e021f6f56e383. Wait for Root's release of the complete current-source shard-25 backend gate before any fixture or app resources. The shard-25 attempt recorded earlier was pre-pytest UV PATH failure, not test evidence; fixtures are cleaned and global inventories unchanged. Actual DB/Redis worker readiness/restart, full application/browser/visual, migration, Exhaustive and checkpoint acceptance remain open.",
+  "next_action": "Root monitors the new exact-source CI for this generic DATABASE_URL_SYNC correction. Do not start another full backend replay, fixture, archive, or browser run in this phase. Corrected real worker DB/Redis readiness/restart remains the next runtime requirement, followed by the remaining full application/browser/strict-visual, migration and Exhaustive gates; checkpoint acceptance remains open.",
   "parent_branch": "staging",
-  "plan_hash": "17f2bb56d954ad2081e1192dcccfb77386edc4aba3a87ef700ec6cc4754f86e3",
+  "plan_hash": "7cdf6cb853ffe53f4bb5000642569d1fbfde43f629bd8d12be43bdc821c5292f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -95,14 +95,14 @@
       "SLICP1",
       "SLICP2"
     ],
-    "current_blocker": "Source f9e138e4cc80847f1127cf5b3b3e021f6f56e383 is pushed and synchronized; exact push CI 39762599907 is in progress under Root monitoring. Focused Compose tests passed 2/2 locally and Root independently; read-only resolved Compose configuration also passed. The local backend remains unvalidated on current source: an earlier full attempt remains red at shard97 (49 passed/1 sandbox-fixture failure), and the later shard-25 attempt failed before pytest because sanitized PATH omitted UV; exact fixtures were cleaned and global inventories unchanged. Actual DB/Redis worker readiness/restart has not run. Full application/browser/visual, fresh/previous-release migration, Exhaustive and checkpoint acceptance remain open; native goal active/unbudgeted.",
+    "current_blocker": "The released runtime attempt on source bff78375 passed the actual API smoke and bounded sandbox probes but the opt-in backtest worker restarted before readiness because the common image entrypoint ran Alembic with missing generic DATABASE_URL_SYNC and fell back to localhost. Root reviewed the scoped generic sync-DSN repair. Four focused Compose/entrypoint modules pass 18 tests locally and independently; exact-line deletion mutants reject omission of either generic URL. Root monitors the new exact-source CI. Corrected real worker DB/Redis readiness/restart and full application/browser/strict-visual, fresh/previous-release migration, Exhaustive and checkpoint acceptance remain open. Preserve the original 607-byte cleanup diff (owned worker still present at that capture) and Root's later verified exact absence/current full inventory equality. Native goal remains active/unbudgeted.",
     "current_phase": "strategy-tc-three-feature-consumer-reconciliation",
-    "next_action": "Wait for Root's release of the complete current-source shard-25 backend gate. Do not launch fixtures or app resources before release. Root owns terminal monitoring of exact CI 39762599907; no duplicate CI run or manual rerun.",
+    "next_action": "Root monitors the new exact-source CI for the generic DATABASE_URL_SYNC correction. Do not launch another full backend, fixture, archive, or browser profile. Next, verify real worker DB/Redis readiness and restart, then complete the remaining full application/browser/strict-visual, migration and Exhaustive gates without weakening any original requirement.",
     "total": 5,
-    "updated_at": "2026-10-22T10:24:56+00:00"
+    "updated_at": "2026-10-22T12:27:54+00:00"
   },
-  "remote": "f9e138e4cc80847f1127cf5b3b3e021f6f56e383",
-  "remote_sha": "f9e138e4cc80847f1127cf5b3b3e021f6f56e383",
+  "remote": "bff78375e87f80193d694bb10cbfc34143cfba94",
+  "remote_sha": "bff78375e87f80193d694bb10cbfc34143cfba94",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

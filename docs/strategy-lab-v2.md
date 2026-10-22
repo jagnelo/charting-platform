@@ -1581,13 +1581,15 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   Each replica still runs one Nautilus child at a time; actual parallel
   admissions remain bounded by separately reserved worker profiles and local
   host capacity.
-- The backtest and forward worker entrypoints run migrations from their
-  namespaced synchronous database URLs, then use `app.database.AsyncSessionLocal`
-  for runtime persistence. Compose sets `DATABASE_URL` to the same PostgreSQL
-  service for both opt-in workers; a manual worker invocation must likewise
-  provide an async `DATABASE_URL` targeting the same database as its selected
-  namespaced migration URL. A process-only running check is not proof that this
-  database connection is usable.
+- The image's common `/app/docker-entrypoint.sh` runs `alembic upgrade head`
+  before executing either dedicated worker module. Alembic reads the generic
+  `DATABASE_URL_SYNC`; the worker module then applies its namespaced synchronous
+  migration URL and uses `app.database.AsyncSessionLocal` via `DATABASE_URL` for
+  runtime persistence. Both opt-in Compose workers set the generic Alembic URL,
+  their namespaced worker URL, and the async runtime URL to the same in-network
+  PostgreSQL database. Keep all three aligned in manual container launches too;
+  do not disable migrations or rely on a localhost fallback. A process-only
+  running check is not proof that the database connection is usable.
 - The root Compose stack also contains a separate opt-in
   `strategy-lab-v2-forward-worker` profile. It consumes only the dedicated
   `forward-events` Redis queue, uses the namespaced forward database setting,

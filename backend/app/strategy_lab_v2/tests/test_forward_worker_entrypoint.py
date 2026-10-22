@@ -77,6 +77,19 @@ def test_forward_config_reads_namespaced_environment_and_requires_callback_at_ru
         _load_callback_factory(None)
 
 
+def test_forward_config_accepts_common_alembic_sync_url_when_namespace_is_absent() -> None:
+    sync_database_url = "postgresql+psycopg2://postgres/chartingdb"
+
+    config = ForwardWorkerEntrypointConfig.from_env(
+        {
+            "DATABASE_URL_SYNC": sync_database_url,
+            "STRATEGY_LAB_V2_FORWARD_REDIS_URL": "redis://redis:6379/0",
+        }
+    )
+
+    assert config.database_url_sync == sync_database_url
+
+
 def test_forward_callback_factory_loader_requires_module_attribute_syntax() -> None:
     with pytest.raises(ValueError, match="module:attribute"):
         _load_callback_factory("callbacks.create")

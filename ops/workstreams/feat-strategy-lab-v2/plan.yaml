@@ -23,7 +23,7 @@ integration_checkpoint:
     base_source_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
     released_staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
     strategy_merge_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
-    phase: published_source_exact_ci_and_full_backend_local_validation
+    phase: worker_common_alembic_sync_url_repair_pending_exact_ci
     reconciled_alembic_head: slv2_0011
     integration_capture: exact branch HEAD
     intent: >-
@@ -55,6 +55,23 @@ integration_checkpoint:
       this focused component only. Exact-source CI for the new Strategy commit, fresh/previous-release
       migration validation, full combined application, full_stack_browser and Exhaustive remain
       pending.
+    worker_alembic_url_repair: >-
+      The released app runtime attempt found that the common Docker entrypoint invokes Alembic
+      before the dedicated worker module and reads generic DATABASE_URL_SYNC. Both opt-in v2
+      Compose workers lacked that generic variable, so Alembic fell back to localhost and the
+      backtest worker restarted with a PostgreSQL connection error; no job/native execution ran.
+      The scoped repair adds the generic synchronous DSN equal to each worker's namespaced sync
+      DSN and async DATABASE_URL, and documents the common-entrypoint ordering. Exact complete-line
+      Compose assertions are mutation-checked by removing only each generic line in memory; both
+      mutants are rejected. The two Compose plus two entrypoint modules pass locally (18/18, 1.37s);
+      Root independently ran them offline without fixtures/cache writes (18/18, 1.45s). This does
+      not establish real worker readiness. Prior local full-backend results are input-qualified to
+      earlier source; the integration wrapper did not capture a separate pytest exit, so do not
+      overstate its coverage evidence. The raw first cleanup diff showed the owned opt-in worker
+      remaining at that capture; Root later independently verified its absence and current full
+      container/state, volume and network inventories matching baseline. New exact-source CI,
+      corrected actual worker DB/Redis readiness/restart, full app/browser/strict visual, migration,
+      Exhaustive and checkpoint acceptance remain open.
     follow_up_source_review:
       status: prepared_for_coordinator_review_not_runtime_validated
       base_source_commit: b96d456cbfe0d043cfe2e1abe266afb6460140b1

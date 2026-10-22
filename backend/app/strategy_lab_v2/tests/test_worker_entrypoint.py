@@ -65,7 +65,7 @@ def test_worker_config_reads_namespaced_environment_and_fails_closed() -> None:
     )
 
     assert config.redis_url == "redis://legacy:6379/0"
-    assert config.database_url_sync.startswith("postgresql+")
+    assert config.database_url_sync == "postgresql+psycopg2://legacy/chartingdb"
     assert config.artifact_root == Path("/var/lib/strategy-lab/artifacts")
     assert config.callback_factory == "callbacks:create"
     assert config.batch_size == 3
