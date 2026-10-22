@@ -41,6 +41,17 @@ and new-window/WatchList output remain unimplemented. Official `REF-HELP-V25`,
 broader AC1-AC9 completion, and integration beyond this exact released baseline
 remain open.
 
+The next slice adds `customDateSortData.ts` to sequence the existing historical
+coverage endpoint before the canonical local OHLCV endpoint. Two new mocked
+contract tests prove that partial coverage short-circuits the bar read and a
+ready exact-scope assessment requests only local canonical bars. The focused
+Custom Date Sort files pass 14/14 tests and Vue type-check on the current dirty
+worktree. This is mocked request-contract evidence only; no live app/database
+was exercised. The existing canonical W1/MN route can materialize derived bars
+locally from daily rows, but it never fans out to providers; that route effect
+is inherited behavior, not tested by these mocks. Relative comparator history,
+chart gesture wiring, and result destinations remain open.
+
 ## Previous bounded-checkpoint status — 2026-10-22
 
 Root accepted the bounded TC2000 checkpoint on validated implementation

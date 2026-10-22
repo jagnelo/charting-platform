@@ -64,11 +64,12 @@ current_blocker: >-
   0e342512e53ba2268425294d61c50e219eaafa4f; the feature remote was independently
   verified at the same SHA. The frozen-import snapshot/guard now passes its
   987-path validation and 35 self-tests for this exact fast-forward adoption.
-  No upstream dependency blocks TC-owned development. The Custom Date Sort
-  formula/range-source core and a dirty exact-scope local-coverage resolver are
-  in place; callers still need actual persisted history, chart-range interaction,
-  and a truthful existing sector/industry comparison source before exposing
-  results. No provider
+  No upstream dependency blocks TC-owned development. The formula, exact
+  coverage-evidence gate, and a dirty mock-tested local data loader are in place.
+  The loader asks historical coverage first and reads canonical local bars only
+  when the exact range/timeframe/adjustment is ready; callers still need actual
+  chart-range interaction and a truthful existing sector/industry comparator
+  source before exposing results. No provider
   transport, acquisition, live test, deployment or visual-reference change is
   authorized. Official REF-HELP-V25 and broader AC1-AC9 work remain open.
 current_checkpoint_status: >-
@@ -93,14 +94,17 @@ current_checkpoint_status: >-
   remain separate. This is not full AC1-AC9 or official REF-HELP-V25 completion.
   The next TC-owned roadmap item is Custom Date Sort over persisted history and
   explicit coverage/classification evidence, without provider transport or
-  acquisition. Its pure formula and exact range-source core are committed at
-  eaddaef9e19f7dd3cf3798465a1cf1680e5813dc with 11 focused tests and a
-  successful type-check. A separate coverage-evidence resolver currently has
-  12 focused tests and a successful type-check on the dirty worktree; it binds
-  ready local coverage to exact range/timeframe/adjustment, known lineage, and
-  unique boundary bars. No persisted-data loader, range interaction, result
-  window, or WatchList column is implemented yet. No deployment, live provider/
-  ETF test, paid access, or visual reference change is claimed.
+  acquisition. The pure formula/range core is committed at
+  eaddaef9e19f7dd3cf3798465a1cf1680e5813dc. Its coverage gate requires ready
+  exact-scope canonical-local evidence, known lineage, and unique valid boundary
+  bars. The current dirty loader adds two mocked request-contract tests: it
+  checks historical coverage first and requests at most 5000 canonical local
+  bars only after the requested scope is ready. The two focused files pass
+  14/14 and Vue type-check passes. No live API/database call was made; the
+  existing canonical W1/MN route may locally materialize derived bars from D1.
+  Chart gesture integration, a trustworthy existing sector/industry comparator
+  series, and result-window/WatchList output remain unimplemented. No deployment,
+  live provider/ETF test, paid access, or visual reference change is claimed.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1198,7 +1202,7 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "combined_green_staging_0e342512_adopted_and_scope_guarded;custom_date_sort_formula_range_core_committed_eaddaef;coverage_evidence_resolver_12_tests_typecheck_green_dirty;persisted_history_and_output_wiring_pending;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "combined_green_staging_0e342512_adopted_and_scope_guarded;custom_date_sort_formula_range_core_committed_eaddaef;coverage_gate_and_mocked_local_loader_14_tests_typecheck_green_dirty;chart_gesture_comparator_output_wiring_pending;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
     Wire Custom Date Sort to local persisted OHLCV and explicit coverage and
     provenance, implement the official chart-range/trendline entry and output
