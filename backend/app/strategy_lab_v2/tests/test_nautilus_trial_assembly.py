@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
-from typing import BinaryIO
+from typing import Any, BinaryIO, cast
 
 import pytest
 
@@ -30,6 +30,7 @@ from app.strategy_lab_v2.contracts import (
     PortfolioComponent,
     PortfolioComposition,
     ProductClass,
+    ResolvedStudyArtifactOutput,
     RunAttempt,
     ScientificTrial,
     SelectedStudyArtifactReference,
@@ -651,10 +652,73 @@ def test_trial_assembly_fails_closed_for_selected_study_without_runtime_payload(
     values = _inputs(selected_study_artifact=reference)
     store = LocalArtifactStore(tmp_path / "artifacts")
 
-    with pytest.raises(NautilusTrialAssemblyError, match="not materialized"):
+    with pytest.raises(NautilusTrialAssemblyError, match="not bound"):
         assemble_nautilus_trial_runtime_input(**values, artifact_store=store)
 
     assert not tuple((tmp_path / "artifacts").rglob("*"))
+
+
+def test_component_trial_input_rejects_non_mapping_study_outputs() -> None:
+    values = _inputs()
+    with pytest.raises(TypeError, match="must be a mapping or None"):
+        NautilusComponentTrialInput(
+            "component-1",
+            values["strategy_package"],
+            values["strategy_manifest"],
+            values["strategy_source"],
+            study_artifacts=cast(Any, []),
+        )
+
+
+def test_trial_assembly_binds_authenticated_study_output_into_worker_context(tmp_path) -> None:
+    payload = {"type": "series", "value": [1.25, 2.5]}
+    reference = SelectedStudyArtifactReference(
+        research_run_id=1,
+        code_version_id=2,
+        artifact_id=3,
+        artifact_name="screener.output",
+        artifact_type="series",
+        output_contract="study",
+        run_reproducibility_hash=content_digest("study-run"),
+        code_version_digest=content_digest("study-code-version"),
+        dataset_manifest_digest=content_digest("study-dataset"),
+        artifact_content_digest=content_digest(payload),
+    )
+    values = _inputs(selected_study_artifact=reference)
+    output = ResolvedStudyArtifactOutput(reference, payload)
+    component_input = NautilusComponentTrialInput(
+        "component-1",
+        values["strategy_package"],
+        values["strategy_manifest"],
+        values["strategy_source"],
+        study_artifacts={reference.artifact_name: output},
+    )
+    values["strategy_package"] = None
+    values["strategy_source"] = None
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    assembly = assemble_nautilus_trial_runtime_input(
+        **values,
+        component_inputs=(component_input,),
+        artifact_store=store,
+    )
+    bundle = load_materialized_nautilus_runtime_bundle(
+        assembly.runtime_input_artifact,
+        store=store,
+        max_input_bytes=1_000_000,
+    )
+    assert bundle.context_stream is not None
+    context_stream_bytes = store.read(bundle.context_stream.artifact.storage_key)
+    assert context_stream_bytes.count(b'"study_artifacts"') == 1
+    _, manifest, contexts, _, _ = deserialize_invocation_context_stream(
+        BytesIO(context_stream_bytes),
+        expected_context_count=bundle.context_stream.context_count,
+    )
+    decoded_contexts = tuple(contexts)
+    assert manifest.strategy.selected_study_artifact == reference
+    assert len(decoded_contexts) == bundle.context_stream.context_count
+    for context in decoded_contexts:
+        assert context.study_artifacts is not None
+        assert context.study_artifacts[reference.artifact_name].value == (1.25, 2.5)
 
 
 def test_trial_assembly_replays_warmup_but_binds_only_the_evaluation_window(tmp_path) -> None:

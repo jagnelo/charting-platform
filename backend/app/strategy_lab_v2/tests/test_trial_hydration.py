@@ -14,6 +14,7 @@ from app.strategy_lab_v2.contracts import (
     ETFMembershipReference,
     ExperimentDefinition,
     PortfolioComposition,
+    ResolvedStudyArtifactOutput,
     RunAttempt,
     ScientificTrial,
     SelectedStudyArtifactReference,
@@ -76,7 +77,9 @@ def _inputs_with_selected_study_artifact_reference() -> dict[str, Any]:
         run_reproducibility_hash="run-hash-41",
         code_version_digest=content_digest("code-version"),
         dataset_manifest_digest=content_digest("dataset-manifest"),
-        artifact_content_digest=content_digest({"lookback": 20}),
+        artifact_content_digest=content_digest(
+            {"type": "strategy_parameters", "value": {"lookback": 20}}
+        ),
     )
     strategy = replace(old_strategy, selected_study_artifact=reference)
     old_portfolio: PortfolioComposition = values["portfolio"]
@@ -339,14 +342,20 @@ async def test_hydrator_resolver_validation_accepts_functions_and_async_callable
 
     async def async_function(
         *, principal: Any, reference: SelectedStudyArtifactReference
-    ) -> SelectedStudyArtifactReference:
-        return reference
+    ) -> ResolvedStudyArtifactOutput:
+        return ResolvedStudyArtifactOutput(
+            reference,
+            {"type": reference.artifact_type, "value": {"lookback": 20}},
+        )
 
     class AsyncResolver:
         async def __call__(
             self, *, principal: Any, reference: SelectedStudyArtifactReference
-        ) -> SelectedStudyArtifactReference:
-            return reference
+        ) -> ResolvedStudyArtifactOutput:
+            return ResolvedStudyArtifactOutput(
+                reference,
+                {"type": reference.artifact_type, "value": {"lookback": 20}},
+            )
 
     NautilusTrialDomainHydrator(
         MemoryDomainReader(values),
@@ -359,8 +368,11 @@ async def test_hydrator_resolver_validation_accepts_functions_and_async_callable
 
     def synchronous_resolver(
         *, principal: Any, reference: SelectedStudyArtifactReference
-    ) -> SelectedStudyArtifactReference:
-        return reference
+    ) -> ResolvedStudyArtifactOutput:
+        return ResolvedStudyArtifactOutput(
+            reference,
+            {"type": reference.artifact_type, "value": {"lookback": 20}},
+        )
 
     with pytest.raises(TypeError, match="must be asynchronous"):
         NautilusTrialDomainHydrator(
@@ -387,12 +399,13 @@ async def test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_ref
     values = _inputs_with_selected_study_artifact_reference()
     expected = values["selected_study_artifact"]
     seen: list[tuple[Any, SelectedStudyArtifactReference]] = []
+    output_payload = {"type": expected.artifact_type, "value": {"lookback": 20}}
 
     async def resolver(
         *, principal: Any, reference: SelectedStudyArtifactReference
-    ) -> SelectedStudyArtifactReference:
+    ) -> ResolvedStudyArtifactOutput:
         seen.append((principal, reference))
-        return reference
+        return ResolvedStudyArtifactOutput(reference, output_payload)
 
     hydrated = await NautilusTrialDomainHydrator(
         MemoryDomainReader(values),
@@ -400,6 +413,8 @@ async def test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_ref
     ).hydrate_attempt(principal="alice", attempt_resource_id=values["attempt"].attempt_id)
 
     assert hydrated.strategies[0].selected_study_artifact == expected
+    assert hydrated.study_artifacts is not None
+    assert hydrated.study_artifacts[hydrated.strategies[0].fingerprint].value == {"lookback": 20}
     assert seen == [("alice", expected)]
 
     with pytest.raises(TrialDomainHydrationError, match="attempt is missing"):
@@ -411,8 +426,11 @@ async def test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_ref
 
     async def mismatched_resolver(
         *, principal: Any, reference: SelectedStudyArtifactReference
-    ) -> SelectedStudyArtifactReference:
-        return replace(reference, artifact_id=reference.artifact_id + 1)
+    ) -> ResolvedStudyArtifactOutput:
+        return ResolvedStudyArtifactOutput(
+            replace(reference, artifact_id=reference.artifact_id + 1),
+            output_payload,
+        )
 
     with pytest.raises(
         TrialDomainHydrationError,

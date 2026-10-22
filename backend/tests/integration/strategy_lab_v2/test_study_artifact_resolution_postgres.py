@@ -47,6 +47,7 @@ from app.strategy_lab_v2.search_dispatch_rpc import (
 from app.strategy_lab_v2.storage import AggregateKey
 from app.strategy_lab_v2.study_artifact_resolver import (
     SelectedStudyArtifactResolutionError,
+    create_resolved_study_artifact_output_resolver,
     create_selected_study_artifact_resolver,
 )
 from app.strategy_lab_v2.tests.test_search_dispatch_preparation import _setup
@@ -735,7 +736,7 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
         assert restarted_store.schema == store.schema
         hydrator = NautilusTrialDomainHydrator(
             PostgresResourceReader(restarted_store),
-            selected_study_artifact_resolver=create_selected_study_artifact_resolver(
+            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
                 fresh_sessions
             ),
         )
@@ -743,6 +744,8 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
             principal="1", attempt_resource_id=graph.attempt.attempt_id
         )
         assert hydrated.strategies[0].selected_study_artifact == reference
+        assert hydrated.study_artifacts is not None
+        assert hydrated.study_artifacts[hydrated.strategies[0].fingerprint].value == (1.0, 2.0)
 
         async with fresh_sessions.begin() as session:
             if post_dispatch_drift == "changed_dataset":
@@ -760,7 +763,7 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
                 await session.execute(delete(ResearchArtifact).where(ResearchArtifact.id == 40))
         restarted_hydrator = NautilusTrialDomainHydrator(
             PostgresResourceReader(restarted_store),
-            selected_study_artifact_resolver=create_selected_study_artifact_resolver(
+            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
                 fresh_sessions
             ),
         )

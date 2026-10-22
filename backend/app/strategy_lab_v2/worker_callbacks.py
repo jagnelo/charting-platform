@@ -25,8 +25,8 @@ from app.strategy_lab_v2.search_worker_handoff import (
     create_authenticated_search_dispatch_materializer,
 )
 from app.strategy_lab_v2.study_artifact_resolver import (
-    SelectedStudyArtifactResolver,
-    create_selected_study_artifact_resolver,
+    ResolvedStudyArtifactOutputResolver,
+    create_resolved_study_artifact_output_resolver,
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.trial_hydration import (
@@ -70,13 +70,13 @@ def _etf_membership_reader_for_persistence(persistence: Any) -> LocalETFMembersh
 
 def _study_artifact_resolver_for_persistence(
     persistence: Any,
-) -> SelectedStudyArtifactResolver | None:
-    """Revalidate pinned Study outputs only through the host's real SQL session port."""
+) -> ResolvedStudyArtifactOutputResolver | None:
+    """Resolve pinned Study outputs only through the host's real SQL session port."""
 
     session_factory = getattr(persistence, "session_factory", None)
     if not callable(session_factory):
         return None
-    return create_selected_study_artifact_resolver(session_factory)
+    return create_resolved_study_artifact_output_resolver(session_factory)
 
 
 async def _dispatch_for_stream_entry(dispatch_store: Any, entry: Any, attempt_id: str):

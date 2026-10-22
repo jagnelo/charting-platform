@@ -16,7 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import SelectedStudyArtifactReference
+from app.strategy_lab_v2.contracts import (
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
+)
 
 _RUN_HASH = re.compile(r"^[0-9a-f]{64}$")
 _SUPPORTED_STUDY_ARTIFACT_TYPES = frozenset(
@@ -41,19 +44,35 @@ class SelectedStudyArtifactResolutionError(ValueError):
 
 
 SelectedStudyArtifactResolver = Callable[..., Awaitable[SelectedStudyArtifactReference]]
+ResolvedStudyArtifactOutputResolver = Callable[..., Awaitable[ResolvedStudyArtifactOutput]]
 
 
 def create_selected_study_artifact_resolver(
     session_factory: Callable[[], Any],
 ) -> SelectedStudyArtifactResolver:
-    """Bind immutable Study revalidation to the host's existing local SQL session factory."""
+    """Bind reference-only Study revalidation for existing API admission callers."""
+
+    output_resolver = create_resolved_study_artifact_output_resolver(session_factory)
+
+    async def resolve(
+        *, principal: Any, reference: SelectedStudyArtifactReference
+    ) -> SelectedStudyArtifactReference:
+        return (await output_resolver(principal=principal, reference=reference)).reference
+
+    return resolve
+
+
+def create_resolved_study_artifact_output_resolver(
+    session_factory: Callable[[], Any],
+) -> ResolvedStudyArtifactOutputResolver:
+    """Bind verified immutable payload resolution to the local SQL session factory."""
 
     if not callable(session_factory):
         raise TypeError("session_factory must be callable")
 
     async def resolve(
         *, principal: Any, reference: SelectedStudyArtifactReference
-    ) -> SelectedStudyArtifactReference:
+    ) -> ResolvedStudyArtifactOutput:
         if not isinstance(reference, SelectedStudyArtifactReference):
             raise SelectedStudyArtifactResolutionError("selected Study reference is not typed")
         async with session_factory() as session:
@@ -117,7 +136,7 @@ async def _resolve_selected_study_artifact(
     session: AsyncSession,
     principal: Any,
     reference: SelectedStudyArtifactReference,
-) -> SelectedStudyArtifactReference:
+) -> ResolvedStudyArtifactOutput:
     """Revalidate a pinned artifact from the existing immutable Study tables.
 
     This seam accepts only a typed reference; it does not derive or guess an
@@ -251,4 +270,9 @@ async def _resolve_selected_study_artifact(
         raise SelectedStudyArtifactResolutionError(
             "selected Study evidence differs from its immutable reference"
         )
-    return resolved
+    try:
+        return ResolvedStudyArtifactOutput(reference=resolved, payload=artifact.payload)
+    except (TypeError, ValueError) as error:
+        raise SelectedStudyArtifactResolutionError(
+            "selected Study artifact payload cannot be frozen for runtime use"
+        ) from error

@@ -1611,23 +1611,34 @@ roadmap_progress_history:
       Study output distinct from native Nautilus execution evidence. Preserve exact-pinned engine
       authority and every provider/live/quota/paid/trial/forward/broker/capital safety hold.
     owned_paths:
+      - backend/app/strategy_lab_v2/contracts.py
       - backend/app/strategy_lab_v2/study_artifact_resolver.py
       - backend/app/strategy_lab_v2/trial_hydration.py
+      - backend/app/strategy_lab_v2/sdk.py
+      - backend/app/strategy_lab_v2/replay.py
       - backend/app/strategy_lab_v2/nautilus_trial_assembly.py
+      - backend/app/strategy_lab_v2/nautilus_trial_materializer.py
+      - backend/app/strategy_lab_v2/search_preparation_composition.py
+      - backend/app/strategy_lab_v2/worker_callbacks.py
       - backend/app/strategy_lab_v2/nautilus_runtime_bundle.py
       - backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py
       - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_trial_assembly.py
+      - backend/app/strategy_lab_v2/tests/test_strategy_runtime_protocol.py
+      - backend/strategy_runtime/protocol.py
+      - backend/strategy_runtime/runner.py
+      - backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
     status: in_progress
   current_blocker: >-
-    The current resolver verifies and returns only the pinned reference; it discards payload bytes,
-    so no typed immutable Study value is yet bound into worker input. This is implementation work,
-    not native execution proof. Heavy PostgreSQL/combined runtime/browser/native gates remain subject
-    to coordinator resource assignment; preserve the fail-closed assembly guard until bounded
-    payload support is complete and verified.
+    The owner-scoped resolver, hydration graph and bounded runtime context streams now carry the
+    exact typed immutable producer payload; no-reference fingerprint/wire compatibility is
+    preserved and focused offline tests, Ruff and changed-boundary MyPy pass. The added real
+    PostgreSQL reconstructed-worker test has not run, so persisted restart revalidation and the
+    complete accepted runtime path are not yet database-proven. Native execution is not inferred
+    from generic Study output; heavier PostgreSQL/combined runtime/browser/native gates remain open.
   next_action: >-
-    Implement the typed payload path across the existing owner-scoped resolver, hydration and frozen
-    runtime bundle, retaining the current guard for unsupported or invalid references. Add exact
-    payload/digest roundtrip, owner and CodeVersion lineage, changed/deleted artifact, restart
-    reconstruction and no-second-dispatch regressions. Then request assigned PostgreSQL/combined
-    worker/native qualification; do not run heavy profiles or enable live/broker/capital scopes.
+    Preserve the exact-source c45 CI until its Playwright job is terminal, then publish this coherent
+    typed-payload implementation and record its exact CI. Request one assigned PostgreSQL slot for
+    the updated persisted API/reconstructed-hydrator test, including changed/deleted-row revalidation;
+    then complete the remaining combined runtime and full local/full_stack_browser/native gates under
+    coordinator resource assignment. Keep all provider/live/quota/paid/trial/broker/capital holds.

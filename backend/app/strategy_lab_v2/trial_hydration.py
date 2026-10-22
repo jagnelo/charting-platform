@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Protocol
 
@@ -15,9 +15,9 @@ from app.strategy_lab_v2.contracts import (
     DataSnapshot,
     ExperimentDefinition,
     PortfolioComposition,
+    ResolvedStudyArtifactOutput,
     RunAttempt,
     ScientificTrial,
-    SelectedStudyArtifactReference,
     StrategyPackage,
     StrategyVersion,
 )
@@ -54,7 +54,7 @@ class OwnerScopedDomainReader(Protocol):
     ) -> Mapping[str, DomainResourceContract]: ...
 
 
-SelectedStudyArtifactResolver = Callable[..., Awaitable[SelectedStudyArtifactReference]]
+SelectedStudyArtifactResolver = Callable[..., Awaitable[ResolvedStudyArtifactOutput]]
 
 
 def _is_async_callable(callback: Callable[..., Any]) -> bool:
@@ -74,6 +74,9 @@ class HydratedNautilusTrial:
     snapshot: DataSnapshot
     strategies: tuple[StrategyVersion, ...]
     packages: Mapping[str, StrategyPackage]
+    study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = field(
+        default=None, metadata={"canonical_omit_none": True}
+    )
 
     def __post_init__(self) -> None:
         expected = (
@@ -101,6 +104,27 @@ class HydratedNautilusTrial:
             raise ValueError("hydrated strategy set differs from the immutable experiment")
         if set(ordered_packages) != set(strategy_fingerprints):
             raise ValueError("hydrated packages must bind every experiment strategy")
+        expected_study_references = {
+            strategy.fingerprint: strategy.selected_study_artifact
+            for strategy in ordered_strategies
+            if strategy.selected_study_artifact is not None
+        }
+        if self.study_artifacts is None:
+            ordered_study_artifacts: dict[str, ResolvedStudyArtifactOutput] = {}
+        elif not isinstance(self.study_artifacts, Mapping) or any(
+            not isinstance(key, str) or not isinstance(value, ResolvedStudyArtifactOutput)
+            for key, value in self.study_artifacts.items()
+        ):
+            raise TypeError("study_artifacts must map strategy fingerprints to resolved outputs")
+        else:
+            ordered_study_artifacts = dict(sorted(self.study_artifacts.items()))
+        if set(ordered_study_artifacts) != set(expected_study_references):
+            raise ValueError("hydrated Study outputs must bind every selected strategy reference")
+        if any(
+            output.reference != expected_study_references[strategy_fingerprint]
+            for strategy_fingerprint, output in ordered_study_artifacts.items()
+        ):
+            raise ValueError("hydrated Study output differs from the strategy reference")
         for strategy in ordered_strategies:
             package = ordered_packages[strategy.fingerprint]
             if package.strategy_fingerprint != strategy.fingerprint:
@@ -129,6 +153,10 @@ class HydratedNautilusTrial:
             raise ValueError("hydrated trial preflight differs from its frozen snapshot")
         object.__setattr__(self, "strategies", ordered_strategies)
         object.__setattr__(self, "packages", MappingProxyType(ordered_packages))
+        if ordered_study_artifacts:
+            object.__setattr__(self, "study_artifacts", MappingProxyType(ordered_study_artifacts))
+        elif self.study_artifacts is not None:
+            object.__setattr__(self, "study_artifacts", None)
 
     @property
     def fingerprint(self) -> str:
@@ -261,6 +289,7 @@ class NautilusTrialDomainHydrator:
 
         strategies: list[StrategyVersion] = []
         packages: dict[str, StrategyPackage] = {}
+        study_artifacts: dict[str, ResolvedStudyArtifactOutput] = {}
         for strategy_fingerprint in experiment.strategy_fingerprints:
             strategy = strategies_by_fingerprint.get(strategy_fingerprint)
             package_fingerprint = experiment.strategy_package_fingerprints.get(strategy_fingerprint)
@@ -291,12 +320,13 @@ class NautilusTrialDomainHydrator:
                         "selected Study artifact is unavailable for restart validation"
                     ) from error
                 if (
-                    not isinstance(resolved, SelectedStudyArtifactReference)
-                    or resolved != study_reference
+                    not isinstance(resolved, ResolvedStudyArtifactOutput)
+                    or resolved.reference != study_reference
                 ):
                     raise TrialDomainHydrationError(
                         "selected Study artifact differs from the immutable strategy reference"
                     )
+                study_artifacts[strategy_fingerprint] = resolved
             strategies.append(strategy)
             packages[strategy_fingerprint] = package
 
@@ -309,6 +339,7 @@ class NautilusTrialDomainHydrator:
                 snapshot=snapshot,
                 strategies=tuple(strategies),
                 packages=packages,
+                study_artifacts=study_artifacts or None,
             )
         except (TypeError, ValueError) as error:
             raise TrialDomainHydrationError(

@@ -189,6 +189,52 @@ class SelectedStudyArtifactReference:
 
 
 @dataclass(frozen=True, slots=True)
+class ResolvedStudyArtifactOutput:
+    """Owner-authenticated immutable producer output for one selected reference.
+
+    A reference alone is only a claim. This value is constructed by the local
+    resolver after verifying the persisted owner/run/version/artifact rows and
+    the canonical payload digest. It does not represent native execution.
+    """
+
+    reference: SelectedStudyArtifactReference
+    payload: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.reference, SelectedStudyArtifactReference):
+            raise TypeError("reference must use SelectedStudyArtifactReference")
+        if not isinstance(self.payload, Mapping):
+            raise TypeError("Study artifact payload must be a mapping")
+        frozen_payload = freeze_json(self.payload)
+        if not isinstance(frozen_payload, Mapping):
+            raise TypeError("Study artifact payload must be a mapping")
+        if (
+            frozen_payload.get("type") != self.reference.artifact_type
+            or "value" not in frozen_payload
+            or content_digest(_thaw_json_arrays(frozen_payload))
+            != self.reference.artifact_content_digest
+        ):
+            raise ValueError("Study artifact payload differs from its immutable reference")
+        object.__setattr__(self, "payload", frozen_payload)
+
+    @property
+    def value(self) -> Any:
+        """The producer's generic typed value; no execution semantics are inferred."""
+
+        return self.payload["value"]
+
+
+def _thaw_json_arrays(value: Any) -> Any:
+    """Restore JSON arrays for digest checks after immutable tuple freezing."""
+
+    if isinstance(value, Mapping):
+        return {key: _thaw_json_arrays(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_thaw_json_arrays(item) for item in value]
+    return value
+
+
+@dataclass(frozen=True, slots=True)
 class StrategyVersion:
     strategy_id: str
     version_id: str

@@ -16909,3 +16909,56 @@ carry the artifact payload into frozen runtime inputs. Continue through that
 existing resolver/hydration/bundle path, retain fail-closed behavior until
 materialization is verified, and obtain assigned heavy gates before any real
 PostgreSQL/combined runtime/native qualification.
+
+## Active full-roadmap Study payload/runtime binding — 2026-10-22
+
+The current branch already includes and pushes the exact accepted M2 baseline:
+merge `05acff1aa624b2f6ba9e1085a796e17b664ed87a` has the released
+`0e342512e53ba2268425294d61c50e219eaafa4f` as its second parent, and M2 is an
+ancestor of current source `c45c1e0663cb57aba0481e5b66f0bcf556de5351`. The
+current worktree is the original claimed `feat/strategy-lab-v2` owner checkout;
+the native goal API reports the same original thread's unbudgeted full
+18-criterion goal as active. No duplicate goal or accounting reset was made.
+
+The active typed Study payload slice now uses the existing TC-backed resolver
+and owner-scoped SQL rows to return an immutable `ResolvedStudyArtifactOutput`
+only after rechecking the exact reference, completed run/evaluation, asset and
+CodeVersion lineage, artifact identity/type, dataset/run hashes, and canonical
+payload digest. V2 trial hydration stores outputs against the exact strategy
+fingerprint; the existing materializer binds them into SDK contexts and the
+runtime worker protocol. Single-strategy and multiplexed component context
+streams carry the potentially large output once in their authenticated header,
+not once per event; decoders bind it to every event and the manifest's exact
+selected reference. Missing/unpinned/mismatched output remains rejected. No-ref
+SDK canonical fingerprints and context wire remain unchanged. Generic Study
+output remains opaque producer data and is not native Nautilus execution proof.
+
+Latest source working-tree delta from base c45 has SHA-256
+`26a62724cafd2f18ac303e9d66c7853d12b4d020e825d87e8a8da1d27c337275` (binary
+Git diff of only `backend/app/strategy_lab_v2` and `backend/strategy_runtime`).
+The four focused resolver/hydration/protocol/assembly modules passed 75 tests in
+3.70s after adding header-bound stream transport. A later strict malformed
+`NautilusComponentTrialInput.study_artifacts` type check has its own regression
+pass (1 test in 0.36s); it does not admit any output. Ruff check and format
+passed across all 16 changed Python files, `git diff --check` passed, and
+focused MyPy passed for the 15 changed production/test source files. A
+test-boundary MyPy error from deliberately passing a runtime-invalid list was
+fixed with a narrow `cast(Any, [])`; the runtime rejection assertion is intact.
+Earlier UV cache permission and mistyped-path attempts did not run a checker and
+are not test failures.
+
+The real PostgreSQL module now uses the output resolver for its reconstructed
+worker hydrator and asserts the exact payload value after a fresh session-factory
+restart. It also retains changed-dataset and deleted-artifact rejection cases.
+That module was not executed in this source-only slot; it still needs the
+coordinator-assigned constrained PostgreSQL gate before restart/data claims are
+closed. No full backend/database/Compose/browser/native gate was launched.
+
+At the last live read, exact current-base CI `39850802077` on c45 had Backend,
+Frontend and Branch-declared jobs successful; Playwright remained in progress,
+and the feature-policy EIG was skipped. Do not push the new source while that
+run is active, to avoid cancelling its browser job. After it is terminal,
+publish this coherent product changeset and capture its exact-source CI. Then
+request the real PostgreSQL test slot and retain all full local, combined,
+browser, visual and native roadmap gates. The full 18 criteria and all safety
+holds remain unchanged.

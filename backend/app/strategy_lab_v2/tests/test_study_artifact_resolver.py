@@ -10,7 +10,10 @@ from sqlalchemy.sql.visitors import iterate
 
 from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
 from app.strategy_lab_v2.canonical import content_digest
-from app.strategy_lab_v2.contracts import SelectedStudyArtifactReference
+from app.strategy_lab_v2.contracts import (
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
+)
 from app.strategy_lab_v2.study_artifact_resolver import (
     SelectedStudyArtifactResolutionError,
     _resolve_selected_study_artifact,
@@ -182,7 +185,9 @@ async def test_resolves_exact_owner_scoped_completed_named_study_artifact() -> N
         session=_as_test_async_session(session), principal=principal, reference=reference
     )
 
-    assert resolved == reference
+    assert isinstance(resolved, ResolvedStudyArtifactOutput)
+    assert resolved.reference == reference
+    assert resolved.value == (1.0, 2.0)
     assert len(session.statements) == 4
     assert session._responses == []
 
