@@ -17085,3 +17085,13 @@ This remains an I/O-free local runner-contract test, not containerized worker, P
 or native-engine evidence. Exact published CI39856591934 remains in progress on
 `485bea63f314cdffcd6d4cf571d6158a215ef2c5`; the current edit and the local commits are not in that
 run. Preserve the full roadmap and do not publish until the existing run is terminal.
+
+### Complete runtime protocol regression slice — 2026-10-22
+
+The full `test_strategy_runtime_protocol.py` module passed 24/24 in 0.85s on source
+`236cff642f0f8c8ae8d0aa30f3872d8b5dee8e6e`. This includes canonical invocation, batch, and context
+stream behavior plus the serialized Study payload tampering case, which verifies decoder rejection
+and that the worker CLI creates no result file. Focused MyPy and Ruff/format checks for the touched
+protocol test file passed; no database, Docker, browser, native, network, or provider work ran. Exact
+CI39856591934 remains in progress on `485bea63f314cdffcd6d4cf571d6158a215ef2c5`; it does not cover
+this local branch tip.
