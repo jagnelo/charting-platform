@@ -712,15 +712,22 @@ progress:
     found one no-Study test double missing the new optional study_artifacts attribute; 5197 other
     backend tests passed and frontend CI passed. A focused correction adds the explicit None field
     and its existing failing node now passes 1/1 locally; a new exact-source CI is required.
-    The full 18 criteria remain
+    The corrected source is dff6afadc5039f2d033e650ddc9bfbe6364bfcd2, independently verified on
+    origin. Exact push CI39869340272 is terminal success: Backend passed 5198 unit and 508
+    integration tests (1 unit skip, 2 integration skips) with 84% combined coverage; Frontend,
+    Branch-declared, and E2E Playwright jobs succeeded; the feature-policy EIG skip is expected. A
+    focused PostgreSQL forward-plan reconstruction
+    regression has now been added to the ordinary Study integration module but has not run locally;
+    it needs the assigned PostgreSQL slot or the new hosted integration run. The full 18 criteria remain
     in progress: full backend/combined database and runtime, browser/visual, and exact-pinned native
     qualification still require their assigned validation gates. Provider/live/quota, paid/trial,
     unknown/unsafe, broker/capital and deployment actions remain disabled or unauthorized; no
     provider, issuer or SEC HTTP was used.
   next_action: >-
-    Publish the narrowly corrected no-Study test double and inspect its exact-source CI once. Then
-    continue the full AC-WORKERS/AC-FORWARD and AC-NAUTILUS work using coordinator-assigned
-    database/runtime/native slots; do not start a heavy profile while held. Preserve all
+    Record the terminal exact CI39869340272 receipt for dff6afadc without replay. Then close the
+    prepared real-PG forward Study reconstruction test as its own validated source context; do not
+    launch a local database fixture without an assigned slot. Continue AC-WORKERS/AC-FORWARD and
+    AC-NAUTILUS using coordinator-assigned database/runtime/native slots. Preserve all
     18 original criteria, exact-scope Nautilus authority, disabled provider/live/quota/paid/trial/
     unknown/unsafe/broker/capital boundaries, and the accepted checkpoint history.
 branch: feat/strategy-lab-v2
@@ -1637,35 +1644,28 @@ roadmap_progress_history:
       - backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
     status: in_progress
   current_blocker: >-
-    The owner-scoped resolver, hydration graph and bounded runtime context streams now carry the
-    exact typed immutable producer payload; no-reference fingerprint/wire compatibility is
-    preserved and focused offline tests, Ruff and changed-boundary MyPy pass. The added real
-    PostgreSQL API/reconstructed-worker test module now collects 31 cases, including post-dispatch
-    run/evaluation, restart owner, version, dataset and artifact ambiguity/content/identity drift
-    denials. Exact CI39856591934 on published485bea63f314cdffcd6d4cf571d6158a215ef2c5 is terminal
-    red: its integration step reports495 passed,10 failed,2 skipped. The10 reconstructed-restart
-    cases fail during fixture construction because the selected strategy reference had no matching
-    resolved Study output in HydratedNautilusTrial; the test helper now resolves and binds that
-    output from the real fixture rows before persisting the graph. Two existing I/O-free hydrator
-    owner-denial/resolver-principal unit tests pass locally, but no database body has run after this
-    repair; persisted row-level owner isolation still awaits a bounded PG slot.
-    I/O-free regressions directly prove deep freezing against source mutation and reject constructing
-    a payload whose canonical digest differs from its typed reference. Protocol coverage mutates
-    serialized Study payload bytes while retaining the reference digest; both direct decoding and
-    the worker CLI reject the request before creating a result file. The resolver module passes30
-    focused tests, and the full runtime protocol module passes24; focused MyPy, Ruff, format, and diff
-    checks pass. No PostgreSQL fixture has run locally for this source. Persisted restart
-    revalidation and the complete accepted runtime path are therefore not yet locally
-    database-proven. Exact CI39856591934 is terminal failed for published source
-    485bea63f314cdffcd6d4cf571d6158a215ef2c5; its failure is preserved and is not replaced by
-    collection-only or static evidence. Native
-    execution is not inferred from generic Study output; heavier PostgreSQL/combined runtime/browser/
-    native gates remain open.
+    The owner-scoped resolver, hydration graph and bounded runtime context streams carry the exact
+    typed immutable Study payload; no-reference fingerprint/wire compatibility is preserved.
+    Historical CI39856591934 fixture failures and subsequent red receipts remain in the handoff and
+    append-only journal. The current unpublished changeset adds one ordinary PostgreSQL forward-plan
+    reconstruction case using persisted Strategy/Package/Portfolio/ForwardInstance/ForwardExecutionPlan
+    rows and fresh SQL sessions. It asserts exact output binding after reconstruction, foreign-owner
+    denial, and persisted payload-drift rejection. Collection succeeded (one node, no fixture setup),
+    but the PostgreSQL test body has not run locally because no local DB slot is assigned. Focused
+    MyPy initially found four test-only errors: the persisted resource union was not narrowed and the
+    expected Study payload used a tuple instead of the required typed mapping. The test now explicitly
+    narrows ForwardInstance and compares the canonical series mapping; focused one-file MyPy passes.
+    Ruff, format and diff checks pass. Exact published-source CI39869340272 for dff6afadc is terminal
+    success: backend, frontend, branch-declared and E2E Playwright jobs succeeded; EIG was skipped by
+    feature policy. The unpublished test is not covered by that run, and its PostgreSQL body remains
+    unexecuted locally. Publish this coherent test-plus-receipt changeset and use its exact-source
+    hosted CI for the first database execution. Persisted restart behavior and the complete combined
+    runtime/browser/strict-visual/native gates remain open; generic Study output is not native
+    execution evidence.
   next_action: >-
-    The prior exact CI is terminal red and no longer occupies a run; do not replay the full suite
-    while the coordinator owns the heavy local slot. Continue only bounded source/static work. Run
-    the corrected 31-case persisted API/reconstructed-hydrator matrix in the coordinator-assigned
-    PostgreSQL slot, preserving the hosted fixture failure and recording actual fixture evidence.
-    Publish the coherent source after focused repair validation, then obtain exact-source CI. Continue
-    the remaining combined runtime and full local/full_stack_browser/native gates under coordinator
-    resource assignment. Keep all provider/live/quota/paid/trial/broker/capital holds.
+    Perform final scoped workstream/diff checks and publish the forward PostgreSQL regression with
+    its terminal prior-source CI receipt. Its first actual database execution must be covered by the
+    resulting exact-source hosted integration run or an assigned local DB slot; collection and MyPy
+    are not runtime proof. Continue the complete 18-criterion roadmap and all coordinator-assigned
+    database/runtime/browser/native gates. Keep provider/live/quota/paid/trial/
+    unknown/unsafe/broker/capital holds.

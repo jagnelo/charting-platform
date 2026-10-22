@@ -17176,3 +17176,61 @@ The narrow repair explicitly sets `study_artifacts=None` on that existing no-ref
 it preserves the assertion and production no-reference behavior. The exact previously failing node
 passes 1/1 in 2.53s locally (offline, no DB/Docker/network). This does not repair every gate by
 itself; a new exact-source push CI is required. The earlier CI red remains preserved without replay.
+
+## Real forward Study restart evidence preparation — 2026-10-22 23:23 UTC
+
+Read-only audit found that the existing real PostgreSQL Study matrix proves backtest
+`NautilusTrialDomainHydrator` reconstruction and persisted Study-row drift, but did not exercise the
+new forward execution-plan resolver through the production worker-resolver factory. Added one
+ordinary integration case to `backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`:
+it persists owner-scoped strategy/package/portfolio plus ForwardInstance and ForwardExecutionPlan,
+rebuilds a fresh SQLAlchemy engine/session and aggregate reader, obtains the worker resolver from
+`create_authenticated_forward_worker_runtime_input_resolver`, and checks exact Study payload
+binding, foreign-owner denial, and persisted artifact-payload drift rejection on a subsequent
+resolution. It uses the existing mapped Study FK fixture and ordinary CI database fixture; there
+is no opt-in skip or synthetic producer contract.
+
+This new PostgreSQL test has not run locally because no local database slot is assigned. Ruff and
+Ruff format pass on the touched test files, and pytest collection selects the new node
+alone (1 collected in 1.56s) without fixture setup; no database, Docker, or network operation ran.
+At last check exact source CI39869340272 on dff6afadc had Frontend green and Backend integration
+running. Do not push the prepared integration-test changes until that exact hosted run is terminal,
+to avoid cancelling it. The real forward restart test remains pending its first actual execution.
+
+## Forward PostgreSQL regression typing correction — 2026-10-22 23:44 UTC
+
+Focused MyPy on the new forward restart integration test initially found four test-only diagnostics:
+the persisted domain-resource union needed an explicit `ForwardInstance` narrowing, and the expected
+`ResolvedStudyArtifactOutput` needed the producer's canonical `{type, value}` mapping rather than a
+bare tuple. The test now narrows the actual persisted resource and compares against the canonical
+series mapping. The same one-file MyPy invocation passes; Ruff check, Ruff format check and
+`git diff --check` pass. No production code changed and no test body/database fixture was executed.
+
+The exact published source run `39869340272` still targets `dff6afadc5039f2d033e650ddc9bfbe6364bfcd2`:
+Backend (5,198 unit passed/1 existing skip; 508 integration passed/2 existing skips; 84% combined
+coverage), Frontend and Branch-declared jobs are green; E2E Playwright remains in progress and EIG
+is skipped by feature-branch policy. This run does not include the local forward PostgreSQL case.
+Keep the four-file changeset unpublished until this exact run is terminal. The persisted restart
+assertions remain pending their first database execution through the next exact-source hosted run
+or an assigned local PostgreSQL slot; no local fixture, HTTP, browser, or native execution occurred.
+Full 18-criterion, combined database/runtime/browser/strict-visual/native gates and all safety holds
+remain open.
+
+## Terminal exact-source CI for forward Study compatibility correction — 2026-10-22 23:49 UTC
+
+GitHub run `39869340272`, attempt 1, completed successfully for exact published source
+`dff6afadc5039f2d033e650ddc9bfbe6364bfcd2`. Backend Tests passed 5,198 unit tests with one existing
+skip and 508 integration tests with two existing skips, with 84% combined coverage. Frontend Unit,
+Branch-declared, and E2E Playwright jobs succeeded; E2E job `120147539428` is terminal success. The
+Exhaustive Integration Gate was skipped under feature-branch policy. No retry was requested or run.
+This receipt is for the published source only; it does not include the four-file unpublished
+forward-Study PostgreSQL regression. That test has passed collection, focused MyPy, Ruff and format
+checks, but its PostgreSQL body has not yet executed. The next publication will trigger exact-source
+integration coverage; full local/combined DB, application/runtime, strict-visual and native gates
+remain open.
+
+At 2026-10-22 23:35 UTC, exact dff6afadc CI39869340272 had Backend Tests green (5,198 unit passed,
+1 existing skip; 508 integration passed, 2 existing skips; combined coverage 84%), Frontend Unit
+Tests green, and Branch-declared Tests green. E2E Playwright remained in progress; the Exhaustive
+Integration Gate was skipped by feature-branch policy. This evidence covers dff6afadc, not the
+uncommitted forward PostgreSQL regression; wait for E2E terminal status before pushing that test.

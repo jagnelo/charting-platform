@@ -5,8 +5,10 @@ import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from io import BytesIO
 from pathlib import Path
 from typing import Any, cast
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import httpx
 import pytest
@@ -22,15 +24,32 @@ from app.models.user import User
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.api_router import create_strategy_lab_router
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest, freeze_json
 from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    ArtifactRetention,
+    CarryInMode,
     ExperimentDefinition,
+    ForwardInstance,
+    ForwardState,
     PortfolioComposition,
+    ResolvedStudyArtifactOutput,
     RunAttempt,
     ScientificTrial,
     SelectedStudyArtifactReference,
     StrategyPackage,
     StrategyVersion,
+)
+from app.strategy_lab_v2.forward_execution_plan import (
+    ForwardComponentExecutionPlan,
+    ForwardExecutionPlan,
+)
+from app.strategy_lab_v2.forward_execution_plan_resolution import (
+    AuthenticatedForwardExecutionPlanResolver,
+)
+from app.strategy_lab_v2.forward_worker_composition import (
+    create_authenticated_forward_worker_runtime_input_resolver,
 )
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
@@ -45,6 +64,12 @@ from app.strategy_lab_v2.search_dispatch_rpc import (
     build_api_bindings,
 )
 from app.strategy_lab_v2.storage import AggregateKey
+from app.strategy_lab_v2.strategy_package_resolution import (
+    STRATEGY_PACKAGE_LOCK_MEMBER,
+    STRATEGY_PACKAGE_MANIFEST_MEMBER,
+    STRATEGY_SOURCE_ARCHIVE_MEDIA_TYPE,
+    STRATEGY_SOURCE_ARCHIVE_SCHEMA,
+)
 from app.strategy_lab_v2.study_artifact_resolver import (
     SelectedStudyArtifactResolutionError,
     create_resolved_study_artifact_output_resolver,
@@ -55,6 +80,7 @@ from app.strategy_lab_v2.trial_hydration import (
     NautilusTrialDomainHydrator,
     TrialDomainHydrationError,
 )
+from strategy_runtime import deserialize_strategy_manifest, serialize_strategy_manifest
 
 _NOW = datetime(2026, 10, 22, 4, 0, tzinfo=UTC)
 _STUDY_TABLES: tuple[Table, ...] = (cast(Table, ResearchArtifact.__table__),)
@@ -647,6 +673,8 @@ async def _strategy_graph_with_reference(
     graph: Any,
     reference: SelectedStudyArtifactReference,
     sessions: async_sessionmaker[AsyncSession],
+    *,
+    artifact_store: Any | None = None,
 ) -> Any:
     resolved_output = await create_resolved_study_artifact_output_resolver(sessions)(
         principal="1", reference=reference
@@ -655,6 +683,40 @@ async def _strategy_graph_with_reference(
     strategy = replace(old_strategy, selected_study_artifact=reference)
     old_package: StrategyPackage = graph.packages[old_strategy.fingerprint]
     package = replace(old_package, strategy_fingerprint=strategy.fingerprint)
+    if artifact_store is not None:
+        original_archive = artifact_store.read(old_package.archive_digest)
+        with ZipFile(BytesIO(original_archive)) as archive:
+            members = {name: archive.read(name) for name in archive.namelist()}
+        sdk_manifest = deserialize_strategy_manifest(
+            members[STRATEGY_PACKAGE_MANIFEST_MEMBER].decode("utf-8")
+        )
+        manifest_bytes = serialize_strategy_manifest(
+            replace(sdk_manifest, strategy=strategy)
+        ).encode("utf-8")
+        members[STRATEGY_PACKAGE_MANIFEST_MEMBER] = manifest_bytes
+        archive_stream = BytesIO()
+        with ZipFile(archive_stream, mode="w", compression=ZIP_DEFLATED) as archive:
+            for name, payload in members.items():
+                archive.writestr(name, payload)
+        archive_bytes = archive_stream.getvalue()
+        package = replace(
+            package,
+            archive_digest=artifact_content_digest(archive_bytes),
+            manifest_digest=artifact_content_digest(manifest_bytes),
+            dependency_lock_digest=artifact_content_digest(members[STRATEGY_PACKAGE_LOCK_MEMBER]),
+            archive_byte_length=len(archive_bytes),
+        )
+        artifact_store.publish(
+            ArtifactManifest(
+                package.archive_digest,
+                len(archive_bytes),
+                STRATEGY_SOURCE_ARCHIVE_MEDIA_TYPE,
+                STRATEGY_SOURCE_ARCHIVE_SCHEMA,
+                package.archive_digest,
+                ArtifactRetention.PINNED_INPUT,
+            ),
+            archive_bytes,
+        )
     portfolio: PortfolioComposition = replace(
         graph.portfolio,
         components=tuple(
@@ -869,5 +931,129 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drif
             await restarted_hydrator.hydrate_attempt(
                 principal="1", attempt_resource_id=graph.attempt.attempt_id
             )
+    finally:
+        await fresh_engine.dispose()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
+    tmp_path: Path,
+    study_database: StudyDatabase,
+) -> None:
+    sessions = study_database.sessions
+    reference = await _reference(sessions)
+    graph, _artifact_store, package_resolver, _materializer, _context, _worker_state = _setup(
+        tmp_path / "forward-study-worker"
+    )
+    graph = await _strategy_graph_with_reference(
+        graph,
+        reference,
+        sessions,
+        artifact_store=_artifact_store,
+    )
+    adapter, store = _adapter(sessions, study_database.storage_schema)
+    suffix = uuid.uuid4().hex
+    await _persist_graph(adapter, graph, suffix)
+
+    instance = ForwardInstance(
+        instance_id=f"forward-study-{suffix}",
+        portfolio_fingerprint=graph.portfolio.fingerprint,
+        warmup_snapshot_fingerprint=graph.snapshot.fingerprint,
+        carry_in_mode=CarryInMode.FLAT,
+        state=ForwardState.CREATED,
+        last_event_id=None,
+        last_event_sequence=0,
+        correction_count=0,
+        created_at=_NOW,
+        updated_at=_NOW,
+    )
+    strategy = graph.strategies[0]
+    package = graph.packages[strategy.fingerprint]
+    plan = ForwardExecutionPlan(
+        instance_id=instance.instance_id,
+        portfolio_fingerprint=graph.portfolio.fingerprint,
+        components=(
+            ForwardComponentExecutionPlan(
+                component_id=graph.portfolio.components[0].component_id,
+                strategy_fingerprint=strategy.fingerprint,
+                package_fingerprint=package.fingerprint,
+                parameters={},
+                random_seed=7,
+            ),
+        ),
+    )
+    for resource_type, contract in (
+        (ApiResourceType.FORWARD_INSTANCE, instance),
+        (ApiResourceType.FORWARD_EXECUTION_PLAN, plan),
+    ):
+        result = await adapter.create_resource(
+            principal="1",
+            request_id=f"forward-study-{suffix}-{resource_type.value}",
+            request=ResourceMutationRequest(
+                resource_type,
+                f"forward-study-{suffix}-{resource_type.value}",
+                {"attributes": dict(freeze_json(contract))},
+                _NOW,
+            ),
+        )
+        assert result.receipt is not None, result.resolution.rejection_reason
+        assert result.resolution.decision.value == "accept"
+
+    # Construct a fresh aggregate reader and worker resolver as after a process
+    # restart; both the execution plan and Study payload must come from persisted rows.
+    fresh_engine, fresh_sessions = study_database.new_engine_and_sessions()
+    try:
+        fresh_store = PostgresAggregateStore(
+            fresh_sessions,
+            schema=study_database.storage_schema,
+        )
+        persistence = replace(
+            PostgresStrategyLabV2Persistence.build(fresh_sessions),
+            aggregate_store=fresh_store,
+            resources=PostgresResourceReader(fresh_store),
+        )
+        worker_resolver = create_authenticated_forward_worker_runtime_input_resolver(
+            persistence,
+            package_resolver,
+            principal="1",
+        )
+        execution_plan_resolver = worker_resolver._execution_plan_resolver
+        assert isinstance(execution_plan_resolver, AuthenticatedForwardExecutionPlanResolver)
+        persisted_instance = await persistence.resources.get_domain_contract(
+            principal="1",
+            resource_type=ApiResourceType.FORWARD_INSTANCE,
+            resource_id=instance.instance_id,
+        )
+        assert isinstance(persisted_instance, ForwardInstance)
+        assert persisted_instance == instance
+        resolved = await execution_plan_resolver.resolve(persisted_instance)
+        component = resolved.components[graph.portfolio.components[0].component_id]
+        assert component.study_artifacts == {
+            reference.artifact_name: ResolvedStudyArtifactOutput(
+                reference,
+                {"type": "series", "value": [1.0, 2.0]},
+            )
+        }
+
+        foreign_resolver = AuthenticatedForwardExecutionPlanResolver(
+            persistence.resources,
+            package_resolver,
+            principal="2",
+            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
+                fresh_sessions
+            ),
+        )
+        with pytest.raises(ValueError, match="execution plan is unavailable"):
+            await foreign_resolver.resolve(persisted_instance)
+
+        async with fresh_sessions.begin() as session:
+            await session.execute(
+                update(ResearchArtifact)
+                .where(ResearchArtifact.id == reference.artifact_id)
+                .values(payload={"type": "series", "value": [99.0]})
+            )
+        with pytest.raises(SelectedStudyArtifactResolutionError):
+            await execution_plan_resolver.resolve(persisted_instance)
     finally:
         await fresh_engine.dispose()
