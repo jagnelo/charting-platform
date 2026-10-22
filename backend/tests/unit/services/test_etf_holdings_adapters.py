@@ -30076,6 +30076,7 @@ def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
     provider_universe = (
         Path(__file__).resolve().parents[4] / "docs" / "etf-provider-universe.md"
     ).read_text()
+    normalized_provider_universe = " ".join(provider_universe.split())
     ledger = yaml.safe_load((workstream_root / "provider-audit.yaml").read_text())
     plan = yaml.safe_load((workstream_root / "plan.yaml").read_text())
     session = json.loads((workstream_root / "session.json").read_text())
@@ -30097,6 +30098,14 @@ def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
     }
     for status, count in runtime_status_counts.items():
         assert f"- `{status}`: `{count}`" in provider_universe
+    assert (
+        "Current native-route split:\n\n- Native/live-backed providers: `422`\n"
+        "- Audited fallback-only providers: `74`"
+    ) in provider_universe
+    assert (
+        "At the older provider-repair implementation checkpoint `a696277b6efed719cc40051e010f5e6a5b542f3e`, "
+        "the then-current split was 421 native and 75 fallback-only."
+    ) in normalized_provider_universe
     assert len(ledger["symbol_priority_ledger"]["symbols"]) == tier_zero_count
     assert len(ledger["symbol_audit_ledger"]["symbols"]) == tier_one_count
 

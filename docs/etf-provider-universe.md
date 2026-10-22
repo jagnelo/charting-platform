@@ -454,12 +454,15 @@ current CSV is live-tested; SNTQ's issuer API is configured and fixture-tested
 but reports `Unavailable midnight-7am ET.` outside its serving window, so no
 separate SNTQ live-green claim is made yet.
 
-The historical starting snapshot for this
-workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 421/75 split.
+The historical starting snapshot for this workstream was 356 native and 140
+fallback; the provider-audit ledger retains that baseline record. At the older
+provider-repair implementation checkpoint `a696277b6efed719cc40051e010f5e6a5b542f3e`,
+the then-current split was 421 native and 75 fallback-only. That checkpoint
+predates the later fallback-to-native correction; the current branch-derived
+split is 422 native and 74 fallback-only as recorded in Repo Coverage above.
 
-The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
-`FALLBACK_ISSUER_AUDITS` at provider-repair implementation checkpoint
+The historical provider-repair inventory was derived from
+`ISSUER_ADAPTER_CONFIGS` and `FALLBACK_ISSUER_AUDITS` at implementation checkpoint
 `a696277b6efed719cc40051e010f5e6a5b542f3e` (6 Meridian SIXH/SIXL/SIXA/SIXS/SXQG official product-page Nuxt holdings components; Measured Risk Portfolios SNTH/SNTQ official SynthEquity product-page-declared daily holdings CSV routes; MAX ETNs CARD/CARU/JETD/JETU official product-page index constituents; McElhenny Sheffield MSMR official product-page holdings table; LSV LSVD official product-page-declared holdings CSV; Long Pond LPRE official product-page CMS holdings JSON; Logiq LCO official product-page-declared Tidal daily holdings CSV; Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; Framework/GSR BESO, Freedom/FRDM, and Fundstrat Granny Shots are now native through their

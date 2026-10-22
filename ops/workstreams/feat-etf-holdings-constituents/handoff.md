@@ -13362,6 +13362,46 @@ unreviewed/paid/trial/unsafe holds, and the 30-day observation gate. No live
 issuer/Provider/SEC request, quota action, heavy profile, data/resource cleanup,
 staging/sibling/master write, deployment, or self-acceptance occurred.
 
+## Provider-universe current-count chronology — 2026-10-22
+
+The current code-derived provider split is 496 registered, 422 native, and 74
+fallback-only, matching `provider-audit.yaml` and the `Repo Coverage` section of
+`docs/etf-provider-universe.md`. AC1 review found a separate stale paragraph in
+that same document describing the older 421/75 split as current. It now labels
+421/75 historical at implementation checkpoint
+`a696277b6efed719cc40051e010f5e6a5b542f3e` and leaves 422/74 as current. The
+current narrative sentinel now checks both statements so future drift is
+visible without deleting historical checkpoint information.
+
+The exact accepted staging release `0e342512e53ba2268425294d61c50e219eaafa4f`
+was rechecked against this branch: it is already an ancestor of source
+`c5a8df29583631950c5b74e6fb9a59519eb9fe68`, so no merge or rebase was needed.
+The normal owner preflight confirmed claim
+`f206bbc5-abbf-473a-a44f-fb5706c81282` and local/tracking-remote parity at `c5`.
+The existing local AC1 documentation/test packet was preserved and is being
+validated as the next substantive checkpoint; the full fourteen-criterion
+roadmap remains open.
+
+The focused ledger and current-narrative tests passed 2/2; changed-file Ruff,
+format and `git diff --check` passed. The first draft of the new sentinel used
+a literal phrase spanning a Markdown line wrap; that test-only assertion failed
+and was corrected to normalize whitespace. The final 2/2 run passed; no product
+behavior changed. No live request, quota, DB, Docker/browser profile, or cleanup
+occurred. Source `c5a8df29583631950c5b74e6fb9a59519eb9fe68` is independently
+confirmed at origin. The prior run `39845969811` on
+`ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3` is terminal cancelled after
+Frontend and backend unit success; it does not validate `c5`. The combined-status
+lookup for `c5` returned no entries, so its exact CI is unverified, not green.
+This AC1 documentation/test correction is locally uncommitted pending its
+coherent owner packet.
+
+Next: validate and publish only the two-file documentation/test change plus
+its owner records, inspect exact-head CI, then continue evidence-backed
+AC2/AC4/AC5 issuer audit and Tier-0 capability work offline. Preserve all 14
+criteria, `15 Tier-0 and 156 Tier-1`, unresolved/quarantined MSMR/QQQ and
+Militia/GOOG, route and cost holds, and the 30-day observation. The required
+full `full_stack_browser` profile still needs Root's safe slot.
+
 After completing this workstream packet, the same focused source profile plus
 the mandatory narrative-count sentinel was rerun on unchanged implementation
 `535f8928da53da9c20838007336d71b6e627e4c9`: 108 tests passed in 5.14s. Ruff,
