@@ -55,18 +55,7 @@
     "status": "terminal successful exact-source branch CI on record HEAD 23ba07a76a10eb05b4352b9e2fd421ba288acf91",
     "visuals": "The Exhaustive Integration Gate and 104 visual cases were skipped by this feature-branch workflow; strict104 visual evidence remains qualified to its recorded test/product sources."
   },
-  "dirty_paths": [
-    "frontend/src/components/workstation/VirtualWatchlistTool.vue",
-    "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/lib/workstation/tagColumns.ts",
-    "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
-    "frontend/tests/unit/components/test_workstation_tool_content_tag_columns.test.ts",
-    "frontend/tests/unit/lib/test_tag_columns.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -146,7 +135,7 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "23ba07a76a10eb05b4352b9e2fd421ba288acf91",
+  "head": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -157,7 +146,7 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-22T22:10:46+00:00",
+  "last_checkpoint": "2026-10-22T22:34:13+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -177,7 +166,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish the reviewed ten-path Tag Columns candidate after cached-diff review; the current three-suite focused run passes 102 tests and Vue type-check passes. Full frontend coverage/build do not qualify the latest correction, and candidate exact CI plus authenticated browser validation remain pending. Do not duplicate Root's unreleased Market Map repair or start a heavy local profile before its release/explicit slot. Preserve Custom Date Sort relative-mode unavailability until a source-backed arbitrary-date comparator series exists; keep full AC1-AC9, official REF-HELP-V25, provider/live holds, and reference policy intact.",
+  "next_action": "Qualify automatic exact-source branch CI for published Tag Columns commit 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74; full authenticated browser validation remains pending the Root-assigned existing runtime slot. Do not duplicate Root's unreleased Market Map repair or start a heavy local profile before release/explicit slot. Preserve Custom Date Sort relative-mode unavailability until a source-backed arbitrary-date comparator series exists; keep full AC1-AC9, official REF-HELP-V25, provider/live holds, and reference policy intact.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -190,7 +179,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "d1cac0f1d401aafee7d966316c4fa81a182ad42950f5a50faebc094f9da09236",
+  "plan_hash": "88d05a712f5b67cc1623c03cacb40038e24c60550f1ea92a0510607ee8b4c67b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -210,28 +199,28 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "No upstream dependency blocks lightweight TC development. Published product implementation 5ca3423 remains beneath synchronized record HEAD 23ba07a, and exact released staging 0e342512 is an ancestor. The Tag Columns candidate is dirty and uncommitted across product/test seams plus workstream records. Its latest three focused suites pass 102/102 and Vue type-check passes on current bytes; workstream/scope validation, JSONL parsing and diff checks pass. Earlier full frontend coverage/build predate the shared alert-placement correction and new parent-level regressions, so those gates remain pending for final bytes. No browser or candidate exact CI has run. Root's shared Market Map repair is not yet released into this branch; do not duplicate it or run a heavy local profile before release/explicit slot. Exact CI 39850573339 remains qualified only to record HEAD 23ba07a and skipped Exhaustive Integration Gate. Custom Date Sort relative modes remain unavailable because no arbitrary-date industry/sub-industry series contract was found. Full functional/strict visual gates and broader AC1-AC9 plus official REF-HELP-V25 remain open.",
-    "current_phase": "staging_0e342512_adopted;custom_date_sort_percent_change_destination_published_at_5ca3423;tag_columns_six_source_test_path_candidate_with_mutation_error_duplicate_guard_personal_surface_and_sort_coverage;focused_102_tests_and_current_vue_typecheck_pass;scope_workstream_json_diff_pass;full_coverage_build_exact_candidate_ci_and_browser_pending;root_shared_market_map_release_pending_before_heavy_local_profile;custom_source_functional_strict104_visual_pending;relative_comparator_unavailable_without_source_contract;full_AC1_AC9_REF_HELP_V25_open",
-    "next_action": "Publish the reviewed ten-path Tag Columns candidate and qualify automatic exact-source CI. The three focused suites pass 102 tests and vue-tsc passes; prior full frontend coverage/build predate the shared alert correction and parent test. Do not duplicate Root's unreleased Market Map repair or start a heavy local profile before its release/explicit slot. Preserve Custom Date Sort relative-mode unavailability, full AC1-AC9, official REF-HELP-V25 gap, provider/live holds, and screenshot policy.",
+    "current_blocker": "No upstream dependency blocks lightweight TC development. Tag Columns source 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74 is published and the connected GitHub comparison API confirms the feature ref matches. Its three focused suites pass 102/102 and Vue type-check passes; workstream/scope/record checks pass. Full frontend coverage/build do not qualify these final bytes. The automatic exact-source branch CI has not yet produced a receipt, and full functional/strict visual browser validation remains pending the reserved existing-runtime slot. Root's shared Market Map repair is not yet released into this branch; do not duplicate it or start a heavy local profile before release/explicit slot. Exact CI 39850573339 remains qualified only to record HEAD 23ba07a and skipped Exhaustive Integration Gate. Custom Date Sort relative modes remain unavailable because no arbitrary-date industry/sub-industry series contract was found. Broader AC1-AC9 and official REF-HELP-V25 remain open.",
+    "current_phase": "staging_0e342512_adopted;custom_date_sort_percent_change_destination_published_at_5ca3423;tag_columns_published_786ff4c9;focused_102_tests_and_current_vue_typecheck_pass;scope_workstream_json_diff_pass;prior_full_coverage_build_not_qualifying_latest_tag_change;exact_source_CI_and_authenticated_browser_pending;root_shared_market_map_release_pending_before_heavy_local_profile;custom_source_functional_strict104_visual_pending;relative_comparator_unavailable_without_source_contract;full_AC1_AC9_REF_HELP_V25_open",
+    "next_action": "Qualify automatic exact-source branch CI for Tag Columns commit 786ff4c9. Full local functional/strict104 browser gates require Root's release of the existing runtime slot; do not create a fixture or duplicate the Market Map repair. Preserve Custom Date Sort relative-mode unavailability, full AC1-AC9, official REF-HELP-V25 gap, provider/live holds, and screenshot policy.",
     "total": 5,
-    "updated_at": "2026-10-22T22:29:57Z"
+    "updated_at": "2026-10-22T22:34:13Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "23ba07a76a10eb05b4352b9e2fd421ba288acf91",
-    "current_pending_range": "Product implementation 5ca3423 is followed only by the 23ba07a workstream record commit. Full frontend coverage/build and exact branch CI39850573339 passed on record HEAD23ba07a; CI includes 191 E2E passes/110 declared skips and skips the exhaustive visual gate. Full local functional/strict104 visual validation of Custom Date Sort remains pending.",
+    "current_local_head": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
+    "current_pending_range": "Product implementation 5ca3423 and Tag Columns commit 786ff4c9 are published on the synchronized feature ref. Focused Tag Columns102/type-check pass; exact-source branch CI and full local functional/strict104 visual profile remain pending. Earlier record-head CI39850573339 does not validate Tag Columns.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "23ba07a76a10eb05b4352b9e2fd421ba288acf91",
-    "status": "The exact coordinator-released staging M2 0e342512 is an ancestor of product implementation 5ca3423; current record HEAD 23ba07a is independently verified synchronized with origin. Exact CI39850573339 completed successfully on that record HEAD."
+    "remote_tracking_sha": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
+    "status": "The exact coordinator-released staging M2 0e342512 is an ancestor. Normal branch push exited0, and GitHub confirms branch feat/tc2000-frontend-rework is identical to 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74. Exact-source CI for this commit remains pending; no rerun was requested."
   },
-  "remote": "23ba07a76a10eb05b4352b9e2fd421ba288acf91",
-  "remote_sha": "23ba07a76a10eb05b4352b9e2fd421ba288acf91",
+  "remote": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
+  "remote_sha": "786ff4c9e54af9ac0ab760c46dc146f4e55a9e74",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

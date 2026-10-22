@@ -27,10 +27,11 @@ reported `feat/tc2000-frontend-rework` identical to that SHA (the shell
 resolver and chart-selection consumer were subsequently developed on that base;
 the current published slice is summarized immediately below.
 
-The current branch HEAD is `23ba07a76a10eb05b4352b9e2fd421ba288acf91`,
-synchronized with origin; its latest product source remains implementation
-`5ca3423e553e27e36dc8002be5f11996bbd4cf9e` and the intervening commit only
-updated workstream records. The exact released staging SHA
+The current branch HEAD is `786ff4c9e54af9ac0ab760c46dc146f4e55a9e74`,
+synchronized with origin by normal push and independently confirmed through the
+connected GitHub compare API; its previous record HEAD was
+`23ba07a76a10eb05b4352b9e2fd421ba288acf91`. The published Custom Date Sort
+implementation remains `5ca3423e553e27e36dc8002be5f11996bbd4cf9e`. The exact released staging SHA
 `0e342512e53ba2268425294d61c50e219eaafa4f` remains an ancestor. The published
 Custom Date Sort percent-change destination reads each symbol through the
 historical coverage gate and canonical local OHLCV route, limits concurrent
@@ -41,14 +42,15 @@ industry snapshot endpoint returns fixed-period summary cells with an `as_of`
 cutoff, not an arbitrary date-indexed comparator series. Relative modes remain
 unavailable; no benchmark, membership rule, or provider route was inferred.
 
-## In-progress roadmap slice — personal WatchList Tag Columns
+## Published roadmap slice — personal WatchList Tag Columns
 
-The current worktree also contains an uncommitted Tag Columns candidate, grounded
-in the product contract recorded in `docs/tc2000-parity.md`: each column targets
+The branch now publishes the Tag Columns implementation in commit
+`786ff4c9e54af9ac0ab760c46dc146f4e55a9e74`, grounded in the product contract
+recorded in `docs/tc2000-parity.md`: each column targets
 one explicitly selected personal WatchList, persists that target and visibility,
 displays current membership, and Alt+click changes only that target's membership.
 Locked or unavailable target evidence remains read-only; ordinary row selection
-is unchanged. The dirty source/test paths are `VirtualWatchlistTool.vue`,
+is unchanged. The six source/test paths are `VirtualWatchlistTool.vue`,
 `WorkstationToolContent.vue`, `tagColumns.ts`, `test_virtual_watchlist_tool.test.ts`,
 `test_tag_columns.test.ts`, and the parent-level
 `test_workstation_tool_content_tag_columns.test.ts`. Focused helper/component/store
@@ -57,11 +59,11 @@ membership-mutation errors were written to a status span only present in the
 personal-WatchList branch, though tag actions are wired on other virtual-list
 surfaces. The existing alert now occupies the shared WorkstationToolContent
 slot. The current three focused suites pass 102/102, and `vue-tsc --noEmit` passes
-on these current bytes; workstream/scope validation, JSONL parsing, and diff
-checks pass. Earlier one-worker full frontend coverage and `npm run build` (527
+on the published bytes; workstream/scope validation, JSONL parsing, and diff
+checks pass. Exact-source branch CI has not yet produced a qualified receipt.
+Earlier one-worker full frontend coverage and `npm run build` (527
 modules) predate that correction and the new parent-level test, so do not count
-them as final-candidate evidence. The candidate remains staged/dirty but not
-committed or published; authenticated browser and exact-source CI remain
+them as final-candidate evidence. Authenticated browser validation remains
 pending. Root's shared Market Map repair is still unreleased into this branch;
 do not duplicate it or begin a heavy local profile before release/explicit slot.
 Preserve

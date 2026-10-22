@@ -67,16 +67,14 @@ current_blocker: >-
   canonical local OHLCV, a four-symbol concurrency bound and explicit unavailable
   outcomes are retained. No arbitrary-date industry/sub-industry comparator
   series exists in the reviewed contract, so relative modes remain unavailable.
-  The current worktree is intentionally dirty with a separate Tag Columns
-  candidate in VirtualWatchlistTool, WorkstationToolContent, tagColumns.ts and
-  three focused test files. The candidate's latest focused run passes 102/102
-  across the VirtualWatchlistTool, helper, and parent mutation-error suites;
-  Vue type-check passes on these current bytes. Workstream/scope validation,
-  JSONL parsing and cached/working diff checks also pass. Earlier one-worker full
+  Tag Columns is published at 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74, with
+  exact feature-ref parity independently confirmed through the connected
+  GitHub comparison API. Its three focused suites pass 102/102 and Vue
+  type-check passes; workstream/scope/record checks pass. Earlier one-worker full
   frontend coverage and production build predate the shared alert-placement
-  correction and the new parent-level test, so they do not qualify the final
-  candidate. No authenticated browser or exact-source CI has run for it. The
-  previous branch CI 39850573339 remains qualified only to record HEAD 23ba and
+  correction and new parent-level test, so they do not qualify these bytes.
+  Exact-source branch CI and authenticated browser validation remain pending.
+  The previous branch CI 39850573339 remains qualified only to record HEAD 23ba and
   skipped Exhaustive Integration Gate; it does not validate Tag Columns or
   strict visual parity. Root's shared Market Map repair is not yet released
   into this branch; do not duplicate that fix or start a heavy local profile
@@ -534,9 +532,9 @@ historical_blocker_archive: >-
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
   name: TC2000 personal WatchList Tag Columns
-  status: focused_tests_and_typecheck_green_full_coverage_build_browser_and_exact_CI_pending
-  commit_sha: null
-  remote_sha: null
+  status: published_focused_tests_and_typecheck_green_full_coverage_build_browser_and_exact_CI_pending
+  commit_sha: 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74
+  remote_sha: 786ff4c9e54af9ac0ab760c46dc146f4e55a9e74
   intent: >-
     Persist explicit personal WatchList targets as Tag Columns, display membership
     from canonical target-list rows, and let Alt+click or the accessible row menu
@@ -550,12 +548,10 @@ active_changeset_context:
     - frontend/tests/unit/components/test_workstation_tool_content_tag_columns.test.ts
     - frontend/tests/unit/lib/test_tag_columns.test.ts
   next_action: >-
-    Publish the exact ten-path candidate packet after cached-diff review, then
-    qualify automatic exact-source branch CI. The latest focused 102-test suite
-    and Vue type-check are green; full authenticated functional and strict104
-    browser validation still requires the coordinator-assigned existing runtime
-    slot; do not create a fixture or change screenshot references, masks, retries
-    or tolerance.
+    Qualify automatic exact-source branch CI for 786ff4c9, then complete the
+    full local functional/strict104 browser gates only after Root releases the
+    existing runtime slot. Do not create a fixture or change screenshot
+    references, masks, retries or tolerance.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -1220,11 +1216,11 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "combined_green_staging_0e342512_ancestor_of_published_5ca3423;custom_date_sort_percent_destination_published;tag_columns_six_source_test_paths_candidate;focused_102_tests_and_current_vue_typecheck_green;prior_full_frontend_coverage_build_predate_shared_alert_and_parent_test;candidate_exact_CI_and_authenticated_browser_pending;custom_source_functional_strict104_visual_pending;relative_comparator_unavailable_without_source_contract;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "combined_green_staging_0e342512_ancestor_of_published_786ff4c9;custom_date_sort_percent_destination_published_5ca3423;tag_columns_published_786ff4c9;focused_102_tests_and_current_vue_typecheck_green;prior_full_frontend_coverage_build_do_not_qualify_latest_patch;candidate_exact_CI_and_authenticated_browser_pending;custom_source_functional_strict104_visual_pending;relative_comparator_unavailable_without_source_contract;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Publish the exact reviewed ten-path Tag Columns packet with truthful records
-    and own-branch CI. Do not start a browser/Compose
-    profile without the Root-assigned runtime slot. Keep Custom Date Sort relative modes unavailable until a source-backed
+    Qualify the published Tag Columns source with exact branch CI; run the full
+    local profile only after Root releases the reserved existing-runtime slot.
+    Keep Custom Date Sort relative modes unavailable until a source-backed
     arbitrary-date comparator series contract exists. Preserve the full AC1-AC9
     roadmap, official REF-HELP-V25 gap, provider/live holds and screenshot policy.
     Preserve native goal/session accounting, disabled live/provider operations,
