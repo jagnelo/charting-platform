@@ -23,25 +23,32 @@ no product changes and its automatic CI remains separate from staging run
 The first Custom Date Sort core was committed as `eaddaef9e19f7dd3cf3798465a1cf1680e5813dc`;
 `rtk git push` returned success, and the connected GitHub compare API independently
 reported `feat/tc2000-frontend-rework` identical to that SHA (the shell
-`ls-remote` query separately hit transient DNS failure). A follow-on offline
-coverage-evidence resolver is now being developed on that published base.
+`ls-remote` query separately hit transient DNS failure). The coverage-evidence
+resolver and chart-selection consumer were subsequently developed on that base;
+the current published slice is summarized immediately below.
 
-The next branch-owned roadmap item is the remaining Custom Date Sort consumer
-work: identify source-backed industry/sub-industry comparator history and
-implement the documented new-window/WatchList result destinations. The current
-candidate advances the consumer without provider acquisition: Shift+T arms an
-ordinary chart drag; fractional plot positions snap to exact loaded-bar UTC
-boundaries; the workstation checks historical coverage before reading at most
-5000 canonical local bars and calculating percent change. Non-ready, mismatched,
-non-local, unknown-lineage, or ambiguous evidence stays unavailable. Relative
-modes stay unavailable until a truthful comparator series exists. The focused
-date-sort files pass 15/15 and Vue type-check passes on the dirty candidate;
-these are unit/type evidence only, with no browser, live app/database, full build,
-or exact-source CI run. The exact combined staging release remains
-`0e342512e53ba2268425294d61c50e219eaafa4f`, already an ancestor of this branch;
-its canonical run `39827786248` is recorded above and in the validation journal.
-Official `REF-HELP-V25`, broader AC1-AC9 completion, and integration beyond this
-exact released baseline remain open.
+The next branch-owned roadmap item remains Custom Date Sort. Exact released
+staging `0e342512e53ba2268425294d61c50e219eaafa4f` is an ancestor of the
+published implementation tip `5ca3423e553e27e36dc8002be5f11996bbd4cf9e`; a
+live GitHub compare API independently reports the feature ref identical to
+that SHA. No fast-forward or merge was needed to adopt the release. The shell
+`ls-remote` attempt encountered transient DNS failure, but connected GitHub
+compare verified the branch ref. The percent-change result-destination slice is
+published: after verified instrument-range evidence, the user can choose an
+existing personal WatchList and open a new WatchList window with a canonical
+persisted column definition. The window reads each symbol through the existing
+historical coverage gate and canonical local OHLCV route, with at most four
+symbol reads in flight; unready, mismatched, non-local, unknown-lineage, or
+failed results stay unavailable with row warnings. No list mutation or provider
+acquisition is added. Ordinary WatchLists retain their ascending-symbol
+default. Relative comparison modes remain unavailable until source-backed
+industry/sub-industry history is verified. Three focused suites passed 108/108
+and Vue type-check passed on implementation `5ca3423`; these are unit/type
+checks only. No live app/database, full frontend coverage/build, browser, or
+exact-source CI for `5ca3423` has been run. The adopted combined staging
+receipt/run `39827786248` is recorded above and in the validation journal.
+Official `REF-HELP-V25`, broader AC1-AC9 completion, and the remaining full
+feature roadmap stay open.
 
 ## Historical status — 2026-10-22: persisted Custom Date Sort loader
 

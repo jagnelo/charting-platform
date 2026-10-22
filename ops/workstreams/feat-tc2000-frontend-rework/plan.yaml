@@ -60,20 +60,20 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  The TC branch has fast-forwarded to exact combined staging
-  0e342512e53ba2268425294d61c50e219eaafa4f; the feature remote was independently
-  verified at the same SHA. The frozen-import snapshot/guard now passes its
-  987-path validation and 35 self-tests for this exact fast-forward adoption.
-  No upstream dependency blocks TC-owned development. Custom Date Sort now has
-  formula/range and exact-scope coverage gates, a mocked-tested loader that
-  checks historical coverage before canonical local OHLCV, and a workstation
-  chart drag path armed by Shift+T. The result uses only exact loaded-bar
-  boundaries and local persisted prices; non-ready, mismatched, non-local,
-  unknown-lineage, or ambiguous evidence remains unavailable. Relative modes
-  remain explicitly unavailable until a source-backed sub-industry/industry
-  series is identified, and new-window/WatchList output remains unimplemented.
-  No provider acquisition, live test, deployment, or visual-reference change
-  was performed. Official REF-HELP-V25 and broader AC1-AC9 work remain open.
+  The exact combined staging release 0e342512e53ba2268425294d61c50e219eaafa4f
+  is an ancestor of published implementation tip 5ca3423e553e27e36dc8002be5f11996bbd4cf9e;
+  GitHub compare independently reports the feature ref identical to that tip.
+  No upstream dependency blocks TC-owned development. The published Custom Date
+  Sort implementation now includes a persisted percent-change result column in a new
+  WatchList window backed by an existing personal list. It uses the existing
+  exact-range historical coverage gate and canonical local OHLCV route, limits
+  concurrent symbol work to four, and leaves inadequate/unknown/non-local
+  evidence unavailable. Relative modes remain unavailable until a truthful
+  persisted industry/sub-industry comparator is verified. Focused checks pass
+  108/108 across three suites plus Vue type-check on 5ca3423; full frontend
+  coverage/build, browser and exact-source CI remain pending. No provider
+  acquisition, live test, deployment, or visual-reference change was performed.
+  Official REF-HELP-V25 and broader AC1-AC9 work remain open.
 current_checkpoint_status: >-
   The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
   implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
@@ -89,8 +89,11 @@ current_checkpoint_status: >-
 
   On 2026-10-22, the coordinator released exact combined Provider+ETF+TC2000+
   Strategy staging 0e342512e53ba2268425294d61c50e219eaafa4f with green CI
-  39827786248. This TC branch fast-forwarded to that exact SHA, pushed only its
-  assigned feature ref, and independently verified local/remote parity. The
+  39827786248. This TC branch adopted that exact SHA as an ancestor through the
+  guarded update and pushed only its assigned feature ref; adoption parity was
+  independently verified. The branch has since continued, and its current
+  published implementation is 5ca3423e553e27e36dc8002be5f11996bbd4cf9e, also
+  independently verified as the current feature-ref tip. The
   scope guard passes for that receipt-approved fast-forward and pins 858
   frozen paths to exact release blobs/deletions; 29 approved TC adaptations
   remain separate. This is not full AC1-AC9 or official REF-HELP-V25 completion.
@@ -99,13 +102,18 @@ current_checkpoint_status: >-
   historical coverage first and reads at most 5000 canonical local bars only
   after matching ready evidence. The current candidate wires Shift+T to an
   ordinary chart drag, snaps fractional plot positions to the nearest loaded
-  bar, and requests only the existing local-history contract. Fifteen focused
-  tests and Vue type-check pass on this dirty candidate. These are unit and
-  type-check results only; no live app/database, browser, full build, or current
-  exact-source CI was run. The existing canonical W1/MN route may locally
-  materialize derived bars from D1. A trustworthy existing sub-industry/industry
-  comparison series and new-window/WatchList output remain open. No deployment,
-  live provider/ETF test, paid access, or visual reference change is claimed.
+  bar, and requests only the existing local-history contract. It adds a strictly
+  parsed range-specific percent column and a new WatchList window for an
+  explicitly selected existing personal list; per-symbol calculations use
+  coverage-first canonical local history with a four-worker bound and explicit
+  unavailable outcomes. Ordinary WatchList default sorting remains unchanged.
+  Three focused suites pass 108/108 and Vue type-check passes on published
+  implementation 5ca3423. These are unit/type-check results only; no live app/database,
+  browser, full frontend coverage/build, or exact candidate CI was run. The
+  existing canonical W1/MN route may locally materialize derived bars from D1.
+  A trustworthy existing sub-industry/industry comparison series remains open,
+  so relative modes stay unavailable. No deployment, live provider/ETF test,
+  paid access, or visual reference change is claimed.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1203,13 +1211,13 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "combined_green_staging_0e342512_adopted_and_scope_guarded;custom_date_sort_formula_range_core_committed_eaddaef;coverage_gate_and_mocked_local_loader_14_tests_typecheck_green_dirty;chart_gesture_comparator_output_wiring_pending;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "combined_green_staging_0e342512_ancestor_of_published_5ca3423_remote_compare_identical;custom_date_sort_formula_coverage_loader_chart_selection_and_local_percent_consumer;personal_watchlist_new_window_percent_destination_published;focused_108_tests_vue_typecheck_green;full_frontend_coverage_build_browser_exact_candidate_CI_and_relative_comparator_source_pending;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Wire Custom Date Sort to local persisted OHLCV and explicit coverage and
-    provenance, implement the official chart-range/trendline entry and output
-    destinations, and verify existing sector/industry comparator history
-    before making either relative mode available. Do not add a provider fetch
-    path or infer a sub-industry benchmark from classification labels.
+    Verify whether a source-backed persisted
+    industry/sub-industry comparator exists before enabling either relative
+    mode; do not infer it from classification labels or add a provider fetch.
+    Then run the required frontend coverage/build, browser profile and
+    exact-source CI when the assigned runtime slot is available.
     Preserve native goal/session accounting, disabled live/provider operations,
     protected visual oracles, the official REF-HELP-V25 gap, and the full
     AC1-AC9 roadmap. Do not create an acknowledgment-only commit or claim

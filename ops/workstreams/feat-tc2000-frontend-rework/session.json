@@ -56,10 +56,6 @@
     "visuals": "Strict visual 104/104 passed in the staging Exhaustive Integration Gate at the unchanged 0.5%/1px/DeltaE2000=2 policy; official REF-HELP-V25 parity and full roadmap remain open."
   },
   "dirty_paths": [
-    "frontend/src/components/chart/UPlotChart.vue",
-    "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/lib/workstation/customDateSort.ts",
-    "frontend/tests/unit/lib/test_custom_date_sort.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -144,7 +140,7 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
+  "head": "5ca3423e553e27e36dc8002be5f11996bbd4cf9e",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -155,7 +151,7 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-22T20:05:44+00:00",
+  "last_checkpoint": "2026-10-22T20:36:03+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -188,7 +184,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "994426de205e504365f14d1bf7f0ecc7eef5494a6e94db2157aa726f670024d1",
+  "plan_hash": "90915b0946e0ad5c05684553739c28862694bd2ca17b84196d42189f99f6f302",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -208,28 +204,28 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "No upstream dependency blocks TC development. Custom Date Sort now has a Shift+T chart-selection path and a mocked-tested persisted-local loader that gates the request on exact ready coverage and known lineage. Relative modes remain unavailable until a source-backed industry/sub-industry series is identified; new-window/WatchList output and the full local/browser/CI gates remain open. No provider acquisition or live operation was run.",
-    "current_phase": "M2_0e342_adopted_and_remote_verified;custom_date_sort_formula_coverage_and_local_loader_published;shift_t_chart_drag_and_local_percent_change_consumer_in_progress;relative_comparator_and_result_destinations_pending;focused_15_tests_and_vue_typecheck_green;full_profile_exact_ci_and_AC1_AC9_REF_HELP_V25_open",
-    "next_action": "Identify a truthful persisted industry/sub-industry comparator series and implement explicit Custom Date Sort result destinations; preserve unavailable behavior until verified comparator history exists, then run the required full validation profile and exact-source CI.",
+    "current_blocker": "No upstream dependency blocks TC development. Published implementation 5ca3423 adds a persisted percent-change column in a new WatchList window for an explicitly selected existing personal list. It uses exact-range historical coverage and canonical local OHLCV with a four-symbol concurrency cap; non-ready, mismatched, non-local, unknown-lineage, and failed results remain unavailable. Relative modes remain unavailable until a source-backed persisted industry/sub-industry comparator is verified. Three focused suites pass 108/108 and Vue type-check passes; full frontend coverage/build, browser, and candidate exact-source CI remain open. No provider acquisition or live operation was run.",
+    "current_phase": "released_staging_0e342512_ancestor_of_published_5ca3423_remote_compare_identical;custom_date_sort_chart_selection_coverage_local_loader_and_percent_watchlist_destination_published;focused_108_tests_vue_typecheck_green;full_frontend_coverage_build_browser_exact_ci_and_relative_comparator_source_pending;full_AC1_AC9_REF_HELP_V25_open",
+    "next_action": "Verify a source-backed persisted industry/sub-industry comparator before enabling relative modes; do not infer a benchmark or add provider fetches. Then run full frontend coverage/build, browser profile, and exact-source CI when the assigned runtime slot is available.",
     "total": 5,
-    "updated_at": "2026-10-22T20:18:18Z"
+    "updated_at": "2026-10-22T20:36:03Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
-    "current_pending_range": "M2 adoption/guard checkpoint 59d0c3b6 and Custom Date Sort formula/range, exact-scope coverage gate and local-history loader through dcd07957 are published. The current slice adds Shift+T chart-range selection and a local percent-change consumer with focused mock/API evidence; relative comparator history and output destinations remain open.",
+    "current_local_head": "5ca3423e553e27e36dc8002be5f11996bbd4cf9e",
+    "current_pending_range": "Published implementation 5ca3423 adds a local-history-backed persisted percent-change WatchList destination. Focused108/type checks pass, while full frontend coverage/build, browser, exact candidate CI, and relative comparator-source verification remain open.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
-    "status": "At the start of this source slice, exact coordinator-released staging M2 0e342512 was an ancestor of the published branch. GitHub compare independently confirmed the feature ref identical to dcd07957 (ahead_by=0, behind_by=0); a direct shell ls-remote in this session encountered transient DNS failure."
+    "remote_tracking_sha": "5ca3423e553e27e36dc8002be5f11996bbd4cf9e",
+    "status": "The exact coordinator-released staging M2 0e342512 is an ancestor of published implementation 5ca3423. GitHub compare independently reports the feature ref identical to 5ca3423 (ahead_by=0, behind_by=0) after the normal own-branch push. A direct shell ls-remote attempt encountered transient DNS failure; no merge was needed for release adoption."
   },
-  "remote": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
-  "remote_sha": "dcd07957cbcbe50693d02e901b1e8f20ae640e09",
+  "remote": "5ca3423e553e27e36dc8002be5f11996bbd4cf9e",
+  "remote_sha": "5ca3423e553e27e36dc8002be5f11996bbd4cf9e",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
