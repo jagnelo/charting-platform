@@ -1485,8 +1485,18 @@ def remove_owned_image(image: str, identifier: str, projects: set[str]) -> bool:
         for tag in tags
     ):
         return False
-    # Registry digests are not project-owned references. Leave them for review.
-    if data.get("RepoDigests"):
+    # Docker's OCI store also creates local repo@digest aliases for built tags.
+    # Accept only aliases of these exact owned repositories, never a registry
+    # or another project's reference merely sharing the same image layers.
+    repositories = {tag.rsplit(":", 1)[0] for tag in tags}
+    digests = data.get("RepoDigests") or []
+    if not isinstance(digests, list) or any(
+        not isinstance(digest, str)
+        or "@" not in digest
+        or digest.rsplit("@", 1)[0] not in repositories
+        or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest.rsplit("@", 1)[-1])
+        for digest in digests
+    ):
         return False
     references = sorted(set(tags)) if tags else [image]
     removed = True

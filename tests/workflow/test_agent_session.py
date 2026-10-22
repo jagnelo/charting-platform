@@ -131,7 +131,10 @@ def test_cleanup_and_readiness_are_scoped_to_the_current_worktree() -> None:
     assert "validation_evidence_current" in session
 
 
-def test_cleanup_removes_shared_owned_backend_worker_tags(tmp_path, monkeypatch):
+@pytest.mark.parametrize("oci_digests", [False, True])
+def test_cleanup_removes_shared_owned_backend_worker_tags(
+    tmp_path, monkeypatch, oci_digests
+):
     module = hosted_cleanup_module(tmp_path, monkeypatch, "master")
     identifier = "owned-release-fixture"
     image = "a" * 12
@@ -158,6 +161,12 @@ def test_cleanup_removes_shared_owned_backend_worker_tags(tmp_path, monkeypatch)
                 {
                     "Id": "sha256:" + "a" * 64,
                     "RepoTags": sorted(tags),
+                    "RepoDigests": [
+                        tag.rsplit(":", 1)[0] + "@sha256:" + "a" * 64
+                        for tag in sorted(tags)
+                    ]
+                    if oci_digests
+                    else [],
                     "Config": {"Labels": {"charting.worktree.id": identifier}},
                 }
             )

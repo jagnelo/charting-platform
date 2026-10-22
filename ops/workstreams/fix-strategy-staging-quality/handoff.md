@@ -2,6 +2,36 @@
 
 ## ACTIVE NEW CHECKPOINT — 2026-10-22 21:31 UTC
 
+21:40 validation update: the delayed-initialization regression failed on original
+M2 with2maprequests instead of1. Minimal onMounted runGeneration===0 guard now
+passes61/61 mounted tests; Vue type-check0. Shared-image cleanup regression also
+failed original helper with the exact retained-image error. Safe project-tag
+cleanup passes the workflow suite and an ACTUAL unique scratch-image proof:
+imagefc5d58dcfdd21c92dd329200ac8d7e4eabfb6d05b800e956044556812d10659a
+had2ownedtags; original non-forced ID removal failed "multiple repositories".
+Initial conservative patch refused Docker OCI's local repo@digest aliases (no
+deletion); refined guard accepts only exact verified-owned repositories and
+valid digest syntax, still denying foreign registry/alias/owner/in-use cases.
+Actual patched helper removed both own tags without force; independent inspect
+confirms both absent. Only this empty disposable test image was deleted; its
+Dockerfile remains reproducible, no retained image/service/data was touched.
+
+Implementation92cf8aef is pushed and CI39858555845 started, but the local OCI
+alias refinement below is additional meaningful source and must be published
+and validated at its new SHA; do not call92cf final. Plan-ready succeeded after
+publication with same claim. Native original Root goal stays ACTIVE/unbudgeted;
+branch goal-state unavailable means it deliberately uses that existing visible
+coordinator goal, not a paused task or need for a duplicate goal.
+
+Prepared reviewed source-pinned isolation recipe at
+/tmp/staging-market-map-app-runner-20261022.sh, private current92cf archive
+/tmp/strategy-full-market-map-92cf8aef-20261022. Config passes; no fixture started.
+Supplemental private bounds disable extra swap and add pid caps. Refresh exact
+source pins/private paths to the final actual source before build/run; preserve
+the92cf preparation as historical, never relabel it. Run unchanged dense-map case
+withzero retries under the existing full_stack_browser gate. All new exact
+branch/staging/master gates and real deployment remain pending.
+
 Previous B193 checkpoint is accepted in green M2 staging0e342512; its exact SHA,
 closure narrative and evidence below remain historical, immutable acceptance.
 Root resumed this SAME clean repair worktree/claim706a780f and fast-forwarded to
