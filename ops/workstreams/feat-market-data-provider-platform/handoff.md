@@ -25,6 +25,22 @@
   reservation/spend/reset, paid/trial activation, fixture, or data cleanup
   occurred. Full exact-source profile/CI, review, and the remaining roadmap
   gates are still pending.
+- A follow-up regression closes a durability-test gap: the original restart
+  test reused the unit fixture's connection inside its outer rollback
+  transaction. A new file-backed SQLite test closes the worker session after
+  interruption, opens a distinct session, and verifies the committed CIK
+  request log/cursor survive and the completed CIK is not replayed. The full
+  SEC scan module now passes 25/25; Ruff, format check, and `git diff --check`
+  pass. No network or persistent runtime database is used.
+- Exact CI `39843849455` on source
+  `4c3c4b3083961e2ffd19626d3313271ee6f059fd` is terminal red: Backend,
+  Frontend Unit, and Branch-declared passed; the Playwright job ended with
+  190 passed, 110 skipped, and one flaky result. The first attempt of the
+  10,000-cell Market Map test failed because `SPY` was not selected after the
+  test filled the search field and immediately pressed Enter; retry passed.
+  Strict flaky-test policy keeps the run red. This is not a failure in the SEC
+  tests, and it has not been rerun or weakened. The prepared full isolated
+  profile remains unstarted until exact-source CI is green.
 - This coherent checkpoint changes only:
   `backend/app/services/market_event_edgar_scan.py`,
   `backend/tests/unit/services/test_market_event_edgar_scan.py`,

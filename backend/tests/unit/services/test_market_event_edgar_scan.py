@@ -3,8 +3,10 @@ from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
 
+from app.database import Base
 from app.models.instrument import Instrument
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import (
@@ -195,6 +197,89 @@ async def test_edgar_issuer_scan_commits_each_cik_and_restart_skips_committed_ci
         ["0000000022"],
         ["0000000023"],
     ]
+
+
+@pytest.mark.asyncio
+async def test_edgar_issuer_scan_cursor_survives_worker_session_restart(tmp_path, monkeypatch):
+    """A fresh DB session resumes after the last durably completed CIK."""
+
+    import app.models  # noqa: F401 - register all tables and foreign-key targets.
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'edgar-scan-restart.db'}")
+    Base.metadata.create_all(bind=engine)
+    sessions = sessionmaker(bind=engine, expire_on_commit=False)
+    calls: list[str] = []
+
+    async def fake_refresh(db, ciks, **_kwargs):
+        cik = ciks[0]
+        calls.append(cik)
+        if cik == "0000000052" and calls.count(cik) == 1:
+            raise asyncio.CancelledError
+        db.add(
+            ProviderRequestLog(
+                capability=ProviderCapability.MARKET_EVENTS,
+                operation="fetch_ipo_pipeline_events",
+                operation_family="market_events",
+                requested_at=datetime.now(UTC),
+                success=True,
+                provider_symbol=f"CIK:{cik}",
+            )
+        )
+        return {
+            "status": "no_events",
+            "events": 0,
+            "failures": 0,
+            "issuers": [
+                {
+                    "cik": cik,
+                    "status": "refreshed",
+                    "events": 0,
+                    "linked": 0,
+                    "unlinked": 0,
+                    "error": None,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+    try:
+        with sessions() as setup_db:
+            setup_db.add_all([_issuer(51), _issuer(52), _issuer(53)])
+            setup_db.commit()
+
+        first_worker = sessions()
+        with pytest.raises(asyncio.CancelledError):
+            await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+                AsyncSessionAdapter(first_worker), max_issuers=3
+            )
+        first_worker.close()
+
+        # A distinct session observes the committed first CIK and cursor after
+        # the prior worker has ended; no in-memory ORM state is reused.
+        resumed_worker = sessions()
+        state = resumed_worker.execute(select(MarketEventScanState)).scalar_one()
+        assert state.cursor_issuer_id == 1
+        assert state.scanned_count == 1
+        assert [
+            row.provider_symbol
+            for row in resumed_worker.execute(select(ProviderRequestLog)).scalars()
+        ] == ["CIK:0000000051"]
+
+        resumed = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+            AsyncSessionAdapter(resumed_worker), max_issuers=3
+        )
+        assert resumed["cycle_complete"] is True
+        assert calls == ["0000000051", "0000000052", "0000000052", "0000000053"]
+        assert [
+            row.provider_symbol
+            for row in resumed_worker.execute(
+                select(ProviderRequestLog).order_by(ProviderRequestLog.id)
+            ).scalars()
+        ] == ["CIK:0000000051", "CIK:0000000052", "CIK:0000000053"]
+        resumed_worker.close()
+    finally:
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
 
 
 @pytest.mark.asyncio
