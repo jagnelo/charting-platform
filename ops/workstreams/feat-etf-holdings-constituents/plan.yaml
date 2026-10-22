@@ -538,19 +538,23 @@ progress:
 current_phase: post_green_staging_full_roadmap_continuation_2026_10_22
 current_blocker: >-
   The initial ETF integration checkpoint is accepted in synchronized green
-  staging 0e342512e53ba2268425294d61c50e219eaafa4f, but all fourteen original
+  staging 0e342512e53ba2268425294d61c50e219eaafa4f; all fourteen original
   roadmap criteria, issuer onboarding, and post-integration 30-day observation
-  remain open. ETF-owned source fix c7fb559a57b5d66dfd1a8f5ab252e0c88abf5156
-  passed the focused 58-test resolver module, changed-file Ruff/format, syntax,
-  and diff checks and is synchronized to origin. The full local integration and
-  browser profile has not been rerun on the adopted staging baseline plus this
-  correction; obtain Root's assigned safe slot before launching it. Preserve
-  the original monolithic partial attempt, earlier visual failure, all setup
-  receipts, exact investigation counts `15 Tier-0 and 156 Tier-1`, and
-  unresolved/quarantined MSMR/QQQ and Militia/GOOG. Unknown, quota-held,
-  unreviewed, paid/trial, and unsafe operations stay disabled. No live calls,
-  quota replay, dataset reset, retained-resource cleanup, deployment, or
-  cross-worktree write occurred.
+  remain open. On source 81be3e1f83c35f40ea79567beccfd2462cc26d4d, an offline
+  capability correction now surfaces an explicit inactive/successor or
+  non-publisher terminal audit as not_applicable when there is no snapshot,
+  while an unaudited symbol remains unknown and an actually failed route remains
+  unavailable. The full capability module passed 105 tests; changed-file Ruff,
+  format, and diff checks passed. Exact CI 39843906382 is still in progress on
+  the preceding workstream-only source 4af6a4f6237bb76e22c3f2b0da6b4d6acc786788
+  and does not validate this source change; the exact published final-head CI
+  remains required after publication. The full local integration/browser profile
+  remains mandatory and awaits Root's safe slot. Preserve the original
+  monolithic partial attempt, earlier visual failure, all setup receipts, exact
+  investigation counts `15 Tier-0 and 156 Tier-1`, and unresolved/quarantined
+  MSMR/QQQ and Militia/GOOG. Unknown, quota-held, unreviewed, paid/trial, and
+  unsafe operations stay disabled. No live calls, quota replay, dataset reset,
+  retained-resource cleanup, deployment, or cross-worktree write occurred.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -1558,20 +1562,24 @@ latest_green_staging_adoption:
     23.98s; changed-file Ruff check and format-check passed; Python compilation
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
-  latest_branch_ci_status: not_verified_by_PR_filtered_GitHub_connector
+  latest_branch_ci_status: >-
+    Run 39843906382 is in_progress on prior workstream-only source
+    4af6a4f6237bb76e22c3f2b0da6b4d6acc786788; it does not validate source
+    81be3e1f83c35f40ea79567beccfd2462cc26d4d. Exact final-published-head CI is
+    pending and mandatory.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
   Continue the original full ETF roadmap in this same branch and goal lineage.
-  The accepted staging checkpoint at 0e342512e53ba2268425294d61c50e219eaafa4f,
-  source fix c7fb559a57b5d66dfd1a8f5ab252e0c88abf5156, and coherent owner
-  workstream receipt are published. Monitor exact-source CI without idling and
-  proceed with offline evidence-backed ETF capability and Tier-0 consumer work.
-  Obtain Root's assigned safe slot before the required local full_stack_browser
-  matrix; it remains mandatory and is not waived.
-  Preserve all fourteen criteria, issuer onboarding, later 30-day observation,
-  historical failure classifications, MSMR/QQQ and Militia/GOOG quarantines,
-  and unknown/quota-held/unreviewed/paid/trial/unsafe route holds. No issuer,
-  SEC, or Provider HTTP, quota spend/reset, dataset reset, retained-resource
-  cleanup, staging/sibling/master write, deployment, or self-integration.
+  Publish the terminal-capability correction and its branch-owned evidence,
+  inspect exact-source CI, then continue offline evidence-backed AC2/AC4/AC5
+  issuer audit and Tier-0 consumer work in relevance order. Do not refresh any
+  blocked source without new retained evidence or authorized safe access. Obtain
+  Root's assigned safe slot before the required local full_stack_browser matrix;
+  it remains mandatory and is not waived. Preserve all fourteen criteria,
+  issuer onboarding, later 30-day observation, historical failure
+  classifications, MSMR/QQQ and Militia/GOOG quarantines, and
+  unknown/quota-held/unreviewed/paid/trial/unsafe route holds. No issuer, SEC,
+  or Provider HTTP, quota spend/reset, dataset reset, retained-resource cleanup,
+  staging/sibling/master write, deployment, or self-integration.

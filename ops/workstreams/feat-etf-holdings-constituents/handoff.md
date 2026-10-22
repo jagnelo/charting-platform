@@ -13280,3 +13280,46 @@ and 156 Tier-1`, unresolved/quarantined MSMR/QQQ and Militia/GOOG, all route and
 cost holds, and the 30-day observation gate. No live issuer/provider/SEC
 request, quota replay, data reset, retained-resource cleanup, deployment, or
 cross-worktree mutation occurred.
+
+## Terminal capability without stored holdings — 2026-10-22
+
+The exact green release at staging `0e342512e53ba2268425294d61c50e219eaafa4f`
+is already an ancestor of this ETF branch. The canonical release record and
+receipt are
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`
+and `/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`;
+they record green Actions run `39827786248` and Exhaustive job `120006510572`.
+The normal preflight classified this exact checkout as the ETF implementation
+worktree and retained claim `f206bbc5-abbf-473a-a44f-fb5706c81282`. The actual
+ETF remote ref was independently read as `4af6a4f6237bb76e22c3f2b0da6b4d6acc786788`
+and staging as the released `0e342512e53ba2268425294d61c50e219eaafa4f`.
+
+Offline source review found a capability-display gap: `symbol_audit_for_profile`
+already returns an explicit not-applicable disposition for liquidated/successor
+symbols and audited non-publisher identities, but `evaluate_capability` returned
+generic unknown when those known terminals had no stored holdings snapshot. The
+ETF-owned fix at `81be3e1f83c35f40ea79567beccfd2462cc26d4d` maps only those two
+explicit terminal evidence states to `not_applicable` when there is no snapshot
+and no route failure. Regression coverage proves ADFI's inactive/successor and
+ABEQ's audited non-publisher outcomes, while an unreviewed symbol remains
+unknown and an actual failed route remains unavailable. No holdings become
+displayable or usable for current analysis from this classification.
+
+The full deterministic `test_etf_holdings_capability.py` module passed 105/105
+in 3.09 seconds. Ruff check, Ruff format check, and `git diff --check` passed on
+the two changed source/test files. No external request, quota operation,
+database, Docker/browser profile, or service cleanup was used. This closes only
+that narrow AC9/AC13 contract improvement; the full local `full_stack_browser`
+profile remains required and awaits Root's safe slot.
+
+At review time, exact Actions run `39843906382` was still `in_progress` on the
+prior workstream-only source `4af6a4f6237bb76e22c3f2b0da6b4d6acc786788`; it does
+not validate the new implementation. The run is retained as historical
+evidence and the final published branch tip requires its own exact-source CI.
+The full AC1-AC14 roadmap remains active, including issuer onboarding, the
+`15 Tier-0 and 156 Tier-1` audit narrative, and the post-integration 30-day
+observation. Preserve all prior failures/partial profiles, MSMR/QQQ and
+Militia/GOOG quarantines, and disabled unknown/quota-held/unreviewed/paid/trial/
+unsafe routes. The next independent work is offline evidence-backed AC2/AC4/AC5
+audit/capability work in relevance order; do not refresh a blocked route without
+new retained evidence or authorized access.
