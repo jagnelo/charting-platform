@@ -213,6 +213,18 @@ async def test_edgar_issuer_scan_stops_at_failed_cik_and_retries_without_replayi
         failed = cik == "0000000032" and not failed_once
         if failed:
             failed_once = True
+        _db.add(
+            ProviderRequestLog(
+                capability=ProviderCapability.MARKET_EVENTS,
+                operation="fetch_ipo_pipeline_events",
+                operation_family="market_events",
+                requested_at=datetime.now(UTC),
+                success=not failed,
+                provider_symbol=f"CIK:{cik}",
+                error_type="TemporaryFailure" if failed else None,
+                error_message="temporary failure" if failed else None,
+            )
+        )
         issuer_result = {
             "cik": cik,
             "status": "failed" if failed else "refreshed",
@@ -243,6 +255,13 @@ async def test_edgar_issuer_scan_stops_at_failed_cik_and_retries_without_replayi
     assert state.provenance["last_batch_results"][-1]["status"] == "failed"
     assert state.provenance["last_batch_results"][-1]["error"]["error_type"] == "TemporaryFailure"
     assert state.provenance["last_batch_failed_ciks"] == ["0000000032"]
+    request_logs = (
+        db.execute(select(ProviderRequestLog).order_by(ProviderRequestLog.id)).scalars().all()
+    )
+    assert [(row.provider_symbol, row.success) for row in request_logs] == [
+        ("CIK:0000000031", True),
+        ("CIK:0000000032", False),
+    ]
 
     resumed = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
         adapter, max_issuers=3
