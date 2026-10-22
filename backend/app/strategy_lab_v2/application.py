@@ -52,6 +52,7 @@ from app.strategy_lab_v2.contracts import (
     RunAttempt,
     RunResultManifest,
     ScientificTrial,
+    SelectedStudyArtifactReference,
     StrategyPackage,
     StrategyVersion,
 )
@@ -140,6 +141,9 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionDecision,
     StorageTransactionRequest,
 )
+from app.strategy_lab_v2.study_artifact_resolver import (
+    create_selected_study_artifact_resolver,
+)
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
 from app.strategy_lab_v2.walk_forward_native_metrics import (
     calculate_walk_forward_native_oos_metrics,
@@ -197,6 +201,7 @@ CapabilityPreflightResolver = Callable[..., Awaitable[CapabilitySummary] | Capab
 SearchDispatchResolver = Callable[
     ..., Awaitable[SearchDispatchResolution] | SearchDispatchResolution
 ]
+SelectedStudyArtifactResolver = Callable[..., Awaitable[SelectedStudyArtifactReference]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -303,6 +308,7 @@ class StrategyLabV2ApiBindings:
     walk_forward_observation_calendar: WalkForwardObservationCalendarResolver | None = None
     walk_forward_artifact_store: LocalArtifactStore | None = None
     forward_worker_runtime_profile_fingerprint: str | None = None
+    selected_study_artifact_resolver: SelectedStudyArtifactResolver | None = None
 
     def __post_init__(self) -> None:
         if self.capability_preflight is not None and not callable(self.capability_preflight):
@@ -311,6 +317,14 @@ class StrategyLabV2ApiBindings:
             self.capability_preflight
         ):
             raise TypeError("capability_preflight host binding must be asynchronous")
+        if self.selected_study_artifact_resolver is not None and not callable(
+            self.selected_study_artifact_resolver
+        ):
+            raise TypeError("selected_study_artifact_resolver must be callable")
+        if self.selected_study_artifact_resolver is not None and not _is_async_callable(
+            self.selected_study_artifact_resolver
+        ):
+            raise TypeError("selected Study artifact resolver must be asynchronous")
         if self.search_dispatch is not None and not callable(self.search_dispatch):
             raise TypeError("search_dispatch must be callable")
         if self.search_dispatch is not None and not _is_async_callable(self.search_dispatch):
@@ -394,6 +408,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         *,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         capability_preflight: CapabilityPreflightResolver | None = None,
+        selected_study_artifact_resolver: SelectedStudyArtifactResolver | None = None,
         search_dispatch: SearchDispatchResolver | None = None,
         search_dispatch_evidence: SearchDispatchEvidenceResolver | None = None,
         walk_forward_observation_calendar: WalkForwardObservationCalendarResolver | None = None,
@@ -409,6 +424,14 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             raise TypeError("clock must be callable")
         if capability_preflight is not None and not callable(capability_preflight):
             raise TypeError("capability_preflight must be callable")
+        if selected_study_artifact_resolver is not None and not callable(
+            selected_study_artifact_resolver
+        ):
+            raise TypeError("selected_study_artifact_resolver must be callable")
+        if selected_study_artifact_resolver is not None and not _is_async_callable(
+            selected_study_artifact_resolver
+        ):
+            raise TypeError("selected Study artifact resolver must be asynchronous")
         if search_dispatch is not None and not callable(search_dispatch):
             raise TypeError("search_dispatch must be callable")
         if search_dispatch_evidence is not None and not callable(search_dispatch_evidence):
@@ -443,6 +466,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 binding is not None
                 for binding in (
                     capability_preflight,
+                    selected_study_artifact_resolver,
                     search_dispatch,
                     search_dispatch_evidence,
                     walk_forward_observation_calendar,
@@ -471,6 +495,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             if not isinstance(bindings, StrategyLabV2ApiBindings):
                 raise TypeError("host_bindings_factory must return StrategyLabV2ApiBindings")
             capability_preflight = bindings.capability_preflight
+            selected_study_artifact_resolver = bindings.selected_study_artifact_resolver
             search_dispatch = bindings.search_dispatch
             walk_forward_observation_calendar = bindings.walk_forward_observation_calendar
             walk_forward_artifact_store = bindings.walk_forward_artifact_store
@@ -478,6 +503,7 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
                 bindings.forward_worker_runtime_profile_fingerprint
             )
         self._capability_preflight = capability_preflight
+        self._selected_study_artifact_resolver = selected_study_artifact_resolver
         self._search_dispatch = search_dispatch
         self._search_dispatch_evidence = search_dispatch_evidence
         self._walk_forward_observation_calendar = walk_forward_observation_calendar
@@ -2441,14 +2467,29 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
         if not isinstance(relationships, Mapping) or not isinstance(meta, Mapping):
             raise ValueError("resource relationships and meta must be mappings")
         normalized_domain = normalize_resource_attributes(request.resource_type, attributes)
-        if (
-            isinstance(normalized_domain.typed_contract, StrategyVersion)
-            and normalized_domain.typed_contract.selected_study_artifact is not None
-        ):
-            raise ValueError(
-                "selected Study artifact references are unavailable until the released "
-                "owner-scoped verifier is wired"
-            )
+        if isinstance(normalized_domain.typed_contract, StrategyVersion):
+            selected_reference = normalized_domain.typed_contract.selected_study_artifact
+            if selected_reference is not None:
+                resolver = self._selected_study_artifact_resolver
+                if resolver is None:
+                    raise ValueError(
+                        "selected Study artifact references are unavailable without an "
+                        "owner-scoped verifier"
+                    )
+                try:
+                    resolved_reference = await resolver(
+                        principal=owner,
+                        reference=selected_reference,
+                    )
+                except Exception as error:
+                    raise ValueError(
+                        "selected Study artifact is unavailable to the authenticated owner"
+                    ) from error
+                if (
+                    not isinstance(resolved_reference, SelectedStudyArtifactReference)
+                    or resolved_reference != selected_reference
+                ):
+                    raise ValueError("selected Study artifact differs from its immutable reference")
         await self._validate_domain_dependencies(owner, normalized_domain.typed_contract)
         attributes = normalized_domain.attributes
         state_meta = dict(meta)
@@ -3108,6 +3149,11 @@ def get_strategy_lab_v2_adapter() -> StrategyLabApiAdapter:
         _default_adapter = PostgresStrategyLabV2Adapter(
             session_factory,
             host_bindings_factory=bindings_factory,
+            selected_study_artifact_resolver=(
+                None
+                if bindings_factory is not None
+                else create_selected_study_artifact_resolver(session_factory)
+            ),
             walk_forward_artifact_store=(
                 None if bindings_factory is not None else _artifact_store_from_environment()
             ),

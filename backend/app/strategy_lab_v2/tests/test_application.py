@@ -679,11 +679,14 @@ def test_api_host_bindings_reject_sync_request_resolvers() -> None:
         StrategyLabV2ApiBindings(capability_preflight=cast(Any, synchronous_resolver))
     with pytest.raises(TypeError, match="must be asynchronous"):
         StrategyLabV2ApiBindings(search_dispatch=cast(Any, synchronous_resolver))
+    with pytest.raises(TypeError, match="must be asynchronous"):
+        StrategyLabV2ApiBindings(selected_study_artifact_resolver=cast(Any, synchronous_resolver))
 
 
 @pytest.mark.asyncio
-async def test_api_rejects_unresolved_selected_study_reference_before_persistence() -> None:
+async def test_api_rejects_selected_study_reference_without_owner_verifier() -> None:
     adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    adapter._selected_study_artifact_resolver = None
     request = ResourceMutationRequest(
         ApiResourceType.STRATEGY,
         "selected-study-reference",
@@ -710,7 +713,106 @@ async def test_api_rejects_unresolved_selected_study_reference_before_persistenc
         NOW,
     )
 
-    with pytest.raises(ValueError, match="released owner-scoped verifier is wired"):
+    with pytest.raises(ValueError, match="without an owner-scoped verifier"):
+        await adapter.create_resource(
+            principal="alice",
+            request_id="request-selected-study-reference",
+            request=request,
+        )
+
+
+@pytest.mark.asyncio
+async def test_api_authenticates_selected_study_reference_before_domain_persistence() -> None:
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+    payload = {
+        "strategy_id": "momentum",
+        "version_id": "v1",
+        "sdk_version": "strategy-sdk.v2",
+        "source_digest": content_digest("strategy-source"),
+        "selected_study_artifact": {
+            "research_run_id": 41,
+            "code_version_id": 12,
+            "artifact_id": 87,
+            "artifact_name": "parameters",
+            "artifact_type": "series",
+            "output_contract": "study",
+            "run_reproducibility_hash": "a" * 64,
+            "code_version_digest": content_digest("code-version"),
+            "dataset_manifest_digest": content_digest("dataset-manifest"),
+            "artifact_content_digest": content_digest({"type": "series", "value": [1.0]}),
+        },
+    }
+    request = ResourceMutationRequest(
+        ApiResourceType.STRATEGY,
+        "selected-study-reference",
+        {"attributes": payload},
+        NOW,
+    )
+    observed: list[tuple[Any, Any]] = []
+
+    async def resolver(*, principal: Any, reference: Any) -> Any:
+        observed.append((principal, reference))
+        return reference
+
+    class ReachedDomainValidation(Exception):
+        pass
+
+    async def stop_before_persistence(*_args: Any, **_kwargs: Any) -> None:
+        raise ReachedDomainValidation
+
+    adapter._selected_study_artifact_resolver = resolver
+    adapter._validate_domain_dependencies = stop_before_persistence
+    with pytest.raises(ReachedDomainValidation):
+        await adapter.create_resource(
+            principal="alice",
+            request_id="request-selected-study-reference",
+            request=request,
+        )
+    assert len(observed) == 1
+    assert observed[0][0].id == "alice"
+    assert observed[0][1].artifact_id == 87
+
+
+@pytest.mark.asyncio
+async def test_api_rejects_selected_study_reference_if_verifier_returns_different_pin() -> None:
+    adapter = cast(Any, object.__new__(PostgresStrategyLabV2Adapter))
+
+    async def stop_if_verification_is_bypassed(*_args: Any, **_kwargs: Any) -> None:
+        pytest.fail("invalid selected reference must be rejected before persistence")
+
+    adapter._validate_domain_dependencies = stop_if_verification_is_bypassed
+
+    async def mismatched_resolver(*, reference: Any, **_kwargs: Any) -> Any:
+        return replace(reference, artifact_id=reference.artifact_id + 1)
+
+    adapter._selected_study_artifact_resolver = mismatched_resolver
+    reference = {
+        "research_run_id": 41,
+        "code_version_id": 12,
+        "artifact_id": 87,
+        "artifact_name": "parameters",
+        "artifact_type": "series",
+        "output_contract": "study",
+        "run_reproducibility_hash": "a" * 64,
+        "code_version_digest": content_digest("code-version"),
+        "dataset_manifest_digest": content_digest("dataset-manifest"),
+        "artifact_content_digest": content_digest({"type": "series", "value": [1.0]}),
+    }
+    request = ResourceMutationRequest(
+        ApiResourceType.STRATEGY,
+        "selected-study-reference",
+        {
+            "attributes": {
+                "strategy_id": "momentum",
+                "version_id": "v1",
+                "sdk_version": "strategy-sdk.v2",
+                "source_digest": content_digest("strategy-source"),
+                "selected_study_artifact": reference,
+            }
+        },
+        NOW,
+    )
+    with pytest.raises(ValueError, match="differs from its immutable reference"):
         await adapter.create_resource(
             principal="alice",
             request_id="request-selected-study-reference",
@@ -796,6 +898,7 @@ def test_default_api_adapter_opens_configured_shared_artifact_root(
     adapter = get_strategy_lab_v2_adapter()
 
     assert isinstance(adapter, PostgresStrategyLabV2Adapter)
+    assert callable(adapter._selected_study_artifact_resolver)
     assert adapter._walk_forward_artifact_store is not None
     assert adapter._walk_forward_artifact_store.root == tmp_path / "shared-artifacts"
 

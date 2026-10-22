@@ -16062,3 +16062,78 @@ exact validation commands, fixture scope, memory/process/time caps, and preserve
 Root review. Public checkpoint acceptance, exact-source full validation, PostgreSQL fresh/upgrade/
 restart proof, final migration graph, full `full_stack_browser`, Exhaustive and all 18 roadmap
 criteria remain open.
+
+### Exact released staging merged; Study consumer wiring underway — 2026-10-22
+
+Merged only released staging `77af863902ac6f48fbefd7a0d332f6f39c5f829d` into Strategy at
+`b469a9fdf74247dfb3b8160e318e3516bd7d9b58`, with first parent the published Strategy release-record
+commit `cf4c1c08023fe097152e5aed88df8242097f4a55`. The five reviewed shared paths auto-merged;
+runtime metadata confirms TC's `InstrumentEvent.adjustment_factor` and OHLCV derived-lineage columns
+coexist with Strategy's previously guarded `ExchangeCalendarException` and `StrategyRunBatch`
+schemas. The existing runtime metadata regression's two Strategy model checks passed.
+
+The actual pre-join migration graph had heads `e9c23a7b1d40` (TC favorites/adjustment lineage) and
+`slv2_0010` (accepted Provider/ETF + Strategy histories). Added a revision-ID-distinct no-op merge
+`slv2_0011` with those exact two parents. Alembic static resolution now reports the single head
+`slv2_0011`; `test_strategy_chain_has_unique_ids_and_preserves_shared_base` passes with both chains
+and the actual TC adjustment migrations in its ancestry. No upstream migration was edited; no DDL,
+stamp, reparent, reset or retained data operation occurred. Fresh/previous-release PostgreSQL
+upgrade proof remains open.
+
+The released TC ORM models are now consumed through one read-only async session-scoped resolver.
+The default registered API adapter binds it to the existing application `AsyncSessionLocal`;
+custom API host bindings can supply a resolver, while absence remains fail-closed. Strategy resource
+mutations verify the exact typed reference before dependency validation/persistence and reject
+resolver errors, wrong result types or any identity/digest mismatch. Both worker callback hydration
+paths and the isolated search-preparation composition bind the same SQL-backed verifier when their
+real session factory exists; hosts without that port remain usable for no-reference legacy flows,
+but cannot hydrate a Strategy carrying a selected Study reference. Verification still authenticates
+owner, completed run/evaluation, Study CodeAsset/CodeVersion contract, unique named artifact, and
+the run, code-version, dataset-manifest and payload digests. This authenticates persisted input only,
+not native Nautilus execution.
+
+Bounded offline checks: resolver/API/host/search-preparation/worker-binding/migration subset 37 passed
+in 3.50s; selected-reference hydration plus existing ORM metadata subset 4 passed in 2.38s. Ruff and
+format checks passed on all touched Python paths, `git diff --check` passed, and static Alembic
+reported only `slv2_0011`. The nested factory's `resolve` now explicitly returns
+`SelectedStudyArtifactReference`; the annotation-only clarification was not followed by a test
+replay. The one authorized offline focused MyPy command on the resolver and its test returned two
+errors in imported `app/models/adjustment_factor.py` (`Instrument` and `DataSource` undefined in
+relationship annotations); it emitted no diagnostic on either requested file. No suppression or
+unrelated typing edit was made. No PostgreSQL, service, browser, native runtime, provider/issuer HTTP
+or live test ran. These results do not prove persisted restart behavior against PostgreSQL.
+
+#### Bounded full-validation plan for Root
+
+First exact-source CI must run on the published Strategy tip; keep any hosted result tied to that
+exact SHA. The next local DB gate should be a single PostgreSQL 16 fixture only, using the existing
+`test_database_url` fixture when explicitly available and lazy `request.getfixturevalue` fallback to
+the repository `pg_container` fixture (no second container if the explicit URL is supplied). Use
+one worker/process, a unique schema/search path, cached image only, loopback ephemeral port and dummy
+credentials, 384 MiB memory / 1 CPU / 256 MiB tmpfs, and a 15-minute total wall bound. Do not add
+Redis, browser, BuildKit, provider HTTP, or native engine services. Derive schema from actual mapped
+metadata and preserve FK/unique/enum constraints: the immutable producer path requires `user`,
+`code_asset`, `code_version`, `research_run`, and `research_artifact`; the API round-trip additionally
+uses the existing Strategy aggregate/receipt tables from `PostgresStorageSchema`. No cloned tables,
+stripped constraints, or indiscriminate all-metadata schema. Root must confirm no competing DB slot
+before executing; this handoff requests a plan review, not a fixture launch.
+
+Add one normal backend integration module (not opt-in/skippable when the ordinary PG fixture is
+available) covering: completed/evaluation-complete named Study artifact positive resolution; foreign
+owner, wrong/nonterminal run, missing/duplicate/deleted artifact, wrong Study CodeVersion/contract,
+and run/code-version/dataset/payload digest drift denials; registered API mutation rejects before
+storage on invalid evidence and persists the exact verified reference on valid evidence; then build
+a fresh session factory/worker hydrator and verify the same immutable reference after restart. Include
+changed/deleted-row cases and assert no network/acquisition path is invoked. Keep both live-provider
+flags at `0`. Run only that module first with `-m pytest -q -n 0 tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`
+under the fixture limits, then record exact container/schema/test/cleanup. Separately run fresh and
+previous-release Alembic upgrade/data-preservation tests with the final single-head graph; no stamp,
+reparent, reset, or data deletion. Only after Root assigns capacity run the repository-required full
+local backend/application profile and `full_stack_browser`, followed by exact-source hosted CI and
+Exhaustive. Preserve visual tolerances/masks/retries and all 18 roadmap criteria. Persisted Study
+input authentication is not proof of native Nautilus execution; unsupported/unverified scopes and
+all trading/broker defaults remain disabled.
+
+Exact-source CI, actual SQL/API/restart tests, fresh/previous-release upgrade and data-preservation,
+the required full local application and `full_stack_browser`, and Exhaustive remain open. Checkpoint
+remains `in_progress`/unaccepted; all roadmap criteria and provider holds remain unchanged.

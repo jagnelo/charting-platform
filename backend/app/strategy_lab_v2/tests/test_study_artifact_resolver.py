@@ -14,6 +14,7 @@ from app.strategy_lab_v2.contracts import SelectedStudyArtifactReference
 from app.strategy_lab_v2.study_artifact_resolver import (
     SelectedStudyArtifactResolutionError,
     _resolve_selected_study_artifact,
+    create_selected_study_artifact_resolver,
 )
 
 _OWNER_ID = 73
@@ -184,6 +185,28 @@ async def test_resolves_exact_owner_scoped_completed_named_study_artifact() -> N
     assert resolved == reference
     assert len(session.statements) == 4
     assert session._responses == []
+
+
+@pytest.mark.asyncio
+async def test_host_resolver_owns_one_read_session_and_returns_exact_pin() -> None:
+    reference, responses, principal = _graph()
+    session = FakeAsyncSession(responses)
+    lifecycle: list[str] = []
+
+    class SessionContext:
+        async def __aenter__(self) -> AsyncSession:
+            lifecycle.append("enter")
+            return _as_test_async_session(session)
+
+        async def __aexit__(self, *_args: Any) -> None:
+            lifecycle.append("exit")
+
+    resolver = create_selected_study_artifact_resolver(SessionContext)
+    resolved = await resolver(principal=principal, reference=reference)
+
+    assert resolved is reference or resolved == reference
+    assert lifecycle == ["enter", "exit"]
+    assert len(session.statements) == 4
 
 
 @pytest.mark.parametrize(

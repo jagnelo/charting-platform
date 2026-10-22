@@ -126,6 +126,7 @@ def test_local_api_bindings_factory_requires_and_uses_complete_socket_configurat
     # The registered search/calendar host does not enable capability preflight
     # without both the exact pinned evidence and explicit supported scope.
     assert bindings.capability_preflight is None
+    assert bindings.selected_study_artifact_resolver is None
     assert isinstance(bindings.search_dispatch, rpc_module.UnixSocketSearchDispatchClient)
     assert bindings.search_dispatch.socket_path == Path("/run/strategy/preparation.sock")
     assert bindings.forward_worker_runtime_profile_fingerprint == forward_profile_digest
@@ -176,6 +177,7 @@ def test_local_api_factory_composes_only_the_proven_provider_backtest_scope(
     bindings = rpc_module.build_api_bindings(lambda: None, object())
 
     assert bindings.capability_preflight is not None
+    assert bindings.selected_study_artifact_resolver is not None
     assert observed["resolution"] is resolution
     assert observed["product_classes"] == frozenset({provider_capability_host.ProductClass.EQUITY})
     assert observed["execution_models"] == frozenset({"market"})

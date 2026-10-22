@@ -1,15 +1,14 @@
-"""Private fail-closed revalidation for explicitly pinned Study artifacts.
+"""Fail-closed revalidation for explicitly pinned, owner-scoped Study artifacts.
 
-This module is preparatory only. No public API, worker, persistence, or runtime
-composition imports it until the accepted TC producer release is reconciled.
-Resolving a Study artifact authenticates immutable stored input; it is not
-evidence of native Nautilus execution.
+The authenticated local API and worker compositions use this reader against the
+existing Study ORM tables. Resolving a Study artifact authenticates immutable
+stored input; it is not evidence of native Nautilus execution.
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
 from sqlalchemy import Select, select
@@ -39,6 +38,32 @@ _SUPPORTED_STUDY_ARTIFACT_TYPES = frozenset(
 
 class SelectedStudyArtifactResolutionError(ValueError):
     """A selected immutable Study reference cannot be authenticated locally."""
+
+
+SelectedStudyArtifactResolver = Callable[..., Awaitable[SelectedStudyArtifactReference]]
+
+
+def create_selected_study_artifact_resolver(
+    session_factory: Callable[[], Any],
+) -> SelectedStudyArtifactResolver:
+    """Bind immutable Study revalidation to the host's existing local SQL session factory."""
+
+    if not callable(session_factory):
+        raise TypeError("session_factory must be callable")
+
+    async def resolve(
+        *, principal: Any, reference: SelectedStudyArtifactReference
+    ) -> SelectedStudyArtifactReference:
+        if not isinstance(reference, SelectedStudyArtifactReference):
+            raise SelectedStudyArtifactResolutionError("selected Study reference is not typed")
+        async with session_factory() as session:
+            return await _resolve_selected_study_artifact(
+                session=session,
+                principal=principal,
+                reference=reference,
+            )
+
+    return resolve
 
 
 def _code_version_digest(version: CodeVersion, asset: CodeAsset) -> str:
@@ -95,10 +120,9 @@ async def _resolve_selected_study_artifact(
 ) -> SelectedStudyArtifactReference:
     """Revalidate a pinned artifact from the existing immutable Study tables.
 
-    This internal seam intentionally accepts only a typed reference; it does not
-    derive or guess an artifact from a latest-run alias. Callers must keep
-    rejecting public non-null references until the accepted producer consumer
-    integration wires this function into the owner-scoped hydration path.
+    This seam accepts only a typed reference; it does not derive or guess an
+    artifact from a latest-run alias. The reference remains a claim until this
+    authenticated query revalidates every producer-owned immutable field.
     """
 
     if not isinstance(reference, SelectedStudyArtifactReference):

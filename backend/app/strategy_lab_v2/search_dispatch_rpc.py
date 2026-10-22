@@ -635,6 +635,9 @@ def build_api_bindings(session_factory: Any, persistence: Any) -> Any:
     from app.strategy_lab_v2.provider_capability_host import (
         build_provider_capability_preflight,
     )
+    from app.strategy_lab_v2.study_artifact_resolver import (
+        create_selected_study_artifact_resolver,
+    )
     from app.strategy_lab_v2.workers import (
         forward_worker_runtime_profile_fingerprint_from_environment,
     )
@@ -644,6 +647,11 @@ def build_api_bindings(session_factory: Any, persistence: Any) -> Any:
     return StrategyLabV2ApiBindings(
         search_dispatch=UnixSocketSearchDispatchClient.from_environment(),
         capability_preflight=build_provider_capability_preflight(session_factory),
+        selected_study_artifact_resolver=(
+            create_selected_study_artifact_resolver(session_factory)
+            if callable(session_factory)
+            else None
+        ),
         walk_forward_observation_calendar=calendar_resolver,
         walk_forward_artifact_store=artifact_store,
         forward_worker_runtime_profile_fingerprint=(

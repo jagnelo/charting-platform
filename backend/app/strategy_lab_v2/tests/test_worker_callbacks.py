@@ -22,6 +22,7 @@ from app.strategy_lab_v2.tests.test_worker_process import _request
 from app.strategy_lab_v2.worker_callbacks import (
     _etf_membership_reader_for_persistence,
     _SearchDispatchWorkerHandoffMaterializer,
+    _study_artifact_resolver_for_persistence,
     create,
     create_default_search_dispatch_binding_resolver,
     create_search_dispatch,
@@ -544,6 +545,13 @@ def test_etf_membership_reader_requires_a_callable_host_session_factory() -> Non
 
     legacy_persistence = object()
     assert _etf_membership_reader_for_persistence(legacy_persistence) is None
+
+
+def test_study_artifact_resolver_requires_the_real_host_session_factory() -> None:
+    persistence = _ComposedPersistence()
+    resolver = _study_artifact_resolver_for_persistence(persistence)
+    assert callable(resolver)
+    assert _study_artifact_resolver_for_persistence(object()) is None
 
 
 @pytest.mark.asyncio
