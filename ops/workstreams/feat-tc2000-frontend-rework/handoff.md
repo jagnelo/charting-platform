@@ -14,15 +14,24 @@ The ownership guard now accepts a receipt-approved exact fast-forward as well
 as the existing non-first-parent merge path. Its regenerated snapshot pins all
 858 frozen imported paths to exact 0e tree blobs/deletions, while preserving
 the 29 narrow approved TC adaptations separately. Guard self-tests (35), the
-987-path scope validation, and workstream validation pass. The preflight's
-local `session.json` refresh remains preserved for this next coherent record
-publication. No product/browser/Compose/provider operation was performed.
+987-path scope validation, and workstream validation pass. The adoption/guard
+checkpoint was committed and pushed as `59d0c3b6b4eb07968b256d879c0ad9e27456f90b`;
+an independent remote query confirmed the exact ref. That record commit contains
+no product changes and its automatic CI remains separate from staging run
+39827786248. No browser/Compose/provider operation was performed.
 
-Next branch-owned roadmap item: implement the V25 Custom Date Sort consumer
-using only persisted OHLCV/history and explicit coverage/classification
-contracts, with no provider routing or acquisition. Official
-`REF-HELP-V25`, broader AC1-AC9 completion, and integration beyond this exact
-released baseline remain open.
+The next branch-owned roadmap item is the V25 Custom Date Sort consumer using
+only persisted OHLCV/history and explicit coverage/classification contracts,
+with no provider routing or acquisition. Its pure formula and exact-boundary
+range-source core is in `frontend/src/lib/workstation/customDateSort.ts`; 11
+focused tests and Vue type-check pass. It maps chart indices and two-point
+trendline timestamps to UTC boundaries, computes the documented formulas from
+already-resolved close pairs, and returns explicit unavailable states. It does
+not fetch history, select chart gestures, decide coverage, map classification,
+or persist/output results. Persisted-history loading, truthful sector/industry
+comparator inputs, actual chart interaction, and new-window/WatchList output
+remain unimplemented. Official `REF-HELP-V25`, broader AC1-AC9 completion, and
+integration beyond this exact released baseline remain open.
 
 ## Previous bounded-checkpoint status — 2026-10-22
 
