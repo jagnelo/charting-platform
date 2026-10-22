@@ -1,5 +1,65 @@
 # feat/etf-holdings-constituents
 
+## Current full-roadmap continuation — shared CSV transport boundary — 2026-10-22
+
+The central coordinator released the exact synchronized green four-feature
+staging baseline `0e342512e53ba2268425294d61c50e219eaafa4f` with full CI and the
+Exhaustive Integration Gate green. The canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`;
+the release record is
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`.
+That staging commit is already an ancestor of this ETF branch, so no merge was
+needed. The existing branch and origin were synchronized at
+`4823bcf889b5ef0a51808fbfa39aa83ed6359953`; exact CI `39857543318` is
+`in_progress` on that source and does not cover the work below.
+
+The next offline transport audit found that HTTPX 403 responses in both
+`PublicCsvHoldingsAdapter.fetch_latest` and the Innovator aggregate CSV helper
+(used by the registered NEOS route) fell back to raw `requests.get`. The
+shared Provider runtime deliberately fails closed for that unadmitted legacy
+requests transport, so the fallback was neither a reliable recovery nor a
+valid per-attempt governed request. Both paths now surface the HTTPX status
+failure directly. Redirect behavior, configured issuer URL/headers, and the
+existing success parser paths are unchanged; no route was promoted or
+reclassified. Regressions prove that the actual NEOS route and shared public
+CSV helper issue one HTTPX attempt, propagate a 403, and never invoke raw
+`requests.get`; the existing successful NEOS CSV test still passes.
+
+Validation on the local source change: focused successful-NEOS and two 403
+contracts passed 3/3; the complete deterministic adapter module passed
+614/614; checkpoint consumers plus issuer route drift passed 38/38; default
+ETF live contracts passed 9 with 537 network-bearing cases skipped. Ruff and
+format checks passed, as did frontend type-check, 17 ETF UI tests and the
+production build. Both `RUN_LIVE_ETF_HOLDINGS_TESTS=0` and
+`RUN_LIVE_PROVIDER_TESTS=0` were set for the backend checks. No issuer,
+provider or SEC HTTP, quota operation, or live route replay occurred. The final
+narrative-count sentinel, workstream validator, plan hash, JSON/JSONL parsing
+and diff check pass; fresh exact-source CI is pending publication.
+The earlier CI run `39857543318` applies only to its older `4823…` SHA.
+
+At entry, the existing claim `f206bbc5-abbf-473a-a44f-fb5706c81282` matched
+this exact ETF worktree. A pre-existing dirty `session.json` reconciliation
+already reflected published HEAD/origin `4823…`; it was preserved and folded
+into this coherent workstream update, not reset or discarded. `make
+agent-session-start` is a clean-bootstrap command and was not used to displace
+the active claim. The UV-managed `make agent-context` classified this as the
+implementation worktree; its optional private quota-ledger directory setup
+reported a filesystem permission error outside this worktree. No other path
+was changed for that setup error.
+
+The full AC1–AC14 roadmap remains active and uncompleted, including all 140
+starting fallback dispositions, the 15 Tier-0 and 156 Tier-1 investigations,
+issuer onboarding, and the post-integration 30-day observation gate. MSMR/QQQ
+and Militia/GOOG remain unresolved and quarantined. Unknown, quota-held,
+unreviewed, paid/trial, and unsafe operations remain disabled. `full_stack_browser`
+validation still requires a Root-assigned safe slot; no staging/sibling/master
+write, deployment, retained-resource cleanup, data reset, or self-integration
+is authorized.
+
+Next: publish this coherent ETF-only change, inspect exact-source CI, then
+continue the next source-audit item from retained evidence without external
+HTTP or quota use.
+
 ## Current continuation — guarded native-adapter transport fixes — 2026-10-22
 
 The exact synchronized green staging release `0e342512e53ba2268425294d61c50e219eaafa4f`

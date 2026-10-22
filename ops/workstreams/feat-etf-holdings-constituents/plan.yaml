@@ -530,6 +530,8 @@ progress:
   total: 14
 current_phase: post_green_staging_full_roadmap_continuation_2026_10_22
 current_blocker: >-
+  Historical validation detail in this field preserves earlier exact-source
+  receipts; the current state below supersedes those older source/status values.
   The initial ETF integration checkpoint is accepted in synchronized green
   staging 0e342512e53ba2268425294d61c50e219eaafa4f; all fourteen original
   roadmap criteria, issuer onboarding, and post-integration 30-day observation
@@ -575,6 +577,23 @@ current_blocker: >-
   unsafe operations stay disabled. No live calls, quota replay, dataset reset,
   retained-resource cleanup, deployment, or cross-worktree write occurred.
   On 2026-10-22, the exact synchronized green release 0e342512e53ba2268425294d61c50e219eaafa4f was reverified from its canonical receipt and confirmed as an ancestor of current ETF tip e4816268eb0c5effaad97979d13be843b50fc950; GitHub independently confirms the ETF remote at e481626, so no merge or push was needed for adoption. The assigned worktree has four pre-existing dirty ETF workstream records, and the released merge changes overlapping record/test paths; these were preserved without reset, rebase, stash, or forced merge. A read-only transport audit found Voya's catalogued native adapter still called the fail-closed legacy requests namespace. Voya now uses the shared Provider-backed HTTPX facade with per-hop redirect admission; its unit assertion verifies client timeout/redirect configuration, URL, and Referer. The Voya test passed, the full deterministic adapter module passed 611 tests, the provider-bridge and refresh modules passed 34 tests, and changed-file Ruff/format/diff checks passed. The complete declared branch suite then passed: adapter 611, checkpoint consumer 15, route-drift 23, offline live contracts 9 passed/537 network cases skipped, Ruff and workstream validation, frontend type-check, 17 frontend tests, and frontend build. This worktree-only change is not covered by earlier exact CI 39850920455, which remains in progress on the pre-fix e481 source; no live route or full_stack_browser result is claimed.
+  Current continuation at 2026-10-22 21:35Z: exact green staging
+  0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of this ETF
+  branch, so no merge was needed. The prior published branch/origin baseline is
+  4823bcf889b5ef0a51808fbfa39aa83ed6359953; exact CI39857543318 is in progress
+  on that SHA and does not include this local change. The shared PublicCsv
+  helper and Innovator aggregate CSV path used by NEOS no longer fall back to
+  raw requests.get on HTTPX 403. Current focused route tests pass 3/3, the
+  adapter module 614/614, checkpoint consumers plus route drift 38/38, offline
+  live contracts 9 pass/537 network cases skip, and Ruff/format/workstream
+  validation, frontend type-check, 17 ETF frontend tests and build pass with
+  live flags 0. No external HTTP or quota operation occurred. Fresh exact-head
+  CI remains pending publication; full_stack_browser remains open for a
+  Root-assigned safe slot. The complete fourteen-criterion roadmap, issuer
+  onboarding, the post-integration 30-day observation, and 15 Tier-0 and 156
+  Tier-1 investigations remain open; MSMR/QQQ and Militia/GOOG stay unresolved
+  and quarantined, and unknown/quota-held/unreviewed/paid/trial/unsafe routes
+  remain disabled.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -1583,25 +1602,27 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    Exact Actions run 39856500578 is in progress on published source
-    5f4117ad4df3f239bf4df8d12bb3a237293836de and includes the Saracen fix;
-    it does not include the current ETF Architect follow-up. The focused three
-    route contracts and full adapter module pass locally on the ETF Architect
-    worktree diff. A fresh exact-head CI and the full declared branch suite are
-    required after coherent publication. Prior cancelled, partial and red runs
-    remain historical and are not upgraded to green.
+    Exact Actions run 39857543318 is in_progress on published source
+    4823bcf889b5ef0a51808fbfa39aa83ed6359953 and includes ETF Architect but
+    not the current shared-CSV change. The focused three route contracts, full
+    adapter module and declared offline branch suite pass locally with live
+    flags explicitly 0. A fresh exact-head CI is required after coherent
+    publication. Prior cancelled, partial and red runs remain historical and
+    are not upgraded to green.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Record the validated ETF Architect guarded-retry change, run final count/
-  schema/hash/diff checks, then commit/push only this ETF-owned follow-up and
-  inspect exact-source CI. Continue
-  the full AC1-AC14 roadmap from retained evidence; do not change route status
-  or refresh blocked sources without qualifying new evidence and authorized
-  safe access. The full_stack_browser matrix remains required and awaits Root's
-  assigned safe slot. Preserve all issuer onboarding, 30-day observation,
-  historical/red results, MSMR/QQQ and Militia/GOOG quarantines, and all
+  The exact count sentinel, workstream/schema/hash/diff checks and relevant
+  static validation for the shared-CSV guarded-403 correction are green; append
+  any last evidence consistency change, then commit and push only this
+  ETF-owned coherent change and inspect its exact-source CI. Continue the full
+  AC1-AC14 roadmap from
+  retained evidence; do not change route status or refresh blocked sources
+  without qualifying evidence and authorized safe access. The full_stack_browser
+  matrix remains required and awaits Root's assigned safe slot. Preserve all
+  issuer onboarding, 30-day observation, historical/red results, 15 Tier-0 and
+  156 Tier-1 accounting, MSMR/QQQ and Militia/GOOG quarantines, and all
   unknown/quota-held/unreviewed/paid/trial/unsafe holds. No issuer, SEC, or
   Provider HTTP, quota spend/reset, dataset reset, retained-resource cleanup,
   staging/sibling/master write, deployment, or self-integration.

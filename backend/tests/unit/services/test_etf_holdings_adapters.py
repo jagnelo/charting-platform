@@ -29089,33 +29089,60 @@ async def test_neos_adapter_fetches_ajax_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_public_csv_transport_retries_http_403_with_browser_compatible_requests(monkeypatch):
+async def test_neos_aggregate_csv_transport_does_not_escape_httpx_guard_on_403(monkeypatch):
     adapter = get_holdings_adapter("neos")
     assert adapter is not None
-    csv_text = "\n".join(
-        [
-            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
-            '06/12/2026,SPYI,A,00846U101,"Agilent Technologies Inc","45,190",129.55,"5,854,364.50",0.06%,"10,017,366,830.00","189,590,000","18,959",',
-        ]
-    )
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [FakeResponse(text="forbidden", status_code=403)]
-    browser_response = FakeResponse(text=csv_text, content_type="text/csv")
-    requests_calls: list[tuple[str, dict]] = []
 
-    def fake_requests_get(url, **kwargs):
-        requests_calls.append((url, kwargs))
-        return browser_response
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(status_code=403)]
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
 
-    result = await adapter.fetch_latest(symbol="SPYI")
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="SPYI")
 
-    assert len(result.rows) == 1
-    assert result.rows[0].symbol == "A"
-    assert requests_calls[0][0] == adapter.holdings_url_template.format(symbol_upper="SPYI")
-    assert requests_calls[0][1]["headers"]["Referer"] == "https://neosfunds.com/"
+    assert len(FakeAsyncClient.requested) == 1
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert request_url == adapter.holdings_url_template.format(symbol_upper="SPYI")
+    assert request_kwargs["headers"]["Referer"] == "https://neosfunds.com/"
+    assert request_kwargs["follow_redirects"] is True
+
+
+@pytest.mark.asyncio
+async def test_public_csv_helper_does_not_escape_httpx_guard_on_403(monkeypatch):
+    adapter = PublicCsvHoldingsAdapter("parser_helper", "test")
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse()]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="TEST", source_url="https://issuer.example/holdings.csv")
+
+    assert len(FakeAsyncClient.requested) == 1
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert request_url == "https://issuer.example/holdings.csv"
+    assert request_kwargs["follow_redirects"] is True
 
 
 @pytest.mark.asyncio

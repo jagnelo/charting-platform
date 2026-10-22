@@ -88,9 +88,9 @@
     }
   ],
   "active_changeset": {
-    "baseline": "5f4117ad4df3f239bf4df8d12bb3a237293836de",
-    "intent": "Remove ETF Architect's raw requests.get fallback for 403/5xx/timeouts while retaining bounded retries on the shared Provider-backed HTTPX client and preserving 403 as failure.",
-    "name": "ETF Architect guarded retry boundary",
+    "baseline": "4823bcf889b5ef0a51808fbfa39aa83ed6359953",
+    "intent": "Remove raw requests.get retries after HTTPX 403 in the shared public-CSV helper and the registered NEOS/Innovator aggregate CSV route; preserve HTTPX redirect/header behavior and surface the denied response.",
+    "name": "Shared CSV guarded 403 boundary",
     "owned_paths": [
       "backend/app/services/etf_holdings_adapters.py",
       "backend/tests/unit/services/test_etf_holdings_adapters.py",
@@ -99,7 +99,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
     ],
-    "state": "exact_staging_release_0e342512_is_ancestor;Voya_REX_PeakShares_Saracen_fixes_published_through_5f4117ad;ETF_Architect_three_contracts_adapter613_and_declared_offline_branch_suite_pass;final_records_and_exact_CI_pending;no_live_HTTP_or_full_stack_claim"
+    "state": "exact_green_staging_0e342512_is_ancestor_and_branch_origin_was_synchronized_at_4823bcf;ETF_Architect_fix_is_published;shared_public_CSV_and_NEOS_403_raw_requests_fallbacks_removed;focused3_adapter614_consumers_plus_route_drift38_offline_contract9_pass;declared_branch_suite_and_final_workstream_count_schema_hash_diff_checks_passed_with_live_flags0;commit_push_and_new_exact_CI_pending;no_live_HTTP_or_full_stack_claim"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -150,15 +150,8 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22 21:26Z: Exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Saracen's guarded-403 fix is published in 5f4117ad4df3f239bf4df8d12bb3a237293836de and exact CI 39856500578 is in progress on that SHA; the previous db023 run39855756183 was cancelled after the subsequent push. The local ETF Architect fix removes raw requests.get fallback after HTTPX 403/5xx/timeouts, keeps transient retries on governed HTTPX, preserves 403 as failure, and refuses challenge HTML as holdings. Three focused tests and the full adapter module (613/613) pass; the full declared offline branch suite also passes (adapter613, consumers15, route-drift23, offline contracts9 passed/537 skipped, Ruff/workstream validation, frontend type-check, ETF frontend17, build) with live switches explicitly off. Current-source exact CI remains pending publication. The existing authorized claim f206bbc5-abbf-473a-a44f-fb5706c81282 remains in this worktree; local/remote baseline 5f4117ad is synchronized. No issuer/provider/SEC HTTP, quota operation, full_stack_browser pass, route promotion, or full-roadmap completion is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all holds and the 30-day observation gate.",
-  "dirty_paths": [
-    "backend/app/services/etf_holdings_adapters.py",
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "current_blocker_latest": "2026-10-22 21:35Z: Exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of this ETF branch; no merge was needed. The published branch/origin baseline is 4823bcf889b5ef0a51808fbfa39aa83ed6359953 and exact CI39857543318 is in_progress on that SHA but does not include the current local source change. Removed raw requests.get fallback after HTTPX 403 from both PublicCsvHoldingsAdapter and the aggregate CSV helper used by registered NEOS. Focused tests pass3/3, complete adapter module614/614, checkpoint consumers plus route drift38/38, offline live contracts9 passed/537 network cases skipped, Ruff and format checks, frontend type-check, ETF UI17 and production build pass. Final narrative-count sentinel, workstream validator, plan hash, JSON/JSONL parsing and diff check also pass; commit/push and fresh exact-source CI remain pending. No issuer/provider/SEC HTTP, quota operation, full_stack_browser pass, route promotion or full-roadmap completion is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all holds and the 30-day observation gate.",
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -183,7 +176,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "5f4117ad4df3f239bf4df8d12bb3a237293836de",
+  "head": "4823bcf889b5ef0a51808fbfa39aa83ed6359953",
   "implementation_sha": "535f8928da53da9c20838007336d71b6e627e4c9",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -296,7 +289,7 @@
   },
   "last_checkpoint": "2026-10-22T21:26:54Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-22: Exact green staging release 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Saracen's guarded-403 fix is published at 5f4117ad4df3f239bf4df8d12bb3a237293836de; exact CI39856500578 is in progress on that source. The prior db023 CI39855756183 was cancelled after the succeeding push. The local ETF Architect correction removes its ungoverned requests fallback, retains bounded transient HTTPX retries, and leaves 403/challenge data unavailable rather than accepting an unsafe fallback. Three focused tests, adapter613, and the full declared offline branch suite pass with live switches explicitly disabled. Current-source exact CI remains pending publication. The recorded existing claim remains valid and local/remote 5f4117 baseline parity is confirmed. No live HTTP/quota, full_stack_browser pass, route promotion or full-roadmap completion is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, holds, historical evidence and the 30-day observation gate.",
+  "latest_checkpoint": "2026-10-22: The exact green staging release 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of the ETF branch. Published source/origin is 4823bcf889b5ef0a51808fbfa39aa83ed6359953; exact CI39857543318 is in_progress on that base. ETF Architect is published. This local continuation removes HTTPX-403 raw requests.get fallbacks from the shared PublicCsvHoldingsAdapter and registered NEOS aggregate CSV path; focused3, adapter614, checkpoint consumers plus route drift38, offline contracts9 passed/537 skipped, Ruff/format, frontend type-check, ETF frontend17, build, narrative sentinel, validator, hash, JSON/JSONL and diff checks pass with live flags0. Commit/push and new exact-head CI remain pending; no external HTTP or quota operation occurred. The prior session.json reconciliation is retained in this coherent update. The local full profile awaits a Root-assigned safe slot. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, unresolved MSMR/QQQ and Militia/GOOG quarantines, disabled holds and the 30-day observation gate. No route promotion or full-roadmap completion is claimed.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -333,7 +326,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Finish final count/schema/JSONL/plan-hash/diff checks for ETF Architect's guarded-retry change, commit and push only the coherent ETF-owned source/test/workstream paths, verify exact remote parity and inspect the resulting exact-source CI. Continue the complete AC1-AC14 roadmap from retained evidence; no issuer/provider/SEC HTTP, quota use, unsafe activation, live-test execution, data reset/cleanup, sibling/staging/master write, deployment, self-integration, or full-stack/browser matrix without Root's safe slot. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation.",
-  "plan_hash": "4825ad97b739bedad20207e14b8157e2fc53aa747363456c5712930bf087d057",
+  "plan_hash": "01816de9de0b8d5d1331b3bc8ab2e85e1a2f4d1e901872c93fd6864c744a76cf",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -400,8 +393,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "5f4117ad4df3f239bf4df8d12bb3a237293836de",
-  "remote_sha": "5f4117ad4df3f239bf4df8d12bb3a237293836de",
+  "remote": "4823bcf889b5ef0a51808fbfa39aa83ed6359953",
+  "remote_sha": "4823bcf889b5ef0a51808fbfa39aa83ed6359953",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
