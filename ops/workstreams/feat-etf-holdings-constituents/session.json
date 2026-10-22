@@ -150,8 +150,16 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22 21:56Z: Accepted green staging 0e342512e53ba2268425294d61c50e219eaafa4f remains an ancestor. Kensington guarded transport is published at 96e2a3511fa19078810e4dd4e88c25d469a28b40; exact CI39860049634 is in progress (Frontend green; Backend integration phase active). Static review found raw requests.get fallbacks after HTTPX403 in Rayliant, Gabelli, and ARS; the shared ETF facade does not admit or account for those calls. These paths now retain the HTTPX status failure. Focused success and no-fallback tests passed6/6; Ruff, format and diff checks passed. These follow-up changes are uncommitted and not in active CI; do not cancel that run or launch a broad local job while Root owns the slot. No external issuer/provider/SEC HTTP or quota use occurred. Full_stack_browser and the 30-day observation remain open; preserve 15 Tier-0 and 156 Tier-1, quarantines and all route holds.",
-  "dirty_paths": [],
+  "current_blocker_latest": "2026-10-22 22:39Z: ETF local HEAD/origin remains synchronized at6d08854c81ea6892011a98b3711a9233b59c401b with the existing seven-path owned dirty context; the current worktree diff additionally migrates the KraneShares/Quadratic/CICC/Man Group dated CSV family from raw requests to one shared Provider-backed HTTPX client per fetch. Six mocked contracts pass6/6, including 404-then-next-date lookback; Ruff check/format, Python compilation and diff-check pass. This is not route eligibility, publisher evidence or DB-backed shared admission. NSI real-adapter shared-admission test remains collected only. The two remaining raw adapter requests.get callsites are Cohen & Steers and Arax/Day Hagan, held by the fail-closed namespace; Arax account/token/terms remain unreviewed. Root's new staging repair is still in CI, NOT released green; do not adopt it or poll Root CI. Do not run the DB/browser/full profile while Root owns the slot. No external HTTP/quota, route-state change, data cleanup or sibling/staging write. Preserve historical red/partial evidence, AC1-AC14, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, unknown/quota-held/unreviewed/paid/trial/unsafe holds, full_stack_browser and the 30-day observation.",
+  "dirty_paths": [
+    "backend/app/services/etf_holdings_adapters.py",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -176,8 +184,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "96e2a3511fa19078810e4dd4e88c25d469a28b40",
-  "implementation_sha": "96e2a3511fa19078810e4dd4e88c25d469a28b40",
+  "head": "6d08854c81ea6892011a98b3711a9233b59c401b",
+  "implementation_sha": "6d08854c81ea6892011a98b3711a9233b59c401b",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -325,8 +333,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run fast collection, Ruff, narrative-count, workstream/schema/JSONL/plan-hash/diff checks for the NSI legacy-transport fixture correction plus Rayliant/Gabelli/ARS guarded-403 source/tests; publish this coherent change and verify exact-source CI. No local integration/browser gate while Root owns the heavy slot. Continue AC1-AC14 without issuer/provider/SEC HTTP, quota, unsafe activation or cleanup. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds and the 30-day observation.",
-  "plan_hash": "7a4169960d961dc7e25d6fd5ffac67ab6054ecdbd4d2d7cf2f45b819dc401482",
+  "next_action": "Complete the narrative-count sentinel, ETF workstream validator, JSON/JSONL and plan-hash checks, diff review, and final changed-file fast checks; then publish the coherent own-branch changeset and inspect only its exact ETF CI. The KraneShares/Quadratic/CICC/Man Group transport migration is offline unit-tested6/6 but has no DB-backed admission or live-route evidence. The NSI real-adapter shared-admission test is collected only pending Root's fixture-slot release. Do not monitor Root CI or adopt the new staging repair until its exact synchronized green receipt is released. Keep Cohen & Steers and Arax/Day Hagan raw request paths held; Arax's embedded token/account and terms remain unreviewed. Do not run DB/browser/full profile while Root owns the slot. No issuer/provider/SEC HTTP, quota, paid/trial/unknown activation, cleanup, or sibling/staging writes; preserve 15 Tier-0 and 156 Tier-1, all history/quarantines/holds, AC1-AC14, full_stack_browser, and the 30-day observation.",
+  "plan_hash": "3abccc4689ff66f00c407435c5ba88bde6895d59728aca985d26335e0a043074",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -377,11 +385,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Exact CI39860049634 on published source96e2a3511fa19078810e4dd4e88c25d469a28b40 is terminal RED: backend unit passed5204 with1 expected skip; integration passed496, skipped2, failed1 because a synthetic test asserted the requests guard while invoking Voya's guarded HTTPX path. The fixture now invokes NSI, whose registered fetch path uses requests; hosted integration proof is pending. Uncommitted Rayliant/Gabelli/ARS changes remove unguarded requests fallbacks after HTTPX403; six deterministic tests and fast static/workstream checks passed. No local integration/browser gate while Root owns the heavy slot; no external HTTP or quota. Preserve 15 Tier-0 and 156 Tier-1, all quarantines/holds, and the full roadmap.",
+    "current_blocker": "ETF local HEAD/origin remains synchronized at6d08854c81ea6892011a98b3711a9233b59c401b; the seven-path owned dirty context now includes a KraneShares/Quadratic/CICC/Man Group transport migration from raw requests to one shared Provider-backed HTTPX client per fetch. Six mocked contracts pass6/6, including 404-then-next-date lookback; Ruff check/format, Python compilation and diff-check pass. This is not route eligibility, publisher evidence or DB-backed shared admission. NSI real-adapter shared-admission test remains collected only. Two raw adapter requests.get callsites remain (Cohen & Steers and Arax/Day Hagan), held by the fail-closed namespace; Arax account/token/terms remain unreviewed. Root's new staging repair is still in CI, NOT released green; do not adopt it or poll Root CI. Do not run the DB/browser/full profile while Root owns the slot. No external HTTP/quota, route-state change, data cleanup or sibling/staging write. Preserve historical red/partial evidence, AC1-AC14, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, unknown/quota-held/unreviewed/paid/trial/unsafe holds, full_stack_browser, and the 30-day observation.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Run fast collection, Ruff, narrative-count, workstream/schema/JSONL/plan-hash/diff checks for the NSI legacy-transport fixture correction plus Rayliant/Gabelli/ARS guarded-403 source/tests; publish coherently and verify exact-source CI. No local integration/browser gate while Root owns the heavy slot. Continue AC1-AC14 without issuer/provider/SEC HTTP, quota, unsafe activation or cleanup; preserve all criteria, history, quarantines, route holds, and the 30-day observation.",
+    "next_action": "Complete narrative-count sentinel, workstream validator, JSON/JSONL and plan-hash checks, diff review and fast changed-file validation; publish the coherent ETF-only changeset and inspect its exact ETF CI. KraneShares-family transport tests pass6/6 offline but do not prove DB admission or live availability. NSI shared-admission integration is collection-only pending Root fixture release. Cohen & Steers and Arax/Day Hagan remain fail-closed; do not infer Arax credentials/terms. Do not monitor Root CI, adopt staging before its exact green receipt, or run the DB/browser/full profile while Root owns the slot. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, history, quarantines, holds, and the 30-day observation; no external HTTP, quota, unsafe activation, cleanup or cross-worktree write.",
     "total": 14,
-      "updated_at": "2026-10-22T22:04:36Z"
+    "updated_at": "2026-10-22T22:39:30Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -393,8 +401,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "96e2a3511fa19078810e4dd4e88c25d469a28b40",
-  "remote_sha": "96e2a3511fa19078810e4dd4e88c25d469a28b40",
+  "remote": "6d08854c81ea6892011a98b3711a9233b59c401b",
+  "remote_sha": "6d08854c81ea6892011a98b3711a9233b59c401b",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

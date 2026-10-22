@@ -13790,3 +13790,164 @@ quota-held/unreviewed/paid/trial/unsafe routes, and the post-integration
 `backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`, and
 the four ETF-owned records `plan.yaml`, `handoff.md`, `session.json`, and
 `validation.jsonl`.
+
+## NSI adapter transport moved to shared HTTPX — 2026-10-22 22:14Z
+
+The prior source/test/workstream checkpoint is published cleanly at
+`6d08854c81ea6892011a98b3711a9233b59c401b`, with independent remote-ref parity.
+Exact CI `39862778512` for that SHA remains active in Backend unit tests;
+Frontend Unit Tests passed. The earlier `39860049634` red run is retained: its
+one integration failure was the test invoking Voya's guarded HTTPX path while
+expecting the legacy-requests guard. In this follow-up that negative test now
+uses Cohen & Steers with a supplied synthetic fund ID, so its actual legacy
+`requests` invocation reaches the expected fail-closed guard without a network
+request.
+
+Static review found NSI's registered native adapter still used raw `requests`
+for both product-page discovery and its declared CSV. It now uses the shared
+Provider-backed HTTPX client for both physical attempts, in the caller's
+async/event-loop context, with redirects enabled and the CSV Referer tied to
+the final product-page URL. Product identity, declared CSV path, symbol,
+parsing, source metadata and freshness behavior are preserved. Deterministic
+success and HTTP403/no-legacy-fallback tests passed 2/2; the narrative-count
+sentinel passed 1/1; Ruff check/format and `git diff --check` passed. The
+revised provider-bridge integration test was collected (1/31), not executed
+locally because Root owns the heavy fixture slot. No DB-backed NSI admission
+result is claimed; hosted exact-source CI is still needed. No issuer/provider/
+SEC request, quota, source eligibility change, or data/resource cleanup
+occurred.
+
+This is a bounded step toward AC3/AC7/AC10, not route requalification or full
+roadmap completion. Preserve all AC1-AC14, the 15 Tier-0 and 156 Tier-1
+accounting, unresolved/quarantined MSMR/QQQ and Militia/GOOG, disabled unknown/
+quota-held/unreviewed/paid/trial/unsafe routes, historical red evidence, and
+the 30-day post-integration observation. Exact owned paths in this context:
+`backend/app/services/etf_holdings_adapters.py`,
+`backend/tests/unit/services/test_etf_holdings_adapters.py`,
+`backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`, and
+the ETF-owned `plan.yaml`, `handoff.md`, `session.json`, and `validation.jsonl`.
+
+## NSI shared-admission contract strengthened — 2026-10-22 22:24Z
+
+Static review found that the NSI unit tests replace the adapter HTTPX namespace
+with a fake client. They prove request construction and fail-closed 403
+behavior, but not that the registered adapter uses shared Provider admission.
+Added a database integration case using the existing `provider_db` isolated
+schema and HTTPX MockTransport: it seeds committed synthetic provider policy,
+entitlement, reviewed host/operation and profile identity before invoking the
+real registered NSI adapter under a bound request context. The mocked product
+URL redirects to a product page, which declares the CSV; the case asserts three
+physical calls, matching bound URLs/log IDs, and three independently settled
+reservations/quota units; the CSV attempt must use the redirected product page
+as its Referer. This is synthetic contract evidence only, not
+publisher entitlement or route qualification.
+
+The three focused NSI unit contracts pass, including a direct unbound-call test
+that proves denial occurs before loop-local attempt/transport construction.
+Ruff format/check passed and the exact integration test collects (1 test), but
+the database-backed test was not executed because Root owns the heavy fixture
+slot. The source base remains `6d08854c81ea6892011a98b3711a9233b59c401b`,
+local/origin synchronized; exact CI `39862778512` was last reported active at
+22:14Z but cannot be queried from this runtime (private-run connector 404, no
+`gh` CLI). Preserve the run; its terminal state is unverified here, not assumed
+green or cancelled. No provider/issuer/SEC HTTP, quota use, full local profile,
+service/data cleanup, staging/sibling write or route-state change occurred.
+
+Next: obtain exact run status through the authorized owner channel; after the
+current CI boundary, run the existing assigned DB integration case under its
+explicit project/URLs and record actual outcome before publication. Preserve
+all AC1-AC14, historical results, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and
+Militia/GOOG quarantines, disabled unknown/quota-held/paid/trial/unsafe routes,
+and the 30-day observation gate.
+
+## Remaining legacy transport callsite inventory — 2026-10-22 22:30Z
+
+Read-only `rg`/source inspection found five remaining `requests.get` callsites
+in `etf_holdings_adapters.py`: Cohen & Steers public fund API/discovery;
+Arax/Day Hagan paginated Airtable records using a token parsed from page HTML;
+FM Investments' retry after HTTPX403; BondBloxx's retry after HTTPX403; and
+KraneShares' date-candidate CSV fetch. The module's `requests` namespace still
+fails closed with `ETFHoldingsRouteHeldError`, so these are not admitted
+transports and must not be described as usable. The Cohen & Steers synthetic
+guard fixture supplies an ID to skip optional sitemap discovery but still
+reaches its mandatory API `requests.get`, preserving a deterministic zero-
+transport denial. Arax's embedded token/account and all publisher terms remain
+unreviewed; do not activate or migrate it using inferred credentials. The three
+fallback patterns remain blocked rather than producing an unadmitted second
+attempt. No source change or external request was made from this inventory.
+
+Next remediation should be selected from retained evidence and a reviewed
+shared-runtime contract; if adapted, each real page, CSV, API, redirect, retry
+or pagination request must independently pass admission/settlement. No attempt
+cost, free entitlement, quota, source reliability or publisher permission is
+inferred by this static inventory. Preserve route holds and prior live/quota
+history.
+
+## FM Investments and BondBloxx legacy-403 fallback removed — 2026-10-22 22:33Z
+
+The 22:30 static inventory identified FM Investments and BondBloxx as two of
+the five remaining raw-requests sites: each retried an HTTPX 403 via the
+module's fail-closed `requests` namespace, which denied before transport and
+could never provide the fallback behavior claimed by that code. Removed only
+those unreachable fallback branches. The original HTTPX status error now
+propagates unchanged; successful page and holdings parsing paths are unchanged.
+Offline success and HTTP403/no-legacy-retry contracts passed for both adapters
+(4/4 total), and Ruff/format passed. One initial focused run had 3/4 because
+the new BondBloxx guard test expected sitemap discovery for PCMM, although the
+adapter correctly uses its configured PCMM product page; the test expectation
+was corrected and the same four-case run passed. No external request or quota
+was used and no route eligibility changed.
+
+Static `rg` after the repair finds three raw `requests.get` callsites still in
+the module: Cohen & Steers API/discovery, Arax/Day Hagan Airtable pagination,
+and KraneShares date-candidate CSV fetch. They remain fail-closed and
+non-routable; Arax's HTML-embedded token/account remains explicitly unreviewed.
+Exact CI `39862778512` on published base `6d08854c81ea6892011a98b3711a9233b59c401b`
+is still inaccessible to this runtime (private-run API 404, `gh` absent); do
+not infer terminal result, cancel, or replay. Do not run DB integration or full
+profile while Root's slot is reserved. Preserve the NSI real shared-admission
+integration case as collected-only pending its assigned DB run.
+
+At 22:35Z, one combined current-source offline run passed all seven focused
+NSI/FM/BondBloxx unit cases, Ruff check/format passed for all three changed
+Python modules, and the NSI shared-admission DB integration case collected
+1/1. This combined run confirms the fallback removal and NSI unit behavior
+together; it still does not prove real DB admission or any issuer availability.
+
+## KraneShares-family guarded CSV transport — 2026-10-22 22:39Z
+
+The offline audit's remaining KraneShares `requests.get` callsite covered the
+KraneShares adapter plus the Quadratic, CICC, and Man Group adapters that share
+its dated CSV helper. The namespace is intentionally fail-closed, so the old
+thread-backed fallback could not provide a usable governed path. These routes
+now use one Provider-backed HTTPX client per fetch; every dated candidate still
+goes through a separate `get`/shared admission attempt, and the existing
+403/404 lookback behavior, timeout, redirects, headers, parser, metadata, and
+lookback bound are preserved. This changes transport wiring only: it does not
+review publisher terms, assign cost or quota policy, promote a route, or claim
+live availability.
+
+The four existing KraneShares/Quadratic/CICC/Man Group parser and route
+contracts plus a new CICC 404-then-next-date regression passed 6/6 with
+mocked HTTPX. Changed-file Ruff check/format, Python compilation, and
+`git diff --check` passed. No database fixture, external HTTP, quota operation,
+route activation, or full profile was used. The NSI real shared-admission
+integration remains collection-only pending the Root-owned slot. This
+worktree-only changeset is not yet covered by exact-source CI.
+
+After the KraneShares migration, the two remaining adapter-source raw
+`requests.get` callsites are Cohen & Steers and Arax/Day Hagan; both remain
+held by the fail-closed namespace. Cohen & Steers still needs its actual shared
+Provider context/identity contract reconciled; Arax/Day Hagan's page token,
+account, and publisher terms remain unreviewed and must not be activated or
+inferred. Preserve all AC1–AC14, 15 Tier-0 and 156 Tier-1, historical CI
+results, MSMR/QQQ and Militia/GOOG quarantines, unknown/quota-held/paid/trial/
+unsafe holds, and the 30-day observation gate. Root owns its active Market Map
+repair CI and fixture slot; no Root CI was polled and no heavy local gate was
+started.
+
+Next: run the ETF workstream/narrative/static checks, publish this coherent
+branch-owned source and record update, then inspect only the resulting exact
+ETF branch CI. Continue with the two remaining raw transports only from
+retained evidence; do not make external calls, infer policy values, or reduce
+the full roadmap.

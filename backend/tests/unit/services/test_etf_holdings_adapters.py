@@ -15,6 +15,7 @@ import pytest
 import yaml
 
 from app.config import settings
+from app.services import etf_holdings_provider_bridge as bridge
 from app.services.etf_holdings_adapters import (
     ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS,
     ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS,
@@ -2188,6 +2189,103 @@ async def test_rayliant_product_page_403_stays_on_admitted_httpx(monkeypatch):
     assert requested_url == product_page_url
     assert request_kwargs["follow_redirects"] is True
     assert request_kwargs["headers"]["Accept"] == "text/html,*/*"
+
+
+@pytest.mark.asyncio
+async def test_nsi_product_page_and_csv_use_guarded_httpx_attempts(monkeypatch):
+    adapter = get_holdings_adapter("nsi")
+    assert adapter is not None
+    product_url = "https://www.nationalsecurityindex.com/"
+    csv_url = "https://www.nationalsecurityindex.com/f/holdings.csv"
+    product_page = (
+        "<title>National Security Emerging Markets Index ETF</title> " "NSI /f/holdings.csv"
+    )
+    raw_csv = (
+        "National Security Emerging Markets Index ETF\n"
+        "Holdings as of 10/21/2026\n"
+        "Name,Security Identifier,Symbol,Net Assets %,Market Price,Shares Held,Market Value,Market Value %\n"
+        "Example Corp,037833100,AAA,1.0,10,100,1000,1.0\n"
+    )
+
+    class RecordingAsyncClient(FakeAsyncClient):
+        instances = []
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            type(self).instances.append(self)
+
+    FakeAsyncClient.requested = []
+    RecordingAsyncClient.instances = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, url=product_url),
+        FakeResponse(text=raw_csv, url=csv_url),
+    ]
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.httpx.AsyncClient", RecordingAsyncClient
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("NSI must not bypass the shared HTTPX transport"),
+    )
+
+    result = await adapter.fetch_latest(symbol="NSI")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [product_url, csv_url]
+    assert len(RecordingAsyncClient.instances) == 1
+    assert RecordingAsyncClient.instances[0].kwargs["follow_redirects"] is True
+    assert all(kwargs["follow_redirects"] is True for _url, kwargs in FakeAsyncClient.requested)
+    assert FakeAsyncClient.requested[1][1]["headers"]["Referer"] == product_url
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "AAA"
+    assert result.legal_metadata["composition_date"] == "2026-10-21"
+    assert result.source_url == csv_url
+
+
+@pytest.mark.asyncio
+async def test_nsi_product_page_403_stops_before_csv_or_legacy_transport(monkeypatch):
+    adapter = get_holdings_adapter("nsi")
+    assert adapter is not None
+    product_url = "https://www.nationalsecurityindex.com/"
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(url=product_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="NSI")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [product_url]
+
+
+@pytest.mark.asyncio
+async def test_nsi_direct_fetch_without_binding_is_denied_before_transport(monkeypatch):
+    adapter = get_holdings_adapter("nsi")
+    assert adapter is not None
+    attempts = []
+
+    def record_attempt_factory(**kwargs):
+        attempts.append(kwargs)
+        raise AssertionError("an unbound NSI route must be denied before transport setup")
+
+    monkeypatch.setattr(bridge, "_make_loop_local_httpx_attempt", record_attempt_factory)
+
+    with pytest.raises(
+        bridge.ETFHoldingsRouteHeldError,
+        match="without a bound shared-admission context",
+    ):
+        await adapter.fetch_latest(symbol="NSI")
+
+    assert attempts == []
 
 
 @pytest.mark.asyncio
@@ -8183,6 +8281,25 @@ async def test_bondbloxx_adapter_discovers_product_page_from_sitemap(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_bondbloxx_httpx_403_stops_without_legacy_retry(monkeypatch):
+    adapter = get_holdings_adapter("bondbloxx")
+    assert adapter is not None
+    product_url = adapter.KNOWN_PRODUCT_PAGES["PCMM"]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [httpx.Response(403, request=httpx.Request("GET", product_url))]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("BondBloxx must not retry 403 via requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError):
+        await adapter.fetch_latest(symbol="PCMM")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [product_url]
+
+
+@pytest.mark.asyncio
 async def test_invesco_adapter_fetches_public_json_api(monkeypatch):
     adapter = get_holdings_adapter("invesco")
     assert adapter is not None
@@ -9878,6 +9995,29 @@ async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch)
     assert result.legal_metadata["route_resolution"] == "issuer_drupal_holdings_api"
     assert result.legal_metadata["node_id"] == "1"
     assert result.legal_metadata["composition_date"] == "2026-06-29"
+
+
+@pytest.mark.asyncio
+async def test_fm_investments_httpx_403_stops_without_legacy_retry(monkeypatch):
+    adapter = get_holdings_adapter("fm_investments")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.Response(
+            403,
+            request=httpx.Request("GET", adapter.ETF_LIST_URL),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("F/M Investments must not retry 403 via requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError):
+        await adapter.fetch_latest(symbol="TBIL", identifiers={})
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [adapter.ETF_LIST_URL]
 
 
 @pytest.mark.asyncio
@@ -17798,15 +17938,19 @@ async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
             '2,"PDD HOLDINGS INC",7.50,PDD,US7223041028,"5,297,745","430,706,669"',
         ]
     )
-    requested: list[tuple[str, dict]] = []
-
-    def fake_get(url, **kwargs):
-        requested.append((url, kwargs))
-        response = FakeResponse(text=holdings_csv, content_type="text/csv")
-        response.url = url
-        return response
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url="https://kraneshares.com/csv/06_11_2026_kweb_holdings.csv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("KraneShares must use the guarded HTTPX client"),
+    )
 
     result = await adapter.fetch_latest(
         symbol="KWEB",
@@ -17814,7 +17958,9 @@ async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
         identifiers={},
     )
 
-    assert requested[0][0] == ("https://kraneshares.com/csv/06_11_2026_kweb_holdings.csv")
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://kraneshares.com/csv/06_11_2026_kweb_holdings.csv"
+    )
     assert result.rows[0].symbol == "700"
     assert result.rows[0].name == "TENCENT HOLDINGS LTD"
     assert result.rows[0].isin == "KYG875721634"
@@ -17840,12 +17986,15 @@ async def test_quadratic_adapter_parses_verified_kraneshares_holdings_csv(monkey
         ]
     )
 
-    def fake_get(url, **kwargs):
-        response = FakeResponse(text=holdings_csv, content_type="text/csv")
-        response.url = url
-        return response
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url="https://kraneshares.com/csv/09_02_2026_ivol_holdings.csv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     result = await adapter.fetch_latest(
         symbol="IVOL",
         source_url="https://kraneshares.com/csv/09_02_2026_ivol_holdings.csv",
@@ -17859,6 +18008,9 @@ async def test_quadratic_adapter_parses_verified_kraneshares_holdings_csv(monkey
     assert result.legal_metadata["publisher"] == "kraneshares"
     assert result.legal_metadata["route_resolution"] == ("quadratic_kraneshares_dated_csv_lookback")
     assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://kraneshares.com/csv/09_02_2026_ivol_holdings.csv"
+    )
 
 
 @pytest.mark.asyncio
@@ -17904,21 +18056,23 @@ async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeyp
             '1,"TENCENT HOLDINGS LTD",10.08,700,KYG875721634,"9,923,675","578,937,496"',
         ]
     )
-    requested: list[str] = []
-
-    def fake_get(url, **kwargs):
-        requested.append(url)
-        response = FakeResponse(text=holdings_csv, content_type="text/csv")
-        response.url = url
-        return response
-
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url="https://kraneshares.com/csv/07_06_2026_kweb_holdings.csv",
+        )
+    ]
     MockDate.today_value = date(2026, 7, 6)
     monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
     result = await adapter.fetch_latest(symbol="KWEB")
 
-    assert requested == ["https://kraneshares.com/csv/07_06_2026_kweb_holdings.csv"]
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://kraneshares.com/csv/07_06_2026_kweb_holdings.csv"
+    ]
     assert result.rows[0].symbol == "700"
     assert result.legal_metadata["adapter_key"] == "cicc"
     assert result.legal_metadata["source_provider"] == "kraneshares"
@@ -17932,6 +18086,35 @@ async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_cicc_kraneshares_lookback_retries_404_through_httpx(monkeypatch):
+    adapter = get_holdings_adapter("cicc")
+    assert adapter is not None
+    holdings_csv = "\n".join(
+        [
+            '"KWEB Holdings","As of 2026-07-05","Holdings Are Subject To Change"',
+            'Rank,"Company Name","% of Net Assets",Ticker,Identifier,"Shares Held","Market Value($)"',
+            '1,"TENCENT HOLDINGS LTD",10.08,700,KYG875721634,"9,923,675","578,937,496"',
+        ]
+    )
+    first_url = "https://kraneshares.com/csv/07_06_2026_kweb_holdings.csv"
+    second_url = "https://kraneshares.com/csv/07_05_2026_kweb_holdings.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.Response(404, request=httpx.Request("GET", first_url)),
+        FakeResponse(text=holdings_csv, url=second_url),
+    ]
+    MockDate.today_value = date(2026, 7, 6)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="KWEB")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [first_url, second_url]
+    assert result.legal_metadata["composition_date"] == "2026-07-05"
+    assert result.legal_metadata["route_resolution"] == "cicc_kraneshares_dated_csv_lookback"
+
+
+@pytest.mark.asyncio
 async def test_man_group_adapter_is_limited_to_its_verified_kraneshares_route(monkeypatch):
     adapter = get_holdings_adapter("man_group")
     assert adapter is not None
@@ -17942,20 +18125,22 @@ async def test_man_group_adapter_is_limited_to_its_verified_kraneshares_route(mo
             '1,"NEWS CORP - CLASS A",1.67,NWSA,US65249B1098,"9,826","274,931"',
         ]
     )
-    requested: list[str] = []
-
-    def fake_get(url, **kwargs):
-        requested.append(url)
-        response = FakeResponse(text=holdings_csv, content_type="text/csv")
-        response.url = url
-        return response
-
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url="https://kraneshares.com/csv/07_06_2026_buyo_holdings.csv",
+        )
+    ]
     MockDate.today_value = date(2026, 7, 6)
     monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     result = await adapter.fetch_latest(symbol="BUYO")
 
-    assert requested == ["https://kraneshares.com/csv/07_06_2026_buyo_holdings.csv"]
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://kraneshares.com/csv/07_06_2026_buyo_holdings.csv"
+    ]
     assert result.rows[0].symbol == "NWSA"
     assert result.legal_metadata["adapter_key"] == "man_group"
     assert result.legal_metadata["publisher"] == "kraneshares"

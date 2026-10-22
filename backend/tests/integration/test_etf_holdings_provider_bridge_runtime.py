@@ -172,9 +172,11 @@ async def _seed_reviewed_fixture(
     monkeypatch,
     reviewed_hosts: list[str] | None = None,
     operation: str = "fetch_etf_holdings_latest",
+    provider_name_override: str | None = None,
+    instrument_symbol_override: str | None = None,
 ):
     suffix = uuid4().hex[:10]
-    provider_name = f"etf-fixture-{suffix}"
+    provider_name = provider_name_override or f"etf-fixture-{suffix}"
     account_scope = f"etf-offline-test-account-{suffix}"
     quota_scope = "api_key"
     now = datetime.now(UTC)
@@ -196,7 +198,7 @@ async def _seed_reviewed_fixture(
     await session.flush()
     instrument = Instrument(
         instrument_type_id=instrument_type.id,
-        symbol=f"ZZ{suffix[:4].upper()}",
+        symbol=instrument_symbol_override or f"ZZ{suffix[:4].upper()}",
         name="Offline ETF bridge fixture",
         currency="USD",
         is_active=True,
@@ -609,6 +611,146 @@ async def test_each_redirect_hop_uses_real_shared_admission_and_durable_settleme
                 and row["dimension"] == "requests_per_minute"
             ]
             _assert_second_bucket_contract(matching_windows, consumed_units=2, reserved_units=0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_nsi_real_adapter_submits_product_redirect_and_csv_to_shared_admission(
+    provider_db, monkeypatch
+):
+    """The native NSI adapter sends every physical page/file request via Provider."""
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    adapter = get_holdings_adapter("nsi")
+    assert adapter is not None
+    product_page_url = "https://www.nationalsecurityindex.com/catalog/nsi"
+    csv_url = "https://www.nationalsecurityindex.com/f/holdings.csv"
+    product_page = "<title>National Security Emerging Markets Index ETF</title> NSI /f/holdings.csv"
+    raw_csv = (
+        "National Security Emerging Markets Index ETF NSI\n"
+        "Holdings as of 10/21/2026\n"
+        "Name,Security Identifier,Symbol,Net Assets %,Market Price,Shares Held,Market Value,Market Value %\n"
+        "Example Corp,037833100,AAA,1.0,10,100,1000,1.0\n"
+    )
+    calls = []
+
+    def handle(request):
+        calls.append((request.method, str(request.url)))
+        if request.url.path == "/":
+            return httpx.Response(302, headers={"location": product_page_url}, request=request)
+        if request.url.path == "/catalog/nsi":
+            return httpx.Response(200, text=product_page, request=request)
+        if request.url.path == "/f/holdings.csv":
+            assert request.headers.get("referer") == product_page_url
+            return httpx.Response(200, text=raw_csv, request=request)
+        raise AssertionError(f"Unexpected NSI MockTransport URL: {request.url}")
+
+    original_factory = bridge._make_loop_local_httpx_attempt
+
+    def nsi_mocktransport_factory(**kwargs):
+        return original_factory(**kwargs, transport_factory=lambda: httpx.MockTransport(handle))
+
+    monkeypatch.setattr(bridge, "_make_loop_local_httpx_attempt", nsi_mocktransport_factory)
+
+    profile_id = None
+    async with provider_db() as session:
+        async with session.begin():
+            case = await _seed_reviewed_fixture(
+                session,
+                limit=3,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["www.nationalsecurityindex.com"],
+                provider_name_override=adapter.source_provider,
+                instrument_symbol_override="NSI",
+            )
+            instrument = await session.get(Instrument, case.instrument_id)
+            assert instrument is not None
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                issuer="Synthetic test fixture; not publisher evidence",
+                adapter_key=adapter.adapter_key,
+                adapter_status="pending",
+                provider_aliases={"holdings_source_provider": adapter.source_provider},
+            )
+            session.add(profile)
+            await session.flush()
+            profile_id = profile.id
+
+    assert case is not None and profile_id is not None
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            instrument = profile.instrument
+            assert instrument is not None
+            with bind_etf_holdings_request_context(
+                db=session,
+                adapter=adapter,
+                profile_id=profile.id,
+                instrument_id=instrument.id,
+                provider_symbol=instrument.symbol,
+                operation=case.operation,
+            ) as binding:
+                result = await adapter.fetch_latest(symbol=instrument.symbol)
+
+            assert len(result.rows) == 1
+            assert result.rows[0].symbol == "AAA"
+            assert [url for method, url in calls if method == "GET"] == [
+                "https://www.nationalsecurityindex.com/",
+                product_page_url,
+                csv_url,
+            ]
+            assert len(binding.request_log_ids) == 3
+            assert [
+                binding.request_urls_by_log_id[log_id] for log_id in binding.request_log_ids
+            ] == [
+                "https://www.nationalsecurityindex.com/",
+                product_page_url,
+                csv_url,
+            ]
+            logs = list(
+                (
+                    await session.scalars(
+                        select(ProviderRequestLog)
+                        .where(ProviderRequestLog.id.in_(binding.request_log_ids))
+                        .order_by(ProviderRequestLog.id)
+                    )
+                ).all()
+            )
+            assert [row.id for row in logs] == binding.request_log_ids
+            assert all(row.success and row.http_requests == 1 for row in logs)
+            assert all(row.completed_at is not None for row in logs)
+            assert all(row.settled_usage_units == Decimal("1.0000") for row in logs)
+            windows = list(
+                (
+                    await session.scalars(
+                        select(ProviderQuotaWindow).where(
+                            ProviderQuotaWindow.data_source_id == case.source_id,
+                            ProviderQuotaWindow.dimension == "requests_per_minute",
+                        )
+                    )
+                ).all()
+            )
+            _assert_second_bucket_contract(windows, consumed_units=3, reserved_units=0)
+
+    quota_engine = quota_coordinator._engine_for(quota_coordinator._engine_url())
+    with quota_engine.connect() as connection:
+        reservations = (
+            connection.execute(
+                select(quota_coordinator._reservations)
+                .where(quota_coordinator._reservations.c.provider_name == case.provider_name)
+                .order_by(quota_coordinator._reservations.c.reserved_at)
+            )
+            .mappings()
+            .all()
+        )
+    assert len(reservations) == 3
+    assert all(row["state"] == "settled" and row["settled_at"] is not None for row in reservations)
+    assert all(row["reserved_units"] == 1 for row in reservations)
 
 
 @pytest.mark.integration
@@ -2300,16 +2442,18 @@ async def test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_bind
                         forms={"NPORT-P"},
                         max_filings=1,
                     )
-                # Voya is now an HTTPX adapter, so it tests reviewed-host
-                # denial rather than the legacy requests transport guard.
-                # NSI still uses the blocked requests namespace directly.
-                legacy_adapter = get_holdings_adapter("nsi")
+                # Voya and NSI now use the HTTPX bridge; Cohen & Steers still
+                # uses the blocked requests namespace directly.
+                legacy_adapter = get_holdings_adapter("cohen_steers")
                 assert legacy_adapter is not None
                 with pytest.raises(
                     ETFHoldingsRouteHeldError,
                     match="legacy requests transport is not admitted",
                 ):
-                    await legacy_adapter.fetch_latest(symbol="NSI")
+                    await legacy_adapter.fetch_latest(
+                        symbol=case.instrument_symbol,
+                        issuer_product_id="synthetic-test-fund-id",
+                    )
 
                 profile.sec_cik = "0000000001"
                 await session.flush()
