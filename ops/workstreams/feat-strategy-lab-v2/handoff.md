@@ -16794,3 +16794,34 @@ the coordinator's integration receipt captures the exact final branch HEAD.
 After this one closure-record push, resume the full original roadmap in this
 same owner/worktree only when Root releases the integrated source; do not
 self-integrate.
+
+## Released common staging baseline — 2026-10-22
+
+The coordinator has now released synchronized green staging at
+`0e342512e53ba2268425294d61c50e219eaafa4f`, after all four feature checkpoints
+and the shared quality repair passed the canonical Exhaustive Integration
+Gate. The authoritative release is
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`
+and receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`.
+This release authorizes only adopting that exact baseline into this Strategy
+branch; it does not close the original 18-criterion roadmap or authorize
+promotion, deployment, provider/live activity, or unsupported execution scopes.
+
+The resumed managed preflight confirmed the existing claim
+`02d5ffaa-53b5-4dec-b39c-0f36612b5436`, correct worktree, and synchronized
+Strategy source `079cab275f2b3250971a3a240022f689eddf080c`; local
+`origin/staging` is the released SHA and the Strategy source is its ancestor.
+The preflight refreshed the previously stale `session.json` HEAD/remote fields
+and cleared its old dirty-path list. That owned metadata change is preserved as
+a pre-merge operational boundary so the exact fast-forward can proceed without
+discarding or bypassing dirty state. The incoming staging commit does not alter
+this workstream file. The exact M2 fast-forward remains pending; do not describe
+the release as adopted until the local ref and own-branch remote are verified.
+
+After adoption, continue the full original roadmap from the integrated
+Provider/ETF/TC contracts. Keep the checkpoint's accepted status distinct from
+full-topic completion; all original criteria, native-v2 proof, and explicit
+forward/broker/capital safety boundaries remain in force. No new Compose,
+browser, database, or native-execution matrix is authorized without a separately
+assigned safe slot.
