@@ -249,8 +249,16 @@ def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift(tmp_p
         "payload"
     ]
     tampered_payload["value"]["value"]["value"][0]["value"] = (9.25).hex()
+    tampered_request = json.dumps(tampered_wire, sort_keys=True, separators=(",", ":"))
     with pytest.raises(ValueError, match="immutable reference"):
-        deserialize_invocation(json.dumps(tampered_wire, sort_keys=True, separators=(",", ":")))
+        deserialize_invocation(tampered_request)
+    tampered_request_path = tmp_path / "tampered-study-request.json"
+    tampered_result_path = tmp_path / "tampered-study-result.json"
+    tampered_request_path.write_text(tampered_request, encoding="utf-8")
+    assert (
+        main(["--request", str(tampered_request_path), "--result", str(tampered_result_path)]) == 1
+    )
+    assert not tampered_result_path.exists()
 
     mismatched = replace(
         context,

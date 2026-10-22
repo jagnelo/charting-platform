@@ -17071,3 +17071,17 @@ This is deterministic local protocol evidence only. It does not prove PostgreSQL
 complete runtime/container, or native execution. The published-source CI39856591934 remains live
 on `485bea63f314cdffcd6d4cf571d6158a215ef2c5`; this test and the three local source commits are
 not covered by that run and remain unpublished until it is terminal.
+
+### Verify tampered Study output is rejected before runtime result publication — 2026-10-22
+
+Strengthened the serialized Study payload tampering case to pass the altered, digest-mismatched
+invocation through the actual runtime CLI entrypoint. The CLI returns its malformed-request status
+and does not create a result file, proving the untrusted worker request fails before strategy
+execution/result publication. The exact focused invocation-wire node passed 1/1 in 0.32s; focused
+MyPy, Ruff check/format, and `git diff --check` passed. Current test file SHA-256 is
+`d419ed8c8bec63a8bf06a7ac4adb932c591d01013e3cf017eb47bc29f175d073`.
+
+This remains an I/O-free local runner-contract test, not containerized worker, PostgreSQL restart,
+or native-engine evidence. Exact published CI39856591934 remains in progress on
+`485bea63f314cdffcd6d4cf571d6158a215ef2c5`; the current edit and the local commits are not in that
+run. Preserve the full roadmap and do not publish until the existing run is terminal.
