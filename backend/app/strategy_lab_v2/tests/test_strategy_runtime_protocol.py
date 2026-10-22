@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
@@ -242,6 +243,14 @@ def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift(tmp_p
     component_id, replayed_context = next(replayed_contexts)
     assert component_id == "component-1"
     assert replayed_context.study_artifacts == context.study_artifacts
+
+    tampered_wire = json.loads(encoded)
+    tampered_payload = tampered_wire["context"]["study_artifacts"][reference.artifact_name][
+        "payload"
+    ]
+    tampered_payload["value"]["value"]["value"][0]["value"] = (9.25).hex()
+    with pytest.raises(ValueError, match="immutable reference"):
+        deserialize_invocation(json.dumps(tampered_wire, sort_keys=True, separators=(",", ":")))
 
     mismatched = replace(
         context,

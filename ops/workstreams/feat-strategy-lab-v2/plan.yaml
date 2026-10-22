@@ -1638,12 +1638,14 @@ roadmap_progress_history:
     PostgreSQL API/reconstructed-worker test module now collects 30 cases, including post-dispatch
     run/evaluation, owner, version, dataset and artifact ambiguity/content/identity drift denials.
     I/O-free regressions directly prove deep freezing against source mutation and reject constructing
-    a payload whose canonical digest differs from its typed reference. The resolver module passes
-    30 focused tests; focused MyPy, Ruff, format, and diff checks pass. No PostgreSQL fixture has run
-    locally for this source. Persisted restart revalidation and the complete accepted runtime path
+    a payload whose canonical digest differs from its typed reference. A protocol regression also
+    mutates serialized Study payload bytes while retaining the reference digest and verifies request
+    decoding rejects them. The resolver module passes30 focused tests, and the targeted protocol
+    round-trip test passes; focused MyPy, Ruff, format, and diff checks pass. No PostgreSQL fixture has
+    run locally for this source. Persisted restart revalidation and the complete accepted runtime path
     are therefore not yet locally database-proven. Exact CI39856591934 remains in progress for
     published source485bea63f314cdffcd6d4cf571d6158a215ef2c5; it includes the prior 28-case module,
-    not the two latest restart denials or either new direct output-integrity regression. Native
+    not the two latest restart denials or the direct output-integrity regressions. Native
     execution is not inferred from generic Study output; heavier PostgreSQL/combined runtime/browser/
     native gates remain open.
   next_action: >-

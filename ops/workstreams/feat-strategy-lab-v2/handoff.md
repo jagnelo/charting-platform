@@ -17057,3 +17057,17 @@ and the latest restart-denial tests are not covered by that run and will not be 
 terminal. No database, network, Docker, browser, native, or external provider work ran. The real
 PostgreSQL reconstructed-worker cases and all remaining full-roadmap runtime/browser/native gates
 remain open; generic Study data remains distinct from native execution evidence.
+
+### Reject tampered Study payload at runtime wire decode — 2026-10-22
+
+Extended the existing canonical invocation round-trip regression to alter one serialized Study
+series value while retaining the pinned artifact reference/digest. `deserialize_invocation` rejects
+the tampered envelope through the immutable-reference check, covering the actual decode boundary
+rather than only an in-memory mismatch. The exact protocol node passed (1/1 in 0.35s); focused
+MyPy and Ruff check/format passed for the test file, and `git diff --check` passed. The test file
+SHA-256 is `a992bee95dd6ceae183d727fefaf77fbba2dcdfd15e0f54966b322d5df2e231b`.
+
+This is deterministic local protocol evidence only. It does not prove PostgreSQL restart, the
+complete runtime/container, or native execution. The published-source CI39856591934 remains live
+on `485bea63f314cdffcd6d4cf571d6158a215ef2c5`; this test and the three local source commits are
+not covered by that run and remain unpublished until it is terminal.
