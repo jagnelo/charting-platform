@@ -29964,6 +29964,10 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert [record["adapter_key"] for record in ranked_records] == [
         record["adapter_key"] for record in expected_baseline_order
     ]
+    riverfront = next(record for record in records if record["adapter_key"] == "riverfront")
+    assert riverfront["starting_status"] == "needs_first_party_route_discovery"
+    assert riverfront["current_status"] == "provider_not_a_portfolio_publisher"
+    assert riverfront["disposition"] == "provider_not_a_portfolio_publisher"
 
     allowed_statuses = {
         "issuer_access_blocked",

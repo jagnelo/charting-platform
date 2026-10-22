@@ -560,10 +560,13 @@ current_blocker: >-
   original queue status was overwritten by its later terminal disposition; the
   committed baseline shows `needs_first_party_route_discovery`, while its
   current disposition remains `provider_not_a_portfolio_publisher`. The ledger
-  now preserves the original value and the regression asserts deterministic
-  status-priority/adapter-key ranking; two focused tests pass in 8.02s. This
-  AC2 correction is local/uncommitted atop f11, and neither prior CI run covers
-  it. Earlier run 39845969811 on ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 is
+  correction and full queue-order regression were published at
+  a3fbba69beabecfea5d998e950dc8380512f50b1; exact CI 39850572582 is pending.
+  A follow-up test-only hardening now pins RiverFront's original starting status
+  separately from its preserved current disposition; that focused test passed
+  in 7.45s with Ruff, format, and diff checks. This uncommitted assertion is
+  not covered by run 39850572582. Earlier run 39845969811 on
+  ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3 is
   terminal-cancelled history. The full local integration/browser profile
   remains mandatory and awaits Root's safe slot. Preserve the original
   monolithic partial attempt, earlier visual failure, all setup receipts, exact
@@ -1590,8 +1593,8 @@ latest_green_staging_adoption:
 
 next_action: >-
   Continue the original full ETF roadmap in this same branch and goal lineage.
-  Publish the AC2 starting-status/queue-order preservation fix with its
-  evidence, verify exact remote parity and inspect exact-head CI. Then continue
+  Publish the direct RiverFront historical-starting-status regression assertion
+  with its evidence, verify exact remote parity and inspect exact-head CI. Then continue
   offline evidence-backed AC2/AC4/AC5 issuer audit and Tier-0 consumer work in
   relevance order. Treat audit dates as evidence chronology only; do not change
   source statuses or refresh blocked routes without new retained evidence or

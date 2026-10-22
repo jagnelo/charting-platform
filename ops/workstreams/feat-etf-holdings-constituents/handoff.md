@@ -13456,3 +13456,24 @@ format, workstream validation, and whitespace checks also passed. Exact CI
 `39845969811` remains on the preceding source; its frontend job passed, backend
 unit phase passed, and backend integration phase is still running. It is neither
 the final source CI nor a reason to wait before continuing offline work.
+
+## RiverFront baseline-status regression hardening — 2026-10-22
+
+The substantive ledger correction is published at
+`a3fbba69beabecfea5d998e950dc8380512f50b1`; exact Actions run
+`39850572582` is pending on that source. After publication, review of the
+regression identified that deterministic ordering alone would not prevent a
+future coordinated edit to both `starting_status` and `queue_rank`. The adapter
+ledger test now directly asserts RiverFront retains its original
+`needs_first_party_route_discovery` starting status while its current status
+and disposition remain `provider_not_a_portfolio_publisher`. The focused test
+passed 1/1 in 7.45s; Ruff, formatting, and diff checks passed. This test-only
+hardening is uncommitted and not covered by run `39850572582`; all external
+routes, issuer evidence, quota state, holds, and other source remain unchanged.
+
+Next: publish this narrow regression assertion, verify exact remote parity and
+its exact-source CI, then continue offline evidence-backed AC2/AC4/AC5 work.
+The full fourteen-criterion roadmap, `15 Tier-0 and 156 Tier-1` investigations,
+MSMR/QQQ and Militia/GOOG quarantines, and post-integration 30-day observation
+remain open. Do not issue issuer/provider/SEC traffic, spend quota, activate
+held routes, or start the unassigned full-stack profile.
