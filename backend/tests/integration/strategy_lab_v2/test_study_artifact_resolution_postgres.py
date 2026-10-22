@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -57,7 +57,7 @@ from app.strategy_lab_v2.trial_hydration import (
 )
 
 _NOW = datetime(2026, 10, 22, 4, 0, tzinfo=UTC)
-_STUDY_TABLES = (ResearchArtifact.__table__,)
+_STUDY_TABLES: tuple[Table, ...] = (cast(Table, ResearchArtifact.__table__),)
 _EXPECTED_STUDY_FK_CLOSURE = {
     "code_asset",
     "code_version",
@@ -93,7 +93,7 @@ def _mapped_study_fk_closure() -> tuple[Table, ...]:
         if table.key in tables_by_key:
             continue
         tables_by_key[table.key] = table
-        pending.extend(foreign_key.column.table for foreign_key in table.foreign_keys)
+        pending.extend(cast(Table, foreign_key.column.table) for foreign_key in table.foreign_keys)
     return tuple(tables_by_key.values())
 
 
@@ -124,6 +124,8 @@ async def study_database(
     if not database_url:
         pg_container = request.getfixturevalue("pg_container")
         database_url = pg_container.get_connection_url()
+    if not database_url:
+        raise RuntimeError("Study integration requires the assigned PostgreSQL URL")
 
     schema_name = f"strategy_study_{uuid.uuid4().hex[:12]}"
     engine = create_async_engine(
@@ -262,6 +264,7 @@ async def _reference(
         assert (
             asset is not None and version is not None and run is not None and artifact is not None
         )
+        assert isinstance(run.reproducibility_hash, str)
         expected_code_version_digest = content_digest(
             {
                 "code_asset": {
@@ -712,8 +715,22 @@ async def _persist_graph(adapter: PostgresStrategyLabV2Adapter, graph: Any, suff
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-@pytest.mark.parametrize("post_dispatch_drift", ("changed_dataset", "deleted_artifact"))
-async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
+@pytest.mark.parametrize(
+    "post_dispatch_drift",
+    (
+        "changed_dataset",
+        "failed_run",
+        "changed_run_hash",
+        "changed_code_version",
+        "changed_asset_owner",
+        "changed_code_source",
+        "changed_artifact_payload",
+        "changed_artifact_identity",
+        "changed_artifact_type",
+        "deleted_artifact",
+    ),
+)
+async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drift(
     tmp_path: Path,
     study_database: StudyDatabase,
     post_dispatch_drift: str,
@@ -758,6 +775,46 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
                             "content": "d" * 64,
                         }
                     )
+                )
+            elif post_dispatch_drift == "failed_run":
+                await session.execute(
+                    update(ResearchRun).where(ResearchRun.id == 30).values(status="failed")
+                )
+            elif post_dispatch_drift == "changed_run_hash":
+                await session.execute(
+                    update(ResearchRun)
+                    .where(ResearchRun.id == 30)
+                    .values(reproducibility_hash="c" * 64)
+                )
+            elif post_dispatch_drift == "changed_code_version":
+                await session.execute(
+                    update(ResearchRun).where(ResearchRun.id == 30).values(code_version_id=21)
+                )
+            elif post_dispatch_drift == "changed_asset_owner":
+                await session.execute(update(CodeAsset).where(CodeAsset.id == 10).values(user_id=2))
+            elif post_dispatch_drift == "changed_code_source":
+                await session.execute(
+                    update(CodeVersion)
+                    .where(CodeVersion.id == 20)
+                    .values(source="changed-after-dispatch")
+                )
+            elif post_dispatch_drift == "changed_artifact_payload":
+                await session.execute(
+                    update(ResearchArtifact)
+                    .where(ResearchArtifact.id == 40)
+                    .values(payload={"type": "series", "value": [99.0]})
+                )
+            elif post_dispatch_drift == "changed_artifact_identity":
+                await session.execute(
+                    update(ResearchArtifact)
+                    .where(ResearchArtifact.id == 40)
+                    .values(name="renamed-after-dispatch")
+                )
+            elif post_dispatch_drift == "changed_artifact_type":
+                await session.execute(
+                    update(ResearchArtifact)
+                    .where(ResearchArtifact.id == 40)
+                    .values(artifact_type="table")
                 )
             else:
                 await session.execute(delete(ResearchArtifact).where(ResearchArtifact.id == 40))

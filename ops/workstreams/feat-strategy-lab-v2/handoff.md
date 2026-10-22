@@ -16997,3 +16997,34 @@ the test signature omitted that fixture, and the unchanged behavior passed on
 the corrected run. Ruff, format and diff checks are green. Exact current-base CI
 39850802077 remains live, so the test strengthening and pending durable records
 are not pushed yet.
+
+### Current four-module focused regression on the complete local source
+
+The resolver, hydration, runtime protocol and assembly modules passed together
+with the latest API reference-only optimization and worker-stream intent
+regression present (`76 passed` in 3.11s). Focused MyPy passed again on all 15
+changed production/test files; Ruff check and format passed across the 16
+changed Python files. Pre-launch available memory was 2.2 GiB. This remains
+bounded offline unit evidence; the exact PostgreSQL module was only collected,
+and no DB/Compose/browser/native test was run. Exact run39850802077 has since
+completed green on c45 (backend, frontend, branch-declared and Playwright; the
+feature-policy EIG was skipped); it does not cover the four local commits.
+Those commits and the current changeset remain unpublished pending exact-source
+CI on their resulting branch tip.
+
+### Expand persisted worker-restart drift proof
+
+Review of the prepared PostgreSQL test found that restart-time mutation coverage
+initially exercised only dataset drift and artifact deletion. Extended the same
+real mapped-schema reconstructed-worker test to mutate completed-run status and
+reproducibility hash, CodeVersion lineage/content, CodeAsset owner, and artifact
+payload/identity/type, plus dataset drift and deletion. Each case first proves
+valid persisted hydration, then reconstructs the reader and requires restart
+hydration to reject the modified input. The module now collects 28 cases. Its
+focused MyPy, Ruff and formatting checks pass; MyPy's initial six test-only
+typing diagnostics were resolved with a narrow table cast and explicit fixture
+input/hash narrowing. A root-relative collection command found no tests; the
+correct backend-relative collect-only command collected all 28 in 1.31s.
+Collection does not run fixture setup or prove PostgreSQL behavior. The assigned
+real-PostgreSQL gate, full backend/runtime/browser/native gates and all safety
+holds remain open.
