@@ -6309,16 +6309,15 @@ class RexHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not normalized_symbol:
             raise ValueError("REX holdings require an ETF symbol.")
         product_page_url = source_url or self._product_page_url(normalized_symbol)
-        # REX's WordPress form serves its CSV reliably through requests, while
-        # the same public endpoint rejects the async client's TLS fingerprint.
-        response = await asyncio.to_thread(
-            requests.post,
-            product_page_url,
-            data={"CSV": "Download CSV", "symbol": normalized_symbol},
-            headers=self._request_headers(product_page_url),
+        async with httpx.AsyncClient(
             timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+            follow_redirects=True,
+        ) as client:
+            response = await client.post(
+                product_page_url,
+                data={"CSV": "Download CSV", "symbol": normalized_symbol},
+                headers=self._request_headers(product_page_url),
+            )
         response.raise_for_status()
         rows = self._parse_csv(response.text, symbol=normalized_symbol)
         if not rows:

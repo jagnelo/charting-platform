@@ -88,9 +88,9 @@
     }
   ],
   "active_changeset": {
-    "baseline": "e4816268eb0c5effaad97979d13be843b50fc950",
-    "intent": "Route Voya's registered native holdings fetch through the shared Provider-backed HTTPX facade, preserving per-hop shared admission and redirect behavior instead of calling the intentionally fail-closed legacy requests namespace.",
-    "name": "Voya guarded transport compatibility",
+    "baseline": "136c62a78ae157953b689e4fb341f4098683f80e",
+    "intent": "Route REX's registered native complete-holdings CSV form through the shared Provider-backed HTTPX facade instead of the intentionally fail-closed requests namespace, preserving independently admitted redirects and the existing form/header/parser/result contract.",
+    "name": "REX guarded transport compatibility",
     "owned_paths": [
       "backend/app/services/etf_holdings_adapters.py",
       "backend/tests/unit/services/test_etf_holdings_adapters.py",
@@ -99,7 +99,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
     ],
-    "state": "Exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f_is_ancestor_of_current_e481626_and_remote_independently_matches;Voya_routes_through_guarded_HTTPX;focused1_adapter611_bridge_refresh34_passed;full_declared_branch_suite_green_adapter611_consumer15_route_drift23_offline_live9_pass_537_skip_frontend_typecheck_tests17_build;count_sentinel_workstream_schema_plan_hash_diff_passed;exact_CI_39850920455_active_on_pre_fix_e481_and_does_not_cover_this_change;dirty_owner_records_preserved;no_live_HTTP_or_full_stack_claim"
+    "state": "exact_staging_release_0e342512_is_ancestor;published_Voya_fix_136c62a_remote_verified_and_exact_CI_39853885891_in_progress;REX_HTTPX_fix_focused1_and_adapter611_passed;declared_offline_branch_suite_green_adapter611_consumer15_route_drift23_offline_live9_pass_537_skip_frontend_typecheck_tests17_build;final_count_schema_hash_diff_checks_passed;commit_push_and_exact_CI_pending;no_live_HTTP_or_full_stack_claim"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -150,7 +150,7 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22 21:00Z: Canonical synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of ETF HEAD e4816268eb0c5effaad97979d13be843b50fc950; GitHub independently confirms the remote at e481626. The expected worktree and claim f206bbc5-abbf-473a-a44f-fb5706c81282 were verified. Normal session-start refuses the existing dirty owner-record boundary, which is preserved; no merge/push was needed for baseline adoption. Static review found Voya's native adapter used the deliberately fail-closed requests namespace; it now uses the shared Provider-backed HTTPX facade and a test checks timeout, redirect behavior, URL and Referer. Voya test 1/1, full adapter module 611/611, bridge+refresh 34/34, and the complete branch-declared suite passed (adapter611, consumer15, route-drift23, offline contracts9 passed/537 skipped, Ruff, workstream validation, frontend type-check, 17 frontend tests, build). Final narrative-count sentinel, workstream validation, Ruff/format, session JSON and validation JSONL parsing, plan-hash match, and diff checks passed. Exact CI 39850920455 is still in progress on pre-fix e481 and does not cover this uncommitted source. No live route or full_stack_browser pass is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all route holds, and the 30-day observation gate.",
+  "current_blocker_latest": "2026-10-22 21:08Z: Exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f was verified as an ancestor of the ETF branch; no merge was needed. ETF commit 136c62a78ae157953b689e4fb341f4098683f80e is published and local/origin parity was independently verified; exact CI 39853885891 is in progress on that Voya-only source and does not cover the current REX follow-up. Static review found REX's registered native complete-holdings route used the intentionally fail-closed requests.post namespace. The adapter and deterministic fake-client test now use Provider-backed HTTPX with the configured timeout, redirect policy, same URL, POST form fields and Referer. Focused REX test 1/1, complete adapter module 611/611, and full declared offline branch suite passed (consumer15, route-drift23, offline contracts9 passed/537 skipped, Ruff/workstream validation, frontend type-check, 17 frontend tests, build). The final narrative sentinel, workstream validator, Ruff/format, JSON/YAML/JSONL parsing, plan-hash comparison and diff check now pass. REX source/test and coherent owner-record evidence are the current uncommitted change; commit/push and exact-source CI remain. No live route, provider call, quota operation or full_stack_browser pass is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, all route holds, and the 30-day observation gate.",
   "dirty_paths": [
     "backend/app/services/etf_holdings_adapters.py",
     "backend/tests/unit/services/test_etf_holdings_adapters.py",
@@ -294,9 +294,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-22T20:40:11Z",
+  "last_checkpoint": "2026-10-22T21:08:56Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-22: The EICP checkpoint remains accepted at synchronized green staging 0e342512e53ba2268425294d61c50e219eaafa4f; the original roadmap remains open. Source 535f8928da53da9c20838007336d71b6e627e4c9 reconciles all 74 fallback identity dates with durable audit rows; 108 capability/ledger/count-sentinel cases passed. AC1 current-count correction was published at 281368f979361003edd153e5b19251922e30f6ba, exact remote parity was verified, and accepted staging 0e342512e53ba2268425294d61c50e219eaafa4f is its ancestor. Exact CI run 39848752641 is pending on 281368f. Follow-up offline scan found that a second 2026-10-05 Tier-0 report described then-current 421/75 counts in present tense; it now explicitly time-bounds that historical statement, with a regression assertion. The focused tests passed 2/2 in 8.12s with Ruff/format/diff; this substantive follow-up is local/uncommitted and not covered by run 39848752641. Earlier run 39845969811 remains terminal cancelled historical evidence. Full_stack_browser remains required and awaits Root's safe slot. Preserve all fourteen criteria, issuer onboarding, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/unsafe/paid/trial routes, and the 30-day observation. No live HTTP, quota, cleanup, deployment, or self-integration occurred.",
+  "latest_checkpoint": "2026-10-22: Exact green staging release 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of the ETF branch; no merge was needed. The ETF branch is published/synchronized at 136c62a78ae157953b689e4fb341f4098683f80e with Voya routed through the guarded HTTPX facade; exact CI 39853885891 is still in progress on that source and does not cover the current REX follow-up. REX's registered native holdings form was found calling fail-closed requests.post; it now uses Provider-backed HTTPX with existing timeout/redirect behavior and preserves form/header/parser/result contract. Focused REX test 1/1, adapter module 611/611, and all seven declared offline branch groups passed including consumer15, route-drift23, offline contracts9 passed/537 skipped, lint/workstream validation, frontend type-check, ETF frontend17 and production build. Final count sentinel, workstream/schema/JSONL/hash/diff checks passed after owner-record changes. REX source/test plus evidence remain uncommitted; publish and inspect fresh exact-source CI. All live issuer/provider/SEC activity and quota operations remain disabled; no full_stack_browser pass or whole-roadmap completion is claimed. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, other holds, history and the 30-day observation gate.",
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -332,8 +332,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit and push the substantive Voya guarded-transport adapter/test change with its coherent owner-record evidence, then inspect exact-source CI without replaying completed jobs. Continue AC2/AC4/AC5 and Tier-0 work from retained evidence. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation; no issuer/provider/SEC HTTP, quota use, unsafe activation, data reset/cleanup, sibling/staging/master write, deployment, self-integration, or full-stack/browser matrix without Root's safe slot.",
-  "plan_hash": "ad56f9ddade7fbd7049604a64f81d4d335652433cbf69b65a62d140153a5aaaa",
+  "next_action": "Publish the validated REX guarded-transport source/test plus coherent ETF workstream evidence in one commit/push, verify exact remote parity, and inspect exact-source CI. Continue the full AC1-AC14 roadmap from retained evidence; no issuer/provider/SEC HTTP, quota use, unsafe activation, live-test execution, data reset/cleanup, sibling/staging/master write, deployment, self-integration, or full-stack/browser matrix without Root's safe slot. Preserve all criteria, 15 Tier-0 and 156 Tier-1, history, quarantines, route holds, and the 30-day observation.",
+  "plan_hash": "5a493c1b5ef219c24ac0f23e248cb5e02c146645323cbbaa2861e36f44aa877b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -384,11 +384,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The accepted initial checkpoint's exact green staging SHA 0e342512e53ba2268425294d61c50e219eaafa4f is an ancestor of current ETF source e4816268eb0c5effaad97979d13be843b50fc950; GitHub confirms remote parity at e481. The full roadmap remains open with 15 Tier-0 and 156 Tier-1. Voya's fail-closed legacy requests defect is corrected locally through Provider-backed HTTPX; the complete branch-declared suite is green including 611 adapter, 15 consumer, 23 route-drift, 9 offline contract tests/537 network skips, frontend type-check, 17 frontend tests, and build. Exact CI 39850920455 covers only pre-fix e481 and remains in progress. Dirty owner records remain preserved and no new full-stack profile/live route is claimed. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/unreviewed/paid/trial/unsafe routes stay disabled.",
+    "current_blocker": "The accepted staging release 0e342512e53ba2268425294d61c50e219eaafa4f is an ancestor of the ETF branch. Published source 136c62a78ae157953b689e4fb341f4098683f80e contains the Voya guarded-transport fix; exact CI 39853885891 is in progress on that source. The current substantive local change fixes REX's registered native route through Provider-backed HTTPX; focused test, full adapter module (611), and the full declared offline branch suite passed, with all live issuer calls disabled. REX is not covered by CI until its coherent change is published. The full roadmap remains open with 15 Tier-0 and 156 Tier-1; no full-stack profile/live route is claimed. MSMR/QQQ and Militia/GOOG remain quarantined; unknown/quota-held/unreviewed/paid/trial/unsafe routes stay disabled.",
     "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Commit/push the substantive Voya adapter/test plus coherent owner-record checkpoint and inspect exact-source CI. Continue retained-evidence AC2/AC4/AC5 and Tier-0 work. Do not issue live HTTP or alter blocked routes without new evidence; obtain Root's safe slot before full_stack_browser. Preserve all fourteen criteria, history, quarantines, route/cost holds, and the 30-day observation.",
+    "next_action": "Finish the REX guarded-transport checkpoint with final narrative-count sentinel, workstream/schema/JSONL/plan-hash/diff checks; commit and push only this ETF change; verify exact remote SHA and inspect its exact CI. Continue the full AC1-AC14 roadmap from retained evidence; no issuer/provider/SEC requests, quota use, unsafe route changes or live-test execution. Obtain Root's safe slot before full_stack_browser. Preserve all fourteen criteria, historical evidence, quarantines, route/cost holds, and the 30-day observation.",
     "total": 14,
-    "updated_at": "2026-10-22T21:00:00Z"
+    "updated_at": "2026-10-22T21:08:00Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -400,8 +400,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "e4816268eb0c5effaad97979d13be843b50fc950",
-  "remote_sha": "e4816268eb0c5effaad97979d13be843b50fc950",
+  "remote": "136c62a78ae157953b689e4fb341f4098683f80e",
+  "remote_sha": "136c62a78ae157953b689e4fb341f4098683f80e",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

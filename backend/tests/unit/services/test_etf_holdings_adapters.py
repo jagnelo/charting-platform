@@ -19765,21 +19765,30 @@ FGXXX,FIRST AMERICAN GOVERNMENT OBLIG X,31846V336,0.12%,"$820,000.00",820000
 46438R105-TRS-11/05/26-L,ISHARES ETHEREUM TRUST SWAP-L,,200.00%,"$16,551,484.69",1254851
 Cash&Other,Cash & Other,,-109.50%,"$-9,062,237.02",-9062237
 """
-    requested = []
+    client_options = {}
 
-    def fake_post(url, **kwargs):
-        requested.append((url, kwargs))
-        return FakeResponse(
+    class CapturingClient(FakeAsyncClient):
+        def __init__(self, *args, **kwargs):
+            client_options.update(kwargs)
+            super().__init__(*args, **kwargs)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
             text=raw_csv,
             content_type="text/csv",
             url="https://www.rexshares.com/fepi/",
         )
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.post", fake_post)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", CapturingClient)
 
     result = await adapter.fetch_latest(symbol="FEPI", identifiers={})
 
-    request_url, request_kwargs = requested[0]
+    assert client_options == {
+        "timeout": settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+        "follow_redirects": True,
+    }
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
     assert request_url == "https://www.rexshares.com/fepi/"
     assert request_kwargs["data"] == {"CSV": "Download CSV", "symbol": "FEPI"}
     assert request_kwargs["headers"]["Referer"] == "https://www.rexshares.com/fepi/"

@@ -1,5 +1,50 @@
 # feat/etf-holdings-constituents
 
+## Current continuation — guarded native-adapter transport fixes — 2026-10-22
+
+The exact synchronized green staging release `0e342512e53ba2268425294d61c50e219eaafa4f`
+is an ancestor of this ETF branch. It was verified from the canonical release
+record and receipt; no merge was needed because it was already in the branch
+history. The ETF branch was published at `136c62a78ae157953b689e4fb341f4098683f80e`
+with the Voya native-route change, and its exact CI run `39853885891` is still
+in progress. This source checkpoint is a follow-up on the accepted baseline,
+not acceptance or closure of the full ETF roadmap.
+
+The next offline audit found the same concrete guarded-transport defect in the
+REX native route: its complete holdings CSV form used `requests.post`, which is
+intentionally blocked by the shared Provider boundary. The REX adapter now
+uses `httpx.AsyncClient` with the configured timeout and redirect policy,
+retaining the product URL, POST form fields, Referer, CSV parser, result
+metadata, and response error handling. The deterministic test uses the
+existing fake async client instead of monkeypatching the blocked requests
+namespace. The focused REX regression passed 1/1; the complete adapter module
+passed 611/611. The full branch-declared offline suite passed: adapter 611,
+checkpoint consumer 15, route-drift 23, offline live contracts 9 passed/537
+network-bearing cases skipped, Ruff/workstream validation, frontend type-check,
+17 frontend tests, and production build. No external issuer/provider/SEC HTTP
+or quota operation occurred, and the opt-in live sweep remained disabled.
+
+The REX source and test are locally modified on top of the published Voya
+commit. Their coherent workstream receipt and final count/schema/hash checks
+are now recorded and passed; the ETF-only commit/push remains. Exact CI `39853885891` covers only the
+Voya commit, not this REX follow-up. No live REX success, full-stack browser
+pass, route promotion, full-roadmap completion, or post-integration observation
+is claimed. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined; all
+unknown, quota-held, unreviewed, paid/trial, and unsafe operations remain
+disabled. Preserve all fourteen criteria, the exact “15 Tier-0 and 156 Tier-1”
+count wording, historical failures, and the 30-day observation gate.
+
+Next: close and publish this substantive REX adapter/test checkpoint, then
+inspect the resulting exact-source CI. Continue the full roadmap from retained
+evidence without issuer/provider/SEC requests or quota spend. A full
+`full_stack_browser` matrix remains required and needs Root's assigned safe
+slot; no staging/sibling/master write, deployment, self-integration, data reset,
+or retained-resource cleanup is authorized.
+
+The following 2026-10-21 integration-checkpoint packet is retained historical
+context; its then-current C publication instructions have been superseded by
+the later release and continuation entries above.
+
 ## Bounded ETF integration checkpoint — final publication C pending — 2026-10-21
 
 The coordinator's technical review is **approved conditionally** for the bounded
@@ -42,12 +87,9 @@ disabled/non-routable. No live issuer/SEC/provider traffic, quota replay,
 staging/sibling mutation, deployment, or retained-data cleanup is authorized
 or claimed.
 
-Next action: validate and commit only this workstream-record packet as C, push C
-once, verify origin parity, and inspect that exact CI run. Do not push B
-separately, repeat the completed local matrix, or create a follow-up
-metadata/hash-loop commit. After exact-C CI is green, hand off to the central
-coordinator for acceptance, guarded staging integration, and EIG; the feature
-worker does not self-integrate.
+Historical next action at the time of this checkpoint: validate and commit
+that workstream-record packet as C. This has been superseded by the current
+continuation above; do not treat it as the present next action.
 
 ## Isolated shared-runtime DB/Redis slot — 2026-10-20
 
