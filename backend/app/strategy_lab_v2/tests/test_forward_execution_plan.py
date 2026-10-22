@@ -14,6 +14,8 @@ from app.strategy_lab_v2.contracts import (
     ForwardState,
     PortfolioComponent,
     PortfolioComposition,
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
 )
 from app.strategy_lab_v2.forward_execution_plan import (
     ForwardComponentExecutionPlan,
@@ -302,3 +304,102 @@ async def test_authenticated_resolver_fails_closed_for_another_owner(tmp_path) -
 
     with pytest.raises(ValueError, match="execution plan is unavailable"):
         await resolver.resolve(instance)
+
+
+@pytest.mark.asyncio
+async def test_authenticated_resolver_binds_selected_study_output_or_fails_closed(
+    tmp_path,
+) -> None:
+    payload = {"type": "series", "value": [1.25, 2.5]}
+    reference = SelectedStudyArtifactReference(
+        research_run_id=17,
+        code_version_id=23,
+        artifact_id=31,
+        artifact_name="study.close",
+        artifact_type="series",
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest=content_digest("code-version"),
+        dataset_manifest_digest=content_digest("dataset"),
+        artifact_content_digest=content_digest(payload),
+    )
+    output = ResolvedStudyArtifactOutput(reference, payload)
+    artifact_store, package, strategy, _manifest, _archive = _strategy_package_fixture(
+        tmp_path,
+        selected_study_artifact=reference,
+    )
+    portfolio = PortfolioComposition(
+        "portfolio-study",
+        "v1",
+        Decimal("10000"),
+        "USD",
+        (PortfolioComponent("momentum", strategy.fingerprint, ("US.AAPL",), Decimal("1")),),
+    )
+    instance = _instance(portfolio)
+    binding = ForwardComponentExecutionPlan(
+        "momentum",
+        strategy.fingerprint,
+        package.fingerprint,
+        {"lookback": 5},
+        1337,
+    )
+    plan = ForwardExecutionPlan(instance.instance_id, portfolio.fingerprint, (binding,))
+
+    class Reader:
+        async def get_domain_contract(self, *, principal, resource_type, resource_id):
+            if (
+                principal == "owner"
+                and resource_type is ApiResourceType.FORWARD_EXECUTION_PLAN
+                and resource_id == instance.instance_id
+            ):
+                return plan
+            return None
+
+        async def get_domain_contracts_by_fingerprint(
+            self, *, principal, resource_type, fingerprints
+        ):
+            if principal != "owner":
+                return {}
+            available = {
+                ApiResourceType.PORTFOLIO: {portfolio.fingerprint: portfolio},
+                ApiResourceType.STRATEGY: {strategy.fingerprint: strategy},
+                ApiResourceType.PACKAGE: {package.fingerprint: package},
+            }.get(resource_type, {})
+            return {key: available[key] for key in fingerprints if key in available}
+
+    resolver_calls = 0
+
+    async def resolve_study(*, principal, reference):
+        nonlocal resolver_calls
+        assert principal == "owner"
+        assert reference == expected_reference
+        resolver_calls += 1
+        if resolver_calls > 1:
+            return ResolvedStudyArtifactOutput(
+                replace(reference, artifact_id=reference.artifact_id + 1),
+                payload,
+            )
+        return output
+
+    expected_reference = reference
+    resolver = AuthenticatedForwardExecutionPlanResolver(
+        Reader(),
+        StrategyPackageArtifactResolver(artifact_store, runtime_abi=PACKAGE_RUNTIME_ABI),
+        principal="owner",
+        selected_study_artifact_resolver=resolve_study,
+    )
+    resolved = await resolver.resolve(instance)
+    assert resolved.components["momentum"].study_artifacts == {"study.close": output}
+    assert resolver_calls == 1
+
+    without_study_resolver = AuthenticatedForwardExecutionPlanResolver(
+        Reader(),
+        StrategyPackageArtifactResolver(artifact_store, runtime_abi=PACKAGE_RUNTIME_ABI),
+        principal="owner",
+    )
+    with pytest.raises(ValueError, match="cannot be revalidated"):
+        await without_study_resolver.resolve(instance)
+
+    with pytest.raises(ValueError, match="mismatched immutable output"):
+        await resolver.resolve(instance)
+    assert resolver_calls == 2

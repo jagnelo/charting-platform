@@ -17123,3 +17123,41 @@ and `test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_referenc
 0.42s after correcting the repository-relative invocation. These exercise the existing owner-denial
 and principal-forwarding contract without database I/O; they do not prove the new persisted
 PostgreSQL restart case.
+
+## Full-roadmap forward Study output binding — 2026-10-22 22:48 UTC
+
+Source review found a remaining consumer gap after the backtest Study binding: forward plan
+resolution authenticated the immutable strategy/package fingerprints, but did not resolve a
+selected TC Study output, and the forward runtime context builders did not pass Study artifacts to
+`iter_event_tape_contexts` (which already supports them). The accepted TC contract is consumed
+through existing owner-scoped StrategyVersion and ResearchArtifact rows; no producer source or
+schema was changed.
+
+`AuthenticatedForwardExecutionPlanResolver` now accepts the existing typed asynchronous output
+resolver. When a strategy has no selected Study reference, behavior remains unchanged and no
+Study query is made. When a reference exists, absence of the resolver or a mismatched typed result
+rejects the forward plan. Each `ResolvedForwardExecutionComponent` freezes only the exact output
+matching its strategy reference. The production PostgreSQL worker factory supplies the resolver
+using the same persistence session factory. Both materialized and disk-streamed forward warm-up
+context paths pass the exact resolved mapping into `iter_event_tape_contexts`; restart resolution
+therefore re-reads the pinned producer rows before constructing a new worker input.
+
+Validation on source parent `4dd82b25fb911ed8ea1abb615a71d7e45764dc70`: the complete focused
+forward-plan, forward-bootstrap, and strategy-package modules passed 23 tests in 2.40s. The new
+resolver regression proves exact owner/reference binding, default denial without a resolver, and
+rejects a changed output identity when the same plan is reconstructed again. The forward bundle
+regression decodes the generated component context stream and checks that every context contains
+the exact frozen Study output; it covers both materialized and streaming warm-up paths. Ruff and
+Ruff format pass for all five touched files, and MyPy passes for the two changed production
+modules. `git diff --check` is clean. One initial test run exposed only an incorrect test assertion
+against a nonexistent decoded-binding field; it was corrected to assert the fingerprint through
+the decoded manifest, and the focused modules then passed. No DB, Docker, browser, native engine,
+provider, issuer, or other network operation ran. The new exact-source CI is pending publication;
+the parent-source green CI does not cover this change.
+
+This is authenticated generic Study input propagation, not native execution evidence. PostgreSQL
+forward resolver/restart behavior, full DB/Redis/runtime validation, full browser/strict-visual
+gates, and exact-pinned Nautilus qualification remain open under the full 18-criterion roadmap.
+The accepted SLICP1-SLICP5 checkpoint remains historical evidence only. Root's unreleased shared
+repair has not been adopted. Provider/live/quota, paid/trial, unknown/unsafe, broker/capital,
+promotion, deployment, and retained-data operations remain disabled or unauthorized.

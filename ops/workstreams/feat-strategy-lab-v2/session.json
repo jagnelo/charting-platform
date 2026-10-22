@@ -72,7 +72,7 @@
   "last_checkpoint": "2026-10-22T20:37:19Z",
   "last_human_progress_update": "2026-10-20T21:20:08.693731+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue the active strategy-lab-v2-typed-study-payload-runtime-binding-v1 context through the existing resolver, hydration, and frozen runtime bundle. Preserve fail-closed behavior until payload and worker-restart binding are verified; request assigned PostgreSQL/combined runtime/native gates before heavy validation.",
+  "next_action": "Close the branch-owned forward Study-output context: revalidate each selected immutable Study reference while resolving the owner-scoped forward plan, bind the exact frozen payload into materialized and streaming forward StrategyContext inputs, and reject missing or drifted outputs. Publish exact-source CI; then request assigned combined DB/runtime/native gates. Keep full 18-criterion roadmap and all disabled-scope boundaries.",
   "parent_branch": "staging",
   "plan_hash": "bd3fbec881130cfb7506ce34d35871cbafd46fff9c8afe42ce2a05178817a9cb",
   "planning_required": false,
