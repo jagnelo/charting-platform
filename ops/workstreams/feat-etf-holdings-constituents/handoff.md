@@ -37,8 +37,10 @@ timeout contract and the three-timeout fail-closed contract pass; the latter
 asserts all three POSTs use the configured FilePoint URL, fund ID and product
 page Referer. The complete declared branch suite passed again with live tests
 disabled. PeakShares fix and evidence were published as
-`db023ed8023bdacd6316380147114d344848ed14`; exact CI `39855756183` is running
-on that SHA. It does not contain the current Saracen follow-up.
+`db023ed8023bdacd6316380147114d344848ed14`; exact CI `39855756183` was later
+cancelled after the next ETF push superseded that head. Saracen's guarded-403
+fix and tests were published in `5f4117ad4df3f239bf4df8d12bb3a237293836de`;
+exact CI `39856500578` is in progress on that SHA.
 
 The next static route review found Saracen/SanJac's registered native route
 retried HTTPX 403 responses with raw `requests.get/post`, bypassing the shared
@@ -49,8 +51,23 @@ Saracen contracts (the full product-page feed and GET/POST 403 boundaries) pass;
 the full declared offline suite passed with 613 adapter cases, consumers15,
 route-drift23, offline contracts9 passed/537 live cases skipped, lint and
 workstream validation, frontend type-check, ETF frontend17 and build. The
-current Saracen source/test and owner evidence are local and need final checks,
-publication and exact-source CI.
+published `5f4117ad4df3f239bf4df8d12bb3a237293836de` source includes Saracen;
+its exact CI `39856500578` is running.
+
+The next offline transport audit found Alpha Architect/ETF Architect's native
+product-page adapter still escaping from the shared HTTPX admission boundary to
+the fail-closed `requests` namespace on 403/5xx/timeouts. Its tests had
+monkeypatched that namespace and therefore modeled an unavailable production
+fallback as successful. The adapter now keeps bounded 5xx/timeout retries on
+HTTPX, preserves backoff, surfaces 403, and does not accept a challenge page as
+holdings. Three focused route contracts pass, and the complete offline adapter
+module passes 613/613. The declared offline branch suite also passed: adapters
+613, checkpoint consumers15, route-drift23, offline live contracts9 passed/537
+network-bearing cases skipped, Ruff/workstream validation, frontend type-check,
+ETF frontend17 and production build. Live calls were explicitly disabled. These
+local ETF Architect changes are not in the published
+`5f4117ad4df3f239bf4df8d12bb3a237293836de`; final exact-source CI remains
+required after coherent publication.
 
 No live REX, PeakShares, or Saracen success, full-stack browser pass, route promotion,
 full-roadmap completion, or post-integration observation is claimed. MSMR/QQQ
@@ -59,8 +76,9 @@ unreviewed, paid/trial, and unsafe operations remain disabled. Preserve all
 fourteen criteria, the exact “15 Tier-0 and 156 Tier-1” count wording,
 historical failures, and the 30-day observation gate.
 
-Next: close and publish the substantive Saracen 403-boundary change with its
-coherent evidence, then inspect resulting exact-source CI. Continue
+Next: finish final narrative/workstream/hash/diff checks, then publish the
+substantive ETF Architect guarded-retry change with coherent evidence and
+inspect its exact-source CI. Continue
 the full roadmap from retained evidence without issuer/provider/SEC requests
 or quota spend. A full
 `full_stack_browser` matrix remains required and needs Root's assigned safe

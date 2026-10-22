@@ -11080,19 +11080,9 @@ async def test_arin_adapter_routes_unverified_symbols_to_explicit_sec_fallback(m
 
 
 @pytest.mark.asyncio
-async def test_etf_architect_adapter_retries_issuer_page_with_requests_after_httpx_403(monkeypatch):
+async def test_etf_architect_403_does_not_escape_guarded_httpx_transport(monkeypatch):
     adapter = get_holdings_adapter("etf_architect")
     assert adapter is not None
-
-    holdings_html = """
-    <table><thead><tr>
-      <th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>
-      <th>Price (Local)</th><th>Market Value ($mm)</th><th>% of Net Assets</th>
-    </tr></thead><tbody><tr>
-      <td>ADT</td><td>ADT Inc</td><td>00090Q103</td><td>1,717,080</td>
-      <td>6.83</td><td>11.73</td><td>2.14</td>
-    </tr></tbody></table>
-    """
 
     class ForbiddenResponse(FakeResponse):
         def raise_for_status(self):
@@ -11104,67 +11094,49 @@ async def test_etf_architect_adapter_retries_issuer_page_with_requests_after_htt
     FakeAsyncClient.queue = [
         ForbiddenResponse(url="https://funds.alphaarchitect.com/qval/"),
     ]
-    requests_called: list[str] = []
-
-    def fake_get(url, **kwargs):
-        requests_called.append(url)
-        return FakeResponse(text=holdings_html, content_type="text/html", url=url)
-
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
 
-    result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="QVAL", identifiers={})
 
-    assert requests_called == ["https://funds.alphaarchitect.com/qval/"]
-    assert result.rows[0].symbol == "ADT"
-    assert result.rows[0].weight == Decimal("0.0214")
+    assert len(FakeAsyncClient.requested) == 1
+    assert FakeAsyncClient.requested[0][0] == "https://funds.alphaarchitect.com/qval/"
+    assert FakeAsyncClient.requested[0][1]["follow_redirects"] is True
 
 
 @pytest.mark.asyncio
-async def test_etf_architect_empty_requests_body_after_httpx_403_is_explicit_access_challenge(
+async def test_etf_architect_httpx_challenge_page_is_not_accepted_as_holdings(
     monkeypatch,
 ):
     adapter = get_holdings_adapter("etf_architect")
     assert adapter is not None
 
-    class ForbiddenResponse(FakeResponse):
-        def raise_for_status(self):
-            request = httpx.Request("GET", self.url)
-            response = httpx.Response(403, request=request)
-            raise httpx.HTTPStatusError("blocked", request=request, response=response)
-
     FakeAsyncClient.queue = [
-        ForbiddenResponse(
+        FakeResponse(
             text="<html>Cloudflare Ray ID: challenge-platform</html>",
             content_type="text/html",
             url="https://funds.alphaarchitect.com/qval/",
         ),
     ]
+    FakeAsyncClient.requested = []
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    requests_calls: list[str] = []
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("challenge response must not escape to requests"),
+    )
 
-    def empty_success(url, **_kwargs):
-        requests_calls.append(url)
-        return FakeResponse(text="", content_type="text/html", url=url)
-
-    async def no_sleep(_seconds):
-        return None
-
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", empty_success)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", no_sleep)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
-
-    with pytest.raises(ValueError, match="issuer access challenge persisted"):
+    with pytest.raises(ValueError, match="no parseable holdings rows"):
         await adapter.fetch_latest(symbol="QVAL", identifiers={})
 
-    assert requests_calls == ["https://funds.alphaarchitect.com/qval/"] * 3
+    assert len(FakeAsyncClient.requested) == 1
 
 
 @pytest.mark.asyncio
-async def test_etf_architect_adapter_retries_transient_requests_gateway_error(monkeypatch):
+async def test_etf_architect_adapter_retries_transient_httpx_gateway_error(monkeypatch):
     adapter = get_holdings_adapter("etf_architect")
     assert adapter is not None
 
@@ -11185,48 +11157,31 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
             raise httpx.HTTPStatusError("gateway", request=request, response=response)
 
     FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [GatewayResponse(url="https://funds.alphaarchitect.com/qval/")]
-    requests_called: list[str] = []
-    responses = [
-        SimpleNamespace(
-            status_code=502,
-            url="https://funds.alphaarchitect.com/qval/",
-            raise_for_status=lambda: None,
-        ),
+    FakeAsyncClient.queue = [
+        GatewayResponse(url="https://funds.alphaarchitect.com/qval/"),
         FakeResponse(
             text=holdings_html,
             content_type="text/html",
             url="https://funds.alphaarchitect.com/qval/",
         ),
     ]
-    to_thread_calls = []
-
-    def fake_get(url, **kwargs):
-        requests_called.append(url)
-        return responses.pop(0)
-
-    async def run_fake_transport_in_test(function, *args, **kwargs):
-        # Retry behavior is under test; real executor scheduling is not.
-        to_thread_calls.append((function, args, kwargs))
-        return function(*args, **kwargs)
 
     async def skip_delay(_seconds):
         return None
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
     monkeypatch.setattr(
-        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("transient retry must remain on HTTPX"),
     )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
     result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
 
-    assert requests_called == [
+    assert [call[0] for call in FakeAsyncClient.requested] == [
         "https://funds.alphaarchitect.com/qval/",
         "https://funds.alphaarchitect.com/qval/",
     ]
-    assert len(to_thread_calls) == 2
-    assert all(call[0] is requests.get for call in to_thread_calls)
+    assert all(call[1]["follow_redirects"] is True for call in FakeAsyncClient.requested)
     assert result.rows[0].symbol == "ADT"
 
 

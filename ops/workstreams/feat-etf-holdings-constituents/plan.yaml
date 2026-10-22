@@ -336,15 +336,15 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Saracen guarded 403 boundary
-    state: three_saracen_contracts_pass;adapter_613_pass;declared_offline_branch_suite_pass;final_records_checks_pending
-    baseline: db023ed8023bdacd6316380147114d344848ed14
+    name: ETF Architect guarded retry boundary
+    state: three_etf_architect_contracts_pass;adapter_613_pass;declared_offline_branch_suite_pass;final_records_checks_pending;exact_CI_pending
+    baseline: 5f4117ad4df3f239bf4df8d12bb3a237293836de
     intent: >-
-      Remove Saracen's raw requests.get/post 403 fallbacks. Keep each request
-      and redirect on the shared Provider-backed HTTPX client so every physical
-      attempt is separately admitted/settled; preserve 403 as a failed response
-      and never convert it into an unadmitted alternate transport. No live
-      request or route promotion is claimed.
+      Remove ETF Architect's raw requests.get fallback for product-page 403,
+      transient gateway responses and timeouts. Keep bounded retries on the
+      shared Provider-backed HTTPX client so each physical attempt is admitted
+      and settled, preserve 403 as failure, and never use an unadmitted transport.
+      No live request or route promotion is claimed.
     owned_paths:
       - backend/app/services/etf_holdings_adapters.py
       - backend/tests/unit/services/test_etf_holdings_adapters.py
@@ -1583,20 +1583,20 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    Exact Actions run 39855756183 is in progress on published source
-    db023ed8023bdacd6316380147114d344848ed14 containing the PeakShares and
-    earlier Voya/REX fixes. The current Saracen 403-boundary change and its
-    deterministic tests pass locally through the complete declared offline
-    branch suite; they are not covered by that run, so a fresh exact-head run
-    is required after coherent publication. Earlier cancelled, partial and
-    red runs remain historical and are not upgraded to green.
+    Exact Actions run 39856500578 is in progress on published source
+    5f4117ad4df3f239bf4df8d12bb3a237293836de and includes the Saracen fix;
+    it does not include the current ETF Architect follow-up. The focused three
+    route contracts and full adapter module pass locally on the ETF Architect
+    worktree diff. A fresh exact-head CI and the full declared branch suite are
+    required after coherent publication. Prior cancelled, partial and red runs
+    remain historical and are not upgraded to green.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Record the validated Saracen 403-boundary change, run final count/schema/
-  hash/diff checks, then commit/push only this ETF-owned checkpoint and inspect
-  exact-source CI. Continue
+  Record the validated ETF Architect guarded-retry change, run final count/
+  schema/hash/diff checks, then commit/push only this ETF-owned follow-up and
+  inspect exact-source CI. Continue
   the full AC1-AC14 roadmap from retained evidence; do not change route status
   or refresh blocked sources without qualifying new evidence and authorized
   safe access. The full_stack_browser matrix remains required and awaits Root's
