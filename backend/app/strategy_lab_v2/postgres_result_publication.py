@@ -121,23 +121,17 @@ class PostgresResultPublicationAdapter:
                 current = await self._load_one(session, owner_id, plan.fingerprint)
                 if current is None:
                     await self._insert(session, owner_id, plan)
-                    return PublicationStateResolution(
-                        PublicationStateDecision.REGISTERED, plan
-                    )
+                    return PublicationStateResolution(PublicationStateDecision.REGISTERED, plan)
                 if current != plan:
                     raise ValueError("PostgreSQL result publication identity is already bound")
-                return PublicationStateResolution(
-                    PublicationStateDecision.REPLAY_EXISTING, current
-                )
+                return PublicationStateResolution(PublicationStateDecision.REPLAY_EXISTING, current)
 
     async def load(
         self, *, principal: Any, publication_fingerprint: str
     ) -> ResultPublicationPlan | None:
         """Read and authenticate one immutable plan for an owner."""
 
-        require_sha256_digest(
-            publication_fingerprint, field_name="publication_fingerprint"
-        )
+        require_sha256_digest(publication_fingerprint, field_name="publication_fingerprint")
         owner_id = _principal_id(principal)
         session: AsyncSessionLike = self._session_factory()
         async with session:
@@ -201,9 +195,7 @@ class PostgresResultPublicationAdapter:
                     {"owner_id": owner_id},
                 )
                 plans = tuple(_authenticate_row(row, owner_id) for row in result.mappings())
-                ordered = tuple(
-                    sorted(plans, key=lambda item: (item.attempt_id, item.fingerprint))
-                )
+                ordered = tuple(sorted(plans, key=lambda item: (item.attempt_id, item.fingerprint)))
                 if plans != ordered:
                     raise ValueError(
                         "PostgreSQL result publications are not deterministically ordered"

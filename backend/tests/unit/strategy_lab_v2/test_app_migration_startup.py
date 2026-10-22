@@ -19,7 +19,9 @@ class _MigrationService:
 
 
 @pytest.mark.asyncio
-async def test_api_startup_migrations_are_explicit_and_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_api_startup_migrations_are_explicit_and_idempotent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     resolution = MigrationResolution(content_digest("request"), MigrationDecision.APPLIED, "head")
     service = _MigrationService(resolution)
     captured: dict[str, object] = {}

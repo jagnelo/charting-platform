@@ -82,16 +82,24 @@ class StateMutationResolution:
         if self.outcome is not None and self.progress is not None:
             if self.outcome.attempt_id != self.progress.attempt_id:
                 raise ValueError("outcome and progress must reference the same attempt")
-        if self.decision in {
-            StateMutationDecision.CONFLICT,
-            StateMutationDecision.NOT_FOUND,
-            StateMutationDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                StateMutationDecision.CONFLICT,
+                StateMutationDecision.NOT_FOUND,
+                StateMutationDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("failed state resolutions require a reason")
-        if self.decision in {
-            StateMutationDecision.APPLIED,
-            StateMutationDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                StateMutationDecision.APPLIED,
+                StateMutationDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful state resolutions cannot contain a reason")
 
     @property
@@ -236,11 +244,7 @@ class PostgresExecutionStateAdapter:
             raise TypeError("progress_update must be an ExecutionProgressUpdate")
         if cancellation is not None and not isinstance(cancellation, CancellationRequest):
             raise TypeError("cancellation must be a CancellationRequest")
-        attempt_ids = {
-            item.attempt_id
-            for item in provided
-            if item is not None
-        }
+        attempt_ids = {item.attempt_id for item in provided if item is not None}
         if len(attempt_ids) != 1:
             raise ValueError("all state updates must reference one attempt")
         attempt_id = next(iter(attempt_ids))

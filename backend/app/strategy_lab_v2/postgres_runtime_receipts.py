@@ -557,7 +557,9 @@ def _decode_preflight(row: Mapping[str, Any]) -> PersistedRuntimePreflight:
         raw_reasons = row["rejection_reasons_json"]
         if isinstance(raw_reasons, str):
             raw_reasons = json.loads(raw_reasons)
-        if not isinstance(raw_reasons, list) or any(not isinstance(item, str) for item in raw_reasons):
+        if not isinstance(raw_reasons, list) or any(
+            not isinstance(item, str) for item in raw_reasons
+        ):
             raise ValueError("rejection reasons must be a string list")
         return PersistedRuntimePreflight(
             row["preflight_fingerprint"],

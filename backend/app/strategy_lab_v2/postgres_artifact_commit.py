@@ -137,9 +137,7 @@ class PostgresArtifactCommitAdapter:
             raise ValueError("PostgreSQL artifact commits are not deterministically ordered")
         return ArtifactCommitLedger(ordered)
 
-    async def _insert_record(
-        self, session: AsyncSessionLike, record: ArtifactCommitRecord
-    ) -> None:
+    async def _insert_record(self, session: AsyncSessionLike, record: ArtifactCommitRecord) -> None:
         result = await session.execute(
             _statement(
                 f"""

@@ -55,9 +55,7 @@ class FakeSession:
         normalized = sql.lstrip()
         if normalized.startswith("SELECT owner_id"):
             rows = [
-                row
-                for (owner, _), row in self.completions.items()
-                if owner == values["owner_id"]
+                row for (owner, _), row in self.completions.items() if owner == values["owner_id"]
             ]
             return FakeResult(sorted(rows, key=lambda row: row["completion_fingerprint"]))
         if normalized.startswith("SELECT commit_key"):
@@ -112,7 +110,9 @@ async def test_result_completion_adapter_commits_all_artifacts_and_replays() -> 
     assert replay.decision is ResultCompletionDecision.REPLAY_EXISTING
     assert replay.record == first.record
     assert (await adapter.load_completion_ledger(principal="owner-a")).records == (first.record,)
-    assert (await adapter.load_artifact_commit_ledger()).records == first.artifact_commit_ledger.records
+    assert (
+        await adapter.load_artifact_commit_ledger()
+    ).records == first.artifact_commit_ledger.records
     assert await adapter.load_completion_ledger(principal="owner-b") == ResultCompletionLedger()
 
 

@@ -37,12 +37,7 @@ def _nonnegative(value: Decimal, field_name: str) -> None:
 
 
 def _currency(value: str, field_name: str) -> str:
-    if (
-        not isinstance(value, str)
-        or len(value) != 3
-        or not value.isascii()
-        or not value.isalpha()
-    ):
+    if not isinstance(value, str) or len(value) != 3 or not value.isascii() or not value.isalpha():
         raise ValueError(f"{field_name} must be a three-letter currency code")
     return value.upper()
 
@@ -231,9 +226,7 @@ class SettlementRiskDecision:
             raise TypeError("upstream_risk_limits_satisfied must be a bool")
         if not isinstance(self.risk_limits_satisfied, bool):
             raise TypeError("risk_limits_satisfied must be a bool")
-        if self.risk_limits_satisfied != (
-            self.kind is SettlementRiskDecisionKind.APPROVED
-        ):
+        if self.risk_limits_satisfied != (self.kind is SettlementRiskDecisionKind.APPROVED):
             raise ValueError("decision kind must match risk_limits_satisfied")
         if self.risk_limits_satisfied and not self.upstream_risk_limits_satisfied:
             raise ValueError("settlement approval requires upstream risk approval")

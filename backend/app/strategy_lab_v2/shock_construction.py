@@ -166,11 +166,7 @@ def expand_shock_matrix(
 
     if not dimensions:
         raise ValueError("shock construction requires at least one dimension")
-    if (
-        not isinstance(max_scenarios, int)
-        or isinstance(max_scenarios, bool)
-        or max_scenarios < 1
-    ):
+    if not isinstance(max_scenarios, int) or isinstance(max_scenarios, bool) or max_scenarios < 1:
         raise ValueError("max_scenarios must be a positive integer")
     _nonempty(scenario_prefix, "scenario_prefix")
     ordered_names = tuple(sorted(dimensions))
@@ -191,7 +187,9 @@ def expand_shock_matrix(
             raise ValueError(f"shock matrix exceeds max_scenarios={max_scenarios}")
 
     definitions: list[ShockDefinition] = []
-    for index, values in enumerate(product(*(dimension.values for dimension in ordered_dimensions))):
+    for index, values in enumerate(
+        product(*(dimension.values for dimension in ordered_dimensions))
+    ):
         legs = tuple(
             ShockLeg(
                 field=dimension.field,

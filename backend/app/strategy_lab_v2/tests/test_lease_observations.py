@@ -76,9 +76,7 @@ def test_lease_observation_normalizes_offset_equivalent_times() -> None:
 
 
 def test_observation_id_conflict_does_not_mutate_state() -> None:
-    applied = apply_lease_observation(
-        LeaseObservationState(_lease()), _observation("one", 1)
-    )
+    applied = apply_lease_observation(LeaseObservationState(_lease()), _observation("one", 1))
     changed = _observation(
         "one",
         1,
@@ -104,7 +102,11 @@ def test_gaps_and_stale_sequences_are_explicit() -> None:
 def test_release_is_terminal_and_exact_release_retry_replays() -> None:
     state = LeaseObservationState(_lease())
     release = _observation(
-        "release", 1, LeaseObservationKind.RELEASE, observed_at=NOW + timedelta(minutes=1), expires_at=None
+        "release",
+        1,
+        LeaseObservationKind.RELEASE,
+        observed_at=NOW + timedelta(minutes=1),
+        expires_at=None,
     )
     applied = apply_lease_observation(state, release)
     assert applied.decision is LeaseObservationDecision.APPLY
@@ -146,10 +148,14 @@ def test_state_orders_observations_and_requires_release_to_match_lease() -> None
 
 def test_observation_contract_rejects_invalid_kind_expiry_and_ids() -> None:
     with pytest.raises(ValueError, match="observation_id"):
-        LeaseObservation("bad", "lease-1", "worker-1", "attempt-1", 1, LeaseObservationKind.RELEASE, NOW)
+        LeaseObservation(
+            "bad", "lease-1", "worker-1", "attempt-1", 1, LeaseObservationKind.RELEASE, NOW
+        )
     with pytest.raises(ValueError, match="require expires_at"):
         _observation("missing-expiry", 1, expires_at=None)
     with pytest.raises(ValueError, match="cannot contain expires_at"):
-        _observation("release-expiry", 1, LeaseObservationKind.RELEASE, expires_at=NOW + timedelta(minutes=2))
+        _observation(
+            "release-expiry", 1, LeaseObservationKind.RELEASE, expires_at=NOW + timedelta(minutes=2)
+        )
     with pytest.raises(ValueError, match="positive"):
         _observation("zero", 0)

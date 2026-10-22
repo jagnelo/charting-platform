@@ -18,7 +18,9 @@ from app.strategy_lab_v2.progress_checkpoint import (
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
-def _update(sequence: int, completed: int, phase: ProgressPhase = ProgressPhase.RUNNING) -> ExecutionProgressUpdate:
+def _update(
+    sequence: int, completed: int, phase: ProgressPhase = ProgressPhase.RUNNING
+) -> ExecutionProgressUpdate:
     return ExecutionProgressUpdate(
         attempt_id="attempt-1",
         sequence=sequence,

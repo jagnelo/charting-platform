@@ -67,9 +67,7 @@ class PostgresResultCompletionSchema:
             ("completion_table", self.completion_table),
             ("commit_table", self.commit_table),
         ):
-            if not isinstance(value, str) or not re.fullmatch(
-                r"[a-z_][a-z0-9_]*", value
-            ):
+            if not isinstance(value, str) or not re.fullmatch(r"[a-z_][a-z0-9_]*", value):
                 raise ValueError(f"{name} must be a safe SQL identifier")
 
     @property
@@ -167,9 +165,7 @@ class PostgresResultCompletionAdapter:
                     await self._insert_completion(session, owner_id, resolution.record)
                 return resolution
 
-    async def load_completion_ledger(
-        self, *, principal: Any
-    ) -> ResultCompletionLedger:
+    async def load_completion_ledger(self, *, principal: Any) -> ResultCompletionLedger:
         """Read and authenticate all completion receipts for one owner."""
 
         owner_id = _principal_id(principal)
@@ -245,9 +241,7 @@ class PostgresResultCompletionAdapter:
             raise ValueError("PostgreSQL artifact commits are not deterministically ordered")
         return ArtifactCommitLedger(ordered)
 
-    async def _insert_commit(
-        self, session: AsyncSessionLike, record: ArtifactCommitRecord
-    ) -> None:
+    async def _insert_commit(self, session: AsyncSessionLike, record: ArtifactCommitRecord) -> None:
         result = await session.execute(
             _statement(
                 f"""

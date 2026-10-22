@@ -110,20 +110,32 @@ class ForwardCorrectionResolution:
             raise TypeError("state must be a ForwardLiveAdmissionState")
         if self.plan is not None and not isinstance(self.plan, CounterfactualReplayPlan):
             raise TypeError("plan must be a CounterfactualReplayPlan")
-        if self.decision in {
-            ForwardCorrectionDecision.ACCEPT,
-            ForwardCorrectionDecision.REPLAY_EXISTING,
-        } and self.plan is None:
+        if (
+            self.decision
+            in {
+                ForwardCorrectionDecision.ACCEPT,
+                ForwardCorrectionDecision.REPLAY_EXISTING,
+            }
+            and self.plan is None
+        ):
             raise ValueError("accepted correction resolutions require a replay plan")
-        if self.decision in {
-            ForwardCorrectionDecision.CONFLICT,
-            ForwardCorrectionDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ForwardCorrectionDecision.CONFLICT,
+                ForwardCorrectionDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision not in {
-            ForwardCorrectionDecision.CONFLICT,
-            ForwardCorrectionDecision.REJECT,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            not in {
+                ForwardCorrectionDecision.CONFLICT,
+                ForwardCorrectionDecision.REJECT,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful correction resolutions cannot contain a reason")
 
 
@@ -179,9 +191,7 @@ def resolve_forward_correction(
             state,
             rejection_reason="correction event does not match command identity",
         )
-    seen_event = next(
-        (item for item in state.seen_events if item.event_id == event.event_id), None
-    )
+    seen_event = next((item for item in state.seen_events if item.event_id == event.event_id), None)
     if event.event_id not in state.checkpoint.correction_event_ids or seen_event is None:
         return ForwardCorrectionResolution(
             ForwardCorrectionDecision.REJECT,

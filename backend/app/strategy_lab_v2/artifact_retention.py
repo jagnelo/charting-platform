@@ -96,10 +96,14 @@ class ArtifactRetentionState:
                 "retention_eligible_at",
                 self.retention_eligible_at.astimezone(UTC),
             )
-        if self.retention_class in {
-            ArtifactRetention.TIERED_RESULT,
-            ArtifactRetention.EPHEMERAL,
-        } and self.retention_eligible_at is None:
+        if (
+            self.retention_class
+            in {
+                ArtifactRetention.TIERED_RESULT,
+                ArtifactRetention.EPHEMERAL,
+            }
+            and self.retention_eligible_at is None
+        ):
             raise ValueError("tiered and ephemeral artifacts require retention_eligible_at")
         pins = tuple(self.pins)
         if any(not isinstance(pin, ArtifactRetentionPin) for pin in pins):
@@ -244,9 +248,7 @@ def resolve_artifact_retention(
         raise TypeError("state must be an ArtifactRetentionState")
     _aware(observed_at, "observed_at")
     observed_at = observed_at.astimezone(UTC)
-    active_pin_ids = tuple(
-        sorted(pin.pin_id for pin in state.pins if pin.active_at(observed_at))
-    )
+    active_pin_ids = tuple(sorted(pin.pin_id for pin in state.pins if pin.active_at(observed_at)))
     if active_pin_ids:
         decision = RetentionDecision.RETAIN_PINNED
     elif state.retention_class is ArtifactRetention.PERMANENT_MANIFEST:

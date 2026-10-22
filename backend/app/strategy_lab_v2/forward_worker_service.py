@@ -65,9 +65,7 @@ class ForwardEventWorkerService:
     def materializer(self) -> ForwardEventMaterializer:
         return self._materializer
 
-    async def handle(
-        self, entry: RedisStreamEntry, payload: DispatchPayload
-    ) -> WorkerHandleResult:
+    async def handle(self, entry: RedisStreamEntry, payload: DispatchPayload) -> WorkerHandleResult:
         """Process one authenticated forward event and return its ack receipt."""
 
         try:
@@ -84,9 +82,7 @@ class ForwardEventWorkerService:
         try:
             resolved_result = self._handler(entry, work_item)
             result = (
-                await resolved_result
-                if inspect.isawaitable(resolved_result)
-                else resolved_result
+                await resolved_result if inspect.isawaitable(resolved_result) else resolved_result
             )
         except Exception as error:  # pragma: no cover - host handler boundary
             return _retry(entry, f"forward event handler failed: {type(error).__name__}")

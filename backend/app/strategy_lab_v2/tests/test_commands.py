@@ -30,11 +30,17 @@ NOW = datetime(2024, 1, 1, tzinfo=UTC)
 ATTEMPT = "attempt-1"
 
 
-def _command(value: str, kind: ExecutionCommandKind, *, requested_at: datetime = NOW) -> ExecutionCommand:
-    return ExecutionCommand(content_digest({"command": value}), ATTEMPT, kind, requested_at, "operator request")
+def _command(
+    value: str, kind: ExecutionCommandKind, *, requested_at: datetime = NOW
+) -> ExecutionCommand:
+    return ExecutionCommand(
+        content_digest({"command": value}), ATTEMPT, kind, requested_at, "operator request"
+    )
 
 
-def _states(status: OutcomeStatus = OutcomeStatus.RUNNING, phase: ProgressPhase = ProgressPhase.RUNNING):
+def _states(
+    status: OutcomeStatus = OutcomeStatus.RUNNING, phase: ProgressPhase = ProgressPhase.RUNNING
+):
     submission_id = content_digest("submission")
     outcome = new_execution_outcome(submission_id, ATTEMPT, accepted_at=NOW)
     if status is not OutcomeStatus.ACCEPTED:
@@ -70,11 +76,15 @@ def _states(status: OutcomeStatus = OutcomeStatus.RUNNING, phase: ProgressPhase 
 def test_cancel_command_accepts_and_exact_retry_replays() -> None:
     outcome, progress = _states()
     command = _command("cancel", ExecutionCommandKind.CANCEL)
-    accepted = resolve_execution_command(ExecutionCommandLedger(), command, outcome, progress, accepted_at=NOW)
+    accepted = resolve_execution_command(
+        ExecutionCommandLedger(), command, outcome, progress, accepted_at=NOW
+    )
     assert accepted.decision is ExecutionCommandDecision.ACCEPT
     assert accepted.receipt is not None
     assert accepted.receipt.effect is CommandEffect.CANCELLATION_REQUESTED
-    replay = resolve_execution_command(accepted.ledger, command, outcome, progress, accepted_at=NOW + timedelta(seconds=1))
+    replay = resolve_execution_command(
+        accepted.ledger, command, outcome, progress, accepted_at=NOW + timedelta(seconds=1)
+    )
     assert replay.decision is ExecutionCommandDecision.REPLAY_EXISTING
     assert replay.receipt == accepted.receipt
 
@@ -94,21 +104,35 @@ def test_command_times_normalize_to_utc_for_identity() -> None:
 def test_changed_command_content_conflicts() -> None:
     outcome, progress = _states()
     command = _command("cancel", ExecutionCommandKind.CANCEL)
-    accepted = resolve_execution_command(ExecutionCommandLedger(), command, outcome, progress, accepted_at=NOW)
-    changed = ExecutionCommand(command.command_id, ATTEMPT, ExecutionCommandKind.RETRY, NOW, "different")
-    conflict = resolve_execution_command(accepted.ledger, changed, outcome, progress, accepted_at=NOW)
+    accepted = resolve_execution_command(
+        ExecutionCommandLedger(), command, outcome, progress, accepted_at=NOW
+    )
+    changed = ExecutionCommand(
+        command.command_id, ATTEMPT, ExecutionCommandKind.RETRY, NOW, "different"
+    )
+    conflict = resolve_execution_command(
+        accepted.ledger, changed, outcome, progress, accepted_at=NOW
+    )
     assert conflict.decision is ExecutionCommandDecision.CONFLICT
 
 
 def test_cancel_terminal_and_retry_nonfailed_are_rejected() -> None:
     succeeded, succeeded_progress = _states(OutcomeStatus.SUCCEEDED, ProgressPhase.SUCCEEDED)
     cancelled = resolve_execution_command(
-        ExecutionCommandLedger(), _command("cancel", ExecutionCommandKind.CANCEL), succeeded, succeeded_progress, accepted_at=NOW
+        ExecutionCommandLedger(),
+        _command("cancel", ExecutionCommandKind.CANCEL),
+        succeeded,
+        succeeded_progress,
+        accepted_at=NOW,
     )
     assert cancelled.decision is ExecutionCommandDecision.REJECT
     running, running_progress = _states()
     retry = resolve_execution_command(
-        ExecutionCommandLedger(), _command("retry", ExecutionCommandKind.RETRY), running, running_progress, accepted_at=NOW
+        ExecutionCommandLedger(),
+        _command("retry", ExecutionCommandKind.RETRY),
+        running,
+        running_progress,
+        accepted_at=NOW,
     )
     assert retry.decision is ExecutionCommandDecision.REJECT
 
@@ -116,7 +140,11 @@ def test_cancel_terminal_and_retry_nonfailed_are_rejected() -> None:
 def test_retry_failed_execution_is_accepted() -> None:
     failed, progress = _states(OutcomeStatus.FAILED, ProgressPhase.FAILED)
     resolved = resolve_execution_command(
-        ExecutionCommandLedger(), _command("retry", ExecutionCommandKind.RETRY), failed, progress, accepted_at=NOW
+        ExecutionCommandLedger(),
+        _command("retry", ExecutionCommandKind.RETRY),
+        failed,
+        progress,
+        accepted_at=NOW,
     )
     assert resolved.decision is ExecutionCommandDecision.ACCEPT
     assert resolved.receipt is not None
@@ -125,17 +153,31 @@ def test_retry_failed_execution_is_accepted() -> None:
 
 def test_identity_mismatch_fails_closed_without_ledger_mutation() -> None:
     outcome, progress = _states()
-    wrong = ExecutionCommand(content_digest("wrong"), "other-attempt", ExecutionCommandKind.CANCEL, NOW, "request")
-    resolved = resolve_execution_command(ExecutionCommandLedger(), wrong, outcome, progress, accepted_at=NOW)
+    wrong = ExecutionCommand(
+        content_digest("wrong"), "other-attempt", ExecutionCommandKind.CANCEL, NOW, "request"
+    )
+    resolved = resolve_execution_command(
+        ExecutionCommandLedger(), wrong, outcome, progress, accepted_at=NOW
+    )
     assert resolved.decision is ExecutionCommandDecision.REJECT
     assert resolved.ledger.receipts == ()
 
 
 def test_command_acceptance_and_ledger_ordering_are_deterministic() -> None:
     outcome, progress = _states()
-    first = resolve_execution_command(ExecutionCommandLedger(), _command("b", ExecutionCommandKind.CANCEL), outcome, progress, accepted_at=NOW)
-    second = resolve_execution_command(first.ledger, _command("a", ExecutionCommandKind.CANCEL), outcome, progress, accepted_at=NOW)
-    assert [item.command_id for item in second.ledger.receipts] == sorted(item.command_id for item in second.ledger.receipts)
+    first = resolve_execution_command(
+        ExecutionCommandLedger(),
+        _command("b", ExecutionCommandKind.CANCEL),
+        outcome,
+        progress,
+        accepted_at=NOW,
+    )
+    second = resolve_execution_command(
+        first.ledger, _command("a", ExecutionCommandKind.CANCEL), outcome, progress, accepted_at=NOW
+    )
+    assert [item.command_id for item in second.ledger.receipts] == sorted(
+        item.command_id for item in second.ledger.receipts
+    )
 
 
 def test_command_contract_rejects_invalid_digest_and_time() -> None:
@@ -143,5 +185,10 @@ def test_command_contract_rejects_invalid_digest_and_time() -> None:
         ExecutionCommand("bad", ATTEMPT, ExecutionCommandKind.CANCEL, NOW, "request")
     with pytest.raises(ValueError, match="precede"):
         resolve_execution_command(
-            ExecutionCommandLedger(), _command("cancel", ExecutionCommandKind.CANCEL, requested_at=NOW + timedelta(seconds=1)), *_states(), accepted_at=NOW
+            ExecutionCommandLedger(),
+            _command(
+                "cancel", ExecutionCommandKind.CANCEL, requested_at=NOW + timedelta(seconds=1)
+            ),
+            *_states(),
+            accepted_at=NOW,
         )

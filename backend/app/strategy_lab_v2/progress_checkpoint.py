@@ -53,9 +53,7 @@ class ProgressCheckpointResolution:
             raise TypeError("decision must be a ProgressCheckpointDecision")
         if not isinstance(self.checkpoint, ProgressCheckpoint):
             raise TypeError("checkpoint must be a ProgressCheckpoint")
-        if not isinstance(self.expected_sequence, int) or isinstance(
-            self.expected_sequence, bool
-        ):
+        if not isinstance(self.expected_sequence, int) or isinstance(self.expected_sequence, bool):
             raise ValueError("expected_sequence must be an integer")
         if self.expected_sequence < 1:
             raise ValueError("expected_sequence must be positive")
@@ -95,8 +93,7 @@ def apply_progress_checkpoint(
     next_state = apply_progress_update(checkpoint.state, update)
     next_checkpoint = ProgressCheckpoint(
         state=next_state,
-        applied_update_fingerprints=checkpoint.applied_update_fingerprints
-        | {update.fingerprint},
+        applied_update_fingerprints=checkpoint.applied_update_fingerprints | {update.fingerprint},
     )
     return ProgressCheckpointResolution(
         ProgressCheckpointDecision.APPLY,

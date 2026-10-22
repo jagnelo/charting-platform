@@ -153,11 +153,14 @@ async def test_retention_adapter_registers_pins_releases_and_resolves() -> None:
         released_at=NOW + timedelta(hours=1),
     )
     assert released.pins[0].released_at == NOW + timedelta(hours=1)
-    assert await adapter.release_pin(
-        manifest_fingerprint=MANIFEST_FINGERPRINT,
-        pin_id=pin.pin_id,
-        released_at=NOW + timedelta(hours=2),
-    ) == released
+    assert (
+        await adapter.release_pin(
+            manifest_fingerprint=MANIFEST_FINGERPRINT,
+            pin_id=pin.pin_id,
+            released_at=NOW + timedelta(hours=2),
+        )
+        == released
+    )
     assert (
         await adapter.resolve(
             manifest_fingerprint=MANIFEST_FINGERPRINT,

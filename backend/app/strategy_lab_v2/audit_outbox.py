@@ -49,22 +49,34 @@ class AuditOutboxResolution:
             raise TypeError("outbox must be an OutboxState")
         require_sha256_digest(self.audit_entry_id, field_name="audit_entry_id")
         require_sha256_digest(self.message_id, field_name="message_id")
-        if self.decision in {
-            AuditOutboxDecision.GAP,
-            AuditOutboxDecision.CONFLICT,
-            AuditOutboxDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                AuditOutboxDecision.GAP,
+                AuditOutboxDecision.CONFLICT,
+                AuditOutboxDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("non-committing resolutions require a reason")
-        if self.decision in {
-            AuditOutboxDecision.COMMIT,
-            AuditOutboxDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                AuditOutboxDecision.COMMIT,
+                AuditOutboxDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful resolutions cannot contain a reason")
 
 
 def _failed(decision: AuditAppendDecision | OutboxEnqueueDecision) -> AuditOutboxDecision | None:
     if decision in {AuditAppendDecision.GAP, OutboxEnqueueDecision.REJECT}:
-        return AuditOutboxDecision.GAP if decision is AuditAppendDecision.GAP else AuditOutboxDecision.REJECT
+        return (
+            AuditOutboxDecision.GAP
+            if decision is AuditAppendDecision.GAP
+            else AuditOutboxDecision.REJECT
+        )
     if decision is AuditAppendDecision.CONFLICT or decision is OutboxEnqueueDecision.CONFLICT:
         return AuditOutboxDecision.CONFLICT
     if decision is AuditAppendDecision.REJECT:

@@ -34,7 +34,9 @@ def _event(sequence: int = 1, *, payload: str = "progress") -> ExecutionEvent:
     )
 
 
-def _evidence(event: ExecutionEvent, *, request: str = "request") -> tuple[AuditEntry, OutboxMessage]:
+def _evidence(
+    event: ExecutionEvent, *, request: str = "request"
+) -> tuple[AuditEntry, OutboxMessage]:
     entry = AuditEntry(
         "run_attempt",
         event.attempt_id,

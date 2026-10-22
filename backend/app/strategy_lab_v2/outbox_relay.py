@@ -53,19 +53,25 @@ class OutboxRelayResolution:
         require_sha256_digest(self.outbox_message_id, field_name="outbox_message_id")
         if self.envelope is not None and not isinstance(self.envelope, DispatchEnvelope):
             raise TypeError("envelope must be a DispatchEnvelope")
-        if self.transport is not None and not isinstance(
-            self.transport, RedisTransportResolution
-        ):
+        if self.transport is not None and not isinstance(self.transport, RedisTransportResolution):
             raise TypeError("transport must be a RedisTransportResolution")
-        if self.decision in {
-            OutboxRelayDecision.CONFLICT,
-            OutboxRelayDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                OutboxRelayDecision.CONFLICT,
+                OutboxRelayDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("failed relay resolutions require a reason")
-        if self.decision in {
-            OutboxRelayDecision.PUBLISHED,
-            OutboxRelayDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                OutboxRelayDecision.PUBLISHED,
+                OutboxRelayDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful relay resolutions cannot contain a reason")
 
     @property

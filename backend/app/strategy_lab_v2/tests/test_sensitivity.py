@@ -383,13 +383,16 @@ def test_paired_metric_metrics_require_receipt_and_preserve_keyed_descriptive_de
         PairedMetricObservation("session-2", Decimal("20"), Decimal("18")),
         PairedMetricObservation("session-1", Decimal("10"), Decimal("13")),
     )
-    values = {item.name: item for item in calculate_paired_metric_metrics(
-        observations,
-        metric_name="session_return",
-        unit="fraction",
-        basis=MetricBasis.NET,
-        pairing_receipt=receipt,
-    )}
+    values = {
+        item.name: item
+        for item in calculate_paired_metric_metrics(
+            observations,
+            metric_name="session_return",
+            unit="fraction",
+            basis=MetricBasis.NET,
+            pairing_receipt=receipt,
+        )
+    }
     assert values["paired_observation_count"].value == Decimal(2)
     assert values["paired_baseline_mean"].value == Decimal(15)
     assert values["paired_variant_mean"].value == Decimal(15.5)

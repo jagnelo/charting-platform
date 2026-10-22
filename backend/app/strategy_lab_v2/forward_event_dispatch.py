@@ -63,28 +63,44 @@ class ForwardEventDispatchResolution:
             raise TypeError("dispatch_resolution must be a DispatchResolution")
         if self.envelope is not None and not isinstance(self.envelope, DispatchEnvelope):
             raise TypeError("envelope must be a DispatchEnvelope")
-        if self.decision in {
-            ForwardEventDispatchDecision.ENQUEUE,
-            ForwardEventDispatchDecision.REPLAY_EXISTING,
-            ForwardEventDispatchDecision.CORRECTION_ENQUEUE,
-            ForwardEventDispatchDecision.CORRECTION_REPLAY,
-            ForwardEventDispatchDecision.BUFFERED,
-        } and self.dispatch_resolution is None:
+        if (
+            self.decision
+            in {
+                ForwardEventDispatchDecision.ENQUEUE,
+                ForwardEventDispatchDecision.REPLAY_EXISTING,
+                ForwardEventDispatchDecision.CORRECTION_ENQUEUE,
+                ForwardEventDispatchDecision.CORRECTION_REPLAY,
+                ForwardEventDispatchDecision.BUFFERED,
+            }
+            and self.dispatch_resolution is None
+        ):
             raise ValueError("dispatching decisions require dispatch evidence")
-        if self.decision in {
-            ForwardEventDispatchDecision.ENQUEUE,
-            ForwardEventDispatchDecision.CORRECTION_ENQUEUE,
-        } and self.envelope is None:
+        if (
+            self.decision
+            in {
+                ForwardEventDispatchDecision.ENQUEUE,
+                ForwardEventDispatchDecision.CORRECTION_ENQUEUE,
+            }
+            and self.envelope is None
+        ):
             raise ValueError("enqueue decisions require a dispatch envelope")
-        if self.decision in {
-            ForwardEventDispatchDecision.CONFLICT,
-            ForwardEventDispatchDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ForwardEventDispatchDecision.CONFLICT,
+                ForwardEventDispatchDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision not in {
-            ForwardEventDispatchDecision.CONFLICT,
-            ForwardEventDispatchDecision.REJECT,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            not in {
+                ForwardEventDispatchDecision.CONFLICT,
+                ForwardEventDispatchDecision.REJECT,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful dispatch decisions cannot contain a reason")
 
 
@@ -108,7 +124,9 @@ def resolve_forward_event_dispatch(
         raise TypeError("prior_dispatches must be a tuple")
     instance_id = state.checkpoint.instance.instance_id
     if dispatch_request.attempt_id != instance_id:
-        return _reject(state, event, observation, "dispatch request must reference the forward instance")
+        return _reject(
+            state, event, observation, "dispatch request must reference the forward instance"
+        )
     transaction = resolve_forward_event_transaction(
         state,
         event,
@@ -133,9 +151,7 @@ def resolve_forward_event_dispatch(
         ForwardEventTransactionDecision.OUT_OF_ORDER,
     }:
         return ForwardEventDispatchResolution(
-            ForwardEventDispatchDecision(
-                transaction.decision.value
-            ),
+            ForwardEventDispatchDecision(transaction.decision.value),
             transaction.state,
             transaction,
         )

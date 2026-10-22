@@ -100,7 +100,9 @@ class ExecutionCommandLedger:
         ids = [item.command_id for item in receipts]
         if len(ids) != len(set(ids)):
             raise ValueError("command ids must be unique")
-        object.__setattr__(self, "receipts", tuple(sorted(receipts, key=lambda item: item.command_id)))
+        object.__setattr__(
+            self, "receipts", tuple(sorted(receipts, key=lambda item: item.command_id))
+        )
 
     @property
     def fingerprint(self) -> str:
@@ -130,20 +132,32 @@ class ExecutionCommandResolution:
         require_sha256_digest(self.command_fingerprint, field_name="command_fingerprint")
         if self.receipt is not None and not isinstance(self.receipt, ExecutionCommandReceipt):
             raise TypeError("receipt must be an ExecutionCommandReceipt")
-        if self.decision in {
-            ExecutionCommandDecision.ACCEPT,
-            ExecutionCommandDecision.REPLAY_EXISTING,
-        } and self.receipt is None:
+        if (
+            self.decision
+            in {
+                ExecutionCommandDecision.ACCEPT,
+                ExecutionCommandDecision.REPLAY_EXISTING,
+            }
+            and self.receipt is None
+        ):
             raise ValueError("accepted command resolutions require a receipt")
-        if self.decision in {
-            ExecutionCommandDecision.CONFLICT,
-            ExecutionCommandDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ExecutionCommandDecision.CONFLICT,
+                ExecutionCommandDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision not in {
-            ExecutionCommandDecision.CONFLICT,
-            ExecutionCommandDecision.REJECT,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            not in {
+                ExecutionCommandDecision.CONFLICT,
+                ExecutionCommandDecision.REJECT,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful command resolutions cannot contain a reason")
 
 
@@ -175,7 +189,9 @@ def resolve_execution_command(
             command.fingerprint,
             rejection_reason="command attempt does not match outcome and progress",
         )
-    existing = next((item for item in ledger.receipts if item.command_id == command.command_id), None)
+    existing = next(
+        (item for item in ledger.receipts if item.command_id == command.command_id), None
+    )
     if existing is not None:
         if existing.command_fingerprint == command.fingerprint:
             return ExecutionCommandResolution(

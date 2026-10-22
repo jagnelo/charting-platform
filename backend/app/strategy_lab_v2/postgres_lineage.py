@@ -140,9 +140,7 @@ class PostgresLineageAdapter:
             raise ValueError("PostgreSQL lineage entries are not deterministically ordered")
         return build_lineage_index(owner_type, owner_id, ordered)
 
-    async def _insert_entry(
-        self, session: AsyncSessionLike, entry: ArtifactLineageEntry
-    ) -> None:
+    async def _insert_entry(self, session: AsyncSessionLike, entry: ArtifactLineageEntry) -> None:
         result = await session.execute(
             _statement(
                 f"""

@@ -174,7 +174,9 @@ class PostgresCoverageAdapter:
                     attestations.append(_authenticate_row(row, owner_id))
                 ordered = tuple(sorted(attestations, key=lambda item: item.series_content_digest))
                 if tuple(attestations) != ordered:
-                    raise ValueError("PostgreSQL coverage attestations are not deterministically ordered")
+                    raise ValueError(
+                        "PostgreSQL coverage attestations are not deterministically ordered"
+                    )
                 return ordered
 
     async def _load_one(
@@ -272,7 +274,10 @@ def _authenticate_row(
         raise ValueError("PostgreSQL coverage owner identity drifted")
     if row.get("series_content_digest") != attestation.series_content_digest:
         raise ValueError("PostgreSQL coverage series identity does not match bytes")
-    if series_content_digest is not None and attestation.series_content_digest != series_content_digest:
+    if (
+        series_content_digest is not None
+        and attestation.series_content_digest != series_content_digest
+    ):
         raise ValueError("PostgreSQL coverage series identity drifted")
     if row.get("attestation_fingerprint") != attestation.fingerprint:
         raise ValueError("PostgreSQL coverage attestation fingerprint does not match bytes")

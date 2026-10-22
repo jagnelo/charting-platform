@@ -109,7 +109,10 @@ def materialize_execution_terminal(
         return _reject(outcome, progress, "submission and outcome identities differ")
     if receipt.request.attempt_id != runtime_state.attempt_id:
         return _reject(outcome, progress, "submission and runtime attempts differ")
-    if outcome.attempt_id != runtime_state.attempt_id or progress.attempt_id != runtime_state.attempt_id:
+    if (
+        outcome.attempt_id != runtime_state.attempt_id
+        or progress.attempt_id != runtime_state.attempt_id
+    ):
         return _reject(outcome, progress, "terminal records reference different attempts")
     if observed_at < max(runtime_state.updated_at, outcome.updated_at, progress.updated_at):
         return _reject(outcome, progress, "terminal observation time cannot move backwards")
@@ -121,7 +124,10 @@ def materialize_execution_terminal(
         if result.attempt_id != runtime_state.attempt_id:
             return _reject(outcome, progress, "result manifest references a different attempt")
         result_digest = result.fingerprint
-        if runtime_state.phase is RuntimeExecutionPhase.SUCCEEDED and runtime_state.output_digest is None:
+        if (
+            runtime_state.phase is RuntimeExecutionPhase.SUCCEEDED
+            and runtime_state.output_digest is None
+        ):
             return _reject(outcome, progress, "successful runtime is missing output evidence")
         if progress.cancellation_requested:
             return _reject(outcome, progress, "cancelled execution cannot succeed")
@@ -154,7 +160,10 @@ def materialize_execution_terminal(
         ProgressPhase.CANCELLED,
     }:
         if outcome.status is desired_outcome and progress.phase is desired_progress:
-            if desired_outcome is OutcomeStatus.SUCCEEDED and outcome.result_digest == result_digest:
+            if (
+                desired_outcome is OutcomeStatus.SUCCEEDED
+                and outcome.result_digest == result_digest
+            ):
                 return ExecutionTerminalResolution(
                     ExecutionTerminalDecision.REPLAY_EXISTING, outcome, progress
                 )
@@ -187,7 +196,11 @@ def materialize_execution_terminal(
                 attempt_id=progress.attempt_id,
                 sequence=progress.sequence + 1,
                 phase=desired_progress,
-                completed_units=(progress.total_units if desired_progress is ProgressPhase.SUCCEEDED else progress.completed_units),
+                completed_units=(
+                    progress.total_units
+                    if desired_progress is ProgressPhase.SUCCEEDED
+                    else progress.completed_units
+                ),
                 total_units=progress.total_units,
                 emitted_at=observed_at,
                 detail="runtime terminal materialized",

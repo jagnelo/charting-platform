@@ -20,7 +20,9 @@ from app.strategy_lab_v2.tests.test_admission import _fixture, _request, _reserv
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
-def _dispatch(attempt_id: str, *, key: str = "dispatch-one", payload: str = "payload") -> DispatchRequest:
+def _dispatch(
+    attempt_id: str, *, key: str = "dispatch-one", payload: str = "payload"
+) -> DispatchRequest:
     return DispatchRequest(
         key,
         attempt_id,

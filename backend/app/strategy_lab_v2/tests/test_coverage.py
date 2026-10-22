@@ -22,9 +22,19 @@ END = NOW + timedelta(days=1)
 
 def _manifest() -> DataSeriesManifest:
     return DataSeriesManifest(
-        "AAPL", "ohlcv", EventGranularity.BAR, "1d", "regular", "sip",
-        NOW, END, AdjustmentMode.SPLIT_ADJUSTED, "split-only",
-        content_digest("evidence"), content_digest("series"), 100,
+        "AAPL",
+        "ohlcv",
+        EventGranularity.BAR,
+        "1d",
+        "regular",
+        "sip",
+        NOW,
+        END,
+        AdjustmentMode.SPLIT_ADJUSTED,
+        "split-only",
+        content_digest("evidence"),
+        content_digest("series"),
+        100,
     )
 
 

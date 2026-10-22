@@ -135,7 +135,11 @@ class MarketEvent:
         if self.event_time.tzinfo is None or self.event_time.utcoffset() is None:
             raise ValueError("market event time must be timezone-aware")
         object.__setattr__(self, "event_time", self.event_time.astimezone(UTC))
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 0
+        ):
             raise ValueError("market event sequence must be non-negative")
         if not isinstance(self.values, Mapping):
             raise TypeError("market event values must be a mapping")

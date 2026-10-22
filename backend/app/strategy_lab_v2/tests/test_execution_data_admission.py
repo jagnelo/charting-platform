@@ -63,9 +63,7 @@ def _fixtures():
 def test_data_bound_execution_requires_matching_verified_acquisition() -> None:
     trial, request, snapshot, acquisition, execution = _fixtures()
 
-    admission = admit_data_bound_execution(
-        trial, request, snapshot, acquisition, execution
-    )
+    admission = admit_data_bound_execution(trial, request, snapshot, acquisition, execution)
 
     assert admission.decision is DataExecutionAdmissionDecision.READY
     assert admission.accepted
@@ -96,9 +94,7 @@ def test_data_bound_execution_rejects_unverified_or_identity_drift(
         rejected_trial = trial
         rejected_execution = execution
     elif change == "snapshot":
-        rejected_series = replace(
-            snapshot.series[0], content_digest=content_digest("other-series")
-        )
+        rejected_series = replace(snapshot.series[0], content_digest=content_digest("other-series"))
         rejected = replace(snapshot, series=(rejected_series,))
         rejected_snapshot = rejected
         rejected_trial = trial
@@ -124,9 +120,7 @@ def test_data_bound_execution_rejects_trial_and_request_preflight_drift() -> Non
     trial, request, snapshot, acquisition, execution = _fixtures()
     drifted_request = replace(request, request_id="other-request")
 
-    admission = admit_data_bound_execution(
-        trial, drifted_request, snapshot, acquisition, execution
-    )
+    admission = admit_data_bound_execution(trial, drifted_request, snapshot, acquisition, execution)
 
     assert admission.decision is DataExecutionAdmissionDecision.REJECTED
     assert admission.rejection_reasons == ("acquisition_request_mismatch",)
@@ -134,9 +128,7 @@ def test_data_bound_execution_rejects_trial_and_request_preflight_drift() -> Non
 
 def test_data_bound_execution_requires_typed_inputs() -> None:
     values = _fixtures()
-    for index, name in enumerate(
-        ("trial", "request", "snapshot", "acquisition", "execution")
-    ):
+    for index, name in enumerate(("trial", "request", "snapshot", "acquisition", "execution")):
         invalid = list(values)
         invalid[index] = "bad"
         with pytest.raises(TypeError, match=name):

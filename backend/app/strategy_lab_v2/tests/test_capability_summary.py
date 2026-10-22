@@ -28,24 +28,53 @@ END = datetime(2022, 1, 1, tzinfo=UTC)
 
 def _requirement(*, session: str = "regular") -> CapabilityRequirement:
     return CapabilityRequirement(
-        "US.AAPL", ProductClass.EQUITY, EventGranularity.BAR, "ohlcv", "1d", START, END,
-        AdjustmentMode.SPLIT_ADJUSTED, session, "consolidated", "bar-close", "cash-equity", "split-v1",
+        "US.AAPL",
+        ProductClass.EQUITY,
+        EventGranularity.BAR,
+        "ohlcv",
+        "1d",
+        START,
+        END,
+        AdjustmentMode.SPLIT_ADJUSTED,
+        session,
+        "consolidated",
+        "bar-close",
+        "cash-equity",
+        "split-v1",
     )
 
 
 def _cell() -> CapabilityCell:
     return CapabilityCell(
-        "US.AAPL", ProductClass.EQUITY, frozenset({EventGranularity.BAR}), frozenset({"ohlcv"}),
-        frozenset({"1d"}), frozenset({AdjustmentMode.SPLIT_ADJUSTED}), frozenset({"regular"}),
-        frozenset({"consolidated"}), frozenset({"bar-close"}), frozenset({"cash-equity"}),
-        frozenset({"split-v1"}), START, END, content_digest("coverage"),
+        "US.AAPL",
+        ProductClass.EQUITY,
+        frozenset({EventGranularity.BAR}),
+        frozenset({"ohlcv"}),
+        frozenset({"1d"}),
+        frozenset({AdjustmentMode.SPLIT_ADJUSTED}),
+        frozenset({"regular"}),
+        frozenset({"consolidated"}),
+        frozenset({"bar-close"}),
+        frozenset({"cash-equity"}),
+        frozenset({"split-v1"}),
+        START,
+        END,
+        content_digest("coverage"),
     )
 
 
-def _binding(*, authoritative: bool = True, execution_model: str = "bar-close") -> ExecutionCapabilityBinding:
+def _binding(
+    *, authoritative: bool = True, execution_model: str = "bar-close"
+) -> ExecutionCapabilityBinding:
     return ExecutionCapabilityBinding(
-        "nautilus", "2.0.0", content_digest("engine"), content_digest("conformance"),
-        frozenset({ProductClass.EQUITY}), frozenset({execution_model}), frozenset({"cash-equity"}), authoritative,
+        "nautilus",
+        "2.0.0",
+        content_digest("engine"),
+        content_digest("conformance"),
+        frozenset({ProductClass.EQUITY}),
+        frozenset({execution_model}),
+        frozenset({"cash-equity"}),
+        authoritative,
     )
 
 
@@ -104,6 +133,14 @@ def test_summary_contract_rejects_invalid_digest_and_flags() -> None:
 
     with pytest.raises(ValueError, match="report_fingerprint"):
         CapabilitySummary(
-            "bad", content_digest("binding"), CapabilitySummaryDecision.RIGOROUS,
-            (), (), (), True, True, True, True,
+            "bad",
+            content_digest("binding"),
+            CapabilitySummaryDecision.RIGOROUS,
+            (),
+            (),
+            (),
+            True,
+            True,
+            True,
+            True,
         )

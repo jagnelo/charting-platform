@@ -188,4 +188,3 @@ def test_liquidity_math_is_independent_of_decimal_context() -> None:
         decimal_context.rounding = ROUND_DOWN
         constrained = apply_liquidity_risk_gate(stress, _liquidity(stress), policy)
     assert constrained == baseline
-

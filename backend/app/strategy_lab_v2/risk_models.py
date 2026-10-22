@@ -127,11 +127,7 @@ def estimate_signed_base_notional(
 
     signed_quantity = quantity if side is OrderSide.BUY else -quantity
     signed_notional = (
-        signed_quantity
-        * price_basis
-        * contract_multiplier
-        * quote_to_base_rate
-        * delta
+        signed_quantity * price_basis * contract_multiplier * quote_to_base_rate * delta
     )
     if signed_notional == 0:
         raise ValueError("risk valuation produced a zero signed base notional")

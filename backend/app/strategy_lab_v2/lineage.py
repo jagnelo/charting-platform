@@ -88,7 +88,9 @@ class ArtifactLineageIndex:
         entries = tuple(self.entries)
         if any(not isinstance(item, ArtifactLineageEntry) for item in entries):
             raise TypeError("lineage entries must contain ArtifactLineageEntry values")
-        if any(item.owner_type != self.owner_type or item.owner_id != self.owner_id for item in entries):
+        if any(
+            item.owner_type != self.owner_type or item.owner_id != self.owner_id for item in entries
+        ):
             raise ValueError("lineage entries must reference the index owner")
         keys = [item.semantic_key for item in entries]
         if len(keys) != len(set(keys)):

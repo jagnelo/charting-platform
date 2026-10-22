@@ -51,7 +51,11 @@ class AuditEntry:
     def __post_init__(self) -> None:
         _nonempty(self.aggregate_type, "aggregate_type")
         _nonempty(self.aggregate_id, "aggregate_id")
-        if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 1:
+        if (
+            not isinstance(self.sequence, int)
+            or isinstance(self.sequence, bool)
+            or self.sequence < 1
+        ):
             raise ValueError("audit sequence must be a positive integer")
         if not isinstance(self.entry_type, AuditEntryType):
             raise TypeError("entry_type must be an AuditEntryType")
@@ -94,7 +98,10 @@ class AuditJournal:
         for expected, entry in enumerate(self.entries, start=1):
             if not isinstance(entry, AuditEntry):
                 raise TypeError("entries must contain AuditEntry values")
-            if entry.aggregate_type != self.aggregate_type or entry.aggregate_id != self.aggregate_id:
+            if (
+                entry.aggregate_type != self.aggregate_type
+                or entry.aggregate_id != self.aggregate_id
+            ):
                 raise ValueError("journal entries must reference the journal aggregate")
             if entry.sequence != expected:
                 raise ValueError("journal entries must be contiguous")
@@ -182,7 +189,8 @@ def append_audit_entry(
     scoped = tuple(
         item
         for item in (*journal.entries, *prior)
-        if item.aggregate_type == journal.aggregate_type and item.aggregate_id == journal.aggregate_id
+        if item.aggregate_type == journal.aggregate_type
+        and item.aggregate_id == journal.aggregate_id
     )
     matches = tuple(item for item in scoped if item.entry_id == entry.entry_id)
     if matches:

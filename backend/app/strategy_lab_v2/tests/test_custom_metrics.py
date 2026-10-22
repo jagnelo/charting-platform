@@ -54,7 +54,9 @@ def test_custom_metric_runs_over_frozen_decimal_inputs_and_emits_typed_metric() 
 def test_custom_metric_source_identity_and_static_violations_fail_closed() -> None:
     mismatch = run_custom_metric(
         SAFE_SOURCE,
-        definition=_definition("def calculate(observations, parameters):\n    return Decimal('1')\n"),
+        definition=_definition(
+            "def calculate(observations, parameters):\n    return Decimal('1')\n"
+        ),
         observations={},
     )
     assert mismatch.status is CustomMetricStatus.REJECTED

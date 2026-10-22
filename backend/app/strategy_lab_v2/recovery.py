@@ -158,7 +158,10 @@ def _validate_attempt_chain(prior_attempts: Sequence[RunAttempt]) -> tuple[RunAt
         raise ValueError("attempt ordinals must be contiguous from one")
     if len({item.trial_id for item in ordered}) != 1:
         raise ValueError("all attempts in a recovery chain must reference one trial")
-    if any(item.state not in {AttemptState.SUCCEEDED, AttemptState.FAILED, AttemptState.CANCELLED} for item in ordered[:-1]):
+    if any(
+        item.state not in {AttemptState.SUCCEEDED, AttemptState.FAILED, AttemptState.CANCELLED}
+        for item in ordered[:-1]
+    ):
         raise ValueError("all earlier attempts must be terminal before recovery")
     return ordered
 

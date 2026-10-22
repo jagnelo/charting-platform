@@ -145,9 +145,7 @@ class PostgresMetricsAdapter:
     def schema(self) -> PostgresMetricsSchema:
         return self._schema
 
-    async def ensure(
-        self, *, principal: Any, metric_set: MetricSet
-    ) -> MetricSetStateResolution:
+    async def ensure(self, *, principal: Any, metric_set: MetricSet) -> MetricSetStateResolution:
         if not isinstance(metric_set, MetricSet):
             raise TypeError("metric_set must be a MetricSet")
         owner_id = _principal_id(principal)
@@ -155,23 +153,15 @@ class PostgresMetricsAdapter:
         session: AsyncSessionLike = self._session_factory()
         async with session:
             async with session.begin():
-                current = await self._load_by_fingerprint(
-                    session, owner_id, metric_set.fingerprint
-                )
+                current = await self._load_by_fingerprint(session, owner_id, metric_set.fingerprint)
                 if current is None:
-                    current = await self._load_by_attempt(
-                        session, owner_id, metric_set.attempt_id
-                    )
+                    current = await self._load_by_attempt(session, owner_id, metric_set.attempt_id)
                 if current is None:
                     await self._insert(session, owner_id, candidate)
-                    return MetricSetStateResolution(
-                        MetricSetStateDecision.REGISTERED, candidate
-                    )
+                    return MetricSetStateResolution(MetricSetStateDecision.REGISTERED, candidate)
                 if current != candidate:
                     raise ValueError("PostgreSQL metric-set attempt is already bound")
-                return MetricSetStateResolution(
-                    MetricSetStateDecision.REPLAY_EXISTING, current
-                )
+                return MetricSetStateResolution(MetricSetStateDecision.REPLAY_EXISTING, current)
 
     async def load(
         self, *, principal: Any, metric_set_fingerprint: str
@@ -181,9 +171,7 @@ class PostgresMetricsAdapter:
         session: AsyncSessionLike = self._session_factory()
         async with session:
             async with session.begin():
-                return await self._load_by_fingerprint(
-                    session, owner_id, metric_set_fingerprint
-                )
+                return await self._load_by_fingerprint(session, owner_id, metric_set_fingerprint)
 
     async def load_all(self, *, principal: Any) -> tuple[PersistedMetricSet, ...]:
         owner_id = _principal_id(principal)
@@ -205,8 +193,7 @@ class PostgresMetricsAdapter:
                     {"owner_id": owner_id},
                 )
                 records = tuple(
-                    self._authenticate(_decode(row), row, owner_id)
-                    for row in result.mappings()
+                    self._authenticate(_decode(row), row, owner_id) for row in result.mappings()
                 )
                 ordered = tuple(sorted(records, key=lambda item: item.attempt_id))
                 if records != ordered:
@@ -218,9 +205,7 @@ class PostgresMetricsAdapter:
     ) -> MetricSet | None:
         """Load and strictly rehydrate one authenticated metric-set contract."""
 
-        record = await self.load(
-            principal=principal, metric_set_fingerprint=metric_set_fingerprint
-        )
+        record = await self.load(principal=principal, metric_set_fingerprint=metric_set_fingerprint)
         if record is None:
             return None
         return _decode_authenticated_metric_set(record)
@@ -234,9 +219,7 @@ class PostgresMetricsAdapter:
     async def _load_by_fingerprint(
         self, session: AsyncSessionLike, owner_id: str, fingerprint: str
     ) -> PersistedMetricSet | None:
-        return await self._load(
-            session, owner_id, fingerprint, where="metric_set_fingerprint"
-        )
+        return await self._load(session, owner_id, fingerprint, where="metric_set_fingerprint")
 
     async def _load_by_attempt(
         self, session: AsyncSessionLike, owner_id: str, attempt_id: str

@@ -15,7 +15,9 @@ from app.strategy_lab_v2.dispatch import (
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 
 
-def _request(*, key: str = "request-1", payload: str = "payload", queue: str = "backtest") -> DispatchRequest:
+def _request(
+    *, key: str = "request-1", payload: str = "payload", queue: str = "backtest"
+) -> DispatchRequest:
     return DispatchRequest(
         idempotency_key=key,
         attempt_id="attempt-1",
@@ -76,6 +78,8 @@ def test_dispatch_resolution_rejects_conflicting_prior_records() -> None:
 
 def test_dispatch_request_rejects_naive_time_and_oversized_key() -> None:
     with pytest.raises(ValueError, match="timezone-aware"):
-        DispatchRequest("key", "attempt", content_digest("payload"), "backtest", datetime(2024, 1, 1))
+        DispatchRequest(
+            "key", "attempt", content_digest("payload"), "backtest", datetime(2024, 1, 1)
+        )
     with pytest.raises(ValueError, match="256"):
         _request(key="x" * 257)

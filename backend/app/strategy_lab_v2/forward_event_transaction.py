@@ -56,20 +56,32 @@ class ForwardEventTransactionResolution:
             self.replay_plan, CounterfactualReplayPlan
         ):
             raise TypeError("replay_plan must be a CounterfactualReplayPlan")
-        if self.decision in {
-            ForwardEventTransactionDecision.CORRECTION_ACCEPTED,
-            ForwardEventTransactionDecision.CORRECTION_REPLAY,
-        } and self.replay_plan is None:
+        if (
+            self.decision
+            in {
+                ForwardEventTransactionDecision.CORRECTION_ACCEPTED,
+                ForwardEventTransactionDecision.CORRECTION_REPLAY,
+            }
+            and self.replay_plan is None
+        ):
             raise ValueError("correction decisions require a replay plan")
-        if self.decision in {
-            ForwardEventTransactionDecision.CONFLICT,
-            ForwardEventTransactionDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                ForwardEventTransactionDecision.CONFLICT,
+                ForwardEventTransactionDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision not in {
-            ForwardEventTransactionDecision.CONFLICT,
-            ForwardEventTransactionDecision.REJECT,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            not in {
+                ForwardEventTransactionDecision.CONFLICT,
+                ForwardEventTransactionDecision.REJECT,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("successful event decisions cannot contain a reason")
 
     @property

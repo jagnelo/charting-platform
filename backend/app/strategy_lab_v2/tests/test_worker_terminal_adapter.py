@@ -52,7 +52,9 @@ def _adapter(resolver) -> PostgresWorkerTerminalAdapter:
 
 
 @pytest.mark.asyncio
-async def test_terminal_adapter_keeps_timeout_pending_without_partial_writes(tmp_path: Path) -> None:
+async def test_terminal_adapter_keeps_timeout_pending_without_partial_writes(
+    tmp_path: Path,
+) -> None:
     called = False
 
     async def resolver(_context: Any):

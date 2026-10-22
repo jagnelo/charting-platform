@@ -1683,7 +1683,16 @@ test.describe('TC2000 workstation', () => {
       ]
       await route.fulfill({ response, body: JSON.stringify(payload) })
     })
-    await page.goto('/chart')
+    // The surface can mount before its intercepted readiness fixture arrives.
+    // Await that response before starting the unchanged semantic assertion.
+    await Promise.all([
+      page.waitForResponse(response =>
+        new URL(response.url()).pathname === '/api/v1/analysis/benchmark-families/readiness'
+        && response.request().method() === 'GET'
+        && response.status() === 200,
+      ),
+      page.goto('/chart'),
+    ])
     const benchmarkSurface = page.locator('.benchmark-surface').first()
     await expect(benchmarkSurface).toBeVisible({ timeout: 10_000 })
     await expect(benchmarkSurface.getByLabel('Benchmark provider probe evidence')).toContainText('Provider probes: 2/2 passed · 1 recovered · latest 2026-08-02')
@@ -1703,7 +1712,16 @@ test.describe('TC2000 workstation', () => {
       }
       await route.fulfill({ response, body: JSON.stringify(payload) })
     })
-    await page.goto('/chart')
+    // Register the response listener before navigation so a fast fixture cannot
+    // race setup and a slow fixture does not consume the assertion's budget.
+    await Promise.all([
+      page.waitForResponse(response =>
+        new URL(response.url()).pathname === '/api/v1/analysis/benchmark-families/readiness'
+        && response.request().method() === 'GET'
+        && response.status() === 200,
+      ),
+      page.goto('/chart'),
+    ])
     const benchmarkSurface = page.locator('.benchmark-surface').first()
     await expect(benchmarkSurface).toBeVisible({ timeout: 10_000 })
     await expect(benchmarkSurface.getByLabel('Benchmark family universe provenance')).toContainText('Universe: top_down_taxonomy · 2 families · point-in-time · missing 1 · provider calls none')

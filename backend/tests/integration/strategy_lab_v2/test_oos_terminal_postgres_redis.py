@@ -305,9 +305,7 @@ async def _exact_rc6_owner_request(tmp_path: Path):
         execution.rejection_reason,
         execution.nautilus_result,
         execution.nautilus_result.status if execution.nautilus_result else None,
-        execution.nautilus_result.sandbox_result
-        if execution.nautilus_result
-        else None,
+        execution.nautilus_result.sandbox_result if execution.nautilus_result else None,
         execution.runtime_result,
     )
     return owner, graph, request, process, persistence, store

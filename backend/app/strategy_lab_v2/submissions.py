@@ -102,7 +102,10 @@ class SubmissionResolution:
             raise TypeError("existing_receipt must be a SubmissionReceipt")
         if self.decision is SubmissionDecision.REPLAY_EXISTING and self.existing_receipt is None:
             raise ValueError("replay resolutions require an existing receipt")
-        if self.decision is SubmissionDecision.IDEMPOTENCY_CONFLICT and self.existing_receipt is None:
+        if (
+            self.decision is SubmissionDecision.IDEMPOTENCY_CONFLICT
+            and self.existing_receipt is None
+        ):
             raise ValueError("conflict resolutions require the existing receipt")
 
     @property

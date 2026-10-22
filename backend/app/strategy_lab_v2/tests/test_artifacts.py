@@ -64,9 +64,7 @@ def test_artifact_content_digest_is_deterministic() -> None:
 def test_streamed_artifact_observation_reuses_payload_integrity_rules() -> None:
     payload = b"streamed"
     manifest = _manifest(payload)
-    receipt = verify_artifact_observation(
-        manifest, artifact_content_digest(payload), len(payload)
-    )
+    receipt = verify_artifact_observation(manifest, artifact_content_digest(payload), len(payload))
     assert receipt.verified
     mismatch = verify_artifact_observation(manifest, content_digest("other"), len(payload))
     assert mismatch.failure_reasons == ("digest_mismatch",)

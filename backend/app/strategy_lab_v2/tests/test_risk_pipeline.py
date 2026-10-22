@@ -83,8 +83,7 @@ def test_trade_risk_pipeline_can_reject_at_settlement_without_partial_approval()
     low_cash = replace(
         settlement,
         capacities=tuple(
-            replace(capacity, available_cash=Decimal("500"))
-            for capacity in settlement.capacities
+            replace(capacity, available_cash=Decimal("500")) for capacity in settlement.capacities
         ),
     )
     admission = evaluate_trade_risk(

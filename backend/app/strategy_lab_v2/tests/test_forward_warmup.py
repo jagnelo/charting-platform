@@ -110,9 +110,7 @@ def test_warmup_completes_only_from_warming_up_state() -> None:
 
 
 def test_warmup_completion_time_and_live_cursor_are_monotonic() -> None:
-    stale = resolve_forward_warmup(
-        _instance(), _receipt(completed_at=NOW - timedelta(seconds=1))
-    )
+    stale = resolve_forward_warmup(_instance(), _receipt(completed_at=NOW - timedelta(seconds=1)))
     assert stale.decision is ForwardWarmupDecision.REJECT
     assert "backwards" in (stale.rejection_reason or "")
 

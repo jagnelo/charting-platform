@@ -26,9 +26,7 @@ from app.strategy_lab_v2.contracts import (
 from app.strategy_lab_v2.decimal_math import DECIMAL_PRECISION, deterministic_decimal_math
 from app.strategy_lab_v2.sdk import OrderIntent, StrategyIntent, TargetPositionIntent
 
-ALLOCATION_DEFINITION_VERSION = (
-    f"strategy-lab.allocation.v1.decimal{DECIMAL_PRECISION}-half-even"
-)
+ALLOCATION_DEFINITION_VERSION = f"strategy-lab.allocation.v1.decimal{DECIMAL_PRECISION}-half-even"
 
 
 def _aware(value: datetime, field_name: str) -> None:
@@ -369,17 +367,15 @@ def allocate_component_targets(
         request_keys.add(key)
         by_instrument[request.instrument_id].append(request)
 
-    required_instruments = {
-        instrument_id for _, instrument_id in current
-    } | {request.instrument_id for request in request_list}
+    required_instruments = {instrument_id for _, instrument_id in current} | {
+        request.instrument_id for request in request_list
+    }
     for instrument_id in sorted(required_instruments):
         risk_model = snapshot_risk_models.get(instrument_id)
         if risk_model is None:
             raise ValueError(f"instrument {instrument_id!r} has no risk-model evidence")
         if risk_model not in SUPPORTED_PRODUCT_RISK_MODELS:
-            raise ValueError(
-                f"instrument {instrument_id!r} uses an unsupported product risk model"
-            )
+            raise ValueError(f"instrument {instrument_id!r} uses an unsupported product risk model")
         if allowed_risk_models.get(risk_model.product_class) != risk_model:
             raise ValueError(
                 f"instrument {instrument_id!r} risk model is not allowed by the portfolio policy"
@@ -389,10 +385,17 @@ def allocate_component_targets(
     resolved: dict[tuple[str, str], Decimal] = dict(current)
     selected_target_keys: set[tuple[str, str]] = set()
     for instrument_id in sorted(by_instrument):
-        instrument_requests = sorted(by_instrument[instrument_id], key=lambda item: item.component_id)
-        if len(instrument_requests) > 1 and policy.target_conflict_policy is TargetConflictPolicy.REJECT:
+        instrument_requests = sorted(
+            by_instrument[instrument_id], key=lambda item: item.component_id
+        )
+        if (
+            len(instrument_requests) > 1
+            and policy.target_conflict_policy is TargetConflictPolicy.REJECT
+        ):
             rejected.extend(
-                TargetRejection(item.component_id, instrument_id, AllocationRejectionCode.TARGET_CONFLICT)
+                TargetRejection(
+                    item.component_id, instrument_id, AllocationRejectionCode.TARGET_CONFLICT
+                )
                 for item in instrument_requests
             )
             continue
@@ -400,7 +403,9 @@ def allocate_component_targets(
             len(instrument_requests) > 1
             and policy.target_conflict_policy is TargetConflictPolicy.HIGHEST_PRIORITY
         ):
-            highest_priority = max(components[item.component_id].priority for item in instrument_requests)
+            highest_priority = max(
+                components[item.component_id].priority for item in instrument_requests
+            )
             winners = [
                 item
                 for item in instrument_requests
@@ -408,13 +413,17 @@ def allocate_component_targets(
             ]
             if len(winners) != 1:
                 rejected.extend(
-                    TargetRejection(item.component_id, instrument_id, AllocationRejectionCode.PRIORITY_TIE)
+                    TargetRejection(
+                        item.component_id, instrument_id, AllocationRejectionCode.PRIORITY_TIE
+                    )
                     for item in instrument_requests
                 )
                 continue
             selected = winners
             rejected.extend(
-                TargetRejection(item.component_id, instrument_id, AllocationRejectionCode.LOWER_PRIORITY)
+                TargetRejection(
+                    item.component_id, instrument_id, AllocationRejectionCode.LOWER_PRIORITY
+                )
                 for item in instrument_requests
                 if item is not winners[0]
             )
@@ -424,8 +433,7 @@ def allocate_component_targets(
         for request in selected:
             component = components[request.component_id]
             resolved[(request.component_id, instrument_id)] = (
-                component.capital_weight
-                * request.target_fraction_of_component_budget
+                component.capital_weight * request.target_fraction_of_component_budget
             )
             selected_target_keys.add((request.component_id, instrument_id))
 
@@ -438,9 +446,7 @@ def allocate_component_targets(
     instrument_fractions: dict[str, Decimal] = defaultdict(Decimal)
     instrument_gross: dict[str, Decimal] = defaultdict(Decimal)
     component_gross: dict[str, Decimal] = defaultdict(Decimal)
-    explicitly_targeted_instruments = {
-        instrument_id for _, instrument_id in selected_target_keys
-    }
+    explicitly_targeted_instruments = {instrument_id for _, instrument_id in selected_target_keys}
     for exposure in component_exposures:
         instrument_fractions[exposure.instrument_id] += exposure.target_fraction_of_equity
         instrument_gross[exposure.instrument_id] += abs(exposure.target_fraction_of_equity)
@@ -452,8 +458,7 @@ def allocate_component_targets(
             target_signed_base_notional=fraction * exposure_snapshot.account_equity,
         )
         for instrument_id, fraction in sorted(instrument_fractions.items())
-        if instrument_gross[instrument_id] > 0
-        or instrument_id in explicitly_targeted_instruments
+        if instrument_gross[instrument_id] > 0 or instrument_id in explicitly_targeted_instruments
     )
     gross_fraction = sum((abs(value) for value in resolved.values()), Decimal(0))
     net_fraction = sum(resolved.values(), Decimal(0))
@@ -472,7 +477,9 @@ def allocate_component_targets(
         proposed_instrument_targets=proposed_targets,
         risk_approved_instrument_targets=proposed_targets if risk_limits_satisfied else (),
         rejected_targets=tuple(
-            sorted(rejected, key=lambda item: (item.instrument_id, item.component_id, item.code.value))
+            sorted(
+                rejected, key=lambda item: (item.instrument_id, item.component_id, item.code.value)
+            )
         ),
         risk_breaches=policy_breaches,
         gross_exposure_fraction=gross_fraction,
@@ -503,9 +510,13 @@ def _risk_breaches(
         breaches.append(RiskBreach.GROSS_EXPOSURE)
     if abs(net) > policy.max_net_exposure_fraction:
         breaches.append(RiskBreach.NET_EXPOSURE)
-    if any(value > policy.max_instrument_gross_exposure_fraction for value in instrument_gross.values()):
+    if any(
+        value > policy.max_instrument_gross_exposure_fraction for value in instrument_gross.values()
+    ):
         breaches.append(RiskBreach.INSTRUMENT_CONCENTRATION)
-    if any(value > policy.max_component_gross_exposure_fraction for value in component_gross.values()):
+    if any(
+        value > policy.max_component_gross_exposure_fraction for value in component_gross.values()
+    ):
         breaches.append(RiskBreach.COMPONENT_CONCENTRATION)
     if any(
         value > components[component_id].capital_weight * policy.max_component_leverage

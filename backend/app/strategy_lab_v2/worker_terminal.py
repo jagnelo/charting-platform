@@ -76,15 +76,23 @@ class WorkerTerminalResolution:
             self.settlement_resolution, WorkerSettlementResolution
         ):
             raise TypeError("settlement_resolution must be a WorkerSettlementResolution")
-        if self.decision in {
-            WorkerTerminalDecision.CONFLICT,
-            WorkerTerminalDecision.REJECT,
-        } and not self.rejection_reason:
+        if (
+            self.decision
+            in {
+                WorkerTerminalDecision.CONFLICT,
+                WorkerTerminalDecision.REJECT,
+            }
+            and not self.rejection_reason
+        ):
             raise ValueError("conflicts and rejections require a reason")
-        if self.decision in {
-            WorkerTerminalDecision.COMMITTED,
-            WorkerTerminalDecision.REPLAY_EXISTING,
-        } and self.rejection_reason:
+        if (
+            self.decision
+            in {
+                WorkerTerminalDecision.COMMITTED,
+                WorkerTerminalDecision.REPLAY_EXISTING,
+            }
+            and self.rejection_reason
+        ):
             raise ValueError("committed resolutions cannot contain a rejection reason")
 
 
@@ -183,12 +191,10 @@ def materialize_worker_terminal(
             terminal_resolution=terminal,
         )
     has_existing_settlement = any(
-        record.attempt_id == admission.attempt_id
-        for record in settlement_ledger.records
+        record.attempt_id == admission.attempt_id for record in settlement_ledger.records
     )
     if released_at < observed_at and not (
-        terminal.decision is ExecutionTerminalDecision.REPLAY_EXISTING
-        and has_existing_settlement
+        terminal.decision is ExecutionTerminalDecision.REPLAY_EXISTING and has_existing_settlement
     ):
         return _reject(
             settlement_ledger,

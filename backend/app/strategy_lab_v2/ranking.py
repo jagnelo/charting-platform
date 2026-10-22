@@ -71,7 +71,11 @@ class RankingEntry:
     preflight_label: str
 
     def __post_init__(self) -> None:
-        if not isinstance(self.position, int) or isinstance(self.position, bool) or self.position < 1:
+        if (
+            not isinstance(self.position, int)
+            or isinstance(self.position, bool)
+            or self.position < 1
+        ):
             raise ValueError("ranking position must be positive")
         require_sha256_digest(self.trial_id, field_name="trial_id")
         if not isinstance(self.attempt_id, str) or not self.attempt_id.strip():
@@ -83,7 +87,11 @@ class RankingEntry:
             raise TypeError("metric_basis must be a MetricBasis")
         if not isinstance(self.value, Decimal) or not self.value.is_finite():
             raise ValueError("ranking value must be a finite Decimal")
-        if not isinstance(self.sample_size, int) or isinstance(self.sample_size, bool) or self.sample_size < 1:
+        if (
+            not isinstance(self.sample_size, int)
+            or isinstance(self.sample_size, bool)
+            or self.sample_size < 1
+        ):
             raise ValueError("ranking sample_size must be positive")
         if not isinstance(self.preflight_label, str) or not self.preflight_label.strip():
             raise ValueError("preflight_label must not be empty")
@@ -126,9 +134,17 @@ class DescriptiveRanking:
             raise TypeError("include_degraded must be a bool")
         if not isinstance(self.include_non_authoritative, bool):
             raise TypeError("include_non_authoritative must be a bool")
-        if not isinstance(self.total_results, int) or isinstance(self.total_results, bool) or self.total_results < 1:
+        if (
+            not isinstance(self.total_results, int)
+            or isinstance(self.total_results, bool)
+            or self.total_results < 1
+        ):
             raise ValueError("total_results must be positive")
-        if not isinstance(self.eligible_results, int) or isinstance(self.eligible_results, bool) or self.eligible_results < 0:
+        if (
+            not isinstance(self.eligible_results, int)
+            or isinstance(self.eligible_results, bool)
+            or self.eligible_results < 0
+        ):
             raise ValueError("eligible_results must be non-negative")
         entries = tuple(self.entries)
         exclusions = tuple(self.exclusions)

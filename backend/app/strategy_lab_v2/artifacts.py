@@ -59,9 +59,7 @@ class ArtifactIntegrityReceipt:
         return not self.failure_reasons
 
 
-def verify_artifact_payload(
-    manifest: ArtifactManifest, payload: bytes
-) -> ArtifactIntegrityReceipt:
+def verify_artifact_payload(manifest: ArtifactManifest, payload: bytes) -> ArtifactIntegrityReceipt:
     """Compare an in-memory payload with its manifest's digest and length.
 
     A mismatch is returned as typed evidence rather than raised, allowing a
