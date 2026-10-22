@@ -16873,8 +16873,8 @@ These are bounded offline tests, not PostgreSQL/worker/native proof and not
 full-roadmap acceptance. Implementation commit
 `c1237e9baf83e2d5872e9f886eb2ea4054660fd1` contains only the two source/test
 files and has been pushed; actual remote comparison is identical/ahead 0/behind
-0. Exact-source push CI `39844035289` is pending as of 2026-10-22 19:53 UTC;
-do not claim a terminal result or replay it.
+0. Exact-source push CI `39844035289` was pending at 19:53 UTC; its later
+terminal result is recorded below.
 
 Next, derive a typed immutable Study-output payload representation from the
 accepted TC producer schema and bind it into the frozen runtime bundle only
@@ -16883,5 +16883,29 @@ Add tamper, missing/deleted source, restart/reconstruction and no-second-dispatc
 tests. Until then, selected Study references remain deliberately unavailable to
 runtime assembly. Preserve exact-pinned Nautilus scope qualification and all
 provider, live, quota, paid/trial, broker, capital, and unsafe-operation holds.
-Full backend/combined DB, migration, worker, native, browser/strict-visual, exact
-source CI, and the remainder of the unchanged 18-criterion roadmap stay open.
+Full local backend/combined DB, migration, worker, native, and full-stack
+browser/strict-visual gates, plus the remainder of the unchanged 18-criterion
+roadmap, stay open. Hosted exact-source CI for this bounded source change is
+green as detailed below.
+
+### Exact-source CI terminal receipt — 2026-10-22
+
+Run `39844035289` completed successfully for the exact pushed source
+`c1237e9baf83e2d5872e9f886eb2ea4054660fd1` (attempt 1). Backend Tests passed:
+5,192 unit tests passed with one existing skip; 497 integration tests passed
+with two existing skips; combined backend coverage enforcement passed. Frontend
+Unit Tests passed (1,330 tests). Branch-declared checks passed (1,760 passed,
+one existing skip, plus the declared focused checks). Playwright passed with 191
+passed and 110 existing skips. Exhaustive Integration Gate was skipped under
+feature-branch CI policy; this run is not the exhaustive gate and does not close
+the full roadmap or authorize native execution. The exact run is the current
+terminal source receipt; no rerun occurred. The earlier local validation and
+all historical red/flaky evidence remain preserved with their original scope.
+
+The assembly guard context is now closed. The next active branch-owned context
+is `strategy-lab-v2-typed-study-payload-runtime-binding-v1`: the existing
+resolver currently authenticates and returns the pinned reference but does not
+carry the artifact payload into frozen runtime inputs. Continue through that
+existing resolver/hydration/bundle path, retain fail-closed behavior until
+materialization is verified, and obtain assigned heavy gates before any real
+PostgreSQL/combined runtime/native qualification.

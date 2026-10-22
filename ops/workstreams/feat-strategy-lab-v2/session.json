@@ -69,10 +69,10 @@
   "goal_unavailable_reason": null,
   "head": "c1237e9baf83e2d5872e9f886eb2ea4054660fd1",
   "implementation_sha": "c1237e9baf83e2d5872e9f886eb2ea4054660fd1",
-  "last_checkpoint": "2026-10-22T19:54:36Z",
+  "last_checkpoint": "2026-10-22T20:37:19Z",
   "last_human_progress_update": "2026-10-20T21:20:08.693731+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish and obtain exact-source CI for the current fail-closed selected-Study runtime-assembly change. Then define a typed immutable Study payload binding from the accepted TC schema, revalidate its owner/lineage/digest/version through worker reconstruction, and continue the unchanged full 18-criterion roadmap; request coordinator slots before heavy DB/runtime/browser/native validation.",
+  "next_action": "Continue the active strategy-lab-v2-typed-study-payload-runtime-binding-v1 context through the existing resolver, hydration, and frozen runtime bundle. Preserve fail-closed behavior until payload and worker-restart binding are verified; request assigned PostgreSQL/combined runtime/native gates before heavy validation.",
   "parent_branch": "staging",
   "plan_hash": "bd3fbec881130cfb7506ce34d35871cbafd46fff9c8afe42ce2a05178817a9cb",
   "planning_required": false,
@@ -104,11 +104,11 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "The accepted 18-criterion roadmap has resumed after adoption of exact green staging 0e342512e53ba2268425294d61c50e219eaafa4f in merge 05acff1aa624b2f6ba9e1085a796e17b664ed87a. The bounded current source change prevents a selected authenticated Study reference from being silently ignored by native-runtime assembly; its focused tests and Ruff pass, but exact-source CI and all full combined gates remain open. No runtime Study payload materializer is yet supported. Provider/live/quota, paid/trial/unknown/unsafe, broker, capital and deployment scopes remain disabled or unauthorized.",
-    "current_phase": "full-roadmap-selected-study-runtime-input-materialization",
-    "next_action": "Close and publish the current fail-closed assembly boundary, inspect exact-source CI once, then implement typed immutable Study payload binding and restart revalidation from the accepted TC producer schema. Keep native/worker claims qualified and request a coordinator slot before heavy validation.",
+    "current_blocker": "Exact-source CI 39844035289 for c1237e9baf83e2d5872e9f886eb2ea4054660fd1 is terminal green: backend, frontend, branch-declared and Playwright jobs succeeded; Exhaustive Integration Gate was skipped by feature policy. The selected-Study assembly guard is published and its 14 focused tests passed. The resolver currently verifies but does not materialize the producer payload; implement the typed immutable runtime binding while preserving fail-closed behavior. Provider/live/quota, paid/trial/unknown/unsafe, broker, capital and deployment scopes remain disabled or unauthorized.",
+    "current_phase": "full-roadmap-typed-study-payload-runtime-binding",
+    "next_action": "Finish publication of the exact-source CI receipt, then implement typed immutable Study payload binding and worker reconstruction/restart revalidation from the accepted TC producer schema. Keep native/worker claims qualified and request a coordinator slot before heavy DB/runtime/browser/native validation.",
     "total": 5,
-    "updated_at": "2026-10-22T19:54:36+00:00"
+    "updated_at": "2026-10-22T20:37:19+00:00"
   },
   "remote": "c1237e9baf83e2d5872e9f886eb2ea4054660fd1",
   "remote_sha": "c1237e9baf83e2d5872e9f886eb2ea4054660fd1",
