@@ -696,44 +696,36 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-time-aware-equity-metrics-v1
+  current_phase: full-roadmap-v2-resource-inspector-ui-v1
   active_changeset:
-    id: strategy-lab-v2-event-risk-free-builder-binding-v1
+    id: strategy-lab-v2-resource-inspector-ui-v1
     scope: >-
-      Expose the event-time annualized risk-free assumption through both official Nautilus OOS
-      metric-set builders and bind non-zero assumptions into MetricSet identity. Preserve legacy
-      default-zero identities and distinguish this annualized event assumption from per-period
-      session risk-free inputs. Add builder-level forwarding/identity regressions and document the
-      behavior. No dispatch, provider access, runtime activation, or full-profile work.
+      Add an authenticated read-only Strategy Lab v2 resource inspector for owner-scoped strategies,
+      trials, artifacts, and selected immutable Study lineage. Preserve the legacy Strategy Lab
+      route; use only authenticated GET collection/detail calls, and expose no dispatch, forward,
+      broker, capital, provider, quota, or native-execution action.
     owned_paths:
-      - backend/app/strategy_lab_v2/nautilus_result_metrics.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_result_metrics.py
-      - docs/strategy-lab-v2.md
+      - frontend/src/App.vue
+      - frontend/src/router/index.ts
+      - frontend/src/views/StrategyLabV2View.vue
+      - frontend/tests/unit/router/test_application_routes.test.ts
+      - frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/session.json
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
-    status: complete
+    status: in_progress
   current_blocker: >-
-    The two new event-risk-free builder regressions pass (2/2, one process, 1-GiB address-space cap,
-    90s timeout), and the full touched `test_nautilus_result_metrics.py` module passes 19/19 in
-    1.29s under a 768-MiB address-space cap with no coverage. Ruff/format/diff/workstream checks and
-    static call-site compatibility review pass. Exact-source CI 39951384776 covers only parent
-    fc388467024e74cdaa343cc472a6659b0391fae4. Exact push CI 39960802652 completed successfully on
-    source a7b9324e617b6a366cdd7198369af267fcdd0e48: Backend, Frontend, Branch-declared and E2E all
-    succeeded. Branch-declared ran the full Strategy Lab package (1882 passed, 1 skipped), six
-    additional checks, Ruff, and MyPy over app/strategy_lab_v2 plus strategy_runtime (447 source
-    files, no issues). E2E reported 191 passed and 110 existing skips; Exhaustive Integration Gate
-    was skipped by feature-branch policy. This closes only the bounded event-risk-free builder
-    changeset; all18 roadmap criteria, full local/combined runtime gates, and operation holds remain
-    open.
-  updated_at: "2026-10-23T14:11:31Z"
+    The focused read-only view and route tests pass 8/8 on the current worktree. Exact-source run
+    39976028981 is green only for parent a5aa2d7d; it does not validate this UI diff. The required
+    full local application/browser and strict-visual profile remains coordinator-assigned and was
+    not started. The full 18-criterion roadmap remains open.
+  updated_at: "2026-10-23T16:11:09Z"
   next_action: >-
-    Continue the already recorded full-roadmap AC-METRICS item: derive the versioned elapsed-time
-    contract for irregular timestamped equity observations before changing calculators. Preserve
-    v17 cadence semantics, all existing comparison compatibility, the default-zero risk-free
-    identity, and existing session-period risk-free semantics. No local heavy profile until Root
-    assigns capacity; no provider, quota, native, broker, paid/trial or deployment operations.
+    Review the exact source diff, run workstream and formatting/diff validation, then publish this
+    bounded UI changeset for its exact-source branch checks. Keep the local full_stack_browser and
+    strict-visual gates open for Root's serialized slot. Continue the 18-criterion roadmap only
+    after this changeset is coherently closed; do not activate dispatch/native or money-moving scopes.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1616,40 +1608,33 @@ roadmap_progress_history:
     - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
+    - strategy-lab-v2-frozen-study-payload-typing-v1
   total: 18
-  current_phase: full-roadmap-selected-study-payload-typing-v1-ci-caller-fix
+  current_phase: full-roadmap-v2-resource-inspector-ui-v1
   active_changeset:
-    id: strategy-lab-v2-frozen-study-payload-typing-v1
+    id: strategy-lab-v2-resource-inspector-ui-v1
     scope: >-
-      Replace Any in the authenticated immutable Study output envelope with the existing recursive
-      frozen-JSON value type. Keep payload schema validation, content-digest binding, runtime
-      freezing, exact owner/run/version/artifact resolution, and backtest/forward worker restart
-      behavior unchanged; cast only untrusted test fixtures at their constructor seam.
+      Add an authenticated read-only Strategy Lab v2 resource inspector for owner-scoped strategies,
+      trials, artifacts, and selected immutable Study lineage. Preserve the legacy route and all
+      exact immutable identities. Use only API GET calls; do not dispatch work or enable native,
+      forward, broker, capital, provider, quota, paid/trial, unknown, or unsafe operations.
     owned_paths:
-      - backend/app/strategy_lab_v2/contracts.py
-      - backend/app/strategy_lab_v2/study_artifact_payloads.py
-      - backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py
-      - backend/app/strategy_lab_v2/tests/test_forward_context.py
-      - backend/app/strategy_lab_v2/tests/test_authenticated_forward_context_resolver.py
-      - backend/app/strategy_lab_v2/tests/test_forward_execution_plan.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_bootstrap.py
-      - backend/app/strategy_lab_v2/tests/test_strategy_runtime_protocol.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py
+      - frontend/src/App.vue
+      - frontend/src/router/index.ts
+      - frontend/src/views/StrategyLabV2View.vue
+      - frontend/tests/unit/router/test_application_routes.test.ts
+      - frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/session.json
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Published source 3ac7b0ed73d169746c536f3f861c6a4561ca9d27 has exact-source run 39970578484:
-    backend and frontend passed, but Branch-declared failed on three test-fixture argument typing
-    errors after ResolvedStudyArtifactOutput.payload became FrozenStudyArtifactPayload; E2E was
-    still in progress at the last check and EIG is skipped by feature policy. Narrow test-only casts
-    at the three caller seams now pass focused MyPy for both affected files and Ruff. Preserve the
-    red receipt; no database/application/browser/native fixture was started by this repair.
+    Focused StrategyLabV2View and route unit modules pass 8/8. The exact CI 39976028981 is green
+    only for parent a5aa2d7d and does not cover this worktree diff. Full local browser/strict-visual
+    validation awaits Root's serialized resource slot; no full profile, DB, Compose, provider, or
+    native process was started for this slice.
   next_action: >-
-    Let exact run 39970578484 reach terminal without a canceling push, then publish this bounded
-    test-only typing correction with accurate workstream evidence once and inspect the new
-    exact-source CI. Do not run broader coverage, full MyPy, database, Compose, browser, native or
-    external/provider operations without an assigned slot. Preserve all original roadmap criteria
-    and disabled-operation boundaries.
+    Complete scoped source review and workstream validation, publish this bounded UI slice for exact
+    branch CI, and retain full local browser/strict-visual validation as an open coordinator gate.
+    Preserve the full 18-criterion roadmap and every disabled-operation boundary.

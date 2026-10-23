@@ -18182,3 +18182,79 @@ f04's read-only resolver. There is no public f04 reference-construction endpoint
 branch-only API must not be used as accepted-release evidence. The target recipe is not an API
 write, a new Study run, or native execution proof. Full local/combined gates and all 18 roadmap
 criteria remain open.
+
+### Exact-push correction — 2026-10-23 15:31 UTC
+
+The narrow fix was published as `a5aa2d7d1ba2f369b2c03ff61faf069bbbc595c3` before the preceding
+run's E2E completed. Preserve the facts above as the earlier observation, but correct the terminal
+interpretation: exact run `39970578484` is now cancelled by the newer push, so its E2E has no
+terminal test result and must not be described as either passed or failed. The older
+Branch-declared MyPy failure remains valid historical evidence. New exact push run `39976028981`
+is active: Frontend passed, Backend unit tests passed, Backend integration is in progress, and
+coverage is pending. The job list currently contains only Backend and Frontend; it does not yet
+show Branch-declared, E2E, or EIG results. The branch remains clean and synchronized at `a5aa2d7d`.
+No new local fixture or suite was started. After this exact run terminates, reconcile its exact job
+scope and result with the next substantive source context instead of a receipt-only commit.
+
+### Same-run progress update — 2026-10-23 15:34 UTC
+
+Run `39976028981` has advanced: Backend unit, integration, and combined coverage steps are all
+successful; Frontend is successful. Branch-declared Tests and E2E Playwright are now in progress;
+EIG is skipped by feature-branch policy. This supersedes the preceding 15:31 observation that
+integration was still running and that only Backend/Frontend jobs were listed. No local profile,
+test rerun, or source edit was started. Preserve this run through its terminal results.
+
+### Branch-declared transition — 2026-10-23 15:37 UTC
+
+Exact run `39976028981` has now completed Backend Tests (unit, integration, and combined coverage),
+Frontend Unit Tests, and Branch-declared Tests successfully. E2E Playwright remains in progress;
+EIG is skipped by feature-branch policy. This is the exact-source validation for the test-only
+payload typing correction; do not call the overall run terminal until E2E ends. All local full
+application/database/native gates and the complete roadmap remain open.
+
+### Exact-source CI closure — 2026-10-23 15:59 UTC
+
+Exact push run `39976028981` completed successfully on source
+`a5aa2d7d1ba2f369b2c03ff61faf069bbbc595c3` at 15:59:01 UTC. Backend Tests passed: unit
+`5314 passed, 1 skipped`, integration `530 passed, 2 skipped`, and the combined coverage gate
+reported `84%` against the unchanged threshold. Frontend Unit Tests passed. Branch-declared Tests
+passed, including the Strategy Lab v2 package (`1882 passed, 1 skipped`), six additional tests,
+Ruff, and MyPy over 447 source files with no issues. E2E Playwright passed `191` with `110` existing
+skips in `21.8m`; the final summary reported no failed cases. Exhaustive Integration Gate was
+skipped by feature-branch policy. The older `39970578484` Branch-declared typing failure remains
+historical; its E2E was cancelled by the corrective push and has no terminal result.
+
+This closes only the frozen Study payload typing/caller-cast changeset. It does not complete the
+18-criterion roadmap or prove native Nautilus execution. The next independently available product
+surface is the Strategy Lab v2 frontend boundary: current frontend search finds no v2 API client
+usage, while legacy Strategy Lab remains under `/legacy/strategy-lab`. A bounded next slice should
+start with an authenticated read-only v2 resource inspector for owner-scoped strategies, trials,
+artifacts, and selected Study lineage, using existing API responses; do not submit jobs or enable
+native, forward, broker, capital, provider or quota operations. Full local/combined runtime,
+database, browser/strict-visual and native qualification gates remain open and coordinator-assigned.
+
+## Authenticated read-only Strategy Lab v2 resource inspector — active bounded context, 2026-10-23 16:11 UTC
+
+The accepted-f04 first-human recipe remains durable above at
+`ops/workstreams/feat-strategy-lab-v2/handoff.md:17980`; it distinguishes f04's internal read-only
+resolver from the mutating Strategy POST and does not use a later branch-only reference route. The
+f04 release receipt is `20261023T051709Z-f04fb2a26c63.json`.
+
+This next full-roadmap UI slice adds a lazy `/legacy/strategy-lab-v2` view and top-level redirect,
+while preserving `/legacy/strategy-lab`. `StrategyLabV2View.vue` uses the normal authenticated
+`api.get` client only for the existing JSON:API `strategies`, `trials`, and `artifacts`
+collection/detail reads. It provides explicit cursor pagination, detail readback, selected immutable
+Study reference display, and an explicit read-only/no-native-execution boundary. There are no
+mutation, dispatch, forward, broker, capital, provider, quota, or native-execution calls. The global
+router auth guard continues to protect this route because it is not marked public.
+
+Focused single-process Vitest passed the view and route-contract modules: 8/8 in 1.86s. Coverage
+includes collection/detail GET paths and pinned lineage display, cursor append, Trials/Artifacts tab
+reads, read failure/retry, and non-public route status. An initial run exposed a fixture-label
+expectation mismatch; the UI correctly rendered that fixture's `strategy_id`, and the test
+expectation was corrected without weakening the check. `git diff --check` passed. Exact CI
+`39976028981` is green only for parent `a5aa2d7d1ba2f369b2c03ff61faf069bbbc595c3`, so it does not
+validate this dirty UI diff. No full Vue typecheck/build, browser/strict-visual, database, Compose,
+provider, native, or target operation ran; the local full-stack/browser gate remains Root-assigned.
+This context is still in progress pending scoped review, workstream validation, publication, and
+exact-source CI.
