@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import cast
 
 import pytest
 
@@ -28,6 +29,7 @@ from app.strategy_lab_v2.nautilus_forward_session import (
     ResolvedForwardExecutionPlanRecipeResolver,
 )
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
 from app.strategy_lab_v2.tests.test_strategy_package_resolution import (
     RUNTIME_ABI as PACKAGE_RUNTIME_ABI,
 )
@@ -323,7 +325,7 @@ async def test_authenticated_resolver_binds_selected_study_output_or_fails_close
         dataset_manifest_digest=content_digest("dataset"),
         artifact_content_digest=content_digest(payload),
     )
-    output = ResolvedStudyArtifactOutput(reference, payload)
+    output = ResolvedStudyArtifactOutput(reference, cast(FrozenStudyArtifactPayload, payload))
     artifact_store, package, strategy, _manifest, _archive = _strategy_package_fixture(
         tmp_path,
         selected_study_artifact=reference,

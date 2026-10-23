@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -47,6 +47,7 @@ from app.strategy_lab_v2.sdk import (
     StrategyDataDependency,
     StrategySdkManifest,
 )
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
 
 NOW = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 INSTANCE_ID = "forward-1"
@@ -227,7 +228,9 @@ async def test_authenticated_resolver_composes_exact_history_recipe_and_account_
         base_manifest,
         strategy=replace(base_manifest.strategy, selected_study_artifact=study_reference),
     )
-    study_output = ResolvedStudyArtifactOutput(study_reference, study_payload)
+    study_output = ResolvedStudyArtifactOutput(
+        study_reference, cast(FrozenStudyArtifactPayload, study_payload)
+    )
     position = PositionSnapshot("US.AAPL", Decimal("2"), Decimal("100"), Decimal("200"))
     account = ForwardAccountState(INSTANCE_ID, "USD", positions=(position,))
     history = ForwardStrategyContextHistory(

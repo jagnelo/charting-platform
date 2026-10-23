@@ -18108,6 +18108,35 @@ within a 1-GiB cap. Wait for slot release before the full touched-module tests o
 a broad suite or any database/application/browser/native/provider operation. Preserve the full
 roadmap and all operation holds.
 
+## Frozen Study payload typing — active bounded changeset, 2026-10-23 14:21 UTC
+
+Source review confirmed that owner-scoped immutable Study output resolution, schema validation,
+recursive freezing, search/backtest hydration, forward worker reconstruction, and restart drift
+rejection already exist on this branch and are exercised by the persisted Study integration module.
+The remaining typed-boundary gap was that `ResolvedStudyArtifactOutput.payload` still declared
+`Mapping[str, Any]`, even though `FrozenStudyArtifactValue` already described the recursive JSON
+values and the resolver validates and freezes the envelope. This changes the payload field to the
+new `FrozenStudyArtifactPayload` mapping alias over that recursive type; runtime serialization,
+wire shape, digest inputs, resolver behavior and native authority are unchanged. Test-only casts are
+limited to generic/untrusted fixture inputs at the typed constructor boundary.
+
+Current parent source is `1a407d6c8664259b709730a2c25d7cb055cdb0ee`, clean and synchronized before
+this changeset. Exact-source CI `39967811561` on that parent was verified still in progress at
+14:20 UTC; preserve it through terminal before publishing. The initial four-file focused MyPy pass
+identified four generic-fixture argument typing mismatches, and the wider caller-boundary check
+identified one additional call site. Explicit test-only casts resolved those diagnostics without
+weakening production types. Final focused MyPy passed all 14 selected production/test files; Ruff
+passed on all seven source/test paths; the pure resolver module passed 61 tests in 1.98s under a
+1-GiB address-space and 120-second bound. `git diff --check` passed. These checks used the offline
+UV-managed environment; no database, network, Compose, browser, provider, quota, native or live
+operation ran.
+
+This is still an in-progress source changeset pending preservation of the existing parent CI and
+publication of its exact source. The accepted f04 first-human read-only recipe remains at this
+handoff's earlier section; f04 has no public reference-construction endpoint. The later branch
+output resolver/restart checks do not prove native execution. Keep the 18-criterion roadmap and all
+provider/live/quota/paid/trial/unsafe/broker/capital holds open.
+
 Static compatibility review on 2026-10-23 confirmed both public OOS metric-set builders expose the
 new annualized event risk-free parameter as keyword-only, and the sole production caller in
 `nautilus_result_materialization.py` uses keyword arguments. The value reaches the existing event

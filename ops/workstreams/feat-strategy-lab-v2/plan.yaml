@@ -1617,29 +1617,36 @@ roadmap_progress_history:
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
   total: 18
-  current_phase: full-roadmap-time-aware-equity-metrics-v1
+  current_phase: full-roadmap-selected-study-payload-typing-v1
   active_changeset:
-    id: strategy-lab-v2-api-derived-study-reference-consumer-roundtrip-v1
+    id: strategy-lab-v2-frozen-study-payload-typing-v1
     scope: >-
-      Exercise the typed immutable Study reference returned by the explicit owner-scoped resolver
-      endpoint as the exact selected_study_artifact supplied to Strategy creation/readback. Preserve
-      the existing drift/owner/revocation/no-dispatch checks. Do not add latest aliases, weaken
-      runtime verification, dispatch work, or claim native execution.
+      Replace Any in the authenticated immutable Study output envelope with the existing recursive
+      frozen-JSON value type. Keep payload schema validation, content-digest binding, runtime
+      freezing, exact owner/run/version/artifact resolution, and backtest/forward worker restart
+      behavior unchanged; cast only untrusted test fixtures at their constructor seam.
     owned_paths:
-      - backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
+      - backend/app/strategy_lab_v2/contracts.py
+      - backend/app/strategy_lab_v2/study_artifact_payloads.py
+      - backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py
+      - backend/app/strategy_lab_v2/tests/test_forward_context.py
+      - backend/app/strategy_lab_v2/tests/test_authenticated_forward_context_resolver.py
+      - backend/app/strategy_lab_v2/tests/test_forward_execution_plan.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_forward_bootstrap.py
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/session.json
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
-    status: complete
+    status: in_progress
   current_blocker: >-
-    The API-derived selected-Study consumer changeset is closed at source
-    1e643917e2896ba41ad9842f13a4b42c0c1160d1; exact-source CI39942258194 is terminal green for all
-    required feature-branch jobs, with EIG skipped by policy. Next AC-METRICS work is the documented
-    irregular-timestamp annualization gap. Full local/combined database/application/browser/strict-
-    visual and exact-pinned native execution/settlement remain open. No strategy dispatch,
-    provider/quota, paid/trial, broker/capital or deployment operation is enabled.
+    The new frozen payload annotation and test-only call-site casts pass the scoped 14-file MyPy,
+    Ruff and 61-case pure resolver checks. Exact-source CI39967811561 for the current parent
+    1a407d6c is still in progress; preserve it to terminal before publishing this new source. No
+    database/application/browser/native fixture is authorized by this changeset. Full local and
+    combined runtime gates, exact-pinned native qualification and the remaining roadmap stay open.
   next_action: >-
-    Derive a versioned elapsed-time metric contract and tests from the current documented limitation
-    before changing calculators. Preserve v17 cadence semantics and all existing comparison
-    compatibility. No local heavy profile before Root assigns capacity.
+    Keep this coherent changeset in progress until CI39967811561 on parent1a407d6c is terminal;
+    then validate workstream/diff, commit and publish the seven source/test files plus their exact
+    evidence once, and inspect the resulting exact-source CI. Do not run broader coverage, full
+    MyPy, database, Compose, browser, native or external/provider operations without an assigned
+    slot. Preserve all original roadmap criteria and disabled-operation boundaries.

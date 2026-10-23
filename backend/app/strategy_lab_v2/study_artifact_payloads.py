@@ -22,6 +22,13 @@ FrozenStudyArtifactValue: TypeAlias = (  # noqa: UP040 - CI pins mypy 1.10, befo
     | Mapping[str, "FrozenStudyArtifactValue"]
 )
 
+# The persisted envelope is schema-validated below, while its recursive JSON
+# values are immutable after hydration. Keep this mapping typed at the boundary
+# instead of allowing `Any` to escape with a digest-verified payload.
+FrozenStudyArtifactPayload: TypeAlias = (  # noqa: UP040 - CI pins mypy 1.10.
+    Mapping[str, FrozenStudyArtifactValue]
+)
+
 SUPPORTED_STUDY_ARTIFACT_TYPES = frozenset(
     {
         "scalar",

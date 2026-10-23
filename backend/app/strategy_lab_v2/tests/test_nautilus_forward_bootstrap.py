@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
-from typing import TypedDict
+from typing import TypedDict, cast
 
 import pytest
 
@@ -87,6 +87,7 @@ from app.strategy_lab_v2.strategy_package_resolution import (
     ResolvedStrategyPackage,
 )
 from app.strategy_lab_v2.strategy_validation import validate_strategy_source
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _engine_inputs
 from strategy_runtime import deserialize_component_invocation_context_stream
 
@@ -541,7 +542,9 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(
         dataset_manifest_digest=_digest("study-dataset"),
         artifact_content_digest=content_digest(study_payload),
     )
-    study_output = ResolvedStudyArtifactOutput(study_reference, study_payload)
+    study_output = ResolvedStudyArtifactOutput(
+        study_reference, cast(FrozenStudyArtifactPayload, study_payload)
+    )
     fixture = _engine_inputs(selected_study_artifact=study_reference)
     snapshot = fixture["snapshot"]
     portfolio = fixture["portfolio"]

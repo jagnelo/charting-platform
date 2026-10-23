@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import cast
 
 import pytest
 
@@ -24,6 +25,7 @@ from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
 from app.strategy_lab_v2.postgres_result_materialization import decode_canonical_contract
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
 
 NOW = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 SOURCE = "class Strategy:\n    def on_event(self, context):\n        return []\n"
@@ -244,7 +246,9 @@ def test_study_output_is_bound_across_context_replay_and_authenticated_seed() ->
         base_manifest,
         strategy=replace(base_manifest.strategy, selected_study_artifact=reference),
     )
-    output = ResolvedStudyArtifactOutput(reference, study_payload)
+    output = ResolvedStudyArtifactOutput(
+        reference, cast(FrozenStudyArtifactPayload, study_payload)
+    )
     outputs = {reference.artifact_name: output}
     payloads = (
         _payload(event_id="aapl-study-1", sequence=1, event_time=NOW),
@@ -306,7 +310,9 @@ def test_study_output_is_bound_across_context_replay_and_authenticated_seed() ->
         reference,
         artifact_content_digest=content_digest(drifted_payload),
     )
-    drifted_output = ResolvedStudyArtifactOutput(drifted_reference, drifted_payload)
+    drifted_output = ResolvedStudyArtifactOutput(
+        drifted_reference, cast(FrozenStudyArtifactPayload, drifted_payload)
+    )
     rejected_seed = ForwardStrategyContextWindow(
         "forward-1",
         manifest,

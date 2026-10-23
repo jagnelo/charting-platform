@@ -16,6 +16,7 @@ from app.strategy_lab_v2.contracts import (
     ResolvedStudyArtifactOutput,
     SelectedStudyArtifactReference,
 )
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
 from app.strategy_lab_v2.study_artifact_resolver import (
     SelectedStudyArtifactResolutionError,
     _resolve_selected_study_artifact,
@@ -205,7 +206,9 @@ def test_resolved_study_output_freezes_nested_payload_against_source_mutation() 
         artifact_content_digest=content_digest(payload),
     )
 
-    resolved = ResolvedStudyArtifactOutput(pinned_reference, payload)
+    resolved = ResolvedStudyArtifactOutput(
+        pinned_reference, cast(FrozenStudyArtifactPayload, payload)
+    )
     cast(Any, payload)["value"][0]["close"] = 99.0
 
     assert cast(Any, resolved.value)[0]["close"] == 1.0
@@ -220,7 +223,7 @@ def test_resolved_study_output_rejects_payload_that_does_not_match_pinned_digest
     changed_payload = {"type": "series", "value": [9.0, 2.0]}
 
     with pytest.raises(ValueError, match="immutable reference"):
-        ResolvedStudyArtifactOutput(reference, changed_payload)
+        ResolvedStudyArtifactOutput(reference, cast(FrozenStudyArtifactPayload, changed_payload))
 
 
 @pytest.mark.parametrize(("artifact_type", "value"), STUDY_ARTIFACT_OUTPUT_CASES)
@@ -279,7 +282,7 @@ def test_resolved_study_output_rejects_nonproducer_shapes(artifact_type: str, va
     )
 
     with pytest.raises(ValueError, match="producer contract"):
-        ResolvedStudyArtifactOutput(typed_reference, payload)
+        ResolvedStudyArtifactOutput(typed_reference, cast(FrozenStudyArtifactPayload, payload))
 
 
 def test_resolved_study_output_rejects_unrecognized_producer_fields() -> None:
@@ -292,7 +295,7 @@ def test_resolved_study_output_rejects_unrecognized_producer_fields() -> None:
     )
 
     with pytest.raises(ValueError, match="producer contract"):
-        ResolvedStudyArtifactOutput(typed_reference, payload)
+        ResolvedStudyArtifactOutput(typed_reference, cast(FrozenStudyArtifactPayload, payload))
 
 
 def test_resolved_study_output_rejects_explicit_null_optional_producer_fields() -> None:
@@ -305,7 +308,7 @@ def test_resolved_study_output_rejects_explicit_null_optional_producer_fields() 
     )
 
     with pytest.raises(ValueError, match="producer contract"):
-        ResolvedStudyArtifactOutput(typed_reference, payload)
+        ResolvedStudyArtifactOutput(typed_reference, cast(FrozenStudyArtifactPayload, payload))
 
 
 @pytest.mark.asyncio

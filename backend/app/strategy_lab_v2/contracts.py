@@ -20,6 +20,7 @@ from app.strategy_lab_v2.decimal_math import deterministic_decimal_math
 from app.strategy_lab_v2.observations import UNALLOCATED_COMPONENT_ID, ObservationPoint
 from app.strategy_lab_v2.rebalance import CalendarRebalancePolicy
 from app.strategy_lab_v2.study_artifact_payloads import (
+    FrozenStudyArtifactPayload,
     FrozenStudyArtifactValue,
     validate_study_artifact_payload,
 )
@@ -202,7 +203,7 @@ class ResolvedStudyArtifactOutput:
     """
 
     reference: SelectedStudyArtifactReference
-    payload: Mapping[str, Any]
+    payload: FrozenStudyArtifactPayload
 
     def __post_init__(self) -> None:
         if not isinstance(self.reference, SelectedStudyArtifactReference):
