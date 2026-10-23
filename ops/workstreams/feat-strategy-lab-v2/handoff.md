@@ -17491,3 +17491,18 @@ This is an uncommitted test-only follow-up based on local source commit
 to terminal before publishing the accumulated local commits. The persisted PostgreSQL restart body,
 assigned full local backend/application/browser/strict-visual profile, native qualification, and
 remaining full-roadmap criteria remain open.
+
+## Preserve all admitted Study types in the backtest runtime bundle — 2026-10-23 01:32 UTC
+
+Expanded the existing backtest assembly regression across all 11 resolver-admitted Study output
+types. Each typed reference and digest-bound payload now passes `NautilusComponentTrialInput`,
+runtime-bundle materialization/loading, and invocation-context stream decoding; each decoded context
+must equal the original immutable `ResolvedStudyArtifactOutput`. The focused offline node passed
+11/11 in 0.95s. Ruff check/format, focused MyPy for the changed test file (1-GiB/120-second bound),
+and `git diff --check` pass. Together with the forward seeder matrix above, this covers all admitted
+types in both backtest and forward worker-context assembly; neither matrix proves native execution.
+No DB, Docker, Compose, browser, native process, provider/quota, or live operation ran. The exact
+parent CI39882200073 was last observed `in_progress` on published `dd0a704b`; this local test and
+the prior local commits are not covered. Preserve that run to terminal before pushing. The real
+PostgreSQL fresh-session restart body and assigned full backend/application/browser/strict-visual/
+native gates remain open.

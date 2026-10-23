@@ -1644,6 +1644,7 @@ roadmap_progress_history:
       - backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py
       - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_trial_assembly.py
+      - backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py
       - backend/app/strategy_lab_v2/tests/test_strategy_runtime_protocol.py
       - backend/strategy_runtime/protocol.py
       - backend/strategy_runtime/runner.py
@@ -1664,7 +1665,9 @@ roadmap_progress_history:
     run or yet published. The
     PostgreSQL test body has not run
     locally because no DB slot is assigned. Full local backend/combined DB/application/browser/strict-
-    visual/native gates remain open and require coordinator-assigned slots. Historical failures,
+    visual/native gates remain open and require coordinator-assigned slots. In addition to the
+    worker-stream matrix, the backtest runtime-bundle/materialized-context path now passes the same
+    11 admitted Study artifact types. Historical failures,
     including CI39856591934 and CI39874448939, remain in the append-only journal/handoff; generic
     Study output is not native execution evidence. Provider/issuer HTTP, quota, live, paid/trial,
     unknown/unsafe, broker/capital and deployment scopes remain disabled.

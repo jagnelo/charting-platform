@@ -670,14 +670,32 @@ def test_component_trial_input_rejects_non_mapping_study_outputs() -> None:
         )
 
 
-def test_trial_assembly_binds_authenticated_study_output_into_worker_context(tmp_path) -> None:
-    payload = {"type": "series", "value": [1.25, 2.5]}
+@pytest.mark.parametrize(
+    ("study_artifact_type", "study_value"),
+    (
+        ("scalar", 2.5),
+        ("series", [{"time": "t1", "value": 1.25}, {"time": "t2", "value": 2.5}]),
+        ("boolean", True),
+        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
+        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
+        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
+        ("range", {"low": 1.25, "high": 3.75}),
+        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
+        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
+        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
+        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
+    ),
+)
+def test_trial_assembly_binds_authenticated_study_output_into_worker_context(
+    tmp_path, study_artifact_type, study_value
+) -> None:
+    payload = {"type": study_artifact_type, "value": study_value}
     reference = SelectedStudyArtifactReference(
         research_run_id=1,
         code_version_id=2,
         artifact_id=3,
         artifact_name="screener.output",
-        artifact_type="series",
+        artifact_type=study_artifact_type,
         output_contract="study",
         run_reproducibility_hash=content_digest("study-run"),
         code_version_digest=content_digest("study-code-version"),
@@ -718,7 +736,7 @@ def test_trial_assembly_binds_authenticated_study_output_into_worker_context(tmp
     assert len(decoded_contexts) == bundle.context_stream.context_count
     for context in decoded_contexts:
         assert context.study_artifacts is not None
-        assert context.study_artifacts[reference.artifact_name].value == (1.25, 2.5)
+        assert context.study_artifacts[reference.artifact_name] == output
 
 
 def test_trial_assembly_replays_warmup_but_binds_only_the_evaluation_window(tmp_path) -> None:
