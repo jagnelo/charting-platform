@@ -111,7 +111,11 @@ class CTAPlanProvider:
 
 def _get(url: str) -> httpx.Response:
     try:
-        response = httpx.get(url, timeout=30, follow_redirects=True)
+        # The shared runtime reserves the reviewed index+CSV cost before this
+        # adapter runs. Do not let HTTPX send unmetered redirect hops inside a
+        # single admitted operation; a redirect is a failed attempt until each
+        # hop can be admitted independently.
+        response = httpx.get(url, timeout=30, follow_redirects=False)
     except httpx.RequestError as exc:
         raise ProviderResponseError("cta_plan", f"transport failure: {exc}") from exc
     observe_response(response)

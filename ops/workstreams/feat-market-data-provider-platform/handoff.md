@@ -30669,3 +30669,201 @@ router tests pass 7/7, adjacent mapped/canonical/legacy selector tests pass
 the prior receipt commit; exact-source CI is pending. No provider/issuer/SEC
 HTTP, quota operation, retained resource, target DB, sibling/staging/master
 write, or deployment occurred. Checkpoint remains `in_progress`.
+
+## 2026-10-23 16:12Z — released F8m diagnostic slot ended at capacity guard
+
+Adopted only released green staging `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`
+into Provider. Current clean/pushed source is
+`edea60a769a63863f72ef2a19df5df7a9378c277`; exact Actions run `39981791130`
+was in progress at the last observation (not claimed green). The staged
+migration-head conflict was resolved as one head `d4a5b6c7e812` descending
+from `slv2_0011`; focused regression, workstream validation, and diff-check
+passed.
+
+The newly released diagnostic used only isolated project
+`provider-edea60-f8m-20261023`. Its rendered config and actual containers had
+no host bindings, bounded equal memory/swap caps, blank provider credential
+values, routing/paid off, synthetic instrument/market-data seeds, and quota
+plus FINRA token-state mounts pointed only at empty directories inside that
+private scratch path. Backend provider egress was on the internal deny network;
+the browser proxy was limited to the previously reviewed OneSignal host. The
+backend image remains honestly identified as built from `61e31e7` (the
+F8m-relevant API paths are unchanged); the reused frontend image remains
+identified as built from `4687bd0`, whose non-test frontend build inputs are
+byte-identical. Playwright image was pinned to `v1.62.1-noble`; the target test
+was the yellow-wildcard/grey-isolation case only, not chart-panels or a broad
+matrix.
+
+Two initial runner invocations exited before test discovery (`No tests found`):
+first the file selector included a path relative to the wrong test root, then
+an anchored grep omitted the parent suite title. A no-execution Playwright
+`--list` confirmed the target and separately listed chart-panels. The corrected
+unique-title run selected the intended case once, with one worker and zero
+retries, but the immediate pre-launch memory sample was only `1,039 MiB`
+available (below the slot's `1,280 MiB` requirement). I stopped only that
+disposable browser runner; it exited `137` while the case was in progress. No
+assertion/result was produced, so this is neither a product failure nor a
+passing F8m proof. Full local functional/visual validation remains open.
+
+Raw test output and allow/deny proxy logs were preserved under
+`/tmp/provider-edea60-f8m-20261023/artifacts/`. The exact newly created
+Compose project was then removed with its own `down -v`; a before/after audit
+found all `32/32` pre-existing running containers, `51/51` pre-existing
+volumes, and `11/11` pre-existing networks still present, with zero resources
+left under the new project name. No provider/issuer/SEC HTTP, quota/ledger
+operation, retained-data/service change, sibling/staging/master write, or
+deployment occurred. Do not reuse this diagnostic as full-profile evidence;
+the next browser attempt requires a fresh coordinator slot and a passing
+capacity gate before runner launch.
+
+## 2026-10-23 16:18Z — SEC issuer-scan durability reverified on current source
+
+On exact current Provider source `edea60a769a63863f72ef2a19df5df7a9378c277`,
+the complete `backend/tests/unit/services/test_market_event_edgar_scan.py`
+module passed `31/31` in `29.10s` using the managed Python 3.12.4 environment,
+with `RUN_LIVE_PROVIDER_TESTS=0`, provider routing disabled, and both
+availability monitors disabled. Service and test files are byte-identical to
+the committed durability implementation at `61e31e7`; no source change was
+needed. File-backed SQLite restart tests prove completed CIK results and
+cursor survive a fresh worker session, caught per-CIK executor failure is
+persisted with the prior cursor and later CIKs resume without replay, and a
+forced cursor-update failure rolls back its result log atomically. Transport
+is mocked; no provider/issuer/SEC HTTP, quota operation, or external database
+was used. This closes the named SEC durability gap but does not satisfy the
+broader `ready_for_human_review` goal: the required local full profile remains
+open after the capacity-stopped F8m diagnostic.
+
+## 2026-10-23 — EDGAR shared-runtime interface note for ETF
+
+Read the coordinator's `sec-public-data-contract-review-20261023.md` and
+compared its proposed public-filings binding with the current Provider runtime
+at exact source `edea60a769a63863f72ef2a19df5df7a9378c277`. Reusable hooks:
+
+- Keep publisher identity `edgar` and its shared Provider `DataSource`; the
+  ETF bridge must pass the exact committed `ETFProfile`/`Instrument`, adapter,
+  provider symbol, and one of the two reviewed operation names through
+  `bind_etf_holdings_request_context` and
+  `execute_etf_holdings_request_attempt` in
+  `backend/app/services/etf_holdings_provider_bridge.py`. The bridge checks
+  committed profile/instrument/symbol/adapter/publisher identity, explicit
+  `ETF_HOLDINGS` policy enablement, reviewed HTTPS host and operation record,
+  entitlement, and configured account binding before the shared runtime.
+  `ProviderCapability.ETF_HOLDINGS` is intentionally not a generic EDGAR
+  registry capability: do not add generic `get_provider("edgar")` ETF routing
+  or let discovery/enrichment borrow the latest/dated refresh binding.
+- Reuse `account_scope_for_provider("edgar", "ip")` and the explicit
+  `PROVIDER_QUOTA_ACCOUNT_SCOPES["edgar:ip"]` entry. For IP scope, that helper
+  reads the namespaced key (or defaults to `edgar:shared-ip`); a provider-level
+  `"edgar"` entry is not used by the helper even though the bridge's preliminary
+  presence check accepts either key. The ETF review's stored `account_scope`
+  must exactly match the helper's resolved value; do not create a per-ETF/per-
+  adapter allowance. SEC public requests share the deployment egress-IP budget.
+- Reuse `execute_provider_call` and its per-attempt `reserve_provider_contract`
+  / `settle_provider_contract` plus durable `reserve_provider_quota_async` /
+  settlement path. Every physical page, retry, redirect hop, and failed send
+  must be admitted/accounted separately. The EDGAR seed in
+  `backend/app/config.py` is 10 requests per one-second rolling application
+  safety window, scope `ip`, with a local-zero *application usage* baseline;
+  this is not a native SEC usage counter or asserted account-wide headroom.
+- Public SEC access has zero monetary access cost, but not zero request or
+  response-byte budget. The ETF bridge's recurring-cost check requires the
+  shared recurring-cost budget to allow and an active commitment for the same
+  environment/account-scope digest with amount and monthly equivalent exactly
+  zero and no post-trial amount. Preserve explicit positive per-operation
+  request cost and reviewed byte bounds in normal quota admission; never
+  encode zero cost by omitting operation cost or bypassing reservations.
+- Use the existing EDGAR identity/config validation (`EDGAR_USER_AGENT`,
+  `is_valid_edgar_user_agent`, `provider_required_settings`) and the ETF
+  bridge's source-specific HTTPS host / operation evidence record. The
+  descriptive User-Agent is required identification, not an API credential.
+  `provider_rate_limit_error` already treats SEC rate-limit 403s and 429/418
+  responses as capacity events and uses the reviewed ten-minute recovery
+  behavior when SEC supplies no reset; preserve stop/hold behavior.
+
+Still unproved and therefore held: actual configured deployment egress-IP
+scope and current shared-ledger/native-window headroom; any native SEC usage
+counter or fixed reset (none is established by this review); reviewed
+operation-specific transport/response-byte maxima and active zero-cost
+commitment for the final adapter; a qualifying reachable filing and proven
+form/fund/series/class-to-instrument mapping; completeness, provenance and
+honest public-knowledge timestamps for the parsed holdings; and required
+source/CI plus any coordinator-authorized live evidence. The public-data
+research supports zero monetary access cost, not actual route readiness,
+coverage, quota allowance, or a new request authorization. No HTTP, credential
+inspection, database write, sibling edit, or activation occurred.
+
+## Highest-priority remaining no-network roadmap item
+
+The priority remains `AC-UNIVERSE-COMPLETE`; SEC CIK restart durability and
+the SEC directory dry-report/no-refetch materialization subpath are not a
+substitute for complete current-source NMS/OTC/SEC universe evidence. The
+bounded code review found no additional safe defect to patch here: the
+materialization route is admin-only and delegates to the retained-report
+materializer without refetching, and existing tests cover clean-cycle gates,
+source fingerprints, payload/normalized-field agreement, ambiguity quarantine,
+and no-refetch behavior (`backend/app/routers/market_data_admin.py` and
+`backend/tests/integration/api/test_market_data_admin.py`; detailed SEC scan
+unit coverage remains in `backend/tests/unit/services/test_market_event_edgar_scan.py`).
+The remaining criterion requires trustworthy complete CTA Tape A/B, Nasdaq
+Tape C, authorized FINRA OTC/Daily List, and SEC source scopes with same-session
+completeness and venue mappings; those current external source facts are not
+proved by this no-network review. Do not claim universe completion from the
+31-test SEC module or reuse historical/live receipts as current. The required
+full `full_stack_browser` profile also remains open after the F8m capacity
+stop. Continue only a concrete deterministic code gap if one is identified;
+otherwise preserve the no-HTTP boundary and await the separately released
+profile/source-evidence gates without repeating unchanged suites.
+
+## 2026-10-23 16:26Z — exact-source CI receipt reconciled
+
+GitHub Actions run `39981791130`, attempt 1, is terminal green on the exact
+synchronized source `edea60a769a63863f72ef2a19df5df7a9378c277`. Backend passed
+5,210 unit tests (1 skipped), 498 integration tests (2 skipped), and the
+combined coverage gate at 84%; Frontend Unit and Branch-declared passed.
+Playwright passed 191 with 110 declared skips in 17.5 minutes; the E2E job
+completed successfully and the retrieved log had no test retry/flaky marker.
+Exhaustive was skipped by normal feature-branch policy. This closes the
+hosted-source receipt only: the required local full functional/visual profile
+remains open, and the prior F8m capacity stop is still a no-result, not product
+acceptance. No provider/issuer/SEC request or quota operation occurred.
+
+## 2026-10-23 16:38Z — CTA redirect accounting fail-closed correction
+
+A bounded static audit of `AC-UNIVERSE-COMPLETE` found that
+`backend/app/providers/cta_plan.py::_get` enabled HTTPX automatic redirects
+inside one `execute_provider_call`. The adapter telemetry observed the final
+response, while the reviewed CTA operation reservation remains two requests
+(directory index plus dated CSV); an automatic redirect could therefore send
+an additional physical request without its own admission. The adapter now
+sets `follow_redirects=False`, preserving the reviewed two-request contract
+and surfacing a redirect as a failed attempt rather than silently following
+it. This is fail-closed, not proof that the official endpoint currently
+redirects or that CTA source reconciliation is complete. The focused CTA unit
+module passed 7/7, Ruff check and format passed for the two changed files, and
+`git diff --check` passed. No provider HTTP, quota reservation/spend/reset,
+source data, retained resource, or policy limit changed. The change is a
+working-tree candidate based on `edea60a769a63863f72ef2a19df5df7a9378c277`;
+exact-source CI is not yet available. Full roadmap and required local profile
+remain open.
+
+## 2026-10-23 — bounded no-network prelisting-contract follow-up
+
+On the same source, a read-only inspection of
+`backend/app/services/market_event_prelisting.py` and its existing unit suite
+confirmed that future-listing materialization is separate from SEC directory
+issuer-row materialization: only persisted IPO events with sufficiently
+corroborated consensus can create inactive provisional instruments; single-
+source, conflicted, or cross-page inconsistent evidence remains quarantined.
+The relevant deterministic cases are
+`test_materialization_deduplicates_consensus_into_inactive_provisional_instrument`,
+`test_materialization_keeps_consensus_complete_across_event_page_boundary`,
+`test_materialization_quarantines_conflicting_consensus_across_page_boundary`,
+`test_conflicted_consensus_is_quarantined_without_instrument`,
+`test_single_source_future_listing_is_quarantined_without_provisional_instrument`,
+and `test_corroborated_future_listing_with_conflicting_symbol_is_quarantined`.
+These are already part of the exact-source green backend CI; they were not
+rerun for this review. No additional deterministic defect was established.
+This does not prove current external universe completeness: AC-UNIVERSE-COMPLETE
+still needs complete current CTA/Nasdaq/FINRA/SEC source evidence and the held
+local full profile. No source code, database, provider transport, quota, or
+retained resource changed.

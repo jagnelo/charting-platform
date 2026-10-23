@@ -46,20 +46,22 @@
   },
   "current_exact_ci": {
     "attempt": 1,
-    "conclusion": null,
-    "head_sha": "1f0c6c0956ecb8c3994c03cfc54c026313155da0",
+    "conclusion": "success",
+    "head_sha": "edea60a769a63863f72ef2a19df5df7a9378c277",
     "jobs": {
-      "backend": "in_progress: integration tests with testcontainers (unit tests passed)",
-      "branch_declared": "pending",
-      "e2e": "pending",
+      "backend": "success: 5210 passed/1 skipped unit, 498 passed/2 skipped integration, 84% combined coverage",
+      "branch_declared": "success",
+      "e2e": "success: 191 passed/110 declared skips, 17.5 minutes, no test retry/flaky marker",
       "exhaustive_feature_branch": "skipped by branch policy",
       "frontend_unit": "success"
     },
-    "run_id": 39877233446,
-    "scope_note": "Exact branch Actions run 39877233446, attempt 1, is running on pushed merged source 1f0c6c0956ecb8c3994c03cfc54c026313155da0. Frontend Unit and Backend unit tests succeeded; Backend integration tests with Testcontainers are in progress. Branch-declared and Playwright remain pending; Exhaustive is skipped by normal feature-branch policy. No provider transport, quota action, or local-profile release is implied.",
-    "status": "in progress: Frontend Unit and Backend unit tests passed; Backend integration tests running; Branch-declared/Playwright pending; Exhaustive skipped by feature-branch policy"
+    "run_id": 39981791130,
+    "scope_note": "Exact Actions run 39981791130, attempt 1, is terminal green on synchronized source edea60a769a63863f72ef2a19df5df7a9378c277. The exact jobs and backend/E2E summaries are recorded in validation.jsonl. Exhaustive is skipped by normal feature-branch policy. This is hosted CI only; the local full functional/visual profile remains open and no provider transport/quota action is implied.",
+    "status": "completed: success"
   },
   "dirty_paths": [
+    "backend/app/providers/cta_plan.py",
+    "backend/tests/unit/providers/test_cta_plan.py",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
@@ -79,7 +81,7 @@
       "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
       "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
     ],
-    "known_bytes": 3802389208,
+    "known_bytes": 3802400208,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-market-data-provider-platform-c6e40c66",
@@ -95,7 +97,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 183867800,
+    "volume_bytes": 183878800,
     "volume_count": 4,
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
@@ -119,14 +121,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1afb01b600686a565220d771b6479dce6294a882",
+  "head": "edea60a769a63863f72ef2a19df5df7a9378c277",
   "implementation_sha": "0e46ff41639d3ebef73adc4e6684634b0baf65dd",
   "interrupted": false,
-  "last_checkpoint": "2026-10-23T15:50:37.514477+00:00",
-  "last_human_progress_update": "2026-10-23T15:50:21.392877+00:00",
+  "last_checkpoint": "2026-10-23T16:41:30.360378+00:00",
+  "last_human_progress_update": "2026-10-23T16:19:19.645309+00:00",
   "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Preserve exact CI 39877233446 on parent 1f0c6c0 and record its terminal result once available. The branch-local fail-closed NMS-scope correction has 48/48 focused module tests and needs exact-source CI after the current run ends. Keep the full local profile held pending Root's slot; then execute the source-pinned isolated 260-functional/104-visual profile under the recorded caps and retained-data safeguards. Continue AC-UNIVERSE-COMPLETE without provider/issuer/SEC HTTP, quota changes, cleanup, or staging/sibling writes.",
+  "next_action": "Exact-source Actions 39981791130 is terminal green on edea60a769a63863f72ef2a19df5df7a9378c277. Highest priority remains AC-UNIVERSE-COMPLETE: do not repeat unchanged SEC/NMS suites; pursue a concrete deterministic source gap only when identified, otherwise retain the exact current evidence and await authorized current-source completeness/profile gates. The full local functional/strict-visual profile remains open after F8m stopped without an assertion result at the capacity guard; it needs a newly released coordinator slot and fresh passing capacity gate. No provider/issuer/SEC HTTP, quota changes, cleanup, staging/sibling writes, or deployment.",
   "parent_branch": "staging",
   "plan_hash": "b6d4cc79164a0297969c292f8211c5f7c94db1032573ec28fb02ef833e975945",
   "planning_required": false,
@@ -160,15 +162,15 @@
   ],
   "progress": {
     "completed": [],
-    "current_blocker": "none",
-    "current_phase": "Released staging a6b9 reconciled locally; migration-head compatibility conflict resolved and focused test plus 46-record workstream validation pass",
-    "next_action": "Publish the coherent a6b9 backmerge and exact run receipts on the Provider branch. Then verify safe resources and source/image/fixture constraints and, only if all pass before 16:15Z, run the one released F8m yellow-wildcard/grey-isolation diagnostic with cleanup by 16:20Z. Preserve the required full profile and all roadmap items.",
+    "current_blocker": "The one-case browser process was stopped with no assertion result because available memory was below the slot threshold; no further local browser run is authorized by the expired slot",
+    "current_phase": "SEC issuer-scan durability verified 31/31 on current source; EDGAR-to-ETF shared-runtime interface note and no-network universe-gap boundary recorded; exact source CI 39981791130 terminal green; F8m slot remains no-result and isolated project cleaned",
+    "next_action": "Continue AC-UNIVERSE-COMPLETE without treating the 31/31 SEC durability module, hosted CI, or prior receipts as current external source completeness. The admin-only no-refetch SEC materialization path has existing deterministic gates; next source work requires a concrete code defect, while complete current CTA/Nasdaq/FINRA/SEC scope evidence and the full local profile remain open. Await a separately released profile/source-evidence gate; preserve all holds and no-HTTP boundary.",
     "total": 7,
-    "updated_at": "2026-10-23T15:50:21.392859+00:00"
+    "updated_at": "2026-10-23T16:26:38+00:00"
   },
-  "remote": "9b179d7e10a3f8767b4aa6ca083db398c530cc68",
-  "remote_sha": "9b179d7e10a3f8767b4aa6ca083db398c530cc68",
-  "remote_synchronized": false,
+  "remote": "edea60a769a63863f72ef2a19df5df7a9378c277",
+  "remote_sha": "edea60a769a63863f72ef2a19df5df7a9378c277",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],
