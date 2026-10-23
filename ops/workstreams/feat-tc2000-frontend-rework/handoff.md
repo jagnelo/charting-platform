@@ -1,5 +1,78 @@
 # feat/tc2000-frontend-rework
 
+## Read-only retained-resource capacity audit — 2026-10-23
+
+During exact CI40003951941, the Docker project matching the assigned TC
+worktree is `charting-stack-feat-tc2000-frontend-rework-f63d60ae`. Its six
+containers were all Up: frontend `2467a1d704a0`, worker `fd748b2c621d`,
+backend `5185936a9621`, Postgres `19d9e6d752ca`, Redis `9687c0f7cc25`, and
+network-isolated research-runner `db50995f6e00`. Its four volumes were
+`charting-stack-feat-tc2000-frontend-rework-f63d60ae_postgres_data`,
+`charting-stack-feat-tc2000-frontend-rework-f63d60ae_redis_data`,
+`charting-stack-feat-tc2000-frontend-rework-f63d60ae_research_jobs`, and
+`charting-stack-feat-tc2000-frontend-rework-f63d60ae_research_results`; none
+was changed. The project network had only the
+frontend/backend/worker/Postgres/Redis endpoints; the runner uses `network=none`.
+No browser/test container was attached to this project. The current GitHub
+Actions run is remote; this sandbox did not expose the host process namespace,
+so a separate host-side process cannot be ruled out by `ps` here.
+
+At the read-only sample, host MemAvailable was 1363 MiB (swap 32767 MiB total).
+Docker stats showed about 2.7 MiB frontend, 4.9 MiB worker, 229 MiB backend,
+21 MiB Postgres, 4.2 MiB Redis, and 7.6 MiB research-runner (runner limit
+768 MiB). Direct cgroup `memory.current` was readable for the first five
+services (about 4.3, 6.9, 250, 24.9, and 5.8 MiB respectively); runner
+`docker exec` could not fork, so its cgroup file was not read. A scoped
+worker/backend/runner quiesce would therefore reclaim only roughly 264 MiB at
+this sample (about 1627 MiB available if fully reclaimed; not guaranteed), not
+a full 2-GiB reserve.
+
+Redis DB0 reported one key and `ZCARD arq:queue` was 0. Worker introspection
+reported 0 cron jobs and `CORE_WORKSTATION_BOOTSTRAP_ENABLED=False`; the
+worker process nevertheless remains live, and an external read cannot prove
+that it has no in-memory job. Postgres reported 6 other sessions, 0 active
+queries, 0 active DDL, 0 Alembic-referencing statements, and 0 ungranted locks.
+No test/browser container or migration activity was positively identified.
+The ARQ queue count is zero, but the worker is itself a live queue consumer and
+its in-memory job state plus host-side processes remain unknown.
+
+Initial topology read: the audited project published frontend 28088, backend
+28008, and Postgres 25440, and the listener query found no 15190 listener.
+Root's later topology clarification is recorded below. If later approved after
+idle-caller and in-flight-job checks, stopping only these three consumers
+(worker, research-runner, backend) would interrupt background processing,
+research execution, and API availability while leaving frontend/DB/Redis and
+all four volumes untouched. A restart must use these same container IDs, with
+DB/Redis retained, then backend before worker/runner; do not recreate the
+project. No stop/restart/cleanup was performed. The retention hold remains.
+
+### Coordinator supplemental idle/ownership check
+
+Root later confirmed all six exact IDs above carry this TC worktree's
+`working_dir` label. The absent host listener on 15190 is expected in the
+current topology: frontend/backend/Postgres publish 28088/28008/25440, while
+deployed31181 is separate. There were no established connections to those
+three TC ports. `docker top` showed only the worker's Python PID 3782 and
+research-runner's Python PID 3687, with no child processes. Root's adapted
+read-only queue check found research-run state 252 completed and 26 queued;
+Celery queued/unacked and ARQ queued/active were 0. The legacy runtime lacks
+`PROVIDER_ROUTING_ENABLED`, so that setting is UNKNOWN, not false. These later
+facts supersede any broad interpretation of the earlier Redis/ARQ counters as
+proof that all work was idle. No stop is authorized; the retention hold stays
+in place while Root reviews backend startup/migration/provider side effects.
+
+### Restart side-effect hold
+
+Root verified the immutable backend entrypoint runs `alembic upgrade head`
+before Uvicorn, and the FastAPI lifespan unconditionally calls
+`seed_provider_runtime`. In the current container, instrument and market-data
+E2E seeding are true, large-universe seeding and core bootstrap are false, and
+the modern provider-routing setting is absent/UNKNOWN. A stop/start would
+therefore rerun migrations and seeders against retained state. The earlier
+conditional restart-order note is not authorization: do not stop, recreate,
+change environment, seed, or restart any retained service. All retention holds
+remain; the 26 queued research runs and 252 completed runs are preserved.
+
 ## Current exact-CI failure evidence — 2026-10-23 18:27Z
 
 Exact CI39993743859 on source `bb886386638c5b7f5479674d594d40914183ecbc`
