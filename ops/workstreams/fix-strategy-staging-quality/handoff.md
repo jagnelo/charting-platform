@@ -1,5 +1,62 @@
 # fix/strategy-staging-quality
 
+## ACTIVE CONTINUATION — 2026-10-23: hidden-refresh observation
+
+01:58UTC next source correction after REAL local failure: a3c F8l exited1 false
+exited (zero retries, no OOM) on native coverage mismatch, not hidden-refresh
+assertion. Trace and fixture source prove loggedIn had opened /chart before the
+test reloaded /chart; native listener included a prior document's interrupted
+readiness request, absent from the new document's collector. Complete
+about:blank navigation BEFORE installing collector/native listener; this changes
+only setup scope, not unknown-row handling, coverage, windows or assertions.
+Corrected collector units9/9 pass; previous1337full units/typecheck retain their
+unchanged-input qualification, not a fresh run claim. Actual new browser pending.
+Cleanup36031 exit0; all3global inventory diffs0bytes. Both exact unused owned
+temporary image tags removed nonforced after owner/ID/single-tag/no-container
+checks. Their archived source and all failed artifacts/trace remain private;
+retained services/data/production images and assigned stopped builder/cache intact.
+Do not replay the a3c case unchanged or relabel its failed result as success.
+
+01:34UTC local source checkpoint: browser-clock fetch/XHR observer plus native
+request-count coverage implemented; original fail-closed unknown-time classifier
+unchanged. F8l now deliberately holds a real readiness request across its same
+3000ms/1500ms windows, ensuring in-flight timing is exercised; finally releases
+the intercepted request. No hidden-refresh assertion/retry/reference relaxation.
+New collector/coverage tests6failed before implementation (old3stillpassed), then
+9/9pass. Vue typecheck0 with1536MiB heap after initial too-small768MiB heap134;
+no host-OOM claim. Full frontend139files/1337tests PASS147.86s with one worker.
+Discovery selects exactly1 F8l case; ACTUAL pinned browser and all new exact
+branch/staging/master gates remain pending. Production inputs byte-unchanged
+from4687 (frontend/src,backend,Compose,Dockerfile,package manifests). Do not
+relabel old full visual evidence or call the new source accepted yet.
+
+Same Root writer706a780f-1b88-48e7-bef2-2a2b0524fbb1 verified by UV-managed
+context/status preflight; no takeover or duplicate native goal. Root's original
+active unbudgeted production goal covers this repair. Clean synchronized3d26
+fast-forwarded to accepted green staging4687, preserving all previous checkpoints.
+New-topic creation correctly refused master-degraded; no bypass/marker removal.
+Continue this existing quality-repair branch, not a sibling feature worktree.
+
+Master39875818716 EIG120165861490 failed F8l because
+request.timing().startTime was unavailable for benchmark-families/readiness.
+All104 backend unit shards,497integration, frontend and193other functional
+cases passed;107existing functional skips, strict visuals not run. Ordinary
+master browser191pass110skip independently green. Exact artifact12470989237
+retained at/tmp/master-hidden-refresh-39875818716.9EqcGm/diagnostics.zip.
+There is no first-failure trace in that artifact: do not claim a proven abort
+or post-hidden request from its screenshot/video. Known source gap: native
+timing is read after a fixed wait and can be unavailable for an in-flight or
+failed request; the helper correctly refuses to infer safety from unknown data.
+
+Repair the observation source, not the hidden-refresh behavior or assertion:
+capture fetch/XHR initiation in the browser's clock before completion/abort;
+retain native request coverage checks so unobserved traffic remains a failure.
+Keep the atomic browser hidden transition,3000ms/1500ms windows, zero retries,
+all references/masks/tolerances and provider/data holds unchanged. Add pending/
+aborted/pre-hidden/post-hidden and missing-coverage regressions. Require actual
+pinned isolated browser proof, full final branch CI and new staging/master gates.
+No application code change is justified by the current evidence. Closure pending.
+
 ## ACTIVE NEW CHECKPOINT — 2026-10-22 21:31 UTC
 
 ## New repair local acceptance — 2026-10-22 21:55 UTC
@@ -229,3 +286,41 @@ ops/workstreams/fix-strategy-staging-quality/handoff.md
 ops/workstreams/fix-strategy-staging-quality/session.json
 ops/workstreams/fix-strategy-staging-quality/validation.jsonl
 No additional implementation/theme may start while final CI is evaluated.
+
+## Hidden-refresh checkpoint closure — 2026-10-23 02:50 UTC
+
+Implementation331d99b7cda0df74355a7e4ddfffb6a2f151a45f is clean/pushed.
+Exact CI39887117146 is terminal green, all required jobs; E2E120204997321
+191passed110existing skipped18.2m, F8l executed successfully. This is the
+implementation receipt, NOT the final closing-head CI which must also pass.
+
+Actual local pinned Noble1.62.1 F8l passes1/1in16.7s, one worker/retries0,
+state0 false exited. Log private runtime:
+/tmp/strategy-full-hidden-refresh-331d99b7-20261023/artifacts/hidden-refresh-focus.log
+SHA2565d5d2beb7f1bb1998f25b325f6d5c4d41e3f8992634120764f4965dc58af82a1.
+Fixture backend built331d. Frontend deliberately used immutable4687 production
+image dcf90f7d90ca0cceb3ac382830c8b4cc77ae6c6100c431d8f533492d5007b77b:
+ALL non-test frontend inputs are unchanged; only3test files differ. This explicit
+application-input equivalence is not a successful fresh331d frontend build.
+The bounded1.5GiB frontend build OOM is preserved; builder remains stopped at
+original caps/cache intact. No temporary2GiB build occurred or fake build.complete.
+
+Cleanup11262exit0 removed only the exact fixture/browser/generated volumes/
+network. All3independent global inventory differences0bytes. Only the owned,
+singly-tagged unused backend22a86782 image was removed, nonforced. Reused4687
+frontend remains independently verified unchanged. Artifacts/private source/
+cache and every retained service/dataset remain intact. No Root fixture remains.
+
+Collector9units pass on331d; prior1337full units/typecheck0 are qualified to
+unchanged inputs, not relabeled fresh full local runs. Original master red and
+a3c document-coverage failure remain recorded. Browser-clock capture and strict
+native coverage preserve missing-evidence failure, hidden-start failure,
+original observation intervals/assertions/retries and all visual oracles.
+
+Standing human delegated acceptance closes only this narrow repair CONDITIONAL
+on final closing-head full CI green. OBS1/OBS2 done; OBS3/MAP2 remain release gates.
+Publish one final snapshot, freeze, then canonical guarded staging integration,
+new full staging and independent master gates. No repeated self-SHA/CI record
+commits. Deployment remains unstarted pending green master. Root original goal
+continues active and unbudgeted; no branch-local replacement goal/session.
+integration_capture: exact branch HEAD.
