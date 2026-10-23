@@ -2,6 +2,18 @@
 
 ## Manual-import current-health consumer correction — 2026-10-23
 
+Follow-up exact CI `39938965987` on `095a08a4dcd88a0deb306b943813d8f94f5c61bf`
+is terminal red: Frontend Unit passed; Backend unit passed `5235` with one
+skip; Backend integration passed `497` with two skips and failed only the same
+workspace industry test; downstream jobs were skipped. The integration log
+confirms the API returns the intended current-mode 409 and the explicit
+historical read succeeds; only the reason text differed because capability
+evaluation reports the unassigned adapter before the artifact's tier. The
+owned test expectation now matches this precedence without changing any
+response, stale/tier/current-use assertion, or historical positive. Ruff and
+format checks pass on the test file; no local integration fixture was run
+because the exclusive full-profile resource slot remains Root-assigned.
+
 Exact parent source `9e183e6c75940e4c6e0abf5bfc32afa589d95969` CI
 `39929980961` is terminal red: Backend unit and Frontend Unit passed; Backend
 integration failed four cases; Branch-declared, Playwright E2E and Exhaustive

@@ -367,19 +367,20 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Accepted-f04 RSST manual-import feasibility audit (read-only)
-    state: consumer_correction_published_4dae395;exact_ci_39934411063_terminal_red_one_stale_workspace_test_reason;workstream_audit_commit_e0f6aa2_ci_39937538292_terminal_red_count_sentinel_phrase_omitted;count_phrase_restored_and_focused_sentinel_passed;RSST_static_audit_complete;no_import_or_runtime_action
-    baseline: e0f6aa2a1c488d39ed0e299a629f79409dcc4e2
+    name: Correct manual-import workspace denial-reason expectation
+    state: RSST_static_audit_complete;exact_ci_39938965987_terminal_red_same_single_workspace_reason_assertion;count_phrase_restore_published_095a08a4;expected_reason_corrected_locally;ruff_and_format_pass;local_integration_not_run_root_slot;new_exact_ci_pending
+    baseline: 095a08a4dcd88a0deb306b943813d8f94f5c61bf
     intent: >-
-      Record a source-backed, read-only determination of whether accepted f04
-      supports the retained RSST artifact as manual/noncurrent dated data. The
-      exact f04 schemas permit an explicit composition/known-at/raw payload and
-      typed normalized rows, but the profile API cannot bind manual_csv, ingest
-      writes adapter-success state, routes have no no-enrichment switch, and
-      the CSV parser misclassifies futures. Retained rights and initial request
-      URL remain unverified. No import, profile change, Provider/runtime action,
-      external request, quota operation, or product-source change occurred.
+      Correct the one exact workspace integration-test reason expectation
+      exposed after the manual-import current-data guard: capability returns
+      the unassigned-adapter reason before checking the artifact source tier.
+      Preserve the 409, stale source-tier-none capability and explicit dated
+      historical positive. The actual API behavior is unchanged. This
+      workstream retains the completed RSST feasibility audit: accepted f04
+      lacks safe manual-profile, no-enrichment and health isolation; rights and
+      initial request URL remain unverified. No sample was imported.
     owned_paths:
+      - backend/tests/integration/api/test_workspaces.py
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/session.json
@@ -1792,10 +1793,13 @@ next_action: >-
   CI `39937538292` was red solely because `progress.current_blocker` omitted
   the required exact `15 Tier-0 and 156 Tier-1` phrase (5234 passed, one
   sentinel failed, one skipped; frontend passed). Restore that exact narrative
-  phrase and the focused sentinel now passes once; do not rerun either prior
-  CI or alter product/test source under the RSST audit scope. Validate and
-  publish the workstream-only correction on the ETF branch; then continue
-  within the current coordinator scope. Keep the retained RSST body untouched and non-routable until
+  phrase and the focused sentinel passed once; do not rerun either prior
+  CI. The workspace expectation now matches the logged capability precedence
+  while retaining the 409, stale tier and historical positive. Run the count
+  sentinel once after current-record edits. Complete the post-record
+  workstream/JSON/hash/diff validation and publish this coherent test/workstream
+  correction, then inspect its exact-source CI. Keep the
+  retained RSST body untouched and non-routable until
   rights, initial request URL, no-enrichment, derivative typing, and manual
   profile/health behavior are resolved through supported reviewed paths.
   Continue AC1-AC14; preserve 15 Tier-0 and 156 Tier-1, history,

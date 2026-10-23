@@ -88,16 +88,17 @@
     }
   ],
   "active_changeset": {
-    "baseline": "e0f6aa2a1c488d39ed0e299a629f79409dcc4e2",
-    "intent": "Record a read-only source-backed assessment of whether accepted f04 can safely store the retained RSST file as explicit manual/noncurrent dated history. The audit found missing supported manual profile binding, adapter-health isolation, no-enrichment path, rights and initial-request URL evidence, and correct derivative parsing in the CSV route. No source/runtime/profile/data/provider operation occurred.",
-    "name": "Accepted-f04 RSST manual-import feasibility audit",
+    "baseline": "095a08a4dcd88a0deb306b943813d8f94f5c61bf",
+    "intent": "Correct the exact workspace integration assertion to match capability precedence for an unassigned adapter while preserving current-mode 409, tier none/stale/unusable status, and explicit historical access. The failed exact CI response proved the API behavior was correct and only the expected reason was stale. Preserve the completed read-only RSST feasibility findings; no sample or runtime mutation occurred.",
+    "name": "Correct manual-import workspace denial-reason expectation",
     "owned_paths": [
+      "backend/tests/integration/api/test_workspaces.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "The manual-import consumer correction was committed/pushed as4dae395c1972457e644c8ec18ba289891c20426e. Exact CI39934411063 is terminal red: Frontend Unit passed; Backend unit passed5235 with one skip; Backend integration passed497 with two skips and failed only the workspace ETF industry test on an expected-vs-actual denial-reason mismatch. The actual API returned current-mode409 and the selected historical read passed; only the earlier-priority unassigned-adapter reason differed from the expected source-tier reason. The audit/workstream-only commit e0f6aa2a1c488d39ed0e299a629f79409dcc4e2 exact CI39937538292 is terminal red solely because its current_blocker narrative omitted the required exact phrase 15 Tier-0 and 156 Tier-1; unit results were5234 passed, one failed sentinel, one skipped. The phrase has now been restored and the one changed-field sentinel passes. No product/test code failure or current-data safety regression is evidenced. Preserve both red receipts; no CI replay or product/test edit occurred. Accepted-f04 RSST remains not safely importable: manual_csv profile binding, adapter-health isolation, no-enrichment behavior, correct CSV derivative typing, initial request URL and rights remain unresolved. No sample import or external/runtime operation was performed. Preserve all AC1-AC14 and safety gates."
+    "state": "Exact CI39938965987 on base095a08a4dcd88a0deb306b943813d8f94f5c61bf is terminal red: Frontend Unit passed; Backend unit passed5235 with one skip; Backend integration passed497 with two skips and failed only test_etf_industries_are_derived_from_point_in_time_holdings on the expected reason. Logs confirm current-mode409, correct stale/source-tier-none capability and explicit historical200; only the reason differed because unassigned-adapter precedes source-tier. The local test changes only that expected reason; Ruff and format pass, no local integration profile ran due Root slot. Earlier CI39934411063 and count-sentinel CI39937538292 remain preserved red; the required count phrase has been restored and the focused sentinel passed. The RSST audit found accepted-f04 manual profile binding, health isolation, no-enrichment, derivative parser, rights and initial-URL gaps. No sample import or external/runtime operation occurred. Preserve all AC1-AC14 and safety gates."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -148,9 +149,10 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23: Exact source4dae395c1972457e644c8ec18ba289891c20426e CI39934411063 is terminal red on one denial-reason expectation; the API still returns current-mode409 and explicit historical access passes. Workstream-only source e0f6aa2a1c488d39ed0e299a629f79409dcc4e2 CI39937538292 is terminal red on one count sentinel because session.progress.current_blocker omitted the required exact phrase 15 Tier-0 and 156 Tier-1; 5234 unit tests passed, one sentinel failed, one skipped, and frontend passed. The exact phrase is restored and the changed-field sentinel now passes once. This is a narrative validation error, not a product/test source failure. RSST remains not importable through a supported manual-only path because manual profile/health isolation, no-enrichment, derivative parser behavior, rights and initial URL are unresolved. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, 30-day observation and Root-owned full_stack_browser slot.",
-  "current_local_delta": "2026-10-23: The remaining local dirty set is the workstream-only correction recording e0f6aa2a1c488d39ed0e299a629f79409dcc4e2's exact count-sentinel CI failure and its repair. progress.current_blocker now includes the required 15 Tier-0 and 156 Tier-1 phrase; the single focused sentinel passes. Source correction4dae395c1972457e644c8ec18ba289891c20426e remains unchanged; no import, profile/runtime/provider mutation, HTTP, quota, activation, fixture, cleanup, or sibling/staging/master write occurred.",
+  "current_blocker_latest": "2026-10-23: Exact CI39934411063 on4dae395c1972457e644c8ec18ba289891c20426e and CI39938965987 on095a08a4dcd88a0deb306b943813d8f94f5c61bf are terminal red on the same workspace denial-reason expectation. Both logs prove current-mode409 and explicit historical access; stale/source_tier none/unusable remain, but the unassigned profile's earlier-priority adapter reason differs. Workstream CI39937538292 also remains red because an intermediate narrative omitted the count phrase; that phrase has been restored and the focused sentinel passed. Preserve 15 Tier-0 and 156 Tier-1 investigations, all AC1-AC14, quarantines, holds, retained data, 30-day observation and Root-owned full_stack_browser slot. RSST is not safely importable through accepted f04 because manual-profile/health isolation, no-enrichment, derivative parsing, rights and initial URL gaps remain.",
+  "current_local_delta": "2026-10-23: One test expectation is changed in backend/tests/integration/api/test_workspaces.py to match the logged unassigned-adapter reason while retaining the 409, stale/source_tier none/unusable assertions and explicit historical positive. Ruff and format pass; no local integration ran because Root owns the fixture slot. Workstream records capture exact CI39938965987 and prior failures plus the RSST audit. No import, external HTTP, quota, profile/provider/runtime mutation, activation, fixture, cleanup, or cross-worktree write occurred.",
   "dirty_paths": [
+    "backend/tests/integration/api/test_workspaces.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -180,7 +182,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "e0f6aa2a1c488d39ed0e299a629f79409dcc4e2",
+  "head": "095a08a4dcd88a0deb306b943813d8f94f5c61bf",
   "implementation_sha": "04f49d940c877635de52c0c0616e54f47018bf25",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -293,13 +295,13 @@
   },
   "last_checkpoint": "2026-10-23T01:28:00Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-23: RSST static audit note was published in e0f6aa2a1c488d39ed0e299a629f79409dcc4e2. Its exact CI39937538292 is terminal red solely because progress.current_blocker omitted the required exact 15 Tier-0 and 156 Tier-1 phrase; the phrase is now restored and the one changed-field sentinel passed. Preserve that failed exact-source CI receipt. The prior source commit4dae395c1972457e644c8ec18ba289891c20426e CI39934411063 remains red on one stale workspace denial-reason assertion; current-mode409 and selected historical read both pass. No product/test source defect was established by these runs. Preserve both failure receipts, full AC1-AC14, 15 Tier-0 and 156 Tier-1, holds, quarantines, retained data and 30-day observation. Historical journal labels09:08:30Z and09:12:30Z remain unchanged; row957 contains the clock discrepancy qualification.",
+  "latest_checkpoint": "2026-10-23: CI39938965987 on095a08a4dcd88a0deb306b943813d8f94f5c61bf reproduced the single workspace expected-reason mismatch already present in CI39934411063: current-mode endpoint409 and historical read200 are correct; only the reason order differs. Local test expectation is corrected with no API behavior change; Ruff/format pass, and local integration remains unrun under Root's slot. CI39937538292's separate narrative sentinel failure is historical; the exact count phrase is restored and its one changed-field sentinel passed. Preserve all three receipts and full roadmap; the RSST artifact remains unimported and unsupported as manual-only data on f04.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T10:20:48Z",
-    "result": "terminal_failure;Frontend Unit passed;Backend unit 5234 passed one failed narrative sentinel one skipped;Branch-declared E2E Exhaustive skipped",
-    "run_id": 39937538292,
-    "sha": "e0f6aa2a1c488d39ed0e299a629f79409dcc4e2"
+    "recorded_at": "2026-10-23T10:47:39Z",
+    "result": "terminal_failure;Frontend Unit passed;Backend unit 5235 passed one skipped;Backend integration 497 passed two skipped one workspace denial-reason failure;downstream jobs skipped",
+    "run_id": 39938965987,
+    "sha": "095a08a4dcd88a0deb306b943813d8f94f5c61bf"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
@@ -349,8 +351,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run the workstream validator, JSON/JSONL, plan-hash and diff checks; publish the coherent workstream correction once. Preserve both exact red CI results; do not rerun either prior CI or change product/test source in this audit closure. Do not import RSST or make issuer/provider/SEC requests. Continue the full AC1-AC14 roadmap; preserve prior evidence, quarantines, holds, retained data and the 30-day observation. full_stack_browser remains Root-slot-gated. No quota, paid/trial activation, staging/sibling/master mutation, cleanup or deployment.",
-  "plan_hash": "aa49aea8483986a3a1662056e95b3da2bb5cc25c72a98da4bc89e1aa6b460002",
+  "next_action": "The count sentinel has passed once; finish JSONL/workstream/diff validation after recording that result, then publish this coherent test/workstream correction. Require hosted exact-source CI; do not rerun prior CI or start local integration/browser work without Root's slot. Do not import RSST or make issuer/provider/SEC requests. Continue the full AC1-AC14 roadmap; preserve prior evidence, quarantines, holds, retained data and the 30-day observation. No quota, paid/trial activation, staging/sibling/master mutation, cleanup or deployment.",
+  "plan_hash": "1040018d38b8d726f4ec3252c8d549f573acec550e1dd591ead121d6be546716",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -401,10 +403,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23: Exact-source CI39934411063 was red on one stale workspace denial-reason expectation; the API still returns current-mode409 and selected historical access passes. Workstream-record commit e0f6aa2a1c488d39ed0e299a629f79409dcc4e2 CI39937538292 is red only because test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers requires the exact phrase 15 Tier-0 and 156 Tier-1 in progress.current_blocker. Preserve 15 Tier-0 and 156 Tier-1 symbol investigations. This is a narrative validation correction, not a product/test source failure or current-data safety regression. RSST manual-only import remains unsupported in accepted f04. No import, external HTTP, quota or runtime action occurred; full roadmap and review gates remain open.",
-    "current_phase": "accepted_f04_rsst_audit_and_required_count_sentinel_repair_2026_10_23",
-    "next_action": "Run the single changed-field narrative sentinel to verify the exact 15 Tier-0 and 156 Tier-1 text in progress.current_blocker, then workstream/JSON/hash/diff checks and publish the correction. Preserve both exact red CI results; do not rerun either prior CI or change product/test source.",
-    "updated_at": "2026-10-23T10:22:25Z"
+    "current_blocker": "2026-10-23: CI39934411063 and exact-source CI39938965987 are terminal red on the same stale workspace denial-reason string; the API correctly returns current-mode409 and explicit historical200. The current local assertion is corrected to the logged unassigned-adapter reason; 15 Tier-0 and 156 Tier-1 symbol investigations remain fully tracked. The separate workstream count-sentinel issue from CI39937538292 is fixed and its targeted test passed. RSST remains unsupported as manual-only data on accepted f04. No external HTTP, quota, import or runtime action occurred; full roadmap and gates remain open.",
+    "current_phase": "manual_import_workspace_reason_test_correction_and_workstream_closure_2026_10_23",
+    "next_action": "The count sentinel passed once. Complete the post-record JSONL/workstream/diff checks, then publish this coherent test/workstream correction and follow its exact-source CI.",
+    "updated_at": "2026-10-23T10:51:10Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -416,8 +418,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "e0f6aa2a1c488d39ed0e299a629f79409dcc4e2",
-  "remote_sha": "e0f6aa2a1c488d39ed0e299a629f79409dcc4e2",
+  "remote": "095a08a4dcd88a0deb306b943813d8f94f5c61bf",
+  "remote_sha": "095a08a4dcd88a0deb306b943813d8f94f5c61bf",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

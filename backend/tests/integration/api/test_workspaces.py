@@ -2124,7 +2124,7 @@ class TestWorkspaces:
                 "source_tier": "none",
                 "usable_for_current_analysis": False,
                 "failure_class": None,
-                "reason": "The latest holdings artifact has no recognized current-data source tier.",
+                "reason": "No concrete ETF holdings adapter is assigned to this profile.",
             },
             capability.json(),
         )
