@@ -1001,6 +1001,19 @@ async def test_reconstructed_backtest_worker_hydrates_each_persisted_study_type(
         assert hydrated.study_artifacts == {
             strategy.fingerprint: ResolvedStudyArtifactOutput(reference, study_payload)
         }
+
+        drifted_payload = {**study_payload, "drift_marker": "changed-after-pin"}
+        async with fresh_sessions.begin() as session:
+            await session.execute(
+                update(ResearchArtifact)
+                .where(ResearchArtifact.id == reference.artifact_id)
+                .values(payload=drifted_payload)
+            )
+        with pytest.raises(TrialDomainHydrationError, match="unavailable for restart validation"):
+            await hydrator.hydrate_attempt(
+                principal="1",
+                attempt_resource_id=graph.attempt.attempt_id,
+            )
     finally:
         await fresh_engine.dispose()
 

@@ -17590,3 +17590,23 @@ No local DB, Docker, Compose, build, browser, provider/issuer HTTP, quota, nativ
 All 18 roadmap criteria, persisted restart proof, full local backend/application/browser/strict-visual
 gates and native qualification remain open; forward, broker/capital, paid/trial, unknown/unsafe and
 provider/live scopes remain disabled.
+
+## Reject backtest Study payload drift after persisted worker restart — 2026-10-23 02:45 UTC
+
+Strengthened the existing real-PostgreSQL backtest restart matrix: after each of the 11 admitted
+Study output types hydrates its exact pinned payload through a fresh engine/session, the test now
+mutates only the persisted artifact payload and requires the production hydrator to reject the
+restarted attempt. This closes the asymmetry with the forward restart matrix, which already checks
+post-pin payload drift, without changing production code or adding a database fixture.
+
+The focused UV-managed `--collect-only` node discovered all 11 cases in 1.30s; no database fixture
+or test body ran. Ruff check, Ruff format check, and `git diff --check` pass. One initial collect-only
+attempt stopped before pytest because the shared UV cache was read-only; the corrected run used a
+private `/tmp` cache and completed collection. Current branch/origin baseline is synchronized at
+`1f5d982d56eae1f6b3946eebf1b2c1b5ad1c4eb3`; this source change is still local and has no exact-source
+CI receipt. The earlier `39886544570` result is for `9236eec...` and does not cover `1f5d982...` or
+this change. The integration body still requires the assigned PostgreSQL/full-profile slot; preserve
+all 18 roadmap criteria and full backend/application/browser/strict-visual/native gates. Provider or
+issuer HTTP, quota/live, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled.
+Focused MyPy for the integration module also passes with no issues under the existing 1-GiB/120-second
+bound; branch workstream validation reports all 45 records valid.

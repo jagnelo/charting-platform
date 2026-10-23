@@ -696,46 +696,37 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-typed-study-worker-restart-matrix-v5
+  current_phase: full-roadmap-typed-study-worker-restart-matrix-v6
   current_blocker: >-
-    The accepted four-feature baseline 0e342512e53ba2268425294d61c50e219eaafa4f and the later
-    accepted shared Market Map/cleanup repair 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad are already
-    adopted in this Strategy branch. The latter is the exact synchronized staging release with
-    canonical receipt 20261023T000222Z-4687bd0cd21a.json and green CI39866387942 including Exhaustive;
-    merge commit 85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db preserves both histories. That source is
-    already an ancestor locally; no duplicate merge is needed. Published Strategy origin is
-    9236eecbd545ccc1d9216bfe95a36a7d13bba027. Exact CI39886544570 has Frontend Unit, Backend, and
-    Branch-declared jobs green; Playwright remains in progress and feature-branch CI skips EIG. The
-    dirty backtest PostgreSQL restart matrix is outside that source; preserve the run to terminal
-    before pushing. Current source work
-    strengthens the ordinary Study PostgreSQL forward restart regression through the production
-    outer AuthenticatedForwardWorkerRuntimeInputResolver and carries Study output through
-    ForwardStrategyContextWindow, forward recipe resolution, authenticated history replay, and
-    serialized native-worker context inputs. Study-bearing window fingerprints include the resolved
-    pinned output; the no-Study fingerprint projection remains unchanged. The bounded stack-free
-    regression group passed 15/15 in 2.71s, including replay/fingerprint and authenticated-seed
-    Study-binding cases; focused MyPy reports no issues in all eight touched Python files under a
-    1-GiB/120-second bound; Ruff, format, diff-check, and workstream validation pass. A further
-    offline forward-preparation/worker-seeding parameter matrix passed all 11 resolver-admitted
-    Study artifact types in 5.30s; focused MyPy, Ruff, format, and diff checks pass. The PostgreSQL
-    restart node collects alone but its body remains unrun locally. The hydration matrix now follows
-    the actual TC Study artifact contract across all 11 admitted output types and retains the trusted-
-    resolver denial; its focused 12 cases and touched-boundary checks pass. Full local database/application,
-    browser/visual, native qualification and remaining roadmap criteria stay open.
-    The full 18 criteria remain open, including full local backend/application, migration, browser and
-    visual validation, native qualification and remaining persistence/API/worker behavior. Provider
-    HTTP/quota, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
-  updated_at: "2026-10-23T02:25:23Z"
+    The accepted four-feature baseline0e342512e53ba2268425294d61c50e219eaafa4f and accepted shared
+    repair baseline4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad are already adopted; merge history is
+    preserved and no duplicate merge is needed. Current synchronized Strategy HEAD/origin is
+    1f5d982d56eae1f6b3946eebf1b2c1b5ad1c4eb3. The earlier exact CI39886544570 is for9236eec, not
+    current source. The current source has no verified exact CI receipt in this checkpoint, and its
+    new local test change is not included in any recorded exact-source result. Offline runtime,
+    worker-seeder and payload-type matrices, hydration tests, focused MyPy, Ruff, formatting and
+    collect-only checks remain as recorded above. The real PostgreSQL persisted-worker restart bodies
+    have not run because no DB/full-profile slot is assigned. The current bounded test addition
+    mutates the persisted Study payload after successful backtest hydration and requires rejection
+    across all11 types; it is collected but not database-executed. Full local backend/combined DB/
+    application/browser/strict-visual/native gates remain open. All18 original criteria remain open;
+    generic Study output is not native execution evidence. Provider/issuer HTTP, quota/live,
+    paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
+  updated_at: "2026-10-23T02:51:12Z"
   next_action: >-
-    Let exact-source CI39886544570 on published 9236eecbd545ccc1d9216bfe95a36a7d13bba027 reach
-    terminal before pushing the accumulated worker-seeder, typed Study payload-shape, hydration, and
-    PostgreSQL backtest-restart matrix changes. Then publish the coherent follow-up and inspect its
-    exact-source CI. Obtain the assigned PostgreSQL/full-profile slot for the collected 11-type matrix;
-    retain the full local/application/browser/native
-    gates open; do not launch database, Compose, build, browser or native validation until Root
-    assigns the one-at-a-time host slot. Preserve all 18 original criteria, exact-scope Nautilus
-    authority, disabled provider/live/quota/paid/trial/unknown/unsafe/broker/capital boundaries, and
-    accepted checkpoint history.
+    Current Strategy HEAD and origin were verified synchronized at
+    1f5d982d56eae1f6b3946eebf1b2c1b5ad1c4eb3. The historical run39886544570 covers only9236eec and
+    is not evidence for the current source; exact-source CI for1f5d982 was not verified in this
+    turn. A local backtest restart regression now complements the forward matrix by mutating the
+    persisted Study payload after successful fresh-session hydration and requiring restart rejection
+    for each of the11 admitted types. Stack-free collection found all11 cases; focused MyPy,
+    Ruff/format/diff and workstream checks pass. Test bodies remain unrun without the assigned
+    PostgreSQL slot. Publish the coherent
+    test/workstream changeset through the normal branch workflow when safe, then capture exact-tip CI.
+    Obtain the assigned PostgreSQL/full-profile slot before running integration bodies; preserve the
+    full local backend/application/browser/strict-visual/native gates and all18 original criteria.
+    Keep exact-scope Nautilus authority and provider/live/quota/paid/trial/unknown/unsafe/broker/
+    capital/deployment boundaries unchanged.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1681,11 +1672,12 @@ roadmap_progress_history:
     Study output is not native execution evidence. Provider/issuer HTTP, quota, live, paid/trial,
     unknown/unsafe, broker/capital and deployment scopes remain disabled.
   next_action: >-
-    Preserve exact CI39886544570 on published 9236eecbd545ccc1d9216bfe95a36a7d13bba027 to terminal;
-    its Playwright job is the only active job and it does not cover the current dirty backtest
-    PostgreSQL restart matrix. Then publish the coherent follow-up and inspect exact-tip CI. The real
-    PostgreSQL backtest and forward restart bodies require the coordinator-assigned DB/full-profile
-    slot; collect-only is not DB evidence. For that future slot, use the unchanged
+    Obtain the assigned PostgreSQL/full-profile slot and execute the collected backtest and forward
+    restart bodies without weakening assertions or changing fixture constraints. The current new
+    backtest payload-drift cases are collect-only and unverified at runtime; do not publish them as
+    completed validation. After the DB bodies pass and focused review is complete, publish the
+    coherent source/workstream changeset through the normal branch workflow and capture exact-tip CI.
+    For that future slot, use the unchanged
     scripts/backend_coverage.py --shard-size 25 complete collector, exact source archive and private
     coverage/quota/FINRA state, coordinator-pinned PostgreSQL/Redis fixtures, existing 75% combined
     threshold, and zero retries. Do not launch a local DB/application/browser/build or native gate
