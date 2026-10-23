@@ -1,5 +1,32 @@
 # feat/tc2000-frontend-rework
 
+## Current exact-CI failure evidence — 2026-10-23 18:27Z
+
+Exact CI39993743859 on source `bb886386638c5b7f5479674d594d40914183ecbc`
+ended red with 190 passed, 110 declared skips and two retry-passing flakes:
+F8e native-indicator-selection and F8y Tag Columns. The retained artifact ZIP
+was independently hash-verified as
+`529a48436562186f14d3b9b1d8bd2e5de28de85099efdfa073e7c7f6f59c687e`. Its
+first-attempt screenshots/error contexts confirm the missing picker and locked
+remove-action symptoms, but both embedded traces belong to successful retries;
+the configured `trace:on-first-retry` left first-attempt event causality
+unknown. A test-scoped automatic fixture in `flows.spec.ts` now saves and
+attaches a trace only when the first attempt of these two named cases fails.
+It reads `testInfo.project.use.trace` and defers to built-in tracing when the
+resolved mode already captures attempt0 (`on`, `retain-on-failure`,
+`retain-on-first-failure`, or `retain-on-failure-and-retries`). Under current
+`on-first-retry`, it captures attempt0 manually and leaves retries to the
+unchanged runner policy. The two-case Playwright collection passed with default
+settings and explicit `--trace=on` / `--trace=retain-on-failure`; `npm run
+type-check` passed. No browser, fixture, product source, test
+action/assertion/timeout, retry policy, or visual policy changed. These records
+do not label either symptom a product defect or a test-readiness defect.
+Publish the diagnostic-only source for one normal exact branch CI, then inspect
+genuine first-attempt traces before deciding whether a minimal behavior or
+setup repair is justified. Full roadmap criteria, F8y parent-host browser
+proof, SX/IX semantics, held provider/data operations, and official
+REF-HELP-V25 parity remain open.
+
 ## Current scoped coverage recovery — 2026-10-23 17:13Z
 
 The owned Custom Date Sort identity guard and mounted Tag Column parent/runtime

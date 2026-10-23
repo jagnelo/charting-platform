@@ -9,6 +9,46 @@ import { closePopupWhenOpen } from './popup_cleanup'
 import { installBrowserRequestObservation, requireObservedRequestCoverage, requestsStartedWhileHidden } from './hidden_request_observation'
 import type { Locator, Page, Request } from '@playwright/test'
 
+// Capture a trace only for the first failed run of these two cases. Playwright's
+// configured trace:on-first-retry explains why their existing artifacts only
+// showed successful retries; this test-scoped fixture leaves that policy and
+// the retry/failOnFlaky settings unchanged for every other test.
+const firstAttemptTraceTest = test.extend<{ firstAttemptFailureTrace: void }>({
+  firstAttemptFailureTrace: [async ({ page }, use, testInfo) => {
+    const traceOption = testInfo.project.use.trace
+    const traceMode = typeof traceOption === 'string' ? traceOption : traceOption.mode
+    const runnerCapturesFirstAttempt = [
+      'on',
+      'retain-on-failure',
+      'retain-on-first-failure',
+      'retain-on-failure-and-retries',
+    ].includes(traceMode)
+
+    if (testInfo.retry !== 0 || runnerCapturesFirstAttempt) {
+      await use()
+      return
+    }
+
+    const context = page.context()
+    let traceStarted = false
+    try {
+      await context.tracing.start({ screenshots: true, snapshots: true, sources: true })
+      traceStarted = true
+      await use()
+    } finally {
+      if (traceStarted) {
+        if (testInfo.status !== testInfo.expectedStatus) {
+          const tracePath = testInfo.outputPath('first-attempt-trace.zip')
+          await context.tracing.stop({ path: tracePath })
+          await testInfo.attach('first-attempt-trace', { path: tracePath, contentType: 'application/zip' })
+        } else {
+          await context.tracing.stop()
+        }
+      }
+    }
+  }, { auto: true }],
+})
+
 async function findNarrowVisibleChart(page: Page): Promise<Locator> {
   const charts = page.locator('.chart-tool:visible')
   await expect.poll(() => charts.count(), { timeout: 15_000 }).toBeGreaterThan(0)
@@ -3766,7 +3806,7 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8e.native-indicator-selection — chart-item selection uses native keyboard controls without swallowing row actions', async ({ page, browserDiagnostics }) => {
+  firstAttemptTraceTest('F8e.native-indicator-selection — chart-item selection uses native keyboard controls without swallowing row actions', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     await page.goto('about:blank')
     await page.goto('/legacy/chart/SPY')
@@ -7505,7 +7545,7 @@ test.describe('Dashboard', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8y-tag-columns — ordinary row action reaches the selected WatchList mutation through its parent host', async ({ page, browserDiagnostics }) => {
+  firstAttemptTraceTest('F8y-tag-columns — ordinary row action reaches the selected WatchList mutation through its parent host', async ({ page, browserDiagnostics }) => {
     test.setTimeout(60_000)
     await page.goto('/chart/SPY')
     await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
