@@ -725,12 +725,14 @@ progress:
     visual validation, native qualification and remaining persistence/API/worker behavior. Provider
     HTTP/quota, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
   next_action: >-
-    Publish the validated forward Study-output/context and PostgreSQL restart changeset once and
-    inspect its exact-source CI. Keep the real PostgreSQL restart body plus full local/application/
-    browser/native gates open; do not launch database, Compose, build, browser or native validation
-    until Root assigns the one-at-a-time host slot. Preserve all 18 original criteria, exact-scope
-    Nautilus authority, disabled provider/live/quota/paid/trial/unknown/unsafe/broker/capital
-    boundaries, and accepted checkpoint history.
+    Preserve the native worker context-seeder regression in one coherent source/evidence commit.
+    Let exact-source CI 39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 reach
+    terminal before pushing the follow-up, so its result is not displaced. Then publish the
+    regression and inspect its exact-source CI. Keep the real PostgreSQL restart body plus full
+    local/application/browser/native gates open; do not launch database, Compose, build, browser or
+    native validation until Root assigns the one-at-a-time host slot. Preserve all 18 original
+    criteria, exact-scope Nautilus authority, disabled provider/live/quota/paid/trial/unknown/unsafe/
+    broker/capital boundaries, and accepted checkpoint history.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

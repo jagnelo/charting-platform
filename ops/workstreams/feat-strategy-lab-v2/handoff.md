@@ -17410,3 +17410,21 @@ and inspect that exact-source CI. The PG test body and assigned full backend/app
 strict-visual and native gates remain open under the full 18-criterion roadmap; no second checkpoint
 closure is implied. Preserve the exact TC/ETF/Provider boundaries, exact-scope Nautilus evidence, and
 all disabled live, paid/trial, unknown/unsafe, broker/capital, retained-data and deployment scopes.
+
+## Native worker context seeder receives selected Study output — 2026-10-23 01:10 UTC
+
+After publishing `dd0a704b988ffbfb2ea7143e42abbf41105336f0`, added one bounded offline regression
+to the existing forward worker-composition test. It decodes the actual generated bootstrap and
+context-stream artifacts, calls the native runtime's `_seed_context_windows` assembly helper with
+the matching engine component binding, prepares a subsequent event, and verifies the exact pinned
+Study output is present in the seeded StrategyContext. This tests the native worker's context
+assembly boundary without launching a Nautilus process or implying native execution evidence.
+The exact node passed `1/1` in `2.53s`; focused MyPy for the changed test file, Ruff, Ruff format,
+and `git diff --check` pass. The test-only follow-up is uncommitted.
+
+Exact-source CI `39882200073`, attempt 1, is in progress on published source
+`dd0a704b988ffbfb2ea7143e42abbf41105336f0`; it cannot cover the uncommitted seeder regression.
+Preserve the run to terminal before publishing the test addition. The persisted PostgreSQL restart
+test body, coordinator-assigned full local backend/application and strict browser/visual profile,
+and scope-qualified native execution remain open. No database, Docker, Compose, browser, native
+process, provider/issuer HTTP, quota, or live operation ran.

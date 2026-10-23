@@ -58,11 +58,13 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusForwardDeliveryBinding,
     materialize_nautilus_forward_tape,
 )
+from app.strategy_lab_v2.nautilus_forward_bootstrap import NautilusForwardRuntimeBootstrap
 from app.strategy_lab_v2.nautilus_forward_delivery import (
     VerifiedForwardMarketPayload,
     create_nautilus_forward_delivery_callback_factory,
 )
 from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
+from app.strategy_lab_v2.nautilus_forward_native_runtime import _seed_context_windows
 from app.strategy_lab_v2.nautilus_forward_process import (
     HardenedNautilusForwardSessionProcessFactory,
     NautilusRuntimeIpcSubprocess,
@@ -739,6 +741,54 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
     decoded_contexts = tuple(context for _component_id, context in serialized_contexts)
     assert decoded_contexts
     assert all(context.study_artifacts == expected_study_outputs for context in decoded_contexts)
+
+    bootstrap = NautilusForwardRuntimeBootstrap.from_json_bytes(
+        bootstrap_path.read_bytes(),
+        expected_fingerprint=sandbox_forward_bootstrap_digest(sandbox_plan),
+    )
+    context_fingerprint = sandbox_context_stream_digest(sandbox_plan)
+    assert context_fingerprint is not None
+    seeded_windows, _event_types = _seed_context_windows(
+        BytesIO(context_stream_path.read_bytes()),
+        bootstrap=bootstrap,
+        engine_input={
+            "strategy_bindings": [
+                {
+                    "component_id": "component-1",
+                    "entrypoint": context_bindings["component-1"].entrypoint,
+                    "strategy_manifest_fingerprint": manifest.fingerprint,
+                }
+            ]
+        },
+        context_stream_fingerprint=context_fingerprint,
+        expected_component_counts={"component-1": len(decoded_contexts)},
+    )
+    last_context = decoded_contexts[-1]
+    next_time = last_context.event_time + timedelta(seconds=1)
+    next_sequence = last_context.event_sequence + 1
+    next_market_event = replace(
+        source_tape.events[0],
+        event_id="native-seeded-study-next",
+        event_time=next_time,
+        sequence=next_sequence,
+    )
+    next_source_digest = content_digest(next_market_event.values)
+    next_payload = VerifiedForwardMarketPayload(
+        CanonicalForwardEvent(
+            next_market_event.event_id,
+            next_sequence,
+            next_time,
+            next_time,
+            next_source_digest,
+        ),
+        next_market_event,
+        next_source_digest,
+    )
+    native_seed_preparation = seeded_windows["component-1"].prepare(
+        next_payload,
+        instance_id=bootstrap.instance_id,
+    )
+    assert native_seed_preparation.context.study_artifacts == expected_study_outputs
     assert sandbox_plan.request_fingerprint
     validate_sandbox_command_plan(sandbox_plan)
 
