@@ -17,7 +17,10 @@ from app.models.etf_holdings import (
 )
 from app.models.instrument import Instrument
 from app.services.etf_holdings import ingest_holdings_snapshot
-from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
+from app.services.etf_holdings_provider_bridge import (
+    ETFHoldingsRouteHeldError,
+    require_unbound_etf_holdings_context,
+)
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
 
 
@@ -310,6 +313,7 @@ async def discover_holdings_filings(
     end_date: date | None = None,
     max_filings: int = 20,
 ) -> list[EdgarHoldingsFiling]:
+    require_unbound_etf_holdings_context("SEC holdings discovery")
     normalized_cik = normalize_cik(cik)
     async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
         response = await client.get(
@@ -441,6 +445,7 @@ async def _backfill_sec_holdings(
     no_rows_reason: str,
     notes: str,
 ) -> dict[str, Any]:
+    require_unbound_etf_holdings_context("SEC holdings backfill")
     job = ETFHoldingsBackfillJob(
         etf_profile_id=profile.id,
         requested_by_user_id=requested_by_user_id,

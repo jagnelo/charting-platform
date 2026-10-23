@@ -1,7 +1,9 @@
 from datetime import UTC, date, datetime
+from types import SimpleNamespace
 
 import pytest
 
+from app.services import etf_holdings_edgar as edgar
 from app.services.etf_holdings_edgar import (
     SEC_ARCHIVES_BASE_URL,
     EdgarHoldingsFiling,
@@ -12,10 +14,16 @@ from app.services.etf_holdings_edgar import (
     _headers,
     _job_summary,
     _known_at,
+    backfill_sec_nport_holdings,
+    discover_holdings_filings,
     normalize_cik,
     parse_holdings_filings_from_submissions,
     parse_legacy_holdings_filings_from_submissions,
     parse_nport_filings_from_submissions,
+)
+from app.services.etf_holdings_provider_bridge import (
+    ETFHoldingsRouteHeldError,
+    bind_etf_holdings_request_context,
 )
 
 
@@ -25,6 +33,43 @@ class DummyJob:
     ingested_count = 3
     skipped_count = 1
     failed_count = 1
+
+
+@pytest.mark.asyncio
+async def test_sec_discovery_and_backfill_cannot_borrow_ambient_issuer_binding(monkeypatch):
+    transport_calls = []
+    database_writes = []
+    monkeypatch.setattr(
+        edgar.httpx,
+        "AsyncClient",
+        lambda *_args, **_kwargs: transport_calls.append("constructed"),
+    )
+    adapter = SimpleNamespace(adapter_key="spdr", source_provider="spdr")
+
+    with bind_etf_holdings_request_context(
+        db=object(),
+        adapter=adapter,
+        profile_id=17,
+        instrument_id=23,
+        provider_symbol="SPY",
+        operation="fetch_etf_holdings_latest",
+    ):
+        with pytest.raises(ETFHoldingsRouteHeldError, match="cannot reuse an ambient"):
+            await discover_holdings_filings(cik="1234567", forms={"NPORT-P"})
+
+        class NoWriteDB:
+            def add(self, _row):
+                database_writes.append("add")
+
+        with pytest.raises(ETFHoldingsRouteHeldError, match="cannot reuse an ambient"):
+            await backfill_sec_nport_holdings(
+                NoWriteDB(),
+                profile=object(),
+                max_filings=1,
+            )
+
+    assert transport_calls == []
+    assert database_writes == []
 
 
 def test_edgar_header_and_cik_helpers():
