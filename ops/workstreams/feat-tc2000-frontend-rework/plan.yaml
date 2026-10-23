@@ -62,12 +62,12 @@ human_interim_help_reference_authorization: >-
 current_blocker: >-
   The branch contains accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
   at merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d; earlier accepted
-  0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Current
-  published HEAD 99f5cda21f7e6fab2c1c5e411202d02602dcc359 matches the feature
-  ref. CI39883137995 on prior HEAD 404fe was cancelled by the new push before
-  E2E completed. Exact CI39887488090 on 99f5 is in progress: Frontend Unit
-  Tests are green, Backend is in integration tests, and Playwright is
-  incomplete; the configured exhaustive gate is skipped on ordinary branch CI.
+  0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published
+  HEAD a7e5ae02461a987a228dbff67558be56a2bc08e4 matches the feature ref.
+  Exact CI39888731289 completed green on published a7e5: Frontend Unit Tests,
+  Backend Tests, Branch-declared Tests, and E2E all passed; E2E reported 192
+  passed and 110 declared skips with no failures or flakes. This run is for the
+  published source, not the current working-tree change.
 
   A concrete TC-owned Favorites race is being repaired: a successful add or
   remove could be overwritten by an older in-flight /favorites GET, and a stale
@@ -80,10 +80,16 @@ current_blocker: >-
   (baseline 1 failed/6 passed). A failed initial load followed by a successful
   add showed the same loss after the request had already ended (baseline 1
   failed/7 passed). The store now refreshes the canonical list whenever it is
-  not yet loaded, covering pending and failed initial reads. The combined
-  Favorites store and WatchList suites pass101/101, Vue type-check passes, and
-  diff-check is clean. This extension is unpublished; CI39887488090 tests prior
-  source99f and remains active, so the extension needs exact-source CI.
+  not yet loaded, covering pending and failed initial reads; that fix is
+  published in a7e5. A deferred test found that two quick chart-star toggles
+  during one pending add coalesced into one add and lost the second intent
+  (baseline 1 failed/8 passed). The working-tree fix serializes toggles per
+  instrument and reevaluates membership after each earlier mutation while
+  keeping different instrument IDs independent. Favorites store and WatchList
+  suites pass103/103; Vue type-check, workstream validation, TC scope
+  self-tests and actual scope guard pass. This two-file follow-up remains
+  unpublished and requires exact-source CI. CI39888731289 validates published
+  a7e5 only.
 
   The F8y ordinary-click parent-host-to-mutation browser proof and full local
   profile remain pending Root's single-owner fixture slot. Root separately owns
@@ -94,15 +100,19 @@ current_blocker: >-
   operations, deployment and promotion remain disabled/unperformed.
 current_checkpoint_status: >-
   Current continuation at 2026-10-23: published feature HEAD
-  99f5cda21f7e6fab2c1c5e411202d02602dcc359 contains accepted staging 4687,
-  with earlier accepted 0e already an ancestor. Exact CI39887488090 is active
-  on99f; Frontend Unit Tests are green, Backend integration tests are running,
-  Playwright is incomplete, and the exhaustive job is skipped. The published
-  Favorites fix prevents stale in-flight /favorites GET results/errors from
-  overriding completed mutations. Its unpublished extension refreshes the
-  canonical list whenever it is not yet loaded, including after pending or
-  failed initial GET; focused affected suites pass101/101 and Vue type-check
-  passes on the working tree. The full local
+  a7e5ae02461a987a228dbff67558be56a2bc08e4 contains accepted staging 4687;
+  earlier accepted 0e is already an ancestor. Exact CI39888731289 completed
+  green on a7e5 (E2E 192 passed, 110 declared skips, zero failures/flakes).
+  It does not include the current working-tree change.
+  The published Favorites fix refreshes the
+  canonical list after successful add/remove when the list was not yet loaded.
+  A separate working-tree follow-up preserves rapid chart-star toggle intent
+  per instrument without serializing different symbols. Its baseline is red
+  (1 failed/8 passed); affected store and WatchList suites pass103/103, Vue
+  type-check exits0, workstream validation covers45 records, TC scope
+  self-tests pass35, actual guard validates998 paths/858 immutable imports/29
+  approved adaptations, and diff-check passes. This follow-up is unpublished
+  and needs exact-source CI. The full local
   browser slot remains held by Root, who separately owns F8l; no sibling patch
   was imported. Full AC1–AC9 and official REF-HELP-V25 remain open.
 
@@ -1283,14 +1293,14 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "4687_adopted;Favorites_inflight_load_mutation_fix_published_99f;CI39887488090_active_on_prior_99f_source;not-yet-loaded-list-refresh_extension_unpublished_101_focused_and_typecheck_green;F8y_parent_runtime_pending_Root_slot;F8l_repair_owned_by_Root;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "4687_adopted;Favorites_initial_load_refresh_published_a7e5;exact_CI39888731289_green_on_published_a7e5;per-instrument_rapid-chart-toggle-serialization-working-tree-only_103-focused-typecheck-scope-green;F8y_parent_runtime_pending_Root_slot;F8l_repair_owned_by_Root;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Publish the verified incomplete-initial-load extension to the Favorites
-    race fix and inspect its exact-source CI. Continue the F8y parent-host
-    browser proof and strict full profile only when Root releases the
-    one-at-a-time slot. Preserve all original assertions,
-    thresholds, references/masks/tolerance, full AC1–AC9, official REF-HELP-V25,
-    provider/live holds, assigned services and data.
+    Publish the working-tree-only per-instrument chart-toggle serialization fix
+    as one coherent source/workstream change, then obtain exact-source CI. Continue
+    the F8y parent-host browser proof and strict full profile only when Root
+    releases the one-at-a-time slot. Preserve all assertions, thresholds,
+    references/masks/tolerance, full AC1–AC9, official REF-HELP-V25, provider/live
+    holds, assigned services and data.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:

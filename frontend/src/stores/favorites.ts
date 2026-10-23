@@ -10,6 +10,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const error = ref('')
   let loadGeneration = 0
   const pendingAdds = new Map<number, Promise<FavoriteInstrument | null>>()
+  const pendingToggles = new Map<number, Promise<boolean>>()
 
   function invalidateLoadAndCheckRefresh(): boolean {
     const needsReload = !loaded.value
@@ -85,9 +86,18 @@ export const useFavoritesStore = defineStore('favorites', () => {
   }
 
   async function toggle(instrumentId: number): Promise<boolean> {
-    return favorites.value.some(item => item.instrument_id === instrumentId)
-      ? remove(instrumentId)
-      : (await add(instrumentId)) !== null
+    if (!Number.isInteger(instrumentId) || instrumentId <= 0) return false
+    const previous = pendingToggles.get(instrumentId) ?? Promise.resolve(true)
+    const operation = previous.catch(() => false).then(async () => {
+      if (favorites.value.some(item => item.instrument_id === instrumentId)) return remove(instrumentId)
+      return (await add(instrumentId)) !== null
+    })
+    pendingToggles.set(instrumentId, operation)
+    try {
+      return await operation
+    } finally {
+      if (pendingToggles.get(instrumentId) === operation) pendingToggles.delete(instrumentId)
+    }
   }
 
   function isFavorite(instrumentId: number | null | undefined): boolean {

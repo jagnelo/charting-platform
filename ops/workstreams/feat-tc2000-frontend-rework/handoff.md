@@ -1,17 +1,16 @@
 # feat/tc2000-frontend-rework
 
-## Current continuation — 2026-10-23: Favorites load/mutation race
+## Current continuation — 2026-10-23: serialize repeated Favorites toggles
 
-The branch is at `99f5cda21f7e6fab2c1c5e411202d02602dcc359`, synchronized with
-its feature ref. It already contains the accepted four-feature staging release
+Published HEAD is `a7e5ae02461a987a228dbff67558be56a2bc08e4`, synchronized with
+the feature ref. It contains the accepted four-feature staging release
 `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`; the earlier accepted
 `0e342512e53ba2268425294d61c50e219eaafa4f` is an ancestor, so no backward
-fast-forward or staging rewrite is appropriate. The prior exact branch CI
-`39883137995` on `404fe…` was cancelled by the new push before E2E completed.
-Exact-source CI `39887488090` now binds to this published SHA and remains in
-progress; Frontend Unit Tests are green, Backend is in integration tests, and
-Playwright is incomplete. The configured exhaustive gate is skipped on
-ordinary branch CI.
+fast-forward or staging rewrite is appropriate. Exact CI `39888731289` binds
+to published `a7e5`; Frontend Unit Tests, Backend Tests, Branch-declared Tests,
+and E2E passed on attempt 1. E2E logged 192 passed, 110 declared skips, and no
+failures or flakes; the exhaustive gate was an expected skip. That run does not
+include the working-tree change below.
 
 Review of `useFavoritesStore` found that successful add/remove mutations could
 be overwritten by a `/favorites` GET already in flight. The same stale load
@@ -25,10 +24,22 @@ could lose unrelated rows when it invalidated an incomplete initial list load
 the same loss when no request remained pending (baseline 1 failed/7 passed).
 The store now refreshes whenever the list is not yet loaded, including after a
 pending or failed initial read, while applying the successful mutation and
-ignoring stale responses. The affected Favorites store and WatchList component
-suites pass `101/101`; `npm run type-check` and `git diff --check` pass. This
-extension is unpublished and needs exact-source CI; no local browser, backend,
-full coverage or build run was performed.
+ignoring stale responses. The incomplete-initial-load extension is published
+in `a7e5` and its affected suites passed `101/101`.
+
+A separate deferred regression covers repeated chart-star toggles while an add
+is pending. The `ToolWindow` star remains enabled during the request, and
+`toggle()` previously inspected only the pre-mutation list; two rapid clicks
+therefore coalesced into one add instead of applying the second toggle. The
+new test failed on the published source (1 failed/8 passed). The working-tree
+fix queues toggle intents per instrument and reevaluates membership after each
+earlier mutation; a second test confirms different instruments still mutate
+concurrently. Focused Favorites/WatchList suites pass `103/103`; Vue type-check
+exits zero; workstream validation (45 records), scope self-tests (35), actual
+scope guard (998 paths, 858 immutable imports, 29 approved adaptations), and
+`git diff --check` pass. The two source/test files remain unpublished and need
+their own exact-source CI. No full frontend suite, backend suite, build, browser,
+Compose, provider HTTP, reference, threshold or retry-policy change was made.
 
 F8y Tag Columns remains a separate browser gate. Its parent-host-to-mutation
 flow is in the hosted E2E scope; the full local profile remains held for Root's
@@ -36,8 +47,9 @@ one-at-a-time slot. Root owns the independent F8l Market Map timing-observer
 repair; no source from that worktree has been imported. Preserve all original
 assertions, 70% coverage threshold, 104 visual references/masks/tolerance, and
 zero-retry policy. Full AC1–AC9 and official REF-HELP-V25 remain open. Next:
-publish this coherent extension and qualify its exact branch CI; do not start
-a local fixture until Root releases the slot.
+publish the tested toggle serialization change as one coherent source/workstream
+commit, then obtain its exact-source CI. Do not start a local fixture until Root
+releases the slot.
 
 ## Historical continuation — F8y stale configuration repair
 

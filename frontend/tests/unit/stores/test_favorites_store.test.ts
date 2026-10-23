@@ -55,6 +55,52 @@ describe('useFavoritesStore', () => {
     expect(api.delete).toHaveBeenCalledWith('/favorites/instruments/17')
   })
 
+  it('preserves two chart-toggle intents while the first mutation is pending', async () => {
+    let resolveAdd!: (value: typeof favorite) => void
+    ;(api.put as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise(resolve => {
+      resolveAdd = resolve
+    }))
+    ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([favorite])
+
+    const store = useFavoritesStore()
+    const firstToggle = store.toggle(17)
+    const secondToggle = store.toggle(17)
+
+    await vi.waitFor(() => expect(api.put).toHaveBeenCalledTimes(1))
+    expect(api.put).toHaveBeenCalledTimes(1)
+    expect(api.delete).not.toHaveBeenCalled()
+    resolveAdd(favorite)
+
+    await expect(firstToggle).resolves.toBe(true)
+    await expect(secondToggle).resolves.toBe(true)
+    expect(api.put).toHaveBeenCalledTimes(1)
+    expect(api.delete).toHaveBeenCalledWith('/favorites/instruments/17')
+    expect(store.isFavorite(17)).toBe(false)
+  })
+
+  it('keeps pending chart toggles independent across instruments', async () => {
+    let resolveFirst!: (value: typeof favorite) => void
+    let resolveSecond!: (value: typeof favorite) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
+    ;(api.put as ReturnType<typeof vi.fn>).mockImplementation((path: string) => new Promise(resolve => {
+      if (path.endsWith('/17')) resolveFirst = resolve
+      else if (path.endsWith('/18')) resolveSecond = resolve
+    }))
+
+    const store = useFavoritesStore()
+    await store.load()
+    const firstToggle = store.toggle(17)
+    const secondToggle = store.toggle(18)
+
+    await vi.waitFor(() => expect(api.put).toHaveBeenCalledTimes(2))
+    resolveSecond({ ...favorite, id: 5, instrument_id: 18 })
+    resolveFirst(favorite)
+
+    await expect(Promise.all([firstToggle, secondToggle])).resolves.toEqual([true, true])
+    expect(store.favorites.map(item => item.instrument_id)).toEqual([17, 18])
+  })
+
   it('does not let a stale in-flight load erase a successful favorite addition', async () => {
     let resolveLoad!: (rows: typeof favorite[]) => void
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise(resolve => {
