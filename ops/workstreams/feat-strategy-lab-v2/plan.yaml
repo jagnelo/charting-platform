@@ -696,26 +696,27 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-explicit-study-reference-resolution-v1
+  current_phase: full-roadmap-study-reference-api-consumer-roundtrip-v1
   current_blocker: >-
-    The active explicit Study-reference resolver/API source is still an uncommitted changeset
-    based on published source344f87f835f392bd103c20db2044aa0de72148df. Its bounded stack-free
-    resolver/router/application selection passed 63 tests in 5.15s; preserve the earlier diagnostic
-    failure (59 passed/1 failed) that exposed and then fixed the zero-owner rejection. Focused
-    MyPy and Ruff/format checks were previously green on the touched boundary, but final scoped
-    static/workstream checks and exact-source CI are still required. The PostgreSQL module was
-    collect-only; no SQL body ran. This API derives one immutable reference from explicit
-    owner-scoped IDs and does not execute a strategy or prove native execution. All18 roadmap
+    The explicit-ID Study reference resolver is published at 068d03f1ff55f5b1701d071980b4405d83e65cc6.
+    Its exact-source CI39939914641 has frontend green, backend unit green, and backend integration
+    still running. The current owned follow-up changes the existing PostgreSQL API test to pass the
+    authenticated reference response directly into Strategy creation/readback; Ruff, format,
+    diff-check and bounded collect-only for the changed node pass, but no SQL fixture/body ran for
+    this delta. Preserve earlier focused 63-pass evidence and the prior zero-owner diagnostic
+    failure. The route derives one immutable reference from explicit owner-scoped IDs; neither this
+    nor the consumer roundtrip proves Strategy execution or native authority. All18 roadmap
     criteria and full local/combined database/application/browser/strict-visual/native gates remain
     open. Provider/live, quota, paid/trial, unknown/unsafe, broker/capital and deployment remain
     disabled.
-  updated_at: "2026-10-23T10:29:32Z"
+  updated_at: "2026-10-23T10:46:33Z"
   next_action: >-
-    Finish bounded Ruff/format/workstream/diff checks for this explicit-ID resolver changeset,
-    preserve its existing focused test/type evidence and failure history, then publish the coherent
-    source and owned records and inspect exact-source CI. Keep SQL-body, combined runtime/browser,
-    strict-visual and exact-pinned native execution/settlement gates open; no unassigned heavy
-    profile or provider/issuer/SEC operation.
+    Allow exact-source run39939914641 on the published parent to finish without replay. Then validate
+    and publish the single test+workstream follow-up as one coherent change and inspect its exact-source
+    CI, which is the first run containing the API-derived-pin-to-Strategy-consumer assertion. Keep
+    SQL-body local execution, combined runtime/browser, strict-visual and exact-pinned native
+    execution/settlement gates open until coordinator release; no unassigned heavy profile or
+    provider/issuer/SEC operation.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

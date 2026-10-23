@@ -17946,3 +17946,19 @@ publication. Exact-source CI for the new source, real PostgreSQL execution, full
 browser/strict-visual, and exact-pinned native execution/settlement remain open. The full
 18-criterion roadmap remains active; all external/provider, quota, paid/trial, broker/capital and
 deployment holds remain in force.
+
+## API-derived Study pin consumed by V2 Strategy creation — 2026-10-23 10:46 UTC
+
+The published API-reference source is `068d03f1ff55f5b1701d071980b4405d83e65cc6`; local HEAD and
+origin are synchronized at that parent. Its exact-source run `39939914641` has frontend and backend
+unit green while backend integration remains in progress. Preserve and do not cancel that run.
+The one-file follow-up changes the existing persisted PostgreSQL API test to submit the exact
+`selected_study_artifact` object returned by the authenticated reference GET route, then verify
+Strategy create/readback and persisted revision identity. Previously the test supplied a separately
+assembled equivalent reference, leaving the public producer-to-consumer boundary disconnected.
+Single-file Ruff check/format, diff check, and bounded collect-only of the changed test node pass;
+the body/SQL fixture was not executed locally. The current run does not include this worktree-only
+delta; after it terminates, publish the coherent test and owned-record changes and obtain exact-source
+CI. Do not launch a local database/application/browser/native gate without an assigned slot. The
+full roadmap, runtime acceptance, and disabled provider/quota/paid/trial/broker/capital/deployment
+boundaries remain unchanged.

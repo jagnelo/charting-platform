@@ -445,16 +445,6 @@ async def test_strategy_api_authenticates_exact_study_reference_before_persisten
         ),
         prefix="/api/v1",
     )
-    body = {
-        "attributes": {
-            "resource_id": "strategy-with-study-input",
-            "strategy_id": "study-consumer",
-            "version_id": "v1",
-            "sdk_version": "strategy-sdk.v2",
-            "source_digest": content_digest("strategy-source"),
-            "selected_study_artifact": dict(freeze_json(reference)),
-        }
-    }
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://strategy-lab.test"
     ) as client:
@@ -464,6 +454,18 @@ async def test_strategy_api_authenticates_exact_study_reference_before_persisten
         )
         assert derived.status_code == 200, derived.text
         assert derived.json()["data"]["attributes"] == freeze_json(reference)
+        # Exercise the public consumer path with the pin returned by the API,
+        # rather than a separately assembled equivalent reference.
+        body = {
+            "attributes": {
+                "resource_id": "strategy-with-study-input",
+                "strategy_id": "study-consumer",
+                "version_id": "v1",
+                "sdk_version": "strategy-sdk.v2",
+                "source_digest": content_digest("strategy-source"),
+                "selected_study_artifact": derived.json()["data"]["attributes"],
+            }
+        }
         foreign_selection = await client.get(
             "/api/v1/strategy-lab/v2/study-artifact-references/30/40",
             headers={"X-Test-Owner": "2"},
