@@ -1,5 +1,22 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 00:58Z — NMS coverage-boundary documentation reconciled
+
+- Corrected the venue-coverage section in `docs/data-providers.md` to match
+  the implemented same-invocation NMS union: complete CTA Tape A/B, Nasdaq
+  `nasdaqlisted` row-level Tape C evidence, and Nasdaq ETF classification must
+  share a source generation date. `otherlisted` alone is not Tape C authority;
+  incomplete files, timestamps, rows, or venue coverage still fail closed.
+- The text explicitly keeps complete fresh all-venue universe reconciliation
+  and remaining mapping work on the roadmap. `git diff --check` passed and a
+  targeted search found no stale claim that the scopes are not combined. The
+  docs working diff SHA-256 is
+  `7223e7a92edce551d7c3f5224ccd13c2a5aaa5d405c99d74198612d6677c0158`.
+- Exact run `39877233446` remains live on pushed source `1f0c6c0`; the local
+  source/test/docs commits remain unpublished pending its terminal result and
+  coherent exact-source CI. No provider/issuer/SEC HTTP, quota action, fixture,
+  or retained resource/data change occurred.
+
 ## 2026-10-23 00:56Z — NMS union lifecycle protection assertion
 
 - Strengthened the new mocked, same-cycle CTA/Nasdaq scope regression with a
