@@ -18652,3 +18652,26 @@ were independently verified at the accepted green release
 next action is to reconcile that exact baseline into this branch, preserve the read-only inspector
 work and full roadmap, then validate the resulting merged source on its own exact CI. This receipt
 does not close the full Strategy Lab v2 roadmap or authorize a heavy local profile.
+
+### Accepted a6b9 staging baseline reconciled — 2026-10-23 18:49 UTC
+
+After run `40000884411` reached terminal success, the remote `staging` and `master` refs were
+rechecked through the approved Git network boundary; both still equal the accepted green SHA
+`a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`. That exact commit was merged into this feature branch
+as `ccb2847f703858cd1951eaaacb7d82b303970135`. The merge base was
+`f04fb2a26c6363c6090e76c2658cfcfe7adabf61` (66 Strategy-side and 16 staging-side commits); the
+merge completed without a textual conflict, and path comparison showed no same-path source edits
+on the two sides since that base.
+
+The material migration effect is additive: staging contributes revision `d4a5b6c7e812`, whose
+parent is Strategy/TC merge revision `slv2_0011`. The merged graph reports exactly one Alembic
+head, `d4a5b6c7e812`; the updated migration-compatibility test asserts that head and retained
+ancestry. Static head discovery and the focused migration-compatibility module pass (19 tests).
+Staging also contributes the real PostgreSQL migration regression module
+`backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py`; it was
+not run locally because no database fixture slot was assigned. The accepted release's own green
+CI remains evidence for `a6b9`, not for this merged Strategy source. Publish this coherent merge
+receipt and inspect the new exact-tip branch CI. Full local combined migration/PostgreSQL,
+application/worker restart, full-stack browser/strict-visual, and native qualification remain
+open; preserve all 18 original roadmap criteria and every disabled provider/quota/paid/trial/
+broker/capital/native boundary.

@@ -35,10 +35,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/ResearchResultsTool.vue",
-    "frontend/tests/unit/components/test_research_results_tool.test.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -74,12 +71,12 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "f1c453270168260ba7c845bb81627e1c7baca8a0",
-  "implementation_sha": "f1c453270168260ba7c845bb81627e1c7baca8a0",
-  "last_checkpoint": "2026-10-23T18:05:30Z",
+  "head": "ccb2847f703858cd1951eaaacb7d82b303970135",
+  "implementation_sha": "ccb2847f703858cd1951eaaacb7d82b303970135",
+  "last_checkpoint": "2026-10-23T18:49:34Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Parent exact CI 39992653172 is terminal green only on published 64d3b12e. Finish the current supported-Study-link test and records, publish the accumulated branch tip once, then inspect its exact CI. Continue selected-Study runtime assembly and typed payload/worker restart verification. Preserve all 18 criteria, the exact backend/API and view/router/App prerequisite commits absent from a6b9, accepted-target SPY/RSP venue uncertainty, historical failures, and all disabled provider/quota/paid/trial/broker/capital boundaries. Heavy local gates remain coordinator-assigned.",
+  "next_action": "The accepted green a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e staging/master baseline is merged locally as ccb2847f703858cd1951eaaacb7d82b303970135. Close and publish the coherent merge/workstream receipt, then inspect exact-tip CI. Continue the full Strategy roadmap after Root assigns the required local PostgreSQL/application/browser slot; preserve accepted-target venue uncertainty, all historical failures, and disabled provider/quota/paid/trial/broker/capital/native boundaries.",
   "plan_hash": "ec917b48055c653a245ed9f4b2b0e854dfb4b0d8bbdd6a9cad41abc831221c84",
   "parent_branch": "staging",
   "plan_hash": "ec917b48055c653a245ed9f4b2b0e854dfb4b0d8bbdd6a9cad41abc831221c84",
@@ -112,14 +109,14 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Accepted/deployed a6b9 lacks the Study-reference API and V2 view/App navigation. Strategy-branch prerequisites are 344f87f835f392bd103c20db2044aa0de72148df (persisted payload validation), 068d03f1ff55f5b1701d071980b4405d83e65cc6 (typed resolver/API adapter/authenticated GET), 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 (V2 view/router/App navigation), and 4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5 (typed pin preview); none is in a6b9. Parent run39992653172 is green only on64d3b12e and does not cover local commits. Accepted-target SPY/RSP listing and all full local/combined/browser gates remain open.",
-    "current_phase": "strategy-v2-study-output-inspector-link-v2",
-    "next_action": "Publish the accumulated branch source and coherent records once, inspect exact-tip CI, then continue selected-Study runtime assembly and typed payload/worker restart verification against accepted TC contracts. No target/provider/fixture/native access; obtain assigned heavy resource slots and preserve all disabled-operation boundaries.",
+    "current_blocker": "The merged a6b9 baseline adds the timestamp migration and F8m/schema compatibility repairs, but does not contain this branch's read-only Study inspector and navigation; those remain branch-only and are not deployed. The merged branch's exact CI and assigned full local PostgreSQL/application/browser gates remain open. Accepted-target SPY/RSP listing and native qualification remain open; do not access target/provider or activate disabled scopes.",
+    "current_phase": "strategy-a6b9-accepted-staging-reconciliation",
+    "next_action": "Publish the exact a6b9 merge and coherent workstream receipt, inspect exact merged-source CI, and wait for Root's serialized full-profile slot before PostgreSQL/application/browser validation. Continue the full roadmap only after that checkpoint; keep target/provider/native/paid/trial/broker/capital scopes disabled.",
     "total": 5,
-    "updated_at": "2026-10-23T18:05:30Z"
+    "updated_at": "2026-10-23T18:49:34Z"
   },
   "remote": "64d3b12e11118593535b02e8e8a06dd1f263ffdf",
-  "remote_sha": "64d3b12e11118593535b02e8e8a06dd1f263ffdf",
+  "remote_sha": "8cd6440dec803364d34f982c8bb69878e818c87b",
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
