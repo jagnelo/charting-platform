@@ -11,7 +11,7 @@ from sqlalchemy.sql.visitors import iterate
 
 import app.strategy_lab_v2.study_artifact_resolver as study_resolver_module
 from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
-from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.canonical import content_digest, freeze_json
 from app.strategy_lab_v2.contracts import (
     ResolvedStudyArtifactOutput,
     SelectedStudyArtifactReference,
@@ -21,6 +21,7 @@ from app.strategy_lab_v2.study_artifact_resolver import (
     _resolve_selected_study_artifact,
     create_selected_study_artifact_resolver,
 )
+from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 
 _OWNER_ID = 73
 _RUN_ID = 4101
@@ -205,9 +206,9 @@ def test_resolved_study_output_freezes_nested_payload_against_source_mutation() 
     resolved = ResolvedStudyArtifactOutput(pinned_reference, payload)
     cast(Any, payload)["value"][0]["close"] = 99.0
 
-    assert resolved.value[0]["close"] == 1.0
+    assert cast(Any, resolved.value)[0]["close"] == 1.0
     with pytest.raises(TypeError):
-        cast(Any, resolved.value[0])["close"] = 2.0
+        cast(Any, resolved.value)[0]["close"] = 2.0
     with pytest.raises(TypeError):
         cast(Any, resolved.payload)["type"] = "table"
 
@@ -218,6 +219,91 @@ def test_resolved_study_output_rejects_payload_that_does_not_match_pinned_digest
 
     with pytest.raises(ValueError, match="immutable reference"):
         ResolvedStudyArtifactOutput(reference, changed_payload)
+
+
+@pytest.mark.parametrize(("artifact_type", "value"), STUDY_ARTIFACT_OUTPUT_CASES)
+def test_resolved_study_output_accepts_exact_tc_producer_shapes(
+    artifact_type: str, value: Any
+) -> None:
+    reference, _responses, _principal = _graph()
+    payload = {"type": artifact_type, "value": value}
+    typed_reference = replace(
+        reference,
+        artifact_type=artifact_type,
+        artifact_content_digest=content_digest(payload),
+    )
+
+    resolved = ResolvedStudyArtifactOutput(typed_reference, payload)
+
+    assert resolved.reference == typed_reference
+    assert resolved.value == freeze_json(value)
+
+
+@pytest.mark.parametrize(
+    ("artifact_type", "value"),
+    (
+        ("boolean", 1),
+        ("bar", {"labels": ["A"], "values": [10**400]}),
+        ("bar", {"labels": ["A", "B"], "values": [1.0]}),
+        (
+            "histogram",
+            {
+                "bins": [{"start": 1.0, "end": 2.0, "count": 1}],
+                "sample_size": 2,
+                "min": 1.0,
+                "max": 2.0,
+            },
+        ),
+        (
+            "range",
+            {"timestamps": ["0"], "lower": [1.0], "upper": [2.0, 3.0], "center": None},
+        ),
+        ("scatter", {"x": [1.0], "y": [1.0, 2.0]}),
+        ("scatter", {"x": [], "y": [], "metadata": "not emitted by TC"}),
+        ("heatmap", {"rows": ["A", "B"], "columns": ["X"], "values": [[1.0], [2.0, 3.0]]}),
+        ("dashboard", {"panels": [{"artifact": "equity", "title": "Equity", "span": 13}]}),
+        ("events", [{"timestamp": "2026-10-23T00:00:00Z"}]),
+        ("events", [{"timestamp": "2026-10-23T00:00:00Z", "symbol": "us.aapl"}]),
+        ("unrecognized", {}),
+    ),
+)
+def test_resolved_study_output_rejects_nonproducer_shapes(artifact_type: str, value: Any) -> None:
+    reference, _responses, _principal = _graph()
+    payload = {"type": artifact_type, "value": value}
+    typed_reference = replace(
+        reference,
+        artifact_type=artifact_type,
+        artifact_content_digest=content_digest(payload),
+    )
+
+    with pytest.raises(ValueError, match="producer contract"):
+        ResolvedStudyArtifactOutput(typed_reference, payload)
+
+
+def test_resolved_study_output_rejects_unrecognized_producer_fields() -> None:
+    reference, _responses, _principal = _graph()
+    payload = {"type": "scalar", "value": 2.5, "metadata": "not emitted by TC"}
+    typed_reference = replace(
+        reference,
+        artifact_type="scalar",
+        artifact_content_digest=content_digest(payload),
+    )
+
+    with pytest.raises(ValueError, match="producer contract"):
+        ResolvedStudyArtifactOutput(typed_reference, payload)
+
+
+def test_resolved_study_output_rejects_explicit_null_optional_producer_fields() -> None:
+    reference, _responses, _principal = _graph()
+    payload = {"type": "boolean", "value": True, "metric": None}
+    typed_reference = replace(
+        reference,
+        artifact_type="boolean",
+        artifact_content_digest=content_digest(payload),
+    )
+
+    with pytest.raises(ValueError, match="producer contract"):
+        ResolvedStudyArtifactOutput(typed_reference, payload)
 
 
 @pytest.mark.asyncio

@@ -22,6 +22,7 @@ from app.strategy_lab_v2.contracts import (
     StrategyVersion,
 )
 from app.strategy_lab_v2.resource_domains import DomainResourceContract
+from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs
 from app.strategy_lab_v2.trial_hydration import (
     NautilusTrialDomainHydrator,
@@ -400,19 +401,7 @@ async def test_hydrator_rejects_selected_study_reference_without_trusted_resolve
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("artifact_type", "study_value"),
-    (
-        ("scalar", 2.5),
-        ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
-        ("boolean", True),
-        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
-        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
-        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
-        ("range", {"low": 1.25, "high": 3.75}),
-        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
-        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
-        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
-        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
-    ),
+    STUDY_ARTIFACT_OUTPUT_CASES,
 )
 async def test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_reference(
     artifact_type: str, study_value: Any

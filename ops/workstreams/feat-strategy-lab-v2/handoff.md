@@ -17858,3 +17858,35 @@ scoped change; there is no remaining dirty test file. This closes only the curre
 not the full roadmap: full local/combined PostgreSQL/application/browser/strict-visual and native
 execution/settlement gates remain open, and all provider/quota/paid/trial/broker/capital holds stay
 disabled. No database, Compose/browser/native profile, or external provider operation ran here.
+
+## Validate persisted TC Study payloads against producer contracts — 2026-10-23 08:50 UTC
+
+The published forward-tape correction context above is historical. A new single, unpublished
+changeset now validates persisted `ResolvedStudyArtifactOutput` payloads against the actual
+accepted `backend/research_runner/runner.py::_Output` adapter shapes. The consumer keeps generic
+scalar/series/table values intact, validates the typed bar/histogram/range/scatter/heatmap/
+dashboard/events/boolean forms, rejects unknown envelope fields and malformed finite/alignment
+data, and preserves the immutable reference/digest check before runtime admission. Events retain
+producer-defined event fields and require the producer-normalized non-empty timestamp/symbol.
+This is not native Nautilus execution proof and does not activate any provider, live or broker path.
+
+The shared producer-shaped fixtures now drive existing resolver, invocation-wire, trial-hydration,
+backtest and forward worker-context tests, including the PostgreSQL reconstruction module. The
+first focused selection found8 failures because the initial validator routed list-shaped `events`
+through the object-only branch; that genuine validation-order defect was fixed, and the expanded
+final selection passes102/102 in7.63s under one pytest process with a1-GiB address-space cap. An
+earlier focused MyPy attempt exposed the repository-pinned MyPy1.10 incompatibility with PEP695
+aliases plus untyped fixture ingress; it was resolved using a compatible recursive TypeAlias and
+typed frozen-value accessor while retaining runtime freezing/validation. Final focused MyPy passes
+all11 touched Python files. Ruff check, format, and `git diff --check` pass. The PostgreSQL module
+collects53 tests without executing a fixture/body; no SQL, Docker, provider HTTP, native process,
+browser, or full-profile gate ran.
+
+Exact predecessor push CI `39924763989` on published `27120a006c5e368b2b86fde364a787059ff2e0c4`
+was still `in_progress` at08:50 UTC: Frontend Unit was green and Backend integration remained
+active. That run does not cover this worktree diff, and it must reach terminal before pushing this
+changeset. Released staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` is already in this branch's
+ancestry via `8944f442dff4e3a80bcbdcab91e44e10958d0351`; no duplicate merge is needed. Keep the
+18-criterion roadmap and full local/combined PostgreSQL/application/browser/strict-visual and
+scope-qualified native execution/settlement gates open; all provider/quota/paid/trial/unsafe/
+broker/capital/deployment holds remain intact.

@@ -88,6 +88,7 @@ from app.strategy_lab_v2.study_artifact_resolver import (
     create_resolved_study_artifact_output_resolver,
     create_selected_study_artifact_resolver,
 )
+from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from app.strategy_lab_v2.tests.test_search_dispatch_preparation import _setup
 from app.strategy_lab_v2.trial_hydration import (
     NautilusTrialDomainHydrator,
@@ -101,19 +102,7 @@ from strategy_runtime import (
 
 _NOW = datetime(2026, 10, 22, 4, 0, tzinfo=UTC)
 _STUDY_TABLES: tuple[Table, ...] = (cast(Table, ResearchArtifact.__table__),)
-_STUDY_OUTPUT_CASES = (
-    ("scalar", 2.5),
-    ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
-    ("boolean", True),
-    ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
-    ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
-    ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
-    ("range", {"low": 1.25, "high": 3.75}),
-    ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
-    ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
-    ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
-    ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
-)
+_STUDY_OUTPUT_CASES = STUDY_ARTIFACT_OUTPUT_CASES
 _EXPECTED_STUDY_FK_CLOSURE = {
     "code_asset",
     "code_version",

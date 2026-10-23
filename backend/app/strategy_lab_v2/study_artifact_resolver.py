@@ -20,23 +20,11 @@ from app.strategy_lab_v2.contracts import (
     ResolvedStudyArtifactOutput,
     SelectedStudyArtifactReference,
 )
+from app.strategy_lab_v2.study_artifact_payloads import (
+    SUPPORTED_STUDY_ARTIFACT_TYPES as _SUPPORTED_STUDY_ARTIFACT_TYPES,
+)
 
 _RUN_HASH = re.compile(r"^[0-9a-f]{64}$")
-_SUPPORTED_STUDY_ARTIFACT_TYPES = frozenset(
-    {
-        "scalar",
-        "series",
-        "boolean",
-        "table",
-        "bar",
-        "histogram",
-        "range",
-        "scatter",
-        "heatmap",
-        "dashboard",
-        "events",
-    }
-)
 
 
 class SelectedStudyArtifactResolutionError(ValueError):

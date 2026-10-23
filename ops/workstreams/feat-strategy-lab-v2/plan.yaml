@@ -1601,17 +1601,26 @@ roadmap_progress_history:
   total: 18
   current_phase: continue-original-18-criterion-roadmap-after-f04-adoption
   active_changeset:
-    id: strategy-lab-v2-nautilus-forward-event-tape-correction-denial-v1
+    id: strategy-lab-v2-tc-study-payload-contract-v1
     scope: >-
-      Close the separate forward-event-tape fail-closed gap: reject a canonical correction
-      (`correction_of` is present) even when its supplied delivery binding inconsistently claims
-      `enqueue`. Preserve existing rejection order for correct `correction_enqueue` bindings and
-      keep corrections available only to the explicit counterfactual replay path. This does not
-      authorize broker/live execution or alter the accepted Study materializer behavior.
+      Validate immutable payload shapes persisted and reconstructed by the accepted TC Study
+      materializer against its actual research_runner adapters. Preserve exact typed values through
+      backtest/forward worker contexts and reject malformed digest-bound payloads before runtime
+      admission. This is payload integrity only, not native execution evidence, and it does not
+      alter Nautilus authority or enable trading.
     owned_paths:
-      - backend/app/strategy_lab_v2/nautilus_event_adapter.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_event_adapter.py
-    status: complete
+      - backend/app/strategy_lab_v2/contracts.py
+      - backend/app/strategy_lab_v2/study_artifact_payloads.py
+      - backend/app/strategy_lab_v2/study_artifact_resolver.py
+      - backend/app/strategy_lab_v2/tests/study_artifact_fixtures.py
+      - backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py
+      - backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_trial_assembly.py
+      - backend/app/strategy_lab_v2/tests/test_strategy_runtime_protocol.py
+      - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
+      - backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
+    status: validated_waiting_for_parent_ci
   current_blocker: >-
     The production Study materializer and forward restart-to-context integration cases are complete
     at 2190711b79fb97cd0aafb3227a4bba48c582086a (exact CI39913683591 green). The separate
@@ -1624,9 +1633,15 @@ roadmap_progress_history:
     was made. This is not full-roadmap completion or native execution proof. Full local/combined
     PostgreSQL/application/browser/strict-visual and exact-pinned native execution/settlement gates
     remain open; provider/live/quota/paid/trial/unknown/unsafe/broker/capital/deployment remain
-    disabled.
+    disabled. That preceding publication state is historical; the current 2026-10-23 context adds the
+    active Study payload-contract changeset above. Its102 focused cases, collection-only53-case PG
+    check, Ruff, formatting, focused MyPy and diff check pass. Exact predecessor CI39924763989 on
+    published27120a006c5e368b2b86fde364a787059ff2e0c4 remains in progress; wait for its terminal
+    result before publishing this source. This body-level SQL and all full profiles remain open.
   next_action: >-
     Continue the existing full 18-criterion roadmap from its next incomplete Strategy-owned item.
     Preserve the already-green exact source receipt and f04 ancestry; do not rerun completed CI or
     create a status-only follow-up. No unassigned DB/application/browser/build/native profile or
-    provider/issuer/SEC operation; retain all capability holds.
+    provider/issuer/SEC operation; retain all capability holds. Immediate action: preserve and
+    record terminal CI39924763989, then publish the currently validated changeset and inspect its
+    exact-source CI; do not run its PostgreSQL body or any full profile without an assigned slot.

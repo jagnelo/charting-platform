@@ -33,6 +33,7 @@ from app.strategy_lab_v2.sdk import (
     TargetPositionIntent,
     TimeInForce,
 )
+from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from strategy_runtime import (
     BATCH_WIRE_PROTOCOL_VERSION,
     COMPONENT_CONTEXT_STREAM_PROTOCOL_VERSION,
@@ -159,19 +160,7 @@ def _frozen_study_value(value: Any) -> Any:
 
 @pytest.mark.parametrize(
     ("study_artifact_type", "study_value"),
-    (
-        ("scalar", 2.5),
-        ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
-        ("boolean", True),
-        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
-        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
-        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
-        ("range", {"low": 1.25, "high": 3.75}),
-        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
-        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
-        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
-        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
-    ),
+    STUDY_ARTIFACT_OUTPUT_CASES,
 )
 def test_strategy_runtime_can_consume_each_pinned_study_output_type(
     study_artifact_type: str, study_value: Any
@@ -363,19 +352,7 @@ def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift(tmp_p
 
 @pytest.mark.parametrize(
     ("artifact_type", "value"),
-    (
-        ("scalar", 2.5),
-        ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
-        ("boolean", True),
-        ("range", {"low": 1.25, "high": 3.75}),
-        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
-        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
-        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
-        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
-        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
-        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
-        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
-    ),
+    STUDY_ARTIFACT_OUTPUT_CASES,
 )
 def test_invocation_wire_preserves_typed_study_payload_shapes(artifact_type, value) -> None:
     source = "class Strategy:\n    def on_event(self, context):\n        return []\n"

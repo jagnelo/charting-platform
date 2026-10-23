@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from app.strategy_lab_v2.canonical import (
     canonical_json,
@@ -19,6 +19,10 @@ from app.strategy_lab_v2.conformance import NautilusResultProvenance
 from app.strategy_lab_v2.decimal_math import deterministic_decimal_math
 from app.strategy_lab_v2.observations import UNALLOCATED_COMPONENT_ID, ObservationPoint
 from app.strategy_lab_v2.rebalance import CalendarRebalancePolicy
+from app.strategy_lab_v2.study_artifact_payloads import (
+    FrozenStudyArtifactValue,
+    validate_study_artifact_payload,
+)
 
 if TYPE_CHECKING:
     from app.strategy_lab_v2.capabilities import PreflightReport
@@ -215,13 +219,20 @@ class ResolvedStudyArtifactOutput:
             != self.reference.artifact_content_digest
         ):
             raise ValueError("Study artifact payload differs from its immutable reference")
+        try:
+            validate_study_artifact_payload(
+                frozen_payload,
+                expected_type=self.reference.artifact_type,
+            )
+        except ValueError as error:
+            raise ValueError("Study artifact payload violates its producer contract") from error
         object.__setattr__(self, "payload", frozen_payload)
 
     @property
-    def value(self) -> Any:
+    def value(self) -> FrozenStudyArtifactValue:
         """The producer's generic typed value; no execution semantics are inferred."""
 
-        return self.payload["value"]
+        return cast(FrozenStudyArtifactValue, self.payload["value"])
 
 
 def _thaw_json_arrays(value: Any) -> Any:

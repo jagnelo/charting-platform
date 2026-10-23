@@ -30,6 +30,7 @@ from app.strategy_lab_v2.sdk import (
     StrategyContext,
     TargetPositionIntent,
 )
+from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from strategy_runtime import InvocationContextStreamBinding
 from strategy_runtime.runner import InvocationStatus, StrategyInvocationResult
 
@@ -317,19 +318,7 @@ def test_stream_component_context_groups_reject_manifest_history_mismatch() -> N
 @pytest.mark.parametrize("retain_invocation_results", (True, False))
 @pytest.mark.parametrize(
     ("study_artifact_type", "study_value"),
-    (
-        ("scalar", 2.5),
-        ("series", [{"time": "t1", "value": 1.25}, {"time": "t2", "value": 2.5}]),
-        ("boolean", True),
-        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
-        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
-        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
-        ("range", {"low": 1.25, "high": 3.75}),
-        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
-        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
-        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
-        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
-    ),
+    STUDY_ARTIFACT_OUTPUT_CASES,
 )
 def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     monkeypatch,
