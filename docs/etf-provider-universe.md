@@ -184,7 +184,7 @@ Vident issuer route returns a Cloudflare challenge to the application client.
 
 Current fallback status counts are:
 
-- `issuer_access_blocked`: `7`
+- `issuer_access_blocked`: `6`
 - `needs_first_party_route_discovery`: `54`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `8`

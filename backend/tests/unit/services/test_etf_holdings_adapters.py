@@ -30622,15 +30622,28 @@ def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
     assert ledger["current_fallback_count"] == fallback_count
     runtime_status_counts = {
         status: sum(audit.status == status for audit in FALLBACK_ISSUER_AUDITS.values())
-        for status in {
+        for status in (
             "issuer_access_blocked",
             "needs_first_party_route_discovery",
             "non_executable_public_source",
             "provider_not_a_portfolio_publisher",
-        }
+            "inactive_or_successor_disposition",
+        )
     }
-    for status, count in runtime_status_counts.items():
-        assert f"- `{status}`: `{count}`" in provider_universe
+    current_status_lines = provider_universe.split("Current fallback status counts are:", 1)[
+        1
+    ].splitlines()
+    documented_status_lines = []
+    for line in current_status_lines:
+        if not line.strip():
+            if documented_status_lines:
+                break
+            continue
+        documented_status_lines.append(line.strip())
+    expected_status_lines = [
+        f"- `{status}`: `{runtime_status_counts[status]}`" for status in runtime_status_counts
+    ]
+    assert documented_status_lines == expected_status_lines
     assert (
         "Current native-route split:\n\n- Native/live-backed providers: `422`\n"
         "- Audited fallback-only providers: `74`"
