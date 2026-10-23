@@ -1,5 +1,67 @@
 # fix/market-series-default-schema
 
+## Superseding review checkpoint — 2026-10-23 12:03 UTC
+
+MSS1–MSS5 are now evidenced; status ready_for_human_review. Implementation
+source1ebcdd4c94db8854ea35c49291579a69705ddd22 has exact CI39935920665 green:
+5191 backend unit/1skip,498 integration/2skip/84%,1337 frontend/139files,
+declared realPG regression1/12.67s and compatibility19/1.10s,191 browser/
+110 existing skips/19.4m/no flakes. Branch EIG is skipped by policy, not release
+acceptance. All red/cancelled/preflight-only history below remains intact.
+
+The source-qualified LOCAL full_stack_browser component matrix is complete:
+the earlier real isolated PostgreSQL full-chain/fresh-empty/retained-row proof
+is reused only for identical Alembic/models/regression inputs; local19-case
+compatibility proof covers its test-only adaptation. Fresh isolated seeded
+app/backend/Postgres/Redis/frontend and pinned Noble Playwright1.62.1 executed
+the FULL unchanged F8m flow on current1ebc test source with zero retries.
+Attempt9 completed1/1, exit0, OOMKilledfalse, report duration1.0m. Ordinary
+Purple/Yellow/Grey, linked QQQ/SPY and isolation checks all ran, not collection.
+No source/assertion/timeout/retry/reference/tolerance/skip or production UI change.
+Trace was added for observability, not a visual oracle update.
+
+Backend image3d611db5663a7d54389afe651f2f686eeec82e64beeab22206fd525b04a43b99
+is honestly built from2018f865d2f346e6111ba50d4e202773746021be, whose backend
+treeac2b71d8b2e69e630296b742f718274ae69c6a38 equals current1ebc. Frontend image
+dcf90f7d90ca0cceb3ac382830c8b4cc77ae6c6100c431d8f533492d5007b77b build4687
+has identical runtime inputs through1ebc; current test/config are mounted RO.
+Backend has only an internal network and no provider credentials; browser-only
+egress allows the existing SDK. This fixture is NOT a human deployment/data proof.
+
+Exact evidence under Root .ai/staging-attempts/mss-browser-20261023/:
+low-pressure-trace-attempt9/browser.log SHA256
+ae97b5c5536efc8d1a6f6f1dc84896f5a2200190ea391d3fd8c29f46ab5a12d1;
+receipt.json SHA256962c1881abe5fd011b54f277b454dd6b7fa7bd6fda476dbff5c2faddbb972199;
+trace ZIP under results/low-pressure-trace-attempt9/ SHA256
+d3edbee367ce0eae24625d06343a6c8cc813820d0ccad38d09791625965e5ebf.
+Browser17f6e6431bed232fe38b55467d5d6bb8a108869c962beae249a4563b9a9bcf5e
+terminal exited0/OOMfalse was recorded BEFORE exact cleanup. All four fixture
+app services were non-OOM; synthetic project/volume/networks removed. Three
+idle owned target processes restored healthy. Independent before/after inventory
+proves all unrelated containers/starttimes and prior volumes/networks preserved.
+
+Setup failures remain real: capacity preflights ran no browser; backend448MiB
+OOM required640MiB; artifact UID and mounted-root cleanup failures happened
+before test entry. Browser384MiB then hit a kernel-confirmed cgroup OOM and
+was corrected to640MiB. Attempt8 reached final isolation but timed out at the
+unchanged60s case budget; browser exited1/non-OOM. Host full memory pressure
+avg10 was21.52%, compared with1.02% after replacing four history-materializing
+passive monitors with one12MiB projection-only observer of the SAME original
+owners. Free memory rose to3.4GiB; exact CI ran F8m in~9.37s. Attempt9 retained
+the same CPU/RAM limits, assertions and timeout, adding only a trace, and passed.
+This supports environment-pressure classification; it does not invent failed
+pointer coordinates or claim a new production UI repair. No red record erased.
+
+TC's independent read-only review11:13 supports the five precondition lines:
+rail disclosure and both SPY labels establish intended state, not completed
+bars; every original ordinary interaction remains. Root reviewed all four
+implementation files against f04:168 insertions/2deletions, no later feature
+roadmap source. Final closing-head CI, delegated coordinator acceptance and
+protected staging/master exhaustive gates are still independently required.
+Actual private target remains acceptedf04/slv2_0011/routingOFF until those pass.
+Root's broad original native goal stays active/unbudgeted; finishing this narrow
+implementation context must not complete or pause that production goal.
+
 Created from `staging` at `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`.
 
 ## Human authorization
