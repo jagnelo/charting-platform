@@ -1616,15 +1616,16 @@ roadmap_progress_history:
     The completed Study materializer and forward restart-to-context slice is published at
     2190711b79fb97cd0aafb3227a4bba48c582086a with exact CI39913683591 green for Backend,
     Frontend Unit, Branch-declared and E2E; Exhaustive is skipped by feature policy. The separate
-    forward-tape guard/test edits are locally focused-validated but not yet committed or hosted.
-    No local PostgreSQL body, application fixture, browser matrix, native process, or external
-    provider operation ran for those dirty edits. Full local/combined PostgreSQL/application/
-    browser/strict-visual and exact-pinned native execution/settlement gates remain open. Generic
-    Study output is not native evidence; provider/live/quota/paid/trial/unknown/unsafe/broker/
-    capital/deployment remain disabled.
+    forward-tape guard/test has a pre-fix failing regression and focused post-fix evidence; its
+    exact-source CI remains required. Record-only source64c6013 exact CI39918429781 was still
+    running at source publication and is not evidence for the adapter change. No local PostgreSQL
+    body, application fixture, browser matrix, native process, or external provider operation ran
+    for the adapter change. Full local/combined
+    PostgreSQL/application/browser/strict-visual and exact-pinned native execution/settlement
+    gates remain open. Generic Study output is not native evidence; provider/live/quota/paid/trial/
+    unknown/unsafe/broker/capital/deployment remain disabled.
   next_action: >-
-    Publish the closed Study materializer/restart-context workstream receipt without including the
-    dirty forward-tape source/test paths. Then publish the forward-tape rejection guard as its own
-    source changeset and inspect only its exact-source CI. Do not launch local DB/application/
-    browser/build/native gates without Root's slot. Continue all18 criteria and preserve
-    provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.
+    Inspect the single exact-source CI for the forward-tape correction rejection guard once; keep
+    the predecessor record-only run distinct and do not treat it as source coverage. Do not launch
+    local DB/application/browser/build/native gates without Root's slot. Continue all18 criteria
+    and preserve provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.

@@ -17817,3 +17817,24 @@ materializer changeset and remain an in-progress separate source change pending 
 and exact CI. Preserve all earlier red/flaky receipts. All18 roadmap criteria, full local/combined
 database/application/browser/strict-visual and native-execution/settlement gates, and every
 provider/quota/paid/trial/broker/capital hold remain open.
+
+## Forward event-tape correction rejection — 2026-10-23 07:34 UTC
+
+The current separate Strategy source fix closes a fail-open inconsistency in
+`NautilusForwardEventTape`: a canonical event with `correction_of` was accepted if a mismatched
+delivery binding claimed `enqueue`, even though corrections are counterfactual-replay inputs only.
+The new guard rejects the canonical correction after the existing identity/admission checks, so a
+correctly labeled `correction_enqueue` still receives the established rejection first. The
+regression was observed failing before the guard (construction did not raise); after the guard, the
+complete `test_nautilus_event_adapter.py` module passes `21/21`.
+
+Ruff check and format check pass, focused MyPy reports no issues in the two touched files, and
+`git diff --check` passes. The binary working-tree diff at base `64c6013da08456b3188f4d58ecd6a67ea85588f1`
+is `a3e2e057001341568b12212ca190020b49c38a93ab87d5c1b0790fbe21ae25d2`. No local database,
+Compose/browser/native process, or external provider operation ran. The source and regression are
+being published as this distinct scoped implementation changeset; their exact-source hosted CI
+remains the next check. The exact-source run `39918429781` on the predecessor workstream-only
+commit was still active at 07:34 UTC and is not treated as a result for this source change.
+Continue to preserve the complete
+18-criterion roadmap, all historical reds/flaky evidence, exact-pinned Nautilus scope, and all
+provider/live/quota/paid/trial/unknown/unsafe/broker/capital/deployment holds.
