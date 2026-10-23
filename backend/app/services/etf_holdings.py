@@ -223,6 +223,12 @@ def _capability_source_tier(
     return "none"
 
 
+def _is_sec_filing_source(*, provenance: str, source_provider: str) -> bool:
+    normalized_provider = source_provider.strip().lower()
+    normalized_provenance = provenance.strip().lower()
+    return normalized_provider == "sec" or normalized_provenance.startswith("sec_")
+
+
 def _capability_transport_kind(*, source_url: str | None, legal_metadata: dict[str, Any]) -> str:
     source_format = str(legal_metadata.get("source_format") or "").lower()
     if source_format in {"csv", "xls", "xlsx", "pdf", "zip"}:
@@ -1344,7 +1350,10 @@ async def ingest_holdings_snapshot(
 
     snapshot.resolved_count = resolved
     snapshot.unresolved_count = unresolved
-    if not manual_import:
+    if not manual_import and not _is_sec_filing_source(
+        provenance=provenance,
+        source_provider=source_provider,
+    ):
         await _record_adapter_success(
             db,
             profile=profile,

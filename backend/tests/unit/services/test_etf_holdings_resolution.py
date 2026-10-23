@@ -371,6 +371,60 @@ async def test_manual_sec_import_retains_sec_source_tier_without_native_adapter_
 
 
 @pytest.mark.asyncio
+async def test_automated_sec_reconstruction_does_not_refresh_issuer_adapter_health(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="SECY",
+        name="Synthetic SEC Reconstruction ETF",
+    )
+    profile = await ensure_etf_profile(async_db, etf_instrument)
+    profile.adapter_key = "spdr"
+    await async_db.flush()
+
+    accepted_at = datetime(2026, 6, 1, 13, 45, tzinfo=UTC)
+    monkeypatch.setattr(
+        "app.services.etf_holdings._now", lambda: datetime(2026, 10, 23, tzinfo=UTC)
+    )
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[
+            CanonicalHoldingRow(
+                symbol=instrument.symbol,
+                name=instrument.name,
+                weight=Decimal("1"),
+                currency="USD",
+                holding_type="equity",
+                row_type="security",
+            )
+        ],
+        composition_date=date(2026, 5, 31),
+        known_at=accepted_at,
+        published_at=accepted_at,
+        provenance="sec_nport_reconstructed_holdings",
+        source_provider="sec",
+        source_quality="filing_reconstructed_holdings",
+        completeness_status="filing_reconstructed",
+        legal_metadata={"source_format": "nport_xml"},
+        allow_provider_enrichment=False,
+    )
+
+    assert snapshot.extra_data["source_tier"] == "sec_filing"
+    assert (
+        db.execute(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                ETFHoldingsAdapterState.adapter_key == "spdr",
+            )
+        ).scalar_one_or_none()
+        is None
+    )
+
+
+@pytest.mark.asyncio
 async def test_ingest_rejects_future_metadata_before_profile_hydration(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     etf_instrument = await ensure_lightweight_etf_instrument(
