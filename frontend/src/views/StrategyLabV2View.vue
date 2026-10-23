@@ -16,6 +16,37 @@
       <span>This view does not start a backtest or forward run. Native, broker and capital actions remain unavailable.</span>
     </section>
 
+    <section class="strategy-lab-v2__pin-lookup" aria-labelledby="study-pin-title">
+      <div>
+        <h2 id="study-pin-title">Inspect a persisted Study output</h2>
+        <p>Resolve an owner-scoped immutable pin by existing run and artifact IDs. This does not create a Strategy or start execution.</p>
+      </div>
+      <form @submit.prevent="lookupStudyReference">
+        <label>
+          Research run ID
+          <input v-model="studyRunId" inputmode="numeric" autocomplete="off" required :disabled="studyReferenceLoading" aria-label="Research run ID">
+        </label>
+        <label>
+          Artifact ID
+          <input v-model="studyArtifactId" inputmode="numeric" autocomplete="off" required :disabled="studyReferenceLoading" aria-label="Artifact ID">
+        </label>
+        <button type="submit" :disabled="studyReferenceLoading">
+          {{ studyReferenceLoading ? 'Checking…' : 'Inspect immutable pin' }}
+        </button>
+      </form>
+      <p v-if="studyReferenceError" class="strategy-lab-v2__error" role="alert">{{ studyReferenceError }}</p>
+      <section v-else-if="studyReference" class="strategy-lab-v2__study" aria-label="Resolved Study pin">
+        <h3>Owner-verified Study pin</h3>
+        <dl>
+          <div v-for="field in studyFields" :key="field">
+            <dt>{{ field }}</dt>
+            <dd>{{ studyReference[field] }}</dd>
+          </div>
+        </dl>
+        <p>Persisted provenance only—not a backtest result or proof of native execution.</p>
+      </section>
+    </section>
+
     <nav class="strategy-lab-v2__tabs" aria-label="Strategy Lab v2 resources">
       <button
         v-for="resource in resources"
@@ -130,6 +161,18 @@ type CollectionResponse = {
   links?: { next?: string | null }
 }
 type ResourceResponse = { data: ResourceDocument }
+type SelectedStudyArtifactReference = {
+  research_run_id: number
+  code_version_id: number
+  artifact_id: number
+  artifact_name: string
+  artifact_type: string
+  output_contract: 'study'
+  run_reproducibility_hash: string
+  code_version_digest: string
+  dataset_manifest_digest: string
+  artifact_content_digest: string
+}
 type CollectionState = {
   items: ResourceDocument[]
   nextCursor: string | null
@@ -157,6 +200,8 @@ const studyFields = [
   'dataset_manifest_digest',
   'artifact_content_digest',
 ] as const
+const reproducibilityHashPattern = /^[0-9a-f]{64}$/
+const contentDigestPattern = /^sha256:[0-9a-f]{64}$/
 
 const pages = reactive<Record<ResourceKind, CollectionState>>({
   strategies: { items: [], nextCursor: null, loading: false, error: null, loaded: false, requestId: 0 },
@@ -169,6 +214,12 @@ const selected = ref<ResourceDocument | null>(null)
 const detail = ref<ResourceDocument | null>(null)
 const detailLoading = ref(false)
 const detailError = ref<string | null>(null)
+const studyRunId = ref('')
+const studyArtifactId = ref('')
+const studyReference = ref<SelectedStudyArtifactReference | null>(null)
+const studyReferenceLoading = ref(false)
+const studyReferenceError = ref<string | null>(null)
+let studyReferenceRequestId = 0
 
 const activeLabel = computed(() => resources.find(item => item.kind === activeKind.value)?.label ?? 'Resources')
 const selectedStudyReference = computed(() => {
@@ -178,6 +229,33 @@ const selectedStudyReference = computed(() => {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isSelectedStudyArtifactReference(
+  value: unknown,
+  runId: number,
+  artifactId: number,
+): value is SelectedStudyArtifactReference {
+  if (!isRecord(value)) return false
+  return value.research_run_id === runId
+    && typeof value.code_version_id === 'number'
+    && Number.isSafeInteger(value.code_version_id)
+    && value.code_version_id > 0
+    && typeof value.artifact_id === 'number'
+    && value.artifact_id === artifactId
+    && typeof value.artifact_name === 'string'
+    && value.artifact_name.trim().length > 0
+    && typeof value.artifact_type === 'string'
+    && value.artifact_type.trim().length > 0
+    && value.output_contract === 'study'
+    && typeof value.run_reproducibility_hash === 'string'
+    && reproducibilityHashPattern.test(value.run_reproducibility_hash)
+    && typeof value.code_version_digest === 'string'
+    && contentDigestPattern.test(value.code_version_digest)
+    && typeof value.dataset_manifest_digest === 'string'
+    && contentDigestPattern.test(value.dataset_manifest_digest)
+    && typeof value.artifact_content_digest === 'string'
+    && contentDigestPattern.test(value.artifact_content_digest)
 }
 
 function resourceName(resource: ResourceDocument): string {
@@ -249,6 +327,43 @@ async function openResource(resource: ResourceDocument) {
   }
 }
 
+async function lookupStudyReference() {
+  if (!/^[1-9][0-9]*$/.test(studyRunId.value) || !/^[1-9][0-9]*$/.test(studyArtifactId.value)) {
+    studyReference.value = null
+    studyReferenceError.value = 'Enter positive integer IDs for an existing run and artifact.'
+    return
+  }
+  const runId = Number(studyRunId.value)
+  const artifactId = Number(studyArtifactId.value)
+  studyReference.value = null
+  studyReferenceError.value = null
+  if (!Number.isSafeInteger(runId) || runId <= 0 || !Number.isSafeInteger(artifactId) || artifactId <= 0) {
+    studyReferenceError.value = 'Enter positive integer IDs for an existing run and artifact.'
+    return
+  }
+
+  const requestId = ++studyReferenceRequestId
+  studyReferenceLoading.value = true
+  try {
+    const response = await api.get<{ data: ResourceDocument }>(
+      `/strategy-lab/v2/study-artifact-references/${runId}/${artifactId}`,
+    )
+    const reference = response.data
+    if (reference?.type !== 'study-artifact-references'
+      || reference.id !== `${runId}:${artifactId}`
+      || !isSelectedStudyArtifactReference(reference.attributes, runId, artifactId)) {
+      throw new Error('The Study pin response did not match the requested immutable selection')
+    }
+    if (requestId === studyReferenceRequestId) studyReference.value = reference.attributes
+  } catch (cause) {
+    if (requestId === studyReferenceRequestId) {
+      studyReferenceError.value = cause instanceof Error ? cause.message : 'Unable to resolve this Study pin'
+    }
+  } finally {
+    if (requestId === studyReferenceRequestId) studyReferenceLoading.value = false
+  }
+}
+
 onMounted(() => {
   void loadCollection(activeKind.value)
 })
@@ -270,6 +385,13 @@ onMounted(() => {
 .strategy-lab-v2__back { color: #a8d7ff; text-decoration: none; }
 .strategy-lab-v2__boundary, .strategy-lab-v2__content { max-width: 1440px; margin: 0 auto; }
 .strategy-lab-v2__boundary { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; border: 1px solid #3c4b5a; border-radius: 8px; color: #c6d1dc; background: #121923; }
+.strategy-lab-v2__pin-lookup { display: grid; gap: 12px; max-width: 1440px; margin: 16px auto; border: 1px solid #29323c; border-radius: 9px; padding: 16px; background: #10151b; }
+.strategy-lab-v2__pin-lookup p { margin-top: 6px; color: #9aa9b8; line-height: 1.5; }
+.strategy-lab-v2__pin-lookup form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.strategy-lab-v2__pin-lookup label { display: grid; gap: 5px; color: #aab5c2; font-size: 12px; }
+.strategy-lab-v2__pin-lookup input { min-width: 180px; border: 1px solid #374452; border-radius: 6px; padding: 8px 10px; background: #090c0f; color: #e4e8ee; }
+.strategy-lab-v2__pin-lookup button { border: 1px solid #477aa0; border-radius: 6px; padding: 8px 12px; background: #15283a; color: #dce7f1; cursor: pointer; }
+.strategy-lab-v2__pin-lookup button:disabled { cursor: wait; opacity: .7; }
 .strategy-lab-v2__tabs { display: flex; gap: 8px; max-width: 1440px; margin: 20px auto 12px; border-bottom: 1px solid #29323c; }
 .strategy-lab-v2__tabs button, .strategy-lab-v2__list-heading button, .strategy-lab-v2__next { border: 1px solid #374452; border-radius: 6px; padding: 8px 12px; background: #141b23; color: #dce7f1; cursor: pointer; }
 .strategy-lab-v2__tabs button[aria-pressed="true"] { border-color: #67b7f5; color: #b9e1ff; background: #15283a; }
