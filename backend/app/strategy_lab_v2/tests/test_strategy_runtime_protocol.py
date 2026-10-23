@@ -149,6 +149,14 @@ def test_invocation_wire_round_trip_is_canonical_and_typed() -> None:
     )
 
 
+def _frozen_study_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _frozen_study_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return tuple(_frozen_study_value(item) for item in value)
+    return value
+
+
 @pytest.mark.parametrize(
     ("study_artifact_type", "study_value"),
     (
@@ -168,13 +176,14 @@ def test_invocation_wire_round_trip_is_canonical_and_typed() -> None:
 def test_strategy_runtime_can_consume_each_pinned_study_output_type(
     study_artifact_type: str, study_value: Any
 ) -> None:
+    expected_study_value = repr(_frozen_study_value(study_value))
     source = (
         "class Strategy:\n"
         "    def on_event(self, context):\n"
         "        output = context.study_artifacts['study.output']\n"
         f"        if output.reference.artifact_type != {study_artifact_type!r}:\n"
         "            return []\n"
-        "        if output.value is None:\n"
+        f"        if output.value != {expected_study_value}:\n"
         "            return []\n"
         "        return [TargetPositionIntent('US.AAPL', Decimal('0.25'))]\n"
     )

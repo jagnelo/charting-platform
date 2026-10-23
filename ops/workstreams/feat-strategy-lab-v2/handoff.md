@@ -17525,8 +17525,9 @@ contract therefore remains unproven until actual PostgreSQL execution and the as
 
 Added an offline protocol/runtime regression over all 11 resolver-admitted Study artifact types.
 Each case serializes and decodes the immutable selected reference/output, then executes a simple
-strategy that reads `context.study_artifacts[name].reference.artifact_type` and `.value` and emits a
-deterministic intent only for the matching typed output. The exact focused node passed 11/11 in
+strategy that reads `context.study_artifacts[name].reference.artifact_type`, compares `.value` with
+the exact recursively frozen expected payload, and emits a deterministic intent only on equality.
+The exact focused node passed 11/11 in
 0.37s (single process, 1-GiB address-space limit, 180-second timeout). Ruff, Ruff format and focused
 MyPy for the changed file (1-GiB/120-second bound), plus `git diff --check`, pass. The initial Ruff
 check found the missing test-only `Any` import and the first format check requested formatting; both
@@ -17534,3 +17535,8 @@ were corrected, with no production changes. This is a generic Python strategy-ru
 Nautilus/native execution or order routing. No DB, Docker, Compose, browser, native process,
 provider/quota, or live operation ran. Exact parent CI39882200073 was last verified in progress on
 published `dd0a704b`; accumulated local commits remain unpublished until that run is terminal.
+
+The runtime consumer assertion was then tightened so strategy code compares the full decoded
+immutable value (nested JSON arrays as tuples), not only a non-null sentinel. The same 11 cases pass
+again (`11 passed`, 0.37s); focused Ruff, format and MyPy also pass. This exact-value assertion is
+covered by the next coherent local commit and remains outside parent CI39882200073.
