@@ -17428,3 +17428,23 @@ Preserve the run to terminal before publishing the test addition. The persisted 
 test body, coordinator-assigned full local backend/application and strict browser/visual profile,
 and scope-qualified native execution remain open. No database, Docker, Compose, browser, native
 process, provider/issuer HTTP, quota, or live operation ran.
+
+## Preserve typed TC Study payload variants through the invocation wire — 2026-10-23 01:17 UTC
+
+Added a stack-free protocol regression for selected TC Study outputs of type `scalar`, `range`,
+`table`, and `events`. Each case builds the existing immutable `SelectedStudyArtifactReference` /
+`ResolvedStudyArtifactOutput` pair, serializes a strategy context, and verifies that the exact typed
+reference and nested value survive invocation decoding without interpretation or digest drift. The
+four parameter cases passed in one offline process (`4 passed`, `0.33s`); focused MyPy for the
+changed protocol test file, Ruff, Ruff format, and `git diff --check` pass. An initial process-limit
+invocation was malformed and exited127 before pytest started; the corrected bounded command ran the
+four intended cases. No external input, database, Docker, native worker process or provider/quota
+operation was used. This extends the same typed Study payload/runtime-binding changeset and is not
+evidence of native execution.
+
+The native context-seeder regression is committed locally as `72a4c605b010e608446a6d5d0a6433fd4cceae26`
+but remains unpublished. Exact parent CI `39882200073` on `dd0a704b988ffbfb2ea7143e42abbf41105336f0`
+is still running Backend unit tests (Frontend Unit Tests passed); neither local follow-up is included.
+Publish the coherent accumulated follow-up after that parent run reaches terminal. The real PostgreSQL
+restart body and coordinator-assigned full backend/combined DB/application/browser/strict-visual/native
+gates remain open. Full 18-criterion roadmap and all operational safety holds are unchanged.

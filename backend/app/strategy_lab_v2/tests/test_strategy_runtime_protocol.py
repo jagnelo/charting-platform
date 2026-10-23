@@ -277,6 +277,52 @@ def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift(tmp_p
         )
 
 
+@pytest.mark.parametrize(
+    ("artifact_type", "value"),
+    (
+        ("scalar", 2.5),
+        ("range", {"low": 1.25, "high": 3.75}),
+        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
+        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
+    ),
+)
+def test_invocation_wire_preserves_typed_study_payload_shapes(artifact_type, value) -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    payload = {"type": artifact_type, "value": value}
+    reference = SelectedStudyArtifactReference(
+        research_run_id=21,
+        code_version_id=22,
+        artifact_id=23,
+        artifact_name=f"study.{artifact_type}",
+        artifact_type=artifact_type,
+        output_contract="study",
+        run_reproducibility_hash="b" * 64,
+        code_version_digest=content_digest("typed-study-code"),
+        dataset_manifest_digest=content_digest("typed-study-dataset"),
+        artifact_content_digest=content_digest(payload),
+    )
+    base_manifest = _manifest(source)
+    manifest = replace(
+        base_manifest,
+        strategy=replace(base_manifest.strategy, selected_study_artifact=reference),
+    )
+    output = ResolvedStudyArtifactOutput(reference, payload)
+    context = replace(_context(), study_artifacts={reference.artifact_name: output})
+
+    encoded = serialize_invocation(
+        source=source,
+        manifest=manifest,
+        context=context,
+        entrypoint="strategy.main:Strategy",
+    )
+    _, decoded_manifest, decoded_context, _, _ = deserialize_invocation(encoded)
+
+    assert decoded_manifest.strategy.selected_study_artifact == reference
+    assert decoded_context.study_artifacts == {reference.artifact_name: output}
+    assert decoded_context.study_artifacts[reference.artifact_name].value == output.value
+    assert decoded_context.study_artifacts[reference.artifact_name].reference == reference
+
+
 def test_result_wire_round_trip_preserves_intents_and_fingerprint() -> None:
     source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
     manifest = _manifest(source)

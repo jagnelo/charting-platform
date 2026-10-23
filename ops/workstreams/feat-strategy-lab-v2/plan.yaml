@@ -725,14 +725,14 @@ progress:
     visual validation, native qualification and remaining persistence/API/worker behavior. Provider
     HTTP/quota, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
   next_action: >-
-    Preserve the native worker context-seeder regression in one coherent source/evidence commit.
     Let exact-source CI 39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 reach
-    terminal before pushing the follow-up, so its result is not displaced. Then publish the
-    regression and inspect its exact-source CI. Keep the real PostgreSQL restart body plus full
-    local/application/browser/native gates open; do not launch database, Compose, build, browser or
-    native validation until Root assigns the one-at-a-time host slot. Preserve all 18 original
-    criteria, exact-scope Nautilus authority, disabled provider/live/quota/paid/trial/unknown/unsafe/
-    broker/capital boundaries, and accepted checkpoint history.
+    terminal before pushing the local worker-seeder and typed Study payload-shape regressions, so
+    that parent run is not displaced. Then publish the coherent follow-up and inspect its
+    exact-source CI. Keep the real PostgreSQL restart body plus full local/application/browser/native
+    gates open; do not launch database, Compose, build, browser or native validation until Root
+    assigns the one-at-a-time host slot. Preserve all 18 original criteria, exact-scope Nautilus
+    authority, disabled provider/live/quota/paid/trial/unknown/unsafe/broker/capital boundaries, and
+    accepted checkpoint history.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1647,32 +1647,25 @@ roadmap_progress_history:
       - backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
     status: in_progress
   current_blocker: >-
-    The owner-scoped resolver, hydration graph and bounded runtime context streams carry the exact
-    typed immutable Study payload; no-reference fingerprint/wire compatibility is preserved.
-    Historical CI39856591934 fixture failures and subsequent red receipts remain in the handoff and
-    append-only journal. The current published source b620ed10 adds one ordinary PostgreSQL forward-plan
-    reconstruction case using persisted Strategy/Package/Portfolio/ForwardInstance/ForwardExecutionPlan
-    rows and fresh SQL sessions. It asserts exact output binding after reconstruction, foreign-owner
-    denial, and persisted payload-drift rejection. Collection succeeded (one node, no fixture setup),
-    but the PostgreSQL test body has not run locally because no local DB slot is assigned. Its exact
-    source CI39874448939 is terminal red: Backend unit had 5,197 passes, one existing skip, and one
-    unrelated EODHD daily-quota test failure; integration did not run, so the new persisted restart
-    case is still unexecuted. The failure is a wall-clock boundary in the existing test: it captures
-    now just after UTC midnight, sets observed_at five minutes earlier, and the strict calendar_day_gmt
-    guard correctly rejects a baseline from the previous reset window. The unit test now uses one
-    fixed midday UTC instant and injects that same instant into both baseline reconciliations. The exact
-    failing node passes locally once; Ruff, format, workstream, and diff checks pass. This changes no
-    production quota behavior and performs no provider request. Publish this scoped test-fixture
-    correction and require its exact-source CI to execute the new PostgreSQL regression. Persisted
-    restart behavior and the complete combined runtime/browser/strict-visual/native gates remain open;
-    generic Study output is not native execution evidence. The exact accepted staging repair
-    4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is now merged locally at
-    85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db. Its focused workflow and Market Map tests pass
-    38/38 and 61/61; exact-source CI on the merged Strategy branch awaits publication.
+    Accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is already an ancestor of the current
+    Strategy branch and remains the actual staging ref. The owner-scoped Study resolver, hydration
+    graph, immutable typed output wrapper, forward context stream and native worker seeder now bind
+    exact selected artifact references and payload digests; legacy no-reference fingerprints remain
+    preserved. Published dd0a704b988ffbfb2ea7143e42abbf41105336f0 contains the production
+    forward-runtime propagation and a real PostgreSQL fresh-session restart regression. Its exact
+    CI39882200073 attempt1 is currently in progress in Backend unit tests; Frontend Unit Tests have
+    passed. Local commit72a4c605b010e608446a6d5d0a6433fd4cceae26 adds native worker seed reconstruction
+    evidence, and the working diff adds typed scalar/range/table/events payload round-trip coverage;
+    neither is included in that hosted run or yet published. The PostgreSQL test body has not run
+    locally because no DB slot is assigned. Full local backend/combined DB/application/browser/strict-
+    visual/native gates remain open and require coordinator-assigned slots. Historical failures,
+    including CI39856591934 and CI39874448939, remain in the append-only journal/handoff; generic
+    Study output is not native execution evidence. Provider/issuer HTTP, quota, live, paid/trial,
+    unknown/unsafe, broker/capital and deployment scopes remain disabled.
   next_action: >-
-    Publish the exact accepted staging reconciliation with its focused test evidence and complete
-    normal exact-source CI for the resulting Strategy tip. Then continue the typed Study payload/runtime
-    and forward-worker restart work; the persisted PostgreSQL regression remains required. Do not
-    launch a full local profile, database fixture, browser, build, or native gate until Root assigns
-    the one-at-a-time host slot. Continue the complete 18-criterion roadmap and all coordinator-assigned
-    database/runtime/browser/native gates. Keep provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.
+    Allow exact CI39882200073 to reach terminal, then publish the accumulated local worker-seeder and
+    typed Study payload-shape regressions together and inspect exact-tip CI. Preserve the persisted
+    PostgreSQL restart test and request its assigned full validation slot only through Root's existing
+    coordination. Do not launch a full local profile, database fixture, browser, build or native gate
+    without an assigned slot. Continue all 18 criteria and database/runtime/browser/native gates;
+    preserve provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.
