@@ -35,8 +35,6 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "backend/app/strategy_lab_v2/nautilus_event_adapter.py",
-    "backend/app/strategy_lab_v2/tests/test_nautilus_event_adapter.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -74,12 +72,12 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "last_checkpoint": "2026-10-23T07:34:22Z",
+  "last_checkpoint": "2026-10-23T08:23:28Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Inspect the exact-source CI for the published forward-tape correction guard once. No local PostgreSQL/application/browser/native profile without Root's slot; preserve every full-roadmap gate.",
+  "next_action": "Continue the existing 18-criterion Strategy roadmap from its next incomplete item. Preserve the green exact-source receipt and f04 ancestry; no unassigned heavy/runtime/provider operation.",
   "parent_branch": "staging",
-  "plan_hash": "c1aa43a3ce4c3e3e7141f21cd734ab4b601a6a5ceda9787503e93f75a448118f",
+  "plan_hash": "e03689057348a6dff7626803359f6aaa172fd7d40dcbaf2e4bf195a1c3e69229",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -109,16 +107,16 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Forward-tape correction guard has21 focused tests green plus Ruff, focused MyPy and diff checks, and is being published as a separate source changeset. The exact CI39918429781 was still running on predecessor workstream-only source64c at the last check; do not treat that as coverage for this code. Full local/combined DB/application/browser/native gates remain open.",
-    "current_phase": "strategy-lab-v2-nautilus-forward-event-tape-correction-denial-v1",
-    "next_action": "Inspect the exact-source CI for the published forward-tape correction rejection guard once. Preserve the full 18-criterion roadmap and disabled-scope holds.",
+    "current_blocker": "Forward-tape correction rejection is published at exact source f5f3519a15261bddfa1ee7d5bf87474b250de7a7 and exact CI39918971415 is terminal green for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive was skipped by feature policy. The focused adapter module, Ruff, focused MyPy and diff checks passed. Released common baseline f04fb2a26c6363c6090e76c2658cfcfe7adabf61 is already an ancestor via 8944f442dff4e3a80bcbdcab91e44e10958d0351. The 18-criterion roadmap and full local/combined/native gates remain open.",
+    "current_phase": "continue-original-18-criterion-roadmap-after-f04-adoption",
+    "next_action": "Continue the next incomplete branch-owned Strategy roadmap item; preserve exact CI39918971415 and avoid a duplicate f04 merge, status-only commit, or unassigned heavy/runtime/provider operation.",
     "total": 5,
-    "updated_at": "2026-10-23T07:34:22Z"
+    "updated_at": "2026-10-23T08:23:28Z"
   },
-  "head": "64c6013da08456b3188f4d58ecd6a67ea85588f1",
-  "implementation_sha": "64c6013da08456b3188f4d58ecd6a67ea85588f1",
-  "remote": "64c6013da08456b3188f4d58ecd6a67ea85588f1",
-  "remote_sha": "64c6013da08456b3188f4d58ecd6a67ea85588f1",
+  "head": "f5f3519a15261bddfa1ee7d5bf87474b250de7a7",
+  "implementation_sha": "f5f3519a15261bddfa1ee7d5bf87474b250de7a7",
+  "remote": "f5f3519a15261bddfa1ee7d5bf87474b250de7a7",
+  "remote_sha": "f5f3519a15261bddfa1ee7d5bf87474b250de7a7",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

@@ -1599,7 +1599,7 @@ roadmap_progress_history:
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
   total: 18
-  current_phase: strategy-lab-v2-nautilus-forward-event-tape-correction-denial-v1
+  current_phase: continue-original-18-criterion-roadmap-after-f04-adoption
   active_changeset:
     id: strategy-lab-v2-nautilus-forward-event-tape-correction-denial-v1
     scope: >-
@@ -1611,21 +1611,22 @@ roadmap_progress_history:
     owned_paths:
       - backend/app/strategy_lab_v2/nautilus_event_adapter.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_event_adapter.py
-    status: in_progress
+    status: complete
   current_blocker: >-
-    The completed Study materializer and forward restart-to-context slice is published at
-    2190711b79fb97cd0aafb3227a4bba48c582086a with exact CI39913683591 green for Backend,
-    Frontend Unit, Branch-declared and E2E; Exhaustive is skipped by feature policy. The separate
-    forward-tape guard/test has a pre-fix failing regression and focused post-fix evidence; its
-    exact-source CI remains required. Record-only source64c6013 exact CI39918429781 was still
-    running at source publication and is not evidence for the adapter change. No local PostgreSQL
-    body, application fixture, browser matrix, native process, or external provider operation ran
-    for the adapter change. Full local/combined
-    PostgreSQL/application/browser/strict-visual and exact-pinned native execution/settlement
-    gates remain open. Generic Study output is not native evidence; provider/live/quota/paid/trial/
-    unknown/unsafe/broker/capital/deployment remain disabled.
+    The production Study materializer and forward restart-to-context integration cases are complete
+    at 2190711b79fb97cd0aafb3227a4bba48c582086a (exact CI39913683591 green). The separate
+    forward-tape correction rejection guard and regression are complete at
+    f5f3519a15261bddfa1ee7d5bf87474b250de7a7: exact CI39918971415 is terminal green for Backend,
+    Frontend Unit, Branch-declared and E2E; Exhaustive is skipped by feature-branch policy. The
+    test file is included in that published changeset; the worktree is clean, with no dirty test
+    file to carry forward. Released common baseline f04fb2a26c6363c6090e76c2658cfcfe7adabf61 is
+    already an ancestor through 8944f442dff4e3a80bcbdcab91e44e10958d0351, so no duplicate merge
+    was made. This is not full-roadmap completion or native execution proof. Full local/combined
+    PostgreSQL/application/browser/strict-visual and exact-pinned native execution/settlement gates
+    remain open; provider/live/quota/paid/trial/unknown/unsafe/broker/capital/deployment remain
+    disabled.
   next_action: >-
-    Inspect the single exact-source CI for the forward-tape correction rejection guard once; keep
-    the predecessor record-only run distinct and do not treat it as source coverage. Do not launch
-    local DB/application/browser/build/native gates without Root's slot. Continue all18 criteria
-    and preserve provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.
+    Continue the existing full 18-criterion roadmap from its next incomplete Strategy-owned item.
+    Preserve the already-green exact source receipt and f04 ancestry; do not rerun completed CI or
+    create a status-only follow-up. No unassigned DB/application/browser/build/native profile or
+    provider/issuer/SEC operation; retain all capability holds.

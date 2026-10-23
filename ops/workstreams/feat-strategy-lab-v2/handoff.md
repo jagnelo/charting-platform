@@ -17838,3 +17838,23 @@ commit was still active at 07:34 UTC and is not treated as a result for this sou
 Continue to preserve the complete
 18-criterion roadmap, all historical reds/flaky evidence, exact-pinned Nautilus scope, and all
 provider/live/quota/paid/trial/unknown/unsafe/broker/capital/deployment holds.
+
+## Forward tape source closure and f04 baseline confirmation — 2026-10-23 08:23 UTC
+
+The separate forward-event-tape correction guard and its regression are published together at
+`f5f3519a15261bddfa1ee7d5bf87474b250de7a7`. Exact Actions run `39918971415` is terminal green
+for Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E Playwright; the Exhaustive
+Integration Gate is skipped by feature-branch policy. The adapter test module passed 21/21; Ruff,
+focused MyPy on both changed files, formatting and `git diff --check` passed before publication.
+The regression was observed failing before the guard because the mismatched canonical
+correction/enqueue pair did not raise; no assertion or runtime guard was weakened. The worktree was
+clean and origin matched the tested source before this record update.
+
+The coordinator release `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` is already an ancestor through
+merge `8944f442dff4e3a80bcbdcab91e44e10958d0351`; this exact release was not merged a second time.
+The production Study materializer/restart integration slice remains separately closed at
+`2190711b79fb97cd0aafb3227a4bba48c582086a` / CI `39913683591`. The f5 correction is a distinct
+scoped change; there is no remaining dirty test file. This closes only the current source context,
+not the full roadmap: full local/combined PostgreSQL/application/browser/strict-visual and native
+execution/settlement gates remain open, and all provider/quota/paid/trial/broker/capital holds stay
+disabled. No database, Compose/browser/native profile, or external provider operation ran here.
