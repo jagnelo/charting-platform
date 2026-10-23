@@ -17459,3 +17459,14 @@ Ruff, Ruff format and `git diff --check` pass. A MyPy command with a mistyped pa
 running MyPy; the corrected command passed with no issues. This remains serialization/seeding-input
 evidence only, not native execution evidence. The exact parent CI and all real PostgreSQL and full
 runtime gates remain open as recorded above.
+
+## Cover every admitted TC Study artifact type in worker-wire binding — 2026-10-23 01:21 UTC
+
+Expanded the invocation/component-stream round-trip matrix to all 11 artifact types currently
+admitted by the Study resolver: scalar, series, boolean, table, bar, histogram, range, scatter,
+heatmap, dashboard, and events. The payload values are test-only JSON examples; the boundary preserves
+their exact type, pinned reference, nested payload, and digest without assigning new producer or
+execution semantics. All 11 cases passed in one offline process (`11 passed`, `0.36s`). Focused MyPy
+for the touched test file, Ruff, Ruff format, and `git diff --check` pass. No DB, network, Docker,
+native process, provider/quota or live operation ran. The active parent CI remains the only hosted run
+and does not include any of the three local follow-up commits or this uncommitted expansion.

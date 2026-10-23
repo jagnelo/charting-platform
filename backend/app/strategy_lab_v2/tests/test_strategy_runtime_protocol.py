@@ -281,8 +281,15 @@ def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift(tmp_p
     ("artifact_type", "value"),
     (
         ("scalar", 2.5),
+        ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
+        ("boolean", True),
         ("range", {"low": 1.25, "high": 3.75}),
         ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
+        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
+        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
+        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
+        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
+        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
         ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
     ),
 )
