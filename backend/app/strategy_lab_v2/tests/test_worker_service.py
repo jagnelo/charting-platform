@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, cast
@@ -28,6 +27,11 @@ from app.strategy_lab_v2.worker_consumer import (
     RedisDispatchWorkerScheduler,
     WorkerHandleDecision,
     WorkerHandleResult,
+)
+from app.strategy_lab_v2.worker_execution import (
+    WorkerExecutionDecision,
+    WorkerExecutionResolution,
+    execute_worker_handoff,
 )
 from app.strategy_lab_v2.worker_process import (
     SerialWorkerProcessExecutor,
@@ -80,6 +84,7 @@ def _service(
         group_name="workers",
         consumer_name="worker-1",
     )
+
     scheduler = RedisDispatchWorkerScheduler(worker, interval_seconds=1, sleep=_sleep)
 
     async def materializer(
@@ -107,6 +112,36 @@ def _service(
         ),
         payload,
         entry,
+    )
+
+
+def _successful_process_resolution(
+    request: WorkerExecutionRequest,
+) -> WorkerProcessResolution:
+    fake_docker = Path(request.docker_binary)
+    assert fake_docker.read_text(encoding="utf-8") == "#!/bin/sh\nprintf 'ok'\n"
+    execution = execute_worker_handoff(
+        request.orchestration_plan,
+        request.authorization,
+        request.admission,
+        request.runtime_request,
+        request.runtime_preflight,
+        request.runtime_state,
+        request.sandbox_plan,
+        request.execution_plan,
+        worker_pool=request.worker_pool,
+        lease_state=request.lease_state,
+        started_at=request.started_at,
+        observed_at=request.observed_at,
+        runtime_input_artifact=request.runtime_input_artifact,
+        docker_binary=request.docker_binary,
+    )
+    assert execution.decision is WorkerExecutionDecision.SUCCEEDED
+    assert isinstance(execution, WorkerExecutionResolution)
+    return WorkerProcessResolution(
+        request.request_fingerprint,
+        WorkerProcessDecision.COMPLETED,
+        execution=execution,
     )
 
 
@@ -260,6 +295,19 @@ async def test_service_delegates_child_failure_to_durable_recovery_writer(
                 error_digest=content_digest("child-failed"),
             )
 
+    completion_calls: list[WorkerProcessResolution] = []
+    terminal_calls: list[WorkerCompletionContext] = []
+
+    async def completion_writer(
+        _entry: RedisStreamEntry, result: WorkerProcessResolution
+    ) -> WorkerHandleResult:
+        completion_calls.append(result)
+        raise AssertionError("child failure must not reach the completion writer")
+
+    async def terminal_writer(context: WorkerCompletionContext) -> WorkerHandleResult:
+        terminal_calls.append(context)
+        raise AssertionError("child failure must not reach the terminal writer")
+
     async def materializer(
         _entry: RedisStreamEntry, _payload: DispatchPayload
     ) -> WorkerExecutionRequest:
@@ -277,10 +325,11 @@ async def test_service_delegates_child_failure_to_durable_recovery_writer(
         service.scheduler,
         _Loader(payload),
         materializer,
-        service._completion_writer,
+        completion_writer,
         process_executor=FailedExecutor(timeout_seconds=1),
         clock=lambda: NOW + timedelta(seconds=2),
         recovery_writer=recovery_writer,
+        terminal_writer=terminal_writer,
     )
     result = await recovering.handle(entry, payload)
 
@@ -288,6 +337,8 @@ async def test_service_delegates_child_failure_to_durable_recovery_writer(
     assert len(recovered) == 1
     assert recovered[0].reason.value == "worker_crash"
     assert recovered[0].request == request
+    assert completion_calls == []
+    assert terminal_calls == []
 
 
 async def test_service_rejects_invalid_materialization_without_starting_process(
@@ -334,23 +385,24 @@ async def test_service_emits_ordered_lease_heartbeat_during_process_handoff(
 ) -> None:
     service, payload, entry = _service(tmp_path)
     initial_request = _request(tmp_path)
+    successful_process = _successful_process_resolution(initial_request)
     observations = []
     state = initial_request.lease_state
+    executor_calls: list[WorkerExecutionRequest] = []
+    completed_processes: list[WorkerProcessResolution] = []
 
     class BlockingExecutor(SerialWorkerProcessExecutor):
-        def run(
+        async def run_async(
             self,
             request: WorkerExecutionRequest,
             *,
             timeout_seconds: float | None = None,
+            poll_interval_seconds: float = 0.005,
         ) -> WorkerProcessResolution:
-            del timeout_seconds
-            time.sleep(0.05)
-            return WorkerProcessResolution(
-                request.request_fingerprint,
-                WorkerProcessDecision.CHILD_FAILED,
-                error_digest=content_digest("child-failed"),
-            )
+            executor_calls.append(request)
+            await asyncio.sleep(0.05)
+            del timeout_seconds, poll_interval_seconds
+            return successful_process
 
     async def materializer(
         _entry: RedisStreamEntry, _payload: DispatchPayload
@@ -366,8 +418,13 @@ async def test_service_emits_ordered_lease_heartbeat_during_process_handoff(
         return resolution
 
     async def completion(
-        received_entry: RedisStreamEntry, _result: WorkerProcessResolution
+        received_entry: RedisStreamEntry, result: WorkerProcessResolution
     ) -> WorkerHandleResult:
+        completed_processes.append(result)
+        assert result.decision is WorkerProcessDecision.COMPLETED
+        assert result.execution is not None
+        assert isinstance(result.execution, WorkerExecutionResolution)
+        assert result.execution.decision is WorkerExecutionDecision.SUCCEEDED
         return WorkerHandleResult(
             received_entry.fingerprint,
             WorkerHandleDecision.COMPLETE,
@@ -388,6 +445,12 @@ async def test_service_emits_ordered_lease_heartbeat_during_process_handoff(
     result = await service.handle(entry, payload)
 
     assert result.decision is WorkerHandleDecision.COMPLETE
+    assert executor_calls == [initial_request]
+    assert len(completed_processes) == 1
+    assert completed_processes[0].decision is WorkerProcessDecision.COMPLETED
+    assert completed_processes[0].execution is not None
+    assert isinstance(completed_processes[0].execution, WorkerExecutionResolution)
+    assert completed_processes[0].execution.decision is WorkerExecutionDecision.SUCCEEDED
     assert observations
     assert observations[0].sequence == 1
     assert observations[0].kind.value == "heartbeat"
@@ -397,16 +460,19 @@ async def test_service_emits_ordered_lease_heartbeat_during_process_handoff(
 async def test_service_leaves_entry_pending_when_heartbeat_is_rejected(tmp_path: Path) -> None:
     service, payload, entry = _service(tmp_path)
     initial_request = _request(tmp_path)
+    executor_calls: list[WorkerExecutionRequest] = []
 
     class BlockingExecutor(SerialWorkerProcessExecutor):
-        def run(
+        async def run_async(
             self,
             request: WorkerExecutionRequest,
             *,
             timeout_seconds: float | None = None,
+            poll_interval_seconds: float = 0.005,
         ) -> WorkerProcessResolution:
-            del timeout_seconds
-            time.sleep(0.02)
+            del timeout_seconds, poll_interval_seconds
+            executor_calls.append(request)
+            await asyncio.sleep(0.02)
             return WorkerProcessResolution(
                 request.request_fingerprint,
                 WorkerProcessDecision.CHILD_FAILED,
@@ -442,6 +508,7 @@ async def test_service_leaves_entry_pending_when_heartbeat_is_rejected(tmp_path:
     )
     result = await service.handle(entry, payload)
 
+    assert executor_calls == [initial_request]
     assert result.decision is WorkerHandleDecision.RETRY
     assert result.rejection_reason == "worker lease heartbeat rejected: reject"
 
@@ -718,21 +785,23 @@ async def test_service_can_delegate_terminal_context_before_acknowledgement(
 ) -> None:
     service, payload, entry = _service(tmp_path)
     initial_request = _request(tmp_path)
+    successful_process = _successful_process_resolution(initial_request)
     seen: list[WorkerCompletionContext] = []
+    executor_calls: list[WorkerExecutionRequest] = []
+    ordering: list[str] = []
 
     class BlockingExecutor(SerialWorkerProcessExecutor):
-        def run(
+        async def run_async(
             self,
             request: WorkerExecutionRequest,
             *,
             timeout_seconds: float | None = None,
+            poll_interval_seconds: float = 0.005,
         ) -> WorkerProcessResolution:
-            del timeout_seconds
-            return WorkerProcessResolution(
-                request.request_fingerprint,
-                WorkerProcessDecision.CHILD_FAILED,
-                error_digest=content_digest("child-failed"),
-            )
+            del timeout_seconds, poll_interval_seconds
+            executor_calls.append(request)
+            ordering.append("executor")
+            return successful_process
 
     async def materializer(
         _entry: RedisStreamEntry, _payload: DispatchPayload
@@ -743,6 +812,7 @@ async def test_service_can_delegate_terminal_context_before_acknowledgement(
         raise AssertionError("legacy completion writer must not run with terminal_writer")
 
     async def terminal(context: WorkerCompletionContext) -> WorkerHandleResult:
+        ordering.append("terminal")
         seen.append(context)
         return WorkerHandleResult(
             context.entry.fingerprint,
@@ -761,7 +831,14 @@ async def test_service_can_delegate_terminal_context_before_acknowledgement(
     result = await service.handle(entry, payload)
 
     assert result.decision is WorkerHandleDecision.COMPLETE
+    assert result.receipt_digest == content_digest("terminal-receipt")
+    assert executor_calls == [initial_request]
+    assert ordering == ["executor", "terminal"]
     assert len(seen) == 1
     assert seen[0].entry == entry
     assert seen[0].request == initial_request
     assert seen[0].process.request_fingerprint == initial_request.request_fingerprint
+    assert seen[0].process.decision is WorkerProcessDecision.COMPLETED
+    assert seen[0].process.execution is not None
+    assert isinstance(seen[0].process.execution, WorkerExecutionResolution)
+    assert seen[0].process.execution.decision is WorkerExecutionDecision.SUCCEEDED

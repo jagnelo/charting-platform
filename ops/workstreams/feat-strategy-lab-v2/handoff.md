@@ -18675,3 +18675,296 @@ receipt and inspect the new exact-tip branch CI. Full local combined migration/P
 application/worker restart, full-stack browser/strict-visual, and native qualification remain
 open; preserve all 18 original roadmap criteria and every disabled provider/quota/paid/trial/
 broker/capital/native boundary.
+
+## Next named first-human checkpoint — prepared, not accepted
+
+The current checkpoint is `strategy-lab-v2-first-human-study-inspector-2`, prepared under the
+canonical checkpoint contract in `docs/agent-orchestration.md`. It does not replace the active
+full-roadmap native goal, reset goal accounting, or close the original 18 criteria. The prior
+`strategy-lab-v2-integration-1` acceptance, closure summary, SLICP1-SLICP5 criteria, validation, and
+criterion dispositions are retained under the plan's `accepted_integration_1_*` history keys.
+Current checkpoint `human_closure_authorization` and `closure_summary` are both `pending`; status
+remains `in_progress`, with no acceptance or integration claim.
+
+Scope is the ordinary user path from a supported completed/evaluated Research Study output to the
+read-only Strategy Lab v2 inspector. The visible result link carries the persisted Research run and
+artifact IDs; route hydration calls only the authenticated owner-scoped immutable-reference GET.
+The accepted UI contract is read-only: no POST, dispatch, new Research run, or native execution
+assertion. The resolver authenticates the exact owner/run/CodeVersion/artifact identity and persisted
+`run_reproducibility_hash`, `code_version_digest`, `dataset_manifest_digest`, and
+`artifact_content_digest`. This selected-Study reference does not independently authenticate a
+native strategy/package/parameter/seed execution graph; that remains a broader roadmap contract.
+Foreign, nonterminal, missing, malformed, ambiguous, wrong-type, unverified, deleted, or drifted
+records remain denied.
+
+The branch prerequisite chain is `344f87f835f392bd103c20db2044aa0de72148df` (Study payload shape),
+`068d03f1ff55f5b1701d071980b4405d83e65cc6` (typed resolver and authenticated GET),
+`1451b9d0f2f4a468961319eda337f5dcc1e06aa7` (inspector, route, and App navigation), and
+`4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5` (typed pin preview). These are Strategy-branch
+prerequisites, not content of deployed `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`; that accepted
+baseline is compatible but does not expose the reference API or V2 navigation. Never ship the
+frontend alone or claim Root's deployed owner-positive/negative UI/API proof before Root performs
+it after exact source qualification.
+
+Date-only bounds are calendar-day bounds only when canonical listing venue and supported calendar
+are authoritative. Mixed date/exact bounds must keep the exact side unchanged. Unknown venue is
+unavailable; USD alone is not XNYS evidence, and coverage/PIT requirements are not relaxed. SPY/RSP
+date-only acceptance remains pending authoritative canonical `InstrumentListing` venue review; the
+observed `EquityDetail.exchange_mic = NULL` is not listing proof. Do not claim the UX is fixed for
+those target rows. Run3's date-only
+Study remains honestly deferred with zero artifacts; run4 using exact acquired bounds completed with
+479 canonical bars and four matching artifacts. No provider request or target write was made for
+this checkpoint.
+
+Plan dispositions enumerate every original `AC-*` criterion. The inspector/API, upstream lineage,
+data semantics, artifact inspection, security boundary and validation criteria are only partially
+delivered; SDK, search, portfolio, metrics, workers, Nautilus, forward, legacy import, and Compose
+remain deferred with owners and continuation tests. No criterion or full roadmap is marked complete.
+Full `full_integration`/`full_stack_browser`, all existing assertions/tolerances/retry policy, and
+terminal exact-source CI remain required; focused results are not a waiver. No native Nautilus
+execution is claimed. Forward, broker, capital, paid/trial, provider/quota, unknown, and unsafe
+operations remain disabled. Root owns deployed acceptance and the heavy local validation slot.
+
+Current branch source is `a414153f6416414cb71f31f5a36fd4db80f152f2`; run `40006811902` was last recorded
+in progress on that exact source and must not be cancelled or replayed. These checkpoint record edits
+are local preparation only and are to be combined at the next safe publication boundary; no
+status-only push is intended.
+
+### Unverified listing-lifecycle roadmap risk — 2026-10-23 19:05 UTC
+
+The frozen checkpoint selector in `backend/app/routers/research.py` uses an unambiguous canonical
+primary listing only when `is_primary` and `is_active` are true; it does not compare
+`effective_at`, `known_at`, or `delisted_at` with the Research decision time. The listing model and
+Provider ingestion expose those lifecycle fields, but this source review did not establish the
+producer semantics or inspect accepted-target `InstrumentListing` rows. Whether current venue
+evidence is valid for a historical decision time is therefore an unresolved broader AC-DATA risk,
+not a reproduced defect in the frozen read-only inspector checkpoint. Do not infer target venue,
+change calendar selection, or weaken coverage from this observation. The continuation test is to
+verify the accepted Provider lifecycle contract, then test before/after `effective_at`, `known_at`,
+and `delisted_at` against the Research decision time; if listing authority cannot be proven at that
+time, retain the fail-closed unavailable-calendar behavior. No source, target, provider, fixture, or
+test operation was performed for this note; exact CI `40006811902` remains in progress on
+`a414153f6416414cb71f31f5a36fd4db80f152f2`.
+
+### Frozen-source full-profile procedure — prepared, not launched — 2026-10-23 19:06 UTC
+
+After the same exact CI `40006811902` is terminal, first verify local HEAD and `origin/feat/strategy-lab-v2`
+still equal `a414153f6416414cb71f31f5a36fd4db80f152f2`. Root must assign the serialized local slot
+and its exact resource-bounded fixture/project before any Docker-backed gate. The repository's
+existing full acceptance target is `RUN_LIVE_PROVIDER_TESTS=0 make validate-integration
+INTEGRATION_BRANCH=feat/strategy-lab-v2`; it runs the locked dependencies/migration checks, complete
+backend coverage collector, frontend checks/build, Compose contract, Research-runner probes,
+seeded-stack functional E2E with `--retries=0`, strict visual E2E with `--retries=0`, and the
+branch-declared Strategy package/migration/type/workstream checks. `make test-platform` alone is
+not equivalent because it omits several of those integration stages. The provider-probe script
+explicitly exits disabled unless `RUN_LIVE_PROVIDER_TESTS=1`; keep it `0` and all ETF/live flags
+disabled so this validation cannot issue provider/issuer/SEC requests or spend quota. Do not run
+until the exact slot release supplies safe project/resource bounds and cleanup ownership. After a
+green result, Root still performs the deployed owner-positive and owner-negative read-only UI/API
+acceptance; neither that proof nor checkpoint closure is inferred from local validation. Preserve
+all visual baselines, assertions, tolerance masks, zero-retry policy, retained services/data and the
+full 18-criterion roadmap.
+
+### Exact-source CI terminal receipt — 2026-10-23 19:37 UTC
+
+GitHub Actions run `40006811902`, attempt 1, completed successfully on exact source
+`a414153f6416414cb71f31f5a36fd4db80f152f2` (`feat/strategy-lab-v2`). This qualifies that source
+only; no cancellation, replay, or later-source claim is implied. The source and local/origin branch
+remain unchanged and synchronized. The `strategy-lab-v2-first-human-study-inspector-2` checkpoint
+is still `in_progress`, with closure/acceptance pending. Root's serialized full local
+`full_integration`/`full_stack_browser` profile and deployed owner-positive/negative read-only
+acceptance remain required; do not start a fixture before Root assigns its bounded slot. Preserve
+the unverified canonical-listing lifecycle risk and full 18-criterion roadmap. After the checkpoint
+is qualified and dispositioned, continue the active roadmap with typed immutable Study payload
+binding and worker reconstruction/restart verification against the accepted TC producer contract.
+All provider/quota, paid/trial, forward, broker/capital, unknown, unsafe, and native execution
+boundaries remain unchanged and disabled. This terminal receipt supersedes the earlier in-progress
+observation; no later source is qualified by this run.
+
+### Released frontend coverage inventory — resource failure, 2026-10-23 19:52 UTC
+
+Root released one complete frontend Vitest coverage inventory on unchanged source
+`a414153f6416414cb71f31f5a36fd4db80f152f2`. The normal sandbox refused before Vitest startup;
+the explicitly authorized elevated retry launched exactly one test group as
+`strategy-lab-v2-vitest-coverage-20261023.scope` (invocation
+`99e2ccab40fe490bb16b0c60ad55654a`). Vitest 1.6.1 supported the unique reports-directory option.
+The scope enforced `MemoryMax=536870912`, `MemorySwapMax=0`, `CPUQuota=100%`, `TasksMax=64`,
+one worker, Node heap 384 MiB, and a 10-minute timeout. Systemd reports terminal `Result=oom-kill`,
+`MemoryPeak=536875008` bytes, and zero swap; the command wrapper surfaced signal-15 termination.
+Inputs were pinned to source commit `a414153f6416414cb71f31f5a36fd4db80f152f2`; SHA-256 values were
+`frontend/package.json` 40736daa56c8d10df72223d5006e4de14d2b99fd13eb2816d87d1be138516a4e,
+`frontend/package-lock.json` 713fbed8808ef73b326d94e17ccee2dad878a22a2bcbb088a05443b00463dd54,
+and `frontend/vitest.config.ts` 6118e39547238b49b5707c3e1af694104cbca4cee9976503454453aa34af7839.
+Before termination, five modules reported 336 passing tests (61+48+80+59+88). This is partial
+progress only: the complete Vitest inventory, total test count, aggregate coverage, and coverage
+threshold result were not produced. The unique output path
+`/tmp/strategy-lab-v2-coverage-04jzc2/reports` contains only an incomplete `.tmp` directory and is
+preserved; no fixture or service existed to clean. Host memory recovered above the reserve after
+the scope ended. No automatic replay, optional validator, source/test edit, browser run, or CI run
+was started. Await Root review for any revised bounded resource scope; keep the checkpoint source
+frozen and all broader gates open.
+
+### Revised frontend coverage inventory — complete, 2026-10-23 20:22 UTC
+
+Root opened the corrected frontend-only resource window. On unchanged source
+`a414153f6416414cb71f31f5a36fd4db80f152f2`, one complete, non-sharded Vitest/V8 inventory ran:
+`npm run test:coverage -- --maxWorkers=1 --minWorkers=1
+--coverage.reportsDirectory=/tmp/strategy-lab-v2-coverage-20261023-revised/reports`.
+Vitest 1.6.1 completed 140/140 files and 1,352/1,352 tests in 258.86 seconds; exit 0 and the
+existing configured coverage thresholds passed. Aggregate coverage was 85.02% statements/lines,
+73.67% branches, and 75.32% functions. No sharding, retries, inventory, threshold, reporter,
+source, or config changes were made.
+
+Exact user scope `strategy-lab-v2-vitest-coverage-revised-20261023.scope`, invocation
+`679f5e2928b64893b9e3ebd297ebc2f5`, read back before Vitest startup: MemoryHigh 536,870,912,
+MemoryMax 805,306,368, MemorySwapMax 536,870,912 bytes; CPU quota 100000/100000 (one CPU),
+TasksMax 64; `NODE_OPTIONS=--max-old-space-size=512`; one worker; hard timeout 600 seconds; npm
+offline with the existing lock-matched install. The live systemd sample reported MemoryPeak
+537,755,648 bytes and the highest sampled MemorySwapCurrent was 190,062,592 bytes. These are
+observed samples, not a retained final peak: after termination systemd reported the exact scope
+inactive/dead with `Result=success`, but no final MemoryPeak/MemorySwapPeak property. The test
+scope exited successfully and left no child workload or fixture; report artifacts and logs are
+intentionally retained under `/tmp/strategy-lab-v2-coverage-20261023-revised/`. Earlier
+512-MiB/zero-swap OOM evidence above remains unchanged and distinct.
+
+Pinned frontend source SHA-256 values remain `package.json`
+`40736daa56c8d10df72223d5006e4de14d2b99fd13eb2816d87d1be138516a4e`, `package-lock.json`
+`713fbed8808ef73b326d94e17ccee2dad878a22a2bcbb088a05443b00463dd54`, and `vitest.config.ts`
+`6118e39547238b49b5707c3e1af694104cbca4cee9976503454453aa34af7839`. Coverage log SHA-256 is
+`d2a12652e41755f4a90b9212e8530763b4ed1ba9012c6e8d7da33f033a55b27b`; report-tree manifest
+SHA-256 is `c8dcc39837b6d6e00da5973929905018c9e8dcfdd744c00be7de47e7b9b55c8f`, with `lcov.info`
+`22451fb86d36a20584ef441ef3a67007f132a5745ccd38a239f5bd6a5a60af7b` and `index.html`
+`f3aa265d76be154f09cf6c2417c381326262a7c31a926d6d4c56d0d44135141f`.
+
+The separately permitted uPlot and visual-policy checks were not source-qualified by the older
+receipts, so they were run once under a distinct offline micro-scope after Root's grant:
+`make test-uplot-contract test-visual-policy`, scope
+`strategy-lab-v2-static-contracts-20261023` (invocation
+`68459001d2b0431284ed20c438365b65`), 128-MiB MemoryHigh/MemoryMax, zero swap, 50% CPU, 16 tasks,
+60-second bound. Exit 0: 55 primary source files audited; 26 screenshot assertions preserved the
+0.5% / 1px / ΔE2000 2 policy. Static log SHA-256 is
+`e4c11b67951c1eabd418417efdce389003d116fd5a770b8e554c3c0a1c99dcd4`; scope ended inactive/dead
+with `Result=success`. A prior optional-check admission attempt refused at 1,398,360 KiB before
+starting either test; the later microgrant's fresh 1,419,420-KiB check passed. No full suite was
+repeated.
+
+Only the four already-dirty Strategy workstream records are changed; frontend/backend product,
+test, dependency, and configuration paths remain unchanged. This component result does not close
+the full `full_integration`/`full_stack_browser` profile, deployed owner-positive/negative UI/API
+acceptance, canonical SPY/RSP listing venue review, or the 18-criterion roadmap. Keep the
+checkpoint `in_progress`; Root owns the remaining serialized gates. Native execution, forward,
+broker/capital, provider/quota, paid/trial, unknown, and unsafe operations remain disabled. No
+status-only commit or new CI run was created.
+
+### Frontend qualification closed; remaining local profile prepared only — 2026-10-23 22:19 UTC
+
+On unchanged source `a414153f6416414cb71f31f5a36fd4db80f152f2` (local and origin were equal before
+this record update), the frontend component qualification is now complete as a coherent receipt:
+
+- Full Vitest/V8 inventory: 140 files and 1,352 tests passed; configured thresholds passed at
+  85.02% statements/lines, 73.67% branches, 75.32% functions. The exact command, scope,
+  invocation, coverage report hashes, and earlier OOM are retained in the prior section above.
+- Source-contract checks: `make test-uplot-contract test-visual-policy` passed, auditing 55 primary
+  uPlot sources and preserving all 26 visual-policy assertions (0.5% / 1px / ΔE2000 2); the
+  separately bounded scope/log are recorded above.
+- Canonical build: the reviewed launcher
+  `/home/m920q/charting-platform/.ai/staging-attempts/strategy-frontend-build-revised-20261023.sh`
+  (SHA-256 `95e934e7752bbd15257b7f2de26e2bb0afff76bf04cfeb88cc946e57ca83ad58`) ran `npm run build`
+  (`vue-tsc && vite build`) once. Frontend source diff was clean at `a414153f6416414cb71f31f5a36fd4db80f152f2`.
+  Scope `strategy-lab-v2-build-pressure-reviewed-20261023.scope`, invocation
+  `ce8fca726bd54cbdb6727266711d9462`, applied 512 MiB resident, 1 GiB swap, 1 CPU and 64 tasks;
+  the launcher verified fresh host/PSI admission. `vue-tsc` passed, Vite transformed 527 modules,
+  rendered production chunks and exited 0; build exit was 0. Vite emitted its existing >500 kB
+  chunk advisory. Build log SHA-256 is
+  `aa0fcb2496ce02ea83f369eec67eb6870ff09c42e142f8e160e0c63b40aa0cbd`. The generated `frontend/dist`
+  contains 120 files / 9,829,807 bytes. Sorted-file-hash manifest:
+  `713755ae6f51919780a445a4979eee7e6365a9f13298eb7c40c6c1eae8281b05`; Root's JSON(path, bytes,
+  sha) manifest: `5eeecdc22a425fdd4addd91392d335263c51e480b79192f743285462aacbe793` (different
+  encoding, same output tree). Root's independent journal measured 147.229 CPU / 156.685 wall
+  seconds, rounded 512 MiB resident and 645 MiB swap peaks. The exact-scope guardian exited 0
+  bound to invocation `ce8fca726bd54cbdb6727266711d9462`; it did not abort or report an error. The
+  scope is terminal; no final systemd peak property was retained. Earlier 512 MiB V8 heap OOM,
+  launcher admission refusal, and pressure-guarded SIGINT attempt remain separate historical
+  evidence and are not compiler failures or kernel OOMs.
+
+The next required work is the remaining exact-source local backend / PostgreSQL migration / worker
+and full-stack browser profile, not another frontend-only run. The canonical all-in-one command in
+`Makefile` is:
+
+```sh
+RUN_LIVE_PROVIDER_TESTS=0 RUN_LIVE_ETF_HOLDINGS_TESTS=0 UV_OFFLINE=1 npm_config_offline=true \
+INTEGRATION_BASE_SHA=a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e \
+E2E_SEED_INSTRUMENTS=true E2E_SEED_MARKET_DATA=true PLAYWRIGHT_WORKERS=1 \
+make validate-integration INTEGRATION_BRANCH=feat/strategy-lab-v2
+```
+
+The base pin is the previously recorded deployed a6b9 source; Root must verify it is still the
+correct previous-release baseline before launch. Do not let the migration helper's implicit
+`HEAD^1` default choose the compatibility baseline. The target validates locked backend and
+frontend dependencies, one Alembic head and previous-release upgrade, the complete backend
+coverage collector (all unit plus PostgreSQL/Redis integration cases and combined 75% threshold),
+frontend tests/build, Compose contract, disabled live-provider probes, stack readiness and
+research-runner sandbox/resource probes, functional E2E with zero retries, strict visual E2E with
+zero retries, and declared branch tests. This all-in-one target repeats frontend tests/build; do not
+run it merely to replay standalone green evidence. If Root chooses a remaining-only composition,
+retain the same canonical commands/assertions and combined coverage threshold rather than claiming
+the skipped frontend stages as an all-in-one run.
+
+The Makefile's backend target currently uses `scripts/backend_coverage.py --shard-size 50` and
+`RESEARCH_MAX_MEMORY_BYTES=1073741824`; prior local shard-53 timeout evidence is retained. The same
+authoritative collector accepts `--shard-size 25` without changing inventory, retries, tests, or
+threshold and is the resource-bounded candidate for Root review, not an automatic override. The
+migration helper accepts `INTEGRATION_BASE_SHA` and otherwise defaults to `HEAD^1`; preserve the
+actual previous-app smoke, fresh and upgraded schemas, data sentinels, and real constraints.
+Required image selectors are `postgres:16-alpine`, `redis:7-alpine`, and
+`mcr.microsoft.com/playwright:v1.62.1-noble`; the last previously verified PostgreSQL image ID was
+`sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea` and browser image digest
+was `sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`. Redis's current
+image digest/cache, installed runtime versions, and builder cache were deliberately not probed in
+this turn and must be verified at Root's slot admission. The checked-in Playwright runner applies
+1,536 MiB / 2 CPU to its browser container. Use one unique owner-scoped Compose project only; the
+target's cleanup runs `docker compose ... down -v`, so its project volumes must be newly owned test
+data, never retained user datasets. Backend/PG/Redis/Buildx caps and phase-specific host floors must
+come from Root's fresh exact-slot release; the generic target alone does not set those host cgroups.
+Sequence backend/migration before app/browser, then verify the actual registered API, worker's
+default async DB factory against the same migrated PostgreSQL, Redis consumer/restart identity,
+empty queue/no dispatched job, functional E2E and strict 104-case visual policy. Keep provider
+routing and all provider/ETF live flags off; issue no provider HTTP and activate no native,
+forward, broker/capital, paid/trial, or unknown scope; do not touch retained services/data.
+
+This is a preparation record only: no backend, database, Docker, Compose, browser, probe, or
+additional build/test ran. Hosted CI `40006811902` remains tied to exact source `a414153f...` and
+green; it supplies no local-profile or deployed inspector proof. Keep the first-human checkpoint
+`in_progress`, every 18 roadmap criteria intact, deployed owner-positive/negative acceptance and
+canonical SPY/RSP venue review pending, and all execution/paid/live boundaries disabled.
+
+### Worker fake contract repair — focused qualification, full profile still open (2026-10-23)
+
+The complete local backend attempt on frozen source `a414153f6416414cb71f31f5a36fd4db80f152f2`
+is preserved as red: 5,319 passed, 1 failed, and 1 existing skip. It stopped in the unit phase;
+integration and aggregate coverage were not reached. The failing terminal-context case used
+synchronous test doubles while production invokes `run_async`; the correction is limited to the
+two owned test files and does not change production behavior or relax assertions.
+
+In `test_worker_service.py`, the two positive async fakes now return a valid typed COMPLETED
+resolution computed through `execute_worker_handoff` using the test's exact controlled fake-docker
+script (`#!/bin/sh\nprintf 'ok'`). They do not delegate to `super().run_async`, spawn a child, or invoke
+Docker/native execution. The existing child-failure path remains a negative case and now asserts
+that completion and terminal writers were not called; heartbeat, ordering, receipt, entry, request,
+and fingerprint assertions remain. `test_forward_context.py` received only the locked Ruff format
+proposal; the tracked AST was unchanged.
+
+Attempt history is retained in `validation.jsonl`: initial 35-case run 33 passed/2 failed; the next
+42-case run passed but Ruff reported I001/F841; the isolated locked Ruff repair passed; final bounded
+run passed all 42 cases in 5.09s, and Ruff check, format check (887 files), and `git diff --check`
+passed. Final log: `/tmp/strategy-worker-focused-a414-final-20261024/phase.log`, SHA-256
+`e2cb19a927fd96d38220ad4802b4dfc2a9597063c19d92574445556360f80cf7`. Scope
+`strategy-worker-focused-a414-final-20261024`, invocation `c67f8e78d896401cb522f264e950f38b`,
+limits 384 MiB memory / no swap / 1 CPU / 64 tasks, admission 1,333,792 KiB. PID and peak RSS
+were not captured. This is focused evidence, not the missing full backend/integration/coverage gate.
+
+The six-file repair plus these owned records is ready for one coherent publication. Checkpoint
+remains `in_progress`, not accepted. Preserve full backend/PG/migration/worker/full_stack_browser,
+deployed owner-positive/negative, exact new-source CI, canonical SPY/RSP venue review, and all
+18-roadmap criteria as open where applicable. No provider/target call, live/paid/trial operation,
+native execution, or retained-resource action was performed.

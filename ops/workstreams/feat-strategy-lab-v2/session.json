@@ -36,6 +36,7 @@
   },
   "dirty_paths": [
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
@@ -71,15 +72,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "ccb2847f703858cd1951eaaacb7d82b303970135",
-  "implementation_sha": "ccb2847f703858cd1951eaaacb7d82b303970135",
-  "last_checkpoint": "2026-10-23T18:49:34Z",
+  "head": "a414153f6416414cb71f31f5a36fd4db80f152f2",
+  "implementation_sha": "a414153f6416414cb71f31f5a36fd4db80f152f2",
+  "last_checkpoint": "2026-10-23T23:43:42Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "The accepted green a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e staging/master baseline is merged locally as ccb2847f703858cd1951eaaacb7d82b303970135. Close and publish the coherent merge/workstream receipt, then inspect exact-tip CI. Continue the full Strategy roadmap after Root assigns the required local PostgreSQL/application/browser slot; preserve accepted-target venue uncertainty, all historical failures, and disabled provider/quota/paid/trial/broker/capital/native boundaries.",
-  "plan_hash": "ec917b48055c653a245ed9f4b2b0e854dfb4b0d8bbdd6a9cad41abc831221c84",
+  "next_action": "Publish the reviewed worker-test repair with the four owned records in one coherent branch commit, verify local/origin/actual-remote parity, and capture the exact new-source Actions run. Focused worker tests and Ruff/format checks are green, but the separate complete a414 backend attempt remains red at 5,319 passed/1 failed/1 existing skip and produced no integration or aggregate coverage result. Do not call that full profile green. Keep the first-human checkpoint in_progress and preserve the full 18-criterion roadmap; full local backend/PG/migration/worker/full_stack_browser qualification, deployed owner-positive/negative acceptance, canonical SPY/RSP venue review and native/forward/broker/capital/provider/quota/paid/trial/unknown/unsafe boundaries remain open.",
   "parent_branch": "staging",
-  "plan_hash": "ec917b48055c653a245ed9f4b2b0e854dfb4b0d8bbdd6a9cad41abc831221c84",
+  "plan_hash": "4a19e1551e33e798b0f88228faee93228a64fb72cdc993bdb74d95b20c0d0c9e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -109,14 +109,14 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "The merged a6b9 baseline adds the timestamp migration and F8m/schema compatibility repairs, but does not contain this branch's read-only Study inspector and navigation; those remain branch-only and are not deployed. The merged branch's exact CI and assigned full local PostgreSQL/application/browser gates remain open. Accepted-target SPY/RSP listing and native qualification remain open; do not access target/provider or activate disabled scopes.",
-    "current_phase": "strategy-a6b9-accepted-staging-reconciliation",
-    "next_action": "Publish the exact a6b9 merge and coherent workstream receipt, inspect exact merged-source CI, and wait for Root's serialized full-profile slot before PostgreSQL/application/browser validation. Continue the full roadmap only after that checkpoint; keep target/provider/native/paid/trial/broker/capital scopes disabled.",
+    "current_blocker": "The bounded worker-test repair passes its focused 42-test suite and Ruff/format checks, but its new exact-source CI is pending. The separate complete local backend run on a414 remains red at 5,319 passed/1 failed/1 existing skip and stopped before integration/aggregate coverage. Full local backend/PG/migration/worker/full-stack qualification, deployed owner-positive/negative acceptance, canonical SPY/RSP listing-venue review and remaining roadmap criteria stay open; no target/provider/disabled-scope activity.",
+    "current_phase": "strategy-first-human-inspector-frontend-coverage",
+    "next_action": "Publish the reviewed two-test-file repair with the four owned records once; verify the resulting branch tip against origin and actual remote, then capture its exact Actions run without replay. Preserve all earlier red receipts. Keep checkpoint in_progress; do not claim focused tests substitute for the red full backend run or for remaining PG/migration/worker/full-stack and deployed acceptance gates. Preserve all 18 roadmap criteria and disabled target/provider/native/paid/trial/broker/capital scopes.",
     "total": 5,
-    "updated_at": "2026-10-23T18:49:34Z"
+    "updated_at": "2026-10-23T23:43:42Z"
   },
   "remote": "64d3b12e11118593535b02e8e8a06dd1f263ffdf",
-  "remote_sha": "8cd6440dec803364d34f982c8bb69878e818c87b",
+  "remote_sha": "a414153f6416414cb71f31f5a36fd4db80f152f2",
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,

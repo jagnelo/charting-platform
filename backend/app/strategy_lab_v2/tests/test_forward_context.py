@@ -246,9 +246,7 @@ def test_study_output_is_bound_across_context_replay_and_authenticated_seed() ->
         base_manifest,
         strategy=replace(base_manifest.strategy, selected_study_artifact=reference),
     )
-    output = ResolvedStudyArtifactOutput(
-        reference, cast(FrozenStudyArtifactPayload, study_payload)
-    )
+    output = ResolvedStudyArtifactOutput(reference, cast(FrozenStudyArtifactPayload, study_payload))
     outputs = {reference.artifact_name: output}
     payloads = (
         _payload(event_id="aapl-study-1", sequence=1, event_time=NOW),
