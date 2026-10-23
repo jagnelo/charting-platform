@@ -1,5 +1,61 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 12:20Z — page-boundary conflict control
+
+- Extended the SEC/prelisting page-boundary regression to cover both outcomes:
+  corroborated identical observations create one inactive provisional
+  instrument, while same-consensus conflicting symbols remain quarantined
+  across the page boundary with no instrument. The full prelisting unit module
+  now passes 12/12; Ruff check/format and diff check pass.
+- This is still the same working candidate on parent
+  57138049ed4fbb968d1182e989462ae2d015b14c; no product source outside the
+  prelisting materializer changed. The exact parent CI remains historical
+  evidence only for this candidate; no provider/issuer/SEC HTTP, quota action,
+  fixture/service/data change, staging/sibling/deployment write occurred.
+
+## 2026-10-23 12:18Z — prelisting consensus pagination integrity
+
+- A bounded SEC/prelisting review found that `materialize_prelisting_candidates`
+  paged `MarketEvent` rows before grouping them by consensus. If two retained
+  provider observations for one consensus straddled a small page boundary, the
+  first slice could classify its lone source as ambiguous and persist a
+  permanent quarantine before the second slice was considered.
+- The materializer now gathers the already-persisted, in-scope rows for each
+  consensus touched by the current page before evaluating evidence. Cursor
+  advancement and the `max_events` page count remain unchanged; strong evidence
+  still requires corroborated consensus, distinct sources, exact symbol/name,
+  and exact shared venue or stable identifier. Provisional instruments remain
+  inactive; conflicts remain quarantined.
+- Added a deterministic SQLite regression splitting a two-source consensus
+  across `max_events=1`. The complete prelisting unit module passes 11/11 on
+  the working candidate. Locked Ruff check/format and `git diff --check` pass.
+  The first format-check identified one formatter-only line wrap, corrected
+  with locked Ruff; final checks are green.
+- This candidate is based on exact parent `57138049ed4fbb968d1182e989462ae2d015b14c`;
+  Actions `39946328724` validates that parent, not this candidate. Exact-source
+  CI is pending after coherent publication. The full Provider roadmap and
+  required local F8m/full profile remain open. No provider/issuer/SEC HTTP,
+  quota operation, fixture/service/data change, staging/sibling/deployment
+  write occurred.
+
+## 2026-10-23 12:08Z — exact-source CI green for SEC fixture correction
+
+- Exact synchronized source `57138049ed4fbb968d1182e989462ae2d015b14c`
+  passed Actions run `39946328724`, attempt 1. Backend passed 5,206 unit
+  tests/1 skip and 498 integration tests/2 skips; combined coverage was 84%.
+  Frontend Unit and Branch-declared passed. Playwright passed 191 with 110
+  declared skips in 17.2 minutes; the terminal log has no test failure, retry,
+  or flaky marker. Exhaustive was skipped by normal feature-branch policy.
+- The SEC directory materialization integration fixture now retains normalized
+  `name_candidates`/`tickers` in its source payload, matching the unchanged
+  fail-closed integrity guard. The separate SEC issuer-universe per-CIK commit
+  and file-backed restart regressions remain in this source; Backend Tests are
+  green on the exact HEAD. No provider/issuer/SEC HTTP, quota action, retained
+  service/data mutation, or staging/sibling/deployment change occurred.
+- Status and full roadmap remain `in_progress`. The required local full profile
+  and F8m proof remain open; do not infer either from hosted E2E. Preserve the
+  earlier red runs `39941869542` and `39944289265` unchanged.
+
 ## 2026-10-23 11:27Z — SEC integration fixture compatibility
 
 - Exact-source Actions run `39944289265` on `e815b37463ee6e4a4fe083e81450496ed0c1e5e6`

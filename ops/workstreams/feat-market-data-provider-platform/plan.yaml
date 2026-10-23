@@ -1,4 +1,16 @@
 schema: 4
+# 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
+# both the cross-page corroborated positive and conflicting-symbol quarantine;
+# the complete prelisting unit module passes 12/12. Source candidate and parent
+# remain the same as the 12:18 note; no provider transport or quota action.
+# 2026-10-23 12:18Z: working-tree prelisting correction is based on
+# 57138049ed4fbb968d1182e989462ae2d015b14c. The bounded materializer now
+# evaluates all already-persisted in-scope observations for consensus groups
+# touched by a page, avoiding single-source quarantine at page boundaries;
+# 11/11 prelisting unit tests and locked Ruff/diff checks pass. Actions
+# 39946328724 is green only for the parent source; exact CI for this candidate
+# remains pending. Full roadmap/profile remain open.
+# 2026-10-23 exact Actions run 39946328724 on 57138049ed4fbb968d1182e989462ae2d015b14c is terminal green: Backend 5206 unit + 498 integration, 84% combined coverage; Frontend Unit and Branch-declared passed; Playwright 191 passed/110 skipped in 17.2m; Exhaustive skipped by feature-branch policy. The SEC fixture correction was test-only. Full roadmap and required local profile remain open; no provider/issuer/SEC HTTP or quota action occurred.
 # 2026-10-23 exact CI 39944289265 on e815b374 was red in one SEC integration
 # positive fixture: normalized name_candidates/tickers were absent from its
 # source_payload, so the unchanged fail-closed guard correctly returned 409.
