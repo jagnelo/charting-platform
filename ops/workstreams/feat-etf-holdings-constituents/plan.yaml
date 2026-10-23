@@ -528,15 +528,16 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: successful_capability_failure_order_guard_2026_10_23
+current_phase: tier_zero_audit_date_field_presence_guard_2026_10_23
 current_blocker: >-
-  Current source parent is ETF SHA02384a2b67a9e336974d32a51c0e3f40ad106398,
-  clean and synchronized before this uncommitted capability-lineage change;
+  Current published source is ETF SHA62c0f9742b69ba604bde9dceeacd386e58ee26b4,
+  clean and synchronized before this uncommitted Tier-0 audit-test change;
   released common staging4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is an
-  ancestor. Exact own-branch CI39884332043 is terminal green for Frontend,
-  Backend, Branch-declared, and Playwright E2E; Exhaustive was skipped by
-  feature-branch policy. This local source change is not included in that run
-  and requires exact-source CI after publication.
+  ancestor. Exact parent run39884332043 and current-source run39888526578 are
+  terminal green for Backend, Frontend, Branch-declared, and Playwright E2E;
+  Exhaustive was skipped by feature-branch policy. The current local test change
+  is not included and needs exact-source CI after publication. The required
+  full_stack_browser profile remains pending Root's exclusive resource slot.
   The `full_stack_browser` local profile remains pending Root's exclusive
   resource slot. Keep the accepted checkpoint distinct from the open full
   fourteen-criterion roadmap, issuer onboarding, and 30-day observation.
@@ -1743,9 +1744,13 @@ next_action: >-
   capability module passed111 tests, with Ruff check/format and diff checks
   green. Exact parent CI39884332043 is terminal green for Frontend, Backend,
   Branch-declared, and Playwright E2E; Exhaustive was skipped by feature policy.
-  The narrative-count sentinel, workstream validator, JSON/hash/diff, and
-  changed-file Ruff/format checks must pass before publishing this coherent
-  source+receipt change once; inspect only the resulting exact-source CI.
+  Exact current-source run39888526578 on parent62c0f9742b69ba604bde9dceeacd386e58ee26b4
+  is terminal green for Backend, Frontend, Branch-declared, and Playwright E2E;
+  Exhaustive was skipped by feature-branch policy. The narrative-count sentinel,
+  workstream validator, JSON/hash/diff checks, focused parity sentinel, and
+  changed-file Ruff/format checks passed for the local Tier-0 audit-date guard.
+  Publish this coherent test+receipt change once, then inspect its exact-source
+  CI without replaying prior validation.
   Continue offline AC2/AC4/AC5
   audit and capability work from retained evidence without inferring route
   eligibility. The required `full_stack_browser` recipe is `make
