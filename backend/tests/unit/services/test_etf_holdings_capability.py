@@ -48,6 +48,7 @@ def snapshot(
     *,
     composition_date: date = date(2026, 9, 3),
     as_of_date: date | None = None,
+    known_at: datetime | None = None,
     published_at: datetime | None = NOW,
     provenance: str = "issuer_current_holdings",
     source_provider: str = "issuer",
@@ -58,6 +59,7 @@ def snapshot(
     return SimpleNamespace(
         composition_date=composition_date,
         as_of_date=as_of_date,
+        known_at=known_at,
         published_at=published_at,
         provenance=provenance,
         source_provider=source_provider,
@@ -227,6 +229,7 @@ def test_future_dated_snapshot_is_never_current_even_if_route_succeeded():
     for future_snapshot in (
         snapshot(composition_date=NOW.date() + timedelta(days=1)),
         snapshot(as_of_date=NOW.date() + timedelta(days=1)),
+        snapshot(known_at=NOW + timedelta(days=1)),
         snapshot(published_at=NOW + timedelta(days=1)),
     ):
         result = evaluate_capability(profile(), future_snapshot, state(), now=NOW)

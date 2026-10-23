@@ -538,6 +538,14 @@ def test_future_holdings_dates_are_rejected_at_ingestion_boundary():
             published_at=datetime(2026, 9, 5, 12, 1, tzinfo=UTC),
         )
 
+    with pytest.raises(ValueError, match="future known-at timestamp"):
+        refresh._ensure_holdings_dates_are_not_future(
+            date(2026, 9, 5),
+            date(2026, 9, 5),
+            now=datetime(2026, 9, 5, 12, tzinfo=UTC),
+            known_at=datetime(2026, 9, 5, 12, 1, tzinfo=UTC),
+        )
+
 
 def test_future_dated_canary_failures_have_explicit_failure_class():
     assert (

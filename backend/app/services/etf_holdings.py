@@ -78,6 +78,7 @@ def _ensure_holdings_dates_are_not_future(
     as_of_date: date | None,
     *,
     today: date | None = None,
+    known_at: datetime | None = None,
     published_at: datetime | None = None,
     now: datetime | None = None,
 ) -> None:
@@ -97,14 +98,14 @@ def _ensure_holdings_dates_are_not_future(
                 f"Issuer holdings route returned a future {label} date "
                 f"({value.isoformat()} > {reference_date.isoformat()})."
             )
-    if published_at is not None:
-        normalized_published_at = (
-            published_at if published_at.tzinfo is not None else published_at.replace(tzinfo=UTC)
-        )
-        if normalized_published_at > reference_now:
+    for label, value in (("known-at", known_at), ("published-at", published_at)):
+        if value is None:
+            continue
+        normalized_value = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+        if normalized_value > reference_now:
             raise ValueError(
-                "Issuer holdings route returned a future published-at timestamp "
-                f"({normalized_published_at.isoformat()} > {reference_now.isoformat()})."
+                f"Issuer holdings route returned a future {label} timestamp "
+                f"({normalized_value.isoformat()} > {reference_now.isoformat()})."
             )
 
 
@@ -1133,6 +1134,7 @@ async def ingest_holdings_snapshot(
     _ensure_holdings_dates_are_not_future(
         composition_date,
         as_of_date,
+        known_at=known_at,
         published_at=published_at,
         now=now,
     )

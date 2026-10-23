@@ -14196,3 +14196,58 @@ result before publishing the new source. This does not close AC1–AC14 or the
 required full profile; retain `15 Tier-0 and 156 Tier-1`, unresolved/quarantined
 MSMR/QQQ and Militia/GOOG, all route holds, and the post-integration 30-day
 observation gate.
+
+## Future-known-at lineage guard — 2026-10-23 00:52Z
+
+The accepted common staging release `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`
+was freshly fetched and verified from `origin/staging`, with canonical green
+receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0.json`
+and exact CI `39866387942`. It is already an ancestor of current ETF source
+`680d8b6c3851f57072d97caee35512f21092ed2d`, so no duplicate merge or new merge
+commit was needed. The previously recorded baseline adoption remains in
+effect; no staging, sibling, master, or deployment ref was changed.
+
+Continued offline lineage review found that
+`_ensure_holdings_dates_are_not_future` rejected future composition, as-of,
+and publication timestamps but not an explicit future `known_at`;
+`evaluate_capability` had the same omission. Both boundaries now reject a
+future known-at timestamp, treating legacy naive datetimes consistently as
+UTC. Regression coverage checks that future-known snapshots are DEGRADED and
+not usable for current analysis, the shared ingestion guard rejects the
+timestamp, and `ingest_holdings_snapshot` rejects it before ETF profile
+hydration. Existing current, last-known, historical/PIT, identity, and route
+holds were not weakened.
+
+The complete affected deterministic capability, refresh, and resolution unit
+modules passed `186/186`; the focused capability/refresh cases passed `2/2`,
+and the ingestion-path regression passed `1/1` before the combined module run.
+The exact `15 Tier-0 and 156 Tier-1` narrative sentinel passed `1/1`; the
+workstream validator accepted all `45` records; Ruff check and format-check
+passed for all changed Python files. These are stack-free tests only. No
+issuer/provider/SEC HTTP, quota, database fixture, Compose/browser/full
+profile, route activation, or data cleanup occurred.
+
+Exact ETF branch CI `39880187551` on published parent
+`680d8b6c3851f57072d97caee35512f21092ed2d` is terminal green for Frontend,
+Backend, Branch-declared, and E2E Playwright jobs; the Exhaustive Integration
+Gate was skipped under feature-branch policy. The local lineage fix is not in
+that run. Its result is preserved; exact-source CI for the committed fix is
+required after push. The source and records are owned by this ETF session and
+were validated before their single coherent local commit.
+
+The required `full_stack_browser` profile remains unrun pending Root's
+exclusive host slot. Its prepared repository invocation is
+`make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents
+PLAYWRIGHT_DOCKER=<freshly reviewed pinned zero-retry wrapper>
+RUN_LIVE_PROVIDER_TESTS=0 RUN_LIVE_ETF_HOLDINGS_TESTS=0`; keep both live flags
+zero in the environment as well, keep `PYTEST_ADDOPTS` and global
+`E2E_SEED_MARKET_DATA` unset, and provide `PLAYWRIGHT_DOCKER` as a MAKE
+command-line assignment. Pin the final published source SHA and a new unique
+run/project marker after coordinator slot assignment. Use one worker, the
+reviewed browser digest and 1536 MiB / 2 CPU / 512 PID limits, the existing
+backend-egress-deny service and browser host relay, and fresh generated
+synthetic stack data only. Preserve the existing loopback ETF DB/Redis services
+and all retained datasets/volumes. Recheck immutable baseline and exact owned
+resources immediately before launch; after all descendants exit, clean only
+resources created by that uniquely labelled profile. No profile launch is
+authorized by this handoff.

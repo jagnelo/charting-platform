@@ -1,15 +1,4 @@
 {
-  "latest_staging_reconciliation": {
-    "recorded_at": "2026-10-23T00:13:02Z",
-    "released_staging_sha": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad",
-    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json",
-    "exact_staging_ci": 39866387942,
-    "merge_policy": "merged only exact accepted staging SHA into the ETF worktree; no conflict, reset, rebase, sibling import, or staging write",
-    "focused_results": "workflow session tests 38 passed; MarketMapTool unit tests 61 passed",
-    "own_branch_ci": "pending publication of this merge/evidence checkpoint",
-    "full_stack_browser": "required; not launched pending Root's exclusive host-slot release",
-    "full_roadmap": "AC1-AC14 remain open beyond the accepted initial checkpoint; preserve all holds, quarantines and 30-day observation"
-  },
   "acceptance_criteria": [
     {
       "id": "AC1",
@@ -161,10 +150,13 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-22 23:27Z: local/origin branch HEAD c9aac760e3a62f82e28dca2605ee2fdffa68c8e3; exact CI39869367875 terminal RED. Frontend Unit and backend unit passed; backend integration 1 failed,497 passed,2 skipped,57 warnings in625.23s; later jobs skipped. Sole failure test_nsi_real_adapter_submits_product_redirect_and_csv_to_shared_admission ordered the Provider reservation table by nonexistent reserved_at; canonical schema defines created_at and integer id. The test now orders by those actual fields and preserves 3 reservations, settled state/timestamps and unit assertions; no DB rerun because Root holds the heavy local slot. Arax/Day Hagan held-route regression remains uncommitted and absent from that CI; previous focused denial/parser selection was4/4 with transport tripwires untouched. Preserve this red exact run and all earlier history. Root staging repair4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live but not released; do not poll/adopt. No external requests/quota, local DB/browser profile, cleanup, or cross-worktree changes. Preserve all AC1-AC14, 15 Tier-0 and156 Tier-1, quarantines/holds and30-day gate.",
+  "current_blocker_latest": "2026-10-23 01:28Z: Exact accepted staging SHA4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is verified from origin/staging, green receipt20261023T000222Z-4687bd0.json and CI39866387942; it is already an ancestor of ETF HEAD680d8b6c3851f57072d97caee35512f21092ed2d, so no duplicate merge was required. Exact own CI39880187551 on published680d8b6 is terminal green for Frontend, Backend, Branch-declared and E2E; Exhaustive Integration was skipped under feature-branch policy. It does not include the committed future-known-at fix. Capability, refresh and resolution modules passed186/186 locally; sentinel, validator, Ruff/format and diff checks pass. The exact-source CI for the fix is pending push. Full_stack_browser remains required but awaits Root's exclusive host slot. No issuer/provider/SEC HTTP, quota, paid/trial activation, cleanup or staging/sibling/master/deployment action. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds and 30-day gate.",
   "dirty_paths": [
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "backend/app/services/etf_holdings.py",
+    "backend/app/services/etf_holdings_capability.py",
+    "backend/tests/unit/services/test_etf_holdings_capability.py",
+    "backend/tests/unit/services/test_etf_holdings_refresh.py",
+    "backend/tests/unit/services/test_etf_holdings_resolution.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -194,8 +186,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "58a0fdd81779561c434d8690aa5906f8ed71c1db",
-  "implementation_sha": "58a0fdd81779561c434d8690aa5906f8ed71c1db",
+  "head": "680d8b6c3851f57072d97caee35512f21092ed2d",
+  "implementation_sha": "680d8b6c3851f57072d97caee35512f21092ed2d",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -305,9 +297,20 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-23T00:13:02Z",
+  "last_checkpoint": "2026-10-23T01:28:00Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-22: The exact green staging release 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of the ETF branch. Published source/origin is 4823bcf889b5ef0a51808fbfa39aa83ed6359953; exact CI39857543318 is in_progress on that base. ETF Architect is published. This local continuation removes HTTPX-403 raw requests.get fallbacks from the shared PublicCsvHoldingsAdapter and registered NEOS aggregate CSV path; focused3, adapter614, checkpoint consumers plus route drift38, offline contracts9 passed/537 skipped, Ruff/format, frontend type-check, ETF frontend17, build, narrative sentinel, validator, hash, JSON/JSONL and diff checks pass with live flags0. Commit/push and new exact-head CI remain pending; no external HTTP or quota operation occurred. The prior session.json reconciliation is retained in this coherent update. The local full profile awaits a Root-assigned safe slot. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, unresolved MSMR/QQQ and Militia/GOOG quarantines, disabled holds and the 30-day observation gate. No route promotion or full-roadmap completion is claimed.",
+  "latest_checkpoint": "2026-10-23: Accepted common staging4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad (CI39866387942) was freshly verified and is already in ETF HEAD680d8b6c3851f57072d97caee35512f21092ed2d ancestry; no duplicate merge was needed. Future known_at was missing from both ingestion rejection and current-capability future-lineage checks. Both now fail closed, and the three affected unit modules passed186/186 including non-current/degraded and pre-profile-hydration tests. Narrative sentinel, workstream validator, Ruff/format and diff checks passed. Parent exact CI39880187551 on680d8b6 is terminal green for frontend/backend/branch-declared/E2E; Exhaustive was skipped by feature-branch policy. The committed fix is not in that run and its exact-source CI is pending push. No live HTTP/quota, local full profile, cleanup, or provider activation. Full_stack_browser awaits Root's exclusive slot; all AC1-AC14, 15 Tier-0 and156 Tier-1, unresolved MSMR/QQQ and Militia/GOOG, disabled holds and30-day observation remain open.",
+  "latest_staging_reconciliation": {
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json",
+    "exact_staging_ci": 39866387942,
+    "focused_results": "workflow session tests 38 passed; MarketMapTool unit tests 61 passed",
+    "full_roadmap": "AC1-AC14 remain open beyond the accepted initial checkpoint; preserve all holds, quarantines and 30-day observation",
+    "full_stack_browser": "required; not launched pending Root's exclusive host-slot release",
+    "merge_policy": "merged only exact accepted staging SHA into the ETF worktree; no conflict, reset, rebase, sibling import, or staging write",
+    "own_branch_ci": "Parent CI39880187551 is terminal green on published source680d8b6 for frontend/backend/branch-declared/E2E; the Exhaustive gate was skipped under feature policy. The committed local fix is excluded and requires fresh exact-source CI after push.",
+    "recorded_at": "2026-10-23T00:13:02Z",
+    "released_staging_sha": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad"
+  },
   "local_profile_execution": {
     "cleanup": {
       "host_wide_prune": false,
@@ -343,8 +346,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the accepted common-staging merge and coherent ETF evidence checkpoint to the feature branch, then inspect only that exact branch CI. Continue offline AC2/AC4/AC5 audit and capability work from retained evidence. Keep Arax/Day Hagan held; preserve retained DB/Redis data, the complete roadmap, 15 Tier-0 and 156 Tier-1, all quarantines/holds, and the 30-day observation. The required source-pinned full_stack_browser profile remains pending Root's exclusive host-slot release.",
-  "plan_hash": "a0417f19c501c8563b6745f856e81059df9bd03dda3b51336a05c6c87be10596",
+  "next_action": "Push the committed future-known-at correction on the ETF feature branch and inspect exact-source CI for that resulting SHA. Parent CI39880187551 on published680d8b6 is terminal green for ordinary jobs, with Exhaustive skipped under feature policy; it excludes the fix. Continue offline AC2/AC4/AC5 audit and capability work from retained evidence; keep Arax/Day Hagan held. The required full_stack_browser profile remains pending Root's exclusive host-slot release. Preserve retained DB/Redis data, AC1-AC14, 15 Tier-0 and 156 Tier-1, all quarantines/holds, and the 30-day observation; no live HTTP/quota, staging/sibling/master write, promotion, deployment, or cleanup.",
+  "plan_hash": "b4728a0b845e7123da9907c81db1dbfe3007f22fd2139f176b81c68749efa2b8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -410,9 +413,9 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "58a0fdd81779561c434d8690aa5906f8ed71c1db",
-  "remote_sha": "58a0fdd81779561c434d8690aa5906f8ed71c1db",
-  "remote_synchronized": false,
+  "remote": "680d8b6c3851f57072d97caee35512f21092ed2d",
+  "remote_sha": "680d8b6c3851f57072d97caee35512f21092ed2d",
+  "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",

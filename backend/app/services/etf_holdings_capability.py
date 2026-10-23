@@ -572,6 +572,13 @@ def _future_snapshot_reason(
         )
         if normalized_published_at > now:
             return "The latest holdings artifact has a future published-at timestamp."
+    known_at = getattr(snapshot, "known_at", None)
+    if known_at is not None:
+        normalized_known_at = (
+            known_at if known_at.tzinfo is not None else known_at.replace(tzinfo=UTC)
+        )
+        if normalized_known_at > now:
+            return "The latest holdings artifact has a future known-at timestamp."
     return None
 
 
