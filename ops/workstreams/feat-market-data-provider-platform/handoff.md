@@ -1,5 +1,20 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 00:56Z — NMS union lifecycle protection assertion
+
+- Strengthened the new mocked, same-cycle CTA/Nasdaq scope regression with a
+  prior active CTA-source lifecycle observation for a symbol present in the
+  Nasdaq `nasdaqlisted` file. The real reconciliation now proves the union
+  leaves that observation present with no missing confirmation, in addition
+  to persisting all three actual provider/quote-type run identities.
+- The focused SQLite/no-network regression passed `1/1` in `2.96s`. Ruff check,
+  format check, and diff check pass. The test-only working diff SHA-256 is
+  `be037e33606dbf9dfd45e277c8e5ac3db74988195c85f81eece6c8f07f0edc25`.
+- Exact Actions run `39877233446` is still active on remote
+  `1f0c6c0956ecb8c3994c03cfc54c026313155da0`; local NMS commits and this
+  assertion remain outside that CI source. No push, provider/issuer/SEC HTTP,
+  quota action, fixture, or retained service/data change occurred.
+
 ## 2026-10-23 00:52Z — same-cycle NMS union regression
 
 - Added a no-network reconciliation regression proving that a completed CTA

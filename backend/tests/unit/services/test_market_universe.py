@@ -1176,7 +1176,9 @@ def test_nms_tape_c_scope_comes_from_nasdaqlisted_not_otherlisted():
 
 
 @pytest.mark.asyncio
-async def test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes(db, monkeypatch):
+async def test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes(
+    db, instrument, monkeypatch
+):
     """A real Nasdaq-listed file can satisfy Tape C without inventing a provider run."""
 
     from app.services import market_universe
@@ -1186,6 +1188,35 @@ async def test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes(db
         for name in ("cta_plan", "nasdaq")
     }
     db.add_all(sources.values())
+    db.flush()
+    observed_at = datetime(2026, 10, 20, 21, tzinfo=UTC)
+    xnas = await ensure_exchange(AsyncSessionAdapter(db), "XNAS")
+    prior_nasdaq_listing = InstrumentListing(
+        instrument_id=instrument.id,
+        exchange_id=xnas.id,
+        ticker="NQ1",
+        is_primary=True,
+        is_active=True,
+    )
+    db.add(prior_nasdaq_listing)
+    db.flush()
+    prior_cta_observation = MarketUniverseLifecycleObservation(
+        data_source_id=sources["cta_plan"].id,
+        instrument_id=instrument.id,
+        listing_id=prior_nasdaq_listing.id,
+        provider_symbol="NQ1",
+        exchange_mic="XNAS",
+        quote_type="EQUITY",
+        observed_at=observed_at,
+        present=True,
+        lifecycle_status="active",
+        first_seen_at=observed_at,
+        last_seen_at=observed_at,
+        consecutive_seen=1,
+        consecutive_missing=0,
+        payload={"symbol": "NQ1"},
+    )
+    db.add(prior_cta_observation)
     db.flush()
 
     cta_page = {
@@ -1290,6 +1321,8 @@ async def test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes(db
         ),
     }
     assert all(run.provenance["nms_union_provider_runs"] == expected_union for run in runs)
+    assert prior_cta_observation.present is True
+    assert prior_cta_observation.consecutive_missing == 0
 
 
 @pytest.mark.asyncio
