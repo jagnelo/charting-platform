@@ -696,7 +696,7 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-typed-study-hydration-revalidation-v4
+  current_phase: full-roadmap-typed-study-worker-restart-matrix-v5
   current_blocker: >-
     The accepted four-feature baseline 0e342512e53ba2268425294d61c50e219eaafa4f and the later
     accepted shared Market Map/cleanup repair 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad are already
@@ -704,9 +704,10 @@ progress:
     canonical receipt 20261023T000222Z-4687bd0cd21a.json and green CI39866387942 including Exhaustive;
     merge commit 85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db preserves both histories. That source is
     already an ancestor locally; no duplicate merge is needed. Published Strategy origin is
-    dd0a704b988ffbfb2ea7143e42abbf41105336f0; exact CI39882200073 on that source remains in
-    progress as of 2026-10-23 01:44 UTC and excludes nine accumulated local commits plus the current
-    hydration regression. Preserve it to terminal before pushing those changes. Current source work
+    9236eecbd545ccc1d9216bfe95a36a7d13bba027. Exact CI39886544570 has Frontend Unit, Backend, and
+    Branch-declared jobs green; Playwright remains in progress and feature-branch CI skips EIG. The
+    dirty backtest PostgreSQL restart matrix is outside that source; preserve the run to terminal
+    before pushing. Current source work
     strengthens the ordinary Study PostgreSQL forward restart regression through the production
     outer AuthenticatedForwardWorkerRuntimeInputResolver and carries Study output through
     ForwardStrategyContextWindow, forward recipe resolution, authenticated history replay, and
@@ -724,11 +725,12 @@ progress:
     The full 18 criteria remain open, including full local backend/application, migration, browser and
     visual validation, native qualification and remaining persistence/API/worker behavior. Provider
     HTTP/quota, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
+  updated_at: "2026-10-23T02:25:23Z"
   next_action: >-
-    Let exact-source CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 reach
-    terminal before pushing the accumulated worker-seeder, typed Study payload-shape and hydration
-    regressions, so that parent run is not displaced. Then publish the coherent follow-up and inspect
-    its exact-source CI. Obtain the assigned PostgreSQL restart slot for the collected 11-type matrix;
+    Let exact-source CI39886544570 on published 9236eecbd545ccc1d9216bfe95a36a7d13bba027 reach
+    terminal before pushing the accumulated worker-seeder, typed Study payload-shape, hydration, and
+    PostgreSQL backtest-restart matrix changes. Then publish the coherent follow-up and inspect its
+    exact-source CI. Obtain the assigned PostgreSQL/full-profile slot for the collected 11-type matrix;
     retain the full local/application/browser/native
     gates open; do not launch database, Compose, build, browser or native validation until Root
     assigns the one-at-a-time host slot. Preserve all 18 original criteria, exact-scope Nautilus
@@ -1655,12 +1657,13 @@ roadmap_progress_history:
     exact selected artifact references and payload digests; legacy no-reference fingerprints remain
     preserved. Published dd0a704b988ffbfb2ea7143e42abbf41105336f0 contains the production
     forward-runtime propagation and a real PostgreSQL fresh-session restart regression. Its exact
-    CI39882200073 attempt1 is currently in progress in Backend unit tests; Frontend Unit Tests have
-    passed. Local commit72a4c605b010e608446a6d5d0a6433fd4cceae26 adds native worker seed reconstruction
+    CI39882200073 is terminal green and superseded. Local commit72a4c605b010e608446a6d5d0a6433fd4cceae26 adds native worker seed reconstruction
     evidence; local commit ae03ee943498822eca1596326468a665d66e0d51 adds typed scalar/range/table/events
     invocation round-trips, and the working diff extends all 11 resolver-admitted artifact types
-    through the worker component context stream. None of these follow-ups is included in that hosted
-    run or yet published. The
+    through the worker component context stream. Published source is
+    9236eecbd545ccc1d9216bfe95a36a7d13bba027. Exact CI39886544570 has Frontend Unit, Backend, and
+    Branch-declared jobs green; Playwright is in progress and Exhaustive is skipped by feature-branch
+    policy. The current dirty backtest PostgreSQL test diff is not included in that run. The
     PostgreSQL test body has not run
     locally because no DB slot is assigned. Full local backend/combined DB/application/browser/strict-
     visual/native gates remain open and require coordinator-assigned slots. In addition to the
@@ -1678,11 +1681,13 @@ roadmap_progress_history:
     Study output is not native execution evidence. Provider/issuer HTTP, quota, live, paid/trial,
     unknown/unsafe, broker/capital and deployment scopes remain disabled.
   next_action: >-
-    Preserve exact CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 to terminal;
-    it remains in progress and does not cover the accumulated local worker-seeder, typed Study
-    payload-shape or hydration contract regressions. Then publish the coherent follow-up and inspect
-    exact-tip CI. Preserve the persisted
-    PostgreSQL restart test and request its assigned full validation slot only through Root's existing
-    coordination. Do not launch a full local profile, database fixture, browser, build or native gate
-    without an assigned slot. Continue all 18 criteria and database/runtime/browser/native gates;
-    preserve provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.
+    Preserve exact CI39886544570 on published 9236eecbd545ccc1d9216bfe95a36a7d13bba027 to terminal;
+    its Playwright job is the only active job and it does not cover the current dirty backtest
+    PostgreSQL restart matrix. Then publish the coherent follow-up and inspect exact-tip CI. The real
+    PostgreSQL backtest and forward restart bodies require the coordinator-assigned DB/full-profile
+    slot; collect-only is not DB evidence. For that future slot, use the unchanged
+    scripts/backend_coverage.py --shard-size 25 complete collector, exact source archive and private
+    coverage/quota/FINRA state, coordinator-pinned PostgreSQL/Redis fixtures, existing 75% combined
+    threshold, and zero retries. Do not launch a local DB/application/browser/build or native gate
+    before Root releases the one-at-a-time slot. Continue all 18 criteria and preserve provider/live/
+    quota/paid/trial/unknown/unsafe/broker/capital holds.

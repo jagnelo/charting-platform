@@ -35,7 +35,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "backend/app/strategy_lab_v2/tests/test_trial_hydration.py",
+    "backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -73,14 +73,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "b2aa7296f53439ba6de59a7016495f16748b1680",
+  "head": "9236eecbd545ccc1d9216bfe95a36a7d13bba027",
   "implementation_sha": "85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db",
-  "last_checkpoint": "2026-10-23T00:13:30Z",
+  "last_checkpoint": "2026-10-23T02:25:23Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Preserve exact parent CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 to terminal; then publish the accumulated worker-seeder, typed Study payload-shape and hydration regressions and inspect exact-tip CI. Obtain the assigned PostgreSQL restart slot; keep full local/application/browser/native gates open.",
+  "next_action": "Preserve exact CI39886544570 on published 9236eecbd545ccc1d9216bfe95a36a7d13bba027 to terminal; then publish the coherent source/workstream changes and inspect exact-tip CI. Obtain the assigned PostgreSQL/full-profile slot for the 11-type restart matrix; keep full local application/browser/native gates open.",
   "parent_branch": "staging",
-  "plan_hash": "71bfca46b8c00532ed2395de16b5de81d64450792b5f32274ddfff61867ffabb",
+  "plan_hash": "3a26aba56e74965621f9cd468d97d3eb4ec7655387725c3f42253a1ce607f1f6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,8 +116,8 @@
     "total": 5,
     "updated_at": "2026-10-23T01:44:28Z"
   },
-  "remote": "dd0a704b988ffbfb2ea7143e42abbf41105336f0",
-  "remote_sha": "dd0a704b988ffbfb2ea7143e42abbf41105336f0",
+  "remote": "9236eecbd545ccc1d9216bfe95a36a7d13bba027",
+  "remote_sha": "9236eecbd545ccc1d9216bfe95a36a7d13bba027",
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,

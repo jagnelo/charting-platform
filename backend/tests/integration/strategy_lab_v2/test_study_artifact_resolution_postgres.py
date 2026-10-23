@@ -91,6 +91,19 @@ from strategy_runtime import deserialize_strategy_manifest, serialize_strategy_m
 
 _NOW = datetime(2026, 10, 22, 4, 0, tzinfo=UTC)
 _STUDY_TABLES: tuple[Table, ...] = (cast(Table, ResearchArtifact.__table__),)
+_STUDY_OUTPUT_CASES = (
+    ("scalar", 2.5),
+    ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
+    ("boolean", True),
+    ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
+    ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
+    ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
+    ("range", {"low": 1.25, "high": 3.75}),
+    ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
+    ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
+    ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
+    ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
+)
 _EXPECTED_STUDY_FK_CLOSURE = {
     "code_asset",
     "code_version",
@@ -944,22 +957,57 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drif
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("study_artifact_type", "study_value"),
-    (
-        ("scalar", 2.5),
-        ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
-        ("boolean", True),
-        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
-        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
-        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
-        ("range", {"low": 1.25, "high": 3.75}),
-        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
-        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
-        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
-        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
-    ),
-)
+@pytest.mark.parametrize(("study_artifact_type", "study_value"), _STUDY_OUTPUT_CASES)
+async def test_reconstructed_backtest_worker_hydrates_each_persisted_study_type(
+    tmp_path: Path,
+    study_database: StudyDatabase,
+    study_artifact_type: str,
+    study_value: Any,
+) -> None:
+    sessions = study_database.sessions
+    study_payload = {"type": study_artifact_type, "value": study_value}
+    async with sessions.begin() as session:
+        await session.execute(
+            update(ResearchArtifact)
+            .where(ResearchArtifact.id == 40)
+            .values(artifact_type=study_artifact_type, payload=study_payload)
+        )
+    reference = await _reference(sessions)
+    graph, _artifacts, _package_resolver, _materializer, _context, _worker_state = _setup(
+        tmp_path / "backtest-study-worker"
+    )
+    graph = await _strategy_graph_with_reference(graph, reference, sessions)
+    adapter, _store = _adapter(sessions, study_database.storage_schema)
+    await _persist_graph(adapter, graph, uuid.uuid4().hex)
+
+    fresh_engine, fresh_sessions = study_database.new_engine_and_sessions()
+    try:
+        restarted_store = PostgresAggregateStore(
+            fresh_sessions,
+            schema=study_database.storage_schema,
+        )
+        hydrator = NautilusTrialDomainHydrator(
+            PostgresResourceReader(restarted_store),
+            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
+                fresh_sessions
+            ),
+        )
+        hydrated = await hydrator.hydrate_attempt(
+            principal="1",
+            attempt_resource_id=graph.attempt.attempt_id,
+        )
+        strategy = graph.strategies[0]
+        assert hydrated.strategies[0].selected_study_artifact == reference
+        assert hydrated.study_artifacts == {
+            strategy.fingerprint: ResolvedStudyArtifactOutput(reference, study_payload)
+        }
+    finally:
+        await fresh_engine.dispose()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("study_artifact_type", "study_value"), _STUDY_OUTPUT_CASES)
 async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
     tmp_path: Path,
     study_database: StudyDatabase,

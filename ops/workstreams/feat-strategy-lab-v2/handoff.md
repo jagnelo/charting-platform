@@ -17560,3 +17560,33 @@ terminal; it remains in progress and excludes this local change and the accumula
 commits. The real PostgreSQL restart body, full local backend/application/combined DB, browser/visual,
 native qualification and all remaining 18-criterion roadmap work remain open. No heavy slot was
 started; preserve all provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.
+
+## Extend persisted backtest-worker Study restart coverage — 2026-10-23 02:25 UTC
+
+Extended the existing real-PostgreSQL worker reconstruction test so each of the 11 TC-admitted Study
+output types is read back through a newly created engine/session and the production
+`NautilusTrialDomainHydrator`. The existing forward-worker restart test now shares the same type/value
+matrix. Assertions pin the exact immutable selected reference and decoded `ResolvedStudyArtifactOutput`;
+this adds no schema, production, routing, provider, or execution behavior. Stack-free collection found
+22 cases across both integration matrices (31 deselected) in 1.40s; no test body or database fixture
+ran. Focused MyPy on the integration module passed with no issues under a 1-GiB address-space/
+120-second bound. Ruff, Ruff format, byte-compilation via the UV-managed interpreter, and
+`git diff --check` pass.
+One bare `python` command was unavailable before the corrected managed-interpreter compile; it ran no
+code. The original accepted staging `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is already an ancestor
+through merge `85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db`.
+
+At published source `9236eecbd545ccc1d9216bfe95a36a7d13bba027`, exact run `39886544570` has
+Frontend Unit, Backend, and Branch-declared jobs green; E2E Playwright remains in progress and the
+Exhaustive gate is skipped under feature-branch policy. This dirty test-only diff is outside that run.
+Preserve it to terminal before pushing, since the branch workflow cancels prior runs on a new push.
+The added PostgreSQL test body still needs the Root-assigned DB/full-profile slot; collect-only is not
+database evidence. For that future full local gate, retain the unchanged `scripts/backend_coverage.py
+--shard-size 25` collector, all test roots, existing 75% combined coverage threshold, zero retries,
+private coverage/quota/FINRA state and coordinator-pinned PostgreSQL/Redis fixtures. Then use the
+source-pinned, branch-owned full-stack/browser flow in sequence on one Root-assigned slot, retaining
+functional and strict-visual assertions and cleaning only exact owned resources after terminal results.
+No local DB, Docker, Compose, build, browser, provider/issuer HTTP, quota, native or live operation ran.
+All 18 roadmap criteria, persisted restart proof, full local backend/application/browser/strict-visual
+gates and native qualification remain open; forward, broker/capital, paid/trial, unknown/unsafe and
+provider/live scopes remain disabled.
