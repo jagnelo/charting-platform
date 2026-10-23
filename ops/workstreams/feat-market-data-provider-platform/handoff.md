@@ -30187,3 +30187,24 @@ fixture in this Provider worktree. No provider/issuer/SEC HTTP, quota action,
 target database change, retained-resource cleanup, sibling/staging/master
 write, or deployment occurred. Broader Provider roadmap remains open and
 status remains `in_progress`.
+
+## 2026-10-23 — alternate-series coverage regression
+
+Closed the prior dirty migration/CI evidence context in separate commit
+`3485d56e39a62311ea616dfda4a9ee0883848a06`, pushed and verified synchronized
+with origin. On that source, inspected and ran
+`/tmp/tc_default_series_coverage_repro.py` using the backend-managed
+environment. It reports one row from `_default_series_bar_condition` (the
+mapped default) but `instrument_coverage` summary count 2 and historical
+`instrument_ohlcv_coverage` count 2/ready through the later alternate-only
+date. Therefore the reported exclusion is not present in the current
+`backend/app/routers/coverage.py`: those coverage endpoints intentionally
+aggregate all adjusted bars and do not apply the default-series read
+selector. Added a deterministic router regression to preserve that coverage
+contract while explicitly asserting ordinary default reads remain mapped to
+the selected series. Focused coverage-router tests pass 7/7; adjacent
+mapped/canonical/legacy default-series tests pass 4/4. No production code,
+provider routing, adjustment/visibility/range rules, migration, target DB,
+provider/issuer/SEC transport, quota, or retained resource changed. The
+checkpoint remains `in_progress`; exact-source CI is pending for this
+separate regression/evidence changeset.

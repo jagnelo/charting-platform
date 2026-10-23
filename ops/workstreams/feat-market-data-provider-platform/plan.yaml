@@ -1,4 +1,13 @@
 schema: 4
+# 2026-10-23 coverage-selector follow-up: the coordinator's
+# `/tmp/tc_default_series_coverage_repro.py` passes on the current source:
+# `_default_series_bar_condition` selects the mapped default bar, while the
+# coverage summary and requested-range endpoint include the later alternate
+# series bar. Added a deterministic router regression for that distinction;
+# no production selector, range, visibility, or adjustment behavior changed.
+# Focused coverage-router tests pass 7/7 and mapped/canonical/legacy default
+# selector tests pass 4/4. Exact-source CI for the resulting test/evidence
+# commit remains required; checkpoint and full roadmap remain in_progress.
 # 2026-10-23 follow-up: exact Actions run 39918492546 on
 # 34c954f7d5dfcfa7c887ef3b5a39d3baea749447 was terminal red in Backend unit
 # tests because the Strategy migration compatibility test hard-coded the old
