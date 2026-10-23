@@ -1,5 +1,66 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 15:46Z — exact CI receipt closed; a6b9 adoption and F8m slot released
+
+- Exact synchronized Provider source `9b179d7e10a3f8767b4aa6ca083db398c530cc68`
+  passed Actions run `39970361154`, attempt 1: Backend, Frontend Unit,
+  Branch-declared, and Playwright succeeded (191 passed / 110 skipped);
+  Exhaustive was skipped by feature-branch policy. This is the current-source
+  hosted receipt, not full local-profile completion or roadmap closure.
+- Coordinator release `/home/m920q/charting-platform/.ai/staging-attempts/provider-f8m-slot-20261023.md`
+  authorizes adoption of exact green staging
+  `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e` (run `39962134726`) into this
+  Provider branch only. The current worktree has no product edits; its three
+  dirty workstream receipt files are being closed before source reconciliation.
+- After clean adoption and exact source checks, one newly owned isolated
+  F8m yellow-wildcard/grey-isolation diagnostic is released, not the F8m
+  chart-panels case or broad/full matrix. It must use the slot's exact source,
+  resource, network, credential, zero-retry, capture, and owned-only cleanup
+  gates and finish cleanup by 16:20Z. The old `c6e40c66` fixture is prohibited.
+- Full `full_stack_browser` profile, all Provider roadmap work, hosted
+  acceptance, and provider/quota holds remain open. No live provider calls,
+  quota changes, paid/trial activation, retained-resource cleanup, staging or
+  sibling writes, or deployment occurred.
+
+## 2026-10-23 15:43Z — exact-current hosted CI terminal green
+
+- Exact synchronized source `9b179d7e10a3f8767b4aa6ca083db398c530cc68`
+  passed Actions run `39970361154`, attempt 1. Backend, Frontend Unit,
+  Branch-declared, and Playwright jobs succeeded; Playwright reports 191
+  passed and 110 skipped in 19.7 minutes. Exhaustive was skipped by normal
+  feature-branch policy. The SEC issuer-scan durability tests remain covered
+  by the exact-source 31/31 no-network module result recorded below. This
+  green hosted run does not replace the required local full profile or close
+  the full roadmap. No provider/issuer/SEC HTTP, quota operation, source change,
+  service/data mutation, or staging/sibling/deployment write occurred.
+- Current retained `c6e40c66` seeded fixture remains unsuitable for the
+  full local profile: it has no exact source-revision label, shares writable
+  quota/FINRA state, and its E2E authentication/workspace fixture mutates
+  user/workspace state. No replacement isolated profile slot is released in
+  this checkpoint. Preserve all services/data; do not start a fixture.
+- Next action: continue the branch-owned roadmap with bounded no-network work;
+  keep `full_stack_browser`/F8m pending until a source-pinned isolated fixture
+  slot is explicitly released. Preserve provider/quota holds and all existing
+  acceptance criteria.
+
+## 2026-10-23 14:42Z — exact-current SEC durability module
+
+- On exact synchronized HEAD `9b179d7e10a3f8767b4aa6ca083db398c530cc68`,
+  the complete `backend/tests/unit/services/test_market_event_edgar_scan.py`
+  module passed 31/31 in 29.20 seconds. This is a no-network SQLite/unit run
+  with provider execution mocked and live routing/availability monitors
+  disabled; it covers per-CIK result/cursor atomicity, fresh worker-session
+  restart without replay of committed CIKs, failed-CIK retry, and rollback on
+  cursor commit failure. SEC service/test files are byte-identical to the
+  previously tested `33bc44f` source. Exact current-source Actions run
+  `39970361154` is still in progress (Frontend Unit succeeded; Backend unit
+  stage remains active); no result is inferred. No provider/issuer/SEC HTTP,
+  quota action, Docker/container action, retained-service/data change, or
+  staging/sibling/deployment write occurred. Full roadmap remains in_progress;
+  local full_stack_browser/F8m remains held because the retained c6e40c66
+  fixture has shared writable quota/state mounts, wildcard host relay ports,
+  unpinned source images, and no verified existing auth/data context.
+
 ## 2026-10-23 14:30Z — NMS pagination rejects CTA source-date drift
 
 - Added a third case to the existing database-backed NMS snapshot-union test:
