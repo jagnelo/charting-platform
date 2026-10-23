@@ -1,5 +1,107 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 05:17Z — released f04 staging backmerge
+
+- Adopted the exact canonical green staging source
+  `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` into this Provider branch after
+  required jobs in Actions run `39896524209` completed successfully and Root's
+  canonical receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`
+  recorded `state: green`. The earlier `04:46Z` receipt marked the still-running
+  CI degraded and was preserved; it was not treated as release evidence.
+- The owned branch merge commit is `c9bccae0b4f62404a021c0b2bcb7ddd44201581a`,
+  with first parent `61e31e77467688f98d654aea630ca679a8c26e78` and second parent
+  the exact released `f04` SHA. GitHub `staging` was verified at that exact SHA
+  before merging. The merge brought only the released hidden-request-observation
+  E2E/helper changes and Root-owned quality workstream records; Provider SEC/NMS
+  implementation and its history were preserved.
+- The three pre-existing dirty Provider records (`handoff.md`, `plan.yaml`, and
+  append-only `validation.jsonl`) were saved with a path-scoped Git stash before
+  merge, then restored without conflict. The stash remains as a recoverable copy
+  until the coherent adopted-source publication is verified. No prior
+  validation rows or source-bound receipts were rewritten.
+- Exact Provider branch CI for the reconciled publication is pending publication
+  and must be recorded only after its actual terminal result. The required local
+  full functional/strict-visual profile remains a separate Root slot; this
+  backmerge does not authorize a build, Compose startup, browser run, or reuse of
+  the source-`61e` backend image. Recheck complete backend input equivalence
+  before any later reuse. No provider/issuer/SEC HTTP, quota operation, fixture,
+  retained service/data change, sibling/staging/master write, or deployment.
+
+## 2026-10-23 04:05Z — SEC request-log transaction boundary audit
+
+- A read-only audit of the exact `61e31e7` source confirms the executor does
+  not commit independently: `provider_runtime._record_result` flushes the
+  request-log/health rows, and `execute_provider_call` returns or raises
+  without `db.commit()`. `market_events.refresh_edgar_ipo_pipeline` is called
+  with `commit=False` by the issuer-universe scan. The scan then persists the
+  per-CIK result/provenance and cursor in the same session and commits once
+  after each CIK. On executor failure, the market-events layer records the
+  typed failed result; the scan keeps the cursor at the previous successful
+  issuer and commits that failure with it.
+- Existing no-network file-backed restart regression
+  `test_edgar_runtime_failure_result_and_cursor_commit_across_worker_restart`
+  verifies the failed request-log row and cursor survive a fresh session and
+  the restarted worker retries only that CIK before proceeding to the next.
+  No additional test was needed; no code or test bytes changed in this audit.
+
+## 2026-10-23 04:03Z — conditional backend image build completed
+
+- On exact source `61e31e77467688f98d654aea630ca679a8c26e78`, the Root-released
+  BUILD-ONLY phase built one backend image from the exact Git archive
+  `/tmp/provider-61e31e77-backend-build.o8CKY4/source-61e31e77467688f98d654aea630ca679a8c26e78.tar`
+  (SHA-256 `3929ff4ff8280ffbdcfd5e4307947ba49c0ddc731e2d88b19e0a45993dee6b5b`).
+  Image `provider-61e31e77-full-20261023-backend:source-61e31e77` is
+  `sha256:ff250ff5b794b002514eeb240e1bad31e5f82aa171da7206f094f09a29d2833b`,
+  labelled with build/test source `61e31e7` and the Provider owner. BuildKit
+  resolved cached bases Python
+  `sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704`
+  and uv `sha256:9653efd4380d5a0e5511e337dcfc3b8ba5bc4e6ea7fa3be7716598261d5503fa`;
+  apt and locked-dependency layers were cache hits. No image pull occurred.
+- Preserve the first failed attempt (Dockerfile path resolved from caller cwd)
+  and second failed attempt (an extra `--network=none` invalidated the apt
+  cache key); neither produced an image. The successful third invocation used
+  `--pull=false` and completed in 22 seconds.
+- The exact transferred builder was temporarily capped at 128 PIDs, started,
+  and returned to `exited`; memory/swap `1610612736`, CPU `200000/100000`, and
+  restart policy `unless-stopped` are unchanged. Original unset PID semantics
+  were restored as Docker's explicit unlimited value `0` (CLI documents
+  `--pids-limit -1` as unlimited). Buildx selection remains `default*`.
+- No Compose project/container/volume/network was created. The approved
+  frontend and research images were reused only as immutable 4687 builds after
+  byte-equality checks against their effective 61e inputs; the API/worker,
+  frontend, research runner, browser, provider-egress-deny and services were
+  not started. Local full profile remains pending a separate Root UP/browser
+  release and the synchronized green-staging adoption gate. No provider,
+  issuer, or SEC HTTP; quota action; retained-service/data cleanup; or source
+  change occurred.
+
+## 2026-10-23 03:26Z — SEC restart durability exact-source CI
+
+- Exact pushed source `61e31e77467688f98d654aea630ca679a8c26e78` is clean and
+  synchronized. Actions run `39890778902` is terminal green: Backend,
+  Frontend Unit, Branch-declared, and Playwright succeeded; Exhaustive was
+  skipped by normal feature-branch policy.
+- The SEC issuer-universe regression was locally checked with the complete
+  SEC module (28/28), the focused restart case (1/1), Ruff check/format check,
+  and `git diff --check`. It exercises the real scan pipeline and mocks only
+  the provider executor; worker restart retries the failed CIK without
+  replaying previously committed CIKs.
+- Branch remains `in_progress`; local full functional/visual profile is still
+  pending Root's exact phase release. Its bounded preparation-only recipe is
+  `/tmp/provider-61e31e77-bounded-full-profile-recipe-20261023.md`, SHA-256
+  `6d339a6abac8a6048e688f9a72a964fe34fd615764d95c5aef14778e9998427b`.
+  The corrected plan replaces the infeasible 6 GiB pre-build threshold with
+  a 2 GiB gate derived from the 1.5 GiB BuildKit cgroup cap plus 512 MiB
+  reserve, and retains a 1.5 GiB measured post-start browser-stage reserve.
+  Read-only inspection of Root's stopped builder found 1.5 GiB memory, equal
+  memory+swap, 2 CPUs, but no PID limit; it is not eligible or transferred.
+  The recipe requires a verified 128-PID cap and exact stop/baseline-restore
+  checks after Root's phase release. Frontend and research-runner source inputs
+  compare byte-identically to 4687; any reused image retains its original
+  build-source identity and is not relabeled as built from 61e.
+  No fixture/build/browser, provider/issuer/SEC request, quota action, data or
+  retained-service cleanup, staging/sibling/master/deployment write occurred.
+
 ## 2026-10-23 01:16Z — integration fixture provenance correction after exact CI failure
 
 - Exact Actions run `39881532927` is terminal red on parent

@@ -1,4 +1,29 @@
 schema: 4
+# 2026-10-23 05:17Z current source reconciliation: exact green staging
+# `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` (Actions `39896524209`, canonical
+# receipt `20261023T051709Z-f04fb2a26c63.json`) is adopted by Provider merge
+# `c9bccae0b4f62404a021c0b2bcb7ddd44201581a`, parents `61e31e7` and exact `f04`.
+# Current Provider exact-source CI is not yet published/known; the required
+# local full functional/104-visual profile remains held for a separate Root
+# slot. Full roadmap, operation holds and checkpoint `in_progress` remain.
+# 2026-10-23 04:03Z conditional BUILD-ONLY phase: exact source `61e31e77467688f98d654aea630ca679a8c26e78`
+# produced backend image `sha256:ff250ff5b794b002514eeb240e1bad31e5f82aa171da7206f094f09a29d2833b`
+# from a committed-source archive; exact Python/uv base digests and cache-hit layers are recorded in handoff.
+# The transferred builder is restored/stopped; no Compose/app/browser phase was authorized or started.
+# Branch remains `in_progress`; the required full profile awaits separate Root UP/browser release and green synchronized staging.
+# 2026-10-23 current checkpoint update: the SEC issuer-universe persistence
+# gap is closed in source `61e31e77467688f98d654aea630ca679a8c26e78` and its
+# exact Actions run `39890778902` is terminal green (Backend, Frontend Unit,
+# Branch-declared and Playwright succeeded; Exhaustive is skipped by normal
+# feature-branch policy). The real-pipeline/file-backed SQLite restart test
+# proves each CIK result/failure and cursor commit together; a fresh worker
+# resumes at the failed CIK without replaying completed CIKs. The broader
+# branch remains `in_progress`: required local full functional/visual profile
+# is prepared at `/tmp/provider-61e31e77-bounded-full-profile-recipe-20261023.md`
+# (SHA-256 6d339a6abac8a6048e688f9a72a964fe34fd615764d95c5aef14778e9998427b).
+# Its corrected BuildKit recipe records exact resource and ownership checks.
+# The released build-only backend image is complete; full profile and app/browser
+# startup remain separately gated. Full roadmap and all holds remain.
 # 2026-10-22 continuation after initial checkpoint acceptance: the exact
 # synchronized four-feature staging baseline 0e342512e53ba2268425294d61c50e219eaafa4f
 # is adopted on this branch; its canonical green release and CI 39827786248
@@ -6841,8 +6866,16 @@ progress:
       request was made, and the historical live receipt remains source-bound.
   completed: []
   total: 7
-  current_phase: provider_f8u_reconciliation_and_live_checkpoint
+  current_phase: released_f04_backmerge_exact_provider_ci_pending
   current_blocker: >-
+    CURRENT STATUS — 2026-10-23: released synchronized staging
+    `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` is merged into Provider at
+    `c9bccae0b4f62404a021c0b2bcb7ddd44201581a`; staging CI `39896524209` and
+    canonical receipt `20261023T051709Z-f04fb2a26c63.json` are green. The next
+    exact Provider branch CI is pending the coherent owned publication. SEC
+    durability remains proven on its original `61e31e7` source; no receipts are
+    rebound. The required local full functional/104-visual profile remains held
+    for a separate Root slot. Preserve full roadmap and all operation holds.
     CURRENT STATUS — 2026-10-19 18:46Z: the prior evidence context is closed
     in `8d368aae4`, and exact released staging
     `26443f94c5b9fd3741d28db392fecf9aafe9c699` is merged without conflict into
@@ -7077,38 +7110,20 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Commit and push the coherent reconciled Provider evidence based on merge
-    `f7a898e86d9eab0e98b8a5505a670f87a25df509`, verify exact synchronization,
-    and require exact-source Provider CI. After green CI, refresh no-transport admission
-    against the existing durable ledger and run at most one internally admitted
-    verified-free subset. Preserve strict-red Provider run `39254427018`, all
-    five provider holds, zero retries, unchanged visual references/tolerances,
-    retained services/datasets, full roadmap and coordinator-only integration.
-    Exact Actions run `39049956683` on source
-    `f9e27c759da44d6883412f3ebecd60eb6664c016` is terminal green. The exact
-    252-case bounded ICP2/ICP6 no-transport regression also passes on this
-    source. Continue Provider-owned operation-
-    level dispositions and producer-contract evidence without provider calls.
-    Do not start the local
-    focused F8u or full pinned-Noble browser profile until the coordinator
-    releases a safe fixture/resource slot; preserve the required 260-functional
-    and 104-visual gates and every prior red artifact. Current-source provider
-    live evidence remains incomplete. Keep all quota-held, unknown, unreviewed,
-    paid/trial and unsafe routes non-routable. No provider/issuer HTTP, quota
-    spend, activation, reset/cleanup, staging/sibling writes or deployment.
-    Exact pushed Provider source `d5045c70e5cec1ff4ec127527c130f5e29cd1630`
-    passed Actions run `39044151374`: Backend, Frontend Unit, Branch-declared,
-    and Playwright succeeded; Exhaustive was skipped by feature policy. Continue
-    bounded Provider-owned non-browser ICP2/ICP6 and operation-contract work
-    while resource constraints remain. When the coordinator releases a safe
-    browser slot, run unchanged focused F8u and then the full pinned-Noble
-    260-functional/104-visual profile on the exact merged Provider source;
-    preserve every result/artifact. The local focused/full gates remain unrun,
-    and current-source live-provider evidence is incomplete. Do not edit
-    TC/ETF/Strategy sources, start browser/Compose under unsafe memory or active
-    fixtures, call providers/issuers, spend quota, reset/clean retained data,
-    activate held routes, write staging, deploy, or reduce roadmap scope. Stop
-    at `ready_for_human_review` only after all checkpoint gates genuinely pass.
+    Preserve the exact released staging backmerge at Provider merge
+    `c9bccae0b4f62404a021c0b2bcb7ddd44201581a`, all source-qualified prior CI,
+    SEC and build evidence, and the full roadmap. Complete a scoped workstream
+    validation, publish the coherent adopted-source update once, and require
+    exact Provider CI for the pushed tip; do not rerun unchanged SEC tests or
+    create a receipt-only loop. The required local full functional/104-visual
+    profile remains a separate Root slot and is not authorized by this merge.
+    If Root later releases that exact slot, recheck source, resource ownership,
+    profile recipe and backend image input equivalence before reuse; retain
+    pinned runtime, one worker, zero retries, original references/tolerance,
+    isolated state and provider egress denial. Do not start a build/fixture now.
+    No provider/issuer/SEC HTTP, quota mutation, paid/trial activation, retained
+    service/data cleanup, sibling/staging/master writes, deployment, or roadmap
+    reduction.
   historical_next_action_pre_20261017T1512Z: >-
     Reconcile exact green Actions run `39040380183` and preserve prior red
     `39037691098` in the packet, handoff, session and append-only journal. The
