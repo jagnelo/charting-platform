@@ -133,6 +133,7 @@ async def preflight_ohlcv(
     adjusted: bool | None = None,
     cached_bars: Mapping[int, Sequence[OHLCVBar]] | None = None,
     minimum_bars: int | None = None,
+    calendar_by_instrument: Mapping[int, CalendarName | None] | None = None,
 ) -> EvaluatorPreflight:
     """Assess exact local coverage and optionally enqueue missing slices.
 
@@ -210,7 +211,11 @@ async def preflight_ohlcv(
                 mode=mode,
                 freshness_seconds=freshness_seconds,
                 now=observed_at,
-                calendar=calendar,
+                calendar=(
+                    calendar_by_instrument.get(instrument_id)
+                    if calendar_by_instrument is not None
+                    else calendar
+                ),
             )
             status = assessment.status
             missing_slices = assessment.missing_slices

@@ -23,6 +23,7 @@ from app.schemas.code import ResearchBatchResultOut, ResearchRunCreate, Research
 from app.schemas.strategy import StrategyDefinitionDetailOut
 from app.services.breadth import build_equal_reference_series
 from app.services.evaluator_preflight import EvaluatorPreflight, preflight_ohlcv
+from app.services.ohlcv_coverage import CalendarName
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
     cancel_research_run,
@@ -107,6 +108,7 @@ async def _research_coverage_preflight(
     instrument_ids: list[int],
     cached_bars: dict[int, list[OHLCVBar]],
     lookback: int | None,
+    calendars_by_instrument: dict[int, CalendarName | None] | None = None,
 ) -> EvaluatorPreflight:
     """Assess research inputs before handing them to the isolated runner.
 
@@ -127,6 +129,7 @@ async def _research_coverage_preflight(
         adjusted=options["is_adjusted"],
         cached_bars=cached_bars,
         minimum_bars=(lookback + 1) if lookback is not None else None,
+        calendar_by_instrument=calendars_by_instrument,
     )
 
 
@@ -135,19 +138,55 @@ def _parse_dataset_bound(value: object, *, end: bool) -> datetime | None:
         return None
     text = str(value).strip()
     try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        parsed_date = date.fromisoformat(text)
     except ValueError:
-        try:
-            parsed_date = date.fromisoformat(text)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=422,
-                detail={"code": "invalid_dataset_date", "value": text},
-            ) from exc
+        parsed_date = None
+    if parsed_date is not None:
         parsed = datetime.combine(parsed_date, time.max if end else time.min)
+        return parsed.replace(tzinfo=UTC)
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "invalid_dataset_date", "value": text},
+        ) from exc
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
+
+
+def _is_date_only_bound(value: object) -> bool:
+    if value in (None, ""):
+        return False
+    try:
+        date.fromisoformat(str(value).strip())
+    except ValueError:
+        return False
+    return True
+
+
+def _research_coverage_calendars(
+    options: dict, instruments: list[Instrument]
+) -> dict[int, CalendarName | None] | None:
+    """Use XNYS only when the exact instrument venue matches that supported calendar."""
+
+    date_only = options.get("date_only_bounds", {})
+    if (
+        options["timeframe"] != Timeframe.D1
+        or not date_only.get("start")
+        or not date_only.get("end")
+    ):
+        return None
+    return {
+        instrument.id: (
+            "XNYS"
+            if instrument.equity_detail is not None
+            and (instrument.equity_detail.exchange_mic or "").upper() == "XNYS"
+            else None
+        )
+        for instrument in instruments
+    }
 
 
 def _dataset_options(run_config: dict, manifest: dict) -> dict:
@@ -181,10 +220,10 @@ def _dataset_options(run_config: dict, manifest: dict) -> dict:
             status_code=422,
             detail={"code": "unsupported_dataset_session", "value": session},
         )
-    start = _parse_dataset_bound(
-        run_config.get("start_date") or manifest.get("start_date"), end=False
-    )
-    end = _parse_dataset_bound(run_config.get("end_date") or manifest.get("end_date"), end=True)
+    raw_start = run_config.get("start_date") or manifest.get("start_date")
+    raw_end = run_config.get("end_date") or manifest.get("end_date")
+    start = _parse_dataset_bound(raw_start, end=False)
+    end = _parse_dataset_bound(raw_end, end=True)
     as_of = _parse_dataset_bound(run_config.get("as_of") or manifest.get("as_of"), end=True)
     if as_of and start and start > as_of:
         raise HTTPException(
@@ -216,6 +255,10 @@ def _dataset_options(run_config: dict, manifest: dict) -> dict:
         "session": session,
         "start": start,
         "end": end,
+        "date_only_bounds": {
+            "start": _is_date_only_bound(raw_start),
+            "end": _is_date_only_bound(raw_end),
+        },
         "as_of": as_of,
         "benchmark": benchmark.strip().upper() if isinstance(benchmark, str) else None,
     }
@@ -693,6 +736,7 @@ async def _materialize_declared_dataset(
             instrument_ids=instrument_ids,
             cached_bars=bars_by_instrument,
             lookback=lookback,
+            calendars_by_instrument=_research_coverage_calendars(options, instruments),
         )
         coverage_by_id = {item.instrument_id: item for item in coverage_preflight.items}
         datasets = []
@@ -790,6 +834,7 @@ async def _materialize_declared_dataset(
         instrument_ids=[instrument.id],
         cached_bars={instrument.id: single_bars},
         lookback=lookback,
+        calendars_by_instrument=_research_coverage_calendars(options, [instrument]),
     )
     result["coverage_preflight"] = coverage_preflight.to_dict()
     coverage_item = coverage_preflight.items[0] if coverage_preflight.items else None

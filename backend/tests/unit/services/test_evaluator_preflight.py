@@ -50,6 +50,69 @@ async def test_preflight_reports_full_coverage_without_queueing(db, instrument):
 
 
 @pytest.mark.asyncio
+async def test_preflight_uses_per_instrument_session_calendar_for_daily_date_ranges(
+    db, instrument, instrument_b
+):
+    start = datetime(2024, 11, 22, tzinfo=UTC)
+    end = datetime(2024, 11, 25, 23, 59, 59, 999999, tzinfo=UTC)
+    full = [
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2024, 11, 22, 21, tzinfo=UTC),
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            volume=Decimal("1000"),
+            is_adjusted=True,
+        ),
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2024, 11, 25, 21, tzinfo=UTC),
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            volume=Decimal("1000"),
+            is_adjusted=True,
+        ),
+    ]
+    incomplete = [
+        OHLCVBar(
+            instrument_id=instrument_b.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2024, 11, 25, 21, tzinfo=UTC),
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            volume=Decimal("1000"),
+            is_adjusted=True,
+        )
+    ]
+
+    result = await preflight_ohlcv(
+        AsyncSessionAdapter(db),
+        evaluator="research_dataset",
+        instrument_ids=[instrument.id, instrument_b.id],
+        timeframe=Timeframe.D1,
+        date_from=start,
+        date_to=end,
+        cached_bars={instrument.id: full, instrument_b.id: incomplete},
+        calendar_by_instrument={instrument.id: "XNYS", instrument_b.id: None},
+        now=datetime(2024, 11, 26, tzinfo=UTC),
+    )
+
+    assert result.status == "partial"
+    assert result.items[0].status.value == "ready"
+    assert result.items[0].missing_slices == ()
+    assert result.items[1].status.value == "partial"
+    assert result.items[1].missing_slices
+
+
+@pytest.mark.asyncio
 async def test_preflight_queues_only_the_missing_tail(db, instrument):
     start = datetime(2026, 2, 1, tzinfo=UTC)
     db.add_all(_bars(instrument.id, start, 3))

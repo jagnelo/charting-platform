@@ -1,10 +1,19 @@
 from datetime import UTC, datetime, timedelta, timezone
+from types import SimpleNamespace
+from typing import cast
 
 import pytest
 from fastapi import HTTPException
 
+from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
-from app.routers.research import _dataset_manifest_fields, _dataset_options, _wire_timestamps
+from app.routers.research import (
+    _dataset_manifest_fields,
+    _dataset_options,
+    _parse_dataset_bound,
+    _research_coverage_calendars,
+    _wire_timestamps,
+)
 
 
 def test_research_dataset_as_of_clamps_future_bars_and_is_retained_as_metadata():
@@ -15,6 +24,96 @@ def test_research_dataset_as_of_clamps_future_bars_and_is_retained_as_metadata()
 
     assert options["as_of"].tzinfo == UTC
     assert options["end"] == options["as_of"]
+
+
+def test_date_only_research_bounds_cover_the_full_utc_dates_inclusively():
+    options = _dataset_options(
+        {"timeframe": "D1", "start_date": "2024-11-22", "end_date": "2026-10-22"},
+        {},
+    )
+
+    assert options["start"] == datetime(2024, 11, 22, tzinfo=UTC)
+    assert options["end"] == datetime(2026, 10, 22, 23, 59, 59, 999999, tzinfo=UTC)
+    assert options["date_only_bounds"] == {"start": True, "end": True}
+
+    with pytest.raises(HTTPException) as error:
+        _parse_dataset_bound("2024-02-30", end=True)
+    assert error.value.status_code == 422
+    assert error.value.detail["code"] == "invalid_dataset_date"
+
+
+def test_explicit_research_timestamps_keep_their_instants_and_do_not_become_date_bounds():
+    options = _dataset_options(
+        {
+            "timeframe": "D1",
+            "start_date": "2024-11-22T05:00:00Z",
+            "end_date": "2024-11-22T21:00:00Z",
+        },
+        {},
+    )
+
+    assert options["start"] == datetime(2024, 11, 22, 5, tzinfo=UTC)
+    assert options["end"] == datetime(2024, 11, 22, 21, tzinfo=UTC)
+    assert options["date_only_bounds"] == {"start": False, "end": False}
+
+    mixed = _dataset_options(
+        {
+            "timeframe": "D1",
+            "start_date": "2024-11-22T05:00:00Z",
+            "end_date": "2024-11-25",
+        },
+        {},
+    )
+    assert mixed["start"] == datetime(2024, 11, 22, 5, tzinfo=UTC)
+    assert mixed["end"] == datetime(2024, 11, 25, 23, 59, 59, 999999, tzinfo=UTC)
+    assert mixed["date_only_bounds"] == {"start": False, "end": True}
+    assert (
+        _research_coverage_calendars(
+            {"timeframe": mixed["timeframe"], "date_only_bounds": mixed["date_only_bounds"]},
+            [
+                cast(
+                    Instrument,
+                    SimpleNamespace(id=1, equity_detail=SimpleNamespace(exchange_mic="XNYS")),
+                )
+            ],
+        )
+        is None
+    )
+
+
+def test_date_granular_daily_coverage_uses_only_the_exact_supported_instrument_venue():
+    options = {
+        "timeframe": Timeframe.D1,
+        "date_only_bounds": {"start": True, "end": True},
+    }
+    xnys_equity = cast(
+        Instrument, SimpleNamespace(id=1, equity_detail=SimpleNamespace(exchange_mic="XNYS"))
+    )
+    other_us_equity = cast(
+        Instrument, SimpleNamespace(id=2, equity_detail=SimpleNamespace(exchange_mic="ARCX"))
+    )
+    unknown_venue = cast(
+        Instrument, SimpleNamespace(id=3, equity_detail=SimpleNamespace(exchange_mic=None))
+    )
+
+    assert _research_coverage_calendars(options, [xnys_equity]) == {1: "XNYS"}
+    assert _research_coverage_calendars(options, [other_us_equity]) == {2: None}
+    assert _research_coverage_calendars(options, [unknown_venue]) == {3: None}
+    assert (
+        _research_coverage_calendars({**options, "timeframe": Timeframe.H1}, [xnys_equity]) is None
+    )
+    assert (
+        _research_coverage_calendars(
+            {**options, "date_only_bounds": {"start": True, "end": False}}, [xnys_equity]
+        )
+        is None
+    )
+    assert (
+        _research_coverage_calendars(
+            {**options, "date_only_bounds": {"start": False, "end": True}}, [xnys_equity]
+        )
+        is None
+    )
 
 
 def test_research_dataset_rejects_as_of_before_requested_start():
