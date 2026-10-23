@@ -1599,54 +1599,32 @@ roadmap_progress_history:
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
   total: 18
-  current_phase: strategy-lab-v2-typed-study-payload-runtime-binding-v1
+  current_phase: strategy-lab-v2-nautilus-forward-event-tape-correction-denial-v1
   active_changeset:
-    id: strategy-lab-v2-typed-study-payload-runtime-binding-v1
+    id: strategy-lab-v2-nautilus-forward-event-tape-correction-denial-v1
     scope: >-
-      Define a typed immutable payload value for explicitly selected TC Study artifacts and carry
-      the authenticated output through existing V2 hydration into the frozen runtime bundle.
-      Revalidate owner, completed run, CodeVersion lineage, artifact identity/type, and payload
-      digest during preparation and reconstructed-worker restart. Preserve legacy no-reference
-      fingerprints and assembly, reject missing/deleted/ambiguous/drifted inputs, and keep generic
-      Study output distinct from native Nautilus execution evidence. Preserve exact-pinned engine
-      authority and every provider/live/quota/paid/trial/forward/broker/capital safety hold.
+      Close the separate forward-event-tape fail-closed gap: reject a canonical correction
+      (`correction_of` is present) even when its supplied delivery binding inconsistently claims
+      `enqueue`. Preserve existing rejection order for correct `correction_enqueue` bindings and
+      keep corrections available only to the explicit counterfactual replay path. This does not
+      authorize broker/live execution or alter the accepted Study materializer behavior.
     owned_paths:
-      - backend/app/strategy_lab_v2/contracts.py
-      - backend/app/strategy_lab_v2/study_artifact_resolver.py
-      - backend/app/strategy_lab_v2/trial_hydration.py
-      - backend/app/strategy_lab_v2/sdk.py
-      - backend/app/strategy_lab_v2/replay.py
-      - backend/app/strategy_lab_v2/nautilus_trial_assembly.py
-      - backend/app/strategy_lab_v2/nautilus_trial_materializer.py
-      - backend/app/strategy_lab_v2/search_preparation_composition.py
-      - backend/app/strategy_lab_v2/worker_callbacks.py
-      - backend/app/strategy_lab_v2/nautilus_runtime_bundle.py
-      - backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py
-      - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_trial_assembly.py
-      - backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py
-      - backend/app/strategy_lab_v2/tests/test_strategy_runtime_protocol.py
-      - backend/strategy_runtime/protocol.py
-      - backend/strategy_runtime/runner.py
-      - backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
+      - backend/app/strategy_lab_v2/nautilus_event_adapter.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_event_adapter.py
     status: in_progress
   current_blocker: >-
-    The complete typed Study payload binding and persisted backtest/forward worker reconstruction
-    source is published at45b946658b91477493c0172e3a7a71cf3bb7180c; exact CI39908472662 is green for
-    Backend, Frontend, Branch-declared and E2E, with Exhaustive skipped by feature policy. Earlier
-    red CI39905794221 and all previous failures remain in handoff/journal history; its decoder fix
-    is now included in the green source. Exact released f04 is already in this branch history and is
-    common-repair adoption only. This active narrow extension verifies DB-restored forward Study
-    output through ResolvedForwardExecutionPlanRecipeResolver into ForwardStrategyContextWindow.
-    Only an existing pure Study context test and PostgreSQL module collection ran locally; the new
-    database-backed assertion awaits hosted or coordinator-assigned PostgreSQL execution. No local
-    database body ran. Full local backend/combined DB/application/browser/strict-visual and
-    exact-pinned native execution/settlement gates remain open. Generic Study output is not native
-    evidence; provider/live/quota/paid/trial/unknown/unsafe/broker/capital/deployment remain disabled.
+    The completed Study materializer and forward restart-to-context slice is published at
+    2190711b79fb97cd0aafb3227a4bba48c582086a with exact CI39913683591 green for Backend,
+    Frontend Unit, Branch-declared and E2E; Exhaustive is skipped by feature policy. The separate
+    forward-tape guard/test edits are locally focused-validated but not yet committed or hosted.
+    No local PostgreSQL body, application fixture, browser matrix, native process, or external
+    provider operation ran for those dirty edits. Full local/combined PostgreSQL/application/
+    browser/strict-visual and exact-pinned native execution/settlement gates remain open. Generic
+    Study output is not native evidence; provider/live/quota/paid/trial/unknown/unsafe/broker/
+    capital/deployment remain disabled.
   next_action: >-
-    Complete and publish this focused forward restart/context regression with coherent workstream
-    evidence, then inspect its exact-source CI once. The backtest and forward Study PostgreSQL cases
-    have already executed in hosted CI on45b; the new forward context-window extension has not yet
-    executed. Do not launch local DB/application/browser/build/native gates without Root's slot.
-    Continue all18 criteria and preserve provider/live/quota/paid/trial/unknown/unsafe/broker/capital
-    holds.
+    Publish the closed Study materializer/restart-context workstream receipt without including the
+    dirty forward-tape source/test paths. Then publish the forward-tape rejection guard as its own
+    source changeset and inspect only its exact-source CI. Do not launch local DB/application/
+    browser/build/native gates without Root's slot. Continue all18 criteria and preserve
+    provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.

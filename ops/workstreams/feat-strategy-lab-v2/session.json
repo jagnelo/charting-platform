@@ -35,7 +35,8 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py",
+    "backend/app/strategy_lab_v2/nautilus_event_adapter.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_event_adapter.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -73,14 +74,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "45b946658b91477493c0172e3a7a71cf3bb7180c",
-  "implementation_sha": "45b946658b91477493c0172e3a7a71cf3bb7180c",
-  "last_checkpoint": "2026-10-23T06:45:14Z",
+  "head": "2190711b79fb97cd0aafb3227a4bba48c582086a",
+  "implementation_sha": "2190711b79fb97cd0aafb3227a4bba48c582086a",
+  "last_checkpoint": "2026-10-23T07:30:36Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Finish and publish the forward worker restart-to-context integration assertion with its exact evidence, then inspect the single exact-source CI. Do not run its PostgreSQL body locally without an assigned slot; retain every full roadmap and local/combined DB/application/browser/native gate.",
+  "next_action": "Publish the completed Study materializer/restart-context workstream receipt without including the dirty forward-tape source/test paths; then publish the forward-tape rejection guard separately and inspect its exact-source CI. No local PostgreSQL/application/browser/native profile without Root's slot; preserve every full-roadmap gate.",
   "parent_branch": "staging",
-  "plan_hash": "ce05b1e912b34b3d8724fe87a02ce9d2bf572084ccbb4f94aec5725b3e0ba965",
+  "plan_hash": "785a6b8caa7d8b596b655e53c088b6099ea6e2954a9f546f481031627bb6dd70",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -110,14 +111,14 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Published45b946658b91477493c0172e3a7a71cf3bb7180c exact CI39908472662 is green for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive is skipped by feature policy. The current test-only WIP carries the owner-resolved forward Study output from persisted worker reconstruction through the production plan recipe into ForwardStrategyContextWindow. The related pure context test passed1/1 and the PostgreSQL module collects53 without running its body; no local DB ran. Earlier CI reds remain historical. Full local/combined DB/application/browser/strict-visual/native gates remain open.",
-    "current_phase": "full-roadmap-study-forward-restart-context-binding-v1",
-    "next_action": "Finish and publish the focused forward restart-to-context integration assertion with coherent records, then inspect its exact-source CI once. Do not run the PostgreSQL body or full profile locally without an assigned slot; keep all remaining roadmap and native gates open.",
+    "current_blocker": "No hosted blocker. Study materializer/restart-context source2190711 exact CI39913683591 is green; the separate adapter guard/test is focused-validated but remains unpublished. Full local/combined DB/application/browser/native gates remain open.",
+    "current_phase": "strategy-lab-v2-nautilus-forward-event-tape-correction-denial-v1",
+    "next_action": "Publish the completed Study materializer receipt separately from the two dirty event-adapter paths; then publish and inspect exact CI for the forward-tape correction guard. Preserve the full 18-criterion roadmap and disabled-scope holds.",
     "total": 5,
-    "updated_at": "2026-10-23T06:45:14Z"
+    "updated_at": "2026-10-23T07:30:36Z"
   },
-  "remote": "45b946658b91477493c0172e3a7a71cf3bb7180c",
-  "remote_sha": "45b946658b91477493c0172e3a7a71cf3bb7180c",
+  "remote": "2190711b79fb97cd0aafb3227a4bba48c582086a",
+  "remote_sha": "2190711b79fb97cd0aafb3227a4bba48c582086a",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

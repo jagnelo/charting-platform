@@ -17788,3 +17788,32 @@ f04 adoption is already in this branch history and remains common-repair baselin
 18-criterion roadmap, exact-pinned native execution/settlement, Exhaustive and assigned full local
 backend/combined DB/application/browser/strict-visual gates remain open. Provider/live/quota/
 paid/trial/unknown/unsafe/broker/capital and deployment holds remain unchanged.
+
+## Forward Study materializer/context closure and released-f04 confirmation — 2026-10-23 07:30 UTC
+
+The production Study materializer integration case and the forward restart-to-context assertion
+are published at `2190711b79fb97cd0aafb3227a4bba48c582086a`. Exact-source Actions run `39913683591`
+is terminal green for Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E Playwright;
+the Exhaustive Integration Gate is skipped by feature-branch policy. The published tests exercise
+the real single-component Study context materializer and the restored immutable forward output
+through `ResolvedForwardExecutionPlanRecipeResolver` into `ForwardStrategyContextWindow`. The
+focused local database test body was not run; no local fixture was started.
+
+The exact coordinator-released common repair baseline `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`
+is already an ancestor of this branch through merge commit `8944f442dff4e3a80bcbdcab91e44e10958d0351`.
+Its canonical full-green receipt remains
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`; no
+second merge was performed. This baseline is common repair only and does not accept later feature
+work.
+
+The only currently dirty source paths are the separate forward event-tape correction guard and its
+regression in `nautilus_event_adapter.py` / `test_nautilus_event_adapter.py`. A canonical event with
+`correction_of` could previously enter the live tape if its delivery binding falsely claimed
+`enqueue`. The guard now rejects that inconsistent pair while preserving the existing rejection
+ordering for a correctly labeled correction binding. Focused validation: the adapter test module
+passed `21/21`; Ruff check and format check passed; focused MyPy passed for both changed files; and
+`git diff --check` passed. These files are deliberately excluded from the completed Study
+materializer changeset and remain an in-progress separate source change pending its own publication
+and exact CI. Preserve all earlier red/flaky receipts. All18 roadmap criteria, full local/combined
+database/application/browser/strict-visual and native-execution/settlement gates, and every
+provider/quota/paid/trial/broker/capital hold remain open.
