@@ -14,6 +14,7 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.lib.time_utils import wire_datetime
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition
@@ -23,6 +24,7 @@ from app.schemas.code import ResearchBatchResultOut, ResearchRunCreate, Research
 from app.schemas.strategy import StrategyDefinitionDetailOut
 from app.services.breadth import build_equal_reference_series
 from app.services.evaluator_preflight import EvaluatorPreflight, preflight_ohlcv
+from app.services.exchange_catalog import normalize_exchange_mic
 from app.services.ohlcv_coverage import CalendarName
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
@@ -169,7 +171,7 @@ def _is_date_only_bound(value: object) -> bool:
 def _research_coverage_calendars(
     options: dict, instruments: list[Instrument]
 ) -> dict[int, CalendarName | None] | None:
-    """Use XNYS only when the exact instrument venue matches that supported calendar."""
+    """Use XNYS only for an unambiguous canonical primary listing on that venue."""
 
     date_only = options.get("date_only_bounds", {})
     if (
@@ -178,15 +180,24 @@ def _research_coverage_calendars(
         or not date_only.get("end")
     ):
         return None
-    return {
-        instrument.id: (
-            "XNYS"
-            if instrument.equity_detail is not None
-            and (instrument.equity_detail.exchange_mic or "").upper() == "XNYS"
+    calendars: dict[int, CalendarName | None] = {}
+    for instrument in instruments:
+        primary_listings = [
+            listing
+            for listing in instrument.listings or []
+            if listing.is_primary and listing.is_active
+        ]
+        mic = (
+            normalize_exchange_mic(
+                primary_listings[0].exchange.mic
+                if primary_listings[0].exchange is not None
+                else None
+            )
+            if len(primary_listings) == 1
             else None
         )
-        for instrument in instruments
-    }
+        calendars[instrument.id] = "XNYS" if mic == "XNYS" else None
+    return calendars
 
 
 def _dataset_options(run_config: dict, manifest: dict) -> dict:
@@ -257,7 +268,15 @@ def _dataset_options(run_config: dict, manifest: dict) -> dict:
         "end": end,
         "date_only_bounds": {
             "start": _is_date_only_bound(raw_start),
-            "end": _is_date_only_bound(raw_end),
+            # An exact as-of timestamp can truncate a date-only end. Preserve
+            # that precision instead of treating the resulting interval as a
+            # full-session date range.
+            "end": _is_date_only_bound(raw_end)
+            and not (
+                as_of is not None
+                and end == as_of
+                and not _is_date_only_bound(run_config.get("as_of") or manifest.get("as_of"))
+            ),
         },
         "as_of": as_of,
         "benchmark": benchmark.strip().upper() if isinstance(benchmark, str) else None,
@@ -387,7 +406,11 @@ async def _materialize_benchmark_dataset(
     instrument = (
         await db.execute(
             select(Instrument)
-            .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+            .options(
+                selectinload(Instrument.equity_detail),
+                selectinload(Instrument.stats),
+                selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
+            )
             .where(Instrument.symbol == benchmark)
         )
     ).scalar_one_or_none()
@@ -625,7 +648,11 @@ async def _materialize_declared_dataset(
                     await db.execute(
                         select(Instrument)
                         .options(
-                            selectinload(Instrument.equity_detail), selectinload(Instrument.stats)
+                            selectinload(Instrument.equity_detail),
+                            selectinload(Instrument.stats),
+                            selectinload(Instrument.listings).selectinload(
+                                InstrumentListing.exchange
+                            ),
                         )
                         .where(Instrument.id.in_(source_member_ids))
                     )
@@ -679,7 +706,11 @@ async def _materialize_declared_dataset(
                     await db.execute(
                         select(Instrument)
                         .options(
-                            selectinload(Instrument.equity_detail), selectinload(Instrument.stats)
+                            selectinload(Instrument.equity_detail),
+                            selectinload(Instrument.stats),
+                            selectinload(Instrument.listings).selectinload(
+                                InstrumentListing.exchange
+                            ),
                         )
                         .where(Instrument.symbol.in_(requested[offset : offset + BATCH_QUERY_SIZE]))
                     )
@@ -808,7 +839,11 @@ async def _materialize_declared_dataset(
     instrument = (
         await db.execute(
             select(Instrument)
-            .options(selectinload(Instrument.equity_detail), selectinload(Instrument.stats))
+            .options(
+                selectinload(Instrument.equity_detail),
+                selectinload(Instrument.stats),
+                selectinload(Instrument.listings).selectinload(InstrumentListing.exchange),
+            )
             .where(Instrument.symbol == symbol)
         )
     ).scalar_one_or_none()

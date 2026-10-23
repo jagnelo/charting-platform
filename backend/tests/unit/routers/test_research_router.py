@@ -70,15 +70,49 @@ def test_explicit_research_timestamps_keep_their_instants_and_do_not_become_date
     assert (
         _research_coverage_calendars(
             {"timeframe": mixed["timeframe"], "date_only_bounds": mixed["date_only_bounds"]},
+            [],
+        )
+        is None
+    )
+
+    reverse_mixed = _dataset_options(
+        {
+            "timeframe": "D1",
+            "start_date": "2024-11-22",
+            "end_date": "2024-11-25T21:00:00Z",
+        },
+        {},
+    )
+    assert reverse_mixed["start"] == datetime(2024, 11, 22, tzinfo=UTC)
+    assert reverse_mixed["end"] == datetime(2024, 11, 25, 21, tzinfo=UTC)
+    assert reverse_mixed["date_only_bounds"] == {"start": True, "end": False}
+    assert (
+        _research_coverage_calendars(
+            {
+                "timeframe": reverse_mixed["timeframe"],
+                "date_only_bounds": reverse_mixed["date_only_bounds"],
+            },
             [
                 cast(
                     Instrument,
-                    SimpleNamespace(id=1, equity_detail=SimpleNamespace(exchange_mic="XNYS")),
+                    SimpleNamespace(id=1, listings=[]),
                 )
             ],
         )
         is None
     )
+
+    date_range_with_exact_as_of = _dataset_options(
+        {
+            "timeframe": "D1",
+            "start_date": "2024-11-22",
+            "end_date": "2024-11-25",
+            "as_of": "2024-11-25T15:00:00Z",
+        },
+        {},
+    )
+    assert date_range_with_exact_as_of["end"] == datetime(2024, 11, 25, 15, tzinfo=UTC)
+    assert date_range_with_exact_as_of["date_only_bounds"] == {"start": True, "end": False}
 
 
 def test_date_granular_daily_coverage_uses_only_the_exact_supported_instrument_venue():
@@ -86,19 +120,48 @@ def test_date_granular_daily_coverage_uses_only_the_exact_supported_instrument_v
         "timeframe": Timeframe.D1,
         "date_only_bounds": {"start": True, "end": True},
     }
-    xnys_equity = cast(
-        Instrument, SimpleNamespace(id=1, equity_detail=SimpleNamespace(exchange_mic="XNYS"))
+
+    def instrument_with_listings(instrument_id: int, *listings: SimpleNamespace) -> Instrument:
+        return cast(Instrument, SimpleNamespace(id=instrument_id, listings=list(listings)))
+
+    def primary_listing(mic: str, *, active: bool = True) -> SimpleNamespace:
+        return SimpleNamespace(
+            is_primary=True,
+            is_active=active,
+            exchange=SimpleNamespace(mic=mic),
+        )
+
+    xnys_equity = instrument_with_listings(1, primary_listing("XNYS"))
+    other_us_equity = instrument_with_listings(2, primary_listing("ARCX"))
+    unknown_venue = instrument_with_listings(3, primary_listing("UNLISTED"))
+    no_primary_listing = instrument_with_listings(
+        4,
+        SimpleNamespace(
+            is_primary=False,
+            is_active=True,
+            exchange=SimpleNamespace(mic="XNYS"),
+        ),
     )
-    other_us_equity = cast(
-        Instrument, SimpleNamespace(id=2, equity_detail=SimpleNamespace(exchange_mic="ARCX"))
+    ambiguous_primary_listings = instrument_with_listings(
+        5, primary_listing("XNYS"), primary_listing("XNYS")
     )
-    unknown_venue = cast(
-        Instrument, SimpleNamespace(id=3, equity_detail=SimpleNamespace(exchange_mic=None))
+    inactive_xnys = instrument_with_listings(6, primary_listing("XNYS", active=False))
+    detail_only_xnys = cast(
+        Instrument,
+        SimpleNamespace(
+            id=7,
+            listings=[],
+            equity_detail=SimpleNamespace(exchange_mic="XNYS"),
+        ),
     )
 
     assert _research_coverage_calendars(options, [xnys_equity]) == {1: "XNYS"}
     assert _research_coverage_calendars(options, [other_us_equity]) == {2: None}
     assert _research_coverage_calendars(options, [unknown_venue]) == {3: None}
+    assert _research_coverage_calendars(options, [no_primary_listing]) == {4: None}
+    assert _research_coverage_calendars(options, [ambiguous_primary_listings]) == {5: None}
+    assert _research_coverage_calendars(options, [inactive_xnys]) == {6: None}
+    assert _research_coverage_calendars(options, [detail_only_xnys]) == {7: None}
     assert (
         _research_coverage_calendars({**options, "timeframe": Timeframe.H1}, [xnys_equity]) is None
     )
