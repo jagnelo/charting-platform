@@ -64,22 +64,24 @@ def _inputs_with_etf_membership_reference() -> dict[str, Any]:
     return values
 
 
-def _inputs_with_selected_study_artifact_reference() -> dict[str, Any]:
+def _inputs_with_selected_study_artifact_reference(
+    *, artifact_type: str = "series", value: Any = None
+) -> dict[str, Any]:
     values = _inputs()
     old_strategy: StrategyVersion = values["strategy_manifest"].strategy
+    study_value = [1.25, 2.5] if value is None else value
+    study_payload = {"type": artifact_type, "value": study_value}
     reference = SelectedStudyArtifactReference(
         research_run_id=41,
         code_version_id=12,
         artifact_id=87,
-        artifact_name="parameters",
-        artifact_type="strategy_parameters",
-        output_contract="strategy-parameters.v1",
-        run_reproducibility_hash="run-hash-41",
+        artifact_name="study.output",
+        artifact_type=artifact_type,
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
         code_version_digest=content_digest("code-version"),
         dataset_manifest_digest=content_digest("dataset-manifest"),
-        artifact_content_digest=content_digest(
-            {"type": "strategy_parameters", "value": {"lookback": 20}}
-        ),
+        artifact_content_digest=content_digest(study_payload),
     )
     strategy = replace(old_strategy, selected_study_artifact=reference)
     old_portfolio: PortfolioComposition = values["portfolio"]
@@ -121,6 +123,7 @@ def _inputs_with_selected_study_artifact_reference() -> dict[str, Any]:
         strategies=(strategy,),
         packages={strategy.fingerprint: package},
         selected_study_artifact=reference,
+        selected_study_payload=study_payload,
     )
     return values
 
@@ -395,11 +398,32 @@ async def test_hydrator_rejects_selected_study_reference_without_trusted_resolve
 
 
 @pytest.mark.asyncio
-async def test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_reference() -> None:
-    values = _inputs_with_selected_study_artifact_reference()
+@pytest.mark.parametrize(
+    ("artifact_type", "study_value"),
+    (
+        ("scalar", 2.5),
+        ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
+        ("boolean", True),
+        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
+        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
+        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
+        ("range", {"low": 1.25, "high": 3.75}),
+        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
+        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
+        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
+        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
+    ),
+)
+async def test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_reference(
+    artifact_type: str, study_value: Any
+) -> None:
+    values = _inputs_with_selected_study_artifact_reference(
+        artifact_type=artifact_type, value=study_value
+    )
     expected = values["selected_study_artifact"]
     seen: list[tuple[Any, SelectedStudyArtifactReference]] = []
-    output_payload = {"type": expected.artifact_type, "value": {"lookback": 20}}
+    output_payload = values["selected_study_payload"]
+    expected_output = ResolvedStudyArtifactOutput(expected, output_payload)
 
     async def resolver(
         *, principal: Any, reference: SelectedStudyArtifactReference
@@ -414,7 +438,7 @@ async def test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_ref
 
     assert hydrated.strategies[0].selected_study_artifact == expected
     assert hydrated.study_artifacts is not None
-    assert hydrated.study_artifacts[hydrated.strategies[0].fingerprint].value == {"lookback": 20}
+    assert hydrated.study_artifacts[hydrated.strategies[0].fingerprint] == expected_output
     assert seen == [("alice", expected)]
 
     with pytest.raises(TrialDomainHydrationError, match="attempt is missing"):

@@ -696,20 +696,17 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-forward-study-output-worker-context-revalidation-v3
+  current_phase: full-roadmap-typed-study-hydration-revalidation-v4
   current_blocker: >-
     The accepted four-feature baseline 0e342512e53ba2268425294d61c50e219eaafa4f and the later
     accepted shared Market Map/cleanup repair 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad are already
     adopted in this Strategy branch. The latter is the exact synchronized staging release with
     canonical receipt 20261023T000222Z-4687bd0cd21a.json and green CI39866387942 including Exhaustive;
-    merge commit 85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db preserves both histories. The merge is
-    published in ee333e450f6883bc45cb90d0a222c1748859370e, independently verified as current origin
-    Strategy ref; GitHub reports staging still exactly 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.
-    Exact-source branch CI39876950653 on published ee333e450f6883bc45cb90d0a222c1748859370e is
-    terminal success (attempt1): Frontend, Backend including combined coverage, Branch-declared,
-    and E2E Playwright succeeded; Exhaustive was skipped by feature-branch policy. This run does not
-    cover the unpublished current changeset. The accepted staging release 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
-    remains the exact staging ref and a parent of this Strategy branch. Current source work
+    merge commit 85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db preserves both histories. That source is
+    already an ancestor locally; no duplicate merge is needed. Published Strategy origin is
+    dd0a704b988ffbfb2ea7143e42abbf41105336f0; exact CI39882200073 on that source remains in
+    progress as of 2026-10-23 01:44 UTC and excludes nine accumulated local commits plus the current
+    hydration regression. Preserve it to terminal before pushing those changes. Current source work
     strengthens the ordinary Study PostgreSQL forward restart regression through the production
     outer AuthenticatedForwardWorkerRuntimeInputResolver and carries Study output through
     ForwardStrategyContextWindow, forward recipe resolution, authenticated history replay, and
@@ -720,18 +717,19 @@ progress:
     1-GiB/120-second bound; Ruff, format, diff-check, and workstream validation pass. A further
     offline forward-preparation/worker-seeding parameter matrix passed all 11 resolver-admitted
     Study artifact types in 5.30s; focused MyPy, Ruff, format, and diff checks pass. The PostgreSQL
-    restart node collects alone but its body remains unrun locally. Preserve exact parent CI
-    39882200073 to terminal before publishing the accumulated local source/workstream changeset;
-    inspect new exact-source CI afterward. Full local database/application,
+    restart node collects alone but its body remains unrun locally. The hydration matrix now follows
+    the actual TC Study artifact contract across all 11 admitted output types and retains the trusted-
+    resolver denial; its focused 12 cases and touched-boundary checks pass. Full local database/application,
     browser/visual, native qualification and remaining roadmap criteria stay open.
     The full 18 criteria remain open, including full local backend/application, migration, browser and
     visual validation, native qualification and remaining persistence/API/worker behavior. Provider
     HTTP/quota, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
   next_action: >-
-    Let exact-source CI 39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 reach
-    terminal before pushing the accumulated worker-seeder and typed Study payload-shape regressions, so
-    that parent run is not displaced. Then publish the coherent follow-up and inspect its
-    exact-source CI. Keep the real PostgreSQL restart body plus full local/application/browser/native
+    Let exact-source CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 reach
+    terminal before pushing the accumulated worker-seeder, typed Study payload-shape and hydration
+    regressions, so that parent run is not displaced. Then publish the coherent follow-up and inspect
+    its exact-source CI. Obtain the assigned PostgreSQL restart slot for the collected 11-type matrix;
+    retain the full local/application/browser/native
     gates open; do not launch database, Compose, build, browser or native validation until Root
     assigns the one-at-a-time host slot. Preserve all 18 original criteria, exact-scope Nautilus
     authority, disabled provider/live/quota/paid/trial/unknown/unsafe/broker/capital boundaries, and
@@ -1671,13 +1669,19 @@ roadmap_progress_history:
     is now parameterized across those same 11 types, but its body has not run locally; collection,
     focused MyPy, Ruff and formatting pass. A stack-free invocation/runtime regression also proves
     strategy code can compare the exact immutable typed output value for all 11 admitted artifact
-    types after wire decoding. Historical failures,
+    types after wire decoding. The existing hydration resolver regression now uses the actual TC
+    producer contract (artifact name `study.output`, `output_contract: study`, canonical SHA-256
+    run digest, and typed payload) and verifies exact hydrated outputs for all 11 admitted types;
+    the missing-trusted-resolver denial remains asserted. Its focused 12 cases pass, with focused
+    MyPy, Ruff, formatting and diff checks. Historical failures,
     including CI39856591934 and CI39874448939, remain in the append-only journal/handoff; generic
     Study output is not native execution evidence. Provider/issuer HTTP, quota, live, paid/trial,
     unknown/unsafe, broker/capital and deployment scopes remain disabled.
   next_action: >-
-    Allow exact CI39882200073 to reach terminal, then publish the accumulated local worker-seeder and
-    typed Study payload-shape regressions together and inspect exact-tip CI. Preserve the persisted
+    Preserve exact CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 to terminal;
+    it remains in progress and does not cover the accumulated local worker-seeder, typed Study
+    payload-shape or hydration contract regressions. Then publish the coherent follow-up and inspect
+    exact-tip CI. Preserve the persisted
     PostgreSQL restart test and request its assigned full validation slot only through Root's existing
     coordination. Do not launch a full local profile, database fixture, browser, build or native gate
     without an assigned slot. Continue all 18 criteria and database/runtime/browser/native gates;

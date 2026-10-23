@@ -17540,3 +17540,23 @@ The runtime consumer assertion was then tightened so strategy code compares the 
 immutable value (nested JSON arrays as tuples), not only a non-null sentinel. The same 11 cases pass
 again (`11 passed`, 0.37s); focused Ruff, format and MyPy also pass. This exact-value assertion is
 covered by the next coherent local commit and remains outside parent CI39882200073.
+
+## Align the hydration matrix with the released TC Study contract — 2026-10-23 01:44 UTC
+
+Corrected the existing hydration fixture, which had used a `strategy_parameters`/`strategy-parameters.v1`
+shape and a noncanonical run digest despite exercising the authenticated TC Study resolver. It now
+uses the released `study.output` artifact name, `output_contract: study`, a canonical SHA-256 run
+reproducibility digest, and a type-matched payload. Parameterized the existing production hydrator
+resolver test across all 11 admitted Study output types and asserted equality of the complete
+`ResolvedStudyArtifactOutput`; the missing-trusted-resolver rejection remains covered. The focused
+hydration denial/type matrix passed 12/12 in 0.44s. Focused MyPy for this test file, Ruff, Ruff format,
+`git diff --check`, and branch workstream validation pass. No product code, database, Docker, browser,
+native process, provider/quota or live operation changed or ran.
+
+The accepted staging release 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is already an ancestor through
+Strategy merge commit 85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db; no second merge was needed. Preserve
+the existing exact parent CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 until
+terminal; it remains in progress and excludes this local change and the accumulated nine local
+commits. The real PostgreSQL restart body, full local backend/application/combined DB, browser/visual,
+native qualification and all remaining 18-criterion roadmap work remain open. No heavy slot was
+started; preserve all provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.
