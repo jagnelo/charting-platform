@@ -132,6 +132,14 @@ def test_date_granular_daily_coverage_uses_only_the_exact_supported_instrument_v
         )
 
     xnys_equity = instrument_with_listings(1, primary_listing("XNYS"))
+    canonical_xnys_without_equity_detail_mic = cast(
+        Instrument,
+        SimpleNamespace(
+            id=8,
+            listings=[primary_listing("XNYS")],
+            equity_detail=SimpleNamespace(exchange_mic=None),
+        ),
+    )
     other_us_equity = instrument_with_listings(2, primary_listing("ARCX"))
     unknown_venue = instrument_with_listings(3, primary_listing("UNLISTED"))
     no_primary_listing = instrument_with_listings(
@@ -156,6 +164,9 @@ def test_date_granular_daily_coverage_uses_only_the_exact_supported_instrument_v
     )
 
     assert _research_coverage_calendars(options, [xnys_equity]) == {1: "XNYS"}
+    assert _research_coverage_calendars(options, [canonical_xnys_without_equity_detail_mic]) == {
+        8: "XNYS"
+    }
     assert _research_coverage_calendars(options, [other_us_equity]) == {2: None}
     assert _research_coverage_calendars(options, [unknown_venue]) == {3: None}
     assert _research_coverage_calendars(options, [no_primary_listing]) == {4: None}
