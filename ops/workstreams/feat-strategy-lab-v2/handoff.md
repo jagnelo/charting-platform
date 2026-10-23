@@ -18085,3 +18085,43 @@ remain open. The next bounded code-review candidate is passing an explicit event
 risk-free assumption through the official Nautilus OOS metric-set builders and including it in
 their identities; preserve the v17 cadence identities and event estimator v1 contract. All 18
 roadmap criteria and operation holds remain unchanged.
+
+## Event-risk-free assumption through official OOS builders — active, 2026-10-23 13:04 UTC
+
+Source review found that `calculate_event_aligned_equity_metrics` already accepts and records
+`risk_free_return_annualized`, but `_build_oos_equity_metric_values` did not pass a caller value and
+both official Nautilus OOS metric-set builders silently used zero. The current bounded source slice
+adds `event_risk_free_return_annualized` to both builder APIs, forwards it only to event-time
+Sharpe/Sortino calculation, and includes non-zero values in both MetricSet identity formulas. The
+identity input omits a zero value to preserve historical default-zero IDs. The separate
+`session_risk_free_return_per_period` remains unchanged. Added focused builder regressions cover
+forwarding, non-zero identity separation, and explicit-zero/default identity equivalence; updated
+the metrics docs. Both new builder regressions passed in a single stack-free process (`2 passed` in
+1.31s; 1-GiB address-space cap, 90s timeout, offline UV/private cache). Touched Ruff check/format and
+`git diff --check` pass; the full touched module and MyPy have not run.
+The zero-default regressions reconstruct the pre-change identity dictionaries directly, asserting
+compatibility against the prior formula rather than only comparing two new defaults.
+
+Exact-source CI `39951384776` covers parent source `fc388467024e74cdaa343cc472a6659b0391fae4`, not
+this delta. Root's short F8m slot remains reserved; the narrow two-node selection above was kept
+within a 1-GiB cap. Wait for slot release before the full touched-module tests or MyPy; do not launch
+a broad suite or any database/application/browser/native/provider operation. Preserve the full
+roadmap and all operation holds.
+
+Static compatibility review on 2026-10-23 confirmed both public OOS metric-set builders expose the
+new annualized event risk-free parameter as keyword-only, and the sole production caller in
+`nautilus_result_materialization.py` uses keyword arguments. The value reaches the existing event
+metric calculator, whose finite and greater-than-minus-one validation remains authoritative; the
+builder identities include every non-zero assumption while omitting zero to retain the literal
+pre-change identity formula. This is source review only, not additional test or MyPy evidence. The
+full touched module and scoped MyPy remain held for Root's local slot.
+
+The full touched `test_nautilus_result_metrics.py` module then passed all 19 tests in 1.29s with
+coverage disabled, a single process, UV offline/private cache and a 768-MiB address-space cap. This
+is module-level unit evidence only. Scoped MyPy remains pending Root's local-slot release; no
+database, Compose, browser, native or external operation ran.
+
+Given the bounded module and style evidence, this source changeset is being published for its
+exact-source hosted CI rather than consuming Root's reserved local F8m slot for MyPy. This is not a
+claim that local MyPy ran: the changeset remains in progress until hosted Branch-declared typing and
+the other required exact-source CI jobs are terminal.

@@ -505,9 +505,13 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   `ln(1 + risk_free_return_annualized)`; downside deviation uses negative
   interval excess-log increments and the same elapsed-time denominator.
   Annualization days, risk-free target, timestamp basis and interval count are
-  recorded with those metrics. Fewer than two return intervals, repeated event
-  times, nonpositive equity, or unrepresentable Decimal arithmetic withholds
-  the risk family with an explicit reason. Historical VaR and expected
+  recorded with those metrics. Both official Nautilus OOS metric-set builders
+  accept `event_risk_free_return_annualized` independently from the per-period
+  session rate. Non-zero event-time targets are included in metric-set identity;
+  the default zero target preserves existing metric-set IDs. Fewer than two
+  return intervals, repeated event times, nonpositive equity, or
+  unrepresentable Decimal arithmetic withholds the risk family with an explicit
+  reason. Historical VaR and expected
   shortfall remain withheld because irregular event intervals do not share one
   return horizon. Currency is explicit;
   calculation/annualization basis, gross/net basis, samples, and null reasons

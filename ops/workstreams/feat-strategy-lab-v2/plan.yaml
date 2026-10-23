@@ -696,40 +696,40 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-time-aware-equity-metrics-v1
+  current_phase: full-roadmap-event-risk-assumption-binding-v1
   active_changeset:
-    id: strategy-lab-v2-irregular-event-time-risk-metrics-v1
+    id: strategy-lab-v2-event-risk-free-builder-binding-v1
     scope: >-
-      Add elapsed-time residual-log-return volatility, Sharpe, and Sortino to native event-aligned
-      equity metrics with explicit timestamp/equity/risk-free validation and null reasons. Preserve
-      cadence-based calculations and their v17 identities, withhold horizon-incompatible historical
-      VaR/expected shortfall, identify the event-time estimator as v1 in calculation parameters,
-      and document it. No dispatch, provider access,
-      runtime activation, or full-profile work.
+      Expose the event-time annualized risk-free assumption through both official Nautilus OOS
+      metric-set builders and bind non-zero assumptions into MetricSet identity. Preserve legacy
+      default-zero identities and distinguish this annualized event assumption from per-period
+      session risk-free inputs. Add builder-level forwarding/identity regressions and document the
+      behavior. No dispatch, provider access, runtime activation, or full-profile work.
     owned_paths:
-      - backend/app/strategy_lab_v2/metrics.py
-      - backend/app/strategy_lab_v2/tests/test_metrics.py
+      - backend/app/strategy_lab_v2/nautilus_result_metrics.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_result_metrics.py
       - docs/strategy-lab-v2.md
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/session.json
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
-    status: complete
+    status: in_progress
   current_blocker: >-
-    The elapsed-time event-risk metrics changeset is published at fc388467024e74cdaa343cc472a6659b0391fae4
-    and exact-source CI 39951384776 is terminal green for the required feature-branch jobs; the
-    Exhaustive Integration Gate is skipped by feature-branch policy. The local full profile and
-    combined PostgreSQL/application/browser/strict-visual/native gates remain open and Root-assigned.
-    All18 roadmap criteria and live, paid/trial, unsafe, broker/capital and deployment holds remain
+    The two new event-risk-free builder regressions pass (2/2, one process, 1-GiB address-space cap,
+    90s timeout), and the full touched `test_nautilus_result_metrics.py` module passes 19/19 in
+    1.29s under a 768-MiB address-space cap with no coverage. Ruff/format/diff/workstream checks and
+    static call-site compatibility review pass. Exact-source CI 39951384776 covers only parent
+    fc388467024e74cdaa343cc472a6659b0391fae4. The local scoped MyPy check is deferred while Root's
+    F8m slot remains reserved; publish this bounded source with truthful evidence and use exact-source
+    hosted Branch-declared CI for the required typing contract. Keep the changeset in progress until
+    exact CI is terminal. All18 roadmap criteria, full runtime gates, and operation holds remain
     unchanged.
-  updated_at: "2026-10-23T12:56:04Z"
+  updated_at: "2026-10-23T13:22:04Z"
   next_action: >-
-    Continue the full roadmap with the next bounded AC-METRICS improvement: inspect whether the
-    official Nautilus OOS metric-set builders expose and fingerprint the event-time annualized
-    risk-free assumption. Preserve cadence identities and the event estimator v1 contract. Do not
-    start broader local validation while Root retains the F8m slot; PostgreSQL, application, browser,
-    strict-visual and native gates remain Root-assigned, and provider/issuer/SEC operations remain
-    out of scope.
+    Publish the coherent bounded source and inspect exact-source CI, including the branch-declared
+    typing job. Keep local scoped MyPy deferred unless hosted CI does not cover the touched typing
+    boundary and Root releases capacity. No DB/Compose/browser/native/provider operations. Preserve
+    the default-zero metric identity and existing session-period risk-free semantics.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

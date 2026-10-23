@@ -34,7 +34,15 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "backend/app/strategy_lab_v2/nautilus_result_metrics.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_result_metrics.py",
+    "docs/strategy-lab-v2.md",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -67,12 +75,12 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "last_checkpoint": "2026-10-23T12:56:04Z",
+  "last_checkpoint": "2026-10-23T13:22:04Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue the full roadmap with the bounded review of event-time annualized risk-free propagation and identity in the official Nautilus OOS metric-set builders; preserve full-profile gates and operation holds.",
+  "next_action": "Wait for Root to release the short local slot, then run only the two event-risk-free builder regression tests and scoped touched-boundary checks; no broad suite or runtime operation.",
   "parent_branch": "staging",
-  "plan_hash": "253f335ea29f3e4ee4adfbadfcb599b0a709cfcdde315a02633e546cf216f1d4",
+  "plan_hash": "f5d3b8df2832cacf85f5beb9c9576eb3f7a5627db23b2927573d3f8d9e039b9b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -102,10 +110,10 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Elapsed-time event-risk metrics source fc388467024e74cdaa343cc472a6659b0391fae4 has exact-source CI 39951384776 terminal green for required feature-branch jobs; EIG was skipped by feature policy. Full local database/application/browser/strict-visual/native gates remain open and Root-assigned; operation holds remain intact.",
-    "current_phase": "full-roadmap-time-aware-equity-metrics-v1",
-    "next_action": "Proceed with bounded review of event-time annualized risk-free propagation/fingerprinting in official Nautilus OOS metric-set builders; no broad local validation until Root releases capacity.",
-    "updated_at": "2026-10-23T12:56:04Z",
+    "current_blocker": "The two new event-risk-free builder regressions and full touched result-metrics module pass (19/19, no coverage, 768-MiB cap); Ruff/format/diff/workstream checks and static call-site compatibility review pass. Local scoped MyPy is deferred while Root's F8m slot remains reserved. Publish this bounded source and use exact-source Branch-declared CI for its typing contract; keep the changeset in_progress until CI is terminal. Exact-source CI 39951384776 covers only parent fc388467; this delta is uncommitted.",
+    "current_phase": "full-roadmap-event-risk-assumption-binding-v1",
+    "next_action": "Publish this coherent source and inspect its exact-source CI, including Branch-declared typing; run local scoped MyPy only if CI does not cover the changed boundary and Root releases capacity. No external/runtime operations.",
+    "updated_at": "2026-10-23T13:22:04Z",
     "total": 5,
     "updated_at": "2026-10-23T11:24:06Z"
   },
