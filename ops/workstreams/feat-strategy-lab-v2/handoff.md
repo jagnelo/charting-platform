@@ -17962,3 +17962,57 @@ delta; after it terminates, publish the coherent test and owned-record changes a
 CI. Do not launch a local database/application/browser/native gate without an assigned slot. The
 full roadmap, runtime acceptance, and disabled provider/quota/paid/trial/broker/capital/deployment
 boundaries remain unchanged.
+
+## API-derived Study reference consumer regression and f04 read-only target recipe — 2026-10-23 11:13 UTC
+
+The latest coherent source is published at `1e643917e2896ba41ad9842f13a4b42c0c1160d1`, with
+local `HEAD` and `origin/feat/strategy-lab-v2` synchronized and the worktree clean at inspection.
+Exact-source Actions run `39942258194` for that SHA is terminal successful: Backend Tests passed,
+including the full `pytest tests/integration` Testcontainers step and combined coverage; Frontend
+Unit Tests, Branch-declared Tests, and E2E Playwright also passed. Exhaustive Integration Gate was
+skipped by feature-branch policy. The integration step includes
+`backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`, whose
+current regression passes the reference GET response verbatim into Strategy creation and readback.
+The predecessor run `39939914641` on `068d03f` was cancelled by the newer push; it is not a
+product/test failure. Run `39942258194` was observed terminal successful at 11:39:36Z. No local
+fixture was launched while Root held the F8m slot; no replay occurred.
+
+The earlier statement that an f04 first-human recipe was delivered separately did not identify a
+durable path. This paragraph is the f04-only, read-only target recipe. On exact accepted release
+`f04fb2a26c6363c6090e76c2658cfcfe7adabf61`, authenticate as existing owner 1 and read
+`GET /api/v1/code/assets` plus `GET /api/v1/research/runs/1`. Confirm Study CodeAsset 1, its pinned
+CodeVersion 1 (value 6), and run 1 is pinned to version 1, `status=completed`,
+`evaluation_status=completed`, with persisted scalar ResearchArtifact 1 (value 6). Use the
+artifact's persisted `name`, `artifact_type`, and full `payload`, not inferred values.
+
+f04 has no public selected-reference construction endpoint. Its actual read-only resolver is
+`create_selected_study_artifact_resolver(AsyncSessionLocal)` in
+`backend/app/strategy_lab_v2/study_artifact_resolver.py`. Construct
+`SelectedStudyArtifactReference` from explicit IDs run=1/version=1/artifact=1, the persisted
+artifact name/type, `output_contract="study"`, and the run's `reproducibility_hash`. Compute
+`code_version_digest` with f04's `_code_version_digest(version, asset)` (asset identity plus all
+immutable CodeVersion fields); compute `dataset_manifest_digest=content_digest(run.dataset_manifest)`
+and `artifact_content_digest=content_digest(artifact.payload)`. Pass that typed reference to the
+resolver with `principal=1`; success must return the identical reference. For tamper rejection, use
+a new valid digest, e.g. `content_digest({"type":"scalar","value":7})`, only as the claimed
+artifact digest and confirm resolution rejects. For owner isolation, call the same resolver with
+`principal=2` and the run-1 reference; it must fail closed because the run query is owner-scoped.
+Run 1 is completed, so it cannot prove nonterminal rejection; only check an already-existing
+nonterminal row if one is present. Do not alter run state or create another run to manufacture that
+case.
+
+The f04 V2 consumer route is `POST /api/v1/strategy-lab/v2/strategies` with
+`attributes.selected_study_artifact`; it invokes the resolver before persistence. A successful call
+creates a Strategy resource, so it is outside this read-only target recipe and requires separately
+authorized target mutation. Direct resolver success/denial proves owner-scoped immutable Study
+provenance only—not a full Strategy API write/readback, backtest, or native Nautilus execution.
+No target request or database operation was run by this branch session. Provider/issuer/SEC HTTP,
+quota work, native/forward/broker/capital activation, local fixture launches and all full-profile
+gates remain governed by their existing holds.
+
+This closes the API-derived selected-Study reference consumer source changeset only. The complete
+18-criterion roadmap and full local/combined runtime, strict-visual, and native gates remain open.
+An explicit documented AC-METRICS gap is that cadence-based annualized time-series metrics do not
+accept irregular timestamped equity observations; the next source context should derive a
+versioned elapsed-time formula and fail-closed input contract without changing existing cadence
+metric identities.

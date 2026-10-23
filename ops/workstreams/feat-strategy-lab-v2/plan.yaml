@@ -696,27 +696,26 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-study-reference-api-consumer-roundtrip-v1
+  current_phase: full-roadmap-time-aware-equity-metrics-v1
   current_blocker: >-
-    The explicit-ID Study reference resolver is published at 068d03f1ff55f5b1701d071980b4405d83e65cc6.
-    Its exact-source CI39939914641 has frontend green, backend unit green, and backend integration
-    still running. The current owned follow-up changes the existing PostgreSQL API test to pass the
-    authenticated reference response directly into Strategy creation/readback; Ruff, format,
-    diff-check and bounded collect-only for the changed node pass, but no SQL fixture/body ran for
-    this delta. Preserve earlier focused 63-pass evidence and the prior zero-owner diagnostic
-    failure. The route derives one immutable reference from explicit owner-scoped IDs; neither this
-    nor the consumer roundtrip proves Strategy execution or native authority. All18 roadmap
-    criteria and full local/combined database/application/browser/strict-visual/native gates remain
-    open. Provider/live, quota, paid/trial, unknown/unsafe, broker/capital and deployment remain
-    disabled.
-  updated_at: "2026-10-23T10:46:33Z"
+    Published source1e643917e2896ba41ad9842f13a4b42c0c1160d1 adds the API-derived selected-Study
+    reference to Strategy create/readback in the real PostgreSQL integration case. Exact-source
+    run39942258194 is terminal successful for Backend Tests (including integration and combined
+    coverage), Frontend Unit Tests, Branch-declared Tests and E2E Playwright; Exhaustive Integration
+    Gate was skipped by feature policy. The predecessor run39939914641 on068d03f was cancelled when
+    the newer source was pushed and is not a failure.
+    Earlier 63-pass focused evidence and the zero-owner diagnostic failure remain historical.
+    Neither the API roundtrip nor generic Study materialization proves native Strategy execution.
+    All18 roadmap criteria and full local/combined database/application/browser/strict-visual/native
+    gates remain open. Provider/live, quota, paid/trial, unknown/unsafe, broker/capital and
+    deployment remain disabled.
+  updated_at: "2026-10-23T11:40:08Z"
   next_action: >-
-    Allow exact-source run39939914641 on the published parent to finish without replay. Then validate
-    and publish the single test+workstream follow-up as one coherent change and inspect its exact-source
-    CI, which is the first run containing the API-derived-pin-to-Strategy-consumer assertion. Keep
-    SQL-body local execution, combined runtime/browser, strict-visual and exact-pinned native
-    execution/settlement gates open until coordinator release; no unassigned heavy profile or
-    provider/issuer/SEC operation.
+    Begin a distinct AC-METRICS source context for elapsed-time annualized equity metrics: derive and
+    version the irregular-observation formula, explicit annualization basis, ordering/coverage and
+    null behavior before implementation. Keep existing cadence-based metric identities unchanged.
+    Continue to require Root-assigned capacity for local PostgreSQL/application/browser/strict-visual/
+    native profiles; do not launch unassigned heavy validation or provider/issuer/SEC operations.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1600,34 +1599,29 @@ roadmap_progress_history:
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
   total: 18
-  current_phase: full-roadmap-explicit-study-reference-resolution-v1
+  current_phase: full-roadmap-time-aware-equity-metrics-v1
   active_changeset:
-    id: strategy-lab-v2-explicit-study-reference-resolution-v1
+    id: strategy-lab-v2-api-derived-study-reference-consumer-roundtrip-v1
     scope: >-
-      Derive a typed immutable Study-artifact reference only from explicit owner-scoped IDs for a
-      fully completed accepted-TC ResearchRun and one persisted artifact; expose it through the
-      registered Strategy Lab v2 API and prove exact readback/rejection boundaries. Do not add
-      latest aliases, weaken runtime verification, dispatch work, or claim native execution.
+      Exercise the typed immutable Study reference returned by the explicit owner-scoped resolver
+      endpoint as the exact selected_study_artifact supplied to Strategy creation/readback. Preserve
+      the existing drift/owner/revocation/no-dispatch checks. Do not add latest aliases, weaken
+      runtime verification, dispatch work, or claim native execution.
     owned_paths:
-      - backend/app/strategy_lab_v2/study_artifact_resolver.py
-      - backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py
-      - backend/app/strategy_lab_v2/application.py
-      - backend/app/strategy_lab_v2/api_router.py
-      - backend/app/strategy_lab_v2/tests/test_api_router.py
-      - backend/app/strategy_lab_v2/tests/test_application.py
       - backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
-      - docs/strategy-lab-v2.md
-    status: in_progress
+      - ops/workstreams/feat-strategy-lab-v2/handoff.md
+      - ops/workstreams/feat-strategy-lab-v2/plan.yaml
+      - ops/workstreams/feat-strategy-lab-v2/session.json
+      - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+    status: complete
   current_blocker: >-
-    The current uncommitted changeset adds the explicit-ID owner-scoped reference resolver to the
-    registered V2 API and application adapter, with fake-session, route, factory and existing
-    PostgreSQL integration assertions. The latest focused selection passed 63 tests in 5.15s; an
-    earlier zero-owner diagnostic failed once and is preserved. The PostgreSQL module was
-    collect-only and its SQL body is unverified locally. Exact-source CI for this changeset,
-    combined application/browser/strict-visual and exact-pinned native execution/settlement gates
-    remain open. No strategy dispatch, native proof, provider/quota, paid/trial, broker/capital or
-    deployment operation is enabled.
+    The API-derived selected-Study consumer changeset is closed at source
+    1e643917e2896ba41ad9842f13a4b42c0c1160d1; exact-source CI39942258194 is terminal green for all
+    required feature-branch jobs, with EIG skipped by policy. Next AC-METRICS work is the documented
+    irregular-timestamp annualization gap. Full local/combined database/application/browser/strict-
+    visual and exact-pinned native execution/settlement remain open. No strategy dispatch,
+    provider/quota, paid/trial, broker/capital or deployment operation is enabled.
   next_action: >-
-    Run only bounded static/workstream/diff checks now, then publish this coherent source changeset
-    and its owned records for exact-source CI. Do not run PostgreSQL, full application/browser,
-    strict-visual or native profiles without an assigned slot; preserve all capability holds.
+    Derive a versioned elapsed-time metric contract and tests from the current documented limitation
+    before changing calculators. Preserve v17 cadence semantics and all existing comparison
+    compatibility. No local heavy profile before Root assigns capacity.

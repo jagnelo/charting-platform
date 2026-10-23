@@ -35,7 +35,6 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -73,12 +72,12 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "last_checkpoint": "2026-10-23T10:46:33Z",
+  "last_checkpoint": "2026-10-23T11:40:08Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Preserve exact CI 39939914641 until terminal; then publish the API-derived-reference-to-Strategy-consumer test and owned records coherently and inspect its exact-source CI. Do not start unassigned SQL/application/browser/native gates.",
+  "next_action": "Start a distinct AC-METRICS source context by deriving the versioned elapsed-time annualized equity metric contract for irregular observations; preserve existing cadence metrics and await Root-assigned capacity for local heavy gates.",
   "parent_branch": "staging",
-  "plan_hash": "1bf67eebcef91f65efbccaebb446be1530fac277a1762b8339abb8ec8daaf079",
+  "plan_hash": "a99d9af9e87a5db8318ced25dcb02144467642d9dcec4e0fbedafcf8aca5811c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -108,16 +107,17 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "The reference API is published at 068d03f1ff55f5b1701d071980b4405d83e65cc6; exact run39939914641 has frontend/backend unit green and backend integration active. A bounded test-only follow-up now feeds the API-returned reference into Strategy creation/readback. Its changed PG node collected, but no fixture/body ran locally; the active CI is on the parent and excludes this delta. Full local database/application/browser/strict-visual/native gates remain open; all operation holds remain intact.",
-    "current_phase": "full-roadmap-study-reference-api-consumer-roundtrip-v1",
-    "next_action": "Let exact run39939914641 finish, then publish the one-file API-to-consumer integration-test change with updated workstream records and inspect exact-source CI; no unassigned local DB/application/browser/native profile.",
+    "current_blocker": "API-derived selected-Study consumer source is complete at 1e643917e2896ba41ad9842f13a4b42c0c1160d1; exact-source CI39942258194 is terminal green for Backend, Frontend Unit, Branch-declared and E2E, with EIG skipped by feature policy. Full local database/application/browser/strict-visual/native gates remain open; all operation holds remain intact.",
+    "current_phase": "full-roadmap-time-aware-equity-metrics-v1",
+    "next_action": "Derive a versioned elapsed-time annualized equity metric contract for irregular observations before implementation; preserve cadence-based v17 semantics and wait for Root-assigned capacity for local heavy gates.",
+    "updated_at": "2026-10-23T11:40:08Z",
     "total": 5,
-    "updated_at": "2026-10-23T10:46:33Z"
+    "updated_at": "2026-10-23T11:24:06Z"
   },
-  "head": "068d03f1ff55f5b1701d071980b4405d83e65cc6",
-  "implementation_sha": "068d03f1ff55f5b1701d071980b4405d83e65cc6",
-  "remote": "068d03f1ff55f5b1701d071980b4405d83e65cc6",
-  "remote_sha": "068d03f1ff55f5b1701d071980b4405d83e65cc6",
+  "head": "1e643917e2896ba41ad9842f13a4b42c0c1160d1",
+  "implementation_sha": "1e643917e2896ba41ad9842f13a4b42c0c1160d1",
+  "remote": "1e643917e2896ba41ad9842f13a4b42c0c1160d1",
+  "remote_sha": "1e643917e2896ba41ad9842f13a4b42c0c1160d1",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
