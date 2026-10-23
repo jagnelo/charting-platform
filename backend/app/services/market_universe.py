@@ -75,6 +75,12 @@ logger = logging.getLogger(__name__)
 
 _MISSING_CONFIRMATIONS = 3
 _NASDAQ_TRADER_SOURCE_FILES = frozenset({"nasdaqlisted", "otherlisted"})
+_NASDAQ_TAPE_C_PROVIDER = "nasdaq_tape_c"
+_REQUIRED_NMS_SCOPES = (
+    ("cta_plan", "EQUITY"),
+    (_NASDAQ_TAPE_C_PROVIDER, "EQUITY"),
+    ("nasdaq", "ETF"),
+)
 _NASDAQ_TRADER_VENUES = frozenset(
     {"XNAS", "XNYS", "ARCX", "XASE", "BATS", "IEXG", "TXSE", "XBOS", "XCHI"}
 )
@@ -1175,7 +1181,10 @@ async def _mark_missing(
 ) -> None:
     provenance = run.provenance if isinstance(run.provenance, dict) else {}
     absence_scope = _authoritative_absence_scope(provider_name, quote_type)
-    if provider_name in {"cta_plan", "nasdaq"} and provenance.get("nms_union_complete") is True:
+    if (
+        provider_name in {"cta_plan", "nasdaq", _NASDAQ_TAPE_C_PROVIDER}
+        and provenance.get("nms_union_complete") is True
+    ):
         absence_scope = "US_NMS"
     source_files = provenance.get("source_files")
     if absence_scope == "US_OTC":
@@ -1225,12 +1234,15 @@ async def _mark_missing(
     if absence_scope == "US_NMS":
         cycle_runs = provenance.get("nms_union_provider_runs")
         cycle_id = provenance.get("reconciliation_cycle_id")
+        required_cycle_runs = {
+            f"{provider}:{required_type}" for provider, required_type in _REQUIRED_NMS_SCOPES
+        }
         if (
             not cycle_id
             or provenance.get("nms_union_complete") is not True
             or provenance.get("nms_union_cycle_id") != cycle_id
             or not isinstance(cycle_runs, dict)
-            or not {"cta_plan:EQUITY", "nasdaq:EQUITY", "nasdaq:ETF"}.issubset(set(cycle_runs))
+            or not required_cycle_runs.issubset(set(cycle_runs))
             or not isinstance(source_files, list)
         ):
             return
@@ -2202,15 +2214,13 @@ async def reconcile_us_universe(
                 }
             )
     # NMS absences require three complete scopes from this same invocation:
-    # CTA Tape A/B, Nasdaq-listed Tape C (represented by Nasdaq Trader's full
-    # listing files), and Nasdaq's ETF classification. CTA's broad EQUITY type
-    # cannot identify ETFs by itself, so use symbol+MIC membership across all
-    # scopes to conservatively protect either type from a false absence.
-    required_nms_scopes = (
-        ("cta_plan", "EQUITY"),
-        ("nasdaq", "EQUITY"),
-        ("nasdaq", "ETF"),
-    )
+    # CTA Tape A/B, a distinct Nasdaq-listed Tape C roster, and Nasdaq's ETF
+    # classification. Nasdaq Trader's nasdaqlisted/otherlisted files are
+    # supplementary cross-check evidence, not the separate Tape C roster.
+    # Until that distinct source is present, no same-session NMS absence union
+    # can be declared. CTA's broad EQUITY type cannot identify ETFs by itself,
+    # so use symbol+MIC membership across all scopes to protect either type.
+    required_nms_scopes = _REQUIRED_NMS_SCOPES
     nms_scopes = [nms_cycle_runs.get(scope) for scope in required_nms_scopes]
     if all(scope is not None for scope in nms_scopes):
         complete_scopes = [scope for scope in nms_scopes if scope is not None]

@@ -8889,25 +8889,21 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Reconcile the repaired four-feature staging release
-    `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` already merged into this
-    Provider branch at `3e8f866d756fd63c35740c6c45f19615cc48a4b0`. Verify and
-    publish the coherent owner checkpoint, then require normal exact-source
-    branch CI for the pushed post-merge tip; prior CI `39858232646` remains
-    evidence only for its earlier source. Prepare, but do not start, one
-    isolated current-source `full_stack_browser` profile until Root explicitly
-    releases the slot after reviewing capacity. Pin the run to the clean pushed
-    Provider tip with all application images source-labeled; use a unique
-    Compose project and private generated state/volumes/networks, seeded
-    deterministic market data, provider-egress denial, blank provider
-    credentials, Playwright 1.62.1 Noble, read-only DejaVu fonts, one worker,
-    zero retries, unchanged 260 functional/104 strict visual cases and 0.005
-    tolerance. Never use the retained default project or its `down -v` cleanup.
-    The latest read-only host sample had only 1.5 GiB available and 6.5 GiB
-    swap in use with Provider/TC/ETF services retained, so the local profile is
-    not released or safe to launch. Preserve every dataset, quota hold, source
-    receipt, original roadmap criterion and coordinator-only integration
-    boundary; no provider/issuer/SEC HTTP, quota mutation, deployment, paid or
-    trial activation, or retained-resource cleanup. After the required exact
-    profile, continue the remaining full Provider roadmap without treating this
-    checkpoint adoption as feature completion.
+    Keep exact branch CI `39877233446` on `1f0c6c0956ecb8c3994c03cfc54c026313155da0`
+    intact until terminal; Frontend Unit and Backend unit tests passed, and
+    Backend integration tests with Testcontainers are running, so no terminal
+    CI result is claimed yet. Current-source SEC durability
+    evidence is now stronger: the two file-backed worker-restart regressions
+    pass 2/2 and the full SEC issuer-scan unit module passes 26/26 with
+    monkeypatched refresh calls and private temporary SQLite. Once exact CI is
+    terminal, continue the full Provider roadmap from the remaining
+    `AC-UNIVERSE-COMPLETE` requirements; do not redefine success around the
+    SEC-only increment. The required local `full_stack_browser` profile remains
+    held until Root explicitly releases the slot after capacity review. When
+    released, pin a single unique seeded/provider-egress-denied fixture to the
+    clean exact-source branch; retain Playwright 1.62.1 Noble, read-only
+    DejaVu, one worker, zero retries, 260 functional and 104 strict visual
+    cases, unchanged references/masks and 0.005 tolerance. Keep all existing
+    provider/issuer/SEC holds and retained datasets/services; no provider
+    HTTP, quota mutation, staging/sibling writes, deployment, paid/trial
+    activation, or retained-resource cleanup.

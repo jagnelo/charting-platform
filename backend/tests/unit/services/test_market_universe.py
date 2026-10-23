@@ -1154,6 +1154,25 @@ async def test_reconciliation_rejects_rows_for_a_different_requested_type(db, mo
     assert "quote type ETF while reconciling EQUITY" in (run.error or "")
 
 
+def test_nms_absence_requires_distinct_nasdaq_tape_c_roster_scope():
+    from app.services.market_universe import _REQUIRED_NMS_SCOPES
+
+    # Nasdaq Trader's EQUITY files plus Nasdaq's ETF classification are useful
+    # cross-checks, but do not prove the distinct Nasdaq-listed/Tape C roster.
+    available_supplementary_scopes = {
+        ("cta_plan", "EQUITY"),
+        ("nasdaq", "EQUITY"),
+        ("nasdaq", "ETF"),
+    }
+    assert not set(_REQUIRED_NMS_SCOPES) <= available_supplementary_scopes
+    assert ("nasdaq_tape_c", "EQUITY") in set(_REQUIRED_NMS_SCOPES)
+
+    # The scope gate has a positive control: only an explicitly distinct Tape
+    # C producer completes this part of the source set.
+    complete_scopes = available_supplementary_scopes | {("nasdaq_tape_c", "EQUITY")}
+    assert set(_REQUIRED_NMS_SCOPES) <= complete_scopes
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("provider_name", "quote_type", "status", "absence_scope", "source_files"),

@@ -1,5 +1,59 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 00:39Z — fail-closed NMS scope correction
+
+- While exact Actions run `39877233446` remained active on clean pushed source
+  `1f0c6c0956ecb8c3994c03cfc54c026313155da0`, a source review found the
+  same-session NMS absence union treating Nasdaq Trader `nasdaqlisted` /
+  `otherlisted` as the distinct Nasdaq-listed/Tape C roster. This conflicts
+  with the current `AC-UNIVERSE-COMPLETE` contract and `docs/data-providers.md`:
+  Nasdaq Trader is supplementary evidence and the separate Tape C source is
+  not yet reconciled.
+- The working source now requires a distinct `nasdaq_tape_c/EQUITY` cycle scope
+  alongside CTA Tape A/B and Nasdaq ETF classification before declaring a
+  whole-NMS absence union. This fails closed until a real, complete Tape C
+  producer scope is available; it does not claim the universe requirement is
+  complete or add a provider/transport path. The actual official Tape C source
+  contract and implementation remain open roadmap work.
+- A no-network scope-gate regression has negative coverage for the existing
+  CTA + Nasdaq Trader EQUITY + Nasdaq ETF set and a positive control for an
+  explicit separate Tape C scope. Focused universe checks passed `8/8`, then
+  the complete unit module passed `48/48`; Ruff check/format and
+  `git diff --check` passed. The two-file working diff SHA-256 is
+  `e4ad947b3167e0a255f40df722642cb5b741e3d62ad95999fdbc6b05445ef0694`.
+- Run `39877233446` still validates only the parent source; Backend, Frontend,
+  and Branch-declared jobs passed, while Playwright is starting its hosted
+  stack at last observation. The branch-local
+  follow-up is uncommitted and needs its own exact-source validation after the
+  current run is terminal. Existing SEC durability evidence on `1f0c6c0`
+  remains unchanged. No provider/issuer/SEC HTTP, quota action, fixture, or
+  retained resource/data change occurred.
+- Full-profile recipe for the current source remains unstarted and awaits
+  Root's exact slot release: isolated project `provider-1f0c6c0-full-20261023`,
+  all 260 functional plus 104 strict visual cases, Playwright 1.62.1 Noble,
+  one worker, zero retries, unchanged refs/masks/0.005 tolerance, read-only
+  DejaVu fonts, seeded market data, backend/worker egress denied and routing
+  off, blank provider credentials, and quota/FINRA state mounts only to new
+  empty fixture-local directories. Existing Makefile limits are browser
+  1536 MiB/2 CPUs and research runner 768 MiB/1 CPU/128 PIDs; the main app has
+  no per-service resource caps. Require the reviewed isolated startup/cleanup
+  recipe and at least 1.5 GiB actual available memory after app startup before
+  either heavy browser stage. Do not use broad `make validate-integration`
+  cleanup against retained resources.
+
+## 2026-10-23 00:34Z — exact CI integration-stage progress
+
+- Read-only GitHub Actions inspection confirms run `39877233446`, attempt 1, is still on exact pushed source `1f0c6c0956ecb8c3994c03cfc54c026313155da0`. Backend unit tests completed successfully and the Backend job is executing `Run integration tests (with testcontainers)`; Frontend Unit Tests passed. Coverage, Branch-declared, and Playwright remain pending; Exhaustive is skipped by feature-branch policy. An active-job log fetch returned 404 while the job is running; this is not a test result.
+- No rerun, source change, provider/issuer/SEC HTTP, quota action, local fixture, or retained resource/data change occurred. The isolated `full_stack_browser` profile remains held pending Root's explicit slot release and safe capacity review.
+- The repository `agent-session-progress` wrapper could not update session metadata: its runtime preflight reported the private quota-ledger directory unavailable, and the claim lock was read-only. No quota state was changed. The current CI-stage update is recorded directly in the branch-owned workstream records; no helper permission or escalation was attempted.
+
+## 2026-10-23 00:20Z — post-merge SEC durability recheck
+
+- On the clean pushed merged source `1f0c6c0956ecb8c3994c03cfc54c026313155da0`, the two isolated file-backed restart cases passed `2/2`, then the complete `test_market_event_edgar_scan.py` module passed `26/26` (`17.01s`). The tests use monkeypatched issuer refresh calls and temporary SQLite databases; no SEC/provider HTTP, quota reservation/spend/reset, Docker, retained service, or persistent dataset was used.
+- Ruff check and `ruff format --check` both pass for `backend/app/services/market_event_edgar_scan.py` and `backend/tests/unit/services/test_market_event_edgar_scan.py`; no formatter changed files.
+- Exact branch Actions run `39877233446` is for this same SHA, attempt 1. Frontend Unit Tests succeeded; Backend Tests remain in progress at the unit-test step, with integration and coverage stages pending. Do not treat this as terminal or rerun it. The branch remains clean and synchronized at this CI source; these local test results are recorded for continuation but have not been pushed as another evidence-only commit.
+- The full local `full_stack_browser` profile remains held until Root explicitly releases the slot and fresh resource review permits it. Continue with the full roadmap after current-source CI reaches a terminal state; preserve the per-CIK atomic result/failure plus cursor behavior, all provider/issuer/SEC holds, and coordinator-only staging ownership.
+
 ## 2026-10-23 00:14Z — repaired staging adopted; local full-profile slot held
 
 - Closed the prior four-file SEC evidence context in commit `fbf682179d135ad8f2f307b6f6997d43e2df95d0`; the file-backed failed-CIK restart regression and 26/26 SEC scan module remain source-qualified to `8739c92aeb6e1059405e8b3df9577c053d89585d`, with exact green Actions run `39858232646` on that earlier source. That CI is not post-merge evidence.
