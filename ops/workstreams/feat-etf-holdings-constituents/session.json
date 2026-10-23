@@ -161,11 +161,6 @@
   "current_blocker_latest": "2026-10-23T18:36:00Z: Exact c45139b45324a5c3333868e63224d2464240034b CI40001975210 is terminal RED: Backend integration 498 passed, 3 failed, 2 skipped; Frontend green. The three failures were duplicate N-PORT/legacy backfills reporting partial after already-ingested snapshots, and the per-hop SEC test's eagerly built mock 302 raising StreamConsumed under production stream=True. The source now tracks persisted snapshot_id+ingested_at as a successful existing filing without inflating newly ingested count, keeps empty/wrong-fund failures incomplete, and uses an unread ByteStream fixture. SEC/bridge/provisioning unit modules passed61/61 and targeted Ruff/format passed. The pending one-shot512MiB DB grant remains unused: fresh host MemAvailable1425592KiB is below1536MiB; no test database/Redis/fixture was created. Exact hosted CI for the corrected source, DB/shared-runtime proof, full_stack_browser and applicable live evidence remain open. Preserve all holds, quarantines, retained data, and full roadmap.",
   "current_local_delta": "The dedicated EDGAR SEC path binds committed CIK/series/class, shares Provider admission per physical attempt/redirect, retains rejected raw evidence, records observed known_at and keeps publication unknown. The bounded reader latches response/aggregate/access/page/redirect/attempt/deadline limits, rejects compressed tails/members and prevents completed-empty backfills. The marked HTTP200 fix raises inside synchronous shared Provider invoke after telemetry and before success settlement. Repeat imports now distinguish a persisted verified snapshot from no qualifying filing; the SEC per-hop runtime mock uses an unread ByteStream. An admin-only, dry-run-first EDGAR ETF provisioning endpoint requires explicit reviewed evidence and preserves disabled defaults; Provider read-only review found no concrete source-contract defect. The 61-test SEC/bridge/provisioning unit selection and targeted Ruff/format checks pass. The prior nine-case DB attempt remains partial after384MiB OOM; this fresh512MiB slot preflight refused at1425592KiB below1536MiB and created no resources. No live transport/quota/activation occurred. Full AC1-AC14 and all mandatory DB/full-profile/live gates remain open.",
   "dirty_paths": [
-    "backend/app/routers/providers.py",
-    "backend/app/services/etf_holdings_edgar.py",
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "backend/tests/unit/routers/test_providers_router.py",
-    "backend/tests/unit/services/test_etf_holdings_edgar.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -195,8 +190,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "c45139b45324a5c3333868e63224d2464240034b",
-  "implementation_sha": "7c8cda46a56ee52bc358a6f6c75e0ef59e168903",
+  "head": "c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2",
+  "implementation_sha": "c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -306,15 +301,15 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-23T18:14:05Z",
+  "last_checkpoint": "2026-10-23T18:44:39Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "At2026-10-23T18:37:00Z: Exact published c45139b45324a5c3333868e63224d2464240034b run40001975210 is terminal RED with 498 integration passed, 3 failures, 2 skipped; Frontend passed. The two failures are repeated N-PORT/legacy accession imports incorrectly reported partial after an existing persisted snapshot, and the per-hop SEC MockTransport's eager 302 caused StreamConsumed under the real stream=True reader. Current local fixes separately count already-ingested snapshots and use unread ByteStream; empty/wrong-series cases remain failed/partial. SEC/bridge/provisioning unit selection passed61/61; targeted Ruff and format passed. The one-shot DB slot refused at1425592KiB below1536MiB; no resources/tests created. Provider read-only source review found no concrete provisioning request-contract defect. Stage a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e is accepted green; after local commit, merge that exact tip into ETF before push. DB-backed cases, exact combined-source CI, full_stack_browser and live evidence remain open; full roadmap, holds and quarantines remain intact.",
+  "latest_checkpoint": "At2026-10-23T18:44:39Z: Exact c451 CI40001975210 remains terminal RED with 498 integration passed, 3 failed, 2 skipped and Frontend passed. Local correction commit cf97bc64a75969dd7e0fb300b4f05b3ebabc914c fixes the two duplicate-backfill status failures and uses an unread streamed 302 fixture; its SEC/bridge/provisioning units passed61/61. Accepted green staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e was merged conflict-free at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2, with post-merge migration-compatibility19/19, workflow56/56, Ruff and format checks green. The one-shot DB slot refused at1425592KiB below1536MiB; no test resources created. Final workstream validation passed, including the exact 15 Tier-0 and 156 Tier-1 count sentinel, session/JSONL parsing, plan-hash match5df626c0d71297b397eb413543bc05b13e0979b864e52b44a82a338b4fe02c04, and diff check. Adoption-record commit/push and exact combined-source CI remain pending; DB proof, full_stack_browser and applicable live evidence remain open, full roadmap and holds preserved.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T16:49:15Z",
-    "result": "terminal_red; Backend integration failed five stale known_at expectations and Frontend passed. This exact run validates published7c8cda only, not the current local EDGAR SEC implementation or timestamp corrections.",
-    "run_id": 39987273700,
-    "sha": "7c8cda46a56ee52bc358a6f6c75e0ef59e168903"
+    "recorded_at": "2026-10-23T18:36:00Z",
+    "result": "terminal_red; Backend integration 498 passed, 3 failed, 2 skipped in405.40s; Frontend passed and downstream jobs skipped. Failures are duplicate N-PORT and legacy backfill status plus StreamConsumed in SEC per-hop MockTransport fixture.",
+    "run_id": 40001975210,
+    "sha": "c45139b45324a5c3333868e63224d2464240034b"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
@@ -328,6 +323,34 @@
     "recorded_at": "2026-10-23T05:17:09Z",
     "released_staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
     "source_before_merge": "8e25283c7464ec429a96c7216eeeb0becc79de37"
+  },
+  "latest_staging_baseline_adoption": {
+    "recorded_at": "2026-10-23T18:42:00Z",
+    "released_staging_sha": "a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e",
+    "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T150603Z-a6b9cc8d4fc2.json",
+    "receipt_state": "green",
+    "exact_actions_run": 39962134726,
+    "first_parent": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
+    "source_commit_before_merge": "cf97bc64a75969dd7e0fb300b4f05b3ebabc914c",
+    "feature_merge_commit": "c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2",
+    "merge_parents": [
+      "cf97bc64a75969dd7e0fb300b4f05b3ebabc914c",
+      "a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e"
+    ],
+    "conflicts": [],
+    "imported_paths": [
+      "backend/alembic/versions/d4a5b6c7e812_add_market_series_default_timestamps.py",
+      "backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py",
+      "backend/app/strategy_lab_v2/migration_compatibility.py",
+      "backend/app/strategy_lab_v2/tests/test_migration_compatibility.py",
+      "docs/agent-orchestration.md",
+      "scripts/agent-session.py",
+      "tests/workflow/test_agent_session.py",
+      "frontend/tests/e2e/flows.spec.ts",
+      "ops/workstreams/fix-market-series-default-schema/"
+    ],
+    "post_merge_checks": "Migration-compatibility unit tests19/19; agent-session workflow tests56/56; Ruff check/format passed on six imported files. PostgreSQL migration integration was not run because the authorized fresh memory floor was not met.",
+    "publication_status": "not_pushed; own-workstream adoption receipt and exact merged-source CI pending"
   },
   "local_profile_execution": {
     "cleanup": {
@@ -364,8 +387,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run final workstream checks, then commit the coherent SEC provisioning/idempotence/stream-fixture correction locally. Before any push, verify and merge only accepted green staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e into this clean ETF branch; reconcile additive schema/migration, shared tests and workstream provenance, then push the combined own-branch tip once for exact-source CI. Preserve exact c451 terminal RED and prior OOM/refusals. The one-shot512MiB/no-swap DB grant remains unused because this fresh host reading was1425592KiB below1536MiB; the three DB regressions must run together only after a fresh preflight meets all floor/PSI/reserve/identity/no-competitor/time guards. No live/target/quota activation. Keep SEC held, preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, full_stack_browser and the30-day observation.",
-  "plan_hash": "42f3995bd779f066c27da793086b6aa07d0da8820bef9cbb21e0f7b933638b59",
+  "next_action": "Finish the own-workstream adoption receipt for accepted staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e merged at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2 after local SEC commit cf97bc64a75969dd7e0fb300b4f05b3ebabc914c. Preserve the exact c451 CI40001975210 terminal RED, prior OOM and1425592KiB DB refusal. Run the final narrative count sentinel, workstream/JSON/plan-hash/diff and targeted static checks, commit only the substantive adoption/checkpoint update, then push the combined feature branch once and verify remote/exact CI. The DB-backed SEC regressions remain unrun together because the fresh1536MiB floor was not met; do not lower it. Do not make live/target/provider requests or spend quota, and preserve all disabled routes/holds, AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, full_stack_browser and the30-day observation.",
+  "plan_hash": "5df626c0d71297b397eb413543bc05b13e0979b864e52b44a82a338b4fe02c04",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -416,10 +439,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23T18:36:00Z: Exact source c45139b45324a5c3333868e63224d2464240034b CI40001975210 is terminal RED: Backend integration 498 passed, 3 failed, 2 skipped; Frontend green. Failures are the two repeat-import idempotence cases and the SEC per-hop eager 302 fixture. Persisted snapshot_id+ingested_at now counts as already-successful without changing newly ingested count; zero-qualified/wrong-series outcomes remain failed/partial; the 302 fixture now uses unread ByteStream. The three focused unit modules passed61/61; Ruff/format passed. Fresh one-shot DB slot preflight refused at1425592KiB below1536MiB; no DB/Redis/test resource created. Exact new-source CI, DB proof, full_stack_browser and applicable live evidence remain open; SEC stays held. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data and observation.",
+    "current_blocker": "2026-10-23T18:42:00Z: c45139b45324a5c3333868e63224d2464240034b CI40001975210 is terminal RED; local SEC correction commit cf97bc64a75969dd7e0fb300b4f05b3ebabc914c addresses its two duplicate-status and one streamed-redirect fixture failures. Accepted green staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e was fetched from the still-exact remote ref and merged conflict-free at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2. Lightweight post-merge migration-compatibility tests19/19, workflow tests56/56, and Ruff/format passed. The authorized one-shot DB attempt refused at1425592KiB below1536MiB; the three regressions remain DB-unrun, and no fixture resources were created. Final own-record validation/commit/push and exact merged-source CI remain pending; full profile/live gates remain open. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, holds, quarantines, retained data, and the full roadmap.",
     "current_phase": "sec_provisioning_idempotence_stream_fixture_publication_2026_10_23",
-    "next_action": "Run the fast narrative count sentinel, workstream validator, JSON/JSONL and plan-hash checks, and git diff checks; then commit and push the coherent SEC provisioning/idempotence/stream-fixture candidate once. Record c451 CI40001975210 terminal RED and the1425592KiB DB refusal; inspect exact-source CI for the new SHA. The three DB-backed regressions remain pending the one-shot512MiB/no-swap grant and must run together only after a fresh preflight clears1536MiB plus PSI/reserve/identity/no-competitor/time guards. Preserve the prior384MiB OOM as partial/inconclusive. Keep SEC held until all reviewed operation/cost/account/entitlement/commitment/native-limit/identity and mandatory live gates are satisfied. Preserve historical/PIT/raw lineage, full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data, full_stack_browser and 30-day observation.",
-    "updated_at": "2026-10-23T18:36:00Z"
+    "next_action": "Complete the branch-owned adoption record for exact accepted green staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e merged at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2 after SEC correction commit cf97bc64a75969dd7e0fb300b4f05b3ebabc914c. Run final workstream/sentinel/plan-hash and static checks; commit the substantive record and push the combined own-branch tip once. Verify exact new-source CI. Preserve c451 run40001975210 terminal RED and DB refusal1425592KiB below1536MiB; run the three DB regressions together only after the full one-shot grant preflight passes. Do not change holds, quarantines, historical/PIT semantics or full roadmap.",
+    "updated_at": "2026-10-23T18:44:39Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -433,7 +456,7 @@
   },
   "remote": "c45139b45324a5c3333868e63224d2464240034b",
   "remote_sha": "c45139b45324a5c3333868e63224d2464240034b",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",

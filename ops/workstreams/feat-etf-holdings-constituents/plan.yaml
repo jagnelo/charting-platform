@@ -3,8 +3,8 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
-latest_staging_merge_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
-latest_staging_parent_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
+latest_staging_merge_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+latest_staging_parent_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: >-
   Continue the existing ETF holdings provider coverage goal from current green
@@ -369,8 +369,12 @@ integration_checkpoint:
   active_changeset:
     name: SEC bounded transport, held provisioning and red-failure corrections
     state: >-
-      Local candidate based on synchronized published source
-      7c8cda46a56ee52bc358a6f6c75e0ef59e168903. The dedicated SEC path binds
+      Local candidate includes published source c45139b45324a5c3333868e63224d2464240034b,
+      whose exact CI40001975210 is preserved terminal RED. The exact accepted
+      green staging baseline a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e has now
+      been merged into this branch at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2
+      after local SEC correction commit cf97bc64a75969dd7e0fb300b4f05b3ebabc914c;
+      merge was conflict-free and did not edit sibling/staging worktrees. The dedicated SEC path binds
       committed CIK/series/class, shares Provider admission per physical
       request/redirect, preserves observed known_at and rejected raw lineage,
       and keeps publication unknown. The application budget latches body,
@@ -393,13 +397,13 @@ integration_checkpoint:
       SEC/bridge/provisioning unit selection passes. The prior384MiB DB attempt
       is partial/inconclusive (OOM, no summary). This turn's immediate host
       preflight measured1425592KiB available, below the one-shot512MiB grant's
-      1536MiB floor; no DB or Redis test resource was created. Publish the
-      coherent candidate for exact-source CI; DB/shared-runtime, full-profile,
+      1536MiB floor; no DB or Redis test resource was created. The coherent
+      candidate is not yet pushed; DB/shared-runtime, full-profile,
       and applicable live evidence remain open. SEC transport remains held.
       Preserve all AC1-AC14, `15 Tier-0 and 156 Tier-1`, IWM candidate-only
       status, historical/PIT lineage, quarantines, retained data and the 30-day
       observation.
-    baseline: 7c8cda46a56ee52bc358a6f6c75e0ef59e168903
+    baseline: c45139b45324a5c3333868e63224d2464240034b
     intent: >-
       Finish the reviewed bounded SEC one-fund application envelope and ensure
       marked/invalid HTTP 200 responses are failed by the shared Provider
@@ -1836,14 +1840,16 @@ latest_sec_first_use_candidate:
     remains DB-unrun. Earlier bounded SEC unit suites passed697/697. These are
     not DB/runtime or live proof.
   source_gate: >-
-    Exact published CI39987273700 is terminal red on parent7c8cda and does not
-    cover the current candidate. The 44/44 bridge/EDGAR unit subset passed after
-    the marked-HTTP200 correction; Ruff/format and static checks passed. The
-    application envelope latches body/aggregate caps and access limits before
-    later admission, rejects compressed tails/members, and prevents
-    completed-empty backfills. Exact-source CI awaits publication. The
-    external_service_path source remains held pending reviewed policy and
-    mandatory applicable live evidence; none is authorized. Do not claim DB or
+    Exact published c451 CI40001975210 is terminal RED (498 integration passed,
+    3 failed, 2 skipped; Frontend passed); preserve its original failure. Its
+    three diagnosed cases are fixed locally but still need validation on the
+    combined source. Local SEC/bridge/provisioning unit modules passed61/61,
+    changed-file Ruff/format passed, migration-compatibility unit tests passed
+    19/19, and workflow-session tests passed56/56. Exact accepted green staging
+    a6b9 was merged conflict-free into this branch at c2c57 after local SEC
+    commit cf97. No CI yet covers c2c57 or its final publication commit. DB and
+    full_stack_browser remain open; the external_service_path stays held pending
+    reviewed policy and mandatory applicable live evidence. Do not claim DB or
     live validation.
   unresolved: >-
     Application request/decoded-byte/time/page/redirect bounds are implemented
@@ -1854,14 +1860,15 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Run the fast narrative count sentinel, workstream validator, JSON/JSONL and
-  plan-hash checks, targeted Ruff/format and diff checks. Commit the coherent
-  SEC provisioning/idempotence/stream-fixture corrections locally, preserving
-  exact c451 terminal-red and prior OOM/refusal evidence. Before any push,
-  verify and merge only accepted green staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
-  into this clean ETF branch, manually reconcile shared schemas/tests and
-  workstream provenance, then run the applicable lightweight checks and push
-  the resulting own-branch tip once for exact-source CI. The pending one-shot
+  Record that local SEC correction commit cf97bc64a75969dd7e0fb300b4f05b3ebabc914c
+  was followed by a clean, conflict-free merge of exact accepted green staging
+  a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2.
+  Reconcile only own workstream provenance and exact source refs; preserve
+  staging-owned schema/migration/workflow files unchanged. Run the final fast
+  narrative count sentinel, workstream/JSON/plan-hash/diff checks and targeted
+  static checks, then commit the substantive adoption receipt and push the
+  combined own-branch tip once for exact-source CI. Preserve exact c451 red,
+  prior OOM and launch-refusal evidence. The pending one-shot
   512MiB/no-swap DB attempt remains unused because the latest fresh host reading
   was1425592KiB, below the1536MiB floor; run the three DB regressions only
   together after a new preflight meets the floor, PSI/reserve, exact existing

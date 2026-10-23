@@ -1,5 +1,30 @@
 # feat/etf-holdings-constituents
 
+## Accepted staging a6b9 adoption — 2026-10-23T18:42Z
+
+After local SEC correction commit `cf97bc64a75969dd7e0fb300b4f05b3ebabc914c`,
+this worktree fetched and verified that `origin/staging` still pointed exactly
+to coordinator-accepted green `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`.
+The green receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T150603Z-a6b9cc8d4fc2.json`
+(`state=green`, exact Actions run `39962134726`, first parent
+`f04fb2a26c6363c6090e76c2658cfcfe7adabf61`). The staging baseline was merged
+into ETF as `c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2` with parents `cf97bc6`
+and `a6b9cc8`; Git reported no conflicts. No source from another feature
+branch was imported. Staging-owned additive market-series timestamp migration,
+migration compatibility, F8m readiness/workflow tests, and their authoritative
+workstream records were preserved unchanged.
+
+Post-merge lightweight evidence: `backend/app/strategy_lab_v2/tests/test_migration_compatibility.py`
+passed `19/19`; `tests/workflow/test_agent_session.py` passed `56/56`; Ruff
+check and format passed on the six imported Python files. The PostgreSQL
+migration integration, full local profile, and exact combined-source CI remain
+unrun. At this checkpoint ETF HEAD is `c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2`,
+while the ETF remote is still `c45139b45324a5c3333868e63224d2464240034b`;
+the combined tip has not yet been pushed. Only the owned workstream records
+remain dirty for final validation/commit. Preserve the terminal c451 red,
+earlier OOM and DB floor refusal, all holds and the full roadmap.
+
 ## SEC provisioning and exact-red repairs — 2026-10-23T18:36Z
 
 The preceding 18:30Z note captured CI `40001975210` while it was still
