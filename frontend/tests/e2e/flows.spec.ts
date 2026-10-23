@@ -6,7 +6,7 @@
  */
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
 import { closePopupWhenOpen } from './popup_cleanup'
-import { requestsStartedWhileHidden } from './hidden_request_observation'
+import { installBrowserRequestObservation, requireObservedRequestCoverage, requestsStartedWhileHidden } from './hidden_request_observation'
 import type { Locator, Page, Request } from '@playwright/test'
 
 async function findNarrowVisibleChart(page: Page): Promise<Locator> {
@@ -3328,6 +3328,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8l — hidden workstation surfaces suspend market-analysis refreshes', async ({ page, browserDiagnostics }) => {
+    await page.addInitScript(installBrowserRequestObservation)
     const refreshRequests: Request[] = []
     page.on('request', request => {
       const path = new URL(request.url()).pathname
@@ -3335,28 +3336,45 @@ test.describe('TC2000 workstation', () => {
         refreshRequests.push(request)
       }
     })
-    await page.goto('/chart')
-    await expect(page.locator('.workstation').first()).toBeVisible({ timeout: 10_000 })
-    // The initial benchmark/sector/technical fan-out can complete after the
-    // workstation shell is visible; establish the hidden-state baseline only
-    // after that bounded first-load window has settled.
-    await page.waitForTimeout(3_000)
-
-    const hiddenAtEpochMs = await page.evaluate(() => {
-      // Use the browser clock at the same atomic transition as the hidden
-      // state. Node-side timestamps can race the Playwright protocol boundary.
-      const transitionTime = performance.timeOrigin + performance.now()
-      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
-      document.dispatchEvent(new Event('visibilitychange'))
-      return transitionTime
+    let releaseReadiness!: () => void
+    const readinessRelease = new Promise<void>(resolve => { releaseReadiness = resolve })
+    let heldReadinessRequests = 0
+    await page.route('**/api/v1/analysis/benchmark-families/readiness*', async route => {
+      heldReadinessRequests += 1
+      await readinessRelease
+      await route.continue()
     })
-    await page.waitForTimeout(1_500)
+    try {
+      await page.goto('/chart')
+      await expect(page.locator('.workstation').first()).toBeVisible({ timeout: 10_000 })
+      await expect.poll(() => heldReadinessRequests).toBeGreaterThan(0)
+      // Keep one real readiness request pending across the transition. Its
+      // initiation, not completion or optional protocol timing, is the oracle.
+      // Preserve the normal initial and hidden-state observation windows.
+      await page.waitForTimeout(3_000)
 
-    const requestObservations = refreshRequests.map(request => ({
-      path: new URL(request.url()).pathname,
-      startTime: request.timing().startTime,
-    }))
-    expect(requestsStartedWhileHidden(requestObservations, hiddenAtEpochMs)).toEqual([])
+      const hiddenAtEpochMs = await page.evaluate(() => {
+        // Use the browser clock at the same atomic transition as the hidden
+        // state. Node-side timestamps can race the Playwright protocol boundary.
+        const transitionTime = performance.timeOrigin + performance.now()
+        Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+        document.dispatchEvent(new Event('visibilitychange'))
+        return transitionTime
+      })
+      await page.waitForTimeout(1_500)
+
+      const requestObservations = await page.evaluate(() => {
+        const observations = (globalThis as typeof globalThis & {
+          __analysisRequestStarts?: { path: string; startTime: number }[]
+        }).__analysisRequestStarts
+        if (!Array.isArray(observations)) throw new Error('Browser request initiation collector unavailable')
+        return observations
+      })
+      requireObservedRequestCoverage(requestObservations, refreshRequests.map(request => new URL(request.url()).pathname))
+      expect(requestsStartedWhileHidden(requestObservations, hiddenAtEpochMs)).toEqual([])
+    } finally {
+      releaseReadiness()
+    }
 
     await page.evaluate(() => {
       Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })

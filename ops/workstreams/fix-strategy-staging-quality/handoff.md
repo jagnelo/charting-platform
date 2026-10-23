@@ -2,6 +2,19 @@
 
 ## ACTIVE CONTINUATION — 2026-10-23: hidden-refresh observation
 
+01:34UTC local source checkpoint: browser-clock fetch/XHR observer plus native
+request-count coverage implemented; original fail-closed unknown-time classifier
+unchanged. F8l now deliberately holds a real readiness request across its same
+3000ms/1500ms windows, ensuring in-flight timing is exercised; finally releases
+the intercepted request. No hidden-refresh assertion/retry/reference relaxation.
+New collector/coverage tests6failed before implementation (old3stillpassed), then
+9/9pass. Vue typecheck0 with1536MiB heap after initial too-small768MiB heap134;
+no host-OOM claim. Full frontend139files/1337tests PASS147.86s with one worker.
+Discovery selects exactly1 F8l case; ACTUAL pinned browser and all new exact
+branch/staging/master gates remain pending. Production inputs byte-unchanged
+from4687 (frontend/src,backend,Compose,Dockerfile,package manifests). Do not
+relabel old full visual evidence or call the new source accepted yet.
+
 Same Root writer706a780f-1b88-48e7-bef2-2a2b0524fbb1 verified by UV-managed
 context/status preflight; no takeover or duplicate native goal. Root's original
 active unbudgeted production goal covers this repair. Clean synchronized3d26
