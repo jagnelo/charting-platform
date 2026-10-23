@@ -8,6 +8,11 @@ from xml.sax.saxutils import escape
 import httpx
 import pytest
 
+from tests.integration.api.etf_holdings_test_fixtures import (
+    seed_etf_profile,
+    seed_historical_snapshot,
+)
+
 _CURRENT_ERROR_LINEAGE_FIELDS = (
     "displayable_last_known",
     "identity_verified",
@@ -1304,11 +1309,12 @@ def test_overlap_summary_compares_constituents_across_etfs(client, admin_headers
     )
     assert qqq.status_code == 200
 
+    snapshot_date = datetime.now(UTC).date().isoformat()
     response = client.post(
         "/api/v1/etf-holdings/overlap-summary",
         json={
             "etf_symbols": ["OVLA", "OVLB", "MISSING"],
-            "snapshot_date": "2026-06-08",
+            "snapshot_date": snapshot_date,
             "top_n": 1,
         },
         headers=auth_headers,
@@ -1316,7 +1322,7 @@ def test_overlap_summary_compares_constituents_across_etfs(client, admin_headers
     assert response.status_code == 200
     body = response.json()
     assert body["requested_symbols"] == ["OVLA", "OVLB", "MISSING"]
-    assert body["snapshot_date"] == "2026-06-08"
+    assert body["snapshot_date"] == snapshot_date
     assert body["point_in_time"] is True
     assert body["etf_count"] == 2
     assert body["pair_count"] == 1
@@ -1372,11 +1378,12 @@ def test_overlap_matrix_summarizes_many_etf_relationships(client, admin_headers,
         )
         assert response.status_code == 200
 
+    snapshot_date = datetime.now(UTC).date().isoformat()
     response = client.post(
         "/api/v1/etf-holdings/overlap-matrix",
         json={
             "etf_symbols": ["OMXA", "OMXB", "OMXC", "NOPE"],
-            "snapshot_date": "2026-06-08",
+            "snapshot_date": snapshot_date,
             "metric": "jaccard",
             "top_n": 2,
         },
@@ -1451,12 +1458,13 @@ def test_overlap_matrix_can_expand_etf_family_from_profile_metadata(
         )
         assert profile.status_code == 200
 
+    snapshot_date = datetime.now(UTC).date().isoformat()
     response = client.post(
         "/api/v1/etf-holdings/overlap-matrix",
         json={
             "issuer": "Matrix",
             "fund_family": "Core",
-            "snapshot_date": "2026-06-08",
+            "snapshot_date": snapshot_date,
             "metric": "jaccard",
             "limit": 10,
         },
@@ -3436,7 +3444,10 @@ def test_manual_snapshot_materializes_read_only_basket_only_with_historical_sele
     admin_headers,
     auth_headers,
 ):
-    current_composition_date = date.today() - timedelta(days=1)
+    current_utc_date = datetime.now(UTC).date()
+    current_composition_date = current_utc_date - timedelta(days=1)
+    # Adversarial synthetic import: caller claims issuer-current identity, but
+    # manual ingestion must still remain non-current and non-entitled.
     ingest = client.post(
         "/api/v1/etf-holdings/DIA/ingest",
         json={
@@ -3494,7 +3505,7 @@ def test_manual_snapshot_materializes_read_only_basket_only_with_historical_sele
     historical = client.get(
         "/api/v1/etf-holdings/DIA/basket",
         headers=auth_headers,
-        params={"date": current_composition_date.isoformat()},
+        params={"date": current_utc_date.isoformat()},
     )
     assert historical.status_code == 200
     basket = historical.json()
@@ -3576,8 +3587,9 @@ def test_etf_holdings_basket_rejects_non_current_without_historical_selection(
         capability.json(),
     )
 
+    historical_as_of = datetime.now(UTC).date().isoformat()
     historical = client.get(
-        "/api/v1/etf-holdings/DIA/basket?date=2026-05-31",
+        f"/api/v1/etf-holdings/DIA/basket?date={historical_as_of}",
         headers=auth_headers,
     )
     assert historical.status_code == 200
@@ -4327,22 +4339,29 @@ def test_coverage_summary_reports_missing_partial_and_full_ranges(
     assert body["missing"] == 1
 
 
-def test_nearest_snapshot_is_point_in_time_safe(client, admin_headers, auth_headers):
+def test_nearest_snapshot_is_point_in_time_safe(
+    client, admin_headers, auth_headers, db, instrument
+):
+    profile = seed_etf_profile(db, client, admin_headers, "SAFE")
     for snapshot_date in [date(2026, 1, 1), date(2026, 3, 1)]:
-        client.post(
-            "/api/v1/etf-holdings/SAFE/ingest",
-            json={
-                "composition_date": snapshot_date.isoformat(),
-                "known_at": f"{snapshot_date.isoformat()}T00:00:00Z",
-                "source_provider": "issuer-test",
-                "rows": [{"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.01"}],
-            },
-            headers=admin_headers,
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=snapshot_date,
+            known_at=datetime.combine(snapshot_date, datetime.min.time(), tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument.id,
+                    "symbol": instrument.symbol,
+                    "name": instrument.name,
+                    "weight": "0.01",
+                }
+            ],
         )
 
     response = client.get(
         "/api/v1/etf-holdings/SAFE/nearest?date=2026-02-15",
         headers=auth_headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     assert response.json()["composition_date"] == "2026-01-01"

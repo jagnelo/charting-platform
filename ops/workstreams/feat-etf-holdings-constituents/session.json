@@ -88,18 +88,20 @@
     }
   ],
   "active_changeset": {
-    "baseline": "e4ce7dd423620d2cad00e2c68f0468b53893314d",
-    "intent": "Prevent manual imports from being backdated in point-in-time history: default omitted known_at to the service's UTC import clock, reject a supplied earlier known_at, and prove exclusion from an earlier PIT query while preserving explicit snapshot selection. Keep provider-refresh date semantics unchanged. Reconcile prior exact CI and the already-published manual-import context without changing retained artifact, rights, routes, or provider state.",
-    "name": "Prevent manual-import known-at backdating in PIT history",
+    "baseline": "12ac3b694c3234da66cc9de1117f5ed54ed1b916",
+    "intent": "Reconcile the 12 backend-integration failures on 1adb658 using current UTC dates and explicit synthetic historical snapshot fixtures, without weakening PIT/current/identity or manual-import known_at protections. Retain the AC1 fallback-count repair as a separate local commit and preserve exact failing evidence.",
+    "name": "Reconcile ETF consumer integration fixtures",
     "owned_paths": [
-      "backend/app/services/etf_holdings.py",
-      "backend/tests/unit/services/test_etf_holdings_resolution.py",
+      "backend/tests/integration/api/etf_holdings_test_fixtures.py",
+      "backend/tests/integration/api/test_etf_holdings.py",
+      "backend/tests/integration/api/test_strategy_lab.py",
+      "backend/tests/integration/api/test_workspaces.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "At baseline e4ce7dd, exact CI39942187427 is terminal green for Backend, Frontend Unit, Branch-declared Tests, and Playwright E2E; Exhaustive was skipped by feature-branch policy. Current local service+regression change passes the 61-test resolution module plus 1 router test (62 total) with both live flags zero, Ruff check/format, and diff check. Exact-source CI for this local change is pending publication; full_stack_browser remains Root-slot-gated. Earlier red CI and the 09:08/09:12 timestamp qualification remain historical and unmodified. RSST remains unimported and non-routable; no issuer/provider/SEC HTTP, quota, profile mutation, fixture, cleanup, staging/sibling/master write, or deployment occurred. Preserve all AC1-AC14."
+    "state": "AC1 documentation/sentinel correction is a distinct local commit12ac3b694 but is not yet pushed. Exact CI39949218663 on1adb658 is terminal red: backend unit and Frontend Unit passed; Backend integration job120399294993 had12 failed,486 passed,2 skipped. The current integration-fixture changes postdate the red run. Ruff/format/py_compile, workstream validation and diff checks pass, but no local DB-backed integration test has run. The nearest expected-200 assertion now includes response.text to expose the old unexplained401. Current branch will be pushed once for exact-source hosted CI; Root's next exclusive full_stack_browser slot is after coherent harness-fix publication. Manual-import source remains published; no provider/issuer/SEC HTTP, quota, paid/trial activation, dataset or resource cleanup, sibling/staging/master write or deployment. Preserve all AC1-AC14,15 Tier-0/156 Tier-1, quarantines and holds."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -150,14 +152,17 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23T11:48:22Z: Exact published baseline e4ce7dd423620d2cad00e2c68f0468b53893314d is synchronized; CI39942187427 is terminal green for Backend, Frontend Unit, Branch-declared, and Playwright, with Exhaustive skipped. Current local manual-import PIT fix passed 62 focused tests after formatting and Ruff/diff checks. New exact-source CI is pending publication; the required full_stack_browser remains pending Root's exclusive slot. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, unresolved MSMR/QQQ and Militia/GOOG, disabled held routes, retained data, the timestamp-history qualification, and 30-day observation. No external HTTP, quota, artifact import, activation, fixture, cleanup, or cross-worktree write occurred.",
-  "current_local_delta": "2026-10-23: backend/app/services/etf_holdings.py now uses the UTC ingestion clock for an omitted manual-import known_at and rejects supplied timestamps earlier than that import time; provider refresh defaults are unchanged. A service regression proves a later-imported 2026-10-15 composition is absent from that date's PIT holdings lookup yet remains selectable by explicit snapshot ID. Service+router modules pass 62/62 with live flags zero; Ruff and format pass. This source+record changeset is not yet published; no issuer/provider/SEC HTTP, quota, RSST import, provider/profile mutation, fixture, cleanup, or staging/sibling/master write occurred.",
+  "current_blocker_latest": "2026-10-23T12:52:13Z: Local branch includes distinct AC1 commit12ac3b694; origin remains1adb658. Exact CI39949218663 on origin is terminal red with12 integration failures. The current consumer fixture patch is unvalidated by DB-backed tests; Ruff/format/compile and workstream checks pass. Nearest-snapshot expected-200 assertion now includes response.text for next run. No current-source CI exists. Root's recorded local full-stack slot follows harness-fix publication; no local DB/browser run before that slot. RSST stays unimported/non-routable. Preserve all14 criteria,15 Tier-0/156 Tier-1, quarantines, holds, retained data, and30-day observation.",
+  "current_local_delta": "2026-10-23: AC1 current fallback count table/sentinel is a distinct local commit12ac3b694. Remaining integration changes add a synthetic historical-snapshot helper and update fixtures after CI39949218663 exposed12 integration failures. Tests preserve current/PIT/identity assertions and manual-import known_at rejection but have only stack-free validation, no DB-backed proof. Next push once, inspect exact-source CI, then take Root's exclusive full-stack slot after harness publication. Manual-import source is published. RSST remains unsafe to import under accepted f04 because initial URL/storage rights and safe manual-only no-enrichment/health path remain absent.",
   "dirty_paths": [
-    "backend/app/services/etf_holdings.py",
-    "backend/tests/unit/services/test_etf_holdings_resolution.py",
+    "backend/tests/integration/api/test_etf_holdings.py",
+    "backend/tests/integration/api/test_strategy_lab.py",
+    "backend/tests/integration/api/test_workspaces.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
+    "backend/tests/integration/api/etf_holdings_test_fixtures.py"
   ],
   "docker": {
     "available": false,
@@ -183,7 +188,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "e4ce7dd423620d2cad00e2c68f0468b53893314d",
+  "head": "12ac3b694c3234da66cc9de1117f5ed54ed1b916",
   "implementation_sha": "04f49d940c877635de52c0c0616e54f47018bf25",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -296,13 +301,13 @@
   },
   "last_checkpoint": "2026-10-23T01:28:00Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-23: Baseline e4ce7dd exact CI39942187427 is terminal green for the required ordinary branch jobs; Exhaustive was skipped by feature policy. The current local changeset closes the manual-import PIT knowledge-time gap with a bounded service regression (62 combined service/router tests green after formatting). It remains uncommitted/unpublished pending final workstream checks. Earlier CI red receipts and timestamp discrepancy are retained as history. RSST remains unimported; f04 rights, initial-request URL and manual-only contract gaps remain. The full roadmap and Root-owned full_stack_browser gate stay open.",
+  "latest_checkpoint": "2026-10-23T12:33:58Z: Exact CI39949218663 on1adb658 is terminal red (Backend integration failed; Backend unit and Frontend Unit passed; later jobs skipped). The published manual-import PIT guard has prior 62/62 focused service/router evidence; no dirty router/service patch exists. Current local changes include AC1 docs/sentinel and separate integration-test fixture edits, the latter lacking local DB-backed proof. Stack-free checks and workstream validation passed. RSST remains unimported and non-routable. Preserve full AC1-AC14 and Root-owned full_stack_browser gate.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T11:40:51Z",
-    "result": "terminal_success;Backend, Frontend Unit, Branch-declared Tests, and Playwright E2E passed; Exhaustive Integration Gate skipped by feature-branch policy",
-    "run_id": 39942187427,
-    "sha": "e4ce7dd423620d2cad00e2c68f0468b53893314d"
+    "recorded_at": "2026-10-23T12:33:58Z",
+    "result": "terminal_red;Backend unit success;Backend integration failure;Frontend Unit success;Branch-declared/Exhaustive/Playwright skipped",
+    "run_id": 39949218663,
+    "sha": "1adb658d4f7131876d30beb410f48ffb66e93aa8"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
@@ -352,8 +357,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Focused 62-test service/router profile, Ruff check/format, changed-field narrative sentinel1/1, workstream validator, JSON/JSONL parse, plan hash, and diff check pass. Inspect exact owned diff; commit and push this source+records changeset, verify origin parity, and inspect exact-source CI. Do not rerun CI39942187427 or launch full_stack_browser without Root's slot. Continue offline AC2/AC4/AC5 issuer-ledger reconciliation after publication; preserve the entire roadmap, holds, quarantines, retained data, and 30-day observation. No external HTTP, quota, artifact import, activation, fixture, cleanup, staging/sibling/master write, or deployment.",
-  "plan_hash": "1cc2ee1a80d6cbf0d0731d519022f3afca632c2838a8f6fe870dedda86c1ea7b",
+  "next_action": "Do not rerun CI39949218663. Keep AC1 commit12ac3b694 distinct from the consumer fixture changeset and published manual-import code. Push the coherent branch once so exact-source CI can test the pending DB-backed integration cases; branch-declared ETF live tests are explicitly set to0. Inspect all exact-source results and nearest's response.text. Root's next local full_stack_browser slot is after harness publication; no local DB/container/browser run before it. Continue full AC1-AC14, issuer audit/onboarding, route/quota holds, retained data, quarantines,15 Tier-0/156 Tier-1 and30-day observation; no external calls, quota, paid/trial, cleanup, or cross-worktree writes.",
+  "plan_hash": "8bf63fc4c320dd0100d8350116b3c7efb184db263c46a0092d38768a948cdf78",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -404,10 +409,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23T11:48:22Z: Published baseline e4ce7dd is synchronized and CI39942187427 is green for the required ordinary branch jobs. The current local manual-import known_at/PIT fix passes 62 focused tests and Ruff/format; exact-source CI is pending publication, and the required full_stack_browser still awaits Root's exclusive slot. Preserve 15 Tier-0 and 156 Tier-1, all AC1-AC14, MSMR/QQQ and Militia/GOOG quarantine, disabled held routes, retained data, timestamp-history caveat, and 30-day gate. No external HTTP, quota, import, activation, fixture, cleanup, or cross-worktree write.",
-    "current_phase": "manual_import_known_at_point_in_time_safety_2026_10_23",
-    "next_action": "Focused source tests and final fast workstream checks are green. Review exact diff, then publish this focused source+records changeset and inspect its exact-source CI. Continue offline AC2/AC4/AC5 ledger reconciliation; keep full_stack_browser Root-slot-gated and preserve all safety holds.",
-    "updated_at": "2026-10-23T11:50:51Z"
+    "current_blocker": "2026-10-23T12:33:58Z: Exact CI39949218663 on1adb658 is terminal red in Backend integration; Backend unit and Frontend Unit passed, later jobs skipped. Local AC1 docs/sentinel and separate integration-test fixture edits are not covered. The fixture edits have stack-free checks but no DB-backed integration proof. Keep the manual-import source identified as already published and RSST unimported; full_stack_browser remains Root-slot-gated; full AC1-AC14, holds and quarantines remain.",
+    "current_phase": "rsst_manual_import_safety_and_ci_reconciliation_2026_10_23",
+    "next_action": "Do not rerun CI39949218663. Keep RSST unimported. Validate the already-dirty test fixture changes at the next permitted bounded integration slot, including the nearest-snapshot401 response body; do not commit them as proven before that. Preserve source/test contexts as separate changesets and continue the full roadmap without external calls or an unassigned heavy profile.",
+    "updated_at": "2026-10-23T12:44:34Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -419,9 +424,9 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "e4ce7dd423620d2cad00e2c68f0468b53893314d",
-  "remote_sha": "e4ce7dd423620d2cad00e2c68f0468b53893314d",
-  "remote_synchronized": true,
+  "remote": "1adb658d4f7131876d30beb410f48ffb66e93aa8",
+  "remote_sha": "1adb658d4f7131876d30beb410f48ffb66e93aa8",
+  "remote_synchronized": false,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
