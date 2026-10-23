@@ -528,9 +528,20 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: future_known_at_current_lineage_guard_2026_10_23
+current_phase: successful_capability_failure_order_guard_2026_10_23
 current_blocker: >-
-  Historical validation detail in this field preserves earlier exact-source
+  Current source parent is ETF SHA02384a2b67a9e336974d32a51c0e3f40ad106398,
+  clean and synchronized before this uncommitted capability-lineage change;
+  released common staging4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is an
+  ancestor. Exact own-branch CI39884332043 is terminal green for Frontend,
+  Backend, Branch-declared, and Playwright E2E; Exhaustive was skipped by
+  feature-branch policy. This local source change is not included in that run
+  and requires exact-source CI after publication.
+  The `full_stack_browser` local profile remains pending Root's exclusive
+  resource slot. Keep the accepted checkpoint distinct from the open full
+  fourteen-criterion roadmap, issuer onboarding, and 30-day observation.
+  Preserve historic validation detail in the remaining text below as prior
+  exact-source receipts; the current reconciliation supersedes older source/status
   receipts; the current reconciliation below supersedes older source/status
   values. On 2026-10-23 the coordinator's accepted green common staging source
   4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad (exact CI39866387942, canonical
@@ -544,8 +555,8 @@ current_blocker: >-
   bounded UTC known_at guard is
   locally covered by the capability, refresh, and resolution modules (186
   passed), and its records/checks are being reconciled before publication.
-  The parent run is preserved at terminal green before pushing the new source;
-  its exact-source CI remains required. The required full_stack_browser profile remains unrun
+  The parent run is preserved at terminal green before publishing the new
+  source; its exact-source CI remains required. The required full_stack_browser profile remains unrun
   pending Root's exclusive host-slot release. The accepted bounded ETF
   checkpoint remains accepted, but the full fourteen-criterion roadmap, issuer
   onboarding, and post-integration 30-day observation remain open. Preserve all
@@ -1726,25 +1737,27 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Exact own-branch CI39880187551 on published source
-  680d8b6c3851f57072d97caee35512f21092ed2d is terminal green for all ordinary
-  jobs; preserve its receipt without misrepresenting the skipped Exhaustive
-  gate. Publish the committed known_at correction as one ETF-branch update and
-  inspect its exact-source CI. The exact green staging baseline
-  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is already in this branch's
-  ancestry. Continue offline AC2/AC4/AC5 audit and capability work from
-  retained evidence; do not infer policy or route eligibility. The required
-  full_stack_browser profile recipe is `make validate-integration
-  INTEGRATION_BRANCH=feat/etf-holdings-constituents` with the reviewed pinned
-  zero-retry Playwright launcher supplied as a MAKE command-line assignment,
-  both live-provider flags explicitly zero, and the repository's unchanged
-  full matrix. Rebind its source/run marker and unique Compose project only
+  The capability success predicate now rejects a `success` state whose
+  `last_failure_at` is later than `last_success_at`; a prior failure remains
+  compatible when followed by a coherent later success. The full deterministic
+  capability module passed111 tests, with Ruff check/format and diff checks
+  green. Exact parent CI39884332043 is terminal green for Frontend, Backend,
+  Branch-declared, and Playwright E2E; Exhaustive was skipped by feature policy.
+  The narrative-count sentinel, workstream validator, JSON/hash/diff, and
+  changed-file Ruff/format checks must pass before publishing this coherent
+  source+receipt change once; inspect only the resulting exact-source CI.
+  Continue offline AC2/AC4/AC5
+  audit and capability work from retained evidence without inferring route
+  eligibility. The required `full_stack_browser` recipe is `make
+  validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents
+  PLAYWRIGHT_DOCKER=<reviewed pinned zero-retry wrapper>
+  RUN_LIVE_PROVIDER_TESTS=0 RUN_LIVE_ETF_HOLDINGS_TESTS=0`, using the wrapper
+  as a MAKE command-line assignment, one worker, reviewed resource limits,
+  backend egress deny, and generated synthetic stack data only. Launch only
   after Root assigns the exclusive slot and reviews a fresh immutable resource
-  baseline. Use one worker, the established browser memory/CPU/PID limits, the
-  backend egress-deny boundary, and only generated synthetic stack data; retain
-  the assigned loopback ETF DB/Redis services and all retained datasets/volumes.
+  baseline. Preserve retained loopback ETF DB/Redis services and datasets.
   No issuer/provider/SEC requests, quota, paid/trial activation,
-  staging/sibling/master writes, promotion, or deployment. Keep all AC1–AC14,
-  `15 Tier-0 and 156 Tier-1`, historical results, MSMR/QQQ and Militia/GOOG
-  quarantines, disabled unsafe/unreviewed routes and the 30-day observation
+  staging/sibling/master writes, promotion, deployment, or cleanup. Keep all
+  AC1–AC14, `15 Tier-0 and 156 Tier-1`, history, MSMR/QQQ and Militia/GOOG
+  quarantines, disabled unsafe/unreviewed routes, and the 30-day observation
   gate intact.

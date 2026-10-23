@@ -109,25 +109,38 @@ def test_current_requires_complete_snapshot_and_successful_check():
 
 
 @pytest.mark.parametrize(
-    ("checked", "success"),
+    ("checked", "success", "failure"),
     [
-        (NOW, None),
-        (NOW, NOW + timedelta(seconds=1)),
-        (NOW - timedelta(seconds=1), NOW),
+        (NOW, None, None),
+        (NOW, NOW + timedelta(seconds=1), None),
+        (NOW - timedelta(seconds=1), NOW, None),
+        (NOW, NOW, NOW + timedelta(seconds=1)),
     ],
-    ids=["missing-success", "future-success", "success-after-check"],
+    ids=["missing-success", "future-success", "success-after-check", "failure-after-success"],
 )
-def test_success_state_requires_coherent_success_timestamp(checked, success):
+def test_success_state_requires_coherent_success_timestamp(checked, success, failure):
     result = evaluate_capability(
         profile(),
         snapshot(),
-        state(checked=checked, success=success),
+        state(checked=checked, success=success, failure=failure),
         now=NOW,
     )
 
     assert result.availability == UNKNOWN
     assert result.usable_for_current_analysis is False
     assert result.displayable_last_known is True
+
+
+def test_success_state_with_older_failure_remains_current():
+    result = evaluate_capability(
+        profile(),
+        snapshot(),
+        state(failure=NOW - timedelta(seconds=1)),
+        now=NOW,
+    )
+
+    assert result.availability == CURRENT
+    assert result.usable_for_current_analysis is True
 
 
 def test_sec_reconstruction_is_degraded_even_when_the_fetch_succeeded():

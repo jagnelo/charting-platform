@@ -2349,6 +2349,7 @@ def evaluate_capability(
         and checked is not None
         and success is not None
         and success <= checked <= now
+        and (failure is None or failure <= success)
     ):
         availability = CURRENT
         reason = "A complete holdings snapshot passed the latest adapter check."

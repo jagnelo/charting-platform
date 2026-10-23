@@ -14251,3 +14251,43 @@ and all retained datasets/volumes. Recheck immutable baseline and exact owned
 resources immediately before launch; after all descendants exit, clean only
 resources created by that uniquely labelled profile. No profile launch is
 authorized by this handoff.
+
+## Success/failure timestamp consistency guard — 2026-10-23 01:48Z
+
+Current clean/published parent is ETF SHA
+`02384a2b67a9e336974d32a51c0e3f40ad106398`; remote verification confirmed
+`origin/feat/etf-holdings-constituents` at the same SHA, and released common
+staging `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` remains an ancestor. Exact
+CI `39884332043` is still active on that parent: Frontend, Backend, and
+Branch-declared jobs passed, E2E Playwright is starting its stack, and the
+Exhaustive Integration Gate was skipped under feature-branch policy. This
+local capability change is not included in that run; do not interrupt or
+replace it.
+
+An offline capability-state review found that `evaluate_capability` required
+`last_success_at <= last_checked_at <= now` but ignored a contradictory
+`last_failure_at` later than that success. Such an internally inconsistent
+record could still label complete holdings current. Current eligibility now
+also requires no failure timestamp after the last successful fetch. A failure
+at or before a later coherent success remains compatible, preserving the
+canonical writer's history semantics. The complete deterministic capability
+module passed `111/111`; changed-file Ruff check and format-check, plus
+`git diff --check`, passed. No provider/issuer/SEC HTTP, quota, database,
+Compose/browser profile, route activation, or data cleanup occurred.
+
+The source and corresponding durable receipt remain uncommitted while the
+exact parent CI finishes; publishing earlier would cancel its E2E job. Once it
+is terminal, preserve its actual result, then run the narrative-count
+sentinel, workstream validator, JSON/hash/diff checks and publish this
+coherent capability change once. Inspect only the resulting exact-source CI.
+The `full_stack_browser` profile is still required and awaits Root's exclusive
+slot; its pinned zero-retry wrapper, one-worker resource bounds, backend egress
+deny, both live flags at zero, generated synthetic data, and preservation of
+retained ETF DB/Redis services and volumes remain mandatory. Keep the full
+AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
+quarantines, unknown/unreviewed/quota-held/paid/trial/unsafe holds, all prior
+red/partial history, and the post-integration 30-day observation gate.
+
+Parent exact-source CI closure — 2026-10-23 02:13Z
+
+Exact own-branch run39884332043 for published parent02384a2b67a9e336974d32a51c0e3f40ad106398 is terminal green: Backend, Frontend, Branch-declared, and Playwright E2E passed; the Exhaustive Integration Gate was skipped by feature-branch policy. The local capability failure-ordering change above is not included and still requires exact-source CI after publication. Released common staging SHA4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is already an ancestor of this branch, so no duplicate staging merge is needed. The local full_stack_browser slot remains held by Root.
