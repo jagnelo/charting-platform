@@ -994,6 +994,7 @@ import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from '.
 import {
   createTagColumnMembershipToggler,
   mergeTagColumnConfiguration,
+  mergeWatchlistSelectionConfiguration,
   resolveTagColumnTargets,
   type TagColumnTarget,
 } from '@/lib/workstation/tagColumns'
@@ -1455,7 +1456,7 @@ function publishWatchlistConfiguration(watchlistId: number | string | null) {
     pendingPersonalWatchlistSelections.delete(toolKey)
     pendingPersonalWatchlistSelectionTimers.delete(toolKey)
   }, 30_000))
-  emit('configuration', props.tool.instance_key, { ...props.tool.configuration, watchlist_id: watchlistId })
+  emit('configuration', props.tool.instance_key, mergeWatchlistSelectionConfiguration(liveToolConfiguration.value, watchlistId))
 }
 
 function selectPersonalWatchlist(raw: string) {

@@ -74,9 +74,18 @@ current_blocker: >-
   real parent-host-to-mutation browser proof has NOT run and remains pending
   the Root-assigned full local fixture slot. Keep the existing assertions,
   exact 70% function-coverage threshold, and all screenshot rules unchanged.
-  The 570c full frontend coverage/build results are historical exact-source
-  evidence only and are not rebound to this merged candidate. Exact TC branch
-  CI for the merged candidate is pending normal publication. The prior
+  The exact TC branch CI39877709985 for published c5da is RED only at F8y
+  Tag Columns: after the target WatchList POST succeeded, switching back
+  rendered XLE without its configured membership cell; the built-in retry
+  also failed. Source review found selection publication spreads the
+  potentially stale props.tool.configuration even though Tag Column
+  rendering reads liveToolConfiguration. A new focused source-binding test
+  failed against that stale binding (1 failed/8 passed); the working-tree
+  repair emits watchlist_id over the live canonical configuration. The
+  affected suites now pass104/104 and vue-tsc --noEmit exits0. The repair is
+  unpublished and exact CI remains pending; these tests are not real parent
+  browser proof. The 570c full frontend coverage/build results remain historical
+  exact-source evidence and are not rebound to this merged candidate. The prior
   accepted 0e release remains an ancestor, superseded for latest adoption by
   4687. Full AC1–AC9, official REF-HELP-V25 parity, broader feature acceptance,
   and any deployment or live-provider operations remain open/disabled.
@@ -99,12 +108,20 @@ current_checkpoint_status: >-
   unchanged. It was collected on the earlier 570c source but has not run in a
   browser; positive/negative parent-host-to-mutation runtime proof remains
   pending the coordinator's full local fixture slot. Do not substitute helper,
-  parser or collection results. Previous full frontend coverage/build evidence
-  is qualified to 570c only, and exact TC branch CI for the merged source is
-  pending normal publication. No assertions, references, masks, tolerances,
-  retries, thresholds, provider behavior, datasets, or deployment settings
-  were changed. The full AC1–AC9 roadmap and official REF-HELP-V25 parity remain
-  open; TCP bounded checkpoint evidence does not close either.
+  parser or collection results. Exact branch CI39877709985 on c5da was RED at
+  this case after the target mutation POST succeeded: returning to the target
+  list rendered XLE without the configured Tag Column membership cell, and its
+  built-in retry also failed. The working-tree repair was motivated by the
+  stale-props binding in publishWatchlistConfiguration; it now merges the
+  selection over liveToolConfiguration. Its baseline-red source-binding test
+  failed with 1 failure and 8 passes before wiring and now passes; affected
+  suites pass104/104,
+  vue-tsc --noEmit exits0, and the unchanged Playwright case collects. Repair
+  publication and exact CI remain pending; none of these checks is browser
+  proof. No assertions, references, masks, tolerances, retries, thresholds,
+  provider behavior, datasets, or deployment settings were changed. The full
+  AC1–AC9 roadmap and official REF-HELP-V25 parity remain open; TCP bounded
+  checkpoint evidence does not close either.
 
   The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
   implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
@@ -1247,16 +1264,15 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "merged_exact_green_staging_4687_at_f704;clean_merge_no_conflicts;receipt_pinned_858_frozen_paths_29_adaptations_preserved;exact_branch_CI_pending_publication;F8y_parent_mutation_runtime_pending_root_slot;prior_570c_frontend_gates_historical_only;Custom_Date_Sort_relative_comparator_unavailable;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "4687_green_staging_adopted_c5da;exact_branch_CI39877709985_F8y_tag_cell_red;live-config-selection-fix-unpublished_104_affected_tests_typecheck_and_collection_green;parent-runtime-and-full-profile-wait_root_slot;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Publish this coherent exact-4687 adoption/scope checkpoint on the TC
-    feature ref and let its normal branch CI run. After Root releases the
-    one-at-a-time full local fixture slot, freeze the exact published source and
-    run F8y as part of the complete functional plus strict-104 profile; the
-    parent-host-to-mutation runtime proof is pending. Preserve the 70% coverage
-    threshold, all assertions/references/masks/tolerance, full AC1–AC9 roadmap,
-    official REF-HELP-V25 gap, provider/live holds, assigned services and data.
-    Do not run a heavy local profile before the slot release.
+    Publish the narrow stale-configuration repair with its baseline-red,
+    affected-unit, typecheck and F8y collection evidence, then inspect exact
+    branch CI. Keep the real parent-host-to-mutation browser proof and complete
+    functional plus strict104 local profile pending Root's one-at-a-time slot.
+    Preserve the 70% threshold, all assertions/references/masks/tolerance, full
+    AC1–AC9, official REF-HELP-V25 gap, provider/live holds, assigned services
+    and data; do not start heavy work before slot release.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:

@@ -93,6 +93,14 @@ export function mergeTagColumnConfiguration(
   }
 }
 
+/** Preserve the latest rendered configuration when a WatchList selection changes. */
+export function mergeWatchlistSelectionConfiguration(
+  configuration: Record<string, unknown>,
+  watchlistId: number | string | null,
+): Record<string, unknown> {
+  return { ...configuration, watchlist_id: watchlistId }
+}
+
 export function createTagColumnMembershipToggler(dependencies: {
   getPersonalWatchlists: () => readonly TagColumnWatchlist[]
   isDisposed: () => boolean

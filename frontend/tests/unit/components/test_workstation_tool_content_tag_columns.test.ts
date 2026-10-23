@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createTagColumnMembershipToggler,
   mergeTagColumnConfiguration,
+  mergeWatchlistSelectionConfiguration,
   resolveTagColumnTargets,
   type TagColumnWatchlist,
 } from '@/lib/workstation/tagColumns'
@@ -40,6 +41,29 @@ function watchlistFixture(overrides: Partial<TagColumnWatchlist> = {}): TagColum
 }
 
 describe('WorkstationToolContent Tag Column contracts', () => {
+  it('preserves the latest Tag Column configuration when publishing a WatchList selection', () => {
+    const staleToolSnapshot = {
+      watchlist_id: 3,
+      tag_watchlist_ids: [],
+      column_keys: ['symbol', 'name', 'last', 'change'],
+    }
+    const latestWorkspaceConfiguration = {
+      ...staleToolSnapshot,
+      tag_watchlist_ids: [7],
+      column_keys: ['symbol', 'name', 'last', 'change', 'tag-watchlist:7'],
+    }
+
+    expect(mergeWatchlistSelectionConfiguration(latestWorkspaceConfiguration, 8)).toEqual({
+      watchlist_id: 8,
+      tag_watchlist_ids: [7],
+      column_keys: ['symbol', 'name', 'last', 'change', 'tag-watchlist:7'],
+    })
+
+    const source = readFileSync(toolContentPath, 'utf8')
+    const publishBody = source.match(/function publishWatchlistConfiguration\([\s\S]*?\n}/)?.[0] ?? ''
+    expect(publishBody).toContain('mergeWatchlistSelectionConfiguration(liveToolConfiguration.value, watchlistId)')
+  })
+
   it('resolves configured personal targets and preserves unavailable or read-only evidence', () => {
     expect(resolveTagColumnTargets(
       [7, 8, 7, 0, '9'],

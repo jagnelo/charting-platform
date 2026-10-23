@@ -35,19 +35,21 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
+  "current_candidate_ci_status": "Published candidate c5da52934224570539ac72dbd120e1cfa7bde97a exact branch CI39877709985 is RED only at F8y Tag Columns after successful membership POST; retry also failed. An unpublished source repair uses liveToolConfiguration for selection publication, with affected suites 104/104 and typecheck green; it awaits exact CI and Root's full local browser slot.",
   "current_exact_ci": {
-    "conclusion": "pending",
-    "head_sha": "f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d",
-    "status": "No branch-specific CI is yet confirmed for the TC merge candidate. The exact adopted staging source 4687bd0 has separate green CI39866387942; own branch CI is pending coherent feature-ref publication.",
-    "visuals": "Parent-event F8y runtime remains pending the coordinator-assigned full local fixture slot. Historical visual evidence remains qualified to its recorded test/product inputs; no visual acceptance is inferred from staging CI."
+    "conclusion": "failure",
+    "head_sha": "c5da52934224570539ac72dbd120e1cfa7bde97a",
+    "status": "Exact branch CI39877709985 failed only at F8y Tag Columns: target WatchList POST succeeded but returning to the target list rendered XLE without its configured In cell; the existing retry also failed. The working-tree fix and focused tests/typecheck are not published or CI-validated.",
+    "visuals": "F8y real parent-host-to-mutation browser proof remains pending Root's one-at-a-time full local fixture slot. Staging visuals and historical source-qualified visuals are not rebound to this TC candidate."
   },
   "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/workstation/tagColumns.ts",
+    "frontend/tests/unit/components/test_workstation_tool_content_tag_columns.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.yaml"
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
     "available": false,
@@ -128,8 +130,7 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d",
-  "current_candidate_ci_status": "The exact TC source merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d is locally reconciled with staging 4687bd0; feature-ref publication and own exact-source CI are pending. Staging CI39866387942 is green but is not this branch CI.",
+  "head": "c5da52934224570539ac72dbd120e1cfa7bde97a",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -160,7 +161,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish the exact 4687 staging adoption and this coherent workstream/scope-manifest checkpoint to the TC feature ref, then run normal exact branch CI. After Root releases TC's one-at-a-time full local profile slot, execute the ordinary-click F8y Tag Column regression with a source-frozen archive, pinned Noble/Playwright1.62.1, one worker, zero retries, unchanged assertions/visual references/tolerance, and preserve all assigned services/data. Until then, parent-host-to-mutation proof remains pending; preserve the complete AC1-AC9 roadmap, official REF-HELP-V25 gap, provider/live holds, and visual policy.",
+  "next_action": "Publish the focused F8y stale-configuration repair with baseline-red, affected-unit, typecheck and exact one-case Playwright collection evidence; inspect exact branch CI. Wait for Root's one-at-a-time slot before any local fixture/browser profile. Proposed recipe: TC-owned disposable project pinned to the final repair SHA, pinned Noble/Playwright 1.62.1, one worker/zero retries, browser1536MiB/2CPU, strict104 at unchanged0.005 refs/masks/no host DejaVu, full unchanged functional, internal-only backend/worker, provider/live/paid operations off, isolated generated state. Bind project IDs/ports/service caps from Root's slot receipt. Preserve assigned services/data/holds/15190 and full AC1-AC9/V25 roadmap.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -173,7 +174,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "eae2a7b4bd2946cef01cbeaf76cf3e15e755a3f37cbe5c630e2fb56e0aed724e",
+  "plan_hash": "1cabe87ebd65d7466b63231131f094e644d28b10faa215d2a5b97f27f408626f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -193,29 +194,29 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "Exact green staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is merged locally at f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d with no conflicts. The receipt-pinned 4687 scope snapshot repins 858 frozen imports and preserves 29 approved TC adaptations. Own feature-ref publication/exact-source CI is pending. F8y ordinary-click parent-mutation browser proof remains pending the Root-assigned full local slot; previous 570c coverage/build results are historical and not rebound. Preserve all assertions, references, and the full roadmap.",
-    "current_phase": "merged_exact_green_staging_4687_at_f704;no_conflicts;858_frozen_imports_repinned;29_adaptations_preserved;feature_ref_publication_and_exact_CI_pending;F8y_parent_event_runtime_pending_root_slot;all_roadmap_AC1_AC9_and_official_REF_HELP_V25_open",
-    "next_action": "Publish the coherent exact-staging adoption/scope checkpoint and run normal own-branch CI. After Root releases the full local profile slot, execute F8y with one worker, zero retries and unchanged assertions. Do not treat collection/parser/helper checks or upstream staging visuals as TC parent-runtime acceptance.",
+    "current_blocker": "Published candidate c5da52934224570539ac72dbd120e1cfa7bde97a exact CI39877709985 is red only at F8y Tag Columns after successful target POST; returning to target rendered XLE without In, and retry failed. Source-binding regression identified stale props.tool.configuration selection publication. The working-tree repair uses liveToolConfiguration and focused checks pass, but source is unpublished; browser profile waits Root's slot.",
+    "current_phase": "4687_adopted_c5da;exact_CI39877709985_F8y_red;stale-config-fix-unpublished_104_affected_tests_typecheck_and_collection_green;full_profile_wait_root_slot;roadmap_and_V25_open",
+    "next_action": "Publish the narrow F8y stale-configuration repair with honest baseline-red/green focused evidence and inspect exact branch CI. Do not start local browser/Compose before Root releases the one-at-a-time slot; retain full assertions, references, thresholds, data and roadmap.",
     "total": 5,
-    "updated_at": "2026-10-23T00:19:54Z"
+    "updated_at": "2026-10-23T01:16:06Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d",
-    "current_pending_range": "The exact 4687 staging release has been merged locally without conflicts. Its receipt-pinned 858-path manifest and current adoption records are being validated as one coherent packet before normal push. The ordinary-click F8y parent-mutation browser proof remains pending the assigned full local slot; exact-source branch CI will start only after publication.",
+    "current_local_head": "c5da52934224570539ac72dbd120e1cfa7bde97a",
+    "current_pending_range": "The published c5da candidate is clean and synchronized with origin; its exact CI39877709985 is red at F8y Tag Columns. The new uncommitted source/test/record repair is focused-green and awaits coherent publication. Parent-event browser proof remains pending the Root-assigned full local slot.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "4a88aaf8388b72f1b3eb22b21b2f50312bf12500",
-    "status": "At record preparation, origin feature ref was the clean 4a88 candidate; the exact accepted 4687 release is merged locally at f704 and this coherent scope/adoption packet is pending publication. No browser runtime or parent-event acceptance is claimed."
+    "remote_tracking_sha": "c5da52934224570539ac72dbd120e1cfa7bde97a",
+    "status": "Origin matched c5da before this working-tree repair. The narrow fix is not yet published; no browser runtime or parent-event acceptance is claimed."
   },
-  "remote": "4a88aaf8388b72f1b3eb22b21b2f50312bf12500",
-  "remote_sha": "4a88aaf8388b72f1b3eb22b21b2f50312bf12500",
-  "remote_synchronized": false,
+  "remote": "c5da52934224570539ac72dbd120e1cfa7bde97a",
+  "remote_sha": "c5da52934224570539ac72dbd120e1cfa7bde97a",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

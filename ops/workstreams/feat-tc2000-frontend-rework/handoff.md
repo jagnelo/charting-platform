@@ -1,5 +1,38 @@
 # feat/tc2000-frontend-rework
 
+## Current continuation — 2026-10-23: F8y stale configuration repair
+
+The exact accepted staging release `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`
+was adopted into this branch at `f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d`;
+the published branch tip before this repair is `c5da52934224570539ac72dbd120e1cfa7bde97a`.
+Own exact-source CI `39877709985` is red only at F8y Tag Columns: after the
+successful target WatchList membership POST, switching back showed XLE without
+the configured `In` cell, and the built-in retry also failed. Source review
+found `publishWatchlistConfiguration` used the potentially stale
+`props.tool.configuration` snapshot even though Tag Column state/rendering
+reads `liveToolConfiguration`. A source-binding regression failed before the
+fix (1 failed/8 passed), then passed after selection publication was changed to
+merge `watchlist_id` over that live canonical configuration. The affected
+three suites pass 104/104; `vue-tsc --noEmit` exits 0; Playwright still collects
+the unchanged single ordinary-click F8y case. These are focused/unit/collection
+results only, not browser acceptance. The repair is unpublished and new exact
+branch CI is pending.
+
+The full functional plus strict-104 local profile remains queued for Root's
+one-at-a-time slot. Proposed ownership is the TC-owned disposable project
+`tc-full-f8y-<final-sha8>-20261023`, pinned to the eventual exact published repair SHA and using the existing reviewed
+isolated fixture recipe: pinned Noble/Playwright 1.62.1, one worker, zero
+retries, browser capped at 1536 MiB/2 CPU, original assertions/timeouts, strict
+104 visuals at unchanged 0.005 tolerance/references/masks and no host DejaVu
+font mount. Use only fresh generated test state and fixture-seeded data;
+backend/worker provider egress remains denied and live/paid/refresh/provider
+operations stay off. The project name, ports, service IDs and non-browser caps
+must be bound from Root's slot receipt immediately before creation; no fixture
+has been launched for this repair. Preserve assigned TC/Provider services,
+volumes, databases/Redis datasets, quotas/holds and port 15190. Do not start
+until Root releases the slot. Full AC1–AC9 and official REF-HELP-V25 parity
+remain open; no provider traffic, deployment or promotion is claimed.
+
 ## Current adoption — 2026-10-23: exact green four-feature staging
 
 The coordinator released and accepted exact staging
