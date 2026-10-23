@@ -1,8 +1,12 @@
 import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { nextTick, reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const { routeHolder } = vi.hoisted(() => ({
+  routeHolder: { value: null as { query: Record<string, unknown> } | null },
+}))
 vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), post: vi.fn() } }))
+vi.mock('vue-router', () => ({ useRoute: () => routeHolder.value }))
 
 import { api } from '@/lib/api'
 import StrategyLabV2View from '@/views/StrategyLabV2View.vue'
@@ -21,11 +25,11 @@ function resource(
   return { type, id, attributes, relationships: {}, meta: { schema_version: 1 } }
 }
 
-function studyReference() {
+function studyReference(runId = 1, artifactId = 1) {
   return {
-    research_run_id: 1,
+    research_run_id: runId,
     code_version_id: 1,
-    artifact_id: 1,
+    artifact_id: artifactId,
     artifact_name: 'score',
     artifact_type: 'scalar',
     output_contract: 'study',
@@ -36,14 +40,19 @@ function studyReference() {
   }
 }
 
-function mountView() {
+function mountView(query: Record<string, unknown> = {}) {
+  routeHolder.value = reactive({ query: reactive(query) })
   return mount(StrategyLabV2View, {
     global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
   })
 }
 
 describe('StrategyLabV2View', () => {
-  beforeEach(() => vi.mocked(api.get).mockReset())
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset()
+    vi.mocked(api.post).mockReset()
+    routeHolder.value = reactive({ query: reactive({}) })
+  })
 
   it('lists owner-scoped v2 strategies and re-reads immutable Study lineage on selection', async () => {
     const summary = resource('strategy-1', { strategy_id: 'study-a', version_id: 'v1' })
@@ -142,6 +151,74 @@ describe('StrategyLabV2View', () => {
     )
     expect(wrapper.get('[aria-label="Resolved Study pin"]').text()).toContain('artifact_content_digest')
     expect(wrapper.text()).toContain('Persisted provenance only')
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('hydrates a normal-user Study result link and resolves only the pinned GET', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ data: [], links: {} })
+      .mockResolvedValueOnce({
+        data: {
+          type: 'study-artifact-references',
+          id: '29:73',
+          attributes: studyReference(29, 73),
+        },
+      })
+
+    const wrapper = mountView({ researchRunId: '29', artifactId: '73' })
+    await flushPromises()
+
+    expect((wrapper.get('[aria-label="Research run ID"]').element as HTMLInputElement).value).toBe('29')
+    expect((wrapper.get('[aria-label="Artifact ID"]').element as HTMLInputElement).value).toBe('73')
+    expect(api.get).toHaveBeenNthCalledWith(
+      2,
+      '/strategy-lab/v2/study-artifact-references/29/73',
+    )
+    expect(wrapper.get('[aria-label="Resolved Study pin"]').text()).toContain('artifact_content_digest')
+    expect(api.post).not.toHaveBeenCalled()
+    expect(vi.mocked(api.get).mock.calls.every(([path]) => !path.includes('dispatch'))).toBe(true)
+  })
+
+  it('resolves a later result selection when the inspector route query changes in place', async () => {
+    vi.mocked(api.get).mockImplementation(async (path: string) => {
+      if (path === '/strategy-lab/v2/study-artifact-references/29/73') {
+        return {
+          data: {
+            type: 'study-artifact-references',
+            id: '29:73',
+            attributes: studyReference(29, 73),
+          },
+        }
+      }
+      return { data: [], links: {} }
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+    routeHolder.value!.query.researchRunId = '29'
+    routeHolder.value!.query.artifactId = '73'
+    await flushPromises()
+    await flushPromises()
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/strategy-lab/v2/study-artifact-references/29/73',
+    )
+    expect(wrapper.get('[aria-label="Resolved Study pin"]').text()).toContain('artifact_content_digest')
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['missing artifact ID', { researchRunId: '29' }],
+    ['malformed run ID', { researchRunId: '029', artifactId: '73' }],
+    ['repeated query ID', { researchRunId: ['29', '30'], artifactId: '73' }],
+  ])('rejects a %s route without calling the Study resolver', async (_case, query) => {
+    vi.mocked(api.get).mockResolvedValueOnce({ data: [], links: {} })
+
+    const wrapper = mountView(query)
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toMatch(/Study link|positive integer IDs/)
+    expect(vi.mocked(api.get).mock.calls.some(([path]) => path.includes('/study-artifact-references/'))).toBe(false)
     expect(api.post).not.toHaveBeenCalled()
   })
 

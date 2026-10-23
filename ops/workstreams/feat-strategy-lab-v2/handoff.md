@@ -18454,25 +18454,26 @@ read-only pin preview. The view validates the returned identity and all typed di
 displaying the linkage. It reports the immutable Study provenance only; generic Study output is
 not a backtest result or native-engine proof.
 
-The supporting backend contract is already present in the accepted integrated source: `main.py`
-registers `create_registered_strategy_lab_v2_router()` under `/api/v1`; the registered dependency
-uses the authenticated `get_current_user` principal. `api_router.py` exposes GET collection/detail
-routes and `GET /api/v1/strategy-lab/v2/study-artifact-references/{research_run_id}/{artifact_id}`.
-`PostgresStrategyLabV2Adapter.resolve_study_artifact_reference` delegates to the existing
-`create_selected_study_artifact_reference_factory` / `_resolve_selected_study_artifact` in
-`study_artifact_resolver.py`. That resolver binds an explicitly selected artifact to the
-authenticated owner's completed-and-evaluated `ResearchRun`, its owner-scoped `CodeAsset` and
-immutable `CodeVersion`, one unambiguous supported `ResearchArtifact`, and the run, code, dataset,
-and artifact digests. Missing, foreign-owner, nonterminal, ambiguous, malformed, or drifted rows
-remain denied/not found. No `latest` alias or UI-supplied digest is authority.
+The prerequisite contract is **not** present in accepted/deployed `a6b9`. In this Strategy branch,
+`344f87f835f392bd103c20db2044aa0de72148df` validates persisted Study payload shapes, and its
+dependent `068d03f1ff55f5b1701d071980b4405d83e65cc6` adds the authenticated immutable-reference GET,
+adapter method, and `create_selected_study_artifact_reference_factory` / resolver checks for owner,
+terminal run, identity, and digests. Only with those branch-local backend commits does the resolver
+bind an explicitly selected artifact to the authenticated owner's completed-and-evaluated
+`ResearchRun`, owner-scoped `CodeAsset` and immutable `CodeVersion`, one unambiguous supported
+`ResearchArtifact`, and the run, code, dataset, and artifact digests. Missing, foreign-owner,
+nonterminal, ambiguous, malformed, or drifted rows remain denied/not found. No `latest` alias or
+UI-supplied digest is authority. These commits are not in `a6b9` and their recorded focused/SQL
+evidence is not a substitute for exact-tip CI and the complete local application profile.
 
-The corresponding local source prerequisite is the separate inspector commit `4a2c6058d`
-(`frontend/src/views/StrategyLabV2View.vue` plus its focused tests), layered on the accepted
-backend resolver/registration and the existing router `/api/v1` prefix. Its focused component
-tests cover owner-scoped list/detail GETs, immutable Study-pin GET validation, malformed/mismatched
-IDs, and the absence of POST calls. This source is still awaiting publication and exact-tip CI;
-parent run `39992653172` remains in progress on `64d3b12e11118593535b02e8e8a06dd1f263ffdf` and
-does not validate it. The required full local profile remains `full_stack_browser`, with normal
+The branch-only normal-user prerequisites are `1451b9d0f2f4a468961319eda337f5dcc1e06aa7`
+(`StrategyLabV2View.vue`, router registration, and App navigation) and its pin-preview follow-up
+`4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5` (explicit immutable pin preview and typed response
+validation). They depend on the backend commits above; none is in accepted/deployed `a6b9`. Their
+focused component tests cover owner-scoped list/detail GETs, immutable Study-pin GET validation,
+malformed/mismatched IDs, and absence of POST calls. The current source is still awaiting
+publication and exact-tip CI; parent run `39992653172` remains in progress on
+`64d3b12e11118593535b02e8e8a06dd1f263ffdf` and does not validate it. The required full local profile remains `full_stack_browser`, with normal
 backend/API/migration and frontend/browser/strict-visual gates, exact-source CI, unchanged visual
 references/masks/tolerances and zero retries. No gate is waived by the prior accepted checkpoint.
 
@@ -18482,3 +18483,70 @@ artifact, and that broker/capital actions are not offered here. Do not infer a c
 engine capability from a persisted capability summary, label generic Study evaluation as native,
 or claim native execution has run. A live, account-specific capability indicator would require a
 separate current read-only contract; it is not needed to complete this inspector checkpoint.
+
+### First-use entry path and backend prerequisite correction — 2026-10-23 17:46 UTC
+
+Root's deployed-source audit corrects the prior paragraph's qualification: accepted/deployed
+`a6b9` does **not** contain the Study-reference GET or resolver. Do not describe the immutable-pin
+API as deployed or propose a frontend-only deployment. The exact Strategy-owned prerequisites in
+this branch are `344f87f83` (`validate persisted Study payload shapes`) followed by `068d03f1f`
+(`expose immutable Study reference resolution`), which adds the typed resolver, API adapter method,
+authenticated GET route, owner/terminal/identity/digest checks and backend tests. These source
+commits are present only in this Strategy branch and are not in `a6b9`; the current in-flight CI
+`39992653172` is on `64d3b12e11118593535b02e8e8a06dd1f263ffdf` and covers neither. Their prior
+focused and SQL evidence remains scoped to the exact recorded test sources; full exact-tip CI and
+the complete local application profile are still required before this API can be treated as
+released/deployed.
+
+The normal-user frontend prerequisites are `1451b9d0f` (adds the StrategyLabV2 view, route and App
+navigation) and `4a2c6058d` (adds explicit immutable pin preview and typed response validation).
+These are also branch-local, not part of deployed `a6b9`, and not covered by the current run.
+Read-only component tests prove the existing view uses owner-scoped GETs and no POST, but its
+manual artifact-ID input is not a complete normal-user route. In `ResearchResultsTool.vue`, a user
+can select a persisted run and see its run ID plus each output's name/type and Export action; the
+artifact ID is only used internally for keys/ARIA identifiers. There is no ordinary visible link
+from that output to the v2 inspector. DevTools/DOM inspection is not an acceptable first-use path.
+
+The remaining minimal UI completion is a per-output read-only link/selection in the Study results
+card that carries the existing selected run ID and that artifact ID to the v2 inspector route. The
+inspector should validate route-query IDs, populate its fields and call only the already-described
+owner-scoped GET resolver; it must not create a reference or dispatch work. Add focused tests for
+the output-to-inspector link, query handoff and malformed/missing IDs, retaining server-side denial
+for foreign owners, nonterminal runs and digest/identity drift. The page should state that no native
+execution was performed/initiated by this inspector and that generic Study output is not native
+proof. It must not claim current per-account engine eligibility from stale persisted summaries.
+No new backend endpoint, target operation, provider request, fixture, or native capability is
+required for this link. After the current parent CI terminates, publish the coherent local source
+and records without cancelling it, inspect the exact-tip CI, then obtain the unchanged Root-assigned
+full validation gates before calling the read-only UI checkpoint complete.
+
+### Normal-user Study output link implementation — 2026-10-23 17:51 UTC
+
+The missing first-use navigation is now implemented in the local Strategy branch. A completed
+Research run whose declared `output_contract` is `study` exposes a visible per-output
+“Inspect in Strategy Lab v2” router link. It carries the persisted `researchRunId` and
+`artifactId`; the V2 view hydrates its fields from those query values, validates positive integer
+IDs, and calls only the authenticated owner-scoped Study-reference GET. Partial, repeated, or
+malformed query values fail before that resolver request. Running runs and non-Study contracts do
+not receive the link. This does not create or dispatch a run and does not claim generic Study output
+is native execution evidence.
+
+Focused offline Vitest validation of the two affected modules passed `71/71` tests in `3.28s` with
+one worker. New assertions cover link IDs/route, completed-Study-only visibility, valid query
+hydration, missing/malformed/repeated query rejection, and GET-only/no-dispatch behavior. These
+tests exercise the branch-local route and API contract, not deployed `a6b9`: the exact backend
+prerequisites remain `344f87f83` and `068d03f1f`; the normal-user view/navigation is from
+`1451b9d0f`, and pin-preview validation from `4a2c6058d`. None of those later source changes is
+present in the accepted `a6b9` deployment, and the current parent run `39992653172` is still
+in-progress on `64d3b12e`; it covers neither this link nor the local Research changes. Do not
+publish an independently deployed frontend against that missing backend. Source remains local
+until the existing run is terminal; exact-tip CI and the assigned full local application,
+PostgreSQL/combined-worker, browser/strict-visual, and native scope gates remain open.
+
+The view also watches in-place route-query changes so selecting another Study result while the
+router reuses the same component invalidates any pending resolver response and clears stale pin
+state before loading the new IDs. The final run of both affected modules passed `72/72` in `3.33s`
+with one worker. One intermediate new route-reuse assertion initially failed because its test flush
+helper did not await the watcher-plus-GET sequence; the unchanged application assertions then passed
+with the test waiting for the complete async turn, and the final whole-module run passed. No
+resolver denial, product guard, or acceptance assertion was weakened.

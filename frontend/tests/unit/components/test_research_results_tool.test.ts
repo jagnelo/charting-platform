@@ -15,6 +15,11 @@ vi.mock('@/components/workstation/GenericBreadthHistoryUPlot.vue', () => ({ defa
 
 import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
 
+const routerLinkStub = {
+  props: ['to'],
+  template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>(res => { resolve = res })
@@ -26,7 +31,12 @@ describe('ResearchResultsTool', () => {
 
   function mountTool() {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
-    return mount(ResearchResultsTool, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } })
+    return mount(ResearchResultsTool, {
+      global: {
+        plugins: [[VueQueryPlugin, { queryClient }]],
+        stubs: { RouterLink: routerLinkStub },
+      },
+    })
   }
 
   it('loads persisted runs and exposes selected structured artifacts', async () => {
@@ -43,6 +53,30 @@ describe('ResearchResultsTool', () => {
     const summaryId = wrapper.find('[aria-label="confidence range result"]').attributes('aria-describedby')
     expect(summaryId).toMatch(/-research-artifact-6-summary$/)
     expect(wrapper.find(`#${summaryId}`).text()).toContain('confidence range result with 1 observations')
+  })
+
+  it('links completed Study outputs to the read-only v2 inspector with their persisted IDs', async () => {
+    apiGet.mockResolvedValue([{ id: 29, status: 'completed', output_contract: 'study', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 73, name: 'score', artifact_type: 'scalar', payload: { value: 6 } }] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const link = wrapper.get('a[aria-label="Inspect score immutable Study lineage in Strategy Lab v2"]')
+    expect(JSON.parse(link.attributes('data-to')!)).toEqual({
+      path: '/legacy/strategy-lab-v2',
+      query: { researchRunId: '29', artifactId: '73' },
+    })
+    expect(apiPost).not.toHaveBeenCalled()
+  })
+
+  it('does not offer the v2 Study inspector for running or non-Study outputs', async () => {
+    apiGet.mockResolvedValue([
+      { id: 29, status: 'running', output_contract: 'study', diagnostics: [], artifacts: [{ id: 73, name: 'score', artifact_type: 'scalar', payload: { value: 6 } }] },
+      { id: 30, status: 'completed', output_contract: 'events', diagnostics: [], artifacts: [{ id: 74, name: 'events', artifact_type: 'events', payload: { value: [] } }] },
+    ])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('a[aria-label*="immutable Study lineage"]').exists()).toBe(false)
   })
 
   it('loads older runs with a stable cursor while preserving selection and comparison', async () => {
@@ -133,8 +167,8 @@ describe('ResearchResultsTool', () => {
     apiGet.mockResolvedValue(response)
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     const plugin = [VueQueryPlugin, { queryClient }] as const
-    const first = mount(ResearchResultsTool, { global: { plugins: [plugin] } })
-    const second = mount(ResearchResultsTool, { global: { plugins: [plugin] } })
+    const first = mount(ResearchResultsTool, { global: { plugins: [plugin], stubs: { RouterLink: routerLinkStub } } })
+    const second = mount(ResearchResultsTool, { global: { plugins: [plugin], stubs: { RouterLink: routerLinkStub } } })
     await flushPromises()
 
     const firstId = first.find('[aria-label="confidence range result"]').attributes('aria-describedby')
@@ -360,8 +394,8 @@ describe('ResearchResultsTool', () => {
     apiPost.mockResolvedValue(canceled)
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     const plugin = [VueQueryPlugin, { queryClient }] as const
-    const first = mount(ResearchResultsTool, { global: { plugins: [plugin] } })
-    const second = mount(ResearchResultsTool, { global: { plugins: [plugin] } })
+    const first = mount(ResearchResultsTool, { global: { plugins: [plugin], stubs: { RouterLink: routerLinkStub } } })
+    const second = mount(ResearchResultsTool, { global: { plugins: [plugin], stubs: { RouterLink: routerLinkStub } } })
     await flushPromises()
 
     const cancel = first.findAll('button').find(button => button.text() === 'Cancel')

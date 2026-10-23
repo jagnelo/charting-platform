@@ -145,7 +145,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { api } from '@/lib/api'
 
@@ -220,6 +221,7 @@ const studyReference = ref<SelectedStudyArtifactReference | null>(null)
 const studyReferenceLoading = ref(false)
 const studyReferenceError = ref<string | null>(null)
 let studyReferenceRequestId = 0
+const route = useRoute()
 
 const activeLabel = computed(() => resources.find(item => item.kind === activeKind.value)?.label ?? 'Resources')
 const selectedStudyReference = computed(() => {
@@ -364,8 +366,43 @@ async function lookupStudyReference() {
   }
 }
 
+function hydrateStudyLookupFromRoute() {
+  const runId = route.query.researchRunId
+  const artifactId = route.query.artifactId
+  if (runId === undefined && artifactId === undefined) {
+    if (studyRunId.value || studyArtifactId.value || studyReference.value || studyReferenceError.value) {
+      studyReferenceRequestId += 1
+      studyReferenceLoading.value = false
+      studyRunId.value = ''
+      studyArtifactId.value = ''
+      studyReference.value = null
+      studyReferenceError.value = null
+    }
+    return
+  }
+  studyReferenceRequestId += 1
+  studyReferenceLoading.value = false
+  studyReference.value = null
+  studyReferenceError.value = null
+  if (typeof runId !== 'string' || typeof artifactId !== 'string') {
+    studyRunId.value = typeof runId === 'string' ? runId : ''
+    studyArtifactId.value = typeof artifactId === 'string' ? artifactId : ''
+    studyReferenceError.value = 'The Study link must include one run ID and one artifact ID.'
+    return
+  }
+  studyRunId.value = runId
+  studyArtifactId.value = artifactId
+  void lookupStudyReference()
+}
+
+watch(
+  () => [route.query.researchRunId, route.query.artifactId],
+  hydrateStudyLookupFromRoute,
+)
+
 onMounted(() => {
   void loadCollection(activeKind.value)
+  hydrateStudyLookupFromRoute()
 })
 </script>
 
