@@ -1,6 +1,54 @@
 # feat/tc2000-frontend-rework
 
-## Current candidate — 2026-10-23: published parent-path E2E, runtime pending
+## Current adoption — 2026-10-23: exact green four-feature staging
+
+The coordinator released and accepted exact staging
+`4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`, bound by canonical receipt
+`20261023T000222Z-4687bd0cd21a.json` (SHA-256
+`6249c01610eda62544056b1ae00a4c9b14c6d111978be14cda822b15a1c99b49`) and
+attempt-1 CI `39866387942`. This TC worktree fetched that exact SHA and merged
+it without conflicts into prior clean candidate
+`4a88aaf8388b72f1b3eb22b21b2f50312bf12500`, producing source merge
+`f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d`. Only this feature branch is in
+scope; no staging, master, sibling, deployment, provider, or dataset mutation
+occurred.
+
+The branch-owned frozen-import snapshot is updated to the exact release and
+pins all 858 previously frozen paths plus the six newly changed non-TC-owned
+paths. The two changed Market Map files remain governed by existing narrow TC
+shared-path exceptions. No shared-path exception, Provider adaptation, frozen
+TC behavior, assertion, or upstream file was broadened or rewritten. The
+accepted staging receipt reports backend 5191 unit/497 integration at 84%,
+frontend 1331, ordinary E2E 191 passed/110 existing skips, and the exhaustive
+104 strict visual profile green on attempt 1. Those are staging results, not
+TC branch CI. The merged TC branch's own exact CI is pending its normal feature
+publication.
+
+The next TC-owned runtime proof remains the ordinary-click F8y Tag Columns
+parent-host-to-mutation regression. It is collected but has not run in a
+browser; only its real positive/negative parent path can establish this gate.
+The proposed TC-owned disposable project is `tc-full-f704aa2-20261023`, pinned
+to source merge `f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d`; it will not be
+created or started until Root releases this queue slot. The full local profile
+recipe is: freeze the exact published TC source archive and hash; use only this
+source-qualified disposable TC fixture project
+after Root grants the queued slot; keep the browser on pinned Noble with
+Playwright 1.62.1, one worker, zero retries, 1536 MiB and 2 CPU; keep backend
+and worker provider-egress-denied with live/paid/refresh operations off; use
+fixture-only seeded data and isolated generated test state; run the complete
+functional flows (including F8y) and strict 104 visual profiles at the
+existing 0.005 tolerance and original references/masks. Preserve every
+assigned TC/Provider service, volume, DB/Redis dataset, quota/hold, and port
+15190. Do not reuse or stop those retained resources, launch while another
+owner holds the slot, or use broad Compose cleanup. Exact service caps/project
+IDs and fresh headroom must be bound from Root's slot receipt immediately
+before execution; no local profile has been started for this adoption.
+
+Full AC1–AC9 and official REF-HELP-V25 parity remain open; the earlier bounded
+checkpoint acceptance is not full feature acceptance. Custom Date Sort's
+relative modes remain unavailable without a source-backed comparator contract.
+
+## Previous candidate — 2026-10-23: published parent-path E2E, runtime pending
 
 Published HEAD commit `570c1cd9827cf3d00fdc0235146ec98f6809da23` matches
 origin; the connected GitHub compare confirmed identical refs. The worktree

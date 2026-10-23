@@ -3,9 +3,9 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
-latest_staging_merge_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
-dependency_authorization: "Human-approved four-feature integration; coordinator released exact synchronized Provider+ETF+TC2000+Strategy staging0e342512e53ba2268425294d61c50e219eaafa4f (CI39827786248) for guarded TC fast-forward and continued branch-owned roadmap work."
+latest_staging_parent_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+latest_staging_merge_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+dependency_authorization: "Human-approved four-feature integration; coordinator released exact synchronized Provider+ETF+TC2000+Strategy staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad (canonical receipt 20261023T000222Z-4687bd0cd21a.json; CI39866387942 attempt 1 green) for guarded adoption into this TC-owned branch and continued branch-owned roadmap work."
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
   and, on 2026-09-15, explicitly approved a scope replan so this branch consumes
@@ -60,45 +60,51 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Published TC HEAD 570c1cd9827cf3d00fdc0235146ec98f6809da23 matches origin;
-  the connected GitHub compare confirmed identical refs. The worktree currently
-  contains only the four own-record corrections for this checkpoint. The
-  exact older Frontend coverage failure 39866293985 (69.08% functions against
-  the unchanged 70% threshold) belongs only to source
-  fd567b418d9566310bafab9115cee067539b69ef and is not evidence about 570c.
-  The ordinary-click F8y Tag Column browser test is part of 570c and Playwright
-  collection on that source found exactly one case. It has NOT executed in a
-  browser: positive/negative parent-host-to-mutation runtime proof remains
-  explicitly pending the released full local fixture slot and required profile.
-  Do not substitute the SFC parser, helper tests, or collection for that proof.
-  Exact-source CI is unconfirmed. Full frontend coverage on exact 570c passed
-  143 files/1364 tests with 75.56% function coverage, above the unchanged 70%
-  threshold; the production build (vue-tsc plus Vite) exited 0. The required
-  browser profile remains pending. Preserve all assertions. The recorded
-  synchronized staging release
-  0e342512e53ba2268425294d61c50e219eaafa4f remains the adopted ancestor; no
-  newer unreleased repair is imported. Custom Date Sort implementation
-  5ca3423e553e27e36dc8002be5f11996bbd4cf9e remains published, with relative
-  modes unavailable absent a source-backed arbitrary-date comparator series.
-  No provider acquisition, live test, deployment, or visual-reference change
-  occurred. Official REF-HELP-V25 and broader AC1–AC9 work remain open.
+  TC merge commit f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d adopts the exact
+  coordinator-accepted GREEN combined staging release
+  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad (CI39866387942 attempt 1; canonical
+  receipt 20261023T000222Z-4687bd0cd21a.json). The adoption is a clean merge
+  from the prior TC source 4a88aaf8388b72f1b3eb22b21b2f50312bf12500; no
+  conflicts occurred. The exact 4687 frozen-import manifest repins all 858
+  previously frozen paths and includes the six newly changed non-TC-owned
+  files; the two changed Market Map paths remain under their existing narrow
+  TC shared-path exceptions. This is branch reconciliation, not broader
+  feature acceptance. The ordinary-click F8y Tag Column parent-event test is
+  present in the TC source and collected earlier, but its positive/negative
+  real parent-host-to-mutation browser proof has NOT run and remains pending
+  the Root-assigned full local fixture slot. Keep the existing assertions,
+  exact 70% function-coverage threshold, and all screenshot rules unchanged.
+  The 570c full frontend coverage/build results are historical exact-source
+  evidence only and are not rebound to this merged candidate. Exact TC branch
+  CI for the merged candidate is pending normal publication. The prior
+  accepted 0e release remains an ancestor, superseded for latest adoption by
+  4687. Full AC1–AC9, official REF-HELP-V25 parity, broader feature acceptance,
+  and any deployment or live-provider operations remain open/disabled.
 current_checkpoint_status: >-
-  Current published candidate (2026-10-22): exact branch HEAD and origin are
-  570c1cd9827cf3d00fdc0235146ec98f6809da23. The ordinary-click F8y E2E test
-  exercises the actual workstation parent path: configure a Tag Column, invoke
-  the row context-menu action, observe the target WatchList POST, and assert a
-  separate control WatchList remains unchanged. Playwright `--list` collected
-  one test on this source; no browser assertion has run. Parent-to-mutation
-  runtime proof is pending and must come from the required full local profile
-  (or a real parent mount under the approved full coverage profile), not helper
-  tests, template parsing, or collection. Exact-source CI is unconfirmed.
-  Frontend coverage and production build passed on this source; the full browser
-  profile remains pending. The old
-  69.08% coverage result is strictly source-qualified to fd567 and the
-  unchanged 70% threshold remains. The accepted staging ancestor remains
-  0e342512e53ba2268425294d61c50e219eaafa4f; no unreleased coordinator repair
-  is adopted. TCP1–TCP5 checkpoint acceptance does not close the complete
-  AC1–AC9 roadmap or official REF-HELP-V25 parity.
+  The current TC source merges the coordinator-accepted GREEN staging release
+  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad at branch merge commit
+  f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d. Canonical receipt
+  20261023T000222Z-4687bd0cd21a.json binds CI39866387942 attempt 1 to the exact
+  source. Merge-base and source review confirmed a clean merge from TC
+  candidate 4a88aaf8388b72f1b3eb22b21b2f50312bf12500 with no conflicts. The
+  receipt-pinned scope manifest repins 858 frozen import paths to 4687 and
+  adds the six new non-TC-owned paths from that release; the two workstation
+  Market Map files stay governed by the pre-existing narrow shared-path
+  exceptions. The previous 0e release remains in history but is superseded by
+  this latest adoption.
+
+  TC's ordinary-click F8y Tag Column test configures the target list through
+  the actual workstation, invokes its row context-menu action, observes the
+  target WatchList POST and verifies the separate control list remains
+  unchanged. It was collected on the earlier 570c source but has not run in a
+  browser; positive/negative parent-host-to-mutation runtime proof remains
+  pending the coordinator's full local fixture slot. Do not substitute helper,
+  parser or collection results. Previous full frontend coverage/build evidence
+  is qualified to 570c only, and exact TC branch CI for the merged source is
+  pending normal publication. No assertions, references, masks, tolerances,
+  retries, thresholds, provider behavior, datasets, or deployment settings
+  were changed. The full AC1–AC9 roadmap and official REF-HELP-V25 parity remain
+  open; TCP bounded checkpoint evidence does not close either.
 
   The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
   implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
@@ -550,9 +556,9 @@ historical_blocker_archive: >-
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
   name: TC2000 personal WatchList Tag Columns
-  status: published_ordinary_click_parent_mutation_E2E_collected_frontend_coverage_build_green_browser_runtime_and_exact_CI_pending
-  commit_sha: 570c1cd9827cf3d00fdc0235146ec98f6809da23
-  remote_sha: 570c1cd9827cf3d00fdc0235146ec98f6809da23
+  status: published_parent_mutation_E2E_collected_frontend_coverage_build_historical_exact_branch_CI_pending_slot_wait
+  commit_sha: f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d
+  remote_sha: 4a88aaf8388b72f1b3eb22b21b2f50312bf12500
   intent: >-
     Persist explicit personal WatchList targets as Tag Columns, display membership
     from canonical target-list rows, and let Alt+click or the accessible row menu
@@ -567,12 +573,13 @@ active_changeset_context:
     - frontend/tests/unit/lib/test_tag_columns.test.ts
     - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Confirm exact-source CI for 570c when an authoritative receipt is available.
-    After Root releases the full local fixture slot, run the ordinary-click
-    F8y parent-host-to-mutation regression in the required full local profile;
-    it has only been collected and browser runtime proof remains pending. Do
-    not substitute helper tests, template parsing, or collection; preserve all
-    behavior assertions, screenshot references, masks, retries, and tolerance.
+    Publish the clean exact-4687 merge and this coherent adoption checkpoint on
+    the TC feature ref, then use its automatic branch CI. After Root grants the
+    one-at-a-time local fixture slot, run the ordinary-click F8y parent-host-to-
+    mutation regression in the full source-pinned profile; runtime proof is
+    still pending. Do not substitute helper tests, template parsing, or
+    collection; preserve behavior assertions, visual references/masks/tolerance,
+    and zero-retry acceptance.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -911,7 +918,7 @@ dependencies:
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/0e342512e53ba2268425294d61c50e219eaafa4f.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.yaml
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
     source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -1140,6 +1147,9 @@ approved_frozen_upstream_snapshots:
   - source_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/0e342512e53ba2268425294d61c50e219eaafa4f.json
     receipt_sha256: 5159729a3231a658b1b7331d59f63f77f7bc41155b66698a988b880d12af5429
+  - source_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.json
+    receipt_sha256: 6249c01610eda62544056b1ae00a4c9b14c6d111978be14cda822b15a1c99b49
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
@@ -1237,17 +1247,16 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "published_Tag_Columns_parent_mutation_E2E_570c;origin_ref_identical;Playwright_collection1_exit0;focused_103_tests_typecheck_green;full_frontend_coverage_143_files_1364_tests_75.56_functions_and_production_build_green;parent_host_to_mutation_runtime_pending_fixture_slot;exact_570c_CI_unconfirmed;accepted_staging_0e342512_ancestor;no_newer_staging_repair_adopted;Custom_Date_Sort_relative_comparator_unavailable;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "merged_exact_green_staging_4687_at_f704;clean_merge_no_conflicts;receipt_pinned_858_frozen_paths_29_adaptations_preserved;exact_branch_CI_pending_publication;F8y_parent_mutation_runtime_pending_root_slot;prior_570c_frontend_gates_historical_only;Custom_Date_Sort_relative_comparator_unavailable;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Await Root's release of the full local fixture slot, then run the existing
-    ordinary-click F8y Tag Column case within the required full local profile;
-    its parent-host-to-mutation positive/negative runtime proof is still
-    pending. Do not substitute collection, helper tests, or template parsing.
-    Confirm exact-source CI for 570c when an authoritative receipt is available.
-    Preserve the 70% coverage threshold, all assertions, full AC1–AC9 roadmap,
-    official REF-HELP-V25 gap, provider/live holds, and visual policy. Do not
-    adopt an unreleased coordinator repair or create an acknowledgment-only
-    commit.
+    Publish this coherent exact-4687 adoption/scope checkpoint on the TC
+    feature ref and let its normal branch CI run. After Root releases the
+    one-at-a-time full local fixture slot, freeze the exact published source and
+    run F8y as part of the complete functional plus strict-104 profile; the
+    parent-host-to-mutation runtime proof is pending. Preserve the 70% coverage
+    threshold, all assertions/references/masks/tolerance, full AC1–AC9 roadmap,
+    official REF-HELP-V25 gap, provider/live holds, assigned services and data.
+    Do not run a heavy local profile before the slot release.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
