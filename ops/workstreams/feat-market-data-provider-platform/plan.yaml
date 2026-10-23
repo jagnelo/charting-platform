@@ -8889,18 +8889,25 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    The SEC issuer-universe durability change is published at exact source
-    `8739c92aeb6e1059405e8b3df9577c053d89585d`, synchronized with origin. Its
-    isolated file-backed SQLite restart regression and complete SEC scan unit
-    module pass on this source (26/26); the branch workstream validator and
-    diff check pass. Exact Actions run `39858232646` for this SHA is terminal
-    success: Backend, Frontend Unit, Branch-declared, and Playwright jobs
-    succeeded; Exhaustive was skipped by feature-branch policy. Do not rerun
-    it or infer the still-required local full profile from hosted CI. That
-    profile remains deferred until the coordinator releases a safe slot; do
-    not launch a competing fixture or touch retained services/data. After
-    release, complete the required exact-source full profile and stop at
-    `ready_for_human_review` only when all required gates pass. Preserve all
-    original roadmap criteria, provider holds, quota state, and coordinator-
-    only staging integration; no provider/issuer/SEC HTTP, deployment,
-    paid/trial activation, or retained-data cleanup.
+    Reconcile the repaired four-feature staging release
+    `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` already merged into this
+    Provider branch at `3e8f866d756fd63c35740c6c45f19615cc48a4b0`. Verify and
+    publish the coherent owner checkpoint, then require normal exact-source
+    branch CI for the pushed post-merge tip; prior CI `39858232646` remains
+    evidence only for its earlier source. Prepare, but do not start, one
+    isolated current-source `full_stack_browser` profile until Root explicitly
+    releases the slot after reviewing capacity. Pin the run to the clean pushed
+    Provider tip with all application images source-labeled; use a unique
+    Compose project and private generated state/volumes/networks, seeded
+    deterministic market data, provider-egress denial, blank provider
+    credentials, Playwright 1.62.1 Noble, read-only DejaVu fonts, one worker,
+    zero retries, unchanged 260 functional/104 strict visual cases and 0.005
+    tolerance. Never use the retained default project or its `down -v` cleanup.
+    The latest read-only host sample had only 1.5 GiB available and 6.5 GiB
+    swap in use with Provider/TC/ETF services retained, so the local profile is
+    not released or safe to launch. Preserve every dataset, quota hold, source
+    receipt, original roadmap criterion and coordinator-only integration
+    boundary; no provider/issuer/SEC HTTP, quota mutation, deployment, paid or
+    trial activation, or retained-resource cleanup. After the required exact
+    profile, continue the remaining full Provider roadmap without treating this
+    checkpoint adoption as feature completion.
