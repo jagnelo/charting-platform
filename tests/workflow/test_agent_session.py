@@ -527,6 +527,128 @@ def test_provider_live_policy_covers_adapter_and_runtime_configuration_paths() -
     assert not module.external_service_path("frontend/src/views/Workstation.vue")
 
 
+def _timestamp_classifier_module():
+    session = importlib.util.spec_from_file_location(
+        "agent_session_timestamp_classifier",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    return module
+
+
+_TIMESTAMP_REPAIR_PATH = (
+    "backend/alembic/versions/d4a5b6c7e812_add_market_series_default_timestamps.py"
+)
+
+
+def test_internal_timestamp_parity_is_not_an_external_contract_change() -> None:
+    module = _timestamp_classifier_module()
+    assert module.external_service_path(
+        _TIMESTAMP_REPAIR_PATH
+    )  # Still a risk candidate.
+    assert module.internal_timestamp_parity_only(text(_TIMESTAMP_REPAIR_PATH))
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("market_series_default", "provider_quota_reservation"),
+        ('"created_at"', '"selected_at"'),
+        ("nullable=False", "nullable=True"),
+        ("timezone=True", "timezone=False"),
+        ("server_default=sa.func.now()", "server_default=sa.text('0')"),
+        ("import sqlalchemy as sa", "import sqlalchemy as sa\nimport os"),
+        (
+            "def upgrade() -> None:",
+            "def upgrade() -> None:\n    op.execute('DELETE FROM market_series_default')",
+        ),
+        ('revision: str = "d4a5b6c7e812"', "revision: str = get_revision()"),
+        (
+            'op.drop_column("market_series_default", "created_at")',
+            "op.drop_table('market_series_default')",
+        ),
+    ],
+)
+def test_timestamp_classifier_rejects_other_sql_or_execution(
+    old: str, new: str
+) -> None:
+    module = _timestamp_classifier_module()
+    source = text(_TIMESTAMP_REPAIR_PATH)
+    assert old in source
+    assert not module.internal_timestamp_parity_only(source.replace(old, new))
+    assert not module.internal_timestamp_parity_only(
+        source + "\nraise RuntimeError('side effect')\n"
+    )
+    assert not module.internal_timestamp_parity_only("not valid Python (")
+
+
+@pytest.mark.parametrize(
+    ("extra_paths", "added", "blob_ok", "expected"),
+    [
+        ([], True, True, False),
+        ([], False, True, True),  # Historical migration edits never qualify.
+        ([], True, False, True),
+        (["backend/app/providers/alpaca.py"], True, True, True),
+        (["backend/app/config.py"], True, True, True),
+        (["backend/app/models/market_data_foundation.py"], True, True, True),
+        (["backend/alembic/versions/another_migration.py"], True, True, True),
+    ],
+)
+def test_timestamp_footprint_requires_one_added_head_blob_and_unchanged_runtime(
+    tmp_path: Path,
+    monkeypatch,
+    extra_paths: list[str],
+    added: bool,
+    blob_ok: bool,
+    expected: bool,
+) -> None:
+    module = _timestamp_classifier_module()
+    calls = []
+    paths = [
+        _TIMESTAMP_REPAIR_PATH,
+        "backend/app/strategy_lab_v2/tests/test_migration_compatibility.py",
+        *extra_paths,
+    ]
+
+    def fake_run(*args, **kwargs):
+        calls.append(args)
+        assert kwargs["cwd"] == tmp_path
+        assert args[0] == "git"
+        if "--name-only" in args:
+            return SimpleNamespace(returncode=0, stdout="\n".join(paths))
+        if "--name-status" in args:
+            assert "--diff-filter=A" in args
+            return SimpleNamespace(
+                returncode=0, stdout=f"A\t{_TIMESTAMP_REPAIR_PATH}\n" if added else ""
+            )
+        assert args[:2] == ("git", "show")
+        assert args[2] == f"HEAD:{_TIMESTAMP_REPAIR_PATH}"
+        return SimpleNamespace(
+            returncode=0 if blob_ok else 1,
+            stdout=text(_TIMESTAMP_REPAIR_PATH) if blob_ok else "",
+        )
+
+    monkeypatch.setattr(module, "run", fake_run)
+    assert (
+        module.provider_integration_changed({"base_sha": "a" * 40}, tmp_path)
+        is expected
+    )
+    assert calls
+
+
+def test_timestamp_classification_keeps_uncertain_git_state_gated(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = _timestamp_classifier_module()
+    monkeypatch.setattr(
+        module, "run", lambda *args, **kwargs: SimpleNamespace(returncode=1, stdout="")
+    )
+    assert module.provider_integration_changed({"base_sha": "a" * 40}, tmp_path)
+    assert module.provider_integration_changed({"base_sha": "invalid"}, tmp_path)
+
+
 def test_all_provider_calling_services_require_full_live_acceptance() -> None:
     session = importlib.util.spec_from_file_location(
         "agent_session_provider_service_paths",

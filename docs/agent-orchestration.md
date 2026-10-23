@@ -892,6 +892,21 @@ provider-specific fixtures and a bounded live case to the manifest; a
 registry entry without a live case or a concrete documented exclusion fails
 the workflow checks.
 
+The finalizer's path inventory is a conservative impact candidate list, not a
+claim that every internal DDL addition changes an external contract. One newly
+added migration may be classified as internal ORM parity only when its entire
+inert module matches the verified `market_series_default` repair shape: add
+only the existing TimestampMixin's non-null, timezone-aware `created_at` and
+`updated_at`, each with the normal `now()` server default, and reverse only
+those additions on downgrade. Application runtime must be unchanged; identity
+metadata must be literal; imports and both operation bodies must match the
+strict static form. Read the added immutable HEAD blob, never a working-tree
+substitute. Historical rewrites, other/multiple migrations, mixed runtime
+changes, dynamic code or uncertain Git state retain the normal full-matrix
+requirement. This corrects classification; it is not a plan-controlled waiver,
+does not relabel old live receipts, and does not change PostgreSQL/local-profile,
+exact-source CI, staging/master or real deployment validation requirements.
+
 Every direct external request made by an opt-in live case must be preceded by
 a durable provider-specific quota reservation. The live pytest harness guards
 both synchronous and asynchronous HTTPX sends so an unwrapped call is rejected
