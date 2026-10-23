@@ -30208,3 +30208,19 @@ provider routing, adjustment/visibility/range rules, migration, target DB,
 provider/issuer/SEC transport, quota, or retained resource changed. The
 checkpoint remains `in_progress`; exact-source CI is pending for this
 separate regression/evidence changeset.
+
+## 2026-10-23 09:10Z — exact-source CI terminal receipt
+
+Exact synchronized Provider HEAD `710deebe8427d07c5c53aec83b20408669606b5a`
+matches origin. Actions run `39925449735` attempt 1 is terminal green:
+Backend, Frontend Unit, Branch-declared, and Playwright succeeded; Exhaustive
+was skipped by normal feature-branch policy. Backend reported 5,202 unit
+tests (1 skipped), 498 integration tests (2 skipped), and 84% combined
+coverage. Playwright completed 191 passed/110 skipped in 17.4 minutes. The
+run validates the deterministic alternate-series coverage regression; the
+current-source SEC issuer-scan module also passed 28/28 no-network tests,
+including failure/result durability, cursor atomicity, and fresh-session
+restart coverage. The broader roadmap and branch status remain
+`in_progress`; this receipt does not establish full-profile or live-provider
+acceptance. No provider/issuer/SEC HTTP, quota operation, retained-resource
+change, sibling/staging/master write, or deployment occurred.

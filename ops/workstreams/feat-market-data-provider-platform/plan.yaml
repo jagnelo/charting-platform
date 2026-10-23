@@ -6,8 +6,11 @@ schema: 4
 # series bar. Added a deterministic router regression for that distinction;
 # no production selector, range, visibility, or adjustment behavior changed.
 # Focused coverage-router tests pass 7/7 and mapped/canonical/legacy default
-# selector tests pass 4/4. Exact-source CI for the resulting test/evidence
-# commit remains required; checkpoint and full roadmap remain in_progress.
+# selector tests pass 4/4. Exact Actions run 39925449735 on
+# 710deebe8427d07c5c53aec83b20408669606b5a is terminal green: Backend 5202
+# unit + 498 integration, 84% coverage; Frontend Unit and Branch-declared
+# passed; Playwright 191 passed/110 skipped; Exhaustive skipped by feature
+# policy. Checkpoint and full roadmap remain in_progress.
 # 2026-10-23 follow-up: exact Actions run 39918492546 on
 # 34c954f7d5dfcfa7c887ef3b5a39d3baea749447 was terminal red in Backend unit
 # tests because the Strategy migration compatibility test hard-coded the old
