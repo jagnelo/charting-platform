@@ -8889,19 +8889,18 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Publish the settings-source sentinel correction together with its focused
-    tests and exact red-CI/partial-backend receipts, then require exact-source
-    hosted CI and rerun the complete isolated CPython 3.12.11 backend
-    unit/integration/coverage gate on the corrected frozen candidate. Actions
-    39329199059 is red because backend/worker startup could not parse the
-    `__CODE_DEFAULT__` hold-map sentinel; its backend/frontend/branch jobs
-    passed but E2E never reached a browser assertion. The obsolete local gate
-    was safely interrupted after 10/58 unit shards (500 passes), with all 55
-    retained container IDs unchanged. Keep the heavy slot for this final
-    backend gate only; do not start Compose/browser validation. When central
-    releases the green geometry staging SHA, reconcile it and re-evaluate all
-    source identities before final browser/affected/full gates and CI. Make no
-    provider calls or quota mutations. CTA Plan, EODHD data operations,
-    Dinari, Marketstack, Tiingo, and Bybit xStocks remain held; paid, trial,
-    unknown, unreviewed, unsafe, deployment, and operational-trial scopes stay
-    closed. Central alone accepts and integrates the checkpoint.
+    The SEC issuer-universe durability change is published at exact source
+    `8739c92aeb6e1059405e8b3df9577c053d89585d`, synchronized with origin. Its
+    isolated file-backed SQLite restart regression and complete SEC scan unit
+    module pass on this source (26/26); the branch workstream validator and
+    diff check pass. Exact Actions run `39858232646` for this SHA is terminal
+    success: Backend, Frontend Unit, Branch-declared, and Playwright jobs
+    succeeded; Exhaustive was skipped by feature-branch policy. Do not rerun
+    it or infer the still-required local full profile from hosted CI. That
+    profile remains deferred until the coordinator releases a safe slot; do
+    not launch a competing fixture or touch retained services/data. After
+    release, complete the required exact-source full profile and stop at
+    `ready_for_human_review` only when all required gates pass. Preserve all
+    original roadmap criteria, provider holds, quota state, and coordinator-
+    only staging integration; no provider/issuer/SEC HTTP, deployment,
+    paid/trial activation, or retained-data cleanup.

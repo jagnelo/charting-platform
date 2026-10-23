@@ -60,10 +60,7 @@
     "status": "terminal green: Backend, Frontend Unit, Branch-declared, and Playwright passed; Exhaustive skipped by feature-branch policy"
   },
   "dirty_paths": [
-    "backend/tests/unit/services/test_market_event_edgar_scan.py",
-    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
-    "ops/workstreams/feat-market-data-provider-platform/session.json",
-    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
+    "ops/workstreams/feat-market-data-provider-platform/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -80,7 +77,7 @@
       "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
       "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
     ],
-    "known_bytes": 3802118208,
+    "known_bytes": 3802119208,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-market-data-provider-platform-c6e40c66",
@@ -96,7 +93,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 183596800,
+    "volume_bytes": 183597800,
     "volume_count": 4,
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
@@ -120,11 +117,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ad1bfa64b45aa93bd48e3b97cb30a9d905c807e1",
+  "head": "8739c92aeb6e1059405e8b3df9577c053d89585d",
   "implementation_sha": "389b8ce912ee04c59024467632b339442673fd82",
   "interrupted": false,
-  "last_checkpoint": "2026-10-22T21:32:08.934007+00:00",
-  "last_human_progress_update": "2026-10-22T21:31:45.770915+00:00",
+  "last_checkpoint": "2026-10-22T21:35:20.064970+00:00",
+  "last_human_progress_update": "2026-10-22T21:35:10.566876+00:00",
   "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Publish the coherent operational evidence context, then await coordinator review of the private 99-transport execution plan and proof-to-closure ordering before any staged candidate or provider transport.",
@@ -169,14 +166,14 @@
       "ICP6",
       "ICP7"
     ],
-    "current_blocker": "Full local full_stack_browser profile remains deferred by coordinator for first-human deployment capacity; no blocker to lightweight branch work",
-    "current_phase": "SEC issuer scan restart durability regression",
-    "next_action": "Publish the file-backed failed-CIK restart regression with exact evidence, obtain exact-source CI, then continue remaining Provider roadmap and wait for coordinator release of the full local profile slot",
+    "current_blocker": "Hosted run 39858232646 is still in progress; full local full_stack_browser profile remains deferred by coordinator for first-human deployment capacity",
+    "current_phase": "SEC CIK restart durability regression published; exact hosted CI running",
+    "next_action": "Wait on exact run 39858232646, record its terminal result, and run the required full local profile only after the coordinator releases the slot; then continue the full Provider roadmap and stop at ready_for_human_review",
     "total": 7,
-    "updated_at": "2026-10-22T21:31:45.770898+00:00"
+    "updated_at": "2026-10-22T21:35:10.566851+00:00"
   },
-  "remote": "ad1bfa64b45aa93bd48e3b97cb30a9d905c807e1",
-  "remote_sha": "ad1bfa64b45aa93bd48e3b97cb30a9d905c807e1",
+  "remote": "8739c92aeb6e1059405e8b3df9577c053d89585d",
+  "remote_sha": "8739c92aeb6e1059405e8b3df9577c053d89585d",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."

@@ -1,5 +1,24 @@
 # feat/market-data-provider-platform
 
+## 2026-10-22 22:02 UTC — current-source SEC scan regression and CI wait
+
+- Current source `8739c92aeb6e1059405e8b3df9577c053d89585d` is clean and
+  synchronized with origin. The isolated failed-CIK restart regression passed
+  1/1, and the complete SEC issuer-scan unit module passed 26/26 using the
+  UV-managed environment and a private temporary SQLite database. The tests
+  cover atomic CIK outcome/request-log and cursor persistence, resuming after
+  worker-session restart, and retrying a failed CIK without replaying a prior
+  success. No provider/issuer/SEC transport, quota operation, retained service,
+  or persistent dataset was used or changed.
+- Exact hosted CI `39858232646` for this same SHA is still in progress; it has
+  not been treated as terminal or rerun. The full local profile remains
+  deferred pending coordinator capacity. Existing `session.json` worktree
+  change was preserved untouched.
+- Security containment: no credential-bearing configuration was read or
+  repeated, and no key was used, rotated, revoked, or copied. Production
+  routing remains off; Alpaca production use still requires owner-managed key
+  rotation and separate storage authorization.
+
 ## 2026-10-22 — Green staging adoption and SEC scan continuation
 
 - Adopted the exact canonical four-feature staging release
@@ -29569,3 +29588,19 @@ assigned Provider stack (8 containers, 4 volumes) within its recorded budget;
 it started/stopped no service and changed no dataset. This does not release the
 coordinator's deferred full-profile slot or establish that its separate image
 build is idle.
+
+## 2026-10-22 22:19Z — exact-source CI terminal reconciliation
+
+- Exact hosted Actions run `39858232646` completed successfully on source
+  `8739c92aeb6e1059405e8b3df9577c053d89585d`. Backend, Frontend Unit,
+  Branch-declared, and Playwright jobs succeeded; Exhaustive was skipped by
+  feature-branch policy. No rerun was started.
+- The SEC issuer-scan regression remains locally verified at 26/26 on this
+  source. Hosted CI does not replace the required local full profile, which
+  remains deferred pending coordinator release of the heavy slot. No provider,
+  issuer, or SEC transport; quota operation; service/data cleanup; staging or
+  sibling write occurred.
+- The confirmed private transcript exposure is not public-exposure evidence.
+  No credential values were inspected, repeated, copied, used, rotated, or
+  revoked. Alpaca remains held for owner-managed rotation and separate storage
+  authorization; production routing remains off.
