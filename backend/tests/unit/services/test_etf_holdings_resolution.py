@@ -846,6 +846,7 @@ async def test_resolver_does_not_bind_future_ticker_to_existing_equity(db):
         "commodity",
         "other",
         "unclassified",
+        "unknown",
         "security",
     ],
 )

@@ -1,5 +1,65 @@
 # feat/etf-holdings-constituents
 
+## Current manual CSV typing and RSST offline finding — 2026-10-23T14:04:37Z
+
+The scoped manual-import parser change is local and uncommitted at synchronized
+published baseline `f6eabc1ed3af7940bc1d090cb1f840c00ab289e3`. Exact CI
+`39958914991` is green for that baseline only; it predates this patch. The
+focused no-network profile passed `65/65` across the full resolution module,
+manual parser regressions and manual-import router wiring. Ruff check/format,
+Python compilation and `git diff --check` also passed. Exact-source CI remains
+pending, and the Root-owned `full_stack_browser` profile is not run or waived.
+The exact narrative-count sentinel passed `1/1` after correcting a temporary
+session JSON delimiter error; the final workstream validator accepted one
+record, JSON/JSONL parsing and plan-hash parity passed, and the final diff check
+was clean. The 65-test profile's exact execution minute was not retained; this
+receipt is timestamped at the actual clock read and does not backdate that run.
+
+Current-branch source review answers the RSST preparation question as follows:
+the current admin `/ingest` route accepts normalized rows, raw payload, source
+URL/identifier, composition/as-of dates, known/publication timestamps, and
+legal metadata; it disables provider enrichment and marks the operation as a
+manual import. The current `/ingest-csv` route also disables enrichment and
+retains raw CSV, but this local patch changes missing CSV type labels from an
+assumed equity to `unknown`. Explicit CSV classifications remain represented;
+normalized `/ingest` rows can carry manually evidenced `future` and `cash`
+types. The resolver leaves unknown and non-equity identities unresolved rather
+than matching them to equities. Manual import stamps `known_at` at actual
+import time when omitted, rejects a caller-supplied earlier value, forces
+`legal_metadata.source_tier=none` for a non-SEC manual artifact, and does not
+write native adapter-success health.
+
+This makes a correctly reviewed and explicitly typed **dated, non-current**
+RSST record representable on the current ETF branch; it does not make one
+eligible to import now. The normalized request must explicitly state
+`provenance=manual_import`, `source_provider=manual_csv`,
+`composition_date=2026-10-15`, `published_at=null`, `source_tier=none`, raw
+artifact bytes and only a provenance-supported `source_url`. It must explicitly
+set non-current `source_quality` and `completeness_status`: the Pydantic manual
+ingest schemas default these to `issuer_current` and `complete`, respectively,
+so relying on defaults would misstate the evidence even though capability
+source tier none prevents current-analysis use. Keep unsupported identities
+unresolved. A later import's actual `known_at` must not be backdated to the
+composition date, and that knowledge-time cutoff means the sample must not
+appear in an October 15 point-in-time view before its actual import.
+
+Two material evidence gaps still make the retained sample **not ready to
+import**: the captured header/body do not establish the original request URL,
+and no evidence establishes rights to store/display this issuer artifact.
+Public availability is not such permission. No import, profile/admin change,
+HTTP request, quota, Provider operation, activation, fixture or data change was
+made. The accepted-f04 historical limitations remain correctly recorded as
+limitations of f04; the newer manual guards and conservative CSV typing are
+current branch source, not retroactive claims about f04. Earlier 09:08/09:12
+journal labels remain append-only historical evidence and were not rewritten;
+this entry's UTC timestamp comes from the current session clock read.
+
+Next: complete final workstream/count/JSON/plan-hash/diff validation, publish
+this substantive parser correction once, and inspect only its resulting exact
+CI. Keep the RSST artifact unimported; preserve AC1-AC14, `15 Tier-0 and 156
+Tier-1`, all issuer quarantines and route/cost holds, retained data, and the
+30-day observation gate.
+
 ## Current owner checkpoint — narrative sentinel reconciliation — 2026-10-23T13:08:30Z
 
 The exact consumer fixture context is already committed and pushed at

@@ -1053,7 +1053,9 @@ async def ingest_holdings_csv(
     current_user: User = Depends(require_admin),
 ):
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    rows = parse_holdings_csv(body.raw_csv)
+    # Manual files without a type column are retained as unknown, not silently
+    # treated as equities. Callers needing typed non-equity rows can use /ingest.
+    rows = parse_holdings_csv(body.raw_csv, untyped_holding_type="unknown")
     await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,

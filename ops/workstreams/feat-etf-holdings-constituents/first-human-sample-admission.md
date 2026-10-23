@@ -606,3 +606,39 @@ needed), and a final human-authorized sample scope. No SPY substitution,
 native entitlement/health claim, provider admission, source quota/cost claim,
 or external request is implied. The full AC1–AC14 roadmap, all quarantines,
 and observation gate remain open.
+
+### Current-branch correction after the parser safety context — 2026-10-23T14:04:37Z
+
+The preceding subsection records the earlier accepted-f04/local-source boundary
+and remains historical for that point in time. On the current ETF branch, the
+admin normalized-row and CSV routes now both explicitly disable provider
+enrichment, mark the operation as a manual import, preserve raw payload, force
+non-SEC manual `source_tier=none`, stamp omitted `known_at` at actual import
+time, reject backdated manual `known_at`, and skip native adapter-success
+health. This local change additionally makes untyped CSV rows `unknown` while
+leaving explicit type labels and generic native parser defaults unchanged.
+Normalized `/ingest` rows can carry explicitly reviewed derivative/cash types;
+unsupported identities remain unresolved rather than becoming synthetic
+equities.
+
+Thus the current branch can represent RSST as a dated non-current sample if
+every row is accurately typed and source metadata is evidence-backed. Use
+`composition_date=2026-10-15`, `provenance=manual_import`,
+`source_provider=manual_csv`, raw bytes, `published_at=null`, and
+`legal_metadata.source_tier=none`. The request schemas default
+`source_quality=issuer_current` and `completeness_status=complete`; those must
+be explicitly replaced with non-current values supported by the available
+evidence (for this unaudited artifact, `unknown` is the conservative value).
+Do not assign `known_at` to the composition date: leave it absent so ingestion
+records actual import time, which keeps the sample out of earlier point-in-time
+views. Keep unverified identities unresolved.
+
+This does **not** change the disposition: no import was made, and the candidate
+is still not ready. Original request-URL provenance is missing, and no
+storage/display rights evidence was found. Public availability is not rights
+clearance. The route/schema facts above are source-supported and do not
+establish legal permission, a native SPDR adapter, Provider admission,
+entitlement, quota/cost review, or current holdings. The full AC1-AC14 roadmap
+and all safety holds remain open. This correction's timestamp is from the
+current UTC clock; the prior 09:08/09:12 journal discrepancy remains
+append-only historical evidence and was not rewritten.

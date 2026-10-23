@@ -561,7 +561,7 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: reconcile_latest_narrative_sentinel_failure_2026_10_23
+current_phase: manual_csv_untyped_row_safety_2026_10_23
 current_blocker: >-
   CURRENT RECONCILIATION 2026-10-23T13:07:36Z: Local ETF HEAD and origin are
   synchronized at dc43bb65403457c6745dcc9c10df0da97631e9dc. Exact CI
@@ -725,6 +725,25 @@ current_blocker: >-
   released; do not adopt or poll it. Preserve full AC1–AC14, 15 Tier-0 and
   156 Tier-1, quarantines, route/data holds, and the post-integration 30-day
   observation.
+  Superseding current status at 2026-10-23T14:03:40Z: branch source and origin
+  were synchronized at f6eabc1ed3af7940bc1d090cb1f840c00ab289e3, and exact CI
+  39958914991 is terminal green for Backend, Frontend, Branch-declared, and
+  Playwright E2E; Exhaustive was skipped under feature-branch policy. That run
+  predates this current manual-CSV parser change. The published manual-only
+  import guard disables enrichment, forces source tier none, and skips native
+  adapter-success state; this patch gives untyped manual CSV rows `unknown`
+  rather than assuming equity, while preserving generic parser defaults and
+  explicit types.
+  The focused resolution/parser/router profile passed65/65; Ruff, formatting,
+  py_compile, and diff checks pass. This patch remains uncommitted and is not
+  covered by exact-source CI. Current branch code can represent manually typed
+  RSST derivative/cash rows as dated non-current evidence, but RSST remains
+  unimported because storage/display rights and the original request URL are
+  not evidenced. Preserve AC1-AC14,
+  `15 Tier-0 and 156 Tier-1`, quarantines, disabled routes, retained data, and
+  the 30-day observation. No external HTTP, quota, import, activation, fixture,
+  cleanup, cross-worktree write, staging integration, promotion, or deployment
+  occurred. The local full_stack_browser profile remains pending Root's slot.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -1733,34 +1752,32 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    Published ETF HEAD and origin are synchronized at
-    66c9780278cd810a870b8025a091df58d9c091d1. Exact-source Actions run
-    39897635916 is terminal green for Backend, Frontend Unit, Branch-declared
-    and Playwright E2E; Exhaustive was skipped under feature-branch policy.
-    The first shadow-window UTC fix is included; the second capability date-
-    projection fix is not. The latter's regression failed before correction
-    (offset-aware local calendar date produced `stale` at the UTC freshness
-    deadline); afterward the full capability module passed114/114 and
-    changed-file Ruff/format checks passed. Narrative sentinel, provider-audit
-    parity, workstream validator, JSON parsing, plan hash and diff-check pass.
-    Publish the second fix coherently, then inspect its exact-source CI. The
-    full_stack_browser profile remains pending Root's
-    exclusive slot. Historical red/partial evidence remains. No
+    Published ETF HEAD and origin were synchronized at
+    f6eabc1ed3af7940bc1d090cb1f840c00ab289e3. Exact Actions run 39958914991 is
+    terminal green for Backend, Frontend Unit, Branch-declared, and Playwright
+    E2E; Exhaustive was skipped by feature-branch policy. This validates the
+    published source only, not the current manual-CSV parser patch. The local
+    full_stack_browser profile remains pending Root's exclusive slot. Preserve
+    historical red/partial evidence, full roadmap, disabled routes, quarantines,
+    retained data, and the post-integration observation gate. No
     issuer/provider/SEC request, quota, paid/trial activation, data cleanup,
     or cross-worktree write occurred.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  The nested session blocker and exact CI39957012029 result are corrected in
-  this workstream; the focused no-network narrative sentinel passed1/1, and
-  workstream, JSON/JSONL, plan-hash and diff checks pass. Commit and publish
-  this coherent owner-record correction once, then inspect its exact-source
-  CI. Do not rerun CI39957012029. The consumer fixtures are already
-  published at dc43 but have no local DB-backed proof; wait for Root's assigned
-  full_stack_browser slot before any such profile. Keep the RSST sample
-  unimported and all rights/provenance uncertainty explicit. Preserve the full
-  AC1-AC14 roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
-  quarantines, disabled route/quota/paid/trial holds, retained data, and the
-  30-day observation. No live HTTP, quota, import, activation, cleanup,
-  cross-worktree write, staging integration, promotion, or deployment.
+  Finish current scoped source/workstream review and final workstream,
+  narrative-count, JSON/JSONL, plan-hash, and diff checks. Then commit and push
+  this substantive manual-CSV safety change once and inspect its exact-source
+  CI. Do not repeat unchanged sentinels or claim the green f6 CI covers this
+  patch. The current branch's manual routes preserve raw input, disable
+  enrichment, set manual-import provenance/source tier none, stamp import-time
+  known_at, and skip native adapter-success health; untyped CSV rows remain
+  unknown while normalized manual rows can carry evidenced derivative/cash
+  types. Keep RSST unimported until rights and full source provenance are
+  established. Root's exclusive full_stack_browser slot remains required for
+  the final local profile. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`,
+  MSMR/QQQ and Militia/GOOG quarantines, disabled route/quota/paid/trial holds,
+  retained data, and the 30-day observation. No issuer/provider/SEC HTTP,
+  quota, import, activation, cleanup, cross-worktree write, staging
+  integration, promotion, or deployment.

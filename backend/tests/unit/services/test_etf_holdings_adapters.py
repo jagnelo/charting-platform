@@ -5960,6 +5960,27 @@ def test_parse_holdings_table_handles_aliases_cash_rows_and_cusip_fallback():
     assert rows[1].holding_type == "cash"
 
 
+def test_manual_csv_keeps_untyped_securities_unknown_and_preserves_explicit_types():
+    raw_csv = (
+        "Ticker,SecurityName,Weightings,Security Type\n"
+        "SPYM,State Street SPDR Portfolio S&P 500 ETF,74.21%,\n"
+        "ESZ6 Index,S&P500 EMINI FUT Dec26,36.82%,Future\n"
+        "Cash&Other,Cash & Other,11.98%,\n"
+    )
+
+    rows = parse_holdings_csv(raw_csv, untyped_holding_type="unknown")
+
+    assert [row.holding_type for row in rows] == ["unknown", "future", "cash"]
+    assert [row.row_type for row in rows] == ["security", "security", "cash"]
+    assert rows[0].extra_data["SecurityName"] == "State Street SPDR Portfolio S&P 500 ETF"
+    assert rows[1].extra_data["Security Type"] == "Future"
+    assert rows[2].symbol is None
+
+    # Existing adapter callers retain their historical equity default.
+    native_rows = parse_holdings_csv("Ticker,Name,Weight\nAAPL,Apple Inc.,100%\n")
+    assert native_rows[0].holding_type == "equity"
+
+
 def test_parse_holdings_table_handles_ark_company_name_alias():
     rows = parse_holdings_csv(
         "\n".join(

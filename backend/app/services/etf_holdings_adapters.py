@@ -555,6 +555,7 @@ def parse_holdings_table(
     table_rows: list[list[Any]],
     *,
     preserve_named_zero_rows: bool = False,
+    untyped_holding_type: str = "equity",
 ) -> list[CanonicalHoldingRow]:
     """Parse a generic holdings table into canonical rows."""
 
@@ -621,7 +622,7 @@ def parse_holdings_table(
             _clean(
                 _first(raw, ["asset class", "asset_class", "holding type", "security type", "type"])
             )
-            or "equity"
+            or untyped_holding_type
         ).lower()
         row_type = (
             "cash"
@@ -764,11 +765,15 @@ def parse_holdings_table(
     return rows
 
 
-def parse_holdings_csv(raw_csv: str) -> list[CanonicalHoldingRow]:
+def parse_holdings_csv(
+    raw_csv: str,
+    *,
+    untyped_holding_type: str = "equity",
+) -> list[CanonicalHoldingRow]:
     """Parse common issuer holdings CSV exports into canonical rows."""
 
     table_rows = list(csv.reader(StringIO(raw_csv.strip())))
-    return parse_holdings_table(table_rows)
+    return parse_holdings_table(table_rows, untyped_holding_type=untyped_holding_type)
 
 
 class _HTMLTableByIdParser(HTMLParser):

@@ -10,6 +10,7 @@ from app.schemas.etf_holdings import ETFHoldingsCSVIngestRequest, ETFHoldingsIng
 @pytest.mark.asyncio
 async def test_admin_manual_ingest_routes_are_manual_and_disable_provider_enrichment(monkeypatch):
     imported = []
+    parsed = []
     instrument = SimpleNamespace(id=17)
     snapshot = SimpleNamespace(id=23)
 
@@ -26,7 +27,12 @@ async def test_admin_manual_ingest_routes_are_manual_and_disable_provider_enrich
     monkeypatch.setattr(etf_holdings, "ensure_lightweight_etf_instrument", fake_ensure_instrument)
     monkeypatch.setattr(etf_holdings, "_ingest_snapshot_or_400", capture_ingest)
     monkeypatch.setattr(etf_holdings, "get_latest_snapshot", fake_latest)
-    monkeypatch.setattr(etf_holdings, "parse_holdings_csv", lambda _csv: [])
+
+    def parse_manual_csv(raw_csv, **kwargs):
+        parsed.append((raw_csv, kwargs))
+        return []
+
+    monkeypatch.setattr(etf_holdings, "parse_holdings_csv", parse_manual_csv)
 
     rows_response = await etf_holdings.ingest_holdings_rows(
         "SPY",
@@ -49,3 +55,9 @@ async def test_admin_manual_ingest_routes_are_manual_and_disable_provider_enrich
     assert len(imported) == 2
     assert all(kwargs["manual_import"] is True for kwargs in imported)
     assert all(kwargs["allow_provider_enrichment"] is False for kwargs in imported)
+    assert parsed == [
+        (
+            "Ticker,Weight\nAAPL,100%\n",
+            {"untyped_holding_type": "unknown"},
+        )
+    ]

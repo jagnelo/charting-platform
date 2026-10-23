@@ -88,20 +88,22 @@
     }
   ],
   "active_changeset": {
-    "baseline": "12ac3b694c3234da66cc9de1117f5ed54ed1b916",
-    "intent": "Reconcile the 12 backend-integration failures on 1adb658 using current UTC dates and explicit synthetic historical snapshot fixtures, without weakening PIT/current/identity or manual-import known_at protections. Retain the AC1 fallback-count repair as a separate local commit and preserve exact failing evidence.",
-    "name": "Reconcile ETF consumer integration fixtures",
+    "baseline": "f6eabc1ed3af7940bc1d090cb1f840c00ab289e3",
+    "intent": "Make manual CSV ingestion preserve untyped holdings as unknown instead of silently assigning equity, while keeping explicit source classifications, cash handling, raw evidence, and generic native-parser defaults unchanged. Prove the route passes this conservative policy and the resolver will not equity-match unknown rows.",
+    "name": "Prevent manual CSV untyped rows from becoming synthetic equities",
     "owned_paths": [
-      "backend/tests/integration/api/etf_holdings_test_fixtures.py",
-      "backend/tests/integration/api/test_etf_holdings.py",
-      "backend/tests/integration/api/test_strategy_lab.py",
-      "backend/tests/integration/api/test_workspaces.py",
+      "backend/app/routers/etf_holdings.py",
+      "backend/app/services/etf_holdings_adapters.py",
+      "backend/tests/unit/routers/test_etf_holdings_manual_import.py",
+      "backend/tests/unit/services/test_etf_holdings_adapters.py",
+      "backend/tests/unit/services/test_etf_holdings_resolution.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+      "ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "AC1 documentation/sentinel correction is a distinct local commit12ac3b694 but is not yet pushed. Exact CI39949218663 on1adb658 is terminal red: backend unit and Frontend Unit passed; Backend integration job120399294993 had12 failed,486 passed,2 skipped. The current integration-fixture changes postdate the red run. Ruff/format/py_compile, workstream validation and diff checks pass, but no local DB-backed integration test has run. The nearest expected-200 assertion now includes response.text to expose the old unexplained401. Current branch will be pushed once for exact-source hosted CI; Root's next exclusive full_stack_browser slot is after coherent harness-fix publication. Manual-import source remains published; no provider/issuer/SEC HTTP, quota, paid/trial activation, dataset or resource cleanup, sibling/staging/master write or deployment. Preserve all AC1-AC14,15 Tier-0/156 Tier-1, quarantines and holds."
+    "state": "Focused offline pytest profile passed65/65 across the full resolution module, manual parser cases, and manual-import router wiring; changed-file Ruff check/format, py_compile, and diff checks pass. Exact CI39958914991 is terminal green on published baseline f6eabc1 but predates this uncommitted patch. This is a bounded parser/route contract change; no live HTTP, quota, import, database fixture, activation, cleanup, or cross-worktree action occurred. Root's full_stack_browser slot remains required for final feature validation. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, all quarantines/holds, retained data, and the post-integration 30-day observation."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -152,13 +154,18 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23T13:07:36Z: Exact CI39957012029 on synchronized ETF SHA dc43bb65403457c6745dcc9c10df0da97631e9dc is terminal red: Frontend Unit passed; Backend unit had 5235 passed, 1 failed, 1 skipped, 37 warnings; integration and downstream jobs skipped. The sole failure was a current owner-record inconsistency: session.json.progress.current_blocker omitted the exact 15 Tier-0 and 156 Tier-1 phrase. The record is corrected and the focused sentinel passed 1/1; preserve the hosted run as red. This is not a product/provider route failure. Consumer fixtures at dc43 remain without DB-backed proof. Keep RSST unimported, full_stack_browser under Root's slot, and preserve full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and 30-day observation.",
-  "current_local_delta": "2026-10-23: the AC1 fallback-count correction is commit 12ac3b694 and consumer historical/PIT fixture alignment is commit dc43bb654; both are published. Exact CI 39957012029 on dc43 is red only because the nested session current_blocker omitted the required 15 Tier-0 and 156 Tier-1 phrase. This worktree change is limited to correcting that owner-record inconsistency and recording the exact run. No fixture/database proof is claimed. The manual-import source remains published; RSST is not eligible for import through accepted f04 because request URL and storage/display rights are unverified and manual-only no-enrichment/futures typing/native-health isolation are not established.",
+  "current_blocker_latest": "2026-10-23T13:59:37Z: Exact CI39958914991 on synchronized baseline f6eabc1ed3af7940bc1d090cb1f840c00ab289e3 is terminal green for Backend, Frontend, Branch-declared, and Playwright E2E; Exhaustive was skipped by feature policy. It predates this current uncommitted manual-CSV safety patch. Focused resolution/parser/router tests passed65/65; Ruff check/format, py_compile, and diff checks pass. The patch is not yet in exact-source CI. Root's full_stack_browser slot remains required. Keep RSST unimported because original request URL and storage/display rights are unverified; preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation.",
+  "current_local_delta": "Published baseline f6eabc1 includes the manual-import guard from 9e183e6; exact CI39958914991 on f6 is green. Current uncommitted source change makes the manual CSV parser's missing-type default explicitly unknown only on the manual upload route, while preserving generic adapter defaults, explicit type columns, and cash recognition. The full resolution module, parser regression, and route wiring passed65/65; changed-file Ruff, format, py_compile, and diff checks pass. Exact hosted CI and Root-assigned full_stack_browser are still required for this patch/feature. No RSST import, HTTP, quota, database fixture, provider activation, cleanup, or cross-worktree action occurred.",
   "dirty_paths": [
+    "backend/app/routers/etf_holdings.py",
+    "backend/app/services/etf_holdings_adapters.py",
+    "backend/tests/unit/routers/test_etf_holdings_manual_import.py",
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "backend/tests/unit/services/test_etf_holdings_resolution.py",
+    "ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+    "ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "docker": {
     "available": false,
@@ -184,7 +191,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "dc43bb65403457c6745dcc9c10df0da97631e9dc",
+  "head": "f6eabc1ed3af7940bc1d090cb1f840c00ab289e3",
   "implementation_sha": "04f49d940c877635de52c0c0616e54f47018bf25",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -295,15 +302,15 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-23T01:28:00Z",
+  "last_checkpoint": "2026-10-23T14:04:37Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-23T13:07:36Z: Exact CI39957012029 on synchronized dc43bb654 is terminal red. Frontend Unit passed; Backend unit had 5235 passed, 1 failed, 1 skipped, 37 warnings; the sole failure is the current session progress blocker missing 15 Tier-0 and 156 Tier-1. Backend integration and later jobs were skipped. The record correction now passes the focused sentinel 1/1, workstream validator, JSON/JSONL parsing, plan-hash, and diff checks. Preserve this run; no fixture/database proof exists. The owner-record correction is the current dirty context. RSST remains unimported/non-routable; full AC1-AC14, quarantines, holds and Root-owned full_stack_browser gate remain open.",
+  "latest_checkpoint": "At 2026-10-23T14:04:37Z, exact run39958914991 on synchronized f6eabc1 is terminal green for Backend, Frontend, Branch-declared, and Playwright E2E; Exhaustive skipped by feature policy. Current manual CSV safety patch passed65/65 focused resolution/parser/router tests, Ruff check/format, py_compile, and diff checks but is uncommitted and not covered by that CI. Static current-branch audit confirms a dated non-current RSST manual representation is now expressible, but it remains unimported because storage/display rights and original request URL are unverified; schemas require explicit unknown source_quality/completeness instead of their issuer-current/complete defaults. Root's full_stack_browser slot remains required. Full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and 30-day observation remain open.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T13:05:43Z",
-    "result": "terminal_red;Frontend Unit success;Backend unit failure: 1 narrative sentinel failed, 5235 passed, 1 skipped, 37 warnings; Backend integration and later jobs skipped",
-    "run_id": 39957012029,
-    "sha": "dc43bb65403457c6745dcc9c10df0da97631e9dc"
+    "recorded_at": "2026-10-23T13:59:37Z",
+    "result": "terminal_success;Backend, Frontend Unit, Branch-declared, and Playwright E2E passed; Exhaustive Integration skipped by feature-branch policy. This run validates f6eabc1 only, not the current uncommitted parser patch.",
+    "run_id": 39958914991,
+    "sha": "f6eabc1ed3af7940bc1d090cb1f840c00ab289e3"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
@@ -353,8 +360,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit and publish this coherent owner-record correction once, then inspect exact-source CI; do not rerun failed run39957012029. The already-published consumer fixtures still lack DB-backed proof; await Root's exclusive full_stack_browser slot before any local DB/container/browser profile. Preserve the RSST no-import disposition and all AC1-AC14 scope, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and 30-day observation; no external calls, quota, paid/trial, cleanup, or cross-worktree writes.",
-  "plan_hash": "0de2f7f42faf10624e1b049e74c29969a37a9450274be6370e7dcfcbf4641c4a",
+  "next_action": "Run final workstream/narrative/JSON/plan-hash/diff validation, commit and push the substantive manual CSV safety change once, then preserve and inspect its exact-source CI. Do not rerun unchanged tests or claim f6 CI covers the patch. Continue offline roadmap work while Root's full_stack_browser resource slot remains pending. Keep RSST unimported pending rights and complete source provenance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and the 30-day observation. No issuer/provider/SEC HTTP, quota, import, activation, cleanup, or cross-worktree writes.",
+  "plan_hash": "1cd7c411cb6fd381a7cbae0530fef2b30dbc92df02b28bb86115cb400dadee61",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -405,10 +412,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23T13:07:36Z: Exact CI39957012029 on synchronized dc43bb65403457c6745dcc9c10df0da97631e9dc is terminal red: Frontend Unit passed; Backend unit reported 5235 passed, 1 failed, 1 skipped, 37 warnings; Backend integration and downstream jobs skipped. The sole failure was this owner-record inconsistency: the prior nested blocker omitted the required exact 15 Tier-0 and 156 Tier-1 phrase. This record is now corrected and the focused sentinel passed1/1; preserve the hosted run as red. The consumer fixtures remain without DB-backed proof. Keep RSST unimported; full_stack_browser is Root-slot-gated; full AC1-AC14, 15 Tier-0 and 156 Tier-1, holds and quarantines remain.",
-    "current_phase": "reconcile_latest_narrative_sentinel_failure_2026_10_23",
-    "next_action": "Commit and publish the corrected owner record once, then inspect the resulting exact-source CI. Do not rerun CI39957012029 or start DB/browser work before Root assigns the full_stack_browser slot. Preserve RSST unimported, all route/rights/quota holds, AC1-AC14, quarantines and the 30-day observation.",
-    "updated_at": "2026-10-23T13:08:30Z"
+    "current_blocker": "2026-10-23T14:04:37Z: Exact CI39958914991 is green for published source f6eabc1 only and predates the current manual CSV patch. Focused resolution/parser/router tests are65/65 with static checks green; exact-source CI and Root's full_stack_browser slot remain pending. The current branch can store dated RSST manually with explicit derivative/cash types, raw payload, no enrichment, source tier none, no native adapter-success health, and import-time known_at. Do not import until storage/display rights and original request URL provenance are verified. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, and all quarantines/holds.",
+  "current_phase": "manual_csv_untyped_row_safety_2026_10_23",
+    "next_action": "Finish source/workstream validation, commit and push this substantive parser safety change once, and inspect its exact-source CI. Then continue offline source/rights review without importing RSST or making requests; the full_stack_browser profile remains under Root's exclusive slot. Preserve all roadmap criteria, quarantines, holds, retained data, and the post-integration observation gate.",
+    "updated_at": "2026-10-23T14:04:37Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -420,8 +427,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "dc43bb65403457c6745dcc9c10df0da97631e9dc",
-  "remote_sha": "dc43bb65403457c6745dcc9c10df0da97631e9dc",
+  "remote": "f6eabc1ed3af7940bc1d090cb1f840c00ab289e3",
+  "remote_sha": "f6eabc1ed3af7940bc1d090cb1f840c00ab289e3",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
