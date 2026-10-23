@@ -88,18 +88,18 @@
     }
   ],
   "active_changeset": {
-    "baseline": "5359f225b70c0e8cd0e15374b58748d917012474",
-    "intent": "Prevent automated SEC-reconstructed historical snapshots from recording success against the ETF profile's native issuer adapter. Preserve SEC source tier and degraded/current-vs-PIT semantics. Keep the next SEC shared transport bound to reviewed Provider identity/entitlement/account/operation/quota/verified-zero-cost evidence; all currently unverified operations remain held.",
-    "name": "Prevent SEC reconstruction from refreshing native ETF adapter health",
+    "baseline": "6cf1d9fda65bc0afd825cbd412ad21c4bc9f5614",
+    "intent": "Reject SEC holdings discovery/backfill while an issuer latest/dated ETF_HOLDINGS binding is active, before HTTP client construction or database writes. Keep SEC transport and all unreviewed operations held; preserve committed SEC identity, historical/PIT semantics and prior native adapter-health separation.",
+    "name": "Prevent SEC requests from borrowing ambient issuer bindings",
     "owned_paths": [
-      "backend/app/services/etf_holdings.py",
-      "backend/tests/unit/services/test_etf_holdings_resolution.py",
+      "backend/app/services/etf_holdings_edgar.py",
+      "backend/tests/unit/services/test_etf_holdings_edgar.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Automated SEC reconstruction now preserves sec_filing source tier without writing success to the profile's native issuer adapter health. Resolution and capability modules passed178/178; exact count sentinel, workstream validation, Ruff check/format, JSON/JSONL parsing, plan-hash parity and diff checks pass. Scoped source/test commit676cb4e53ef004ee69d9ceabadb12ad06813ce20 is pushed and independently verified at origin. GitHub status returned no statuses and workflow discovery is PR-trigger-filtered; exact-source CI is not surfaced and is not claimed green. SEC transport, Provider admission, and quota remain unchanged and held. Full_stack_browser and applicable reviewed live evidence remain mandatory before review/acceptance or normal finish. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines/holds, retained data, and the 30-day observation."
+    "state": "SEC discovery and backfill now explicitly reject ambient issuer latest/dated bindings before client construction or database writes. EDGAR and Provider bridge modules passed21/21 with live flags disabled; Ruff check/format and diff check passed. Commit56ae9fd26b92e32bab04c860ba6a125ecf70813a is pushed and independently verified at origin. GitHub status returned no statuses and workflow discovery is PR-trigger-filtered; exact-source CI is not surfaced or claimed green. No SEC transport or operation/policy/account/entitlement/quota/cost was enabled. Full_stack_browser and applicable reviewed live SEC evidence remain mandatory before review/acceptance or normal finish. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines/holds, retained data and the 30-day observation."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -150,8 +150,8 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23T16:11:05Z: Scoped source/test commit676cb4e53ef004ee69d9ceabadb12ad06813ce20 is pushed and independently verified at origin. Exact-source CI was not surfaced: the commit-status response was empty and the available workflow-run query is PR-trigger-filtered, so no green claim. Resolution/capability modules passed178/178; count sentinel, workstream validation, Ruff check/format, JSON/JSONL parsing, plan-hash parity and diff checks passed. SEC operation/account/quota/terms/zero-cost facts remain unknown and transport held. Full_stack_browser and applicable reviewed live evidence remain required before review/acceptance or normal finish. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation.",
-  "current_local_delta": "Automated SEC reconstruction now skips native ETF adapter-health success while preserving the `sec_filing` source tier; a new regression exercises non-manual automated ingestion with an existing SPDR profile adapter. Resolution and capability unit modules passed178/178; Ruff check/format and diff check pass. SEC HTTP transport, Provider admission, settings, operations and quota remain unchanged and held. Current EDGAR hosts/paths from source are data.sec.gov submissions JSON (current and archived) and www.sec.gov archived filing documents. No source-backed review of SEC Provider account scope, operation cost/quota dimensions, terms or zero-cost recurring commitment was found in this bounded context; do not infer those values. No external HTTP, quota, credential access, import, fixture, activation, cleanup or cross-worktree action occurred.",
+  "current_blocker_latest": "2026-10-23T16:16:54Z: SEC ambient-binding isolation commit56ae9fd26b92e32bab04c860ba6a125ecf70813a is pushed and independently verified at origin. Exact-source CI was not surfaced: status response was empty and the workflow query is PR-trigger-filtered. EDGAR and Provider bridge modules passed21/21; Ruff/format and diff passed. SEC transport and all operation/policy/account/entitlement/quota/terms/zero-cost facts remain held/unknown. Full_stack_browser and applicable reviewed live SEC evidence remain required before review/acceptance or normal finish. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation.",
+  "current_local_delta": "SEC discovery and backfill entry points now explicitly reject an ambient ETF issuer binding before constructing an HTTP client or writing a backfill job. Regression test asserts zero client construction and zero DB writes. EDGAR+Provider bridge modules passed21/21; Ruff, format and diff checks passed. SEC transport and Provider admission/policy are unchanged and held; prior SEC health-separation commit676cb4e preserves non-current sec_filing without native adapter success. No HTTP, quota, credential, import, fixture, activation, cleanup or cross-worktree action occurred.",
   "dirty_paths": [
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
@@ -351,8 +351,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue the dedicated SEC shared-runtime bridge only as offline source/unit/no-network preparation. Seek authoritative exact-source CI for pushed676cb4e53ef004ee69d9ceabadb12ad06813ce20 when available; empty status results are not green. Keep full_stack_browser and applicable reviewed live evidence mandatory before review/acceptance or normal finish. Do not register or enable SEC operations until host/operation/account/entitlement/quota/terms/verified-zero-cost facts are evidenced. Preserve per-hop shared admission and lineage, SEC degraded/historical/PIT semantics, AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation. No live requests or cross-worktree writes.",
-  "plan_hash": "2ca79500c8631b1b49b60a8b1ad9044aec75acabd8a7dcaa7fcedc3aa11c8c58",
+  "next_action": "Continue offline preparation of the dedicated SEC shared-runtime request context bound to committed profile/instrument/CIK identity. Keep the new ambient issuer-binding denial and the previous native-health/PIT protections. Do not reuse issuer operations, add a second ledger, register or enable SEC operations, or infer quota/cost/terms. Require evidence-backed SEC DataSource, policy, entitlement, account scope, host and operation review plus verified zero-cost commitment; absent, unknown or mismatched evidence must reject before request/client, reservation or transport. Exact-source CI was not surfaced for56ae9fd; seek authoritative status when available without treating an empty response as green. Full_stack_browser and mandatory live SEC evidence remain pre-review/acceptance gates. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation. No live requests or cross-worktree writes.",
+  "plan_hash": "d18403cdec5b0711e6a7d2d7613d9261b08d42928fda9274e200bcd5937eadd8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -403,10 +403,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23T16:11:05Z: SEC automated-health source/test commit676cb4e53ef004ee69d9ceabadb12ad06813ce20 is pushed and remote-verified. Exact-source CI was not surfaced and remains unverified. Focused module, sentinel, workstream, Ruff, JSON, plan-hash and diff checks pass. Full_stack_browser and applicable reviewed live evidence remain required before review/acceptance or normal finish; transport/policy/account/quota/terms/zero-cost facts remain unknown and held. Preserve `15 Tier-0 and 156 Tier-1` and full AC1-AC14.",
-    "current_phase": "sec_reconstruction_native_adapter_health_separation_2026_10_23",
-    "next_action": "Continue offline-only preparation of the dedicated governed SEC binding; first obtain authoritative exact-source CI for676cb4e53ef004ee69d9ceabadb12ad06813ce20 when available. Full_stack_browser and applicable reviewed live SEC evidence remain mandatory before review/acceptance or normal finish. Keep transport held pending evidence-backed host/operation/account/entitlement/quota/terms/verified-zero-cost facts. Preserve `15 Tier-0 and 156 Tier-1`, full roadmap, quarantines, holds and observation gate.",
-    "updated_at": "2026-10-23T16:11:05Z"
+    "current_blocker": "2026-10-23T16:16:54Z: SEC ambient-binding isolation commit56ae9fd26b92e32bab04c860ba6a125ecf70813a is pushed and remote-verified; exact-source CI was not surfaced. EDGAR/Provider bridge21 tests plus Ruff/format/diff passed. SEC transport/operation/account/quota/terms/zero-cost facts remain unknown and held. Full_stack_browser and applicable reviewed live evidence remain required before review/acceptance. Preserve `15 Tier-0 and 156 Tier-1` and full AC1-AC14.",
+    "current_phase": "sec_ambient_issuer_binding_isolation_2026_10_23",
+    "next_action": "Continue offline preparation of the dedicated SEC shared-runtime context with committed profile/instrument/CIK identity, separate from issuer bindings. Do not enable transport, invent operations or costs, or create a second ledger. Require evidence-backed SEC policy/account/entitlement/host/operation/terms/zero-cost review; keep denial before client/reservation/transport for missing or mismatched evidence. Full_stack_browser and applicable mandatory live SEC evidence remain pre-review gates. Preserve `15 Tier-0 and 156 Tier-1`, full roadmap, quarantines, holds and observation gate.",
+    "updated_at": "2026-10-23T16:16:54Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -418,8 +418,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "676cb4e53ef004ee69d9ceabadb12ad06813ce20",
-  "remote_sha": "676cb4e53ef004ee69d9ceabadb12ad06813ce20",
+  "remote": "56ae9fd26b92e32bab04c860ba6a125ecf70813a",
+  "remote_sha": "56ae9fd26b92e32bab04c860ba6a125ecf70813a",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

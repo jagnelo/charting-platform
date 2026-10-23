@@ -367,19 +367,19 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Prevent SEC reconstruction from refreshing native ETF adapter health
-    state: automated_sec_filing_source_skips_native_adapter_success;degraded_sec_source_tier_preserved;resolution_and_capability_units_178_pass;ruff_and_diff_green;no_transport_or_provider_admission_changed;source_commit_676cb4e53ef004ee69d9ceabadb12ad06813ce20_pushed_and_remote_verified;exact_source_ci_not_surfaced;full_stack_browser_pending_before_review
-    baseline: 5359f225b70c0e8cd0e15374b58748d917012474
+    name: Prevent SEC requests from borrowing ambient issuer bindings
+    state: SEC_discovery_and_backfill_require_no_ambient_issuer_binding;21_EDGAR_and_provider_bridge_tests_pass;Ruff_and_format_pass;no_transport_or_provider_policy_enabled;source_commit_56ae9fd26b92e32bab04c860ba6a125ecf70813a_pushed_and_remote_verified;exact_source_ci_not_surfaced;full_stack_browser_pending
+    baseline: 6cf1d9fda65bc0afd825cbd412ad21c4bc9f5614
     intent: >-
-      Prevent automated SEC-reconstructed historical snapshots from recording
-      success against the ETF profile's native issuer adapter. Keep SEC source
-      tier and non-current capability semantics intact. Preserve exact filing
-      publication/acceptance and post-response knowledge-time semantics, raw
-      bytes, accession, URL and unresolved rows. Do not enable SEC transport or
-      infer its account, quota, recurring-cost or operation review.
+      Ensure SEC discovery/backfill entry points cannot inherit an ambient
+      issuer latest/dated ETF_HOLDINGS binding. Reject before request-client
+      construction or database mutation. Keep the SEC transport held; do not
+      add SEC operations, policy, account scope, quota, entitlement or cost
+      assumptions. Preserve the separate native issuer identity and prior
+      SEC historical/PIT and adapter-health safeguards.
     owned_paths:
-      - backend/app/services/etf_holdings.py
-      - backend/tests/unit/services/test_etf_holdings_resolution.py
+      - backend/app/services/etf_holdings_edgar.py
+      - backend/tests/unit/services/test_etf_holdings_edgar.py
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/session.json
@@ -560,27 +560,26 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: sec_reconstruction_native_adapter_health_separation_2026_10_23
+current_phase: sec_ambient_issuer_binding_isolation_2026_10_23
 current_blocker: >-
-  CURRENT RECONCILIATION 2026-10-23T16:11:05Z: Scoped source/test commit
-  676cb4e53ef004ee69d9ceabadb12ad06813ce20 is pushed to the ETF feature branch;
-  an independent `git ls-remote` returned the same SHA. The GitHub commit-status
-  query returned no statuses and the available workflow-run query only exposes
-  PR-triggered runs, so exact-source CI is not surfaced and is not claimed
-  green. The complete holdings-resolution and capability modules passed
-  178/178; the exact narrative-count sentinel passed1/1; workstream validation,
-  Ruff check/format, JSON/JSONL parsing, plan-hash parity and diff checks passed.
-  SEC source-tier `sec_filing` remains degraded/non-current and SEC ingestion
-  does not record native ETF adapter success. SEC account mapping, operation
-  review, quota facts, terms and verified-zero-cost commitment remain
-  unverified; the future transport remains held. Per the publication
-  clarification, this is only an interim scoped source publication. Exact
-  source CI, full_stack_browser and any applicable reviewed live SEC evidence
-  remain mandatory before review/acceptance or normal finish. Preserve AC1-AC14,
-  `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day
-  observation. No SEC/provider/issuer HTTP, quota, credential access, import,
-  activation, fixture, cleanup, staging/sibling/master write, promotion, or
-  deployment occurred.
+  CURRENT RECONCILIATION 2026-10-23T16:15:57Z: SEC ambient-binding isolation
+  commit 56ae9fd26b92e32bab04c860ba6a125ecf70813a is pushed; local tracking ref
+  and independent `git ls-remote` matched it. The GitHub status response for
+  that SHA is empty and the available workflow query is PR-trigger-filtered;
+  exact-source CI is not surfaced or claimed green. The EDGAR plus shared
+  Provider bridge unit modules passed21/21 with live flags disabled; changed
+  file Ruff and format checks and diff check passed. The new guard rejects SEC
+  discovery/backfill while an issuer latest binding is active before HTTP
+  client construction or database writes. No SEC operation, transport, policy,
+  account, entitlement, quota or cost was added or enabled. The prior correction
+  keeps SEC reconstruction out of native adapter health and preserves
+  `sec_filing`; exact SEC terms/account/quota/zero-cost evidence remains unknown
+  and all SEC transport remains held. Full_stack_browser and applicable
+  reviewed live SEC evidence remain required before review/acceptance or normal
+  finish. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds,
+  retained data, and the 30-day observation. No external HTTP, quota,
+  credentials, import, activation, fixture, cleanup, cross-worktree/staging/
+  master write, promotion or deployment occurred.
   synchronizes each of the 74 runtime fallback identity investigation dates
   with its current durable provider-audit row; dates are evidence chronology,
   not route eligibility or current holdings claims. The deterministic capability
@@ -1765,20 +1764,17 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Continue the dedicated SEC shared-runtime bridge only as offline source/unit/
-  no-network preparation while preserving the published health-separation fix.
-  First obtain exact-source CI status for 676cb4e53ef004ee69d9ceabadb12ad06813ce20
-  through an authoritative run/status source when available; do not infer green
-  from an empty status response. Actual request hosts in code are data.sec.gov
-  (current and archived submissions JSON) and www.sec.gov (archived filing
-  documents); proposed operations are separate discovery and filing-fetch
-  attempts bound to committed profile/instrument/CIK identity. The shared
-  Provider SEC source/policy/entitlement/account scope, per-operation quota
-  facts, terms and verified-zero-cost recurring-cost commitment have not been
-  verified here and must not be invented or enabled. Every physical request,
-  redirect, page and retry must use shared admission and durable lineage; SEC
-  snapshots stay historical/degraded and must not update native adapter health.
-  Full_stack_browser and applicable reviewed live evidence remain mandatory
-  before review/acceptance or normal finish. Preserve AC1-AC14,
-  `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data and the 30-day
-  observation. No external requests or other-worktree writes.
+  Continue offline preparation of the dedicated SEC shared-runtime bridge,
+  preserving the newly explicit no-ambient-binding boundary and the existing
+  SEC native-health/PIT safeguards. The next implementation must use a
+  dedicated SEC request context bound to committed ETF profile/instrument/CIK
+  identity and an evidence-backed SEC DataSource/policy/entitlement/account/
+  host/operation/verified-zero-cost commitment; do not reuse issuer operations,
+  add a second ledger, or invent quota, terms or costs. Keep all SEC transport
+  held and prove missing/unknown/mismatched review data denies before client,
+  reservation or network construction. Record exact-source CI when authoritative
+  evidence becomes available; an empty status response is not green. Full_stack_
+  browser and mandatory reviewed live evidence remain required before review/
+  acceptance or normal finish. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`,
+  quarantines, holds, retained data, and the 30-day observation. No live HTTP or
+  other-worktree writes.
