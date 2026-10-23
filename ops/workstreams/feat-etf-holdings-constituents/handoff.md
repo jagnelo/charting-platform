@@ -1,5 +1,76 @@
 # feat/etf-holdings-constituents
 
+## ETF shared-health seed regression — 2026-10-23 07:28Z
+
+The accepted-f04 source review showed that `resolve_provider_chain` requires a
+matching `ProviderHealthState`, but generic `seed_provider_runtime` never seeds
+health for ETF-only publisher policies because those adapters are intentionally
+outside the generic provider registry. The ETF seed now supplies a neutral row
+only when an ETF policy already exists and lacks health state, sets all initial
+health metrics/scores to zero with no success/failure timestamps, and disables
+that policy. It does not create `DataSource`, policy, entitlement, review,
+budget, or commitment rows; it does not authorize a route. Existing health
+state and operator policy settings are left unchanged. This closes only the
+resolver health-row preparation gap, not the SPDR provisioning gap recorded in
+`first-human-sample-admission.md`.
+
+The new SQLite unit regression passed 1/1, then the containing Provider-runtime
+unit module passed 94/94 in 156.94 seconds with
+`RUN_LIVE_ETF_HOLDINGS_TESTS=0` and `RUN_LIVE_PROVIDER_TESTS=0`. Ruff check,
+Ruff format check, and `git diff --check` passed. These are deterministic unit
+results, not PostgreSQL/Redis, full-stack, shared-runtime admission, or live
+issuer evidence. Exact published-source CI `39913994245` covers committed tip
+`059667e706c6cdf6eb80f4c720b5ebff6c5ff595`; Backend, Frontend, and
+Branch-declared jobs passed, Playwright was still running at the last check,
+and Exhaustive was skipped by feature-branch policy. The new local change is
+not covered by that run. No upstream HTTP, quota, provider/issuer/SEC request,
+runtime record, fixture, or retained-resource action occurred.
+
+Follow-up receipt at 2026-10-23 07:31Z: exact GitHub run `39913994245` is now
+terminal successful for Backend, Frontend Unit, Branch-declared Tests, and
+Playwright E2E; Exhaustive was skipped by feature-branch policy. The earlier
+in-progress statement above is retained as contemporaneous history. This run
+still covers only committed `059667e706c6cdf6eb80f4c720b5ebff6c5ff595`, not
+the local health-seed change.
+
+## Offline SPDR provisioning and issuer-audit continuation — 2026-10-23 07:07Z
+
+The accepted-f04 source review is now durable in
+`first-human-sample-admission.md`. Its narrow conclusion: the admin ETF profile
+PATCH can persist an evidence-backed SPY adapter/publisher identity binding,
+but this satisfies only the profile identity gate. f04 has no management path
+that creates SPDR's shared `DataSource`, initial `ETF_HOLDINGS`
+policy/entitlement, bridge-required host/operation/account review config, or
+required `ProviderHealthState`. The Provider runtime's generic seed only walks
+the generic provider registry; the existing policy/entitlement PATCH endpoints
+require pre-existing rows, and the recurring-cost commitment path requires an
+existing data-source id. The shared resolver inner-joins health, which generic
+seeding does not create for adapter-only SPDR. No runtime record or admission
+state was changed. The recipe also records the model-default hazards
+(`DataSource` and policy default active/enabled; entitlement defaults
+`is_free=True`) for any future fail-closed provisioning implementation.
+
+Four bounded no-network checks against the current source passed: the
+code-derived fallback provider ledger, exact `15 Tier-0 and 156 Tier-1`
+narrative, Tier-0 runtime/date parity, and ranked Tier-1 runtime parity (4/4,
+12.26s; both live test flags were set to zero). The first invocation named a
+nonexistent Tier-0 test selector and executed no tests; the corrected command
+then ran the four intended checks. These are internal ledger/runtime
+consistency checks only; they do not establish current issuer availability,
+terms, quota, a native sample, or route eligibility. No issuer/provider/SEC
+HTTP, quota operation, database fixture, policy activation, or cleanup
+occurred.
+
+Exact published-source CI `39913994245` on `059667e706c6cdf6eb80f4c720b5ebff6c5ff595`
+was checked during this continuation: Backend, Frontend Unit, and
+Branch-declared Tests were successful; Playwright E2E was still in progress;
+Exhaustive was skipped under feature-branch policy. This hosted run covers the
+published SHA, not the current local workstream documentation. Continue
+offline AC2/AC4/AC5 review from retained evidence, preserve unresolved or
+unqualified dispositions, and keep SPY non-routable until both evidence and a
+supported Provider provisioning path exist. The full AC1–AC14 roadmap and
+Root-assigned `full_stack_browser` slot remain open.
+
 ## Current green-baseline adoption — 2026-10-23
 
 The coordinator released exact staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`

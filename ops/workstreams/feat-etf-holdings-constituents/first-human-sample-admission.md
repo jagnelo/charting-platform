@@ -142,6 +142,92 @@ created or activated during this preparation. Until the source, all reviewed
 records, and the canonical SPY profile binding actually exist and pass the
 bridge checks, the correct outcome remains zero transport and no sample.
 
+### Exact f04 profile-identity path versus Provider admission
+
+The accepted f04 source confirms that an authorized admin can persist the
+profile-side identity without a product-source change. `ETFProfileUpdateRequest`
+accepts generic `provider_aliases` and `legal_metadata`; admin-only
+`PATCH /api/v1/etf-holdings/SPY/profile` passes both to `ensure_etf_profile`,
+which stores non-null values. For SPY, a reviewed update must submit the
+complete alias set together, at minimum
+`{"holdings_adapter":"spdr","holdings_source_provider":"spdr"}`
+(the bridge also recognizes `source_provider` as the identity key). The
+associated `legal_metadata` should retain the actual source/version, review
+time, product/issuer and route decision. The endpoint does not validate those
+claims or enforce a review schema: it is a supported admin configuration
+mechanism, not self-authenticating evidence. It is legitimate only when the
+admin's retained metadata reflects a real review; typing an alias into this
+endpoint or inserting the same alias directly into a row just to pass the
+identity comparison is not publisher verification. The accepted f04 SPY
+catalog metadata itself supplies `holdings_adapter=spdr`, but not the
+publisher identity alias; the identity addition therefore needs this evidenced
+profile update (or a later canonical source change).
+
+That profile update satisfies only the bridge's committed-profile identity
+check. It does **not** by itself admit transport. In accepted f04,
+`seed_provider_runtime` creates generic `DataSource`, policy and entitlement
+rows only by iterating `supported_provider_names()` from the generic Provider
+registry. SPDR is registered as an ETF holdings adapter and curated ETF route,
+not as a generic Provider registry entry, so normal seeding does not create
+`DataSource(name="spdr")` or its `ETF_HOLDINGS` policy/entitlement. The
+admin Provider PATCH routes update existing rows and return not-found when
+the SPDR source/policy/entitlement is absent; they are not creation paths.
+The recurring-cost `POST /api/v1/market-data/recurring-costs/commitments`
+can create/admit a commitment only after an existing `data_source_id` is
+available. The budget `PUT` can record reviewed aggregate-budget evidence.
+Neither creates SPDR's source, capability rows, account binding, nor the
+bridge-required `DataSource.config.etf_holdings_review` host/operation review.
+No accepted f04 admin management path was found to create that SPDR source,
+policy, entitlement, or review-config record. Thus: profile identity has a
+supported evidence-bearing admin path; complete shared Provider admission
+still has a concrete provisioning/management gap. No such profile update,
+review, Provider record, budget, or commitment was made in this preparation.
+
+### Fail-closed provisioning design notes (proposal, not an existing API)
+
+If this management gap is later implemented, keep ETF publisher provisioning
+separate from generic API-provider registration: SPDR is an ETF adapter, and
+adding it to the generic registry would imply unrelated provider capabilities.
+A narrow admin-only publisher provisioning/review path should be idempotent
+and source-scoped. It must not infer capabilities, quotas, cost, terms, hosts,
+operations, or account identity from the adapter catalog or SPY profile.
+
+The current SQLAlchemy defaults make explicit quarantine essential: a new
+`DataSource.is_active` defaults true, `ProviderPolicy.is_enabled` defaults
+true, and `ProviderEntitlement.is_free` defaults true. A future creator must
+not rely on those defaults. Before review is complete, leave the source
+inactive and its `ETF_HOLDINGS` policy disabled; do not create an entitlement
+that could be read as verified-free. Keep missing quota dimensions and
+`quota_verified_at` unresolved until a complete evidence-backed contract is
+recorded. Only create/update the entitlement and `DataSource.config.etf_holdings_review`
+from the reviewed evidence, retaining entitlement revisions; do not turn a
+successful profile PATCH into Provider review or activation.
+
+After a real `DataSource` exists, the existing admin policy/entitlement PATCH
+endpoints can update its corresponding existing rows, the recurring-cost
+budget `PUT` can record reviewed aggregate evidence, and the commitments `POST`
+can record an evidence-backed commitment for that source and billing scope.
+Those endpoints are not a complete provisioning workflow: the first two
+cannot create missing rows, and the cost endpoints cannot supply issuer terms,
+host/operation review, quota evidence, or account-scope configuration. A
+future implementation should either add an explicitly fail-closed, audited
+publisher-provisioning path for those missing records or document an existing
+authorized operational provisioning mechanism before claiming the gap closed.
+Any activation remains a distinct, later reviewed act after every bridge gate
+is satisfied; this proposal creates no authorization to activate or fetch.
+
+Static follow-through on the accepted f04 runtime found one additional required
+row: `resolve_provider_chain` inner-joins `ProviderHealthState` for every
+candidate. `seed_provider_runtime` creates health rows inside its generic
+registry/capability loop, but SPDR is absent from that registry, so manually
+creating only its `DataSource`, `ProviderPolicy`, and `ProviderEntitlement`
+would still leave the ETF publisher absent from the shared resolver. The
+future ETF-specific provisioning/seed path must create the shared health row
+for the same source and `ETF_HOLDINGS` capability without recording a success
+that never happened; policy must remain disabled until the independent
+evidence and explicit activation gates pass. This is a source-derived runtime
+requirement, not a test or a health observation, and no such row was created.
+
 ## Bounded first request and interpretation
 
 Only after the above review and explicit operator authorization, invoke the
@@ -190,3 +276,64 @@ new private target, that the SPY route has been recently live-tested, or that a
 first-human sample has been accepted. RSP remains a possible later candidate,
 but no better retained RSP artifact or simpler verified route was established
 in this read-only pass.
+
+## Coordinator follow-up: canonical SPY identity versus shared registration
+
+The accepted f04 profile route is a legitimate way to persist SPY's reviewed
+publisher identity; it is not necessary to add product code merely to set the
+profile binding. In immutable f04, the admin-only
+`PATCH /api/v1/etf-holdings/{symbol}/profile` route (router
+`backend/app/routers/etf_holdings.py`, `update_etf_profile`, near line 986)
+accepts `ETFProfileUpdateRequest.provider_aliases` and `legal_metadata`, then
+passes them to `ensure_etf_profile`. That service stores each non-`None` value
+on the profile. A properly reviewed SPY request can therefore bind the
+existing adapter with `holdings_adapter: "spdr"` and publisher identity with
+`holdings_source_provider: "spdr"` (the bridge also accepts
+`source_provider: "spdr"`), while retaining actual source/version/review-time
+evidence in `legal_metadata`. Since the service assigns the supplied
+dictionaries rather than merging them, an operator must preserve any existing
+approved aliases and legal metadata in the submitted full values. The handler
+does not authenticate those claims or enforce an evidence schema: admin access
+plus a typed alias is not review evidence. Only a genuine source/product/route
+review recorded through this supported path makes the profile binding
+defensible; a raw database alias inserted just to satisfy the comparison does
+not. No such request or profile change was made here.
+
+SPDR's accepted f04 runtime registration is ETF-specific, not generic Provider
+registration. `backend/app/services/etf_holdings_adapters.py` exposes the
+`spdr` adapter through `get_holdings_adapter` and the SPY curated route
+metadata. By contrast, `backend/app/services/provider_runtime.py` seeds
+`DataSource`, policy, entitlement, and health rows by iterating
+`supported_provider_names()` from `backend/app/providers/registry.py`; SPDR is
+not in that generic registry. `resolve_provider_chain` requires matching
+`DataSource`, `ProviderPolicy`, `ProviderEntitlement`, and
+`ProviderHealthState` rows and a supplied ETF adapter. Thus f04 knows how to
+execute the ETF adapter but normal generic seeding does not register SPDR in
+the shared `ETF_HOLDINGS` admission tables or supply its health row.
+
+The existing admin management surface is partial, not a publisher-onboarding
+path:
+
+- `PATCH /api/v1/providers/policies/{provider_name}/{capability}` and
+  `PATCH /api/v1/providers/entitlements/{provider_name}/{capability}` update
+  rows only after lookup; each returns not-found when the SPDR source or its
+  capability row is absent. They cannot create those rows.
+- `PUT /api/v1/market-data/recurring-costs/budget` records a reviewed aggregate
+  ceiling. `POST /api/v1/market-data/recurring-costs/commitments` can create
+  and evaluate an evidence-backed commitment, including a verified-free one,
+  but requires an existing `data_source_id`; it does not activate transport.
+- I found no accepted-f04 admin route to create `DataSource(name="spdr")`, its
+  initial `ETF_HOLDINGS` policy or entitlement, its neutral health row, or the
+  bridge's `DataSource.config.etf_holdings_review` host/operation/account
+  record. Nor does the profile PATCH create any of those shared Provider
+  records.
+
+Conclusion: the **profile identity binding has a supported admin configuration
+path that can retain review evidence** and does not itself require a code
+change. The **shared Publisher/Provider admission bootstrap remains a concrete f04
+management gap**; only the later cost commitment has an existing create path,
+and that path depends on the missing source record. No policy, entitlement,
+commitment, review, account scope, health observation, or route activation was
+created. Until the missing shared records are provisioned through a legitimate
+authorized mechanism and every independent admission check passes, SPY remains
+unadmitted and the sample recipe remains prospective.

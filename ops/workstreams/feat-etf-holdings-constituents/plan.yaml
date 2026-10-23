@@ -1763,12 +1763,19 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Complete bounded source review/design for an authorized, fail-closed SPDR
-  shared-runtime provisioning path that can create/review the ETF-only source,
-  initial ETF_HOLDINGS policy/entitlement, and host/operation/account evidence
-  without inventing quota or cost facts; do not activate policy, create runtime
-  records, or issue external requests. Continue offline AC2/AC4/AC5 issuer audit
-  from retained evidence without inferring route eligibility. The required
+  Accepted-f04 review confirms that SPY profile identity has a reviewed admin
+  configuration path, while shared SPDR DataSource/policy/entitlement/review
+  provisioning remains unsupported by f04 management routes. A bounded
+  ETF-specific seed now creates a neutral `ProviderHealthState` only for an
+  already-present ETF policy missing that resolver join row, and disables
+  that policy rather than implying health or admission. Its new test and the
+  complete Provider-runtime unit module pass; this does not create a source,
+  entitlement, review record, or routable policy. Next continue offline
+  AC2/AC4/AC5 issuer audit from retained evidence, preserve unqualified routes
+  as held, and document the source-backed provisioning contract still needed
+  for shared SPDR admission. Do not invent quota/cost facts, activate policy,
+  create runtime records in this offline phase, or issue external requests.
+  The required
   `full_stack_browser` recipe is `make
   validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents
   PLAYWRIGHT_DOCKER=<reviewed pinned zero-retry wrapper>

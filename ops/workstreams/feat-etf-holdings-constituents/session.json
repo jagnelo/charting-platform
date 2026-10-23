@@ -88,21 +88,23 @@
     }
   ],
   "active_changeset": {
-    "baseline": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
-    "intent": "Bind curated SPDR route and publisher identity canonically, preserve real CURRENT versus historical/stale capability, and document the remaining shared Provider bootstrap gate without activating or inventing records.",
-    "name": "SPDR canonical identity and first-human sample readiness",
+    "baseline": "059667e706c6cdf6eb80f4c720b5ebff6c5ff595",
+    "intent": "Bind curated SPDR route and publisher identity canonically, seed only neutral missing ETF health rows for pre-existing policies while disabling policies with no health state, preserve real CURRENT versus historical/stale capability, and document the still-missing shared Provider provisioning gate without activating or inventing records.",
+    "name": "SPDR identity, neutral health seed, and first-human sample readiness",
     "owned_paths": [
       "backend/app/services/etf_holdings_adapters.py",
+      "backend/app/services/provider_runtime.py",
       "backend/tests/unit/services/test_etf_holdings_adapters.py",
       "backend/tests/unit/services/test_etf_holdings_capability.py",
       "backend/tests/unit/services/test_etf_holdings_refresh.py",
+      "backend/tests/unit/services/test_provider_runtime.py",
       "ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/session.json"
     ],
-    "state": "Local only at published f04 merge 9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b; exact CI39907317600 is green for Backend, Frontend Unit, Branch-declared, and Playwright, with Exhaustive skipped by feature policy. The continuation adds holdings_source_provider=spdr beside holdings_adapter=spdr in canonical SPDR route metadata and tests metadata hydration plus preservation of unrelated aliases. The accepted f04 source lacked that publisher alias. The full adapter, refresh, and capability unit modules passed 764/764 together; changed-file Ruff and format checks passed. The recipe distinguishes this code identity binding from actual external terms/quota evidence and records the still-missing shared runtime bootstrap for the SPDR DataSource, ETF_HOLDINGS policy/entitlement, and etf_holdings_review configuration. No Provider runtime records were created or activated, and no upstream HTTP, quota, paid/trial operation, fixture/build/browser, cleanup, or cross-worktree write occurred. Current edits still require final workstream checks, publication, exact-source CI, and Root's exclusive full_stack_browser slot."
+    "state": "Local continuation based on published source 059667e706c6cdf6eb80f4c720b5ebff6c5ff595. Canonical SPDR identity and prior ETF adapter/refresh/capability changes remain in that base. New local changes add a neutral zero-score/no-observation ProviderHealthState only for pre-existing ETF policies lacking the resolver-required row, disable that policy fail-closed, and document accepted-f04 profile identity versus missing shared source/policy/entitlement/review provisioning. The complete Provider-runtime unit module passed 94/94 (156.94s); Ruff check/format, narrative sentinel, workstream validator, plan hash, JSON/JSONL parsing, and diff check pass. Published exact CI39913994245 on 059 passed Backend, Frontend, Branch-declared, and Playwright; Exhaustive was skipped, and this run does not cover local edits. No runtime record, quota, live request, policy activation, fixture, or cleanup occurred. Local changes require commit/push and exact-source CI; full_stack_browser remains pending Root's exclusive slot."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -153,18 +155,24 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23: Pre-adoption ETF source/origin 8e25283c7464ec429a96c7216eeeb0becc79de37 is clean/synchronized; exact CI39901930128 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright E2E, with Exhaustive skipped under feature policy. Exact released synchronized green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 was fetched and merged only into this ETF worktree without conflicts. The merge plus current workstream reconciliation need one coherent publication, then exact merged-source CI. The full_stack_browser profile remains pending Root's exclusive slot. The accepted initial ETF checkpoint does not close AC1-AC14, issuer onboarding, unresolved MSMR/QQQ and Militia/GOOG quarantines, disabled holds, or the 30-day observation. No issuer/provider/SEC requests, quota, paid/trial activation, fixture, cleanup, or staging/sibling/master writes.",
+  "current_blocker_latest": "2026-10-23T07:31Z: Published ETF tip/origin 059667e706c6cdf6eb80f4c720b5ebff6c5ff595 remains synchronized. Exact CI39913994245 is terminal successful for Backend, Frontend Unit, Branch-declared Tests, and Playwright E2E; Exhaustive was skipped by feature-branch policy. This run covers only committed 059, not local changes. Dirty files include workstream documentation plus the bounded ETF seed change that creates a neutral health row only for existing ETF policies missing it and disables that policy; the full 94-test Provider-runtime unit module and Ruff/format checks pass. No SPDR source, entitlement, or review is created, so SPY remains held. No issuer/provider/SEC HTTP, quota, fixture, activation, or cleanup occurred. Full roadmap, quarantines, 30-day observation, and Root-assigned full_stack_browser remain open.",
+  "latest_published_ci": {
+    "recorded_at": "2026-10-23T07:31:03Z",
+    "sha": "059667e706c6cdf6eb80f4c720b5ebff6c5ff595",
+    "run_id": 39913994245,
+    "result": "backend_frontend_branch_declared_and_playwright_success; exhaustive_skipped_by_feature_policy",
+    "covers_current_local_changes": false
+  },
   "dirty_paths": [
-    "backend/app/services/etf_holdings_adapters.py",
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "backend/tests/unit/services/test_etf_holdings_capability.py",
-    "backend/tests/unit/services/test_etf_holdings_refresh.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/tests/unit/services/test_provider_runtime.py",
+    "ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
-    "ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md"
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
+  "current_local_delta": "2026-10-23T07:31Z: Exact published-source CI39913994245 on 059667e706c6cdf6eb80f4c720b5ebff6c5ff595 passed Backend, Frontend Unit, Branch-declared Tests, and Playwright; Exhaustive was skipped by feature policy and local changes are not covered. The new ETF seed creates only a neutral ProviderHealthState row for an already-existing ETF policy missing that row, disables it, and records no success/failure timestamps; the containing SQLite unit module passed 94/94 with live flags zero. Ruff/format, narrative sentinel, workstream validator (45 records), plan hash and JSON/JSONL checks pass. No SPDR source, entitlement, review, runtime record, live request, quota or activation was created. Full roadmap and Root-assigned heavy profile remain open.",
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -189,7 +197,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
+  "head": "059667e706c6cdf6eb80f4c720b5ebff6c5ff595",
   "implementation_sha": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -352,7 +360,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Work out the narrowly scoped, admin-only, fail-closed management/provisioning gap for an ETF-only publisher DataSource, initial ETF_HOLDINGS policy/entitlement, and evidence-backed etf_holdings_review configuration; generic Provider seeding and existing policy/entitlement PATCH routes do not create these rows. Do not invent evidence, quota/cost values, create runtime records, activate policy, or issue external requests. Continue offline AC2/AC4/AC5 audit from retained evidence. Preserve full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, historical evidence, retained data, and the 30-day observation. No full_stack_browser without Root's slot, and no staging/sibling/master/deployment mutation.",
-  "plan_hash": "99651fe186127d7f3089a7fe30623fc5875ce62e6910aa38767cfa1e215e8677",
+  "plan_hash": "d35d52038cf1cdac122be01de444da7d8278199bd891f1435576f74664bce12c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -418,8 +426,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
-  "remote_sha": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
+  "remote": "059667e706c6cdf6eb80f4c720b5ebff6c5ff595",
+  "remote_sha": "059667e706c6cdf6eb80f4c720b5ebff6c5ff595",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
