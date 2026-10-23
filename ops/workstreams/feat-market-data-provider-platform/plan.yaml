@@ -1,4 +1,11 @@
 schema: 4
+# 2026-10-23 SEC report integrity follow-up (working candidate based on
+# 00fefff7164f745ae27ff201b461a13c801213bd): the no-refetch materializer now
+# fails closed if persisted normalized CIK/name/ticker fields do not match the
+# immutable SEC source_payload. The complete SEC scan unit module passes 31/31
+# with live/provider routing disabled; Ruff, format, and diff checks pass.
+# Exact CI 39938451199 is still running on the unchanged parent source, so this
+# candidate has no exact-source CI result yet. Status/roadmap/holds unchanged.
 # 2026-10-23 coverage default-series alignment: the `/coverage` summary and
 # requested-range queries now reuse `_default_series_bar_condition`, so a
 # later bar from an alternate series cannot make the selected default appear

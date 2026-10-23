@@ -49,6 +49,39 @@ def _validate_issuer_materialization_mode(value: str) -> str:
     return mode
 
 
+def _sec_directory_candidate_payload_names(payload: dict[str, Any]) -> list[str] | None:
+    raw_names = payload.get("name_candidates")
+    if raw_names is None:
+        return []
+    if not isinstance(raw_names, list) or any(
+        not isinstance(name, str) or not name.strip() for name in raw_names
+    ):
+        return None
+    return sorted({name.strip() for name in raw_names}, key=lambda name: (name.casefold(), name))
+
+
+def _sec_directory_candidate_payload_name(payload: dict[str, Any]) -> str | None:
+    raw_name = payload.get("name")
+    if raw_name is not None and not isinstance(raw_name, str):
+        return None
+    names = _sec_directory_candidate_payload_names(payload)
+    if names is None:
+        return None
+    conformed_name = (raw_name or (names[0] if names else "")).strip()
+    return conformed_name or None
+
+
+def _sec_directory_candidate_payload_tickers(payload: dict[str, Any]) -> list[str] | None:
+    raw_tickers = payload.get("tickers")
+    if raw_tickers is None:
+        return []
+    if not isinstance(raw_tickers, list) or any(
+        not isinstance(ticker, str) or not ticker.strip() for ticker in raw_tickers
+    ):
+        return None
+    return sorted({ticker.strip().upper() for ticker in raw_tickers})
+
+
 async def _materialize_directory_issuers(
     db: AsyncSession,
     rows: list[dict[str, Any]],
@@ -419,11 +452,19 @@ async def materialize_sec_directory_issuer_report(
         or row.name_candidates[0].strip() != row.conformed_name.strip()
         or not isinstance(row.tickers, list)
         or any(not isinstance(ticker, str) or not ticker.strip() for ticker in row.tickers)
+        or not isinstance(row.source_payload, dict)
+        or str(row.source_payload.get("cik") or "").strip() != row.cik
+        or _sec_directory_candidate_payload_name(row.source_payload) != row.conformed_name
+        or _sec_directory_candidate_payload_names(row.source_payload) != row.name_candidates
+        or _sec_directory_candidate_payload_tickers(row.source_payload) != row.tickers
         for row in pending
     ):
         return {
             "status": "blocked",
-            "reason": "one or more would-create rows failed CIK/name/ticker validation",
+            "reason": (
+                "one or more would-create rows failed source-payload CIK/name/ticker "
+                "consistency validation"
+            ),
             "report_cycle_number": report_cycle,
         }
 

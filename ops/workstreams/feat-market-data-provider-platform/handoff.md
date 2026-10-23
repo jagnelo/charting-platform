@@ -1,5 +1,28 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 10:31Z — SEC persisted-payload consistency
+
+- The no-refetch issuer materializer previously checked persisted normalized
+  CIK/name/ticker columns but did not prove that they still projected from the
+  retained SEC `source_payload`. A tampered normalized name could therefore
+  create an issuer unsupported by the retained source row.
+- Working candidate is based on synchronized parent
+  `00fefff7164f745ae27ff201b461a13c801213bd`. It adds a fail-closed raw-to-
+  normalized consistency check before issuer creation and preserves the raw
+  payload. The regression covers mismatched CIK, name, and ticker projections;
+  the existing clean-payload no-refetch/materialization path remains positive.
+- Complete `test_market_event_edgar_scan.py`: 31/31 passed with live/provider
+  routing disabled. Ruff check, Ruff format check, and `git diff --check` pass.
+  No provider/issuer/SEC HTTP, quota operation, database mutation outside the
+  unit fixture, or service/data/staging/sibling/deployment change occurred.
+- Exact Actions run `39938451199` is still running on the unchanged parent
+  `00fefff…`; it does not validate this working candidate. The current worktree
+  has substantive source/test plus plan/handoff/journal changes. Next: inspect
+  and commit the coherent candidate after the parent run reaches terminal,
+  push once, then require exact-source CI. The F8m local full profile remains
+  pending a source-qualified private fixture; no existing retained stack was
+  used or changed.
+
 ## 2026-10-23 10:18Z — F8m fixture inventory and E2E port containment
 
 - Read-only inventory found the retained seeded Provider E2E project

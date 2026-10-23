@@ -1592,7 +1592,12 @@ async def test_sec_report_materialization_uses_persisted_rows_and_resumes_withou
                 conformed_name="New SEC Issuer",
                 name_candidates=["New SEC Issuer"],
                 tickers=["NEW"],
-                source_payload={"cik": "0000000051", "name": "New SEC Issuer"},
+                source_payload={
+                    "cik": "0000000051",
+                    "name": "New SEC Issuer",
+                    "name_candidates": ["New SEC Issuer"],
+                    "tickers": ["NEW"],
+                },
                 admission_decision="would_create",
                 decision_reason="No issuer matches this CIK.",
                 cycle_status="complete",
@@ -1611,7 +1616,12 @@ async def test_sec_report_materialization_uses_persisted_rows_and_resumes_withou
                 conformed_name="Existing SEC Issuer",
                 name_candidates=["Existing SEC Issuer"],
                 tickers=["OLD"],
-                source_payload={"cik": "0000000052", "name": "Existing SEC Issuer"},
+                source_payload={
+                    "cik": "0000000052",
+                    "name": "Existing SEC Issuer",
+                    "name_candidates": ["Existing SEC Issuer"],
+                    "tickers": ["OLD"],
+                },
                 admission_decision="already_exists",
                 decision_reason="CIK already matches an issuer.",
                 matched_issuer_id=existing.id,
@@ -1671,3 +1681,72 @@ async def test_sec_report_materialization_rejects_unreviewed_cycle_count(db):
     )
     assert result["status"] == "blocked"
     assert result["reason"] == "no SEC directory scan is recorded"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("candidate_cik", "candidate_name", "candidate_names", "candidate_tickers"),
+    [
+        ("0000000054", "Original SEC Name", ["Original SEC Name"], ["RAW"]),
+        ("0000000053", "Unsupported Replacement Name", ["Unsupported Replacement Name"], ["RAW"]),
+        ("0000000053", "Original SEC Name", ["Original SEC Name"], ["FORGED"]),
+    ],
+)
+async def test_sec_report_materialization_rejects_normalized_fields_not_supported_by_payload(
+    db, candidate_cik, candidate_name, candidate_names, candidate_tickers
+):
+    from datetime import UTC, datetime
+
+    fingerprint = "c" * 64
+    state = MarketEventScanState(
+        scan_key="edgar:ipo_pipeline:sec_directory",
+        provider="edgar",
+        operation="discover_issuer_ciks_page",
+        cycle_count=1,
+        status="complete",
+        provenance={
+            "last_completed_cycle_number": 1,
+            "last_completed_report_cycle_number": 1,
+            "last_completed_cycle_clean": True,
+            "last_completed_materialization_mode": "disabled",
+            "last_completed_source_fingerprint": fingerprint,
+            "last_completed_directory_total": 1,
+        },
+    )
+    db.add(state)
+    db.flush()
+    candidate = SecIssuerDirectoryCandidate(
+        cycle_number=1,
+        directory_offset=0,
+        directory_total=1,
+        source_fingerprint=fingerprint,
+        materialization_mode="disabled",
+        cik=candidate_cik,
+        conformed_name=candidate_name,
+        name_candidates=candidate_names,
+        tickers=candidate_tickers,
+        source_payload={
+            "cik": "0000000053",
+            "name": "Original SEC Name",
+            "name_candidates": ["Original SEC Name"],
+            "tickers": ["RAW"],
+        },
+        admission_decision="would_create",
+        decision_reason="No issuer matches this CIK.",
+        cycle_status="complete",
+        cycle_complete=True,
+        cycle_clean=True,
+        cycle_failure_count=0,
+        observed_at=datetime.now(UTC),
+    )
+    db.add(candidate)
+    db.flush()
+
+    result = await market_event_edgar_scan.materialize_sec_directory_issuer_report(
+        AsyncSessionAdapter(db), reviewed_cycle_count=1
+    )
+
+    assert result["status"] == "blocked"
+    assert "source-payload CIK/name/ticker consistency" in result["reason"]
+    assert db.execute(select(Issuer)).scalars().all() == []
+    assert candidate.source_payload["name"] == "Original SEC Name"
