@@ -14172,3 +14172,27 @@ resource-preserving cleanup wrapper. Record every created resource ID and
 remove only exact new resources after all profile parents/descendants exit;
 never stop or clean retained or baseline services/data. This is preparation
 only, not launch authorization or profile evidence.
+
+## Successful-capability timestamp consistency — 2026-10-23 00:40Z
+
+Offline source review found that `evaluate_capability` could classify a
+snapshot as `current` when adapter state said `success` and had a non-future
+`last_checked_at`, even if `last_success_at` was absent or occurred after the
+check timestamp. The canonical `_record_success` writer records both times
+together; absent, future, or out-of-order success lineage is not sufficient
+evidence of current capability. The predicate now requires
+`last_success_at <= last_checked_at <= now`; incoherent state remains
+`unknown`, preserves the snapshot as displayable last-known data, and cannot
+be used for current analysis.
+
+The complete deterministic capability module passed 109 tests, including
+three new cases for missing, future, and out-of-order success timestamps.
+Ruff check and format-check passed, as did `git diff --check`. This is
+stack-free unit evidence only; no DB/browser profile or external route was
+used. Exact ETF CI `39877470823` is still running its backend integration
+step on prior published source `983d5d293a6b954fb503eca73785479b434e4109`;
+it does not include this dirty change. Preserve that run through terminal
+result before publishing the new source. This does not close AC1–AC14 or the
+required full profile; retain `15 Tier-0 and 156 Tier-1`, unresolved/quarantined
+MSMR/QQQ and Militia/GOOG, all route holds, and the post-integration 30-day
+observation gate.

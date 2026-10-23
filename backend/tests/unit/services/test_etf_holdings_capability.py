@@ -106,6 +106,28 @@ def test_current_requires_complete_snapshot_and_successful_check():
     assert result.transport_kind == "file_export"
 
 
+@pytest.mark.parametrize(
+    ("checked", "success"),
+    [
+        (NOW, None),
+        (NOW, NOW + timedelta(seconds=1)),
+        (NOW - timedelta(seconds=1), NOW),
+    ],
+    ids=["missing-success", "future-success", "success-after-check"],
+)
+def test_success_state_requires_coherent_success_timestamp(checked, success):
+    result = evaluate_capability(
+        profile(),
+        snapshot(),
+        state(checked=checked, success=success),
+        now=NOW,
+    )
+
+    assert result.availability == UNKNOWN
+    assert result.usable_for_current_analysis is False
+    assert result.displayable_last_known is True
+
+
 def test_sec_reconstruction_is_degraded_even_when_the_fetch_succeeded():
     result = evaluate_capability(
         profile(),

@@ -2337,7 +2337,12 @@ def evaluate_capability(
     elif deadline is not None and now.date() > deadline:
         availability = STALE
         reason = f"The latest holdings composition passed its {cadence} freshness window."
-    elif state_status == "success" and checked is not None and checked <= now:
+    elif (
+        state_status == "success"
+        and checked is not None
+        and success is not None
+        and success <= checked <= now
+    ):
         availability = CURRENT
         reason = "A complete holdings snapshot passed the latest adapter check."
     elif state_status in {
