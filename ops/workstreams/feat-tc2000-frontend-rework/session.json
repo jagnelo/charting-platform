@@ -35,15 +35,21 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "F04 is adopted at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 after preserving prior TC records in b59b489913dd4359b6205139e4b4f934d0952667. Corrected frozen-import manifest and exact F04 receipt are published at branch HEAD 51ab9d03dd139b8959808a23b4f8cc272f8556aa, matching origin. Exact TC CI39908879710 passed Backend, Frontend, Branch-declared Tests and E2E on attempt 1; E2E reported 192 passed/110 declared skips; Exhaustive Integration Gate was an expected skip. The earlier CI39905888099 manifest failure is historical and corrected. F8y browser proof/full local profile, unresolved SX/IX contracts, full AC1-AC9 and official REF-HELP-V25 remain open.",
+  "current_candidate_ci_status": "Committed HEAD a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 remains synchronized with origin. Exact committed-source CI39935342169 attempt1 is terminal red: 1,381 tests passed but global functions were69.04% versus the unchanged70% floor; Backend and Branch passed, E2E/Exhaustive skipped. A later authorized full V8 run on the current dirty six-source/test-path snapshot based on that HEAD exited0 with144/144 files and1,406/1,406 tests passing; coverage was82.86% statements/lines,73.37% branches,70.07% functions. Source/test diff SHA256 05720a427bb4f45e3838a233391e097609f326662dbc592c1ac0bb1699ebe686; LCOV SHA256 44fc9b914263f132344e6f50d36cd6b88bd8cb5696df33cbd4964c10a70d6e70. This is local dirty-tree evidence only; no exact CI exists for it. F8y remains unresolved: the 60-second deadline expired during the earlier inputValue/trace-snapshot browser stall, before the later lock line was reached; no lock request was dispatched. Preserve its timeout/assertions/zero retries and all first-failure artifacts. Full AC1-AC9, SX/IX, official REF-HELP-V25, provider/live holds and data remain unchanged/open.",
   "current_exact_ci": {
-    "conclusion": "success",
-    "head_sha": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
-    "run_id": 39908879710,
-    "status": "Exact push CI39908879710 attempt 1 completed successfully: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E passed; E2E reported 192 passed/110 declared skips. Exhaustive Integration Gate was an expected skip. The run is for published source 51ab9d03dd139b8959808a23b4f8cc272f8556aa.",
-    "visuals": "This hosted branch run passed, but provides no strict104 TC local visual evidence. F8y parent-host proof/full local profile remain pending Root's separate slot; preserve all original references, masks, tolerances, and zero retries."
+    "conclusion": "failure",
+    "head_sha": "a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9",
+    "run_id": 39935342169,
+    "status": "Terminal failure: Frontend Unit Tests job120353389277 failed the unchanged 70% global function threshold at 69.04% after all 1,381 tests passed; Backend job120353388553 and Branch-declared job120362123490 passed; E2E job120362124695 and Exhaustive job120362125598 were skipped.",
+    "visuals": "No E2E or strict104 result is recorded for exact candidate a83. One build under the revised F8y allowance failed at the Node heap limit before Vite; the exact-source frontend image, fixture, browser, and F8y test remain absent. Preserve all original references, masks, thresholds, and zero retries."
   },
   "dirty_paths": [
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/workstation/customDateSort.ts",
+    "frontend/src/lib/workstation/customDateSortData.ts",
+    "frontend/tests/e2e/flows.spec.ts",
+    "frontend/tests/unit/components/test_workstation_tool_content_tag_columns_runtime.test.ts",
+    "frontend/tests/unit/lib/test_custom_date_sort_data.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -128,7 +134,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
+  "head": "a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -139,27 +145,27 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-23T05:26:38.313319+00:00",
+  "last_checkpoint": "2026-10-23T17:14:46Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
-    "conclusion": "success",
-    "e2e_summary": "191 passed,110 existing skips; E2E job success on exact F04 attempt 1",
-    "head_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
+    "conclusion": "failure",
+    "e2e_summary": "E2E job120362124695 skipped; no exact-source E2E result",
+    "head_sha": "a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9",
     "jobs": {
       "backend": "success",
-      "branch_declared": "expected skip",
-      "e2e": "success_191_pass_110_existing_skip",
-      "exhaustive_integration_gate": "success",
-      "frontend_unit": "success"
+      "frontend_unit": "failure_global_functions_69.04_below_70_after_all_1381_tests_passed",
+      "e2e": "skipped",
+      "branch_declared": "success",
+      "exhaustive_integration_gate": "skipped"
     },
-    "run_id": 39896524209,
-    "scope": "Exact F04 staging source f04fb2a26c6363c6090e76c2658cfcfe7adabf61; canonical receipt20261023T051709Z-f04fb2a26c63.json. Backend, Frontend, ordinary E2E and Exhaustive Integration Gate succeeded; Branch-declared Tests was the expected skip. E2E reported 191 passed/110 declared skips. This upstream staging CI is not a substitute for exact TC-branch CI after adoption.",
-    "visuals": "The F04 exhaustive gate is green. F8y parent-host runtime proof/full local profile remain pending Root's separate slot; official REF-HELP-V25 parity and the full roadmap remain open."
+    "run_id": 39935342169,
+    "scope": "Exact TC branch source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9; Frontend Unit Tests job120353389277 ran 1,381 passing tests but failed the existing global function-coverage threshold at 69.04% versus 70%. Backend job120353388553 and Branch-declared job120362123490 passed; E2E job120362124695 and Exhaustive job120362125598 were skipped. This exact workflow is terminal red, not an E2E/product assertion failure or green result.",
+    "visuals": "No passing exact-source full E2E or strict104 result is recorded for a83. One local F8y case ran on exact source and failed during the earlier inputValue/browser-protocol stall before the lock POST; it does not prove endpoint behavior or parent-host acceptance. The one-case slot is consumed; official REF-HELP-V25 parity and the full roadmap remain open."
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Hand off the reproduced selected-default coverage inconsistency to its Provider owner; continue only TC-owned work until exact Provider green staging release.",
+  "next_action": "Publish the tested Custom Date Sort and Tag Column coverage-recovery changeset from a83 as the next exact branch HEAD; the local V8 gate and Vue type-check are green on its dirty snapshot. Then use the automatic exact-source CI result before continuing the next TC-owned roadmap item. F8y remains unresolved and its one browser slot is consumed: no /lock request was dispatched before inputValue/trace-snapshot latency exceeded the unchanged60-second deadline. Do not change the route, timeout, assertions or zero retries or replay without a new slot. Preserve full AC1-AC9, SX/IX unknowns, provider/data holds and official REF-HELP-V25.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -172,7 +178,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "85be20117653ad99597047c7ba7101a7077375fd3625b20d63754aa8489a794f",
+  "plan_hash": "4ffaa751b5946e6ba45f7ee7a4582315f711ea5c7d83ba29474370598ae26e21",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -192,28 +198,28 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "F04 source 51ab9d03dd139b8959808a23b4f8cc272f8556aa remains clean/origin-synchronized with exact TC CI39908879710 green. A disposable in-memory SQLite reproduction now proves the two generic coverage routes count an alternate-only D1 bar: selector=1, summary=2, range=2 and ready through that alternate date. The router and selector are outside TC ownership; no source/test edit was made. Provider migration repair 3e5ddec14a4185c2620990ac47aa8a95a41e7dc4 is published; exact CI39923818426 terminated cancelled after Frontend test/coverage completed, Backend unit tests were cancelled, and E2E/Branch/Exhaustive jobs were cancelled before starting. This is neither product failure nor green release; it is not adopted. F8y parent-host proof/full local profile remain pending Root's separate slot. SX/IX identity, weighting, point-in-time membership and local-history lineage remain unproven; relative modes remain unavailable. Full AC1-AC9 and official REF-HELP-V25 remain open.",
-    "current_phase": "f04_backmerge_published;TC_source_51ab_CI39908879710_green;selected_default_coverage_mismatch_reproduced_and_Provider_owner_handoff_prepared;Provider_migration_repair_3e5d_CI39923818426_cancelled_not_adopted;F8y_browser_slot_pending_Root;Custom_Date_Sort_contracts_open;full_AC1_AC9_REF_HELP_V25_open",
-    "next_action": "Hand off the exact reproduction and minimal selector-reuse/router-regression proposal to the Provider owner; do not patch excluded backend paths or import unaccepted 3e5d. Continue independent TC-owned work; run the F8y parent-host proof only after Root releases its separate slot. Keep relative Custom Date Sort modes unavailable until producer-backed identity mapping, weighting, point-in-time membership and canonical local-history lineage exist; preserve the full AC1-AC9 and official REF-HELP-V25 roadmap.",
+    "current_blocker": "As of2026-10-23T17:13Z: branch HEAD a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 remains origin-synchronized; the six-source/test and four-record scoped candidate is being published. Its full one-worker V8 run passed144/144 files,1,406/1,406 tests and the unchanged70% function gate at70.07%; type-check passed. Exact committed CI39935342169 remains red on a83 at69.04%, and the new candidate has no exact CI yet. F8y slot TC-SLOT-20261023T1400Z is consumed: the unchanged60-second timeout expired during inputValue/trace-snapshot latency before any lock POST dispatch; cause remains unproven. Keep route, timeout, assertions and zero retries unchanged. Required full_stack_browser validation, exact candidate CI, SX/IX, full AC1-AC9, Provider/ETF gates and official REF-HELP-V25 remain open.",
+    "current_phase": "TC_source_a83af413_origin_synced;dirty_full_V8_144_files_1406_tests_70.07_functions_pass_local_only;vue_tsc_exit0_current_dirty_snapshot;CI39935342169_committed_source_69.04_functions_red;scoped_coverage_recovery_changeset_being_published;F8y_timeout_in_inputValue_trace_latency_no_lock_request_cause_unproven;F8y_slot_consumed;exact_CI_full_stack_browser_SX_IX_AC1_AC9_REF_HELP_V25_open",
+    "next_action": "Publish this tested scoped coverage-recovery changeset, then use its exact-source CI result before continuing the highest-priority unmet TC roadmap item. Do not relabel local coverage as CI. F8y remains unresolved and its one browser slot is consumed: no lock request was dispatched before the inputValue/trace-snapshot latency exceeded the unchanged60-second timeout. Do not alter its route, timeout, assertions or zero retries or replay without a new coordinator slot. Preserve all roadmap criteria, SX/IX unknowns, provider/data holds and official REF-HELP-V25.",
     "total": 5,
-    "updated_at": "2026-10-23T08:29:01Z"
+    "updated_at": "2026-10-23T17:13:19Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
-    "current_pending_range": "Published source 51ab9d03dd139b8959808a23b4f8cc272f8556aa matches origin. Only the current plan/handoff/session and append-only validation record updates are pending locally; no product source changes are pending.",
-    "failure_category": null,
+    "current_local_head": "a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9",
+    "current_pending_range": "This scoped publication packet comprises six owned source/test paths plus four workstream records, based on synchronized HEAD a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9. Full dirty-snapshot V8 coverage passed144 files/1,406 tests with70.07% functions and Vue type-check exited0; prior exact CI39935342169 remains red on a83 at69.04%. Exact-source CI for the published candidate is pending. Changed paths require full_stack_browser validation; F8y remains unresolved and its only browser slot is spent, with no /lock request sent before the original timeout. No exact-source browser acceptance is claimed. The Custom Date Sort guard preserves fail-closed identity behavior; all scope, source, retry, oracle and provider/data holds remain intact.",
+    "failure_category": "frontend_function_coverage_threshold",
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
-    "status": "The published implementation source 51ab9d03dd139b8959808a23b4f8cc272f8556aa is synchronized with origin; the current owned workstream-record updates are pending local publication."
+    "remote_tracking_sha": "a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9",
+    "status": "Normal RTK-proxied push of a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 succeeded through the standard network-permission boundary. Remote feature ref is verified by the successful push receipt; exact automatic CI39935342169 attempt 1 is queued. Four owned workstream records remain dirty; no browser validation occurred."
   },
-  "remote": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
-  "remote_sha": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
+  "remote": "a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9",
+  "remote_sha": "a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

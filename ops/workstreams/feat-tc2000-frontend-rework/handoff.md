@@ -1,5 +1,130 @@
 # feat/tc2000-frontend-rework
 
+## Current scoped coverage recovery — 2026-10-23 17:13Z
+
+The owned Custom Date Sort identity guard and mounted Tag Column parent/runtime
+tests now pass the full serial V8 frontend gate on the current dirty snapshot:
+144/144 files, 1,406/1,406 tests, 82.86% statements/lines, 73.37% branches,
+and 70.07% functions against the unchanged 70% floor. `vue-tsc --noEmit` also
+passed on that snapshot. Receipts and artifact hashes are in
+`validation.jsonl`; this is not yet exact-source CI. The scoped six-source/test
+and four-record changeset is being committed/pushed from a83; the prior exact
+CI39935342169 remains red on a83 at 69.04% functions until new exact-source CI
+evaluates the candidate.
+
+F8y remains unresolved and its one-case slot was consumed. The 60-second
+deadline expired during the earlier `inputValue()`/trace-snapshot browser stall;
+the trace contains no dispatched `/lock` request. The later locked-target
+negative-path extension in `flows.spec.ts` has not been browser-validated.
+Preserve the original timeout, existing assertions, zero retries and failure
+artifacts; no replay is authorized. Full AC1-AC9, SX/IX, provider/data holds,
+the full local browser profile, and official REF-HELP-V25 remain open.
+
+## Historical validation — 2026-10-23 14:06Z
+
+The authorized full frontend V8 run passed 144 files/1,401 tests with 70.01%
+functions, 82.67% statements/lines, and 73.24% branches. It is qualified to
+parent-test SHA `522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5`;
+`WorkstationToolContent.vue` measured 66/345 functions, 1,830/4,332 lines,
+and 304/611 branches. Exact log/LCOV receipts are appended in
+`validation.jsonl`. One additional mounted-parent test then verified that the
+canonical workspace Tag Column target wins over stale virtual-tool props; the
+focused file passes 23/23 at SHA
+`61972a13f0f9216fdc32925045d7e494634e44724fa1f956073176c210f11a9c`, with
+current Vue type-check green. The full-coverage receipt does not include this
+last test addition; no global replay was authorized. F8y browser proof remains
+pending an exact Root slot. Build this candidate frontend; reuse the f04
+backend only after complete backend tree/Dockerfile/lock equality; run only
+existing F8y in a fresh isolated SPY/XLE-seeded fixture with provider
+credentials absent and backend egress denied, pinned Noble Playwright 1.62.1,
+one worker, zero retries, 640 MiB browser cap and unchanged assertions/timeouts.
+Do not launch before the slot grant. Committed-source CI39935342169 remains
+separately red at 69.04%; full AC1-AC9, SX/IX, and official REF-HELP-V25 remain
+open.
+
+## Prior continuation — 2026-10-23: F8y locked-target browser-path candidate
+
+To preserve a real parent-to-mutation positive/negative path without changing
+Vitest coverage thresholds, the existing F8y E2E now has an unvalidated local
+candidate extension: after its successful Tag-Column membership mutation, it
+locks that same target through the existing `/api/v1/watchlists/{id}/lock`
+endpoint, reloads the app, then checks the ordinary row menu's remove action is
+disabled and no target-item DELETE request occurs. The original positive POST,
+target membership, untouched-control-list checks and locked/unavailable
+negative coverage remain. The mounted-parent runtime tests now exercise
+ordinary row-menu add/remove plus parent-routed copy/move between personal lists;
+the focused file now passes 5/5, including child-editor Tag Column add/remove
+events routed through the mounted parent and an ordinary personal WatchList
+selection that publishes its ID and renders the selected list. `--list` collected the single F8y test and `git diff
+--check` passed; no browser assertion has run. The lock request carries the
+current browser `access_token` as a bearer header, matching the E2E helper's
+API authentication contract. After reload the test reselects its WatchList tab,
+waits for the locked option label, and confirms the row remains present before
+checking the disabled action. Focused runtime test file SHA256 is
+`57599232e306bae2f01559d1f2912099f5d6aaa706ceca71b3d58af88a346fa8`; F8y E2E source SHA256 is
+`ea8a3e80c85ef82b8084d3788565b3c87f4327a081a5c06514f3f8dcc94165b2`. Keep this
+test-only change uncommitted pending Root review and the authorized browser
+slot. Exact CI39935342169 remains a red result for committed HEAD a83; the local
+coverage report remains 68.92% functions against the unchanged 70% threshold.
+Do not remove/rehome existing parent assertions until their browser-equivalent
+positive and negative behavior is actually proven. Preserve all original
+roadmap/V25, screenshot, retry, provider and dataset constraints.
+
+### Additional mounted-parent configuration path — 2026-10-23 11:03Z
+
+The focused parent runtime file now also drives the real child Column editor's
+Tag Column add/remove events through `WorkstationToolContent` and checks the
+complete emitted configuration after each action. For removal, the test models
+the owning workspace applying the emitted add configuration before the next
+user action. The bounded single-file command passed 4/4 at source
+`a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9`; this does not close global
+coverage, F8y browser proof, or the full profile. Root's broad local validation
+slot remains held, so no coverage, typecheck, browser, or fixture run was
+started. No product behavior or assertion policy changed.
+
+### Parent WatchList selection path — 2026-10-23 11:07Z
+
+The same mounted-parent suite now selects a second personal WatchList through
+the ordinary control, verifies its XLE row is rendered, and checks that the
+parent publishes the selected `watchlist_id` while preserving Tag Column and
+visible-column configuration. The focused single-file run passed 5/5. A local
+saved coverage report predating these uncommitted tests showed
+`selectPersonalWatchlist` and `publishWatchlistConfiguration` at zero hits;
+this new test directly exercises that path rather than merely adding a parser
+or template-wiring check. No aggregate coverage, typecheck, browser, or fixture
+run was started while Root's broader slot is held.
+
+### Current focused runtime revalidation — 2026-10-23 11:26Z
+
+The exact current mounted-parent test file passed 5/5 again under one Vitest
+worker with a 120-second cap (actual duration 7.09 seconds; test bodies 412ms).
+File SHA256 remains
+`57599232e306bae2f01559d1f2912099f5d6aaa706ceca71b3d58af88a346fa8`.
+This confirms only the focused parent runtime cases; it does not refresh the
+global 70% function-coverage result, validate the F8y browser case, or close the
+full integration profile. No browser, fixture, build, or service action ran.
+
+### Read-only review of Root's F8m setup preconditions — 2026-10-23 11:13Z
+
+Reviewed the five-line F8m setup patch in `df8a7d9b7568a42786a32900b515654e38a9d9c6` and the surrounding ChartView/IndicatorPanel behavior. Opening the indicator rail before switching to two columns, then asserting both panel labels are SPY before the original clicks, is a reasonable fixture-state stabilization and does not weaken or replace the ordinary interactions. These checks establish disclosure state and symbol identity, not completed bars/data hydration; the failed first-attempt pointer cause remains unproven. Root reported exact CI39935920665 Backend/Frontend/Branch green with E2E still live. No source or test was changed and no browser was started.
+
+### Exact a83 coverage-report availability — 2026-10-23 11:46Z
+
+Read-only lookup of exact branch run `39935342169` found no workflow artifacts;
+Frontend job `120353389277` exposes only the aggregate 69.04% function row and
+no per-file coverage table. `frontend/vitest.config.ts` uses V8 coverage and
+does not configure source-wide `coverage.include` or `coverage.all`, so newly
+imported modules can expand the measured denominator. The retained local
+`/tmp/tc-a83-frontend-coverage.7Uq34J/lcov.info` is timestamped 11:32:53Z,
+has SHA256 `1ed954707ff03be2e8adb4c7b9b1bfa4c8d6012bc042d8c26cd54989e5ddda03`,
+and reports `WorkstationToolContent.vue` FNF342/FNH36; it has no source/run
+receipt and conflicts with the prior 53.42% component note. Treat that local
+component count as stale, not as a test-edit target. The denominator expansion
+mechanism is plausible, but the exact CI has no per-file evidence to quantify
+it. Keep the 70% threshold and required parent-runtime coverage unchanged.
+
+Source follow-up confirms `IndicatorPanel.vue` watches `chartStore.instrument?.id` with `{ immediate: true }`: if the instrument exists at mount it emits `instrument-available` immediately, and the same watcher handles a later arrival. `ChartView.vue` opens the shared rail on that signal only while the user's open/closed preference is unset, so the precondition is supported for both already-loaded and later-loaded instruments in a fresh view. The `.psym` assertion is a symbol-label check only; it is not chart-bars/data readiness evidence. No semantic issue was found in the five setup lines.
+
 ## Current continuation — 2026-10-23: F04 accepted dependency back-merge
 
 ### Superseding exact-source status
@@ -7,6 +132,89 @@
 The F04 adoption and frozen-manifest repair are published at `51ab9d03dd139b8959808a23b4f8cc272f8556aa`, clean and synchronized with origin. Exact TC CI `39908879710` passed Backend, Frontend, Branch-declared Tests, and E2E on attempt 1; E2E reported 192 passed/110 declared skips, with Exhaustive Integration Gate skipped as expected. This supersedes the earlier `5d757390` scope-guard failure and pending-CI text below, which remain historical evidence.
 
 F8y's parent-host-to-mutation proof and full local profile remain on Root's separate slot. Custom Date Sort relative modes remain unavailable pending source-backed SX/IX identity, weighting, point-in-time membership, and canonical local-history lineage. Full AC1–AC9 and official REF-HELP-V25 parity remain open.
+
+### Read-only F8m symbol-group diagnosis — 2026-10-23
+
+Root reported exact migration-branch CI `39926317928` red only on F8m after panel 0 selected Purple: panel 1's group button remained `aria-expanded=false` for the unchanged 5-second assertion; its retry passed. Retained report ZIP SHA256: `7c7ad0cef7780ade7be834c528d51bdd20cc378395f00db2037c644a0d1d9032`. The screenshot shows panel 0 Purple and panel 1 Blue after failure, but the retained trace is from the passing retry, so failed-attempt pointer target/click delivery is unknown. Accepted F04 `ChartPanel.vue` keeps menu state per panel; each document `mousedown` handler closes only when the target is outside that panel's link wrapper, and its trigger toggles on click. A disposable two-panel Vue Test Utils probe on local source `a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9` passed 1/1 for open panel 0 → choose Purple → ordinary panel-1 mousedown/click. This is component event-order evidence only, not browser hit-testing or root-cause proof. The committed lifecycle suite remains single-panel (4/4 passed). No tracked source/test change or browser/fixture was made. Further causal diagnosis needs failed-attempt pointer/event evidence or an authorized browser-level reproduction; preserve all F8y holds and existing assertions/policies.
+
+The accepted F04 and current-branch `ChartPanel.vue` blobs are identical
+(`4f4568a23ac7fccc888f5c46a3eb665a3556fa7f`); the lifecycle test blobs are
+also identical (`22e493b72ee692e6e4274f5b3afa5dfba00dbd2f`). Source inspection
+shows p0's group-selection handler updates only p0 and closes only its local
+menu. The p1 document `mousedown` handler leaves its menu state untouched when
+the target is inside p1's link wrapper; the ordinary trigger click then toggles
+p1's local state. This is the expected component event contract, not proof of
+browser delivery/hit testing. A bounded unit regression should mount the real
+two-panel layout, select Purple on p0, dispatch p1's native mousedown/mouseup/
+click sequence with Vue flushed between press and release, then assert p0 remains
+closed/Purple and p1 opens/Blue. No F8m code change is justified until the
+failed-attempt target/event evidence is correlated.
+
+### F8m exact-log follow-up — 2026-10-23 10:22Z
+
+Read-only GitHub job log `120332615681` for exact migration-branch run
+`39926317928` confirms the ordinary panel-1 trigger click returned, followed by
+the unchanged assertion at `flows.spec.ts:2528`: expected
+`aria-expanded="true"`, received `false` at 5 seconds. It still exposes no
+first-attempt pointer target. The exact report artifact could not be fetched to
+this host because its temporary signed download hostname failed DNS; no
+screenshot/trace target claim is made. A temporary two-panel test was added,
+run with the focused lifecycle file (5/5), and fully reverted; that result is
+not current-source/browser acceptance. A Vue type-check attempt constrained to
+a 768 MiB Node heap ended with V8 heap exhaustion (exit 134), not a source
+diagnostic. No persistent product/test edit or browser run. Root cause remains
+unproven; obtain first-attempt event/hit-target evidence before source repair.
+
+### F8m artifact attempt correlation — 2026-10-23 10:25Z
+
+The exact report ZIP is now available in the coordinator-owned staging-attempt
+directory at `/home/m920q/charting-platform/.ai/staging-attempts/mss-f8m-ci-39926317928/report.zip`
+(SHA256 `7c7ad0cef7780ade7be834c528d51bdd20cc378395f00db2037c644a0d1d9032`).
+The nested trace archive SHA256 is
+`1020a137c9f8f8f538cdb3cb48ca838b5c4b1cab8fed7460fd3cd52e83610570`. Its
+`test.trace` wallTime `1792747047519` is 2026-10-23T09:17:27.519Z, matching
+retry #1 start in the Actions log (`09:17:27.520Z`); `1-trace.trace` is
+therefore retry evidence, not first-attempt pointer evidence. The preserved
+failure screenshot `data/6b6a79ca15bc12bd8c72d967fa97fc3a9a1a34b8.png` shows p0
+Purple and p1 Blue after failure, while the retained video frames show p0's
+menu open earlier in the flow; neither captures pointer coordinates/target at
+the p1 trigger click. First-attempt hit testing remains unknown. No duplicate
+download or browser run was performed.
+
+### Exact candidate CI terminal result — 2026-10-23 10:22Z
+
+Exact CI `39935342169` attempt 1 is terminal red: Frontend Unit Tests
+`120353389277` ran all 1,381 tests but failed the existing global function-
+coverage threshold at 69.04% versus 70%; Backend `120353388553` and Branch-
+declared `120362123490` passed; E2E `120362124695` and Exhaustive
+`120362125598` were skipped. The parent-source CI
+`39925201913` reported 75.61% functions on source
+`1892607193adf5f0b44448378fd67768e093d0b3`; preserve the 70% threshold and
+the required parent-to-mutation runtime proof. No new source commit is implied.
+
+### Exact candidate CI observation — 2026-10-23 10:12Z
+
+Local and remote TC source are synchronized at `a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9`.
+Exact CI `39935342169` attempt 1 is not terminal: Frontend Unit Tests
+`120353389277` completed with all 1,381 tests passing, then failed the existing
+global function-coverage threshold at 69.04% versus 70%; Backend Tests
+`120353388553` remained in progress at 10:12:24Z. The parent-source CI
+`39925201913` frontend job reported 75.61% functions on
+`1892607193adf5f0b44448378fd67768e093d0b3`. The only code delta between those
+sources is the new parent-mount Tag-Column test file; it imports
+`WorkstationToolContent.vue`, whose current coverage row is 53.42% functions.
+This is strong evidence that the added runtime test expanded the coverage
+denominator, not that a test assertion failed. Preserve the 70% threshold and
+the required parent-to-mutation runtime proof; do not exclude or mask the
+component to clear coverage. F8m's first-attempt browser cause remains unknown.
+
+### Read-only F8y resource preflight — 2026-10-23
+
+Local HEAD `a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9` is one commit ahead of origin `1892607193adf5f0b44448378fd67768e093d0b3`; the exact CI already in progress is for origin, not this candidate. The old disposable `tc-full-6a6e1ca2-20261021` project is absent. The six active TC-owned containers belong to retained `charting-stack-feat-tc2000-frontend-rework-f63d60ae`; their images lack source-revision labels and are dated Oct 2/5. Backend/worker routing is not explicitly disabled, there is no egress-deny proxy, large-universe seeding is false, and persistent Postgres/Redis/research volumes contain retained application data. F8y resets workstation/list data, so this is not a safe target. No browser, test, build, Compose action, or data mutation was started.
+
+Pinned Playwright image `mcr.microsoft.com/playwright:v1.62.1-noble` is present locally (`sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`); installed Playwright is 1.62.1. F8y is `frontend/tests/e2e/flows.spec.ts:7508`, test timeout 60 seconds. Current spec/config/lock hashes are `7c91410f96cdc56dffc96c283101cf35f11ee48fea5c81da112cafae73247f51`, `e282dffa9b290c9f4ab0c61f551c477828d14354670a1efe9a88349eea79e545`, and `713fbed8808ef73b326d94e17ccee2dad878a22a2bcbb088a05443b00463dd54`. The historical f206 archive lacks this test. Proposed unique artifact path (not created): `.ai/runtime/tc-f8y-a83af413-20261023/artifacts/f8y-parent-mutation/`.
+
+Latest host `MemAvailable` is 942100480 bytes (~898 MiB), below the proposed 1280 MiB minimum (768 MiB browser cap, no extra swap, 1 CPU, 128 PIDs, plus 512 MiB reserve). The case retains its existing 60-second Playwright timeout; a future one-case wrapper proposal is capped at 90 seconds with 15 seconds for bounded cleanup. F8y is functional and has no screenshot oracle; any later full visual profile must continue using the repository's existing references/masks and 0.5% tolerance. No safe existing seeded fixture is available and current headroom is insufficient. F8y needs a separately authorized isolated, correctly seeded/provider-egress-denied fixture and a later capacity slot. Preserve all assertions and zero retries.
 
 ### Read-only default-series coverage consumer follow-up — 2026-10-23
 
@@ -23264,3 +23472,707 @@ TCP4 combined validation and TCP5 final review/closure remain open. Official
 reference is not official V25 evidence. Publish this coherent record update
 once, validate it and verify its exact-source CI. Do not rerun an unchanged
 matrix or claim whole-checkpoint acceptance.
+
+### A83 coverage and parent-selection follow-up — 2026-10-23 12:13Z
+
+Root released the local validation slot after its isolated F8m proof completed.
+On synchronized HEAD `a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9`, one bounded
+full V8 frontend coverage pass ran with one worker, 1024 MiB Node old-space,
+600-second wall timeout and 15-second kill grace. Vitest passed 144 files and
+1,384 tests, but global functions were 69.46% against the unchanged 70% gate
+(statements 82.18%, branches 73.21%, lines 82.18%). Fresh per-file coverage is
+`WorkstationToolContent.vue` 49/342 functions and `tagColumns.ts` 7/7; this
+points to uncovered mounted-parent interactions, not uncovered Tag Column
+helpers. Exact artifacts: `/tmp/tc-a83-coverage-20261023-current.log`
+(SHA256 `8be42b1022ac0be6732b2f7f72dcc86bfd1408936f05d4118f7f05762ce94f8a`)
+and `frontend/coverage/lcov.info` (SHA256
+`a281257fbc3da12ff62d362370324728030120cedc759762b0317e89e0c5bb7b`). This
+report used the five-test parent file SHA256
+`57599232e306bae2f01559d1f2912099f5d6aaa706ceca71b3d58af88a346fa8`.
+
+Added one ordinary `.watchlist__row` click test through the real mounted
+`WorkstationToolContent` parent and asserted the emitted `select` payload is
+`SPY` with instrument ID `101`; the six-test file passes in 4.40 seconds with
+one worker and 512 MiB Node old-space. Updated file SHA256 is
+`b3bba342a8a090a9be29cff66728a4eea84b91d873a5577d1daef79a05ecba9b`. The
+full coverage run predates this addition, so it is not yet coverage-gate
+evidence. No threshold, source-coverage rules, or assertions were weakened.
+
+F8y remains a single pending browser proof in
+`frontend/tests/e2e/flows.spec.ts`, test title `F8y-tag-columns — ordinary row
+action reaches the selected WatchList mutation through its parent host`:
+against a fresh isolated seeded test account/database, run only that test in
+the existing pinned Chromium project with `--workers=1 --retries=0`, while
+backend/worker provider routing and live flags stay off and external egress is
+denied. The positive path creates source/target/control lists, adds XLE to the
+source, configures the target Tag Column, and ordinary-clicks the enabled Add
+row action to the selected-target POST. It then locks the target through the
+real authenticated API, reloads, reselects the locked list, and verifies the
+Remove row action is disabled with no DELETE request. Preserve the existing
+60-second case timeout and all assertions; do not launch until a safe fixture
+slot is explicitly released. Root's separate F8m E2E remains live; do not
+duplicate its repair. Full F8y browser proof, coverage >=70%, exact CI, full
+roadmap, SX/IX semantics, and official REF-HELP-V25 remain open.
+
+### Reactive locked-target parent regression — 2026-10-23 12:20Z
+
+Added a second mounted-parent behavior case to the existing Tag Column runtime
+suite: while the selected target is unlocked, the ordinary Remove row action
+is enabled; after the real reactive WatchList store marks that same target
+locked, the existing action becomes disabled and no DELETE is issued. This
+covers a live target-state transition, complementing the initial locked and
+unavailable-target negative case and ordinary row-selection identity case.
+The focused file passes 7/7 (4.70 seconds, one worker, 512 MiB Node old-space,
+180-second wall limit); updated SHA256
+`0f728da001a0842826a041a8588ef8205e033e9bc0d9d7b17dadaf527c32b77d`.
+No production code, F8y E2E assertion, browser, or coverage threshold changed.
+The existing full coverage result predates both newest parent cases and remains
+69.46%, below the unchanged 70% function gate; another broad pass is not
+authorized by the prior single-pass slot.
+
+### Personal-list setup parent regressions — 2026-10-23 12:25Z
+
+Added mounted-parent coverage for two setup behaviors used by the F8y flow:
+blank personal-list creation sends no request; a non-empty name creates and
+selects the returned list while preserving Tag Column IDs/columns; and adding
+XLE through the existing symbol resolver/store path posts to the selected list,
+updates its in-memory membership, and preserves the same configuration. The
+existing focused parent file passes 9/9 (4.34 seconds, one worker, 512 MiB
+Node old-space, 180-second wall limit); current SHA256
+`31597b27129a180e280482da61b8511b276ffad3a21ed591290104759a6f7f71d`.
+
+During test construction, an extra assertion expecting the second virtualized
+row to be mounted in jsdom failed: only the first `.watchlist__row` was rendered
+with the zero-size virtual viewport. That is not evidence that the product
+failed to add XLE: API call and store-membership assertions passed. The
+non-browser row-render assertion was removed; no product code or browser oracle
+changed. F8y's isolated browser case remains the required proof that the row is
+actually visible and that the locked target remains non-mutating after reload.
+The global function-coverage run predates these four parent additions and
+remains 69.46% versus 70%; no second full-coverage slot has been used.
+
+### Coverage receipt and F8y handoff — 2026-10-23 12:26Z
+
+The one authorized full frontend coverage run is complete: 144 files and 1,384
+tests passed, but function coverage is 69.46% against the unchanged 70% gate
+(82.18% statements/lines, 73.21% branches). It used the five-test mounted
+parent file at working-tree source hash
+`57599232e306bae2f01559d1f2912099f5d6aaa706ceca71b3d58af88a346fa8`, before
+the four newest parent tests. Exact artifacts and hashes are recorded in the
+validation journal and plan; no second broad coverage run is authorized by
+this slot.
+
+The current focused mounted-parent file passes 9/9 at SHA256
+`31597b27129a180e280482da61b8511b276ffad3a21ed591290104759a6f7f71` under one
+worker, 512 MiB Node old-space, and a 180-second wall bound. The added cases
+cover ordinary row-selection identity, reactive lock transition, named-list
+creation with Tag Column preservation, and resolved XLE addition preserving
+configuration. A jsdom assertion for the second virtualized row was removed
+because the zero-size viewport mounted only the first row; API and store
+membership assertions passed. Actual rendered-row behavior and the existing
+locked-target no-mutation behavior still require the F8y browser case.
+
+Minimum next runtime proof: on a fresh coordinator-assigned isolated seeded
+fixture with SPY/XLE available, providers/live routing and external credentials
+disabled, run only the unchanged F8y case with pinned Chromium and zero retries,
+one worker (grep `F8y-tag-columns` in `frontend/tests/e2e/flows.spec.ts`). Keep
+its ordinary row-action click, selected-list POST, persisted lock/reload,
+disabled Remove assertion, and no-DELETE assertion intact. No browser fixture
+or runtime was started in this checkpoint; wait for the exact slot release.
+Root's separate F8m repair has exact CI39935920665 green and a pinned Noble
+1.62.1, zero-retry 1/1 ordinary-click proof; it remains Root-owned and is not
+duplicated here. Full roadmap, SX/IX semantics, and official REF-HELP-V25 remain
+open.
+
+### Unresolved-symbol parent regression — 2026-10-23 12:30Z
+
+Added a mounted-parent negative path for the existing personal WatchList Add
+control: when resolving `ZZZZ` returns 404, the user receives the existing
+mutation alert, the draft remains available to correct, no item POST or
+configuration event is emitted, and both selected-list memberships remain
+unchanged. The focused file passes 10/10 with one worker, 512 MiB Node old-space,
+and a 180-second wall bound; current test-file SHA256 is
+`806574e615d4df2747573466cb9b16615a8798e87946c9728f86f99f4a61efd9`.
+
+The first test attempt placed the one-shot rejected API mock before asynchronous
+mount setup, where it was consumed by mount work; moving that mock after
+`flushPromises()` made the intended 404 path deterministic. This was a test
+setup correction, not a product failure. The global coverage result remains
+69.46% and predates all five parent additions; no broad coverage rerun, browser,
+Compose fixture, or product change was made. F8y's actual row rendering and
+persisted locked-target negative path still await the assigned browser slot.
+
+### Personal-list creation failure parent regression — 2026-10-23 12:34Z
+
+Added a mounted-parent failure case for the existing personal WatchList create
+flow. When the `/watchlists` POST fails, the current selection and Tag Column
+configuration remain unchanged, the typed name remains available for retry,
+and the existing mutation alert is shown. The focused parent suite passes
+11/11 with one worker, 512 MiB Node old-space, and a 180-second wall bound;
+current test-file SHA256 is
+`99ee0721578c33af92c11c84ea0c2f75d965f74d7944eadaf99fe4fa9abcc5ed`.
+
+No product source changed. The one global coverage run remains 69.46% against
+the unchanged 70% gate and predates all six mounted-parent additions. F8y's
+actual rendered-row and persisted locked-target browser proof remains pending
+the coordinator's isolated browser slot; no browser/Compose fixture or second
+global coverage run was started.
+
+### Coverage follow-up and exact F8y slot recipe — 2026-10-23 12:43Z
+
+The one coordinator-authorized full frontend V8 coverage run used the then-current
+11-test parent file (SHA256
+`116b88ac132e9ff67c9ce52b51d9ceb16c60f06d6e8edc712a29dec849eedaeb`) and
+passed 144 files/1,390 tests, but functions measured 69.60% against the
+unchanged 70% threshold (82.30% statements/lines, 73.24% branches). LCOV
+measured WorkstationToolContent.vue at 54/342 functions and
+`src/lib/workstation/tagColumns.ts` at 7/7. Log SHA256:
+`273fac9866eccca37a0a0499d52a0266b3a6293cc3cb84ac5a9a970bd82a008f`;
+LCOV SHA256:
+`33bd23edd8e447d23558424f65dc1c96ddf5514b6968b3d502b830cc6c6f0bba`.
+
+Two additional mounted-parent tests were added after that coverage run. The
+current focused file passes 13/13: failed Tag Column removal remains visibly
+in-membership and emits no configuration change; rename/copy/delete retain Tag
+Column settings while updating selected-list identity. These tests' effect on
+global coverage is not measured. No production source changed; no browser or
+fixture was started.
+
+Minimum F8y recipe for the next separately released slot: use a fresh
+coordinator-assigned isolated authenticated TC fixture with SPY and XLE seeded;
+enable application E2E market-data seeding while keeping provider routing,
+provider credentials, live/paid tests, and schedules disabled. Run only the
+existing `F8y-tag-columns` case from `frontend/tests/e2e/flows.spec.ts` with the
+pinned Chromium runner, one worker and zero retries. Preserve ordinary row
+action clicks, successful target-list POST, control-list isolation, persisted
+target lock across reload, disabled Remove, and empty DELETE-request capture.
+Do not launch a fixture until the Root-assigned browser slot is released. The
+full coverage metric must be refreshed under a separate slot before claiming
+the 13-test candidate clears 70%; all roadmap and REF-HELP-V25 gaps remain.
+
+The updated focused file also passes `npm run type-check` (`vue-tsc --noEmit`)
+under a 180-second process-group bound and 1 GiB Node old-space cap. Current
+parent-test SHA256 is
+`8b52311e1db40365722ae8e59b5f39562177d078aeaade186576ded0ceeed292`; F8y E2E
+source SHA256 remains
+`ea8a3e80c85ef82b8084d3788565b3c87f4327a081a5c06514f3f8dcc94165b2`. No
+application source or fixture changed. Workstream and scope validators,
+JSON/JSONL parsing, and `git diff --check` passed after the coverage update.
+
+### F8y one-case collection preflight — 2026-10-23 12:50Z
+
+Read-only Playwright collection with the exact F8y filter found one case:
+`flows.spec.ts:7508` (“F8y-tag-columns — ordinary row action reaches the
+selected WatchList mutation through its parent host”). The first `--list`
+attempt collected that same single case but exited 1 because the default HTML
+reporter could not write the read-only `playwright-report/index.html`; no test
+or browser ran. Repeating collection only with `--reporter=line` exited 0 and
+collected exactly 1 test. F8y source SHA256 remains
+`ea8a3e80c85ef82b8084d3788565b3c87f4327a081a5c06514f3f8dcc94165b2`.
+This is collection evidence only, not runtime proof. The isolated browser slot
+is still required; provider routing/credentials/live/paid/schedules remain off,
+and the actual positive mutation plus locked no-DELETE assertions remain
+unchanged.
+
+### Mounted Tag Column add-failure regression — 2026-10-23 12:52Z
+
+The parent suite now passes 14/14. The additional negative path rejects the
+ordinary Tag Column add POST and verifies that target membership stays absent,
+the existing parent alert is visible, and no configuration mutation is
+emitted. The test file SHA256 is
+`723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4`; Vue type
+check (`npm run type-check`) passes on this version. The only global V8
+coverage result remains 69.60% on the earlier 11-test file and predates the
+three newest mounted tests. No app source changed. F8y collection-only found
+exactly one test, but no browser or fixture was started; the F8y slot and a
+separate refreshed global coverage slot remain pending.
+
+### A83 full coverage and mounted-parent expansion — 2026-10-23 13:14Z
+
+The one coordinator-authorized full V8 frontend coverage pass used one Vitest
+worker, `NODE_OPTIONS=--max-old-space-size=1024`, a 600-second wall bound and
+15-second kill grace after verified host availability exceeded 1,536 MiB with
+no competing heavy process. It completed 144 files/1,393 tests, all passing,
+but exited 1 because function coverage was 69.69% against the unchanged 70%
+threshold; statements/lines were 82.39% and branches 73.26%. The report shows
+WorkstationToolContent.vue 57/342 functions and tagColumns.ts 7/7. Full log
+`/tmp/tc-a83-tag-columns-coverage-refresh-20261023.log` SHA256
+`c8dd9084e803fa3705519d6242449f752f29814e56e4e13d659cbd6affae3234`; preserved
+full LCOV `/tmp/tc-a83-tag-columns-coverage-refresh-20261023.lcov.info` SHA256
+`e62b35dec3165f1410f24cb9d62c68e1716132e2d20d24c5f783ff55eea69017`. The
+coverage source was the pre-expansion parent-test SHA
+`723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4` on branch
+source a83; no threshold/include rules changed.
+
+Eight subsequent tests in the same mounted-parent file bring it to 22/22 and
+exercise serialized chart and Python plot drops, selected-output rejection,
+technical-condition persistence/failure, Tag Column visibility through saved
+set save/apply/delete, and membership callbacks from personal and non-personal
+WatchLists. Current test SHA256 is
+`522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5`; the F8y
+E2E file remains unchanged at SHA256
+`ea8a3e80c85ef82b8084d3788565b3c87f4327a081a5c06514f3f8dcc94165b2`. A focused
+three-file V8 comparison against the saved full-run LCOV identifies 11
+previously-zero function entries newly exercised. Adding those hits to the
+full-run baseline projects 70.02% if other coverage is unchanged, but this is
+not a fresh full-suite gate result. The filtered coverage command itself exits
+red because its three-file denominator is below global thresholds. Plain
+focused suite passed 22/22; current `vue-tsc --noEmit` type-check completed
+without errors. No production source changed.
+
+The next browser request is still only F8y on a fresh Root-assigned isolated
+authenticated TC fixture seeded with SPY/XLE, application E2E market-data seed
+on, provider routing/credentials/live/paid/schedules off, pinned Chromium, one
+worker, zero retries. Preserve ordinary clicks, mutation/reload, locked Remove
+and no-DELETE assertions. No fixture/browser was started in this coverage turn.
+Committed CI39935342169 remains terminal red for its committed source's global
+coverage result; this dirty candidate has no exact CI. Full AC1–AC9, custom
+SX/IX semantics, official REF-HELP-V25, provider holds, datasets and retained
+services remain unchanged/open.
+
+### Coordinator F8y slot release — 2026-10-23 14:00Z
+
+Coordinator released exactly one isolated F8y browser validation slot
+(`TC-SLOT-20261023T1400Z`); Root's separate F8m slot completed at 11:59. This
+authorizes only the existing F8y Tag Columns case, not a broad matrix. Candidate
+is committed `a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9` plus the currently owned
+dirty F8y/parent-test changes. Current F8y spec SHA256 is
+`ea8a3e80c85ef82b8084d3788565b3c87f4327a081a5c06514f3f8dcc94165b2`; mounted
+parent test SHA256 is
+`61972a13f0f9216fdc32925045d7e494634e44724fa1f956073176c210f11a9c`; Playwright
+config and lock SHA256 are `e282dffa9b290c9f4ab0c61f551c477828d14354670a1efe9a88349eea79e545`
+and `713fbed8808ef73b326d94e17ccee2dad878a22a2bcbb088a05443b00463dd54`.
+The F8y timeout, ordinary actions, mutation/membership/control isolation,
+persisted lock, disabled Remove, and zero-DELETE assertions remain unchanged.
+
+The existing F04 frontend image is not reusable for this changed candidate; a
+candidate-built frontend is required. The slot requires one worker, zero
+retries, pinned Noble Playwright 1.62.1, browser memory cap 640 MiB, and the
+unchanged 60-second test timeout with a bounded outer command and cleanup.
+Minimum available RAM is 1536 MiB for frontend build, 1792 MiB for app startup,
+and 1280 MiB for browser execution, preserving at least 512 MiB reserve. Only a
+fresh uniquely named TC-owned fixture may be used, seeded SPY/XLE with provider
+credentials absent and backend egress denied; routing/live/paid/schedules and
+native/broker/capital paths stay off. Assigned services and retained data must
+not be stopped, recreated, or cleaned. At release recording, available memory
+was 2116 MiB and no competing heavy process appeared in the bounded process
+check; fixture/resource identity and thresholds must be rechecked immediately
+before any phase. This slot does not establish full-profile, coverage,
+readiness, or staging acceptance; AC1–AC9, SX/IX semantics, V25 Help, provider
+holds, datasets, and retained services remain open/unchanged.
+
+### F8y slot build outcome — 2026-10-23 14:32Z
+
+The current-source backend built successfully as
+`tc-f8y-a83af413-20261023-backend:latest`, image ID
+`sha256:242a1ba7ca67048738e213513a5d82ac6b841406eeed64d11d06ceb846abeafa`,
+with source label `a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9` and F8y spec label
+`ea8a3e80c85ef82b8084d3788565b3c87f4327a081a5c06514f3f8dcc94165b2`. The
+frontend did not build within the released 768 MiB / 1 CPU / no-swap builder:
+the original recipe exceeded the builder cgroup; private build-only Node heap
+limits of 384, 448, and 480 MiB each ended in `vue-tsc` heap exhaustion (at
+approximately 381, 446, and 478 MiB respectively). A 512 MiB heap attempt
+triggered the builder's cgroup OOM. These are build-resource failures, not
+product or test results. No candidate frontend image was produced, and no app
+fixture, Compose container, project volume/network, or browser was started. The
+exact temporary builder was stopped with its cache preserved; the candidate
+Compose project remains absent. Available RAM afterward was 2596 MiB. No prior
+F04 or retained app image was reused, and no existing service/data was touched.
+
+F8y has NOT run in the released slot. Do not substitute an old frontend image
+or raise the cap without a new coordinator resource decision. To finish this
+single-case slot, the coordinator must either authorize a revised bounded
+frontend build resource that can pass `vue-tsc` or provide a verified immutable
+frontend artifact built from the exact current application inputs. All
+F8y/browser, full-coverage, and broader roadmap gates remain pending.
+
+### Superseding in-slot build diagnostic — 2026-10-23 14:38Z
+
+The private Vite-only asset build was tried because the exact candidate already
+has a green `vue-tsc --noEmit` receipt at the current parent-test SHA, while
+the Dockerfile's combined command failed in `vue-tsc`. With the same 768 MiB,
+no-swap, one-CPU builder, Vite transformed 527 modules but then exhausted a
+512 MiB Node heap at approximately 506 MiB; lower 384 and 480 MiB Vite heaps
+also exhausted. This is still a build-resource failure, not a frontend test or
+product failure; the candidate frontend image was not produced. The current
+backend image remains the exact current-source build ID recorded above.
+
+Final scoped verification: exact Compose project
+`tc-f8y-a83af413-20261023` has zero containers, volumes, and networks; its
+frontend image tag is absent. The only temporary resource, BuildKit container
+`buildx_buildkit_tc-f8y-build-a83af413-202610230`, is stopped with the 768 MiB
+cap/cache retained. Host available RAM is 2619 MiB. No retained service/data
+was stopped or changed, and no browser/test ran. Completing the released F8y
+case now requires a coordinator decision for a larger still-bounded frontend
+build budget (suggested ceiling: 1024 MiB, one CPU, no extra swap, preserving
+the 512 MiB host reserve), or a verified immutable frontend artifact built
+from this exact candidate. Until then do not start the app fixture and do not
+reuse an earlier app image.
+
+### Superseding F8y frontend-build allowance — 2026-10-23 14:45Z
+
+Coordinator amended the same one-case slot in
+`/home/m920q/charting-platform/.ai/staging-attempts/tc-f8y-slot-20261023.md`:
+the exact owned BuildKit container may use a 1024 MiB memory maximum, equal
+memory-plus-swap (no additional swap), and one CPU for one bounded 600-second
+frontend build with 15-second process-group cleanup. This is not a second
+browser allowance. Require `MemAvailable >= 2048 MiB` immediately before the
+build, keep at least 512 MiB host reserve, and do not overlap another heavy
+local process; any further build-resource failure requires a new evidence-based
+coordinator decision. At14:47Z host MemAvailable was 2425 MiB and the bounded
+top-process snapshot showed no concurrent build/test. Exact existing builder
+`buildx_buildkit_tc-f8y-build-a83af413-202610230` (ID
+`85b638ada92ec44f88d431a8948280fcff421def61bc78c7c2e23d6c0992b690`) was
+stopped at its previous 768 MiB/one-CPU setting before the authorized update.
+The candidate frontend image was confirmed absent. Do not start the app fixture
+until an actual frontend image from the exact current candidate exists; all
+seeding, provider-denial, assertion, 60-second test-timeout, one-worker,
+zero-retry, retained-resource and exact-cleanup rules below remain unchanged.
+
+### F8y frontend build after revised allowance — 2026-10-23 14:52Z
+
+The coordinator-authorized single build used the same builder after a memory-
+only update to 1024 MiB, equal memory-plus-swap (no extra swap), preserving its
+existing one-CPU quota. The initial `docker update --cpus=1` was rejected
+because the container already uses a fixed CPU period; inspection confirmed
+that attempt left the old settings unchanged. The subsequent exact memory/swap
+update succeeded; actual builder ID remains
+`85b638ada92ec44f88d431a8948280fcff421def61bc78c7c2e23d6c0992b690` with
+`Memory=1073741824`, `MemorySwap=1073741824`, `CpuPeriod=100000`,
+`CpuQuota=100000`. It is running after Buildx bootstrap and `OOMKilled=false`.
+
+One canonical frontend `npm run build` (`vue-tsc && vite build`) ran under that
+builder with `NODE_OPTIONS=--max-old-space-size=768`, one Compose build target,
+`COMPOSE_PARALLEL_LIMIT=1`, and a 600-second/15-second bounded command. `npm ci`
+completed; the build then hit Node's heap limit at 765.9 MiB used / 781.6 MiB
+committed during the `vue-tsc` stage after 90.22 seconds (child exit134; outer
+Compose build exit1). Vite did not start, no frontend image was produced, and
+BuildKit's container OOMKilled flag remained false. This is a build-resource
+failure, not a product or F8y test result. Log
+`.ai/runtime/tc-f8y-a83af413-20261023/artifacts/frontend-build-1024m-768heap.log`
+has SHA256 `59ece72df6d2ebd959533ab7aa3f5af2e7a53f03252761ded6da4214e431338c`.
+Exact read-only checks found the expected frontend image absent and no
+containers, volumes, or networks with the unique F8y project label. No app
+fixture/browser/test, older frontend image, retained service, provider endpoint,
+dataset, or quota state was used or changed. Post-build host MemAvailable was
+2400 MiB. The one build under the revised allowance is spent; a further build
+requires a new evidence-based coordinator decision or an exact-input immutable
+frontend artifact. Do not try another heap setting under this slot.
+
+### F8y packaging-only build allowance — 2026-10-23 14:54Z
+
+Coordinator released ONE further packaging build under the same F8y slot. The
+14:52 canonical `vue-tsc && vite build` attempt failed in `vue-tsc` at the Node
+heap limit before Vite or an image was produced. Before this packaging attempt,
+the application inputs (`frontend/src`, package manifest/lock, tsconfig, Vite
+config, production Dockerfile, and nginx config) were verified unchanged from
+HEAD `a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9`; this is the source qualified by
+the separately recorded 14:06 type-check (`npm --prefix frontend run type-check`,
+exit 0). The type-check config includes only `src/**/*` and `src/**/*.vue`.
+
+The only build-recipe change is private under `.ai/runtime`: retain the
+production build stages, base images, dependency install, and copy inputs, but
+run the already-installed local `./node_modules/.bin/vite build` with
+`NODE_OPTIONS=--max-old-space-size=768`. This packaging result does not claim
+that type-checking ran in this build and waives no validation gate. The exact
+owned BuildKit builder was independently inspected immediately before launch:
+ID `85b638ada92ec44f88d431a8948280fcff421def61bc78c7c2e23d6c0992b690`,
+running, `OOMKilled=false`, `Memory=1073741824`,
+`MemorySwap=1073741824` (no additional swap), `CpuPeriod=100000`,
+`CpuQuota=100000` (one CPU). Host `MemAvailable` was 2444 MiB at the initial
+preflight and 2335 MiB at the immediate pre-build check; the process snapshot
+showed no competing build/test. One 600-second bounded build with 15-second
+process-group cleanup is authorized. If it fails, preserve its exact output and
+stop this recipe; there is no further automatic build attempt. The F8y browser
+allowance remains one case and is not a second slot.
+
+### F8y candidate frontend packaging result — 2026-10-23 15:01Z
+
+The one newly authorized packaging-only build completed exit0 using the local
+Vite executable; Vite completed in 50.48 seconds and Compose imported the
+current-source image `tc-f8y-a83af413-20261023-frontend:latest`, ID
+`sha256:580120e630790e9e30de0720cd783ec6938e11517da09a9e35384c9ead407a2b`.
+Image labels identify source `a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9` and
+F8y spec SHA256 `ea8a3e80c85ef82b8084d3788565b3c87f4327a081a5c06514f3f8dcc94165b2`.
+The private Dockerfile retained the production build/runtime stages, package
+install, and copy inputs; only the private build command uses
+`NODE_OPTIONS=--max-old-space-size=768` and
+`./node_modules/.bin/vite build`. Full output is in
+`.ai/runtime/tc-f8y-a83af413-20261023/artifacts/frontend-vite-packaging-20261023T1454Z.log`,
+SHA256 `3d63d104fc0f4c4413351d7ea6e2d424d27fb5afbc39096bb44da2e6937ee192`.
+This is static asset packaging only, not an in-build type-check. The separate
+14:06 `vue-tsc --noEmit` exit0 remains qualified to unchanged `a83af413` app
+inputs and config scope `src/**/*` plus `src/**/*.vue`.
+
+After build, the same builder remained `OOMKilled=false` at its authorized
+1024 MiB RAM/equal swap/one-CPU limits. Host `MemAvailable` was 2273 MiB,
+above the 1792 MiB app-start floor with the 512 MiB reserve; the three exact
+F8y host ports (28532/28588/28508) had no listeners. No F8y project container,
+volume or network existed at this checkpoint. The exact previously built
+backend image was present with source label `a83af413` and ID
+`sha256:242a1ba7ca67048738e213513a5d82ac6b841406eeed64d11d06ceb846abeafa`.
+No application fixture or browser has started yet; the single F8y case remains
+the only authorized browser validation, with its timeout and assertions
+unchanged.
+
+### F8y one-case result and exact cleanup — 2026-10-23 15:12Z
+
+The 14:54 coordinator slot was used once. After the successful Vite-only
+packaging build recorded above, the current-source private fixture started with
+only its declared dependencies: PostgreSQL, Redis, provider-egress-deny,
+backend, frontend, and host-port-relay. Backend health reported instrument and
+market-data seeds true, large-universe seed false/count0, provider routing,
+paid routing, owner-terms acceptance, and both live-test flags false. The
+backend's charting network was internal. The resolved backend/worker credential
+check found no nonempty provider credential; only dummy fixture values and
+non-secret service/state-path settings were present.
+
+One test ran: `F8y-tag-columns` in pinned Noble Playwright 1.62.1, one worker,
+zero retries, test timeout 60 seconds unchanged, outer timeout 180 seconds plus
+15-second kill grace, and browser memory/swap both 640 MiB. Browser container
+`f7c745d8d3240c2be32a5e1c06f1812eebc3f196d502c06bd22c57b410a17f77` exited 1,
+`OOMKilled=false` (start 15:05:31.597Z, finish 15:07:25.333Z). It reached the
+ordinary source/target list creation, source and target item POSTs (200), empty
+control list and target membership (`In`) checks. It then timed out at
+`flows.spec.ts:7592` awaiting the existing
+`page.request.post('/api/v1/watchlists/${targetId}/lock', ...)`; the later
+persisted locked-state, disabled Remove, and zero-DELETE assertions were not
+reached. Frontend and backend access logs contain no request to that lock path,
+so the cause remains unresolved; this is not evidence that the lock endpoint
+rejected a request, nor a passing negative-path proof. No retry or second
+browser attempt was made.
+
+The original failure artifacts are preserved under
+`.ai/runtime/tc-f8y-a83af413-20261023/artifacts/f8y-one-case-20261023T1501Z/`:
+error context SHA256 `b65f2ebd6b642cb43620e7d21f45840e87ff77150cbcbde5971696a3a1f53634`,
+trace SHA256 `f99b34a530bc634d2f4ce255947135a2f8a4b566b31c42fa3c52d6d61ee7485b`,
+video SHA256 `488c503fe1930c5f53499536916aadf02b91fa55adb33e4e3d14f1e36b7e4822`,
+browser log SHA256 `5f7a765c187af51e225145697028131881bc1b88f84c8faf396130590ceaa09d`,
+backend log SHA256 `758adc068a5e326069fec9ae8fb97a8bae7359cb4f34d5f58ab3fa42c831e1dd`,
+frontend log SHA256 `914227922e75442237de22b92cc94e7a2c01ca3d744c3d1b66961db94dfbae57`.
+
+After those artifacts were captured, only the exact uniquely labelled browser
+container and Compose project `tc-f8y-a83af413-20261023` were removed using its
+own Compose files with `down --volumes --remove-orphans`; exact project-filtered
+container, volume, and network queries then returned no resources. The
+candidate frontend and backend images and the owned warm builder were retained.
+No pre-existing TC/Provider service, target, dataset, quota path, or unrelated
+project was stopped or cleaned. F8y remains red/pending cause review; no source
+or test assertion changed, and no broader matrix was run.
+
+### Read-only F8y saved-trace timing review — 2026-10-23 15:16Z
+
+The coordinator's exact-artifact review at
+`.ai/staging-attempts/tc-f8y-trace-review-20261023.md` matches the preserved
+trace SHA256 `f99b34a530bc634d2f4ce255947135a2f8a4b566b31c42fa3c52d6d61ee7485b`.
+Local trace parsing confirms the failure was preceded by a browser-command
+stall, not a dispatched lock request: Playwright's `inputValue()` for the
+Personal watchlist selector began at trace time 35991.181 ms; the browser
+protocol `inputValue` call began at 36325.479 ms and did not finish until
+103278.200 ms (about 66.95 seconds). Its trace log first reports waiting for
+the locator at 90242.395 ms and resolves it at 103238.115 ms. Test `After Hooks`
+started at 67068.977 ms, before that command completed. A saved page snapshot
+near the protocol call contains the active tool and Personal watchlist select;
+this does not identify why command processing/locator resolution stalled.
+
+No lock `APIRequestContext` fetch is present in the trace, and neither app
+access log records it. Later list creation and positive Tag Column operations
+occur during teardown and are not successful completion of the case. Therefore
+the endpoint was not tested and endpoint rejection/deadlock is not supported.
+The cause of the earlier browser/driver/renderer delay remains unknown; OOM
+was false, which alone does not identify the delay. Preserve the original
+60-second timeout, zero retries, all assertions, and artifacts. The released
+`TC-SLOT-20261023T1400Z` was already consumed by the single failed F8y run above;
+no replay or new fixture was started for this trace review. Next safe work is
+source-only review of the selector/component lifecycle and saved browser/driver
+evidence; do not change the test or runtime recipe until a cause is supported.
+
+### Superseding Playwright dispatch timing review — 2026-10-23 15:39Z
+
+Pinned Playwright 1.62.1 source confirms `Frame._waitForFunctionOnSelector`
+emits its “waiting for locator” progress log immediately before the selector
+retry loop. In the preserved F8y trace, the `inputValue()` protocol call starts
+at 36325.479 ms, but that log appears at 90242.395 ms; the select resolves at
+103238.115 ms. After Hooks began at 67068.977 ms during the outstanding call.
+This narrows the delay to before locator polling, followed by about 13 seconds
+to resolve, but does not identify whether client/driver dispatch, server
+scheduling, renderer, or transport is responsible. The lock POST remains
+undispatched and untested. No source fix is supported; preserve the 60-second
+timeout, zero retries, assertions, and artifacts. Do not replay without a new
+coordinator-authorized slot.
+
+### Current source continuation — 2026-10-23 15:49Z
+
+The saved F8y trace additionally shows that the browser-command path remained
+slow during teardown: while `inputValue()` call@87 was still pending, the
+`browserDiagnostics.record()` fixture hook issued its ordinary 250-ms
+`page.waitForTimeout`; trace call@90 took 16022 ms. This supports a broad
+browser-command responsiveness problem, but still cannot distinguish renderer,
+Playwright driver/server scheduling, transport, or host scheduling. The lock
+POST was never dispatched. The F8y slot is consumed; preserve its timeout,
+assertions, zero retries, and artifacts; do not replay absent a new authorized
+slot.
+
+Separately, the open Custom Date Sort percent-change consumer now has a narrow
+working-tree correction: its coverage response is expected to identify the
+requested instrument, as the backend `OhlcvCoverageOut` contract does. A
+baseline-red loader regression demonstrated that mismatched `symbol: QQQ`
+coverage for a requested SPY could previously authorize reading SPY local bars
+and return a ready value. The loader now fails closed with an explicit
+`coverage_identity_mismatch` before the bar read. The focused Custom Date Sort
+unit files pass 20/20 and Vue type-check passes. This change is uncommitted and
+has no full frontend coverage, exact-source CI, or runtime acceptance yet. No
+SX/IX identity, weighting, PIT-membership, or lineage contract is inferred;
+those modes remain unavailable pending source-backed evidence. Preserve the
+full AC1-AC9 and official V25 Help roadmap.
+
+### Targeted Tag Column component coverage diagnostic — 2026-10-23 16:06Z
+
+The mounted parent Tag Column suite passes 23/23. A one-file V8 coverage
+diagnostic for `WorkstationToolContent.vue` measured 19.13% functions,
+42.28% statements/lines, and 50.64% branches. Vitest retained the repository
+thresholds, so this narrowed run emitted threshold errors despite the selected
+tests passing; it is not a global coverage result. No threshold or assertion
+was changed, and no browser/fixture ran. Full frontend coverage and the exact
+branch CI remain outstanding.
+
+### Current Custom Date Sort identity regression — 2026-10-23 16:02Z
+
+The existing wrong-symbol coverage regression remains green, and one additional
+malformed-response case now verifies that ready coverage with no `symbol` is
+rejected before local bars are requested. The two focused Custom Date Sort
+files pass 21/21 tests in one Vitest worker. The product guard and these tests
+remain uncommitted; there is no new aggregate coverage, exact-source CI, or
+browser evidence. F8y remains a separate consumed-slot browser-command stall;
+do not infer a lock endpoint failure or replay it without a new coordinator
+slot. The broader AC1-AC9 and V25 roadmap remains open.
+
+### Mounted Custom Date Sort identity message — 2026-10-23 16:13Z
+
+A mounted `WorkstationToolContent` regression now drives the existing
+`custom-date-sort-range` event with a requested SPY range and QQQ coverage
+response, then verifies the UI announces “Coverage was returned for a different
+instrument.” without presenting a calculated result. Together with the two
+Custom Date Sort library files and the mounted parent suite, the bounded
+one-worker run passed 45/45; `npm run type-check` also exited 0. This is focused
+local evidence only, not a global coverage result, exact-source CI, or browser
+proof. The F8y trace review confirms the lock POST was never dispatched; the
+earlier browser-command stall remains unexplained, so preserve its 60-second
+timeout, zero retries and artifacts. Full AC1-AC9 and official V25 Help parity
+remain open.
+
+### Custom Date Sort stale-response parent regression — 2026-10-23 16:19Z
+
+Added a mounted regression for a range request started on SPY whose chart
+symbol changes to QQQ before the coverage response resolves. The component's
+existing request-sequence guard discards the stale response and clears the old
+range state. The two Custom Date Sort library suites plus the mounted parent
+suite pass 46/46 in one worker; Vue type-check exits0. The first test attempt
+failed because its fixture changed a different panel-store key than the
+component used; matching the fixture's `instance_key` corrected that setup
+error. No product behavior change was made for this test. Results remain local,
+uncommitted evidence only; global coverage, exact-source CI, and F8y browser
+proof are still pending.
+
+## Read-only F8y stalled-command review — 2026-10-23 16:26Z
+
+Verified the saved trace SHA256
+`f99b34a530bc634d2f4ce255947135a2f8a4b566b31c42fa3c52d6d61ee7485b`.
+The pending Playwright call is the first `watchlistSelect.inputValue()` at
+`flows.spec.ts:7540`, immediately after source-list creation; a prior frame
+snapshot already shows that selector present with value `1`. The create POST
+returned 200 in about198ms; nearby workspace snapshot PUTs took about329ms and
+445ms. The call spans 36,325.479–103,278.200ms while After Hooks starts at
+67,068.977ms. During that interval, trace frame-snapshot collection took
+27,302ms and the diagnostic fixture's nominal250ms page wait took about16,022ms.
+This is evidence of a broad browser/automation command-path stall, but it does
+not distinguish Chromium rendering, Playwright driver/server or transport, host
+scheduling, or application work after the list update. The later lock POST at
+`flows.spec.ts:7592` was not reached and no `/lock` request is in the network
+trace. Post-timeout actions are teardown-time evidence only. No source changed
+and no replay was run; keep the original60-second timeout, assertions and zero
+retries. F8y cause and parent-host proof remain open.
+
+### Pinned Playwright snapshot-cost interpretation — 2026-10-23 16:40Z
+
+Read-only inspection of the installed Playwright 1.62.1 implementation at
+`frontend/node_modules/playwright-core/lib/coreBundle.js` resolves what the
+trace's `collectionTime` measures. The injected `frameSnapshotStreamer`
+starts `performance.now()` inside the page, traverses the document (including
+shadow DOM and style-sheet snapshot work), then records elapsed page time.
+Thus the `before@call@87` value of 27,302.8 ms is actual browser-page snapshot
+generation time; `after@call@87` separately took 4,164.1 ms. This narrows the
+stall beyond a generic driver-delay hypothesis, but does not distinguish a
+large/expensive DOM from a page main-thread or host scheduling interruption.
+The 53.9-second interval before the locator-wait log and 16.022-second
+nominal-250-ms teardown wait remain consistent with wider browser-command
+latency. The select was already present with value1, nearby HTTP requests were
+fast, and no lock request was dispatched. No source/test was changed and no
+browser replay was run; preserve the 60-second timeout and zero retries.
+
+### F8y adjacent snapshot comparison — 2026-10-23 16:45Z
+
+The trace's immediately preceding `after@call@85` frame snapshot also shows
+the Personal watchlist select at value `1`; it completed in 310.6 ms at
+35,099.511 ms, about1.2 seconds before `Frame.inputValue` began. No network
+request appears between that snapshot and the 27,302.8-ms `before@call@87`
+snapshot. Thus fixed DOM size alone is insufficient to explain the later
+spike; a transient page/host scheduling stall is more plausible, though still
+unproven. No replay or source change is justified.
+
+### F8y pre-poll timing decomposition — 2026-10-23 16:51Z
+
+The adjacent action records show the `toHaveValue` check passed at
+`call@85` (31.091–33.152s). `Frame.inputValue` starts at36.325s; its
+`before@call@87` snapshot completes at89.051s, a52.726s pre-poll interval.
+Playwright 1.62.1 reports27.303s of page-measured snapshot collection, leaving
+about25.423s outside that measurement; the locator-wait log follows at90.242s,
+and selection resolves103.238s, about12.996s later. The 60-second test timeout
+starts `After Hooks` while this browser command remains active. This supports a
+browser/driver/page-path stall, but does not distinguish transport/driver
+latency, renderer scheduling, host scheduling, or transient DOM change. No
+`/lock` request was dispatched. No source/test was changed; preserve the
+60-second timeout, original assertions, zero retries and consumed-slot status.
+
+### Current mounted-parent coverage diagnostic — 2026-10-23 16:57Z
+
+The exact mounted-parent Tag Column test file at SHA256
+`4bcaeb9f0ed6378a90db195e08bae61930ab826f2cc65fe5f917a37ef54c1380` passed
+25/25 under one Vitest worker with a512 MiB Node heap cap and180-second outer
+timeout. The deliberately narrowed V8 report for `WorkstationToolContent.vue`
+was45.48% statements/lines,54.35% branches and19.71% functions; the unchanged
+global thresholds emitted expected errors because this profile included one
+source component only. This is not the full frontend coverage gate. No browser,
+fixture, product source or test assertion changed.
+
+### Full frontend V8 coverage on current dirty snapshot — 2026-10-23 17:05Z
+
+The authorized command
+`timeout --signal=INT --kill-after=15s 600s env NODE_OPTIONS=--max-old-space-size=1024 npm --prefix frontend run test:coverage -- --maxWorkers=1 --minWorkers=1`
+completed exit0: 144/144 test files and 1,406/1,406 tests passed. Global V8
+coverage was82.86% statements/lines,73.37% branches and70.07% functions,
+passing the unchanged70% function threshold. LCOV is
+`frontend/coverage/lcov.info` SHA256
+`44fc9b914263f132344e6f50d36cd6b88bd8cb5696df33cbd4964c10a70d6e70`.
+This run used the uncommitted source/test snapshot based on HEAD
+`a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9`; the six source/test paths had
+patch SHA256 `05720a427bb4f45e3838a233391e097609f326662dbc592c1ac0bb1699ebe686`.
+It is current local coverage evidence only, not exact-source CI: committed
+CI39935342169 remains red at69.04% on its committed source, and no CI result
+exists for these dirty paths. No browser, fixture, provider HTTP, assertion,
+threshold, reference, or retry-policy change occurred.
+
+F8y remains unresolved and its one-case slot consumed. The reported line
+`flows.spec.ts:7592` is the later lock POST; the saved trace shows the 60-second
+deadline expired during the earlier `watchlistSelect.inputValue()` call. Its
+before-snapshot completed52.726s after the Frame call began, with27.303s
+measured in page-side snapshot collection, about25.423s outside that interval,
+then12.996s locator waiting. No `/lock` request was dispatched. The measured
+snapshot spike and broad browser/driver/page latency are evidence; the exact
+cause remains unproven. Preserve the original timeout, assertions, zero retries
+and artifacts; no replay or route fix is supported.
+
+The same current dirty source/test snapshot passed
+`timeout --signal=INT --kill-after=15s 300s env NODE_OPTIONS=--max-old-space-size=1024 npm --prefix frontend run type-check`
+with exit0 (`vue-tsc --noEmit`). This is local type evidence only; it does not
+change the committed CI result or establish F8y browser acceptance.

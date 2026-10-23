@@ -71,6 +71,12 @@ export async function loadCustomDateSortLocalEvidence(input: {
     },
     { signal: input.signal },
   )
+  if (typeof coverage.symbol !== 'string' || coverage.symbol.trim().toUpperCase() !== symbol) {
+    return {
+      coverage,
+      prices: { status: 'unavailable', reason: 'coverage_identity_mismatch' },
+    }
+  }
   const scope = { timeframe: input.timeframe, adjusted: input.adjusted }
   const beforeBars = resolveCoveredCustomDateSortPrices([], input.range, scope, coverage)
   if (beforeBars.status !== 'unavailable' || beforeBars.reason !== 'boundary_price_unavailable') {

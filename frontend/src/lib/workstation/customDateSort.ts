@@ -65,6 +65,7 @@ export type CustomDateSortPriceEvidence =
       status: 'unavailable'
       reason:
         | 'coverage_not_ready'
+        | 'coverage_identity_mismatch'
         | 'coverage_scope_mismatch'
         | 'non_local_provenance'
         | 'unknown_lineage'

@@ -1213,6 +1213,7 @@ async function loadCustomDateSortRange(range: CustomDateSortRange) {
     } else {
       const messages: Record<string, string> = {
         coverage_not_ready: evidence.coverage.explanation || 'Matching persisted coverage is not ready for this range.',
+        coverage_identity_mismatch: 'Coverage was returned for a different instrument.',
         coverage_scope_mismatch: 'The persisted coverage does not match this chart range and timeframe.',
         non_local_provenance: 'The selected range does not have canonical local-history provenance.',
         unknown_lineage: 'The selected range contains bars with unknown source lineage.',

@@ -54,6 +54,40 @@ describe('Custom Date Sort local evidence loading', () => {
     })
   })
 
+  it('rejects ready coverage for a different instrument before requesting its bars', async () => {
+    apiGet
+      .mockResolvedValueOnce(readyCoverage({ symbol: 'QQQ' }))
+      .mockResolvedValueOnce([
+        { ts: range.start, close: 100 },
+        { ts: range.end, close: 110 },
+      ])
+
+    const result = await loadCustomDateSortLocalEvidence({
+      symbol: 'spy', timeframe: 'D1', adjusted: true, range,
+    })
+
+    expect(result.prices).toEqual({ status: 'unavailable', reason: 'coverage_identity_mismatch' })
+    expect(apiGet).toHaveBeenCalledTimes(1)
+    expect(apiGet.mock.calls[0][0]).toBe('/coverage/instruments/SPY/ohlcv')
+  })
+
+  it('rejects ready coverage without an instrument identity before requesting bars', async () => {
+    apiGet
+      .mockResolvedValueOnce(readyCoverage({ symbol: undefined }))
+      .mockResolvedValueOnce([
+        { ts: range.start, close: 100 },
+        { ts: range.end, close: 110 },
+      ])
+
+    const result = await loadCustomDateSortLocalEvidence({
+      symbol: 'spy', timeframe: 'D1', adjusted: true, range,
+    })
+
+    expect(result.prices).toEqual({ status: 'unavailable', reason: 'coverage_identity_mismatch' })
+    expect(apiGet).toHaveBeenCalledTimes(1)
+    expect(apiGet.mock.calls[0][0]).toBe('/coverage/instruments/SPY/ohlcv')
+  })
+
   it('reads only canonical local bars after matching ready coverage', async () => {
     apiGet
       .mockResolvedValueOnce(readyCoverage())

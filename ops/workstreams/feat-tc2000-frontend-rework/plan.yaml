@@ -66,18 +66,199 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Current F04/TC status (2026-10-23): source 51ab9d03dd139b8959808a23b4f8cc272f8556aa
-  is clean and synchronized with origin. Exact branch CI39908879710 passed
-  Backend, Frontend, Branch-declared Tests and E2E on attempt 1; E2E reported
-  192 passed/110 declared skips, and Exhaustive Integration Gate was the
-  expected skip. The earlier 5d757390 scope-guard failure was corrected by the
-  exact F04 receipt and repinned 858-path frozen-import manifest in 51ab.
-  Statements below describing that repair as pending are historical and
-  superseded by this status. F8y's parent-host-to-mutation proof/full local
-  profile remain on Root's separate slot. Custom Date Sort relative modes stay
-  unavailable while SX/IX identity, weighting, PIT membership and canonical
-  local-history lineage lack source-backed contracts. Full AC1–AC9 and official
-  REF-HELP-V25 parity remain open.
+  Current 2026-10-23T17:13Z: the current owned six-source/test-path snapshot
+  passed the full one-worker V8 frontend gate locally (144/144 files,
+  1,406/1,406 tests;82.86% statements/lines,73.37% branches,70.07% functions
+  against the unchanged70% floor) and `vue-tsc --noEmit`. This scoped candidate
+  is being committed/pushed for new exact-source CI; committed-source
+  CI39935342169 remains red only on prior HEAD a83 at69.04% functions. The
+  changed-path profile is full_stack_browser, but F8y's one-case slot is
+  consumed and its browser result remains unresolved. No timeout/assertion/
+  retry change or replay is authorized. Full AC1-AC9, SX/IX, Provider/ETF,
+  provider/data holds and official REF-HELP-V25 remain open.
+
+  Historical detailed F8y trace findings: the F8y slot TC-SLOT-20261023T1400Z remains
+  consumed once on exact source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
+  with zero retries. A closer saved-trace review confirms the locator-wait log
+  is delayed 53917 ms after the Playwright call starts; the select then resolves
+  over 12996 ms. During After Hooks, the browserDiagnostics fixture's
+  250-ms page.waitForTimeout takes 16022 ms. A prior frame snapshot shows the
+  selector already present with value1; the initial watchlist POST returned200
+  in about198ms, and nearby workspace snapshot PUTs took about329/445ms. The
+  trace frame-snapshot collection itself took27302ms. Read-only inspection of
+  pinned Playwright1.62.1 coreBundle confirms collectionTime is measured with
+  page performance.now around the injected snapshotter's document/shadow-DOM
+  traversal and stylesheet snapshot work; the after-call snapshot separately
+  took4164ms. This proves substantial browser-page snapshot generation during
+  the stalled command. The immediately preceding after@call@85 snapshot showed
+  the same watchlist select with value1 and took310.6ms at35.100s, only about
+  1.2s before inputValue began; no network request occurred between these
+  snapshots. Fixed DOM size alone is therefore insufficient to explain the
+  27.3-second spike, making a transient page/host scheduling stall more
+  plausible without proving it. The later lock POST at flows.spec.ts:7592 was not
+  reached and the network trace has no /lock request. No F8y source fix or
+  replay is supported; preserve its60-second timeout, assertions and zero
+  retries. The preceding toHaveValue call passed. Frame.inputValue begins
+  at36.325s and its before snapshot completes at89.051s, a52.726s pre-poll
+  interval. Of that,27.303s is page-measured snapshot collection and about
+  25.423s lies outside that measurement; locator waiting then lasts about
+  12.996s. This further localizes the stall to the browser/driver/page path but
+  does not distinguish host scheduling, transport, renderer, or transient DOM
+  change.
+
+  Separately, source review found CustomDateSortLocalEvidence did not validate
+  the symbol identity in the canonical-local coverage response before using
+  that response to authorize local-bar reads. The backend contract returns
+  symbol for the requested instrument. A focused regression was baseline red
+  (wrong-symbol ready coverage was accepted and local bars were read); a local
+  guard now fails closed with coverage_identity_mismatch before the bar read.
+  The two Custom Date Sort unit files pass 21/21 after adding a malformed
+  coverage-response case with no symbol; it is rejected before the local-bar
+  read. Vue type-check remains green for the product change. This is an
+  uncommitted working-tree change only; global coverage, exact-source CI, and
+  full F8y parent-host browser proof remain pending. SX/IX comparator
+  identity, weighting, point-in-time membership and history lineage remain
+  unresolved and unavailable. A separate one-file WorkstationToolContent
+  coverage diagnostic passed all23 focused tests but measured19.13% functions
+  for that component; narrowed coverage also emitted the unchanged global
+  threshold errors. This is not a global coverage result or acceptance gate.
+  A newer bounded one-file diagnostic on mounted-parent test SHA
+  4bcaeb9f0ed6378a90db195e08bae61930ab826f2cc65fe5f917a37ef54c1380 passed
+  25/25 tests and measured45.48% statements/lines,54.35% branches, and19.71%
+  functions for this component; narrowed-profile threshold errors remain
+  expected and are not a global gate.
+  A mounted WorkstationToolContent test now confirms that mismatched SPY
+  coverage is surfaced as “Coverage was returned for a different instrument.”
+  without presenting a calculated result. The two Custom Date Sort libraries
+  and mounted parent suite pass46/46 in one worker; Vue type-check exits0 after
+  adding a second mounted regression that discards an SPY coverage response
+  after the chart changes to QQQ. Its first test attempt exposed a test-fixture
+  store-key mismatch, which was corrected to match the component's instance key;
+  that was not a product failure. Those focused results were superseded by the
+  full V8 receipt above; no exact-source CI or full F8y browser proof is yet
+  recorded for the candidate.
+
+  Historical F8y status at 2026-10-23T15:39Z: F8y slot TC-SLOT-20261023T1400Z was consumed once
+  on exact source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 with zero retries.
+  Its unchanged 60-second timeout was reported at the later lock POST line, but
+  the saved trace confirms no lock request was dispatched. The first
+  watchlistSelect.inputValue() call began at 35991.181 ms, with protocol call
+  start at 36325.479 ms; pinned Playwright 1.62.1 logs “waiting for locator”
+  immediately before selector polling, but that log appears only at 90242.395
+  ms. The select resolves at 103238.115 ms and the command completes at
+  103278.200 ms; After Hooks began at 67068.977 ms. This narrows the delay to
+  before locator polling, followed by about13 seconds to resolve, but does not
+  distinguish test-driver dispatch, server scheduling, renderer, or transport.
+  The saved runner log reports the timeout without a lower-level cause.
+  Positive list/Tag Column actions after timeout ran during teardown and are
+  not acceptance evidence. No source fix is supported. Preserve all artifacts,
+  the 60-second timeout and assertions, and zero retries. Do not replay the
+  consumed slot or alter source/fixture absent new evidence and coordinator
+  authorization.
+
+  Historical F8y build result (2026-10-23 14:52Z; superseded by the later
+  revised 1024 MiB/one-CPU/no-extra-swap allowance, one canonical frontend
+  `npm run build` with a 768 MiB Node heap reached 765.9 MiB use and failed in
+  `vue-tsc` after 90.22s (child exit134; outer build exit1). The BuildKit
+  container was not OOM-killed; Vite did not start and no frontend image was
+  produced. Exact read-only checks show no image and no app project containers,
+  volumes, or networks. The exact builder is running with 1024 MiB memory and
+  equal memory-plus-swap, existing one-CPU quota, and OOMKilled=false. Do not
+  attempt another heap/build recipe under this allowance: the slot explicitly
+  requires a new evidence-based coordinator decision after a resource failure.
+  At that 14:52 checkpoint F8y remained unrun; this historical status is
+  superseded by the current result above. The later 14:54 packaging allowance
+  produced the exact candidate image and the single test attempt.
+
+  Historical F8y slot result (2026-10-23 14:38Z): released slot
+  TC-SLOT-20261023T1400Z was used only for one-case preparation. The exact
+  current-source backend image built, but no frontend image was produced
+  within the approved 768 MiB/1 CPU/no-swap builder; bounded vue-tsc and Vite
+  attempts exhausted Node heaps. Therefore no app fixture, browser, or F8y
+  test ran. The exact candidate project remains absent and the private builder
+  is stopped with cache preserved. Do not reuse an older frontend image or
+  repeat builds at the exhausted cap. Resumption requires a revised bounded
+  build allowance or a verified immutable frontend artifact for these exact
+  app inputs. Retained services/data, assertions, thresholds, references, and
+  retry policies remain unchanged.
+
+  Superseding current validation (2026-10-23 14:06Z): branch HEAD remains
+  a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 and origin-synchronized; preserve
+  all six existing dirty paths. One authorized full frontend V8 run on the
+  then-current mounted-parent test SHA
+  `522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5` passed
+  144/144 files and 1,401/1,401 tests in 180.42s. Global coverage was 70.01%
+  functions, 82.67% statements/lines, and 73.24% branches, passing the
+  unchanged 70% function threshold. Exact log SHA256
+  `191e82423372072458c277472b07ae53089392d89fa49e5b09ae2cf9e882b826` and
+  LCOV SHA256 `6ce1420418c5a3d3d12e4db5df17fd741ee385d8e40b3dcd4ae1362756c15aa9`.
+  WorkstationToolContent.vue was 66/345 functions, 1,830/4,332 lines, and
+  304/611 branches; tagColumns.ts remained 7/7 functions. One additional
+  mounted-parent regression was added after the full run: canonical workspace
+  Tag Column configuration must win over a stale virtual-tool snapshot. The
+  current focused file passes 23/23 at SHA256
+  `61972a13f0f9216fdc32925045d7e494634e44724fa1f956073176c210f11a9c`; current
+  Vue type-check passes. The full result is qualified to the prior test-file
+  hash; no second full coverage run was authorized. No production source,
+  F8y E2E assertion, threshold, or coverage rule changed. F8y ordinary browser
+  proof remains pending Root's next exact fixture slot. Preserve all positive
+  and locked-target/no-DELETE parent assertions. Committed exact CI39935342169
+  remains red at 69.04% on its committed source; distinguish it from this
+  dirty working-tree local coverage result. Full AC1-AC9, SX/IX semantics,
+  official REF-HELP-V25 and broader integration remain open.
+  Current TC continuation (2026-10-23 12:43Z): branch HEAD remains
+  a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 and origin-synchronized; preserve
+  the six existing dirty F8y/test/workstream paths. Root's isolated F8m repair
+  has exact CI39935920665 green and a separate pinned Noble 1.62.1, zero-retry
+  1/1 ordinary-click proof; its Purple/Yellow/Grey and SPY/QQQ isolation
+  assertions passed. This is Root-owned evidence, not a TC source change or
+  full checkpoint acceptance.
+
+  One bounded full frontend V8 coverage pass completed at working-tree source
+  hash `57599232e306bae2f01559d1f2912099f5d6aaa706ceca71b3d58af88a346fa8`
+  for the mounted-parent test file, before six later mounted-parent tests
+  described below. Vitest ran 144 files/1,384 tests, all passing, but the unchanged global
+  function threshold remains red at 69.46% versus 70%; statements/branches/lines
+  were 82.18%/73.21%/82.18%. Fresh LCOV reports
+  WorkstationToolContent.vue at 49/342 functions, confirming a broad SFC branch
+  denominator rather than a Tag Column helper gap; the tagColumns.ts helper is
+  fully covered at 7/7 functions. Coverage artifacts are
+  `/tmp/tc-a83-coverage-20261023-current.log` (SHA256
+  8be42b1022ac0be6732b2f7f72dcc86bfd1408936f05d4118f7f05762ce94f8a) and
+  `frontend/coverage/lcov.info` (SHA256
+  a281257fbc3da12ff62d362370324728030120cedc759762b0317e89e0c5bb7b).
+  Preserve the 70% threshold; do not change source-wide
+  include/exclude rules to improve the metric.
+
+  The full-coverage run preceded six later mounted-parent tests. The
+  updated focused parent file now passes 11/11. Its added cases exercise row selection through
+  WorkstationToolContent (emitted symbol plus instrument identity), a live
+  unlocked-to-locked target transition (Remove disables without DELETE), named
+  list creation/configuration preservation, creation failure/retry preserving
+  the name and current selection/configuration, resolved-symbol addition to the selected list, and a
+  rejected symbol lookup preserving the draft without emitting a mutation.
+  The updated file passes 11/11 in a 1-worker capped run; this
+  is parent-path behavior evidence, not the pending F8y browser proof. During
+  test construction, a jsdom assertion that the second virtualized row was
+  mounted failed because the zero-size viewport mounted only the first row;
+  that assertion was removed while API/store membership checks passed. Keep
+  all positive/locked-negative parent assertions until the ordinary browser
+  flow proves both behaviors. F8y remains pending a safe seeded browser slot.
+  No browser, Compose fixture, build, or full matrix was started here. Full V25
+  roadmap, SX/IX semantics, and official REF-HELP-V25 remain open.
+  Superseding update 2026-10-23 12:43Z: the single coordinator-authorized
+  full V8 run used parent-test SHA
+  `116b88ac132e9ff67c9ce52b51d9ceb16c60f06d6e8edc712a29dec849eedaeb` and
+  completed 144 files/1,390 tests, all passed, with 69.60% functions (below
+  unchanged 70%), 82.30% statements/lines and 73.24% branches. Current LCOV
+  SHA256 is `33bd23edd8e447d23558424f65dc1c96ddf5514b6968b3d502b830cc6c6f0bba`;
+  WorkstationToolContent.vue is 54/342 functions, while tagColumns.ts is 7/7.
+  The run log is `/tmp/tc-a83-tag-columns-coverage-20261023.log`, SHA256
+  `273fac9866eccca37a0a0499d52a0266b3a6293cc3cb84ac5a9a970bd82a008f`.
+  The two subsequently added parent tests are not in that global result. The
+  current parent file passes 13/13 and now covers failed Tag Column removal
+  without false membership/configuration updates plus rename/copy/delete while
+  retaining Tag Column configuration. Product source is unchanged.
 
   A fresh in-memory SQLite reproduction on 51ab confirms both generic coverage
   endpoints count an alternate-only D1 row: selected-default helper count 1,
@@ -148,9 +329,124 @@ current_blocker: >-
   screenshot references/masks/0.005 tolerance and zero-retry policy. Full
   AC1–AC9 and official REF-HELP-V25 parity remain open; provider/live/paid
   operations, deployment and promotion remain disabled/unperformed.
+  Superseding local test update 2026-10-23 12:51Z: the current mounted-parent
+  file (SHA256 `723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4`)
+  passes 14/14 and Vue type-check passes. Its newest Tag Column negative test
+  verifies a failed add leaves membership absent, shows the existing parent
+  alert, and emits no configuration mutation. Playwright `--list` with the
+  line reporter collects exactly the one F8y-tag-columns case; an earlier
+  list attempt failed only because the default HTML reporter could not write
+  its read-only report path. No browser or fixture ran. The 69.60% full
+  coverage result predates the three newest mounted-parent tests, so their
+  effect on the global threshold remains unknown.
+  Superseding local coverage/test update 2026-10-23 13:14Z: the one authorized
+  full V8 pass on source a83 and pre-expansion parent-test SHA
+  `723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4` ran
+  144 files/1,393 tests successfully, but remains red at 69.69% functions
+  versus the unchanged 70% threshold (82.39% statements/lines, 73.26% branches).
+  WorkstationToolContent.vue measured 57/342 functions; tagColumns.ts is 7/7.
+  Full log `/tmp/tc-a83-tag-columns-coverage-refresh-20261023.log` SHA256
+  `c8dd9084e803fa3705519d6242449f752f29814e56e4e13d659cbd6affae3234`; its
+  LCOV is preserved at `/tmp/tc-a83-tag-columns-coverage-refresh-20261023.lcov.info`
+  SHA256 `e62b35dec3165f1410f24cb9d62c68e1716132e2d20d24c5f783ff55eea69017`.
+  Eight subsequent mounted-parent tests exercise ordinary chart/Python/condition
+  drops, multi-output rejection, condition-save failure, saved Tag Column
+  visibility, and personal/non-personal membership callbacks; the current file
+  SHA256 is `522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5`
+  and the focused suite passes 22/22. Focused V8 comparison against the saved
+  full-run LCOV finds 11 previously-zero function entries now hit, projecting
+  a 70.02% global function floor if all other full-suite coverage is unchanged;
+  this is not a refreshed full-gate measurement. The filtered three-file V8
+  report exits red because its partial denominator is below global thresholds.
+  No threshold/include rule changed. F8y browser proof remains pending the
+  separately released slot; preserve the positive/locked-negative assertions.
+  Superseding current local validation 2026-10-23T17:06Z: on the dirty
+  working tree based on HEAD a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9, the
+  bounded one-worker full V8 command exited0 with 144/144 files and 1,406/1,406
+  tests passing. Global coverage is 82.86% statements/lines, 73.37% branches,
+  and 70.07% functions, above the unchanged 70% floor. The six source/test
+  paths used by that run have patch SHA256
+  05720a427bb4f45e3838a233391e097609f326662dbc592c1ac0bb1699ebe686; current
+  LCOV is SHA256 44fc9b914263f132344e6f50d36cd6b88bd8cb5696df33cbd4964c10a70d6e70.
+  This remains uncommitted local evidence: exact CI39935342169 is still red on
+  committed HEAD at 69.04%, and there is no exact CI result for these dirty
+  files. F8y remains unresolved; its consumed zero-retry run stalled in
+  Playwright inputValue/trace collection before any lock request was dispatched.
 current_checkpoint_status: >-
-  Current committed TC source is 51ab9d03dd139b8959808a23b4f8cc272f8556aa,
-  clean and synchronized with origin. It contains the exact green F04 adoption
+  Current clarification 2026-10-23T17:14Z: the scoped six-source/test and
+  four-record candidate is being published after the full V8 gate passed
+  locally on that dirty snapshot (144/144 files,1,406/1,406 tests,70.07%
+  functions) and Vue type-check exited0. Exact CI39935342169 remains red on
+  prior committed a83 at69.04%; candidate exact-source CI is pending. The
+  changed-path local profile includes full_stack_browser, but the F8y slot is
+  consumed; this intermediate commit does not claim browser acceptance. The
+  saved F8y trace and service logs
+  show the 60-second deadline elapsed while the earlier watchlistSelect.inputValue
+  browser command was still running. The test reporter points at the later
+  page.request lock POST line, but that request was never dispatched; this is
+  not evidence of route rejection. The before-snapshot took52.726s to complete,
+  including27.303s measured inside the page's Playwright snapshot traversal,
+  about25.423s outside that measurement, then12.996s for locator resolution.
+  The selector already existed in the prior snapshot. Backend/frontend health
+  and nearby app requests were responsive; root cause of browser/driver/page
+  latency remains unproven. Preserve the original artifacts,60-second timeout,
+  assertions and zero retries. No replay or source fix is supported.
+
+  Historical 14:54 coordinator slot result: the saved test failure was
+  originally reported at flows.spec.ts:7592; later trace review proved the
+  lock POST was not sent. Target membership setup/checks before the stall
+  passed; the lock/no-DELETE phase did not complete. Full error-context, trace,
+  video, and local service logs remain preserved in the private F8y artifacts directory. Exact browser and synthetic project containers/volumes/networks have been removed; retained
+  services/data were not touched. No retries, assertion/timeout/oracle changes,
+  or broader matrix were made.
+
+  Earlier 14:54 slot evidence (historical): the exact source frontend image and
+  one F8y browser attempt were produced. The lock route was not reached. All
+  later positive actions in teardown are not acceptance.
+
+  Full error-context, trace, video, and local service logs
+  remain preserved in the private F8y artifacts directory. Exact browser and
+  synthetic project containers/volumes/networks have been removed; retained
+  services/data were not touched. No retries, assertion/timeout/oracle changes,
+  or broader matrix were made.
+
+  Historical F8y slot result (2026-10-23 14:38Z): the released one-case
+  slot produced an exact-source backend image but no frontend image under the
+  768 MiB/1 CPU/no-swap cap. The F8y case did not run; no fixture/browser was
+  started and no F8y pass or failure is claimed. The builder is stopped with
+  cache retained, and the candidate project has no containers, volumes, or
+  networks. Resumption requires a revised bounded build allowance or a
+  verified artifact built from exact candidate app inputs.
+
+  Committed local/remote TC HEAD is synchronized at
+  a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9. Exact own-branch CI39935342169
+  attempt 1 is terminal red: Frontend job120353389277 ran all 1,381 tests but
+  failed the unchanged function-coverage threshold (69.04% versus 70%);
+  Backend job120353388553 and Branch-declared job120362123490 passed, while
+  E2E job120362124695 and Exhaustive job120362125598 were skipped. Earlier
+  CI39925201913 ran on source 1892607 only and its frontend function coverage
+  was 75.61%. A fresh bounded local V8 coverage run on the five-test mounted
+  parent file state completed 144 files/1,384 tests successfully, but remained
+  below the unchanged global function gate at 69.46% (threshold 70%); statement,
+  branch, and line coverage were 82.18%, 73.21%, and 82.18%. The exact report
+  shows WorkstationToolContent.vue 49/342 functions and tagColumns.ts 7/7, so
+  Tag Column helper coverage is not the missing behavior. After that report,
+  mounted-parent regressions were added for row selection (emitting `SPY` with
+  instrument ID 101), reactive lock transition (disabling Remove without a
+  DELETE), non-empty list creation with Tag Column preservation, failed list
+  creation and successful retry preserving current selection/configuration,
+  resolved-symbol
+  addition to the selected list, and unresolved-symbol rejection without
+  mutation. The updated focused parent file passes 11/11 under one worker. The
+  full coverage run predates those six
+  added tests and does not establish their effect on the global percentage.
+  This is not a replacement for F8y's ordinary browser positive and
+  locked-target negative proof. Preserve the parent assertions and threshold;
+  no browser, fixture, typecheck, or full profile has run for the updated test
+  file. Root's isolated F8m repair and exact CI are green; do not duplicate it.
+
+  The previously published TC source 51ab9d03dd139b8959808a23b4f8cc272f8556aa
+  contains the exact green F04 adoption
   at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32, preserved checkpoint
   b59b489913dd4359b6205139e4b4f934d0952667, canonical F04 receipt
   20261023T051709Z-f04fb2a26c63.json, and corrected 858-path manifest.
@@ -160,6 +456,18 @@ current_checkpoint_status: >-
   superseded by this exact-source result. This does not establish F8y local
   parent-runtime proof, full browser acceptance, full roadmap completion, or
   official REF-HELP-V25 parity.
+  Latest local follow-up 2026-10-23 12:51Z: full V8 coverage was run once on
+  the 11-test parent-file SHA above (not on the three-test-later current file); all
+  1,390 tests passed, but functions measured 69.60% against the unchanged 70%
+  threshold. Statements/lines were 82.30%, branches 73.24%; component metrics
+  were WorkstationToolContent.vue 54/342 and tagColumns.ts 7/7. The current
+  14-test mounted-parent suite and Vue type-check pass. Three tests were added
+  after coverage, including failed Tag Column add/removal truthfulness and list
+  rename/copy/delete configuration preservation; their effect on global
+  coverage remains unmeasured. Playwright line-reporter collection finds only
+  F8y-tag-columns; the default reporter's read-only report write failure was
+  setup-only. A separately authorized coverage refresh and F8y browser proof
+  remain pending; no browser or fixture was started.
 
   TC source adopts exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
   at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 over merge base
@@ -679,9 +987,9 @@ historical_blocker_archive: >-
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
   name: TC2000 personal WatchList Tag Columns
-  status: published_parent_mutation_E2E_and_exact_branch_CI_green_runtime_pending_Root_slot
-  commit_sha: 404fe6d29
-  remote_sha: fe4a1fcba32fe640c6b9e2f1f6e6503f86788418
+  status: mounted_parent_mutation_unit_proof_local_23_of_23_uncommitted;exact_head_CI39935342169_red_coverage;F8y_slot_consumed_timeout_before_lock_POST_cause_unknown
+  commit_sha: a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
+  remote_sha: a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
   intent: >-
     Persist explicit personal WatchList targets as Tag Columns, display membership
     from canonical target-list rows, and let Alt+click or the accessible row menu
@@ -696,14 +1004,18 @@ active_changeset_context:
     - frontend/tests/unit/lib/test_tag_columns.test.ts
     - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Publish this F04 adoption checkpoint and obtain exact TC branch CI. After
-    Root grants the separate one-at-a-time F8y browser slot, run the required
-    ordinary-click parent-host-to-mutation proof in the full source-pinned
-    profile. Do not substitute helper tests, template parsing, or collection;
-    preserve behavior assertions, visual references/masks/tolerance, and
-    zero-retry acceptance. Keep SX/IX relative modes unavailable until the
-    producer supplies identity, weighting, PIT membership, and local-history
-    lineage contracts.
+    Preserve the current 23/23 mounted-parent test result as local evidence; its
+    test SHA differs from the earlier 70.01% full-coverage receipt, and these
+    dirty tests are not in exact-head CI39935342169. That committed run is
+    terminal red at 69.04% function coverage and must not be described as
+    pending or green. The one F8y browser slot was consumed at zero retries and
+    timed out before the lock POST was dispatched. Do not replay it, change its
+    60-second timeout/assertions, or use the retained charting-stack. No source
+    fix is justified by the saved trace; continue only with independently
+    supported TC work until a new coordinator-authorized observation slot is
+    available. Preserve the full visual references/masks/0.005 tolerance and
+    keep SX/IX relative modes unavailable until producer-backed identity,
+    weighting, PIT membership, and local-history lineage contracts exist.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -1315,6 +1627,8 @@ focused_browser_provenance_correction: >-
   has Playwright collection evidence only, not browser execution. No TC-owned
   browser/build process remains; Docker socket access prevents a fresh
   container-state audit. Provider retains full local validation priority.
+  Superseding current status 2026-10-23 13:17Z: one authorized full V8 pass
+  on pre-expansion test SHA 723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4 ran 144 files/1,393 tests successfully, but measured 69.69% functions against the unchanged 70% threshold (82.39% statements/lines; 73.26% branches). Eight later mounted-parent tests bring the current file to 22/22 at SHA 522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5. Focused LCOV comparison found 11 formerly-zero function entries newly hit and projects 70.02% if other coverage is unchanged; this is not a new full-suite result. Current Vue type-check passed. F8y browser proof and locked-target no-DELETE remain pending a separately assigned slot; no browser/fixture was launched. Full roadmap, SX/IX and official REF-HELP-V25 remain open.
 human_checkpoint_acceptance_authorization:
   recorded_at: "2026-10-15T22:55:31Z"
   question: "May I accept and merge the four development checkpoints into staging once their required cross-feature contracts and full tests pass, using verified free operations only and leaving quota-held, unreviewed, paid/trial and unsafe operations explicitly disabled? This preserves the complete feature roadmaps and does not authorize deployment, paid activation, or the operational trial."
@@ -1374,20 +1688,19 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "f04_backmerge_acbfe;TC_source_51ab_CI39908879710_green;selected_default_coverage_mismatch_reproduced_and_handed_to_Provider_owner;Provider_migration_repair_3e5d_CI39923818426_cancelled_not_adopted;F8y_parent_runtime_full_profile_waits_for_Root;Custom_Date_Sort_contracts_open;full_AC1_AC9_REF_HELP_V25_open"
+  current_phase: "f04_backmerge_acbfe;TC_source_a83af413_origin_synced;CI39935342169_committed_coverage_red_on_committed_source;dirty_tree_full_V8_144_files_1406_tests_70.07_functions_pass;scoped_custom_date_sort_and_tag_column_coverage_recovery_packet_being_published;F8y_browser_driver_latency_unresolved_no_lock_request;full_stack_browser_and_new_exact_CI_open;SX_IX_AC1_AC9_REF_HELP_V25_open"
   next_action: >-
-    Hand off the reproduced selected-default coverage inconsistency and exact
-    mapped-default/alternate-only regression proposal to the Provider owner;
-    the affected router/selector are outside TC ownership, so do not patch them
-    or broaden their narrow test exception. Do not import Provider repair
-    3e5ddec while exact CI39923818426 is cancelled and no canonical green release
-    is available. Continue independent TC-owned work. Run F8y parent-host proof
-    and full local profile only when Root releases the separate slot. Keep
-    Custom Date Sort modes unavailable until source-backed SX/IX identity,
-    weighting, point-in-time membership and canonical local-history lineage
-    exist. Preserve all assertions, thresholds, references, masks/tolerance,
-    full AC1–AC9, official REF-HELP-V25, provider/live holds, assigned services,
-    and data.
+    Publish the tested scoped Custom Date Sort and Tag Column coverage-recovery
+    packet from a83, then use its automatic exact-source CI result before
+    continuing the highest-priority unmet TC-owned roadmap item. Full dirty-
+    snapshot V8 coverage passed144/144 files and1,406/1,406 tests at70.07%
+    functions; type-check exited0. Do not relabel those local results as CI.
+    Preserve the F8y diagnosis: browser/trace latency precedes the reported
+    lock line and no lock request was sent. Its one-case slot is consumed; do
+    not replay or change the60-second timeout/assertions/retries without a new
+    coordinator slot. Keep SX/IX unavailable until source-backed contracts
+    exist, and preserve provider/retained-data holds and all roadmap/reference
+    requirements.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:

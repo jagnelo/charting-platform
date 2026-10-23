@@ -7580,6 +7580,38 @@ test.describe('Dashboard', () => {
     await watchlistSelect.selectOption(targetId)
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLE' })).toBeVisible({ timeout: 10_000 })
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLE' })).toContainText('In')
+
+    const lockedTargetDeleteRequests: string[] = []
+    page.on('request', request => {
+      if (request.method() === 'DELETE' && request.url().includes(`/watchlists/${targetId}/items`)) {
+        lockedTargetDeleteRequests.push(request.url())
+      }
+    })
+    const lockToken = await page.evaluate(() => localStorage.getItem('access_token'))
+    expect(lockToken).toBeTruthy()
+    const lockResponse = await page.request.post(`/api/v1/watchlists/${targetId}/lock`, {
+      headers: { Authorization: `Bearer ${lockToken}` },
+    })
+    expect(lockResponse.status()).toBe(200)
+    await page.reload()
+    const reloadedWatchlistTab = page.locator('.lm_tab').filter({ hasText: 'WatchList' }).last()
+    await expect(reloadedWatchlistTab).toBeVisible({ timeout: 10_000 })
+    if (!(await reloadedWatchlistTab.evaluate(tab => tab.classList.contains('lm_active')))) {
+      await reloadedWatchlistTab.click()
+    }
+    await expect(personal).toBeVisible({ timeout: 10_000 })
+    await expect(personal).toHaveAttribute('aria-busy', 'false')
+    await expect(watchlistSelect.locator('option').filter({ hasText: `${targetName} · Locked` })).toHaveCount(1, { timeout: 10_000 })
+    await watchlistSelect.selectOption(targetId)
+    const lockedSourceRow = personal.locator('.watchlist__row').filter({ hasText: 'XLE' })
+    await expect(lockedSourceRow).toBeVisible({ timeout: 10_000 })
+    await lockedSourceRow.click({ button: 'right' })
+    const lockedRemoveAction = personal.getByRole('menuitem', {
+      name: `Remove XLE from Tag · ${targetName}`,
+      exact: true,
+    })
+    await expect(lockedRemoveAction).toBeDisabled()
+    expect(lockedTargetDeleteRequests).toEqual([])
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
