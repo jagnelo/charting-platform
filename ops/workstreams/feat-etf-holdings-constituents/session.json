@@ -152,17 +152,13 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23T12:52:13Z: Local branch includes distinct AC1 commit12ac3b694; origin remains1adb658. Exact CI39949218663 on origin is terminal red with12 integration failures. The current consumer fixture patch is unvalidated by DB-backed tests; Ruff/format/compile and workstream checks pass. Nearest-snapshot expected-200 assertion now includes response.text for next run. No current-source CI exists. Root's recorded local full-stack slot follows harness-fix publication; no local DB/browser run before that slot. RSST stays unimported/non-routable. Preserve all14 criteria,15 Tier-0/156 Tier-1, quarantines, holds, retained data, and30-day observation.",
-  "current_local_delta": "2026-10-23: AC1 current fallback count table/sentinel is a distinct local commit12ac3b694. Remaining integration changes add a synthetic historical-snapshot helper and update fixtures after CI39949218663 exposed12 integration failures. Tests preserve current/PIT/identity assertions and manual-import known_at rejection but have only stack-free validation, no DB-backed proof. Next push once, inspect exact-source CI, then take Root's exclusive full-stack slot after harness publication. Manual-import source is published. RSST remains unsafe to import under accepted f04 because initial URL/storage rights and safe manual-only no-enrichment/health path remain absent.",
+  "current_blocker_latest": "2026-10-23T13:07:36Z: Exact CI39957012029 on synchronized ETF SHA dc43bb65403457c6745dcc9c10df0da97631e9dc is terminal red: Frontend Unit passed; Backend unit had 5235 passed, 1 failed, 1 skipped, 37 warnings; integration and downstream jobs skipped. The sole failure was a current owner-record inconsistency: session.json.progress.current_blocker omitted the exact 15 Tier-0 and 156 Tier-1 phrase. The record is corrected and the focused sentinel passed 1/1; preserve the hosted run as red. This is not a product/provider route failure. Consumer fixtures at dc43 remain without DB-backed proof. Keep RSST unimported, full_stack_browser under Root's slot, and preserve full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and 30-day observation.",
+  "current_local_delta": "2026-10-23: the AC1 fallback-count correction is commit 12ac3b694 and consumer historical/PIT fixture alignment is commit dc43bb654; both are published. Exact CI 39957012029 on dc43 is red only because the nested session current_blocker omitted the required 15 Tier-0 and 156 Tier-1 phrase. This worktree change is limited to correcting that owner-record inconsistency and recording the exact run. No fixture/database proof is claimed. The manual-import source remains published; RSST is not eligible for import through accepted f04 because request URL and storage/display rights are unverified and manual-only no-enrichment/futures typing/native-health isolation are not established.",
   "dirty_paths": [
-    "backend/tests/integration/api/test_etf_holdings.py",
-    "backend/tests/integration/api/test_strategy_lab.py",
-    "backend/tests/integration/api/test_workspaces.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
-    "backend/tests/integration/api/etf_holdings_test_fixtures.py"
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
     "available": false,
@@ -188,7 +184,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "12ac3b694c3234da66cc9de1117f5ed54ed1b916",
+  "head": "dc43bb65403457c6745dcc9c10df0da97631e9dc",
   "implementation_sha": "04f49d940c877635de52c0c0616e54f47018bf25",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -301,13 +297,13 @@
   },
   "last_checkpoint": "2026-10-23T01:28:00Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-23T12:33:58Z: Exact CI39949218663 on1adb658 is terminal red (Backend integration failed; Backend unit and Frontend Unit passed; later jobs skipped). The published manual-import PIT guard has prior 62/62 focused service/router evidence; no dirty router/service patch exists. Current local changes include AC1 docs/sentinel and separate integration-test fixture edits, the latter lacking local DB-backed proof. Stack-free checks and workstream validation passed. RSST remains unimported and non-routable. Preserve full AC1-AC14 and Root-owned full_stack_browser gate.",
+  "latest_checkpoint": "2026-10-23T13:07:36Z: Exact CI39957012029 on synchronized dc43bb654 is terminal red. Frontend Unit passed; Backend unit had 5235 passed, 1 failed, 1 skipped, 37 warnings; the sole failure is the current session progress blocker missing 15 Tier-0 and 156 Tier-1. Backend integration and later jobs were skipped. The record correction now passes the focused sentinel 1/1, workstream validator, JSON/JSONL parsing, plan-hash, and diff checks. Preserve this run; no fixture/database proof exists. The owner-record correction is the current dirty context. RSST remains unimported/non-routable; full AC1-AC14, quarantines, holds and Root-owned full_stack_browser gate remain open.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T12:33:58Z",
-    "result": "terminal_red;Backend unit success;Backend integration failure;Frontend Unit success;Branch-declared/Exhaustive/Playwright skipped",
-    "run_id": 39949218663,
-    "sha": "1adb658d4f7131876d30beb410f48ffb66e93aa8"
+    "recorded_at": "2026-10-23T13:05:43Z",
+    "result": "terminal_red;Frontend Unit success;Backend unit failure: 1 narrative sentinel failed, 5235 passed, 1 skipped, 37 warnings; Backend integration and later jobs skipped",
+    "run_id": 39957012029,
+    "sha": "dc43bb65403457c6745dcc9c10df0da97631e9dc"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
@@ -357,8 +353,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Do not rerun CI39949218663. Keep AC1 commit12ac3b694 distinct from the consumer fixture changeset and published manual-import code. Push the coherent branch once so exact-source CI can test the pending DB-backed integration cases; branch-declared ETF live tests are explicitly set to0. Inspect all exact-source results and nearest's response.text. Root's next local full_stack_browser slot is after harness publication; no local DB/container/browser run before it. Continue full AC1-AC14, issuer audit/onboarding, route/quota holds, retained data, quarantines,15 Tier-0/156 Tier-1 and30-day observation; no external calls, quota, paid/trial, cleanup, or cross-worktree writes.",
-  "plan_hash": "8bf63fc4c320dd0100d8350116b3c7efb184db263c46a0092d38768a948cdf78",
+  "next_action": "Commit and publish this coherent owner-record correction once, then inspect exact-source CI; do not rerun failed run39957012029. The already-published consumer fixtures still lack DB-backed proof; await Root's exclusive full_stack_browser slot before any local DB/container/browser profile. Preserve the RSST no-import disposition and all AC1-AC14 scope, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and 30-day observation; no external calls, quota, paid/trial, cleanup, or cross-worktree writes.",
+  "plan_hash": "0de2f7f42faf10624e1b049e74c29969a37a9450274be6370e7dcfcbf4641c4a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -409,10 +405,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23T12:33:58Z: Exact CI39949218663 on1adb658 is terminal red in Backend integration; Backend unit and Frontend Unit passed, later jobs skipped. Local AC1 docs/sentinel and separate integration-test fixture edits are not covered. The fixture edits have stack-free checks but no DB-backed integration proof. Keep the manual-import source identified as already published and RSST unimported; full_stack_browser remains Root-slot-gated; full AC1-AC14, holds and quarantines remain.",
-    "current_phase": "rsst_manual_import_safety_and_ci_reconciliation_2026_10_23",
-    "next_action": "Do not rerun CI39949218663. Keep RSST unimported. Validate the already-dirty test fixture changes at the next permitted bounded integration slot, including the nearest-snapshot401 response body; do not commit them as proven before that. Preserve source/test contexts as separate changesets and continue the full roadmap without external calls or an unassigned heavy profile.",
-    "updated_at": "2026-10-23T12:44:34Z"
+    "current_blocker": "2026-10-23T13:07:36Z: Exact CI39957012029 on synchronized dc43bb65403457c6745dcc9c10df0da97631e9dc is terminal red: Frontend Unit passed; Backend unit reported 5235 passed, 1 failed, 1 skipped, 37 warnings; Backend integration and downstream jobs skipped. The sole failure was this owner-record inconsistency: the prior nested blocker omitted the required exact 15 Tier-0 and 156 Tier-1 phrase. This record is now corrected and the focused sentinel passed1/1; preserve the hosted run as red. The consumer fixtures remain without DB-backed proof. Keep RSST unimported; full_stack_browser is Root-slot-gated; full AC1-AC14, 15 Tier-0 and 156 Tier-1, holds and quarantines remain.",
+    "current_phase": "reconcile_latest_narrative_sentinel_failure_2026_10_23",
+    "next_action": "Commit and publish the corrected owner record once, then inspect the resulting exact-source CI. Do not rerun CI39957012029 or start DB/browser work before Root assigns the full_stack_browser slot. Preserve RSST unimported, all route/rights/quota holds, AC1-AC14, quarantines and the 30-day observation.",
+    "updated_at": "2026-10-23T13:08:30Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -424,9 +420,9 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "1adb658d4f7131876d30beb410f48ffb66e93aa8",
-  "remote_sha": "1adb658d4f7131876d30beb410f48ffb66e93aa8",
-  "remote_synchronized": false,
+  "remote": "dc43bb65403457c6745dcc9c10df0da97631e9dc",
+  "remote_sha": "dc43bb65403457c6745dcc9c10df0da97631e9dc",
+  "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",

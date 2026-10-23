@@ -1,6 +1,36 @@
 # feat/etf-holdings-constituents
 
-## Current owner checkpoint — integration harness-fix publication — 2026-10-23T12:52:13Z
+## Current owner checkpoint — narrative sentinel reconciliation — 2026-10-23T13:08:30Z
+
+The exact consumer fixture context is already committed and pushed at
+`dc43bb65403457c6745dcc9c10df0da97631e9dc`; local HEAD and origin are clean
+and synchronized. It changed only integration-test fixtures/helper and owner
+records; it did not modify the manual-import router/service context, which is
+already published with its prior 62/62 focused result. Exact Actions run
+`39957012029` on `dc43bb6` is terminal red: Frontend Unit passed; Backend unit
+failed only `test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`
+(5235 passed, 1 failed, 1 skipped, 37 warnings); integration and downstream
+jobs were skipped. The cause is that the prior
+`session.json.progress.current_blocker` omitted the required exact
+`15 Tier-0 and 156 Tier-1` phrase. The focused sentinel passed 1/1 after the
+record correction; the workstream validator, JSON/JSONL parsing, plan hash,
+and diff check also pass. Preserve the exact run as red; do not rerun it or
+describe it as a product/route failure.
+
+This receipt corrects the stale session narrative and records the current
+published SHA/run. The test fixture commit has static checks but still no
+DB-backed local proof; the red CI skipped backend integration, so it did not
+prove those fixtures. The required `full_stack_browser` profile remains under
+Root's exclusive resource-slot control. Keep RSST unimported: accepted f04
+does not establish a manual-only no-enrichment path, the retained CSV's futures
+are not safely typed by its generic parser, native adapter-success health would
+be recorded, and original request URL plus storage/display rights are
+unverified. No import, live HTTP, quota, activation, fixture, cleanup, or
+cross-worktree action occurred. Preserve the full AC1-AC14 roadmap, the `15
+Tier-0 and 156 Tier-1` audits, MSMR/QQQ and Militia/GOOG quarantines, all route
+and cost holds, retained data, and the 30-day observation.
+
+### Historical pre-publication checkpoint (recorded 12:52Z)
 
 At the recorded UTC check time, local ETF HEAD is `12ac3b694` and origin is `1adb658d4f7131876d30beb410f48ffb66e93aa8`; the owner branch is one local commit ahead before the pending test-only harness commit. Exact CI `39949218663` is terminal red on `1adb658`: Backend unit and Frontend Unit passed; Backend integration failed; Branch-declared, Exhaustive, and Playwright were skipped. Backend job `120399294993` reports 12 failures, 486 passes, and 2 skips. Preserve this result; do not rerun it. The manual-import known-at/PIT source is already published; there are no dirty router/service files. Its recorded 62/62 focused service/router tests are prior evidence, not a claim that this red exact CI passed.
 

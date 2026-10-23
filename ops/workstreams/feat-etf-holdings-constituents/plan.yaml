@@ -561,63 +561,27 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: publish_consumer_integration_harness_fix_2026_10_23
+current_phase: reconcile_latest_narrative_sentinel_failure_2026_10_23
 current_blocker: >-
-  CURRENT RECONCILIATION 2026-10-23T12:52:13Z: Local HEAD is12ac3b694 after
-  a distinct local AC1 documentation/sentinel commit; origin remains
-  1adb658d4f7131876d30beb410f48ffb66e93aa8. Exact CI39949218663 on1adb658 is
-  terminal red: Backend unit and Frontend Unit passed; Backend integration
-  failed; Branch-declared, Exhaustive, and Playwright were skipped. Backend
-  job120399294993 reports12 failed,486 passed,2 skipped: three overlap queries,
-  two historical basket queries, nearest-snapshot401, two strategy PIT cases
-  rejected by the backdated-manual-import guard, three dynamic ETF strategy400s,
-  and ETF industry PIT404. Preserve the run; do not rerun. AC1 commit12ac3b694
-  and remaining test-only fixtures postdate it, so it validates neither. Ruff
-  check/format, Python compilation, workstream validation, JSON/JSONL parsing,
-  plan-hash parity, and diff check pass. The nearest-snapshot assertion now
-  includes response.text but has not been run. No local DB-backed profile was
-  run; this is not integration proof. The published manual-import source context is
-  not dirty and its prior focused service/router evidence is62/62. Accepted-f04
-  RSST import remains unsafe: initial request URL and storage/display rights
-  are unverified, there is no manual-only no-enrichment path, generic CSV
-  parsing misclassifies futures, and manual ingestion records adapter-success
-  health. Keep RSST unimported/non-routable. Preserve full AC1-AC14, 15 Tier-0
-  and 156 Tier-1, all quarantines/disabled routes, retained data and the
-  post-integration 30-day observation. No live HTTP, quota, import, activation,
-  local fixture, cleanup, staging/sibling/master write, promotion or deployment.
-  Everything below this current block is preserved historical evidence and
-  does not override the state recorded here.
-  The `full_stack_browser` local profile remains pending Root's exclusive
-  resource slot. Keep the accepted checkpoint distinct from the open full
-  fourteen-criterion roadmap, issuer onboarding, and 30-day observation.
-  Preserve historic validation detail in the remaining text below as prior
-  exact-source receipts; the current reconciliation supersedes older source/status
-  receipts; the current reconciliation below supersedes older source/status
-  values. On 2026-10-23 the coordinator's accepted green common staging source
-  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad (exact CI39866387942, canonical
-  receipt /home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json)
-  was fetched and verified. That exact commit is already an ancestor of ETF
-  HEAD 680d8b6c3851f57072d97caee35512f21092ed2d, so no duplicate merge or
-  branch mutation was needed. Exact run39880187551 on that published ETF HEAD
-  is terminal green for Frontend Unit Tests, Backend Tests, Branch-declared
-  Tests, and E2E Playwright; Exhaustive Integration Gate was skipped by
-  feature-branch policy. This run does not include the local change below. A
-  bounded UTC known_at guard is
-  locally covered by the capability, refresh, and resolution modules (186
-  passed), and its records/checks are being reconciled before publication.
-  The parent run is preserved at terminal green before publishing the new
-  source; its exact-source CI remains required. The required full_stack_browser profile remains unrun
-  pending Root's exclusive host-slot release. The accepted bounded ETF
-  checkpoint remains accepted, but the full fourteen-criterion roadmap, issuer
-  onboarding, and post-integration 30-day observation remain open. Preserve all
-  historical red/partial receipts, quarantines, holds, and the `15 Tier-0 and
-  156 Tier-1` investigations.
-  The initial ETF integration checkpoint is accepted in synchronized green
-  staging 0e342512e53ba2268425294d61c50e219eaafa4f; all fourteen original
-  roadmap criteria, issuer onboarding, and post-integration 30-day observation
-  remain open. Source 81be3e1f83c35f40ea79567beccfd2462cc26d4d corrected
-  no-snapshot terminal capability display without weakening unknown or failed
-  route states. Follow-up source 535f8928da53da9c20838007336d71b6e627e4c9
+  CURRENT RECONCILIATION 2026-10-23T13:07:36Z: Local ETF HEAD and origin are
+  synchronized at dc43bb65403457c6745dcc9c10df0da97631e9dc. Exact CI
+  39957012029 on that SHA is terminal red: Frontend Unit passed; Backend unit
+  failed one narrative-count sentinel (5235 passed, 1 failed, 1 skipped, 37
+  warnings); Backend integration and later jobs were skipped. The failure is
+  record consistency, not a product or ETF-route failure: the prior nested
+  session progress blocker omitted the required `15 Tier-0 and 156 Tier-1`
+  phrase. The current record is corrected and the focused sentinel passed1/1;
+  preserve the failed exact run and do not rerun it. The consumer fixture changes from
+  dc43 are published but remain without local DB-backed validation; hosted
+  integration did not run. RSST remains unimported/non-routable: initial URL
+  and storage/display rights are unverified, accepted f04 has no manual-only
+  no-enrichment path, generic CSV parsing misclassifies futures, and manual
+  ingestion records adapter-success health. Preserve AC1-AC14, `15 Tier-0 and
+  156 Tier-1`, quarantines, disabled routes, retained data, and the 30-day
+  observation. No issuer/provider/SEC requests, quota, import, activation,
+  fixture, cleanup, staging/sibling/master write, promotion, or deployment.
+  The full_stack_browser profile remains pending Root's exclusive slot.
+  Earlier sections below remain historical evidence and are not current state.
   synchronizes each of the 74 runtime fallback identity investigation dates
   with its current durable provider-audit row; dates are evidence chronology,
   not route eligibility or current holdings claims. The deterministic capability
@@ -1788,16 +1752,15 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Do not rerun CI39949218663. Keep AC1 commit12ac3b694 as its own substantive
-  change and retain the separate consumer test-fixture changeset; do not mix
-  either with the published manual-import code. Focused stack-free checks pass
-  and branch-declared defaults explicitly disable live ETF tests. Push the
-  coherent current branch once so exact-source CI can validate the pending
-  database-backed integration cases. Root's recorded next exclusive
-  full_stack_browser slot is after harness-fix publication; do not start local
-  DB/container/browser work before that slot. Inspect the new exact CI, including
-  response.text from the nearest-snapshot test if it still fails. Preserve all
-  PIT/current/identity assertions, AC1-AC14, the full issuer audit/onboarding,
-  15 Tier-0 and 156 Tier-1, route/quota holds, retained data, quarantines and
-  30-day observation. No external calls, quota, paid/trial, cleanup or
-  cross-worktree writes.
+  The nested session blocker and exact CI39957012029 result are corrected in
+  this workstream; the focused no-network narrative sentinel passed1/1, and
+  workstream, JSON/JSONL, plan-hash and diff checks pass. Commit and publish
+  this coherent owner-record correction once, then inspect its exact-source
+  CI. Do not rerun CI39957012029. The consumer fixtures are already
+  published at dc43 but have no local DB-backed proof; wait for Root's assigned
+  full_stack_browser slot before any such profile. Keep the RSST sample
+  unimported and all rights/provenance uncertainty explicit. Preserve the full
+  AC1-AC14 roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
+  quarantines, disabled route/quota/paid/trial holds, retained data, and the
+  30-day observation. No live HTTP, quota, import, activation, cleanup,
+  cross-worktree write, staging integration, promotion, or deployment.
