@@ -3,15 +3,15 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
-latest_staging_merge_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+latest_staging_parent_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+latest_staging_merge_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
 dependency_authorization: >-
   Human-approved four-feature integration; coordinator released exact synchronized
-  Provider+ETF+TC2000+Strategy staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
-  (canonical green receipt 20261023T051709Z-f04fb2a26c63.json; CI39896524209
-  attempt 1) for guarded adoption into this TC-owned branch. Earlier accepted
-  baseline 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad remains its merge base and
-  history; this adoption does not close the full TC roadmap or V25 parity.
+  Provider+ETF+TC2000+Strategy staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+  (canonical green receipt 20261023T150603Z-a6b9cc8d4fc2.json; CI39962134726
+  attempt 1) for guarded adoption into this TC-owned branch. The prior accepted
+  baseline 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad and intermediate f04 release
+  remain in history; this adoption does not close the full TC roadmap or V25 parity.
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
   and, on 2026-09-15, explicitly approved a scope replan so this branch consumes
@@ -66,26 +66,25 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Current 2026-10-23T18:27Z: exact CI39993743859 on the then-current source
-  reported 190 passed,110 declared skips, and2 retry-passing flakes (F8e
-  native-indicator-selection and F8y-tag-columns), therefore terminal red.
-  Its verified artifact ZIP SHA256 is
-  529a48436562186f14d3b9b1d8bd2e5de28de85099efdfa073e7c7f6f59c687e. The
-  screenshots and first-attempt error contexts confirm the symptoms, but both
-  embedded traces are successful retries because Playwright uses
-  trace:on-first-retry; first-attempt event causality remains unknown. A
-  test-scoped automatic fixture now retains a trace only when the first
-  attempt of these two named tests fails. It reads resolved project trace mode
-  and defers to built-in tracing when that mode already records attempt0;
-  default on-first-retry still uses the scoped manual trace, while retry
-  attempts remain under the existing runner policy. Actions, assertions,
-  timeouts, retry/failOnFlaky policy, and visual policy are unchanged. Exact
-  two-test collection passed under default, --trace=on, and
-  --trace=retain-on-failure; Vue type-check passed. No browser/fixture was run.
-  Publish this narrow evidence-instrumentation candidate for one normal
-  exact-source CI, then use actual first-attempt traces before proposing any
-  behavior fix. Full AC1-AC9, F8y positive/negative browser proof, SX/IX,
-  Provider/ETF, provider/data holds, and official REF-HELP-V25 remain open.
+  Current 2026-10-23T19:17Z: accepted four-feature release a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+  is now merged into the TC feature branch after the required handoff-only
+  capacity audit commit. Exact pre-merge CI40003951941 on 1e8f9803f4ddd225cb4649db3a9cf9f30e83580f
+  is terminal green for Backend, Frontend, Branch-declared and E2E; the feature
+  Exhaustive Integration Gate was an expected skip. The new combined branch
+  source has not yet run its own exact CI. The accepted release adds the
+  additive market_series_default created_at/updated_at migration after
+  slv2_0011, with fresh/retained mapping compatibility covered in its green
+  migration gates; TC's selected-default consumer and identity behavior remain
+  unchanged. The merge also carries the narrow F8m initial-rail/SPY fixture
+  setup and exact migration-path classifier tests. Stack-free checks passed on
+  the merge worktree: 18 classifier/workflow tests, the migration-head
+  compatibility test, 864 byte-verified imports/29 approved adaptations, and
+  workstream validation. No local DB, fixture, browser, service, seed or
+  provider action was run. The spent F8y slot and its
+  inputValue latency remain unresolved; retain all assertions/timeouts/retry
+  policy, full AC1-AC9, SX/IX unknowns, provider/data holds, and official
+  REF-HELP-V25. Publish this merge candidate for its own exact-source CI before
+  treating the accepted dependency merge as branch-qualified.
 
   Historical detailed F8y trace findings: the F8y slot TC-SLOT-20261023T1400Z remains
   consumed once on exact source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
@@ -383,24 +382,22 @@ current_blocker: >-
   files. F8y remains unresolved; its consumed zero-retry run stalled in
   Playwright inputValue/trace collection before any lock request was dispatched.
 current_checkpoint_status: >-
-  Current clarification 2026-10-23T17:14Z: the scoped six-source/test and
-  four-record candidate is being published after the full V8 gate passed
-  locally on that dirty snapshot (144/144 files,1,406/1,406 tests,70.07%
-  functions) and Vue type-check exited0. Exact CI39935342169 remains red on
-  prior committed a83 at69.04%; candidate exact-source CI is pending. The
-  changed-path local profile includes full_stack_browser, but the F8y slot is
-  consumed; this intermediate commit does not claim browser acceptance. The
-  saved F8y trace and service logs
-  show the 60-second deadline elapsed while the earlier watchlistSelect.inputValue
-  browser command was still running. The test reporter points at the later
-  page.request lock POST line, but that request was never dispatched; this is
-  not evidence of route rejection. The before-snapshot took52.726s to complete,
-  including27.303s measured inside the page's Playwright snapshot traversal,
-  about25.423s outside that measurement, then12.996s for locator resolution.
-  The selector already existed in the prior snapshot. Backend/frontend health
-  and nearby app requests were responsive; root cause of browser/driver/page
-  latency remains unproven. Preserve the original artifacts,60-second timeout,
-  assertions and zero retries. No replay or source fix is supported.
+  Current 2026-10-23T19:17Z: exact green staging/master a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+  (canonical receipt 20261023T150603Z-a6b9cc8d4fc2.json; CI39962134726) has
+  been merged into the TC-owned branch with the handoff-only retained-runtime
+  audit preserved in commit 996a975f3b6276a8e86a47bd509e93ca2f0f030a. Current
+  combined branch exact CI is pending publication; the previous exact
+  CI40003951941 was green only for its pre-merge 1e8f source. The accepted
+  migration is additive ORM timestamp parity on market_series_default, based
+  on slv2_0011, not a historical rewrite; accepted migration tests cover fresh
+  and retained rows. No local migration DB or retained service was touched.
+  Branch changes include a narrow test/setup adjustment for F8m and automated
+  classification of this exact inert timestamp-only migration shape. The
+  merged worktree passed 18 targeted classifier tests, the migration-head
+  compatibility test, the full scope guard with 864 immutable imports/29
+  adaptations, and workstream validation. F8y's
+  60-second inputValue stall remains unproven and its one browser slot remains
+  consumed. Full AC1-AC9, V25 Help parity, and broader validation remain open.
 
   Historical 14:54 coordinator slot result: the saved test failure was
   originally reported at flows.spec.ts:7592; later trace review proved the
@@ -1364,7 +1361,7 @@ dependencies:
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e.yaml
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
     source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -1599,6 +1596,9 @@ approved_frozen_upstream_snapshots:
   - source_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.json
     receipt_sha256: 417db4c47e05f9e3119de50ef7a0d6058b790577427eff92a6c6c93bba89fa94
+  - source_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e.json
+    receipt_sha256: ca0560d37c7d387295e07b90273ac9a1e07cd01b3330e628128abb892a230050
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an

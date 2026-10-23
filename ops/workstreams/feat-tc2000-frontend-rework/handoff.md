@@ -1,5 +1,48 @@
 # feat/tc2000-frontend-rework
 
+## Current accepted dependency adoption — 2026-10-23 19:12Z
+
+The feature branch has adopted the exact synchronized green release
+`a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`, verified at both remote `staging`
+and `master`; its canonical receipt is
+`20261023T150603Z-a6b9cc8d4fc2.json`, and exact staging CI `39962134726` has
+all required backend, frontend, exhaustive, and E2E jobs green. This supersedes
+the prior `4687`/`f04` dependency baseline without removing either history.
+Before syncing, exact own CI `40003951941` was green on `1e8f9803f4ddd225cb4649db3a9cf9f30e83580f`
+(Backend, Frontend, Branch-declared, E2E; feature EIG expected skip); it does
+not validate the merged tree. The own feature remote was verified at that
+`1e8f` source before the merge. The retained-resource audit was committed
+separately first as `996a975f3b6276a8e86a47bd509e93ca2f0f030a` and is preserved
+in this merge.
+
+The accepted delta is limited to additive `market_series_default.created_at`
+and `updated_at` columns after `slv2_0011`, a migration head/compatibility
+assertion update and fresh/retained-row PostgreSQL migration coverage; the
+upstream exact green migration gates provide the database proof, and no local
+database migration or retained service was run here. The orchestration/session
+change recognizes only the exact inert timestamp-parity migration shape and
+has matching rejection tests; it does not waive other migration/runtime scope.
+The overlapping F8m test merge is conflict-free: it preserves this branch's
+first-attempt trace fixture and adds the accepted initial indicator-rail
+readiness plus explicit SPY identity checks before the ordinary clicks. No
+product assertion, timeout, retry, visual tolerance/reference, or provider
+policy was changed by the merge.
+
+The merged feature tree still needs its own exact-source CI. No local fixture,
+browser, database, service restart/seed, provider request, or retained-resource
+mutation occurred; all retention holds remain, including the 26 queued and 252
+completed research-run records. `PROVIDER_ROUTING_ENABLED` remains unknown in
+the legacy runtime. The F8y one-case slot remains spent and its `inputValue`
+delay is unresolved. Full AC1–AC9, SX/IX identity/weight/PIT/history-lineage
+work, and official REF-HELP-V25 parity remain open.
+
+Stack-free validation on the merge worktree passed the 18 focused migration
+classifier/workflow cases and the migration-head compatibility case. The TC
+scope guard passed for 1,009 changed paths with 864 exact immutable imports
+and 29 approved adaptations; the workstream validator passed. These checks do
+not run the new PostgreSQL migration integration fixture and do not qualify
+the combined branch until its own hosted exact-source CI completes.
+
 ## Read-only retained-resource capacity audit — 2026-10-23
 
 During exact CI40003951941, the Docker project matching the assigned TC

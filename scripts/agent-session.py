@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import contextlib
 import fcntl
 import hashlib
@@ -748,6 +749,65 @@ def external_service_path(path: str) -> bool:
     )
 
 
+def internal_timestamp_parity_only(source: str) -> bool:
+    """Recognize only the existing internal mapping's additive ORM parity DDL.
+
+    Compare an entire inert module AST, not a caller-supplied exemption flag.
+    Unknown imports, statements, defaults, SQL and historical edits stay gated.
+    """
+    template = """
+from collections.abc import Sequence
+import sqlalchemy as sa
+from alembic import op
+revision: str = "revision"
+down_revision: str | None = "parent"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+def upgrade() -> None:
+    op.add_column("market_series_default", sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False))
+    op.add_column("market_series_default", sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False))
+def downgrade() -> None:
+    op.drop_column("market_series_default", "updated_at")
+    op.drop_column("market_series_default", "created_at")
+"""
+
+    def normalized(text: str) -> str:
+        tree = ast.parse(text)
+
+        def without_docstrings(body: list[ast.stmt]) -> list[ast.stmt]:
+            return [
+                item
+                for item in body
+                if not (
+                    isinstance(item, ast.Expr)
+                    and isinstance(item.value, ast.Constant)
+                    and isinstance(item.value.value, str)
+                )
+            ]
+
+        tree.body = without_docstrings(tree.body)
+        for item in tree.body:
+            if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                if item.target.id in {"revision", "down_revision"}:
+                    if not (
+                        isinstance(item.value, ast.Constant)
+                        and isinstance(item.value.value, str)
+                        and re.fullmatch(r"[A-Za-z0-9_]{1,64}", item.value.value)
+                    ):
+                        raise ValueError("migration identity must be inert")
+                    item.value = ast.Constant(
+                        "revision" if item.target.id == "revision" else "parent"
+                    )
+            elif isinstance(item, ast.FunctionDef):
+                item.body = without_docstrings(item.body)
+        return ast.dump(tree, include_attributes=False)
+
+    try:
+        return normalized(source) == normalized(template)
+    except (SyntaxError, TypeError, ValueError):
+        return False
+
+
 def provider_integration_changed(plan: dict[str, Any], worktree: Path) -> bool:
     """Detect provider integration changes against the recorded branch base."""
 
@@ -759,7 +819,42 @@ def provider_integration_changed(plan: dict[str, Any], worktree: Path) -> bool:
     )
     if result.returncode:
         return True
-    return any(external_service_path(item) for item in result.stdout.splitlines())
+    paths = result.stdout.splitlines()
+    runtime_changed = any(
+        item.startswith("backend/app/") and "/tests/" not in item for item in paths
+    )
+    sole_migration = (
+        sum(item.startswith("backend/alembic/versions/") for item in paths) == 1
+    )
+    for item in paths:
+        if not external_service_path(item):
+            continue
+        if (
+            item.startswith("backend/alembic/versions/")
+            and sole_migration
+            and not runtime_changed
+        ):
+            # Only an ADDED immutable HEAD blob can qualify. Never inspect a
+            # mutable working-tree substitute or exempt a historical rewrite.
+            added = run(
+                "git",
+                "diff",
+                "--name-status",
+                "--diff-filter=A",
+                f"{base}...HEAD",
+                "--",
+                item,
+                cwd=worktree,
+                check=False,
+            )
+            if added.returncode == 0 and added.stdout.strip() == f"A\t{item}":
+                content = run("git", "show", f"HEAD:{item}", cwd=worktree, check=False)
+                if content.returncode == 0 and internal_timestamp_parity_only(
+                    content.stdout
+                ):
+                    continue
+        return True
+    return False
 
 
 def provider_live_evidence_current(stream: Path, head: str, worktree: Path) -> bool:
