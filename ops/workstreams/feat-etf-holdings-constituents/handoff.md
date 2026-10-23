@@ -14973,3 +14973,96 @@ SPDR's native adapter/curated symbol mapping is in the ETF adapter catalog, whil
 Practical disposition: if a real, rights-reviewed SPY/RSP artifact is independently available, an administrator may import it with original body and accurate source, identity, publication/composition/as-of/known-at, completeness, and rights provenance, but accepted f04 does not clearly isolate imported success from native adapter success; do not rely on that import for current support until the distinction is resolved. Static source logic indicates the API could still mark a sufficiently caller-attested import `CURRENT`; this has not been reproduced at runtime and is not evidence of Provider admission. The local artifact search found no such SPY/RSP basket: the retained RSST CSV is for RSST and lists SPYM only as a constituent. For a native SPY request, the profile binding is supported, but f04 lacks a demonstrated bootstrap path for the shared SPDR admission records. Required evidence still includes actual issuer/product and route identity, reviewed host/redirect and permitted-use/retention terms, actual request/quota dimension facts, account-scope binding, and evidence for any zero recurring commitment plus the reviewed aggregate budget; none is inferred from public reachability or application safety caps. Do not call the route or imported sample admitted/current until those records and runtime checks exist.
 
 No API, import, profile/runtime row, policy, entitlement, quota, commitment, budget, activation, upstream HTTP, fixture, data operation, cleanup, or external write was performed. This is a source/retained-evidence conclusion only; all ETF roadmap and safety gates remain open. The adapter timeout, redirect ceiling, canary symbol cap, and other app-side safety limits are not SPDR quota/rate-limit/account-counter or cost facts. Those publisher-native facts remain unknown absent reviewed evidence. The corrected workstream validator accepted the record, the exact narrative-count sentinel passed1/1, session/JSONL parsing and session-to-plan hash comparison passed, and `git diff --check` passed. These checks do not establish Provider admission or sample eligibility.
+
+## Accepted-f04 SEC first-use path review — 2026-10-23 15:30Z
+
+Read-only review of immutable accepted f04 `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` and Root's `etf-historical-view-review-20261023.md`: accepted f04 cannot currently populate a genuine SEC historical holdings sample through its normal SEC bootstrap/backfill without crossing the shared Provider admission boundary. This is a source-path conclusion, not a live SEC availability test.
+
+- `backend/app/services/etf_holdings_edgar.py::_HeldSECHTTPXNamespace.AsyncClient` (lines 24-36) raises `ETFHoldingsRouteHeldError` requiring a dedicated reviewed `ETF_HOLDINGS` binding. Both `discover_holdings_filings` (300-325) and `_backfill_sec_holdings` (421 onward; filing fetch at 498-525) use that namespace. The admin routes `backfill_sec_nport_holdings_for_etf` / `backfill_sec_legacy_holdings_for_etf` (router lines 1175-1218) call those services; they do not bypass the hold. `bootstrap_etf_holdings_profile` (refresh service lines 1303-1405) may call SEC fund-ticker enrichment and `_bootstrap_from_sec_filings` (659-715) when no issuer route is ready, but that fallback reaches the same held transport. A configured CIK or normal bootstrap/backfill invocation therefore does not make SEC data available today.
+- The shared ETF bridge `execute_etf_holdings_request_attempt` (provider bridge lines 494-600) handles bound, per-physical-attempt requests. `_review_attempt_context` requires a committed profile/instrument and matching publisher/adapter identity, shared `DataSource`, explicitly enabled `ETF_HOLDINGS` policy, reviewed HTTPS host and operation evidence, entitlement, configured account-scope binding matching review evidence, and an active verified-zero-cost commitment within the shared aggregate recurring-cost budget (lines 365-491). SEC's transport namespace is explicitly not bound; do not route around it or infer admission from an admin endpoint.
+- Separate admin-supplied XML handlers `ingest_sec_nport_holdings` and `ingest_sec_legacy_holdings` (router lines 1080-1172) parse caller-supplied XML and pass filing URL/accession/provenance/raw XML to `_ingest_snapshot_or_400`. This persists an already-acquired artifact; it does not make or account for the acquisition request. In accepted f04 these handlers omit `allow_provider_enrichment=False`, although `ingest_holdings_snapshot` exposes it and defaults to `True` (service lines 1110-1131). More importantly, ingestion unconditionally calls `_record_adapter_success` with `profile.adapter_key or source_provider` (1313-1330); `_record_adapter_success` sets adapter status to success and last-success/check timestamps (1432-1464). Thus this is not a safe SEC-backfill workaround: disabling enrichment alone would still risk attributing a manual SEC import to native adapter health. Do not describe an admin XML import as issuer-native or Provider-admitted.
+- The XML handlers supply `known_at=body.known_at or body.published_at` and `published_at=body.published_at`. If both are absent, `ingest_holdings_snapshot` falls back to `_date_end(composition_date)` (1162), which can claim knowledge at composition time without evidence of filing acceptance/publication or actual observation/import time. In contrast, the held backfill path derives `_known_at(filing)` from acceptance datetime, falling back to filing-date UTC midnight and finally current UTC (`etf_holdings_edgar.py:104-109`); it writes that as both known and published time and preserves filing URL, accession, raw response and SEC provenance while setting `allow_provider_enrichment=False` (`:542-569`). Filing-date fallback remains coarse and is not exact public-availability proof.
+- `evaluate_capability` maps SEC source tier to `DEGRADED` with the reason that reconstructed SEC holdings are not issuer-current support (`etf_holdings_capability.py:401-453, 2235-2340`); `usable_for_current_analysis` requires `CURRENT` and a current source tier (`:2401-2409`). A properly evidenced SEC snapshot may support historical/last-known display, not current constituent analysis or native adapter health. Retain SEC provenance, source URL/accession, raw filing, composition/as-of dates, evidence-based publication/known-at, completeness/identity limitations and unresolved rows. PIT eligibility must follow the actual known-at cutoff, not improve merely because data was imported today.
+
+Disposition: accepted f04 has no safe normal SEC population path until the dedicated reviewed shared SEC request binding is implemented/released. An already acquired genuine filing would still require a safe historical/manual-ingest contract that suppresses enrichment and native adapter-success writes and never infers `known_at` from composition date; accepted f04's public SEC XML handlers do not establish those protections. No filing was fetched/imported and no DB, credential, provider policy, entitlement, budget, commitment, fixture, route, source or external system was changed. This is immutable-source review only—not evidence of SEC reachability, a populated target, or issuer-native SPY/RSP availability. Exact-branch CI running on the unchanged published source does not validate this audit. The full AC1-AC14 roadmap, existing holds/quarantines and remaining gates remain open.
+
+## SEC XML admin-ingest historicalization follow-up — 2026-10-23 15:34Z
+
+Continued from that static gap on the ETF branch without enabling SEC transport or importing a filing. Both admin XML routes (`ingest_sec_nport_holdings` and `ingest_sec_legacy_holdings`) now invoke the existing `ingest_holdings_snapshot` manual-import mode with `allow_provider_enrichment=False` and `manual_import=True`, matching the already guarded manual rows/CSV paths. They now pass `known_at=body.known_at` independently from `published_at`; a historical filing publication date is retained but cannot be mistaken for this system's import knowledge time. When no explicit valid known-at is provided, the service records the actual import clock. Existing service behavior forces SEC source tier to `sec_filing` and suppresses `_record_adapter_success` for manual imports, so the route cannot mark SPDR/native adapter health successful from an admin-uploaded filing.
+
+Added route regression covering both N-PORT and legacy endpoints: original raw XML, source URL/accession, SEC provenance, and old `published_at` remain bound; enrichment is disabled; manual-import mode is explicit; and no `known_at` is copied from `published_at`. Strengthened the existing service regression to verify persisted `known_at` equals import time, old filing `published_at` is preserved, SEC source tier remains, capability is degraded/non-current, and no SEC/native adapter-health state is created. The focused router file passed3/3; the service module manual-import/SEC selection passed3/3 (59 deselected); Ruff check and format-check passed for the three changed code/test files; `git diff --check` passed. An initial service assertion observed SQLite's naive timestamp retrieval; the assertion was corrected to normalize the returned stored timestamp to UTC, preserving the expected instant. This was test-only and remains recorded in validation history.
+
+Exact published-source Actions run `39974388339` remains in progress on source `867650d1dd8a15683438aa51cd7120d1a893f76f`: Backend, Frontend Unit, and Branch-declared jobs passed; Playwright is still running; Exhaustive is skipped by feature-branch policy. This local SEC ingestion correction is not part of that run and has no hosted validation yet. Do not publish until that exact run is terminal, then preserve its result and publish the coherent changeset once for exact-source CI. No SEC/provider/issuer HTTP, quota, DB import/write, credentials, route activation, fixture, service cleanup, staging/sibling/master write, or deployment occurred. SEC backfill remains held pending reviewed shared-runtime wiring; this change only makes an already-admin-supplied genuine SEC artifact historical and non-native if separately and lawfully obtained. Full AC1-AC14 and all existing quarantines/holds remain open.
+
+### Prior-source CI closure and required-gate disposition — 2026-10-23 15:42Z
+
+Authenticated job inspection confirms exact Actions run `39974388339` is terminal successful on published `867650d1dd8a15683438aa51cd7120d1a893f76f`: Backend, Frontend Unit, Branch-declared, and Playwright E2E passed; Exhaustive Integration was skipped by feature-branch policy. This is not validation of the local six-path SEC-ingest changeset. Focused local tests and source formatting are green, but the workstream still classifies `full_stack_browser` as required; it has not been run on this local diff. The coordinator priority file expressly forbids starting a new fixture/browser run now, and no fresh local profile slot is assigned. No commit/push was made to bypass that gate.
+
+Validation/resource disposition for Root: exact local profile need remains the existing branch-declared `full_stack_browser` matrix at the then-current exact feature SHA, using its approved pinned zero-retry runner, explicit live flags `RUN_LIVE_ETF_HOLDINGS_TESTS=0` and `RUN_LIVE_PROVIDER_TESTS=0`, single worker and previously recorded resource/ownership safeguards. Do not recapture the protected baseline or clean retained services/data; wait for Root's sequential slot. No actual SEC backfill/live replay is requested or run: accepted transport remains held, credential access and live activation are forbidden, and the prior 119 consumed requests must not be replayed. The exact required live/SEC evidence is therefore unfulfilled, not waived; Root should record reviewer denial or provide a specific separately authorized non-quota evidence path if the mandatory live matrix cannot be met inside current holds. Do not stage/commit this changeset while those mandatory validation gates remain outstanding. Continue only bounded offline SEC implementation planning/unit work until resource/gate disposition arrives, preserving all prior red/partial receipts, quarantines, holds, full AC1-AC14 and the 30-day observation.
+
+## SEC filing-date PIT fallback regression — 2026-10-23 15:48Z
+
+The SEC XML manual-ingest changeset remains uncommitted: its declared
+`full_stack_browser` profile has not run on changed source, and the coordinator
+has not assigned a fixture slot or dispositioned any applicable reviewed live
+matrix. The priority note prohibits a new fixture and publication around
+unmet mandatory gates. Exact CI `39974388339` is green only for the unchanged
+published parent `867650d1`; it does not cover this worktree diff.
+
+Added a deterministic regression for the date-only EDGAR fallback in
+`_known_at`: when acceptance timestamp is absent, the SEC filing date is
+day-granular, so the conservative known-at boundary is the end of that UTC day
+rather than midnight. Exact EDGAR acceptance timestamps remain unchanged. This
+prevents intraday PIT queries earlier on the filing date from seeing a record
+whose actual acceptance time is unknown. SEC backfill transport remains held;
+this does not establish reachability or enable acquisition.
+
+Validation: `test_etf_holdings_edgar.py` plus
+`test_etf_holdings_manual_import.py` passed 7/7; the manual-import/SEC service
+selection passed 3/3 (59 deselected); changed-file Ruff check and format-check
+passed; `git diff --check` passed. An initial format check identified the new
+test formatting; Ruff formatted the test and the final check passed. No
+database, HTTP, quota, credential, fixture, activation, cleanup, or other
+worktree action occurred. The existing full profile and exact-source CI remain
+required; do not commit or push until the coordinator resolves the outstanding
+gates. After this changeset is properly cleared, continue with source/unit/no-
+network implementation of the dedicated governed SEC Provider binding,
+preserving per-physical-attempt admission, historical lineage, all disabled
+route holds, AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data,
+and the 30-day observation gate.
+
+## SEC known-at observation-time correction — 2026-10-23 15:55Z
+
+The preceding 15:48 entry records an intermediate date-end fallback and is
+superseded by this correction. Review found that a date-only UTC end-of-day
+could still predate a late SEC acceptance expressed in another timezone, and
+an artificially future cutoff would be rejected by the shared ingestion
+boundary. The final bounded contract is: preserve exact EDGAR
+`acceptance_datetime` when present; otherwise set `known_at` to the actual
+post-response `observed_at` captured before ingestion, and leave
+`published_at` null rather than treating the filing date or observation time
+as a proven publication instant. Thus historical/PIT visibility cannot be
+backdated from a date-only filing record.
+
+The revised EDGAR plus manual SEC XML route tests passed 7/7; manual-import/SEC
+service tests passed 3/3 (59 deselected); Ruff check, Ruff format-check and
+`git diff --check` passed. Date-only helper tests inject a fixed observation
+instant and confirm exact acceptance timestamps still take precedence. No
+transport, HTTP, database, quota, credential, fixture or target import was
+used. This remains an interim focused source checkpoint: full_stack_browser
+is still required before review/acceptance, and any mandatory SEC live matrix
+still requires an explicit safe disposition/evidence. Do not enable SEC
+transport or claim an acquired sample.
+
+## Publication-sequencing clarification — 2026-10-23 15:56Z
+
+The coordinator clarified that focused-validation/scoped-commit/push closure
+permits interim publication for this current internal API/date/test changeset;
+the unchanged classifier in both scripts does not treat these paths as an
+external-service path. This supersedes the earlier publication restriction
+for this scoped context only. The full local profile remains mandatory before
+review/acceptance or normal finish, and this publication is not checkpoint
+acceptance. Any future SEC transport binding remains subject to its actual
+mandatory live evidence before source release; no such request or quota use is
+authorized here. If a real hook or reviewer denies the scoped publication,
+preserve and report that denial without bypassing it.

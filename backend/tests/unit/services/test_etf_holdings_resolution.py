@@ -331,7 +331,7 @@ async def test_manual_sec_import_retains_sec_source_tier_without_native_adapter_
             )
         ],
         composition_date=now.date(),
-        known_at=now,
+        published_at=datetime(2026, 10, 1, tzinfo=UTC),
         provenance="sec_filing",
         source_provider="sec",
         source_quality="sec_filing",
@@ -345,6 +345,14 @@ async def test_manual_sec_import_retains_sec_source_tier_without_native_adapter_
 
     assert snapshot.extra_data["source_tier"] == "sec_filing"
     assert snapshot.extra_data["legal_metadata"]["source_tier"] == "sec_filing"
+    persisted_known_at = snapshot.known_at
+    if persisted_known_at.tzinfo is None:
+        persisted_known_at = persisted_known_at.replace(tzinfo=UTC)
+    persisted_published_at = snapshot.published_at
+    if persisted_published_at.tzinfo is None:
+        persisted_published_at = persisted_published_at.replace(tzinfo=UTC)
+    assert persisted_known_at == now
+    assert persisted_published_at == datetime(2026, 10, 1, tzinfo=UTC)
     assert profile.legal_metadata["source_tier"] == "sec_filing"
     assert (
         db.execute(

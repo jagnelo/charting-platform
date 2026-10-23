@@ -1107,7 +1107,7 @@ async def ingest_sec_nport_holdings(
         rows=rows,
         composition_date=composition_date,
         as_of_date=body.as_of_date or composition_date,
-        known_at=body.known_at or body.published_at,
+        known_at=body.known_at,
         published_at=body.published_at,
         provenance="sec_nport_reconstructed_holdings",
         source_provider=body.source_provider,
@@ -1123,6 +1123,8 @@ async def ingest_sec_nport_holdings(
             "accession_number": body.accession_number,
         },
         notes=body.notes or "Reconstructed from SEC N-PORT/N-PORT-P XML.",
+        allow_provider_enrichment=False,
+        manual_import=True,
     )
     loaded = await get_latest_snapshot(db, etf.id)
     if loaded is None:
@@ -1154,7 +1156,7 @@ async def ingest_sec_legacy_holdings(
         rows=rows,
         composition_date=composition_date,
         as_of_date=body.as_of_date or composition_date,
-        known_at=body.known_at or body.published_at,
+        known_at=body.known_at,
         published_at=body.published_at,
         provenance="sec_legacy_reconstructed_holdings",
         source_provider=body.source_provider,
@@ -1171,6 +1173,8 @@ async def ingest_sec_legacy_holdings(
             "accession_number": body.accession_number,
         },
         notes=body.notes or "Reconstructed from legacy SEC N-Q/N-CSR-style XML.",
+        allow_provider_enrichment=False,
+        manual_import=True,
     )
     loaded = await get_latest_snapshot(db, etf.id)
     if loaded is None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime
 from typing import Any
 
 import httpx as _httpx
@@ -101,12 +101,17 @@ def _acceptance_datetime(value: Any) -> datetime | None:
     return None
 
 
-def _known_at(filing: EdgarNportFiling) -> datetime:
+def _known_at(
+    filing: EdgarNportFiling,
+    *,
+    observed_at: datetime | None = None,
+) -> datetime:
     if filing.acceptance_datetime is not None:
         return filing.acceptance_datetime
-    if filing.filing_date is not None:
-        return datetime.combine(filing.filing_date, time.min, tzinfo=UTC)
-    return datetime.now(UTC)
+    # filingDate is only a calendar date, not proof of an exact publication or
+    # acceptance instant. Use the post-response observation time instead of
+    # backdating knowledge to that date (or to composition_date).
+    return observed_at or datetime.now(UTC)
 
 
 def _now() -> datetime:
@@ -539,14 +544,15 @@ async def _backfill_sec_holdings(
                     state.failure_reason = reason
                     failures.append({"accession_number": filing.accession_number, "reason": reason})
                     continue
+                observed_at = datetime.now(UTC)
                 snapshot = await ingest_holdings_snapshot(
                     db,
                     etf_instrument=profile.instrument,
                     rows=rows,
                     composition_date=composition_date,
                     as_of_date=filing.report_date or composition_date,
-                    known_at=_known_at(filing),
-                    published_at=_known_at(filing),
+                    known_at=_known_at(filing, observed_at=observed_at),
+                    published_at=filing.acceptance_datetime,
                     provenance=provenance,
                     source_provider="sec",
                     source_url=filing.filing_url,

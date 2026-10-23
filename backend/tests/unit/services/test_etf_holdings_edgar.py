@@ -54,6 +54,19 @@ def test_date_helpers_and_known_at():
     )
     assert _known_at(filing) == accepted
 
+    date_only_filing = EdgarHoldingsFiling(
+        accession_number="0001234567-24-000002",
+        form="NPORT-P",
+        filing_date=date(2026, 6, 1),
+        report_date=date(2026, 5, 31),
+        acceptance_datetime=None,
+        primary_document="primary.xml",
+        filing_url="https://sec.example/primary.xml",
+    )
+    observed_at = datetime(2026, 6, 2, 4, 5, tzinfo=UTC)
+    assert _known_at(date_only_filing, observed_at=observed_at) == observed_at
+    assert _known_at(filing, observed_at=observed_at) == accepted
+
 
 def test_job_summary_uses_job_counters():
     summary = _job_summary(DummyJob(), status="completed", failures=[{"x": 1}])

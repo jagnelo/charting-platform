@@ -88,18 +88,21 @@
     }
   ],
   "active_changeset": {
-    "baseline": "d26155d949d2f1a9598685beb2b69e110913d125",
-    "intent": "Default manually imported provenance, source quality, and completeness to manual_import/unknown/unknown unless an operator supplies evidence-backed values, while preserving explicit values and preventing unsupported current/completeness claims.",
-    "name": "Keep manual-import metadata defaults evidence-neutral",
+    "baseline": "867650d1dd8a15683438aa51cd7120d1a893f76f",
+    "intent": "Keep supplied SEC XML imports historical/manual: suppress Provider enrichment and native adapter-success health, separate known_at from old filing publication time, and conservatively represent date-granular EDGAR knowledge without exposing it early to intraday PIT queries.",
+    "name": "Make SEC XML manual ingestion historical and PIT-safe",
     "owned_paths": [
-      "backend/app/schemas/etf_holdings.py",
+      "backend/app/routers/etf_holdings.py",
+      "backend/app/services/etf_holdings_edgar.py",
       "backend/tests/unit/routers/test_etf_holdings_manual_import.py",
+      "backend/tests/unit/services/test_etf_holdings_edgar.py",
+      "backend/tests/unit/services/test_etf_holdings_resolution.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Manual ingest route/schema and service regressions passed4/4, proving both request schemas default provenance/source_quality/completeness_status to manual_import/unknown/unknown and explicit sec_filing plus evidence-backed quality/completeness values are preserved; changed-file Ruff check/format and diff-check pass. Exact CI39967540569 remains active on published baseline d26155d (Backend, Frontend Unit, Branch-declared passed; Playwright running; Exhaustive skipped); it does not include this local diff. No provider/issuer/SEC HTTP, quota, import, profile/runtime mutation, fixture, cleanup, or cross-worktree action occurred. Root's full_stack_browser slot remains required. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines/holds, retained data, and the 30-day observation."
+    "state": "Both admin SEC XML routes use manual_import with Provider enrichment disabled and keep known_at separate from published_at; service tests confirm import-time known_at and no native adapter-success health. When exact EDGAR acceptance time is absent, known_at uses post-response observed_at and published_at remains unknown. EDGAR+route tests7/7 and manual-import/SEC service selection3/3 pass; Ruff check/format and diff check pass. Exact CI39974388339 is green only on published parent867650d and excludes this local diff. Per coordinator clarification, focused validation permits an interim scoped commit/push and exact-source CI; full_stack_browser and applicable reviewed live evidence remain mandatory before review/acceptance or normal finish. No HTTP, quota, credentials, DB import/write, fixture, activation, cleanup, or cross-worktree action. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines/holds, retained data, and the 30-day observation."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -150,11 +153,14 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23T14:56:52Z: Exact CI39967540569 on published source d26155d is terminal green for Backend, Frontend Unit, Branch-declared and Playwright; Exhaustive was skipped by feature policy. It does not include the local provenance/quality/completeness-default correction. The new source SHA requires its own exact CI, and Root's full_stack_browser slot remains required. Keep RSST unimported because original request URL and storage/display rights are unverified; preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation.",
-  "current_local_delta": "Published source d26155d contains the manual-only no-enrichment, source-tier-none, import-time known_at, native-health suppression and conservative untyped CSV behavior. The current local follow-up changes both manual ingest schema defaults from issuer_current_holdings/issuer_current/complete to manual_import/unknown/unknown, preserving explicit SEC and evidence-backed values. Router/schema and service regressions passed4/4; Ruff check/format and diff check pass. Exact CI39967540569 on d26155d is terminal green but does not include this diff. No RSST import, external HTTP, quota, fixture, profile/runtime mutation, activation, cleanup, or cross-worktree action occurred.",
+  "current_blocker_latest": "2026-10-23T15:58:08Z: ETF HEAD/origin remain synchronized at867650d1dd8a15683438aa51cd7120d1a893f76f. Exact CI39974388339 is terminal green only on that parent and does not validate the local SEC diff. Focused offline SEC/manual-ingest tests and Ruff pass. Coordinator sequencing clarification permits scoped interim publication after focused checks; exact-source CI is required after push. Required full_stack_browser and any applicable reviewed live SEC evidence remain mandatory before review/acceptance or normal finish. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation.",
+  "current_local_delta": "Both admin SEC XML routes use manual_import with Provider enrichment disabled and keep published_at separate from known_at; service tests verify SEC degraded/non-current capability and no native adapter-success health. Exact acceptance time is retained when available; otherwise known_at uses post-response observed_at and published_at remains unknown. EDGAR+route tests passed7/7; manual-import/SEC service selection passed3/3; Ruff and diff checks passed. Exact CI39974388339 is green only on the prior published source. Focused checks permit the scoped interim commit/push; full_stack_browser and any applicable reviewed live SEC evidence remain mandatory before review/acceptance. No HTTP, quota, credential, DB import/write, fixture, activation, cleanup, or cross-worktree write occurred.",
   "dirty_paths": [
-    "backend/app/schemas/etf_holdings.py",
+    "backend/app/routers/etf_holdings.py",
+    "backend/app/services/etf_holdings_edgar.py",
     "backend/tests/unit/routers/test_etf_holdings_manual_import.py",
+    "backend/tests/unit/services/test_etf_holdings_edgar.py",
+    "backend/tests/unit/services/test_etf_holdings_resolution.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -353,8 +359,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit and push the validated substantive manual-import metadata-default correction once, verify origin, then inspect its exact-source CI. Do not rerun exact CI39967540569, which is green on d26155d and does not cover this diff. Continue offline AC1-AC14 work while Root's full_stack_browser slot remains pending. Keep RSST unimported pending rights and full source provenance; preserve `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation. No issuer/provider/SEC HTTP, quota, import, activation, cleanup, or cross-worktree writes.",
-  "plan_hash": "fd1b33a801a9c044aef05a909ac4761baf6c016e863293a8ec8c2306a7a36cbc",
+  "next_action": "Complete focused workstream/count/JSON/hash/diff checks, then make one scoped interim commit/push for this SEC manual-ingest context and inspect its exact-source CI. This is publication only, not checkpoint acceptance or normal finish. The required full_stack_browser profile and any applicable reviewed live SEC evidence remain mandatory before review/acceptance; do not weaken or claim those gates. After this context is published, continue the dedicated SEC Provider binding only as offline source/unit/no-network work under reviewed scope; keep transport held until source/account/operation/host, entitlement, quota and verified-zero-cost budget evidence are reviewed, and require actual mandatory live evidence before transport release. Preserve manual/PIT semantics, AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, disabled routes, retained data, and the 30-day observation. No live requests or cross-worktree writes.",
+  "plan_hash": "2104e337427b0ebfc75fbd40d5ca242fd900d3429b9f42ea437821537d4f7752",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -405,10 +411,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23T14:56:52Z: Exact CI39967540569 on d26155d is terminal green but does not include the local provenance/quality/completeness-default change; new exact-source CI remains pending until publication. Preserve the required `15 Tier-0 and 156 Tier-1` audit baseline.",
-    "current_phase": "manual_import_metadata_defaults_truthfulness_2026_10_23",
-    "next_action": "Run final workstream/narrative/JSON/plan-hash/diff checks and publish the focused manual-import metadata-default correction once. Inspect its exact-source CI, then continue the next offline AC1-AC14 item while preserving RSST source/rights gaps, quarantines and Root's exclusive full_stack_browser slot.",
-    "updated_at": "2026-10-23T14:57:33Z"
+    "current_blocker": "2026-10-23T15:58:08Z: Exact CI39974388339 is terminal green only on published parent867650d; the local SEC diff is not covered. Scoped interim publication is permitted after focused checks, but exact-source CI, required full_stack_browser, and any applicable reviewed live SEC evidence remain outstanding before review/acceptance or normal finish. Preserve `15 Tier-0 and 156 Tier-1` and full AC1-AC14.",
+    "current_phase": "sec_admin_ingest_historicalization_and_known_at_pit_2026_10_23",
+    "next_action": "Finish focused workstream/count/JSON/hash/diff validation, publish this scoped interim changeset, and inspect exact-source CI. Keep the checkpoint in progress: full_stack_browser and applicable reviewed live SEC evidence remain mandatory before review/acceptance or normal finish. Then continue only offline source/unit/no-network work on the dedicated governed SEC binding under reviewed scope; keep transport held pending verified host/operation/account/entitlement/quota/zero-cost evidence and mandatory live proof. Preserve `15 Tier-0 and 156 Tier-1`, full roadmap, quarantines, holds and observation gate.",
+    "updated_at": "2026-10-23T15:58:08Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
