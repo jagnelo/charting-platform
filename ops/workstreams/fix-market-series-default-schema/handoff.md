@@ -125,3 +125,16 @@ yet; commit plan and run plan-ready before implementing this bounded context.
 Original realPG runtime source is unchanged; its evidence remains qualified to
 backend tree1c54d4dc0e1d02dcd2f7f423144efd102794dca9, independently equal in
 the staged tested candidate and implementation3e5ddec.
+
+### Compatibility implementation validated — 2026-10-23 08:38 UTC
+
+Updated only the existing test's exact sole head to d4a5b6c7e812, added the
+explicit down_revision==slv2_0011 assertion, and traversed ancestry from that
+new head. All original unique-ID, shared merge, ancestor membership and legacy
+history safeguards remain. Complete focused module passed19/19 in2.14s;
+Ruff check/format and diffcheck passed. No runtime/migration/PGregression input
+changed in this follow-up. The session.json plan-ready change belongs to this
+same context; it does not create/replace/reset the original native root goal.
+Next: publish this coherent test correction, then its separate qualified
+operational receipt and follow the final exact-source hosted run. Old CI red
+is retained; no full green, closure, integration or target update is claimed.
