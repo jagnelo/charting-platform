@@ -17234,3 +17234,25 @@ At 2026-10-22 23:35 UTC, exact dff6afadc CI39869340272 had Backend Tests green (
 Tests green, and Branch-declared Tests green. E2E Playwright remained in progress; the Exhaustive
 Integration Gate was skipped by feature-branch policy. This evidence covers dff6afadc, not the
 uncommitted forward PostgreSQL regression; wait for E2E terminal status before pushing that test.
+
+## Exact-source CI repair: deterministic quota fixture clock — 2026-10-23 00:05 UTC
+
+Published source `b620ed10dcfadf50c7368c96f018188f3506b69e` exact run `39874448939` is terminal red:
+Backend Tests failed one existing unit test after 5,197 passes and one skip; Frontend passed, while
+Branch-declared, E2E and Exhaustive were skipped after the backend failure. The failing node is
+`tests/unit/test_provider_live_usage.py::test_eodhd_live_usage_reconciliation_uses_exact_native_daily_counter`.
+At 00:04 UTC the isolated node reproduced the failure: its wall-clock `now` was shortly after UTC
+midnight, while the baseline's `observed_at = now - 5 minutes` belonged to the prior
+`calendar_day_gmt` reset window. The strict quota guard correctly rejected it; no production quota
+logic or provider request was involved.
+
+The test now uses one fixed midday UTC instant and injects that same instant into both baseline
+reconciliations. The first focused correction attempt still failed because a live midnight `now`
+straddled the window; after fixing the fixture instant, the exact node passed once (1.51s). Ruff,
+format, workstream validation and `git diff --check` pass. No full suite or fixture ran. The new
+forward Study PostgreSQL restart test in `test_study_artifact_resolution_postgres.py` was not reached
+by the red backend job and remains unexecuted locally; the next exact-source CI must cover it.
+
+The staging repair `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` remains pending its own Exhaustive gate;
+no staging marker or ref was edited or adopted here. The Strategy full roadmap, full application,
+database, browser, strict-visual and native gates remain open.

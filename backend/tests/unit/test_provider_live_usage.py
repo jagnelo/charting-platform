@@ -79,7 +79,12 @@ def test_eodhd_live_usage_reconciliation_uses_exact_native_daily_counter(
 ):
     ledger_path = tmp_path / "provider-quota.sqlite3"
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(ledger_path))
-    now = datetime.now(UTC)
+    now = datetime(2026, 10, 22, 12, 0, tzinfo=UTC)
+    monkeypatch.setattr(
+        provider_quota_coordinator,
+        "reconcile_provider_quota_baseline",
+        partial(reconcile_provider_quota_baseline, now=now),
+    )
     seed = provider_rate_limit_seed("eodhd")
     policy = SimpleNamespace(
         quota_scope=seed["quota_scope"],

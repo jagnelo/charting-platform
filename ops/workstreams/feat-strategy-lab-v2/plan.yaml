@@ -1647,25 +1647,26 @@ roadmap_progress_history:
     The owner-scoped resolver, hydration graph and bounded runtime context streams carry the exact
     typed immutable Study payload; no-reference fingerprint/wire compatibility is preserved.
     Historical CI39856591934 fixture failures and subsequent red receipts remain in the handoff and
-    append-only journal. The current unpublished changeset adds one ordinary PostgreSQL forward-plan
+    append-only journal. The current published source b620ed10 adds one ordinary PostgreSQL forward-plan
     reconstruction case using persisted Strategy/Package/Portfolio/ForwardInstance/ForwardExecutionPlan
     rows and fresh SQL sessions. It asserts exact output binding after reconstruction, foreign-owner
     denial, and persisted payload-drift rejection. Collection succeeded (one node, no fixture setup),
-    but the PostgreSQL test body has not run locally because no local DB slot is assigned. Focused
-    MyPy initially found four test-only errors: the persisted resource union was not narrowed and the
-    expected Study payload used a tuple instead of the required typed mapping. The test now explicitly
-    narrows ForwardInstance and compares the canonical series mapping; focused one-file MyPy passes.
-    Ruff, format and diff checks pass. Exact published-source CI39869340272 for dff6afadc is terminal
-    success: backend, frontend, branch-declared and E2E Playwright jobs succeeded; EIG was skipped by
-    feature policy. The unpublished test is not covered by that run, and its PostgreSQL body remains
-    unexecuted locally. Publish this coherent test-plus-receipt changeset and use its exact-source
-    hosted CI for the first database execution. Persisted restart behavior and the complete combined
-    runtime/browser/strict-visual/native gates remain open; generic Study output is not native
-    execution evidence.
+    but the PostgreSQL test body has not run locally because no local DB slot is assigned. Its exact
+    source CI39874448939 is terminal red: Backend unit had 5,197 passes, one existing skip, and one
+    unrelated EODHD daily-quota test failure; integration did not run, so the new persisted restart
+    case is still unexecuted. The failure is a wall-clock boundary in the existing test: it captures
+    now just after UTC midnight, sets observed_at five minutes earlier, and the strict calendar_day_gmt
+    guard correctly rejects a baseline from the previous reset window. The unit test now uses one
+    fixed midday UTC instant and injects that same instant into both baseline reconciliations. The exact
+    failing node passes locally once; Ruff, format, workstream, and diff checks pass. This changes no
+    production quota behavior and performs no provider request. Publish this scoped test-fixture
+    correction and require its exact-source CI to execute the new PostgreSQL regression. Persisted
+    restart behavior and the complete combined runtime/browser/strict-visual/native gates remain open;
+    generic Study output is not native execution evidence.
   next_action: >-
-    Perform final scoped workstream/diff checks and publish the forward PostgreSQL regression with
-    its terminal prior-source CI receipt. Its first actual database execution must be covered by the
-    resulting exact-source hosted integration run or an assigned local DB slot; collection and MyPy
-    are not runtime proof. Continue the complete 18-criterion roadmap and all coordinator-assigned
+    Perform final scoped workstream/diff checks and publish the deterministic quota-test fixture
+    correction with its exact prior-source red receipt. The resulting exact-source hosted CI must
+    execute the persisted forward Study PostgreSQL regression; collection is not runtime proof.
+    Continue the complete 18-criterion roadmap and all coordinator-assigned
     database/runtime/browser/native gates. Keep provider/live/quota/paid/trial/
     unknown/unsafe/broker/capital holds.
