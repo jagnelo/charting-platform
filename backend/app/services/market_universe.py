@@ -104,6 +104,24 @@ _NMS_LIFECYCLE_VENUES = frozenset(
         "CBSX",
     }
 )
+
+
+def _nms_scope_key(
+    provider_name: str, quote_type: str, source_files: set[str]
+) -> tuple[str, str] | None:
+    """Map complete provider evidence to its distinct NMS authority scope."""
+
+    normalized_type = quote_type.strip().upper()
+    if provider_name == "cta_plan" and normalized_type == "EQUITY":
+        return ("cta_plan", "EQUITY")
+    if provider_name == "nasdaq" and normalized_type == "EQUITY":
+        if "nasdaqlisted" in source_files:
+            return (_NASDAQ_TAPE_C_PROVIDER, "EQUITY")
+    if provider_name == "nasdaq" and normalized_type == "ETF":
+        return ("nasdaq", "ETF")
+    return None
+
+
 _CTA_SYMBOL_FILE = re.compile(r"CTA\.Symbol\.File\.(\d{8})\.csv", re.IGNORECASE)
 _FINRA_OTC_QUERY_SOURCE_FILES = frozenset(
     {
@@ -1807,6 +1825,13 @@ async def reconcile_us_universe(
                     ):
                         source_file_evidence_complete = False
                     if resolved.provider_name == "nasdaq":
+                        if any(
+                            not isinstance(row, dict)
+                            or str(row.get("source_file") or "").strip().lower()
+                            not in page_source_files
+                            for row in (page.get("quotes") or [])
+                        ):
+                            source_file_evidence_complete = False
                         raw_creation_times = page.get("source_file_creation_times")
                         page_creation_times = (
                             {
@@ -2181,9 +2206,10 @@ async def reconcile_us_universe(
                     )
             run.finished_at = _utc()
             await db.commit()
+            nms_scope_key = _nms_scope_key(resolved.provider_name, quote_type, source_files)
             if (
                 run.status == "complete"
-                and resolved.provider_name in {"cta_plan", "nasdaq"}
+                and nms_scope_key is not None
                 and source_file_evidence_complete
                 and source_snapshot_date
             ):
@@ -2195,10 +2221,12 @@ async def reconcile_us_universe(
                     for row in rows
                     if _row_symbol(row, preserve_case=resolved.provider_name == "cta_plan")
                 }
-                nms_cycle_runs[(resolved.provider_name, quote_type.strip().upper())] = {
+                nms_cycle_runs[nms_scope_key] = {
                     "run": run,
                     "snapshot_date": source_snapshot_date,
                     "symbol_mics": symbol_mics,
+                    "provider_name": resolved.provider_name,
+                    "quote_type": quote_type.strip().upper(),
                 }
             results.append(
                 {
@@ -2214,12 +2242,12 @@ async def reconcile_us_universe(
                 }
             )
     # NMS absences require three complete scopes from this same invocation:
-    # CTA Tape A/B, a distinct Nasdaq-listed Tape C roster, and Nasdaq's ETF
-    # classification. Nasdaq Trader's nasdaqlisted/otherlisted files are
-    # supplementary cross-check evidence, not the separate Tape C roster.
-    # Until that distinct source is present, no same-session NMS absence union
-    # can be declared. CTA's broad EQUITY type cannot identify ETFs by itself,
-    # so use symbol+MIC membership across all scopes to protect either type.
+    # CTA Tape A/B, Nasdaq Trader's distinct nasdaqlisted Tape C file, and
+    # Nasdaq's ETF classification. The otherlisted file is supplementary
+    # cross-check evidence, not a substitute for Tape C. Until all three
+    # scopes are present for the same date/cycle, no NMS absence union can be
+    # declared. CTA's broad EQUITY type cannot identify ETFs by itself, so
+    # use symbol+MIC membership across all scopes to protect either type.
     required_nms_scopes = _REQUIRED_NMS_SCOPES
     nms_scopes = [nms_cycle_runs.get(scope) for scope in required_nms_scopes]
     if all(scope is not None for scope in nms_scopes):
@@ -2239,10 +2267,12 @@ async def reconcile_us_universe(
             }
             union_date = next(iter(snapshot_dates))
             nms_snapshot_date = date.fromisoformat(union_date)
-            for (provider, quote_type), scope in zip(
+            for (_scope_provider, _scope_quote_type), scope in zip(
                 required_nms_scopes, complete_scopes, strict=True
             ):
                 run = scope["run"]
+                provider = scope["provider_name"]
+                quote_type = scope["quote_type"]
                 run.provenance = {
                     **(run.provenance or {}),
                     "absence_scope": "US_NMS",

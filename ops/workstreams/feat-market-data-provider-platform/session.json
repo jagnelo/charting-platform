@@ -120,8 +120,8 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1f0c6c0956ecb8c3994c03cfc54c026313155da0",
-  "implementation_sha": "1f0c6c0956ecb8c3994c03cfc54c026313155da0",
+  "head": "0e46ff41639d3ebef73adc4e6684634b0baf65dd",
+  "implementation_sha": "0e46ff41639d3ebef73adc4e6684634b0baf65dd",
   "interrupted": false,
   "last_checkpoint": "2026-10-22T21:35:20.064970+00:00",
   "last_human_progress_update": "2026-10-23T00:21:11.649455+00:00",
@@ -170,14 +170,14 @@
       "ICP7"
     ],
     "current_blocker": "Exact-source run 39877233446 remains active on parent 1f0c6c0; Backend, Frontend Unit, and Branch-declared succeeded and Playwright is running its hosted stack. The dirty NMS-scope follow-up is not covered by that run. Local full_stack_browser remains held until Root releases the slot and fresh capacity is safe",
-    "current_phase": "SEC durability regressions passed on 1f0c6c0; fail-closed NMS authority correction passed the market-universe unit module 48/48; current parent-source hosted E2E is active",
-    "next_action": "Preserve and record the terminal result of exact CI 39877233446 once available. Then validate and publish the NMS-scope follow-up as a coherent source change with its own exact CI. Keep the isolated full profile held pending Root's slot release; afterward run 260 functional and 104 strict visual cases under the recorded resource/data safeguards. Continue AC-UNIVERSE-COMPLETE without provider/issuer/SEC HTTP, quota changes, cleanup, or staging/sibling writes.",
+    "current_phase": "SEC durability regressions passed on 1f0c6c0; 0e46ff416 is a local tested NMS-scope correction; the dirty follow-up now derives Tape C from the existing nasdaqlisted.txt row provenance and passed Nasdaq adapter plus market-universe tests 61/61. Parent-source hosted E2E is still active",
+    "next_action": "Preserve exact CI 39877233446 until terminal. Then publish the reviewed nasdaqlisted-derived Tape C correction and require exact-source CI; do not push while the parent run remains active. Keep the isolated full profile held pending Root's slot release; afterward run 260 functional and 104 strict visual cases under the recorded resource/data safeguards. Continue AC-UNIVERSE-COMPLETE without provider/issuer/SEC HTTP, quota changes, cleanup, or staging/sibling writes.",
     "total": 7,
     "updated_at": "2026-10-23T00:34:00+00:00"
   },
   "remote": "1f0c6c0956ecb8c3994c03cfc54c026313155da0",
   "remote_sha": "1f0c6c0956ecb8c3994c03cfc54c026313155da0",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],

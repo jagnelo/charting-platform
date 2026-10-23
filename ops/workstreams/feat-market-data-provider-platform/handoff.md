@@ -1,5 +1,30 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 00:49Z — Nasdaq Tape C scope source refinement
+
+- Read-only inspection of the existing Nasdaq adapter confirms each parsed
+  row carries `source_file`: `nasdaqlisted.txt` is the distinct Nasdaq-listed
+  Tape C roster; `otherlisted.txt` is supplementary cross-tape evidence. No
+  new provider or endpoint is needed. The preceding local commit `0e46ff416`
+  was too strict in requiring a nonexistent `nasdaq_tape_c` provider and is
+  preserved locally but not pushed.
+- The current follow-up derives the Tape C scope alias from the completed
+  Nasdaq run only when `nasdaqlisted` is among its verified source files, while
+  preserving the actual `nasdaq` provider and EQUITY run identity through
+  lifecycle handling. Nasdaq rows without a source-file tag fail closed for
+  absence authority; `otherlisted` alone cannot satisfy the Tape C scope.
+  Other Nasdaq rows remain positive cross-check evidence in the same complete
+  snapshot.
+- The Nasdaq adapter and market-universe unit modules passed `61/61` together;
+  Ruff check/format and `git diff --check` passed after formatter correction.
+  The three-file source/test working diff SHA-256 is
+  `9eab4cd6687b6257985a68cff57b3a592de75662a06257aec286c0a1022d8b54`.
+- Exact run `39877233446` remains active on remote parent `1f0c6c0`; this
+  follow-up is not included. Local branch head is `0e46ff416` plus the dirty
+  correction. Do not push until the original exact run is terminal, then
+  validate the coherent correction on its own source. No provider/issuer/SEC
+  HTTP, quota action, fixture, or retained resource/data change occurred.
+
 ## 2026-10-23 00:39Z — fail-closed NMS scope correction
 
 - While exact Actions run `39877233446` remained active on clean pushed source

@@ -1154,23 +1154,25 @@ async def test_reconciliation_rejects_rows_for_a_different_requested_type(db, mo
     assert "quote type ETF while reconciling EQUITY" in (run.error or "")
 
 
-def test_nms_absence_requires_distinct_nasdaq_tape_c_roster_scope():
-    from app.services.market_universe import _REQUIRED_NMS_SCOPES
+def test_nms_tape_c_scope_comes_from_nasdaqlisted_not_otherlisted():
+    from app.services.market_universe import _REQUIRED_NMS_SCOPES, _nms_scope_key
 
-    # Nasdaq Trader's EQUITY files plus Nasdaq's ETF classification are useful
-    # cross-checks, but do not prove the distinct Nasdaq-listed/Tape C roster.
-    available_supplementary_scopes = {
-        ("cta_plan", "EQUITY"),
-        ("nasdaq", "EQUITY"),
-        ("nasdaq", "ETF"),
+    # Nasdaq Trader publishes both files in one validated run, but only
+    # nasdaqlisted is the distinct Tape C roster. otherlisted stays useful
+    # supplementary evidence and cannot satisfy the required Tape C scope.
+    assert _nms_scope_key("nasdaq", "EQUITY", {"nasdaqlisted", "otherlisted"}) == (
+        "nasdaq_tape_c",
+        "EQUITY",
+    )
+    assert _nms_scope_key("nasdaq", "EQUITY", {"otherlisted"}) is None
+    assert _nms_scope_key("nasdaq", "ETF", {"nasdaqlisted", "otherlisted"}) == ("nasdaq", "ETF")
+
+    scopes = {
+        _nms_scope_key("cta_plan", "EQUITY", set()),
+        _nms_scope_key("nasdaq", "EQUITY", {"nasdaqlisted", "otherlisted"}),
+        _nms_scope_key("nasdaq", "ETF", {"nasdaqlisted", "otherlisted"}),
     }
-    assert not set(_REQUIRED_NMS_SCOPES) <= available_supplementary_scopes
-    assert ("nasdaq_tape_c", "EQUITY") in set(_REQUIRED_NMS_SCOPES)
-
-    # The scope gate has a positive control: only an explicitly distinct Tape
-    # C producer completes this part of the source set.
-    complete_scopes = available_supplementary_scopes | {("nasdaq_tape_c", "EQUITY")}
-    assert set(_REQUIRED_NMS_SCOPES) <= complete_scopes
+    assert scopes == set(_REQUIRED_NMS_SCOPES)
 
 
 @pytest.mark.asyncio
