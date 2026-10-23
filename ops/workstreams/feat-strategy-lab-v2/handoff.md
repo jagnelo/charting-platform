@@ -18070,3 +18070,18 @@ Further source review moved Sharpe and Sortino divisions inside the same Decimal
 variance estimation, so an unrepresentable ratio withholds the whole risk family instead of escaping
 as an unhandled arithmetic error. Targeted Ruff and diff checks pass; pytest remains held by Root's
 F8m slot and low host headroom.
+
+## Elapsed-time event-risk metrics — source closure, 2026-10-23 12:56 UTC
+
+This bounded source context is published at `fc388467024e74cdaa343cc472a6659b0391fae4`.
+Exact-source GitHub Actions run `39951384776` completed successfully on that SHA: Backend Tests,
+Frontend Unit Tests, Branch-declared Tests, and E2E Playwright passed; the Exhaustive Integration
+Gate was skipped under feature-branch policy. Previously recorded focused evidence remains 15
+event-risk tests and 31 total `test_metrics.py` tests passing, focused MyPy for both touched Python
+files passing, and Ruff/format/diff/workstream validation passing. The attempted local
+`make agent-docker-ready` preflight was blocked by Docker API permission denied; it is not product
+test evidence. Full local and combined PostgreSQL/application/browser/strict-visual/native gates
+remain open. The next bounded code-review candidate is passing an explicit event-time annualized
+risk-free assumption through the official Nautilus OOS metric-set builders and including it in
+their identities; preserve the v17 cadence identities and event estimator v1 contract. All 18
+roadmap criteria and operation holds remain unchanged.

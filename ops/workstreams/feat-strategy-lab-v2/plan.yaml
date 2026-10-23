@@ -714,22 +714,22 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/session.json
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
-    status: in_progress
+    status: complete
   current_blocker: >-
-    The irregular-event-time risk-metrics diff is bounded-test validated on published parent
-    1e643917e2896ba41ad9842f13a4b42c0c1160d1: 31 metrics-module tests passed, the 15-case new
-    event-risk selection passed, focused MyPy passed for the two touched Python files, and Ruff,
-    format, diff and workstream checks pass. Root retains the short F8m local slot, so no broader
-    local coverage/typecheck or database/application/browser/native profile may run. Exact-source
-    CI for the pending source commit and all full local/combined gates remain open. All18 roadmap
-    criteria and live, paid/trial, unsafe, broker/capital and deployment holds remain unchanged.
-  updated_at: "2026-10-23T11:58:19Z"
+    The elapsed-time event-risk metrics changeset is published at fc388467024e74cdaa343cc472a6659b0391fae4
+    and exact-source CI 39951384776 is terminal green for the required feature-branch jobs; the
+    Exhaustive Integration Gate is skipped by feature-branch policy. The local full profile and
+    combined PostgreSQL/application/browser/strict-visual/native gates remain open and Root-assigned.
+    All18 roadmap criteria and live, paid/trial, unsafe, broker/capital and deployment holds remain
+    unchanged.
+  updated_at: "2026-10-23T12:56:04Z"
   next_action: >-
-    Review the focused change and records, run only required lightweight workstream/diff checks,
-    then close and publish this coherent changeset and capture its exact-source CI. Do not repeat
-    already-green bounded tests or start broad validation while Root retains the F8m slot. Preserve
-    cadence semantics; full-profile, PostgreSQL, application, browser, strict-visual and native gates
-    remain Root-assigned, and provider/issuer/SEC operations remain out of scope.
+    Continue the full roadmap with the next bounded AC-METRICS improvement: inspect whether the
+    official Nautilus OOS metric-set builders expose and fingerprint the event-time annualized
+    risk-free assumption. Preserve cadence identities and the event estimator v1 contract. Do not
+    start broader local validation while Root retains the F8m slot; PostgreSQL, application, browser,
+    strict-visual and native gates remain Root-assigned, and provider/issuer/SEC operations remain
+    out of scope.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
