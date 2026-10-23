@@ -4,7 +4,7 @@ import os
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any, cast
@@ -41,17 +41,24 @@ from app.strategy_lab_v2.contracts import (
     StrategyPackage,
     StrategyVersion,
 )
+from app.strategy_lab_v2.forward_account import ForwardAccountState
 from app.strategy_lab_v2.forward_execution_plan import (
     ForwardComponentExecutionPlan,
     ForwardExecutionPlan,
 )
-from app.strategy_lab_v2.forward_execution_plan_resolution import (
-    AuthenticatedForwardExecutionPlanResolver,
-)
+from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
 from app.strategy_lab_v2.forward_worker_composition import (
     create_authenticated_forward_worker_runtime_input_resolver,
 )
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.postgres_forward_account import (
+    PostgresForwardAccountAdapter,
+    PostgresForwardAccountSchema,
+)
+from app.strategy_lab_v2.postgres_forward_state import (
+    PostgresForwardStateAdapter,
+    PostgresForwardStateSchema,
+)
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore, PostgresStorageSchema
 from app.strategy_lab_v2.provider_capability_host import CAPABILITY_SCOPE_CONFIG_ENV
@@ -968,6 +975,53 @@ async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
         created_at=_NOW,
         updated_at=_NOW,
     )
+    forward_state_schema = PostgresForwardStateSchema()
+    forward_account_schema = PostgresForwardAccountSchema()
+    schema_engine, _schema_sessions = study_database.new_engine_and_sessions()
+    try:
+        async with schema_engine.begin() as connection:
+            for statement in (*forward_state_schema.statements, *forward_account_schema.statements):
+                await connection.execute(text(statement))
+    finally:
+        await schema_engine.dispose()
+    state_persistence = replace(
+        PostgresStrategyLabV2Persistence.build(sessions),
+        forward_state=PostgresForwardStateAdapter(sessions, schema=forward_state_schema),
+        forward_account=PostgresForwardAccountAdapter(sessions, schema=forward_account_schema),
+    )
+    await state_persistence.forward_state.ensure_instance(principal="1", instance=instance)
+    warming = await state_persistence.forward_state.transition(
+        principal="1",
+        instance_id=instance.instance_id,
+        target=ForwardState.WARMING_UP,
+        now=_NOW + timedelta(seconds=1),
+        idempotency_key=f"study-forward-warmup-{suffix}",
+    )
+    assert warming.instance is not None
+    receipt = ForwardWarmupReceipt(
+        instance_id=instance.instance_id,
+        warmup_snapshot_fingerprint=graph.snapshot.fingerprint,
+        carry_in_mode=CarryInMode.FLAT,
+        warmup_result_fingerprint=content_digest({"forward-study-warmup": suffix}),
+        completed_at=_NOW + timedelta(seconds=2),
+    )
+    completed = await state_persistence.forward_state.complete_warmup(
+        principal="1",
+        receipt=receipt,
+    )
+    assert completed.decision.value == "complete"
+    instance = completed.instance
+    checkpoint = await state_persistence.forward_state.load_state(
+        principal="1",
+        instance_id=instance.instance_id,
+    )
+    assert checkpoint is not None
+    account = await state_persistence.forward_account.initialize(
+        principal="1",
+        state=ForwardAccountState(instance_id=instance.instance_id, base_currency="USD"),
+        admission_state=checkpoint,
+    )
+    assert account.state is not None
     strategy = graph.strategies[0]
     package = graph.packages[strategy.fingerprint]
     plan = ForwardExecutionPlan(
@@ -1012,14 +1066,20 @@ async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
             PostgresStrategyLabV2Persistence.build(fresh_sessions),
             aggregate_store=fresh_store,
             resources=PostgresResourceReader(fresh_store),
+            forward_state=PostgresForwardStateAdapter(
+                fresh_sessions,
+                schema=forward_state_schema,
+            ),
+            forward_account=PostgresForwardAccountAdapter(
+                fresh_sessions,
+                schema=forward_account_schema,
+            ),
         )
         worker_resolver = create_authenticated_forward_worker_runtime_input_resolver(
             persistence,
             package_resolver,
             principal="1",
         )
-        execution_plan_resolver = worker_resolver._execution_plan_resolver
-        assert isinstance(execution_plan_resolver, AuthenticatedForwardExecutionPlanResolver)
         persisted_instance = await persistence.resources.get_domain_contract(
             principal="1",
             resource_type=ApiResourceType.FORWARD_INSTANCE,
@@ -1027,8 +1087,11 @@ async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
         )
         assert isinstance(persisted_instance, ForwardInstance)
         assert persisted_instance == instance
-        resolved = await execution_plan_resolver.resolve(persisted_instance)
-        component = resolved.components[graph.portfolio.components[0].component_id]
+        resolved = await worker_resolver.resolve(
+            instance_id=instance.instance_id,
+            checkpoint_fingerprint=checkpoint.checkpoint.fingerprint,
+        )
+        component = resolved.execution_plan.components[graph.portfolio.components[0].component_id]
         assert component.study_artifacts == {
             reference.artifact_name: ResolvedStudyArtifactOutput(
                 reference,
@@ -1036,16 +1099,25 @@ async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
             )
         }
 
-        foreign_resolver = AuthenticatedForwardExecutionPlanResolver(
-            persistence.resources,
+        with pytest.raises(
+            ValueError,
+            match="durable forward admission checkpoint is unavailable",
+        ):
+            await worker_resolver.resolve(
+                instance_id=instance.instance_id,
+                checkpoint_fingerprint=content_digest("stale-forward-study-checkpoint"),
+            )
+
+        foreign_resolver = create_authenticated_forward_worker_runtime_input_resolver(
+            persistence,
             package_resolver,
             principal="2",
-            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
-                fresh_sessions
-            ),
         )
-        with pytest.raises(ValueError, match="execution plan is unavailable"):
-            await foreign_resolver.resolve(persisted_instance)
+        with pytest.raises(ValueError, match="forward instance is unavailable"):
+            await foreign_resolver.resolve(
+                instance_id=instance.instance_id,
+                checkpoint_fingerprint=checkpoint.checkpoint.fingerprint,
+            )
 
         async with fresh_sessions.begin() as session:
             await session.execute(
@@ -1054,6 +1126,9 @@ async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
                 .values(payload={"type": "series", "value": [99.0]})
             )
         with pytest.raises(SelectedStudyArtifactResolutionError):
-            await execution_plan_resolver.resolve(persisted_instance)
+            await worker_resolver.resolve(
+                instance_id=instance.instance_id,
+                checkpoint_fingerprint=checkpoint.checkpoint.fingerprint,
+            )
     finally:
         await fresh_engine.dispose()

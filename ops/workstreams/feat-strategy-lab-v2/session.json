@@ -34,7 +34,20 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "backend/app/strategy_lab_v2/forward_context.py",
+    "backend/app/strategy_lab_v2/nautilus_forward_native_runtime.py",
+    "backend/app/strategy_lab_v2/nautilus_forward_session.py",
+    "backend/app/strategy_lab_v2/tests/test_authenticated_forward_context_resolver.py",
+    "backend/app/strategy_lab_v2/tests/test_forward_context.py",
+    "backend/app/strategy_lab_v2/tests/test_forward_execution_plan.py",
+    "backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py",
+    "backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -45,7 +58,7 @@
     "wait_seconds": 0
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Continue the original full 18-criterion Strategy Lab v2 roadmap in the same branch, worktree, and owner thread. Preserve the accepted strategy-lab-v2-integration-1 checkpoint as historical evidence, continue bounded work against the integrated Provider, ETF, and TC2000 contracts, and preserve all exact-scope Nautilus and disabled provider/live/quota/paid/trial/broker/capital boundaries. Validate exact-source changes and obtain coordinator-assigned heavy gates; stop the full topic only at ready_for_human_review.",
+  "goal_objective": "Advance feat/strategy-lab-v2: Continue the original full 18-criterion Strategy Lab v2 roadmap in the existing branch and worktree. The accepted strategy-lab-v2-integration-1 checkpoint is historical evidence, not full-topic or native-v2 SPA/execution completion. Continue bounded work against the integrated Provider, ETF, and TC2000 contracts while preserving every original criterion and all disabled-scope boundaries.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: Reconcile dependency-ordered accepted green staging incrementally: Provider canonical identity/local series/coverage/freshness/provenance now; ETF known-at point-in-time membership and TC2000 immutable CodeVersion/Study outputs only after their releases; then prove the full combined consumer contract without completing this criterion early.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-10-22T19:55:30Z",
   "goal_request": {
     "objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
@@ -67,14 +80,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db",
+  "head": "ee333e450f6883bc45cb90d0a222c1748859370e",
   "implementation_sha": "85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db",
   "last_checkpoint": "2026-10-23T00:13:30Z",
-  "last_human_progress_update": "2026-10-20T21:20:08.693731+00:00",
+  "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the exact accepted staging 4687bd0 reconciliation and owned workstream evidence; inspect its exact-source Strategy CI once. Then continue typed Study payload/runtime and forward-worker restart work, preserving the full roadmap and waiting for Root-assigned heavy validation slots.",
+  "next_action": "Publish the validated forward Study-output/context and PostgreSQL restart changeset once and inspect its exact-source CI. Keep the PostgreSQL restart body and full local/application/browser/native gates open until Root assigns the one-at-a-time slot.",
   "parent_branch": "staging",
-  "plan_hash": "666393ee6049c8ce65194de87ac912d395d98c57cc80a8abd4a847c1f83838ef",
+  "plan_hash": "bb78d4c82650e93f81907df0420edc76ec2dfead23edfb0019986640d152b444",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -104,21 +117,15 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Accepted staging 4687bd0 is merged locally at 85a7f3e8 with preserved histories; 38 workflow tests and 61 Market Map tests pass. The merge has not yet been published or covered by exact-source branch CI. Full local/browser/native gates await Root's one-at-a-time resource slot. Continue typed Study payload/runtime and forward restart work; all disabled scopes and original roadmap criteria remain open.",
-    "current_phase": "full-roadmap-typed-study-payload-runtime-binding",
-    "next_action": "Publish the accepted staging reconciliation with its evidence and inspect exact-source CI once, then continue typed Study payload/runtime and forward-worker restart work. Keep native/worker claims qualified; no heavy DB/runtime/browser/native validation until Root assigns the slot.",
+    "current_blocker": "No current branch-CI blocker: exact-source CI39876950653 on published ee333 is terminal green for Frontend, Backend/coverage, Branch-declared, and E2E; feature-policy EIG was skipped. The unpublished forward Study context and PostgreSQL restart changes are not covered by that run. Focused source tests and touched-boundary checks pass; the PostgreSQL test body and Root-assigned full local profile remain pending.",
+    "current_phase": "full-roadmap-forward-study-output-worker-context-revalidation-v3",
+    "next_action": "Publish the validated forward Study-output/context and PostgreSQL restart changeset once and inspect its exact-source CI. Do not launch local DB/Compose/full-stack/browser/native validation until Root assigns the one-at-a-time host slot.",
     "total": 5,
-    "updated_at": "2026-10-23T00:13:30+00:00"
+    "updated_at": "2026-10-23T01:05:55Z"
   },
-  "remote": "caf776bce5cf9dd7fc623e16f7ea8e4839c59ec0",
-  "remote_sha": "caf776bce5cf9dd7fc623e16f7ea8e4839c59ec0",
-  "remote_synchronized": false,
-  "dirty_paths": [
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "remote": "ee333e450f6883bc45cb90d0a222c1748859370e",
+  "remote_sha": "ee333e450f6883bc45cb90d0a222c1748859370e",
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",

@@ -390,6 +390,12 @@ async def test_authenticated_resolver_binds_selected_study_output_or_fails_close
     )
     resolved = await resolver.resolve(instance)
     assert resolved.components["momentum"].study_artifacts == {"study.close": output}
+    recipe = ResolvedForwardExecutionPlanRecipeResolver(
+        resolved,
+        component_id="momentum",
+        principal="owner",
+    )(principal="owner", instance=instance)
+    assert recipe.study_artifacts == {"study.close": output}
     assert resolver_calls == 1
 
     without_study_resolver = AuthenticatedForwardExecutionPlanResolver(

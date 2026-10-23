@@ -17267,3 +17267,146 @@ After confirming this worktree was clean at `caf776bce5cf9dd7fc623e16f7ea8e4839c
 Focused post-merge checks on exact source `85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db` passed: `tests/workflow/test_agent_session.py` 38/38 and `frontend/tests/unit/components/test_market_map_tool.test.ts` 61/61. `git diff --check` passed. No Docker, database, full backend/frontend profile, browser, provider/issuer HTTP, native engine, or live operation ran. The standard context classifier identified this as the assigned implementation worktree. Session-start was not repeated/taken over: the recorded owner claim already belongs to this thread, and bootstrap reports an existing dirty/interrupted boundary; no claim or goal was created or replaced. Its automatic Docker-readiness denial is preserved in the journal and no service was started.
 
 At this checkpoint the merge is local and the Strategy branch still needs its normal push and exact-source CI; the pre-merge remote remains `caf776bce5cf9dd7fc623e16f7ea8e4839c59ec0`. No status-only follow-up or self-SHA loop is planned. After publication, continue the existing full-roadmap typed Study payload/runtime and forward-worker restart work. The forward Study PostgreSQL regression has only been collected, not executed locally. Heavy local/full-stack/browser/native gates require Root's one-at-a-time slot; the full 18-criterion roadmap and remaining worker, persistence, migration, API, native qualification and disabled-scope guarantees remain open.
+
+## Accepted staging adoption and forward-worker restart continuation — 2026-10-23
+
+The prior paragraph's pending-publication statement is superseded by current evidence. The exact
+green staging release `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is already integrated in this branch
+at merge commit `85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db`; branch HEAD
+`ee333e450f6883bc45cb90d0a222c1748859370e` preserves that merge ancestry and is independently
+confirmed as the current GitHub `feat/strategy-lab-v2` ref. GitHub also confirms remote `staging` is
+still exactly `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`. The normal `git fetch` attempt could not
+update shared worktree metadata because `.git/worktrees/feat-strategy-lab-v2/FETCH_HEAD` is read-only;
+no ref was changed. The existing branch merge is already complete, so no duplicate merge is needed.
+
+The owner preflight classified this exact worktree as the implementation role and confirmed existing
+claim `02d5ffaa-53b5-4dec-b39c-0f36612b5436`, active unbudgeted full-roadmap goal, current origin/HEAD
+parity at `ee333`, and the existing `full_stack_browser` profile. The managed status refresh records
+the current source/remote and the owned dirty files; no claim or goal was created or replaced.
+
+Exact-source GitHub CI `39876950653` targets `ee333`. Frontend Unit Tests and Backend Tests' unit
+stage are green; the Backend integration/Testcontainers stage is still running, with coverage and
+later jobs pending. Preserve this run; do not push a new SHA while it is active. A further source-only
+improvement is being prepared in
+`backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`: the forward
+Study restart regression now seeds the production forward lifecycle into an active checkpoint,
+creates the actual `PostgresForwardStateSchema` and `PostgresForwardAccountSchema` DDL in its unique
+test schema, reconstructs the production outer authenticated worker runtime-input resolver with a
+fresh engine/session factory, and checks selected output success, foreign-owner denial and persisted
+Study payload-drift rejection. Static Ruff/format/diff checks and collect-only for exactly this node
+pass; its body has not run locally, and CI39876950653 does not include this uncommitted source. No
+database, Docker, browser, provider, quota, native or full-profile action was launched.
+
+After CI39876950653 is terminal, publish the new coherent source and workstream checkpoint once and
+inspect its exact-source CI. The next local profile is source-pinned to that final published SHA and
+uses the repository's unchanged complete backend coverage collector (`scripts/backend_coverage.py`,
+all unit/package/integration cases, combined 75% threshold), frontend unit/build, the registered API
+plus actual PostgreSQL/Redis worker DB-readiness and process-restart smoke, functional browser tests,
+and the existing 104 strict visuals with zero retries and unchanged references/tolerances/masks.
+Use the pinned Playwright `v1.62.1-noble` image/digest and one worker. Keep the profile one-at-a-time
+under a Root-assigned host/resource cap and a unique Strategy worktree Compose project with its own
+ephemeral DB/Redis state; preserve all retained services and datasets, do not reuse or reset their
+volumes, keep provider egress denied/live flags zero, and leave preparation/forward/broker/trial/job
+execution disabled. Capture baseline inventories and clean only exact resources created by that
+future authorized run. No new heavy fixture/profile is currently authorized. The full 18-criterion
+roadmap, combined application/runtime, final migration, full-stack/browser, and native qualification
+remain open; the accepted SLICP1-SLICP5 checkpoint is not full-topic completion.
+
+CI progress update: a fresh read of exact run `39876950653` confirms Frontend Unit Tests, backend
+unit tests, and backend integration/Testcontainers have completed successfully; combined backend
+coverage enforcement is now in progress. The run remains live and still does not cover the pending
+uncommitted outer-worker restart-test edits. Preserve it through terminal status before publication.
+
+Later CI progress: Backend Tests now completed successfully, including combined coverage. The
+Branch-declared and E2E Playwright jobs are active; the Exhaustive Integration Gate is skipped under
+the feature-branch policy. The run remains nonterminal, so publication still waits for its completion.
+
+Latest exact-run observation: `39876950653` now has Branch-declared green as well; Playwright E2E is
+the only active job, and EIG remains skipped by branch policy. No new source was pushed.
+
+Bounded Study-contract follow-up on 2026-10-23: the stack-free package tests
+`backend/app/strategy_lab_v2/tests/test_trial_hydration.py` and
+`test_forward_execution_plan.py` passed 15/15 in 1.69s under one offline UV/pytest process. The
+first invocation used backend-relative paths from the repository root and collected no tests
+(exit 4); the corrected repository-root paths ran the intended 15 tests. This adds typed
+hydration/plan regression evidence only; it does not execute the pending PostgreSQL forward-worker
+restart test. Exact branch CI `39876950653` remains active at Playwright test execution on published
+source `ee333e450f6883bc45cb90d0a222c1748859370e`; preserve it through terminal status before
+publishing the current coherent test/workstream changeset. The accepted staging SHA
+`4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is already an ancestor of that branch, so no second
+merge is needed. No local database, Docker, full-stack, browser, provider/quota or native run was
+started.
+
+The pending integration-test module also passes focused offline MyPy: one file, no issues, under a
+120-second/1-GiB address-space bound. This is static type evidence only; the PostgreSQL test body
+still requires hosted exact-source execution and the broader local DB slot.
+
+The same pending regression now also rejects a validly shaped but stale forward checkpoint digest
+through the production outer resolver before accepting worker runtime inputs. The added denial passes
+collection, Ruff/format/diff checks, and the same bounded one-file MyPy check; no database fixture was
+started. Exact CI `39876950653` remains active on the earlier source, with Playwright in progress.
+
+## Forward Study output through restartable context windows — 2026-10-23 01:02 UTC
+
+The exact accepted staging release `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is already merged
+into this feature branch at `85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db`; GitHub currently reports
+that staging ref at the same SHA. This branch's published `ee333e450f6883bc45cb90d0a222c1748859370e`
+is synchronized with origin. The original owner claim and active unbudgeted full-roadmap goal were
+verified in the existing worktree; no duplicate claim or goal was created.
+
+Review of the authenticated forward path found that the selected TC Study output reached the
+resolved execution plan but was lost when `ForwardStrategyContextWindow` rebuilt StrategyContext
+from verified history, including both materialized and streamed warm-up paths. The owned changeset
+now carries the exact typed output in `ForwardStrategyContextRecipe`, passes it through authenticated
+history replay and native worker context-window seeding, and supplies it to `build_strategy_context`.
+It rejects absent, unpinned, mismatched, or changed output at the context boundary. The rolling
+window fingerprint includes the pinned resolved output only for Study-bearing strategies; the
+existing no-Study fingerprint projection is unchanged.
+
+Offline stack-free validation passed 14 focused forward-context/plan/composition tests in 2.58s,
+including the existing no-Study context fingerprint regressions, authenticated history resolution,
+and decoding the generated worker context stream to assert the exact selected output in each
+serialized context. Focused MyPy passed on all seven touched Python files under the existing
+1-GiB/120-second bound; Ruff and Ruff format checks pass. The enhanced persisted PostgreSQL restart
+node collects alone, but its test body has not run locally because the Root-assigned database/full
+profile slot is not released. No Docker, database, Compose, browser, native engine, provider/issuer
+HTTP, quota, or live operation ran.
+
+The first bounded 14-test attempt produced 13 passes and one failure in the modified fixture: its
+new Study-bearing manifest no longer matched the old test package's strategy fingerprint. The test
+fixture now derives the package's strategy and manifest digests from the same immutable manifest;
+the same 14 tests then passed. This was test-setup inconsistency, not a production failure, and the
+initial result is retained here.
+
+Exact branch run `39876950653` targets published parent `ee333e450f6883bc45cb90d0a222c1748859370e`;
+GitHub currently reports Frontend, Backend including combined coverage, and Branch-declared green,
+E2E Playwright still running, and Exhaustive skipped under feature-branch policy. It does not cover
+the unpublished Study context and PostgreSQL restart edits. Preserve that run to terminal before
+publishing the coherent current changeset. The exact PostgreSQL test body, full local backend and
+combined database/application profile, browser/strict visuals, and scope-qualified native execution
+remain open; this is continued full-roadmap work, not another checkpoint closure. Provider HTTP/quota,
+paid/trial/unknown/unsafe/broker/capital operations, retained data/services, and deployment remain
+disabled or unauthorized.
+
+## Study context replay and seed revalidation — 2026-10-23 01:06 UTC
+
+The previously active exact-source run `39876950653`, attempt 1 on published source
+`ee333e450f6883bc45cb90d0a222c1748859370e`, is terminal success. Frontend, complete Backend
+(unit, integration/Testcontainers and combined coverage), Branch-declared, and E2E Playwright jobs
+all succeeded; Exhaustive Integration Gate was skipped under feature-branch policy. This receipt
+does not include the current unpublished Study-context or PostgreSQL restart changes.
+
+Added a pure regression proving a Study-bearing forward window retains its exact output and
+fingerprint through verified-history replay and authenticated context seeding, and rejects a
+same-name output with a different content digest before it seeds the window. The combined context,
+authenticated history, plan-recipe and worker-composition group now passes `15/15` in `2.71s`;
+focused MyPy passes across all eight touched Python files with a 1-GiB/120-second bound; Ruff,
+format, `git diff --check`, and workstream validation pass. The PostgreSQL reconstructed-worker
+restart test still only collects and has not run its test body locally. No database, Docker, Compose,
+browser, native runtime, provider/issuer HTTP, quota, or live operation ran.
+
+The current validated source and workstream changes are coherent for publication. Next publish once
+and inspect that exact-source CI. The PG test body and assigned full backend/application, browser,
+strict-visual and native gates remain open under the full 18-criterion roadmap; no second checkpoint
+closure is implied. Preserve the exact TC/ETF/Provider boundaries, exact-scope Nautilus evidence, and
+all disabled live, paid/trial, unknown/unsafe, broker/capital, retained-data and deployment scopes.

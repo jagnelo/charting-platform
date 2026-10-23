@@ -17,7 +17,11 @@ from types import MappingProxyType
 from typing import Any, Protocol
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
-from app.strategy_lab_v2.contracts import ForwardInstance, ForwardState
+from app.strategy_lab_v2.contracts import (
+    ForwardInstance,
+    ForwardState,
+    ResolvedStudyArtifactOutput,
+)
 from app.strategy_lab_v2.forward_account import (
     ForwardAccountEventBinding,
     ForwardAccountHistoryEntry,
@@ -34,6 +38,7 @@ from app.strategy_lab_v2.forward_context import (
     ForwardStrategyContextHistory,
     ForwardStrategyContextPreparation,
     ForwardStrategyContextWindow,
+    normalize_study_artifact_outputs,
 )
 from app.strategy_lab_v2.forward_execution_plan_resolution import ResolvedForwardExecutionPlan
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
@@ -396,6 +401,7 @@ class ResolvedForwardContextWindow:
         parameters: Mapping[str, Any],
         random_seed: int,
         positions: Mapping[str, PositionSnapshot] | None = None,
+        study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None,
     ) -> ResolvedForwardContextWindow:
         """Resolve one window from an authenticated durable event prefix."""
 
@@ -408,6 +414,7 @@ class ResolvedForwardContextWindow:
             random_seed=random_seed,
             expected_pre_event_checkpoint_fingerprint=(history.pre_event_checkpoint_fingerprint),
             expected_warmup_receipt_fingerprint=history.warmup_receipt_fingerprint,
+            study_artifacts=study_artifacts,
         )
         return cls(
             window,
@@ -489,6 +496,7 @@ class ForwardStrategyContextRecipe:
     manifest: StrategySdkManifest
     parameters: Mapping[str, Any]
     random_seed: int
+    study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None
 
     def __post_init__(self) -> None:
         require_sha256_digest(self.portfolio_fingerprint, field_name="portfolio_fingerprint")
@@ -504,6 +512,11 @@ class ForwardStrategyContextRecipe:
         if not isinstance(frozen, Mapping):
             raise TypeError("parameters must freeze to a mapping")
         object.__setattr__(self, "parameters", frozen)
+        object.__setattr__(
+            self,
+            "study_artifacts",
+            normalize_study_artifact_outputs(self.manifest, self.study_artifacts),
+        )
 
 
 class ResolvedForwardExecutionPlanRecipeResolver:
@@ -548,6 +561,7 @@ class ResolvedForwardExecutionPlanRecipeResolver:
             manifest=component.resolved_package.manifest,
             parameters=component.binding.parameters,
             random_seed=component.binding.random_seed,
+            study_artifacts=component.study_artifacts,
         )
 
 
@@ -748,6 +762,7 @@ class AuthenticatedForwardContextWindowResolver:
             parameters=recipe.parameters,
             random_seed=recipe.random_seed,
             positions=positions,
+            study_artifacts=recipe.study_artifacts,
         )
 
 

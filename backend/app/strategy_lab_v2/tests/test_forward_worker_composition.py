@@ -5,6 +5,7 @@ import os
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -15,6 +16,10 @@ from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.authenticated_event_tape import AuthenticatedFrozenEventTapeResolver
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import (
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
+)
 from app.strategy_lab_v2.event_tape import bind_event_tape
 from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeArtifactResolution,
@@ -83,6 +88,7 @@ from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtif
 from app.strategy_lab_v2.tests.forward_replay_ledger import DurableReplayLedger
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _trial_inputs
 from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
+from strategy_runtime import deserialize_component_invocation_context_stream
 
 
 class _Runtime:
@@ -422,6 +428,22 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
     values = _trial_inputs()
     snapshot = values["snapshot"]
     manifest = values["strategy_manifest"]
+    study_payload = {"type": "series", "value": [1.0, 2.0]}
+    study_reference = SelectedStudyArtifactReference(
+        research_run_id=41,
+        code_version_id=12,
+        artifact_id=87,
+        artifact_name="study.close",
+        artifact_type="series",
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest=content_digest("forward-worker-study-code-version"),
+        dataset_manifest_digest=content_digest("forward-worker-study-dataset"),
+        artifact_content_digest=content_digest(study_payload),
+    )
+    strategy = replace(manifest.strategy, selected_study_artifact=study_reference)
+    manifest = replace(manifest, strategy=strategy)
+    study_output = ResolvedStudyArtifactOutput(study_reference, study_payload)
     source_tape = values["event_tape"]
     source_resolution = FrozenEventTapeArtifactResolution(
         snapshot.fingerprint,
@@ -430,13 +452,22 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         bind_event_tape(source_tape, snapshot, manifest),
         tuple(sorted(item.content_digest for item in snapshot.series)),
     )
-    strategy = values["strategy_manifest"].strategy
-    package = values["strategy_package"]
+    package = replace(
+        values["strategy_package"],
+        strategy_fingerprint=strategy.fingerprint,
+        manifest_digest=manifest.fingerprint,
+    )
     instance = SimpleNamespace(
         instance_id="forward-1",
         warmup_snapshot_fingerprint=snapshot.fingerprint,
     )
-    portfolio = values["portfolio"]
+    portfolio = replace(
+        values["portfolio"],
+        components=tuple(
+            replace(component, strategy_fingerprint=strategy.fingerprint)
+            for component in values["portfolio"].components
+        ),
+    )
     component_binding = ForwardComponentExecutionPlan(
         "component-1",
         strategy.fingerprint,
@@ -449,7 +480,7 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         binding=component_binding,
         strategy=strategy,
         package=package,
-        study_artifacts=None,
+        study_artifacts={study_reference.artifact_name: study_output},
         resolved_package=SimpleNamespace(
             fingerprint=content_digest("resolved-package"),
             archive_manifest=SimpleNamespace(content_digest=content_digest("package-archive")),
@@ -539,6 +570,7 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         manifest,
         parameters=component_binding.parameters,
         random_seed=component_binding.random_seed,
+        study_artifacts={study_reference.artifact_name: study_output},
     )
     for payload in full_payloads:
         if payload.canonical_event.sequence > cursor.sequence:
@@ -660,6 +692,9 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         == result.warmup_stream.tape.tape_fingerprint
     )
     assert result.engine_input.event_tape.events == ()
+    assert result.execution_plan.components["component-1"].study_artifacts == {
+        study_reference.artifact_name: study_output
+    }
 
     output_directory = tmp_path / "forward-output"
     output_directory.mkdir(mode=0o700)
@@ -696,6 +731,14 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
     assert sandbox_context_stream_digest(sandbox_plan)
     context_stream_path = sandbox_context_stream_path(sandbox_plan)
     assert context_stream_path is not None and context_stream_path.is_file()
+    context_bindings, serialized_contexts = deserialize_component_invocation_context_stream(
+        BytesIO(context_stream_path.read_bytes())
+    )
+    expected_study_outputs = {study_reference.artifact_name: study_output}
+    assert context_bindings["component-1"].study_artifacts == expected_study_outputs
+    decoded_contexts = tuple(context for _component_id, context in serialized_contexts)
+    assert decoded_contexts
+    assert all(context.study_artifacts == expected_study_outputs for context in decoded_contexts)
     assert sandbox_plan.request_fingerprint
     validate_sandbox_command_plan(sandbox_plan)
 

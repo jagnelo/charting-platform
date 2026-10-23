@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -15,6 +16,8 @@ from app.strategy_lab_v2.contracts import (
     ForwardInstance,
     ForwardState,
     ProductClass,
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
     StrategyVersion,
 )
 from app.strategy_lab_v2.dispatch import DispatchRequest
@@ -206,7 +209,25 @@ class AccountHistoryStore:
 @pytest.mark.anyio
 async def test_authenticated_resolver_composes_exact_history_recipe_and_account_positions() -> None:
     admission, receipt, warmup = _admission_state()
-    manifest = _manifest()
+    base_manifest = _manifest()
+    study_payload = {"type": "series", "value": [1.25, 2.5]}
+    study_reference = SelectedStudyArtifactReference(
+        research_run_id=41,
+        code_version_id=12,
+        artifact_id=87,
+        artifact_name="study.close",
+        artifact_type="series",
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest=content_digest("forward-context-study-code"),
+        dataset_manifest_digest=content_digest("forward-context-study-dataset"),
+        artifact_content_digest=content_digest(study_payload),
+    )
+    manifest = replace(
+        base_manifest,
+        strategy=replace(base_manifest.strategy, selected_study_artifact=study_reference),
+    )
+    study_output = ResolvedStudyArtifactOutput(study_reference, study_payload)
     position = PositionSnapshot("US.AAPL", Decimal("2"), Decimal("100"), Decimal("200"))
     account = ForwardAccountState(INSTANCE_ID, "USD", positions=(position,))
     history = ForwardStrategyContextHistory(
@@ -232,6 +253,7 @@ async def test_authenticated_resolver_composes_exact_history_recipe_and_account_
             manifest,
             {"threshold": Decimal("1.5")},
             17,
+            study_artifacts={study_reference.artifact_name: study_output},
         )
 
     def history_resolver(**kwargs: Any):
@@ -257,6 +279,7 @@ async def test_authenticated_resolver_composes_exact_history_recipe_and_account_
     assert resolved.warmup_receipt_fingerprint == receipt.fingerprint
     assert resolved.positions == {"US.AAPL": position}
     assert preparation.context.positions == {"US.AAPL": position}
+    assert preparation.context.study_artifacts == {study_reference.artifact_name: study_output}
     assert preparation.context.market_events["daily-bars"] == (
         warmup.market_event,
         delivery.market_event,

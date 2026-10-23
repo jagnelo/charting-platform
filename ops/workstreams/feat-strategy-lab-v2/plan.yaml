@@ -696,45 +696,41 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-forward-study-output-worker-revalidation-v1
+  current_phase: full-roadmap-forward-study-output-worker-context-revalidation-v3
   current_blocker: >-
-    The accepted four-feature baseline 0e342512e53ba2268425294d61c50e219eaafa4f was previously
-    adopted at 05acff1aa624b2f6ba9e1085a796e17b664ed87a. The later shared Market Map/cleanup repair
-    is now accepted at exact synchronized staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
-    (canonical receipt 20261023T000222Z-4687bd0cd21a.json; exact CI 39866387942, including the
-    Exhaustive gate). This Strategy branch merged only that release as
-    85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db, preserving both histories. Focused own-branch
-    regressions pass: 38 workflow tests and 61 Market Map unit tests. This merge is not yet
-    published or covered by exact-source branch CI.
-    The owner-scoped typed Study payload now reaches backtest hydration and restart revalidation.
-    This continuation also closes the forward-worker consumer gap: the authenticated forward plan
-    resolver must revalidate a selected Study output, stores only the matching immutable output, and
-    both materialized and streaming forward context construction carry it to StrategyContext. No
-    reference preserves the old no-output behavior; missing or drifted resolution fails closed.
-    Focused tests pass 23/23, Ruff and formatting pass, and touched production MyPy passes for two
-    files. The subsequent exact CI on 02bfcbc734dd5f9f552c3e5ba0fe83e5ca2b2720 (run 39867853423)
-    found one no-Study test double missing the new optional study_artifacts attribute; 5197 other
-    backend tests passed and frontend CI passed. A focused correction adds the explicit None field
-    and its existing failing node now passes 1/1 locally; a new exact-source CI is required.
-    The corrected source is dff6afadc5039f2d033e650ddc9bfbe6364bfcd2, independently verified on
-    origin. Exact push CI39869340272 is terminal success: Backend passed 5198 unit and 508
-    integration tests (1 unit skip, 2 integration skips) with 84% combined coverage; Frontend,
-    Branch-declared, and E2E Playwright jobs succeeded; the feature-policy EIG skip is expected. A
-    focused PostgreSQL forward-plan reconstruction
-    regression has now been added to the ordinary Study integration module but has not run locally;
-    it needs the assigned PostgreSQL slot or the new hosted integration run. The full 18 criteria remain
-    in progress: full backend/combined database and runtime, browser/visual, and exact-pinned native
-    qualification still require their assigned validation gates. Provider/live/quota, paid/trial,
-    unknown/unsafe, broker/capital and deployment actions remain disabled or unauthorized; no
-    provider, issuer or SEC HTTP was used.
+    The accepted four-feature baseline 0e342512e53ba2268425294d61c50e219eaafa4f and the later
+    accepted shared Market Map/cleanup repair 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad are already
+    adopted in this Strategy branch. The latter is the exact synchronized staging release with
+    canonical receipt 20261023T000222Z-4687bd0cd21a.json and green CI39866387942 including Exhaustive;
+    merge commit 85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db preserves both histories. The merge is
+    published in ee333e450f6883bc45cb90d0a222c1748859370e, independently verified as current origin
+    Strategy ref; GitHub reports staging still exactly 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.
+    Exact-source branch CI39876950653 on published ee333e450f6883bc45cb90d0a222c1748859370e is
+    terminal success (attempt1): Frontend, Backend including combined coverage, Branch-declared,
+    and E2E Playwright succeeded; Exhaustive was skipped by feature-branch policy. This run does not
+    cover the unpublished current changeset. The accepted staging release 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+    remains the exact staging ref and a parent of this Strategy branch. Current source work
+    strengthens the ordinary Study PostgreSQL forward restart regression through the production
+    outer AuthenticatedForwardWorkerRuntimeInputResolver and carries Study output through
+    ForwardStrategyContextWindow, forward recipe resolution, authenticated history replay, and
+    serialized native-worker context inputs. Study-bearing window fingerprints include the resolved
+    pinned output; the no-Study fingerprint projection remains unchanged. The bounded stack-free
+    regression group passed 15/15 in 2.71s, including replay/fingerprint and authenticated-seed
+    Study-binding cases; focused MyPy reports no issues in all eight touched Python files under a
+    1-GiB/120-second bound; Ruff, format, diff-check, and workstream validation pass. The PostgreSQL
+    restart node collects alone but its body remains unrun locally. Publish the coherent current
+    source/workstream changeset now and inspect exact-source CI; full local database/application,
+    browser/visual, native qualification and remaining roadmap criteria stay open.
+    The full 18 criteria remain open, including full local backend/application, migration, browser and
+    visual validation, native qualification and remaining persistence/API/worker behavior. Provider
+    HTTP/quota, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
   next_action: >-
-    Publish the released-staging merge and owned evidence, inspect its exact-source CI once, then
-    continue the typed Study payload/runtime work. Keep the persisted forward Study PostgreSQL
-    regression in the required evidence set; no local DB slot is currently assigned. Do not launch
-    a full local profile, database fixture, browser, build, or native gate until Root assigns the
-    one-at-a-time host slot. Preserve all 18 original criteria, exact-scope Nautilus authority,
-    disabled provider/live/quota/paid/trial/unknown/unsafe/broker/capital boundaries, and the
-    accepted checkpoint history.
+    Publish the validated forward Study-output/context and PostgreSQL restart changeset once and
+    inspect its exact-source CI. Keep the real PostgreSQL restart body plus full local/application/
+    browser/native gates open; do not launch database, Compose, build, browser or native validation
+    until Root assigns the one-at-a-time host slot. Preserve all 18 original criteria, exact-scope
+    Nautilus authority, disabled provider/live/quota/paid/trial/unknown/unsafe/broker/capital
+    boundaries, and accepted checkpoint history.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
