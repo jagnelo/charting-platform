@@ -189,3 +189,29 @@ weakened profile, new fixture launch or first-human acceptance is claimed.
 Provider owner has been asked only to inventory a safe existing seeded,
 egress-denied fixture; TC owner is diagnosing the same failure read-only.
 Commit this plan and run supported plan-ready before editing the test.
+
+### Readiness-only correction prepared — 2026-10-23 09:55 UTC
+
+Plan-ready passed and the same original native Root goal was re-recorded active
+without replacement/reset. Exactly5lines were added to F8m (2comments and3
+initial-state assertions). Removing those exact additions reproduces every
+byte of the original whole flows.spec.ts at96b7; all clicks, linking/isolation
+assertions, timeouts, retries, skips and references remain untouched.
+Pinned Playwright1.62.1 collection finds exactly1case. This is discovery, NOT
+browser execution. Initial NODE_PATH-only collection failed ESM resolution;
+reusing the identical locked @playwright dependency through an ignored real
+node_modules directory resolved it. No dependency/source lock was changed.
+The first generated top-level cache symlink was moved intact to
+/tmp/mss-owned-node-modules-link-20261023 (no dependency data deleted).
+With only the needed @playwright cache linked, unrestricted discovery then
+encountered an unrelated uplot-performance file's missing local package.
+Explicitly selecting tests/e2e/flows.spec.ts collected1/1 successfully without
+running any body or installing/changing dependencies. Both setup errors remain
+recorded; no browser execution is implied.
+
+Current context owns the5-line test addition and own session/handoff/journal
+updates. Publish it and its separate operational source receipt now; full local
+source-qualified browser evidence and new exact hosted CI remain pending.
+Do not start a duplicate heavy stack, use unowned data, waive local validation,
+or claim full_stack_browser passed from collection. Provider fixture inventory
+and TC peer diagnosis are ongoing; source runtime/frontend bundle is unchanged.
