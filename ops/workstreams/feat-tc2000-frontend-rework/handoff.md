@@ -16,8 +16,16 @@ The imported delta is the accepted hidden-request browser-clock initiation
 observer and its fail-closed unit coverage, plus the Strategy-owned workstream
 changes from F04; no provider API, production behavior, quota, or retained
 service was changed. The focused observer unit file passes 9/9. The merge and
-updated TC owner records are not yet published; exact TC-branch CI is pending.
-This is not a new local browser result or full feature acceptance.
+the preserved pre-merge TC records are published at exact branch source
+`5d7573900449a3007de8b76cf2bae59661d0cbc6` (remote parity verified). Exact TC CI
+`39905888099` passed Frontend and Backend but its Branch-declared Tests job
+failed because the old 4687 frozen manifest pinned the changed helper to its
+previous blob; E2E was still running at last observation, so this is not a full
+CI pass. The local correction imports the exact F04 canonical receipt and
+repins the complete 858-path frozen manifest; scope self-tests, actual guard,
+45-record workstream validation, and diff check pass. Publish that narrow scope
+repair and follow its new exact CI. This is not a new local browser result or
+full feature acceptance.
 
 F8y's ordinary-click parent-host-to-mutation proof and full local profile remain
 pending Root's separate browser slot. Custom Date Sort help identifies SX/IX

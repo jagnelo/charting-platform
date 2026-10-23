@@ -35,18 +35,20 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Local merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 adopts exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61; the merge and owner-record checkpoint are not yet pushed, so exact TC-branch CI is pending. Upstream staging CI39896524209 and canonical receipt20261023T051709Z-f04fb2a26c63.json are green. Previous TC branch CI39892894561 remains bound to published fe4a only.",
+  "current_candidate_ci_status": "F04 is adopted at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 after preserving prior TC records in b59b489913dd4359b6205139e4b4f934d0952667; published exact source 5d7573900449a3007de8b76cf2bae59661d0cbc6 has verified remote parity. Its first exact TC CI39905888099 has Frontend and Backend green, Branch-declared Tests failed because the 4687 frozen manifest pinned hidden_request_observation.ts to an older blob, E2E was still running at last observation, and Exhaustive Integration Gate was skipped. The local exact-F04 receipt/858-path manifest correction passes scope self-tests, actual guard, workstream validation, and diff check; corrective publication and its exact CI remain pending.",
   "current_exact_ci": {
-    "conclusion": "success",
-    "head_sha": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
-    "status": "Latest completed TC-branch CI before F04 adoption: CI39892894561 attempt 1 succeeded on fe4a at 2026-10-23T03:47:13Z. It does not cover the local F04 merge; exact TC-branch CI for the adopted source is pending publication.",
-    "visuals": "CI39892894561 is the last completed TC-branch run and predates F04; it does not provide strict104 TC-branch visual evidence. The F04 staging Exhaustive Integration Gate is green, while F8y local parent-host proof/full local profile remain pending Root's separate slot."
+    "conclusion": null,
+    "head_sha": "5d7573900449a3007de8b76cf2bae59661d0cbc6",
+    "status": "Exact push CI39905888099 attempt 1 is still in progress. Frontend Unit Tests and Backend Tests succeeded; Branch-declared Tests failed at the scope guard because the accepted F04 helper blob differed from the previous 4687 snapshot; E2E was running at the latest observation; Exhaustive Integration Gate is an expected skip. A precise frozen-manifest/receipt correction is prepared locally and must receive new exact-source CI.",
+    "visuals": "This run is not green and provides no strict104 TC local visual evidence. F8y parent-host proof/full local profile remain pending Root's separate slot; preserve all original references, masks, tolerances, and zero retries."
   },
   "dirty_paths": [
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
+    "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -151,7 +153,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
+  "head": "5d7573900449a3007de8b76cf2bae59661d0cbc6",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -195,7 +197,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "8d407193f6063afee488056e536b1740b30a3b620d88a620255934297d0ecd22",
+  "plan_hash": "7b556debd4dd7be0ffc0a989e472dd4e5da941bb674445290fde86ee2ebe3d17",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -327,7 +329,7 @@
     "merge_base": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad",
     "staging_ci_run": 39896524209,
     "staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
-    "status": "Merged locally after checkpointing the four dirty TC records; exact TC-branch publication/CI pending. F04 hidden-request browser-clock observer and fail-closed unit coverage are adopted. No F8y browser profile, provider HTTP, quota, or retained-service mutation was performed."
+    "status": "Merged and published after checkpointing the four dirty TC records; remote parity verified. Exact CI39905888099 exposed stale 4687 helper-byte pinning in the frozen manifest; exact F04 receipt and complete 858-path replacement are prepared locally and pass the guard. No F8y browser profile, provider HTTP, quota, or retained-service mutation was performed."
   },
   "upstream_release_preparation": {
     "accepted_product_checkpoints": 0,

@@ -71,8 +71,17 @@ current_blocker: >-
   attempt 1) and merged into this TC branch at source merge commit
   acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32, with merge base 4687bd0c. The
   merge imports the accepted hidden-request initiation observer and tests;
-  its focused unit file passes 9/9. Branch publication and exact TC-branch CI
-  are pending. The following fe4a status text is preserved as pre-F04 history.
+  its focused unit file passes 9/9. Checkpoint b59b489 preserved the four dirty
+  TC records before merge. Published TC source 5d7573900449a3007de8b76cf2bae59661d0cbc6
+  has exact remote parity. Its first exact branch CI 39905888099 has Frontend
+  and Backend green but Branch-declared Tests failed because the 4687 frozen
+  manifest still pinned hidden_request_observation.ts to its older blob; E2E
+  was still running when recorded and no full CI pass is claimed. The F04 exact
+  receipt and complete 858-path repinned manifest are now added locally;
+  scope self-tests (35), actual guard (1000 changed paths, 858 immutable imports,
+  29 adaptations), workstream validation (45 records), and diff check pass.
+  Publish this narrowly scoped scope-index repair and follow its exact CI. The
+  following fe4a status text is preserved as pre-F04 history.
 
   The branch contains accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
   at merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d; earlier accepted
@@ -113,14 +122,17 @@ current_blocker: >-
   AC1–AC9 and official REF-HELP-V25 parity remain open; provider/live/paid
   operations, deployment and promotion remain disabled/unperformed.
 current_checkpoint_status: >-
-  Current local source merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 adopts
-  exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 (CI39896524209,
-  canonical receipt 20261023T051709Z-f04fb2a26c63.json). Backend, Frontend,
-  Exhaustive Integration Gate and ordinary E2E succeeded; Branch-declared Tests
-  was the expected skip. E2E reported 191 passed/110 declared skips. The
-  imported hidden-request browser-clock observer and fail-closed coverage tests
-  pass locally 9/9; exact TC branch CI is pending publication. This does not
-  duplicate Root's separate observer work or claim a new TC browser profile.
+  TC source adopts exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+  at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 over merge base
+  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad. The four pre-merge dirty TC
+  records were preserved in b59b489913dd4359b6205139e4b4f934d0952667. Exact
+  source 5d7573900449a3007de8b76cf2bae59661d0cbc6 is published and remote-verified.
+  Exact CI39905888099 has a branch-guard failure caused by the stale 4687 helper
+  blob pin; Frontend and Backend passed, while E2E was still running at last
+  observation. The local F04 receipt/858-path replacement manifest now passes
+  scope self-tests and actual guard; own corrective publication and exact CI
+  remain pending. Focused F04 observer unit is 9/9. This does not duplicate
+  Root's observer repair or establish a new local browser profile.
   The older fe4a checkpoint details below remain historical and are retained.
 
   Current continuation at 2026-10-23: published feature HEAD
@@ -991,7 +1003,7 @@ dependencies:
   - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.yaml
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
     source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -1223,6 +1235,9 @@ approved_frozen_upstream_snapshots:
   - source_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.json
     receipt_sha256: 6249c01610eda62544056b1ae00a4c9b14c6d111978be14cda822b15a1c99b49
+  - source_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.json
+    receipt_sha256: 417db4c47e05f9e3119de50ef7a0d6058b790577427eff92a6c6c93bba89fa94
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
