@@ -583,12 +583,12 @@ class ETFHoldingsIngestRequest(BaseModel):
     as_of_date: date | None = None
     known_at: datetime | None = None
     published_at: datetime | None = None
-    provenance: str = "issuer_current_holdings"
+    provenance: str = "manual_import"
     source_provider: str = "manual"
     source_url: str | None = None
     source_identifier: str | None = None
-    source_quality: str = "issuer_current"
-    completeness_status: str = "complete"
+    source_quality: str = "unknown"
+    completeness_status: str = "unknown"
     parser_version: str = "manual-v1"
     raw_payload_text: str | None = None
     raw_payload_json: dict | None = None
@@ -602,12 +602,12 @@ class ETFHoldingsCSVIngestRequest(BaseModel):
     as_of_date: date | None = None
     known_at: datetime | None = None
     published_at: datetime | None = None
-    provenance: str = "issuer_current_holdings"
+    provenance: str = "manual_import"
     source_provider: str = "manual_csv"
     source_url: str | None = None
     source_identifier: str | None = None
-    source_quality: str = "issuer_current"
-    completeness_status: str = "complete"
+    source_quality: str = "unknown"
+    completeness_status: str = "unknown"
     parser_version: str = "csv-v1"
     raw_csv: str
     legal_metadata: dict | None = None

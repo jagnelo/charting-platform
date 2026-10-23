@@ -1,5 +1,15 @@
 # feat/etf-holdings-constituents
 
+## Manual-import metadata defaults follow-up — 2026-10-23T14:51:15Z
+
+The manual CSV parser/source context was published as `d26155d949d2f1a9598685beb2b69e110913d125`; local HEAD and origin match and the worktree was clean at the start of this follow-up. The previous section below is retained as a historical snapshot from 14:04Z, when that parser patch was still local. Exact CI `39967540569` is terminal green on `d26155d`: Backend, Frontend Unit, Branch-declared, and Playwright passed; Exhaustive was skipped by feature-branch policy. The run does not cover the new local change below.
+
+Source review found both admin manual-ingest request schemas defaulted omitted `provenance`, `source_quality`, and `completeness_status` to `issuer_current_holdings`, `issuer_current`, and `complete`. Those defaults could misstate a manual artifact even though the service's `source_tier=none` guard prevents current capability. The schemas now default to `manual_import`, `unknown`, and `unknown`; explicit values such as `sec_filing` and evidence-backed quality/completeness remain preserved. The combined router/schema and service regressions passed `4/4`; changed-file Ruff check and format-check and `git diff --check` passed. This correction changes neither provider transport nor capability guards.
+
+Keep the RSST body unimported. Accepted f04 still lacks safe manual-only enrichment/profile/health behavior; the current branch has newer manual guards, but no storage/display rights or initial request URL evidence was found. Preserve the exact raw artifact and historical/PIT boundaries if those gaps are independently resolved later; do not label it native-current or admitted. No issuer/provider/SEC request, quota, import, profile/runtime mutation, fixture, cleanup, or cross-worktree action occurred.
+
+Final pre-publication checks completed at 2026-10-23T14:58Z: the required `15 Tier-0 and 156 Tier-1` narrative sentinel passed 1/1; the workstream validator accepted one record; session JSON and all 984 validation JSONL rows parsed; `session.plan_hash` matched `plan.yaml`; and `git diff --check` passed. Publish this substantive manual-metadata-default correction once and inspect its exact-source CI. CI `39967540569` validates published `d26155d`, not this follow-up. The Root-owned `full_stack_browser` profile remains required and resource-assigned; do not launch it locally without the slot. Continue all AC1-AC14, quarantines, holds, retained data, and the 30-day observation gate.
+
 ## Current manual CSV typing and RSST offline finding — 2026-10-23T14:04:37Z
 
 The scoped manual-import parser change is local and uncommitted at synchronized

@@ -7,6 +7,36 @@ from app.routers import etf_holdings
 from app.schemas.etf_holdings import ETFHoldingsCSVIngestRequest, ETFHoldingsIngestRequest
 
 
+def test_manual_ingest_schemas_default_quality_to_unknown_and_keep_explicit_evidence():
+    rows_default = ETFHoldingsIngestRequest(composition_date=date(2026, 10, 23), rows=[])
+    csv_default = ETFHoldingsCSVIngestRequest(
+        composition_date=date(2026, 10, 23), raw_csv="Ticker,Weight\nAAPL,100%\n"
+    )
+    rows_evidenced = ETFHoldingsIngestRequest(
+        composition_date=date(2026, 10, 23),
+        rows=[],
+        provenance="sec_filing",
+        source_quality="issuer_reported_dated_holdings",
+        completeness_status="partial",
+    )
+
+    assert rows_default.provenance == "manual_import"
+    assert csv_default.provenance == "manual_import"
+    assert (rows_default.source_quality, rows_default.completeness_status) == (
+        "unknown",
+        "unknown",
+    )
+    assert (csv_default.source_quality, csv_default.completeness_status) == (
+        "unknown",
+        "unknown",
+    )
+    assert (
+        rows_evidenced.source_quality,
+        rows_evidenced.completeness_status,
+        rows_evidenced.provenance,
+    ) == ("issuer_reported_dated_holdings", "partial", "sec_filing")
+
+
 @pytest.mark.asyncio
 async def test_admin_manual_ingest_routes_are_manual_and_disable_provider_enrichment(monkeypatch):
     imported = []
@@ -55,6 +85,9 @@ async def test_admin_manual_ingest_routes_are_manual_and_disable_provider_enrich
     assert len(imported) == 2
     assert all(kwargs["manual_import"] is True for kwargs in imported)
     assert all(kwargs["allow_provider_enrichment"] is False for kwargs in imported)
+    assert all(kwargs["provenance"] == "manual_import" for kwargs in imported)
+    assert all(kwargs["source_quality"] == "unknown" for kwargs in imported)
+    assert all(kwargs["completeness_status"] == "unknown" for kwargs in imported)
     assert parsed == [
         (
             "Ticker,Weight\nAAPL,100%\n",

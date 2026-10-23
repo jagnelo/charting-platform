@@ -88,22 +88,18 @@
     }
   ],
   "active_changeset": {
-    "baseline": "f6eabc1ed3af7940bc1d090cb1f840c00ab289e3",
-    "intent": "Make manual CSV ingestion preserve untyped holdings as unknown instead of silently assigning equity, while keeping explicit source classifications, cash handling, raw evidence, and generic native-parser defaults unchanged. Prove the route passes this conservative policy and the resolver will not equity-match unknown rows.",
-    "name": "Prevent manual CSV untyped rows from becoming synthetic equities",
+    "baseline": "d26155d949d2f1a9598685beb2b69e110913d125",
+    "intent": "Default manually imported provenance, source quality, and completeness to manual_import/unknown/unknown unless an operator supplies evidence-backed values, while preserving explicit values and preventing unsupported current/completeness claims.",
+    "name": "Keep manual-import metadata defaults evidence-neutral",
     "owned_paths": [
-      "backend/app/routers/etf_holdings.py",
-      "backend/app/services/etf_holdings_adapters.py",
+      "backend/app/schemas/etf_holdings.py",
       "backend/tests/unit/routers/test_etf_holdings_manual_import.py",
-      "backend/tests/unit/services/test_etf_holdings_adapters.py",
-      "backend/tests/unit/services/test_etf_holdings_resolution.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-      "ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Focused offline pytest profile passed65/65 across the full resolution module, manual parser cases, and manual-import router wiring; changed-file Ruff check/format, py_compile, and diff checks pass. Exact CI39958914991 is terminal green on published baseline f6eabc1 but predates this uncommitted patch. This is a bounded parser/route contract change; no live HTTP, quota, import, database fixture, activation, cleanup, or cross-worktree action occurred. Root's full_stack_browser slot remains required for final feature validation. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, all quarantines/holds, retained data, and the post-integration 30-day observation."
+    "state": "Manual ingest route/schema and service regressions passed4/4, proving both request schemas default provenance/source_quality/completeness_status to manual_import/unknown/unknown and explicit sec_filing plus evidence-backed quality/completeness values are preserved; changed-file Ruff check/format and diff-check pass. Exact CI39967540569 remains active on published baseline d26155d (Backend, Frontend Unit, Branch-declared passed; Playwright running; Exhaustive skipped); it does not include this local diff. No provider/issuer/SEC HTTP, quota, import, profile/runtime mutation, fixture, cleanup, or cross-worktree action occurred. Root's full_stack_browser slot remains required. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines/holds, retained data, and the 30-day observation."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -154,18 +150,15 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23T13:59:37Z: Exact CI39958914991 on synchronized baseline f6eabc1ed3af7940bc1d090cb1f840c00ab289e3 is terminal green for Backend, Frontend, Branch-declared, and Playwright E2E; Exhaustive was skipped by feature policy. It predates this current uncommitted manual-CSV safety patch. Focused resolution/parser/router tests passed65/65; Ruff check/format, py_compile, and diff checks pass. The patch is not yet in exact-source CI. Root's full_stack_browser slot remains required. Keep RSST unimported because original request URL and storage/display rights are unverified; preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation.",
-  "current_local_delta": "Published baseline f6eabc1 includes the manual-import guard from 9e183e6; exact CI39958914991 on f6 is green. Current uncommitted source change makes the manual CSV parser's missing-type default explicitly unknown only on the manual upload route, while preserving generic adapter defaults, explicit type columns, and cash recognition. The full resolution module, parser regression, and route wiring passed65/65; changed-file Ruff, format, py_compile, and diff checks pass. Exact hosted CI and Root-assigned full_stack_browser are still required for this patch/feature. No RSST import, HTTP, quota, database fixture, provider activation, cleanup, or cross-worktree action occurred.",
+  "current_blocker_latest": "2026-10-23T14:56:52Z: Exact CI39967540569 on published source d26155d is terminal green for Backend, Frontend Unit, Branch-declared and Playwright; Exhaustive was skipped by feature policy. It does not include the local provenance/quality/completeness-default correction. The new source SHA requires its own exact CI, and Root's full_stack_browser slot remains required. Keep RSST unimported because original request URL and storage/display rights are unverified; preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation.",
+  "current_local_delta": "Published source d26155d contains the manual-only no-enrichment, source-tier-none, import-time known_at, native-health suppression and conservative untyped CSV behavior. The current local follow-up changes both manual ingest schema defaults from issuer_current_holdings/issuer_current/complete to manual_import/unknown/unknown, preserving explicit SEC and evidence-backed values. Router/schema and service regressions passed4/4; Ruff check/format and diff check pass. Exact CI39967540569 on d26155d is terminal green but does not include this diff. No RSST import, external HTTP, quota, fixture, profile/runtime mutation, activation, cleanup, or cross-worktree action occurred.",
   "dirty_paths": [
-    "backend/app/routers/etf_holdings.py",
-    "backend/app/services/etf_holdings_adapters.py",
+    "backend/app/schemas/etf_holdings.py",
     "backend/tests/unit/routers/test_etf_holdings_manual_import.py",
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "backend/tests/unit/services/test_etf_holdings_resolution.py",
-    "ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json"
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
     "available": false,
@@ -191,8 +184,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "f6eabc1ed3af7940bc1d090cb1f840c00ab289e3",
-  "implementation_sha": "04f49d940c877635de52c0c0616e54f47018bf25",
+  "head": "d26155d949d2f1a9598685beb2b69e110913d125",
+  "implementation_sha": "d26155d949d2f1a9598685beb2b69e110913d125",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -302,15 +295,15 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-23T14:04:37Z",
+  "last_checkpoint": "2026-10-23T14:57:33Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "At 2026-10-23T14:04:37Z, exact run39958914991 on synchronized f6eabc1 is terminal green for Backend, Frontend, Branch-declared, and Playwright E2E; Exhaustive skipped by feature policy. Current manual CSV safety patch passed65/65 focused resolution/parser/router tests, Ruff check/format, py_compile, and diff checks but is uncommitted and not covered by that CI. Static current-branch audit confirms a dated non-current RSST manual representation is now expressible, but it remains unimported because storage/display rights and original request URL are unverified; schemas require explicit unknown source_quality/completeness instead of their issuer-current/complete defaults. Root's full_stack_browser slot remains required. Full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and 30-day observation remain open.",
+  "latest_checkpoint": "At 2026-10-23T14:57:33Z, exact CI39967540569 on published d26155d is terminal green for Backend, Frontend Unit, Branch-declared and Playwright; Exhaustive is skipped by feature policy. It does not cover the local manual provenance/source_quality/completeness-default change. Focused router/schema plus service tests passed4/4; Ruff, format, count sentinel, workstream validation, JSON/JSONL, plan-hash and diff checks pass. RSST remains unimported due missing original request URL and storage/display rights. Root's full_stack_browser slot remains required. Full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and 30-day observation remain open.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T13:59:37Z",
-    "result": "terminal_success;Backend, Frontend Unit, Branch-declared, and Playwright E2E passed; Exhaustive Integration skipped by feature-branch policy. This run validates f6eabc1 only, not the current uncommitted parser patch.",
-    "run_id": 39958914991,
-    "sha": "f6eabc1ed3af7940bc1d090cb1f840c00ab289e3"
+    "recorded_at": "2026-10-23T14:56:52Z",
+    "result": "terminal_success; Backend, Frontend Unit, Branch-declared and Playwright passed; Exhaustive skipped by feature-branch policy. This run validates d26155d only, not the current local manual-metadata-default change.",
+    "run_id": 39967540569,
+    "sha": "d26155d949d2f1a9598685beb2b69e110913d125"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
@@ -360,8 +353,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run final workstream/narrative/JSON/plan-hash/diff validation, commit and push the substantive manual CSV safety change once, then preserve and inspect its exact-source CI. Do not rerun unchanged tests or claim f6 CI covers the patch. Continue offline roadmap work while Root's full_stack_browser resource slot remains pending. Keep RSST unimported pending rights and complete source provenance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and the 30-day observation. No issuer/provider/SEC HTTP, quota, import, activation, cleanup, or cross-worktree writes.",
-  "plan_hash": "1cd7c411cb6fd381a7cbae0530fef2b30dbc92df02b28bb86115cb400dadee61",
+  "next_action": "Commit and push the validated substantive manual-import metadata-default correction once, verify origin, then inspect its exact-source CI. Do not rerun exact CI39967540569, which is green on d26155d and does not cover this diff. Continue offline AC1-AC14 work while Root's full_stack_browser slot remains pending. Keep RSST unimported pending rights and full source provenance; preserve `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation. No issuer/provider/SEC HTTP, quota, import, activation, cleanup, or cross-worktree writes.",
+  "plan_hash": "fd1b33a801a9c044aef05a909ac4761baf6c016e863293a8ec8c2306a7a36cbc",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -412,10 +405,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23T14:04:37Z: Exact CI39958914991 is green for published source f6eabc1 only and predates the current manual CSV patch. Focused resolution/parser/router tests are65/65 with static checks green; exact-source CI and Root's full_stack_browser slot remain pending. The current branch can store dated RSST manually with explicit derivative/cash types, raw payload, no enrichment, source tier none, no native adapter-success health, and import-time known_at. Do not import until storage/display rights and original request URL provenance are verified. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, and all quarantines/holds.",
-  "current_phase": "manual_csv_untyped_row_safety_2026_10_23",
-    "next_action": "Finish source/workstream validation, commit and push this substantive parser safety change once, and inspect its exact-source CI. Then continue offline source/rights review without importing RSST or making requests; the full_stack_browser profile remains under Root's exclusive slot. Preserve all roadmap criteria, quarantines, holds, retained data, and the post-integration observation gate.",
-    "updated_at": "2026-10-23T14:04:37Z"
+    "current_blocker": "2026-10-23T14:56:52Z: Exact CI39967540569 on d26155d is terminal green but does not include the local provenance/quality/completeness-default change; new exact-source CI remains pending until publication. Preserve the required `15 Tier-0 and 156 Tier-1` audit baseline.",
+    "current_phase": "manual_import_metadata_defaults_truthfulness_2026_10_23",
+    "next_action": "Run final workstream/narrative/JSON/plan-hash/diff checks and publish the focused manual-import metadata-default correction once. Inspect its exact-source CI, then continue the next offline AC1-AC14 item while preserving RSST source/rights gaps, quarantines and Root's exclusive full_stack_browser slot.",
+    "updated_at": "2026-10-23T14:57:33Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",

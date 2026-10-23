@@ -1753,31 +1753,32 @@ latest_green_staging_adoption:
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
     Published ETF HEAD and origin were synchronized at
-    f6eabc1ed3af7940bc1d090cb1f840c00ab289e3. Exact Actions run 39958914991 is
-    terminal green for Backend, Frontend Unit, Branch-declared, and Playwright
-    E2E; Exhaustive was skipped by feature-branch policy. This validates the
-    published source only, not the current manual-CSV parser patch. The local
-    full_stack_browser profile remains pending Root's exclusive slot. Preserve
-    historical red/partial evidence, full roadmap, disabled routes, quarantines,
-    retained data, and the post-integration observation gate. No
-    issuer/provider/SEC request, quota, paid/trial activation, data cleanup,
-    or cross-worktree write occurred.
+    d26155d949d2f1a9598685beb2b69e110913d125. Exact Actions run 39967540569 is
+    terminal green: Backend, Frontend Unit, Branch-declared, and Playwright
+    passed; Exhaustive is skipped by feature-branch policy. This run does not
+    cover the local manual-import metadata-default correction. The Root-owned
+    full_stack_browser profile remains pending its
+    exclusive slot. Preserve all earlier red/partial evidence, full roadmap,
+    disabled routes, quarantines, retained data, and the post-integration
+    observation gate. No issuer/provider/SEC request, quota, paid/trial
+    activation, data cleanup, or cross-worktree write occurred.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Finish current scoped source/workstream review and final workstream,
-  narrative-count, JSON/JSONL, plan-hash, and diff checks. Then commit and push
-  this substantive manual-CSV safety change once and inspect its exact-source
-  CI. Do not repeat unchanged sentinels or claim the green f6 CI covers this
-  patch. The current branch's manual routes preserve raw input, disable
-  enrichment, set manual-import provenance/source tier none, stamp import-time
-  known_at, and skip native adapter-success health; untyped CSV rows remain
-  unknown while normalized manual rows can carry evidenced derivative/cash
-  types. Keep RSST unimported until rights and full source provenance are
-  established. Root's exclusive full_stack_browser slot remains required for
-  the final local profile. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`,
-  MSMR/QQQ and Militia/GOOG quarantines, disabled route/quota/paid/trial holds,
-  retained data, and the 30-day observation. No issuer/provider/SEC HTTP,
-  quota, import, activation, cleanup, cross-worktree write, staging
-  integration, promotion, or deployment.
+  Exact CI 39967540569 on published source d26155d is terminal green and does
+  not cover the local diff. Do not rerun it. Run final workstream,
+  narrative-count, JSON/JSONL, plan-hash and diff checks and publish the
+  substantive manual-import provenance/quality/completeness-default correction with its
+  focused regression. Review the resulting exact-source CI. Keep manual data
+  at manual_import provenance and unknown quality/completeness by default
+  unless supported evidence is supplied;
+  current branch manual routes still preserve raw input, disable enrichment,
+  set manual-import provenance/source tier none, stamp import-time known_at,
+  skip native adapter-success health, and leave untyped rows unknown. Keep RSST
+  unimported until rights and full source provenance are established. Root's
+  exclusive full_stack_browser slot remains required. Preserve AC1-AC14,
+  `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG quarantines, disabled
+  route/quota/paid/trial holds, retained data, and the 30-day observation. No
+  issuer/provider/SEC HTTP, quota, import, activation, cleanup, cross-worktree
+  write, staging integration, promotion, or deployment.
