@@ -1,5 +1,79 @@
 # feat/etf-holdings-constituents
 
+## Proposed first-human SEC source checkpoint — 2026-10-23T19:00Z
+
+The prior `etf-holdings-integration-1` acceptance and its complete closure,
+receipt, and original AC1–AC14 dispositions remain preserved under the
+historical checkpoint fields in `plan.yaml` and `session.json`. The current
+checkpoint is now `etf-first-human-sec-source-1`; planning was requested, but
+Root acceptance and closure are **pending**. The native full-roadmap goal,
+goal history/accounting, model, and effort were not replaced or reset.
+
+The proposed source scope is limited to the dedicated SEC one-fund identity,
+transport, shared-budget/accounting and idempotent-ingestion path; secure
+admin-only dry-run/default-held provisioning that preserves shared Provider
+state; and truthful historical/PIT/freshness API/UI contracts. The proposed
+checkpoint does not claim new native issuer support, completion of the 537
+live-source matrix, or the 30-day observation. SEC remains held until reviewed
+source/account/policy and the exact invocation are accepted. No real IWM
+acquisition or UI sample is proven: Root owns that later deployment-acceptance
+proof after a qualifying source is established and the exact invocation is
+reviewed.
+
+All fourteen original criteria remain verbatim under
+`roadmap_acceptance_criteria`; `plan.yaml.integration_checkpoint` now records
+each as delivered-in-checkpoint, partial, or deferred with owner and a
+continuation acceptance test. `full_integration` and
+`full_stack_browser` remain mandatory, along with existing assertions,
+tolerances and exact-source CI. No local full profile or new DB fixture is
+started without Root's assigned slot and the already-recorded memory guards.
+
+The published branch is clean and synchronized at
+`d42e5ff07490af8f0fb894e7ab924e4f62cc4379`. Exact push CI `40006029802` was
+last observed in progress: Frontend passed and Backend unit tests were
+running. It must finish unchanged; no cancellation or replay. The authorized
+one-shot DB suite remains unrun because the last host reading was below the
+1536 MiB floor; the earlier 384 MiB OOM remains partial/inconclusive. The
+current proposal does not make those results green or claim DB proof.
+
+## Selected-snapshot lineage UI correction — 2026-10-23T19:10Z
+
+Static review found that `ETFHoldingsView.vue` allowed selection of an older
+snapshot but showed only composition date, source provider/quality and the
+profile capability. Unlike the compact holdings panel, this full research view
+did not display the selected snapshot's provenance or `known_at`, and its
+current-capability pill did not clarify that it described profile eligibility
+rather than the explicitly selected historical snapshot.
+
+The view now labels the selected record `Latest stored snapshot` or
+`Historical snapshot` by comparing the returned snapshot identity with the
+profile's latest snapshot ID. It separately labels profile current-analysis
+eligibility and displays the selected snapshot's provenance, system-observed
+`known_at`, and source-reported publication time. Missing publication metadata
+is shown as `Not established`; the UI does not infer public-availability time
+or expose a raw source URL. No backend/API, data, route, entitlement or source
+policy changed.
+
+The offline view test covers latest and historical selection, provenance,
+exact `known_at`, unknown publication, and the separation from profile
+eligibility. The first focused run had two test-selector assertions pointed at
+the wrong rendered sections; those were corrected to inspect panel metadata,
+then the unchanged six-test view file passed `6/6`. `vue-tsc --noEmit` exited
+`0`. This is not browser/full-stack proof. Exact CI `40006029802` remains live
+on published SHA `d42e5ff07490af8f0fb894e7ab924e4f62cc4379` and does not include
+these local UI edits; as of `19:10:25Z`, Backend, Frontend and Branch-declared
+passed, E2E was installing Playwright, and Exhaustive was skipped by feature
+policy.
+
+The authorized offline DB preflight at `19:05:20Z` found
+`MemAvailable=1510824KiB`, below the required `1536MiB`; memory PSI was low,
+but the hard floor was not met. No test fixture/database/Redis resource was
+created. Keep the one-shot DB grant unused until a fresh preflight passes all
+its guards. No actual IWM acquisition or UI sample, SEC current/native support,
+full local `full_stack_browser`, applicable live evidence, or checkpoint
+acceptance is claimed. Preserve all AC1–AC14, holds, quarantines, retained data,
+the 30-day observation and Root's deployment-acceptance boundary.
+
 ## Accepted staging a6b9 adoption — 2026-10-23T18:42Z
 
 After local SEC correction commit `cf97bc64a75969dd7e0fb300b4f05b3ebabc914c`,
@@ -15610,3 +15684,42 @@ observed `known_at`, historical/PIT and rejected-raw lineage, the full AC1–AC1
 roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG quarantines,
 disabled unknown/paid/trial routes, retained data, `full_stack_browser`, and
 the 30-day observation gate.
+
+## Resource refusal, recovery, and exact CI update — 2026-10-23T19:25:29Z
+
+Root reports that its guarded 19:21 private-backend maintenance window was
+refused at 1223 MiB available and PSI full avg10=4.33/avg60=3.64. The
+`WINDOWOPEN` signal was never issued, so the corrected 512 MiB offline DB slot
+remains unused; no DB test or new resource was created. Root independently
+verified recovery: all six target services are healthy, and schema, seeds,
+routing, request-log count 4, real 479 SPY and 479 RSP bars, and Run 4
+artifacts are unchanged. The independent restore timer completed after that
+health proof. Preserve the refusal and earlier 384 MiB OOM as resource-gate and
+partial evidence, not test failures. Do not replay maintenance or preflight or
+launch local tests, services, or fixtures absent a future Root-coordinated
+window.
+
+The latest read of exact GitHub run 40006029802 on published SHA
+`d42e5ff07490af8f0fb894e7ab924e4f62cc4379`, at 19:25:29Z, shows Frontend
+Unit, Backend, and Branch-declared jobs passed; E2E is running Playwright
+tests; Exhaustive is skipped by feature-branch policy. Preserve the same run
+without cancellation or replay. It does not include the uncommitted
+selected-snapshot lineage UI change; the earlier focused view suite passed
+6/6 and `vue-tsc --noEmit` passed. This is a CI/UI checkpoint update only, not
+full `full_stack_browser`, DB/runtime, live, sample-acquisition, or checkpoint
+acceptance evidence. Keep SEC held and preserve AC1–AC14, 15 Tier-0 and 156
+Tier-1, quarantines, disabled routes, retained data, and the 30-day gate.
+
+## Published-parent CI terminal result and UI publication — 2026-10-23T19:51:41Z
+
+Root independently confirmed exact GitHub run 40006029802 on d42 terminal
+GREEN: Frontend Unit, Backend, Branch-declared, and Playwright E2E passed;
+Exhaustive was skipped by feature-branch policy. The exact run does not contain
+the local selected-snapshot lineage UI changes. Root reviewed the existing
+focused view 6/6 and frontend type-check pass receipts. Publish the UI and the
+checkpoint/workstream update together in one ordinary branch-owned commit/push,
+then monitor the automatically triggered exact-source CI for that new tip. Do
+not replay the unchanged UI tests or start local full-profile/DB work: the
+corrected DB slot remains unused and requires a future Root-coordinated window.
+This does not accept the new checkpoint; DB/full-stack/live/deployed sample
+gates and the complete AC1–AC14 roadmap remain open.

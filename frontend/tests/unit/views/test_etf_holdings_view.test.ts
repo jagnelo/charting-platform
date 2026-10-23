@@ -128,6 +128,8 @@ function holdingsPage(overrides: Record<string, unknown> = {}) {
       etf_symbol: 'SPY',
       etf_name: 'SPDR S&P 500 ETF Trust',
       composition_date: '2026-06-07',
+      known_at: '2026-06-07T04:15:00Z',
+      published_at: null,
       provenance: 'issuer_current_holdings',
       source_provider: 'issuer-test',
       source_quality: 'issuer_current',
@@ -477,6 +479,13 @@ describe('ETFHoldingsView', () => {
       limit: 100,
       offset: 0,
     })
+    expect(wrapper.get('[data-testid="etf-selected-snapshot-kind"]').text()).toBe('Latest stored snapshot')
+    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('issuer current holdings')
+    expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime'))
+      .toBe('2026-06-07T04:15:00Z')
+    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('Source-reported publication')
+    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('Not established')
+    expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: current')
     expect(api.get).toHaveBeenNthCalledWith(4, '/etf-holdings/SPY/diff', {
       left_snapshot_id: '54',
       right_snapshot_id: '55',
@@ -566,6 +575,58 @@ describe('ETFHoldingsView', () => {
     })
     expect(wrapper.text()).toContain('ETF Holdings')
     expect(wrapper.text()).toContain('No holdings match the current filters.')
+  })
+
+  it('labels an explicitly selected older snapshot as historical and shows its own lineage', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([profile])
+      .mockResolvedValueOnce(dates)
+      .mockResolvedValueOnce(holdingsPage())
+      .mockResolvedValueOnce(diffPayload())
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+      .mockResolvedValueOnce(holdingsPage({
+        snapshot: {
+          ...holdingsPage().snapshot,
+          id: 54,
+          composition_date: '2026-06-06',
+          known_at: '2026-06-07T04:15:00Z',
+          published_at: null,
+          provenance: 'manual_import',
+          source_provider: 'manual_csv',
+          source_quality: 'historical_unverified',
+        },
+      }))
+      .mockResolvedValueOnce(diffPayload())
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => {
+      expect(wrapper.get('[data-testid="etf-selected-snapshot-kind"]').text()).toBe('Latest stored snapshot')
+    })
+
+    const snapshotPicker = wrapper.findAll('label')
+      .find(label => label.text().includes('Snapshot'))
+      ?.find('select')
+    expect(snapshotPicker).toBeTruthy()
+    await snapshotPicker!.setValue('54')
+
+    await vi.waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/holdings', {
+        snapshot_id: '54',
+        q: undefined,
+        sort: 'weight',
+        direction: 'desc',
+        limit: 100,
+        offset: 0,
+      })
+      expect(wrapper.get('[data-testid="etf-selected-snapshot-kind"]').text()).toBe('Historical snapshot')
+    })
+    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('manual import')
+    expect(wrapper.find('.panel-meta').text()).toContain('manual_csv')
+    expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime'))
+      .toBe('2026-06-07T04:15:00Z')
+    expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('Not established')
+    expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: current')
   })
 
   it('resets the selected snapshot when switching ETF profiles', async () => {

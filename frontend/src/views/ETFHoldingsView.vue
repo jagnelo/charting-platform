@@ -56,8 +56,9 @@
         <div class="panel-title-row">
           <div>
             <h2>{{ selectedProfile?.symbol || 'Select an ETF' }}</h2>
-            <p v-if="page">
-              {{ page.snapshot.etf_name }} · {{ page.snapshot.composition_date }}
+            <p v-if="page" class="snapshot-date-line">
+              {{ page.snapshot.etf_name }} · Composition {{ page.snapshot.composition_date }} ·
+              <span data-testid="etf-selected-snapshot-kind">{{ selectedSnapshotKind }}</span>
             </p>
             <p v-else>Choose an ETF to prepare its holdings workspace and inspect available snapshots.</p>
           </div>
@@ -65,12 +66,42 @@
             <span>{{ page.snapshot.source_provider }}</span>
             <span>{{ page.snapshot.source_quality }}</span>
             <span>{{ page.total }} rows</span>
+            <span>Profile current eligibility: {{ capabilityLabel(selectedCapability) }}</span>
             <span
               class="capability-pill"
               :class="capabilityClass(selectedCapability)"
             >{{ capabilityLabel(selectedCapability) }}</span>
           </div>
         </div>
+
+        <dl v-if="page" class="snapshot-lineage" data-testid="etf-snapshot-lineage">
+          <div>
+            <dt>Provenance</dt>
+            <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
+          </div>
+          <div>
+            <dt>Observed / known at</dt>
+            <dd>
+              <time
+                v-if="page.snapshot.known_at"
+                data-testid="etf-snapshot-known-at"
+                :datetime="page.snapshot.known_at"
+              >{{ formatDateTime(page.snapshot.known_at) }}</time>
+              <span v-else>Unknown</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Source-reported publication</dt>
+            <dd>
+              <time
+                v-if="page.snapshot.published_at"
+                data-testid="etf-snapshot-published-at"
+                :datetime="page.snapshot.published_at"
+              >{{ formatDateTime(page.snapshot.published_at) }}</time>
+              <span v-else>Not established</span>
+            </dd>
+          </div>
+        </dl>
 
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
 
@@ -673,6 +704,14 @@ const loadingOverlap = ref(false)
 const loadError = ref('')
 
 const selectedCapability = computed(() => selectedProfile.value?.holdings_capability ?? null)
+const selectedSnapshotKind = computed(() => {
+  const snapshot = page.value?.snapshot
+  const latestSnapshotId = selectedProfile.value?.latest_snapshot_id
+  if (!snapshot || latestSnapshotId == null) return 'Snapshot status unknown'
+  return String(snapshot.id) === String(latestSnapshotId)
+    ? 'Latest stored snapshot'
+    : 'Historical snapshot'
+})
 
 function capabilityLabel(capability: ETFHoldingsCapability | null | undefined): string {
   if (!capability) return 'Capability not checked'
@@ -694,6 +733,10 @@ function canaryStatusLabel(status: string | null | undefined): string {
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
   return new Date(value).toLocaleString()
+}
+
+function formatProvenance(value: string | null | undefined): string {
+  return String(value || '').replace(/_/g, ' ') || 'Unknown'
 }
 
 const pageEnd = computed(() => {
@@ -1354,6 +1397,30 @@ onMounted(loadProfiles)
   background: #0e1720;
   padding: 4px 8px;
   font-size: 10px;
+}
+.snapshot-lineage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #23384b;
+  border-radius: 6px;
+  background: #0e1720;
+  color: #9ccdf7;
+  font-size: 11px;
+}
+.snapshot-lineage div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.snapshot-lineage dt {
+  color: #8f9eaa;
+}
+.snapshot-lineage dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 .toolbar {
   display: grid;
