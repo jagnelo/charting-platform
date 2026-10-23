@@ -3328,6 +3328,9 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8l — hidden workstation surfaces suspend market-analysis refreshes', async ({ page, browserDiagnostics }) => {
+    // loggedIn already opened /chart. Finish leaving that document before
+    // observing a new one, so its interrupted requests cannot cross the scope.
+    await page.goto('about:blank')
     await page.addInitScript(installBrowserRequestObservation)
     const refreshRequests: Request[] = []
     page.on('request', request => {

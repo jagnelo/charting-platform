@@ -2,6 +2,21 @@
 
 ## ACTIVE CONTINUATION — 2026-10-23: hidden-refresh observation
 
+01:58UTC next source correction after REAL local failure: a3c F8l exited1 false
+exited (zero retries, no OOM) on native coverage mismatch, not hidden-refresh
+assertion. Trace and fixture source prove loggedIn had opened /chart before the
+test reloaded /chart; native listener included a prior document's interrupted
+readiness request, absent from the new document's collector. Complete
+about:blank navigation BEFORE installing collector/native listener; this changes
+only setup scope, not unknown-row handling, coverage, windows or assertions.
+Corrected collector units9/9 pass; previous1337full units/typecheck retain their
+unchanged-input qualification, not a fresh run claim. Actual new browser pending.
+Cleanup36031 exit0; all3global inventory diffs0bytes. Both exact unused owned
+temporary image tags removed nonforced after owner/ID/single-tag/no-container
+checks. Their archived source and all failed artifacts/trace remain private;
+retained services/data/production images and assigned stopped builder/cache intact.
+Do not replay the a3c case unchanged or relabel its failed result as success.
+
 01:34UTC local source checkpoint: browser-clock fetch/XHR observer plus native
 request-count coverage implemented; original fail-closed unknown-time classifier
 unchanged. F8l now deliberately holds a real readiness request across its same
