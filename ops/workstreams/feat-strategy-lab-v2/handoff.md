@@ -18121,7 +18121,12 @@ coverage disabled, a single process, UV offline/private cache and a 768-MiB addr
 is module-level unit evidence only. Scoped MyPy remains pending Root's local-slot release; no
 database, Compose, browser, native or external operation ran.
 
-Given the bounded module and style evidence, this source changeset is being published for its
-exact-source hosted CI rather than consuming Root's reserved local F8m slot for MyPy. This is not a
-claim that local MyPy ran: the changeset remains in progress until hosted Branch-declared typing and
-the other required exact-source CI jobs are terminal.
+Given the bounded module and style evidence, this source changeset was published as `a7b9324e` for
+exact-source hosted CI. Run `39960802652` completed successfully on that exact source on
+2026-10-23: Backend, Frontend, Branch-declared, and E2E all succeeded. Branch-declared included the
+complete Strategy Lab package (`1,882 passed, 1 skipped`), six additional checks, Ruff, and
+`mypy app/strategy_lab_v2 strategy_runtime` (`447` source files, no issues). E2E reported `191
+passed, 110 skipped` in 20.1 minutes; Exhaustive Integration Gate was skipped by feature-branch
+policy. This closes only the bounded event-risk-free builder changeset. Full local/combined runtime
+gates and all 18 roadmap criteria remain open; the next roadmap item is the existing irregular
+timestamped-equity elapsed-time metric contract, preserving v17 cadence semantics.

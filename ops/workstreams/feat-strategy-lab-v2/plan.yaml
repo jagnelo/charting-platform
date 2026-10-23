@@ -696,7 +696,7 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-event-risk-assumption-binding-v1
+  current_phase: full-roadmap-time-aware-equity-metrics-v1
   active_changeset:
     id: strategy-lab-v2-event-risk-free-builder-binding-v1
     scope: >-
@@ -713,23 +713,27 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/session.json
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
-    status: in_progress
+    status: complete
   current_blocker: >-
     The two new event-risk-free builder regressions pass (2/2, one process, 1-GiB address-space cap,
     90s timeout), and the full touched `test_nautilus_result_metrics.py` module passes 19/19 in
     1.29s under a 768-MiB address-space cap with no coverage. Ruff/format/diff/workstream checks and
     static call-site compatibility review pass. Exact-source CI 39951384776 covers only parent
-    fc388467024e74cdaa343cc472a6659b0391fae4. The local scoped MyPy check is deferred while Root's
-    F8m slot remains reserved; publish this bounded source with truthful evidence and use exact-source
-    hosted Branch-declared CI for the required typing contract. Keep the changeset in progress until
-    exact CI is terminal. All18 roadmap criteria, full runtime gates, and operation holds remain
-    unchanged.
-  updated_at: "2026-10-23T13:22:04Z"
+    fc388467024e74cdaa343cc472a6659b0391fae4. Exact push CI 39960802652 completed successfully on
+    source a7b9324e617b6a366cdd7198369af267fcdd0e48: Backend, Frontend, Branch-declared and E2E all
+    succeeded. Branch-declared ran the full Strategy Lab package (1882 passed, 1 skipped), six
+    additional checks, Ruff, and MyPy over app/strategy_lab_v2 plus strategy_runtime (447 source
+    files, no issues). E2E reported 191 passed and 110 existing skips; Exhaustive Integration Gate
+    was skipped by feature-branch policy. This closes only the bounded event-risk-free builder
+    changeset; all18 roadmap criteria, full local/combined runtime gates, and operation holds remain
+    open.
+  updated_at: "2026-10-23T14:11:31Z"
   next_action: >-
-    Publish the coherent bounded source and inspect exact-source CI, including the branch-declared
-    typing job. Keep local scoped MyPy deferred unless hosted CI does not cover the touched typing
-    boundary and Root releases capacity. No DB/Compose/browser/native/provider operations. Preserve
-    the default-zero metric identity and existing session-period risk-free semantics.
+    Continue the already recorded full-roadmap AC-METRICS item: derive the versioned elapsed-time
+    contract for irregular timestamped equity observations before changing calculators. Preserve
+    v17 cadence semantics, all existing comparison compatibility, the default-zero risk-free
+    identity, and existing session-period risk-free semantics. No local heavy profile until Root
+    assigns capacity; no provider, quota, native, broker, paid/trial or deployment operations.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
