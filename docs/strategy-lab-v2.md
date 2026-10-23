@@ -488,13 +488,28 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and duplicate-trial results by default; an explicit exploratory opt-in can
   include non-authoritative engine output while retaining the exclusion label.
   It makes no profitability or statistical inference claim.
-- `metrics.py` v17 computes Decimal account P&L/return, drawdown duration, Ulcer,
-  annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
+- `metrics.py` retains v17 for existing cadence metric identities and computes
+  Decimal account P&L/return, drawdown duration, Ulcer, annualized
+  return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
   authoritative engine equity and trade-P&L series. The equity input contains
   equally spaced post-start marks only (not the opening balance), and
-  `periods_per_year` must match that cadence; timestamped/irregular observations
-  are not yet modeled for annualized time-series metrics. Currency is explicit;
+  `periods_per_year` must match that cadence; the existing cadence estimator is
+  unchanged. Native event-aligned OOS equity marks use the separately identified
+  `elapsed_utc_residual_log_variance.v1` method and a separate elapsed-time
+  estimator only when every timestamp is strictly increasing and every equity
+  mark is positive. It computes log-return increments, annualized drift from
+  their exact total UTC duration, and residual increment variance
+  `sum((r_i - mu * dt_i)^2) / T`; the square root is annualized volatility.
+  Sharpe and Sortino subtract the continuously compounded target
+  `ln(1 + risk_free_return_annualized)`; downside deviation uses negative
+  interval excess-log increments and the same elapsed-time denominator.
+  Annualization days, risk-free target, timestamp basis and interval count are
+  recorded with those metrics. Fewer than two return intervals, repeated event
+  times, nonpositive equity, or unrepresentable Decimal arithmetic withholds
+  the risk family with an explicit reason. Historical VaR and expected
+  shortfall remain withheld because irregular event intervals do not share one
+  return horizon. Currency is explicit;
   calculation/annualization basis, gross/net basis, samples, and null reasons
   travel with each metric. Tail calculations use an explicitly versioned
   nearest-rank empirical convention. Native OOS exposure metrics are equally

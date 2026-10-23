@@ -697,25 +697,39 @@ progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
   current_phase: full-roadmap-time-aware-equity-metrics-v1
+  active_changeset:
+    id: strategy-lab-v2-irregular-event-time-risk-metrics-v1
+    scope: >-
+      Add elapsed-time residual-log-return volatility, Sharpe, and Sortino to native event-aligned
+      equity metrics with explicit timestamp/equity/risk-free validation and null reasons. Preserve
+      cadence-based calculations and their v17 identities, withhold horizon-incompatible historical
+      VaR/expected shortfall, identify the event-time estimator as v1 in calculation parameters,
+      and document it. No dispatch, provider access,
+      runtime activation, or full-profile work.
+    owned_paths:
+      - backend/app/strategy_lab_v2/metrics.py
+      - backend/app/strategy_lab_v2/tests/test_metrics.py
+      - docs/strategy-lab-v2.md
+      - ops/workstreams/feat-strategy-lab-v2/handoff.md
+      - ops/workstreams/feat-strategy-lab-v2/plan.yaml
+      - ops/workstreams/feat-strategy-lab-v2/session.json
+      - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+    status: in_progress
   current_blocker: >-
-    Published source1e643917e2896ba41ad9842f13a4b42c0c1160d1 adds the API-derived selected-Study
-    reference to Strategy create/readback in the real PostgreSQL integration case. Exact-source
-    run39942258194 is terminal successful for Backend Tests (including integration and combined
-    coverage), Frontend Unit Tests, Branch-declared Tests and E2E Playwright; Exhaustive Integration
-    Gate was skipped by feature policy. The predecessor run39939914641 on068d03f was cancelled when
-    the newer source was pushed and is not a failure.
-    Earlier 63-pass focused evidence and the zero-owner diagnostic failure remain historical.
-    Neither the API roundtrip nor generic Study materialization proves native Strategy execution.
-    All18 roadmap criteria and full local/combined database/application/browser/strict-visual/native
-    gates remain open. Provider/live, quota, paid/trial, unknown/unsafe, broker/capital and
-    deployment remain disabled.
-  updated_at: "2026-10-23T11:40:08Z"
+    The irregular-event-time risk-metrics diff is bounded-test validated on published parent
+    1e643917e2896ba41ad9842f13a4b42c0c1160d1: 31 metrics-module tests passed, the 15-case new
+    event-risk selection passed, focused MyPy passed for the two touched Python files, and Ruff,
+    format, diff and workstream checks pass. Root retains the short F8m local slot, so no broader
+    local coverage/typecheck or database/application/browser/native profile may run. Exact-source
+    CI for the pending source commit and all full local/combined gates remain open. All18 roadmap
+    criteria and live, paid/trial, unsafe, broker/capital and deployment holds remain unchanged.
+  updated_at: "2026-10-23T11:58:19Z"
   next_action: >-
-    Begin a distinct AC-METRICS source context for elapsed-time annualized equity metrics: derive and
-    version the irregular-observation formula, explicit annualization basis, ordering/coverage and
-    null behavior before implementation. Keep existing cadence-based metric identities unchanged.
-    Continue to require Root-assigned capacity for local PostgreSQL/application/browser/strict-visual/
-    native profiles; do not launch unassigned heavy validation or provider/issuer/SEC operations.
+    Review the focused change and records, run only required lightweight workstream/diff checks,
+    then close and publish this coherent changeset and capture its exact-source CI. Do not repeat
+    already-green bounded tests or start broad validation while Root retains the F8m slot. Preserve
+    cadence semantics; full-profile, PostgreSQL, application, browser, strict-visual and native gates
+    remain Root-assigned, and provider/issuer/SEC operations remain out of scope.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

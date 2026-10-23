@@ -18010,9 +18010,63 @@ No target request or database operation was run by this branch session. Provider
 quota work, native/forward/broker/capital activation, local fixture launches and all full-profile
 gates remain governed by their existing holds.
 
+For the remaining accepted-f04 consumer check, the registered owner-authenticated API boundary is
+`POST /api/v1/strategy-lab/v2/strategies` (requires `Idempotency-Key`) with the complete typed pin
+under `attributes.selected_study_artifact`; its adapter invokes the same resolver before persisting
+the Strategy resource. A successful POST followed by owner-authenticated
+`GET /api/v1/strategy-lab/v2/strategies/{resource_id}` proves consumer admission/readback, not
+execution, and does write one Strategy resource. If the target check must remain read-only, invoke
+the accepted `create_selected_study_artifact_resolver(AsyncSessionLocal)` directly and stop before
+POST. There is no public f04 endpoint that constructs the reference from IDs; do not use the later
+branch-only `GET /study-artifact-references/...` route for this accepted-release check. To prove a
+real mutated-pin rejection, change only the claimed content digest to
+`content_digest({"type":"scalar","value":7})`; use a distinct idempotency key if exercising the
+API and verify no resource was stored. A foreign-owner denial can be checked without another
+account by calling the read-only resolver with a nonmatching principal ID (for example `999`).
+Run 1 is already completed, so it cannot prove nonterminal denial; use an already-existing
+nonterminal row only if one is present, otherwise retain the f04 fixture-based queued/running
+regressions as the evidence and do not mutate run 1 or create another run.
+
 This closes the API-derived selected-Study reference consumer source changeset only. The complete
 18-criterion roadmap and full local/combined runtime, strict-visual, and native gates remain open.
 An explicit documented AC-METRICS gap is that cadence-based annualized time-series metrics do not
 accept irregular timestamped equity observations; the next source context should derive a
 versioned elapsed-time formula and fail-closed input contract without changing existing cadence
 metric identities.
+
+## Elapsed-time event-risk metrics — active source context, 2026-10-23 11:53 UTC
+
+The AC-METRICS slice is implemented and bounded-test validated locally, but not yet published.
+`metrics.py` preserves the shared v17 definition version for cadence metric identities and adds
+event-aligned annualized volatility, Sharpe and Sortino from
+strictly increasing UTC event marks with positive equity. The estimator uses log-return increments,
+exact elapsed years `T`, annualized drift `mu=sum(r_i)/T`, and residual variance
+`sum((r_i - mu*dt_i)^2)/T`; the annual risk-free simple return is converted to continuous
+`ln(1+rf)` and recorded in calculation parameters. The estimator is separately identified as
+`elapsed_utc_residual_log_variance.v1`, preserving cadence calculation fingerprints. Repeated timestamps, nonpositive equity, missing
+timestamps, insufficient intervals, and numeric-range failures yield explicit null reasons. VaR and
+expected shortfall remain withheld for unequal horizons. The existing cadence calculator path is
+unchanged; documentation now distinguishes the two estimators.
+
+Tests add independent equal- and unequal-interval expectations, risk-free excess, zero variance and
+downside, insufficient-interval handling, timestamp/equity/risk-free/numeric-range rejection, and
+preserved VaR/ES withholding. The focused 15-case event-risk selection passed (`15 passed`); the
+complete touched metrics module passed (`31 passed`). Focused MyPy on `metrics.py` and
+`test_metrics.py` passed. Ruff check/format, diff checks, and workstream structure checks also pass.
+These are bounded pure-unit and touched-boundary checks only. No broad coverage, database, Compose,
+browser, native, provider, quota, target or external request ran; Root's short F8m slot remains
+reserved for Root. Finish the coherent source/evidence publication and follow its exact-source CI;
+full local/combined runtime/browser/strict-visual/native gates remain open and Root-assigned. The
+complete 18-criterion roadmap and all provider/live/quota/paid/trial/unsafe/broker/capital holds
+remain unchanged.
+
+Versioning review at 11:56 UTC corrected the initial local draft's global v18 bump. Metric-set
+definition version remains v17 so existing cadence-based metric calculation fingerprints do not
+change. The new event-time risk estimator is distinguished by the explicit
+`elapsed_utc_residual_log_variance.v1` calculation parameter. Earlier uncommitted validation notes
+record the intermediate v18 draft; no pytest or typecheck ran against that draft or this correction.
+
+Further source review moved Sharpe and Sortino divisions inside the same Decimal-exception guard as
+variance estimation, so an unrepresentable ratio withholds the whole risk family instead of escaping
+as an unhandled arithmetic error. Targeted Ruff and diff checks pass; pytest remains held by Root's
+F8m slot and low host headroom.
