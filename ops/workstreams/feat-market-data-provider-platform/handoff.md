@@ -1,5 +1,30 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 15:49Z — released a6b9 staging reconciled into Provider
+
+- The exact coordinator-released staging source
+  `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e` (canonical run `39962134726`,
+  receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261023T150603Z-a6b9cc8d4fc2.json`)
+  was merged only into this Provider branch. Merge commit is
+  `1afb01b600686a565220d771b6479dce6294a882`, with parents `81ee5c50540dde13ef88cb7520767862d667506b`
+  and exact staging `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`. No staging,
+  sibling, master, or deployment ref was modified.
+- The sole overlap conflict was
+  `backend/app/strategy_lab_v2/tests/test_migration_compatibility.py`. The
+  merged assertion preserves the one-head invariant and confirms staging's
+  current head `d4a5b6c7e812` descends from `slv2_0011`; the focused test
+  `test_strategy_chain_has_unique_ids_and_preserves_shared_base` passed 1/1.
+  Merge tree is clean of unresolved paths. Exact hosted CI for a pushed
+  post-merge Provider tip is not yet recorded.
+- The released diagnostic scope is only the existing F8m yellow-wildcard /
+  grey-isolation case. Before launch, freeze/publish the exact profile source,
+  recheck resource ownership and available headroom, and prove source/image
+  equivalence for reused immutable frontend artifacts. Use a new unique
+  isolated project, zero retries, exact release caps/egress/seed constraints,
+  preserve the old `c6e40c66` project, and clean only new owned IDs by 16:20Z.
+  This is not the full functional/visual profile. Full roadmap, live operation
+  holds, exact-source CI and all remaining acceptance evidence stay open.
+
 ## 2026-10-23 15:46Z — exact CI receipt closed; a6b9 adoption and F8m slot released
 
 - Exact synchronized Provider source `9b179d7e10a3f8767b4aa6ca083db398c530cc68`
