@@ -35,7 +35,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py",
+    "backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -73,14 +73,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "1f5d982d56eae1f6b3946eebf1b2c1b5ad1c4eb3",
+  "head": "6a60a9817fe3f71dcdaf91b1f8f9242ad0e4901f",
   "implementation_sha": "85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db",
-  "last_checkpoint": "2026-10-23T02:49:58Z",
+  "last_checkpoint": "2026-10-23T03:40:14Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Obtain the assigned PostgreSQL/full-profile slot and execute the collected backtest and forward worker restart bodies without weakening assertions or fixture constraints. After runtime validation and focused review, publish the coherent source/workstream changeset and capture exact-tip CI; keep full local application/browser/native gates open.",
+  "next_action": "Publish the bounded Study-context bridge handoff regression with its workstream receipt and inspect exact-source CI. Then continue exact-pinned Nautilus RC process/result settlement evidence on a Root-assigned runtime slot; retain all full local backend/combined DB/application/browser/strict-visual gates.",
   "parent_branch": "staging",
-  "plan_hash": "e603ee1e7f5816659844151d76192daef294bfd25ab046437edc64cfe2c593f6",
+  "plan_hash": "87168ae8b89d403bdabaa7d5a4df60e00eda30d19937279c483a6746d530c5ea",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -110,14 +110,14 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Exact parent CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 remains in progress and does not cover the nine accumulated local commits or the current hydration test change. Focused stack-free tests and touched-boundary checks pass; the persisted PostgreSQL restart body and assigned full local profile remain pending.",
-    "current_phase": "full-roadmap-typed-study-hydration-revalidation-v4",
-    "next_action": "Preserve parent CI39882200073 to terminal before pushing the accumulated worker-seeder, typed Study payload-shape and hydration regressions; then inspect exact-tip CI. Obtain the assigned PostgreSQL restart slot and keep full local/application/browser/native validation open.",
+    "current_blocker": "Exact published source6a60a9817fe3f71dcdaf91b1f8f9242ad0e4901f has terminal green CI39891877125. The current focused bridge-handoff test is not included in that run and has only bounded offline evidence. Full local backend/combined DB/application/browser/strict-visual gates and exact-pinned Nautilus RC execution/result settlement remain open and require Root-assigned resources.",
+    "current_phase": "full-roadmap-study-context-native-bridge-handoff-v7",
+    "next_action": "Publish the bounded Study-context bridge handoff regression with its workstream receipt and inspect exact-source CI. Then continue exact-pinned Nautilus RC process/result settlement evidence on a Root-assigned runtime slot; retain all full local backend/combined DB/application/browser/strict-visual gates.",
     "total": 5,
-    "updated_at": "2026-10-23T01:44:28Z"
+    "updated_at": "2026-10-23T03:40:14Z"
   },
-  "remote": "1f5d982d56eae1f6b3946eebf1b2c1b5ad1c4eb3",
-  "remote_sha": "1f5d982d56eae1f6b3946eebf1b2c1b5ad1c4eb3",
+  "remote": "6a60a9817fe3f71dcdaf91b1f8f9242ad0e4901f",
+  "remote_sha": "6a60a9817fe3f71dcdaf91b1f8f9242ad0e4901f",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

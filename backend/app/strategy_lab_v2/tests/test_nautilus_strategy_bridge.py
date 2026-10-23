@@ -326,7 +326,11 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     from typing import Any
 
     from app.strategy_lab_v2.canonical import content_digest
-    from app.strategy_lab_v2.contracts import StrategyVersion
+    from app.strategy_lab_v2.contracts import (
+        ResolvedStudyArtifactOutput,
+        SelectedStudyArtifactReference,
+        StrategyVersion,
+    )
     from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
     from app.strategy_lab_v2.nautilus_native_event_stream import (
         serialize_nautilus_native_event_stream,
@@ -350,6 +354,7 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     )
     from strategy_runtime import (
         InvocationContextStreamSource,
+        StrategyInvocationSession,
         deserialize_invocation_batch,
         deserialize_invocation_batch_result,
         serialize_component_invocation_context_stream,
@@ -452,19 +457,38 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     source_alpha = _SOURCE
     source_beta = "\nclass Strategy:\n    def on_event(self, context):\n        return [1]\n"
     base_manifest = _manifest()
+    study_payload = {"type": "scalar", "value": 2.5}
+    study_reference = SelectedStudyArtifactReference(
+        research_run_id=11,
+        code_version_id=12,
+        artifact_id=13,
+        artifact_name="study.output",
+        artifact_type="scalar",
+        output_contract="study",
+        run_reproducibility_hash=content_digest("study-run"),
+        code_version_digest=content_digest("study-code-version"),
+        dataset_manifest_digest=content_digest("study-dataset"),
+        artifact_content_digest=content_digest(study_payload),
+    )
+    study_output = ResolvedStudyArtifactOutput(study_reference, study_payload)
 
-    def component_manifest(component_id: str, source: str) -> StrategySdkManifest:
+    def component_manifest(
+        component_id: str,
+        source: str,
+        selected_study: SelectedStudyArtifactReference | None = None,
+    ) -> StrategySdkManifest:
         return StrategySdkManifest(
             StrategyVersion(
                 component_id,
                 "v1",
                 "2.0",
                 content_digest(source),
+                selected_study_artifact=selected_study,
             ),
             base_manifest.data_dependencies,
         )
 
-    manifest_alpha = component_manifest("alpha", source_alpha)
+    manifest_alpha = component_manifest("alpha", source_alpha, study_reference)
     manifest_beta = component_manifest("beta", source_beta)
     base_portfolio = portfolio_composition_from_wire(payload["portfolio"])
     portfolio = PortfolioComposition(
@@ -492,12 +516,26 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     )
     payload["portfolio"] = portfolio_composition_to_wire(portfolio)
     contexts = deserialize_invocation_batch(_invocation_batch())[2]
+    alpha_contexts = tuple(
+        replace(context, study_artifacts={study_reference.artifact_name: study_output})
+        for context in contexts
+    )
+    observed_study_contexts: list[tuple[str, object]] = []
+    original_invoke = StrategyInvocationSession.invoke
+
+    def observe_invocation(self: Any, context: Any) -> Any:
+        observed_study_contexts.append(
+            (self._manifest.strategy.strategy_id, context.study_artifacts)
+        )
+        return original_invoke(self, context)
+
+    monkeypatch.setattr(StrategyInvocationSession, "invoke", observe_invocation)
     context_stream = BytesIO()
     context_counts = serialize_component_invocation_context_stream(
         context_stream,
         components=(
             InvocationContextStreamSource(
-                "alpha", source_alpha, manifest_alpha, contexts, "strategy.main:Strategy"
+                "alpha", source_alpha, manifest_alpha, alpha_contexts, "strategy.main:Strategy"
             ),
             InvocationContextStreamSource(
                 "beta", source_beta, manifest_beta, contexts, "strategy.main:Strategy"
@@ -567,7 +605,7 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     )
     live_contexts = {
         "alpha": replace(
-            contexts[0],
+            alpha_contexts[0],
             event_time=live_event_time,
             event_sequence=live_sequence,
             market_events={
@@ -717,6 +755,17 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
 
     output = bridge.result_output()
     account_event = bridge.take_forward_account_event()
+    assert len(observed_study_contexts) == 4
+    assert all(
+        context == {study_reference.artifact_name: study_output}
+        if component_id == "alpha"
+        else context is None
+        for component_id, context in observed_study_contexts
+    )
+    assert any(
+        component_id == "alpha" and context == {study_reference.artifact_name: study_output}
+        for component_id, context in observed_study_contexts
+    )
     assert account_event.instance_id == "forward-bridge-test"
     assert account_event.event_id == live_event_id
     assert account_event.cash_deltas == {"USD": Decimal("-10.10")}

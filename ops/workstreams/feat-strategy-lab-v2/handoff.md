@@ -17610,3 +17610,32 @@ all 18 roadmap criteria and full backend/application/browser/strict-visual/nativ
 issuer HTTP, quota/live, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled.
 Focused MyPy for the integration module also passes with no issues under the existing 1-GiB/120-second
 bound; branch workstream validation reports all 45 records valid.
+
+## Verify selected Study context at the Nautilus bridge invocation boundary — 2026-10-23 03:40 UTC
+
+The accepted M2 staging SHA `0e342512e53ba2268425294d61c50e219eaafa4f` is already an ancestor of
+this branch through its earlier accepted staging merge; `git merge-base --is-ancestor` confirmed
+the relationship, so no second merge was performed. The current published branch parent is
+`6a60a9817fe3f71dcdaf91b1f8f9242ad0e4901f`, clean and equal to origin. Exact-source run
+`39891877125` is terminal green: backend5251 unit passes/1 existing skip,530 integration passes/2
+existing skips and84% combined coverage; Frontend Unit, Branch-declared and E2E succeeded. Exhaustive
+Integration Gate was skipped under feature-branch policy. This CI covers the prior published source,
+not this new local test change.
+
+Extended the existing multi-component bridge regression so `alpha` has a selected immutable Study
+reference/output and `beta` has none. The test captures the context passed by the actual
+`nautilus_strategy_bridge` callback into `StrategyInvocationSession.invoke`, after the bridge's
+position replacement, and checks the selected output remains with alpha and is absent for beta. The
+two initial focused attempts failed on test assumptions/setup: one expected two selected contexts;
+the next exposed that the test's staged live alpha context had been rebuilt from its no-Study base.
+The fixture now stages from alpha's pinned context. The final two parameter cases pass in0.37s;
+focused Ruff, format, one-file MyPy, and diff checks pass. This uses fake Nautilus engine classes and
+proves the Python bridge handoff only, not exact RC execution, result publication or settlement.
+
+No production behavior, migration, database, Compose, browser, native process, provider HTTP/quota,
+live, paid/trial, broker/capital, dataset or service state changed. The full 18-criterion roadmap
+remains `in_progress`; the accepted SLICP checkpoint remains historical. Next: publish this coherent
+test/workstream changeset, inspect its one exact-source branch CI, then continue the immutable Study
+through the exact-pinned RC process and production result/settlement path only on a Root-assigned
+runtime slot. Keep full local backend/combined DB/application/browser/strict-visual and native gates
+open and preserve all scope holds.

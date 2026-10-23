@@ -696,37 +696,29 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-typed-study-worker-restart-matrix-v6
+  current_phase: full-roadmap-study-context-native-bridge-handoff-v7
   current_blocker: >-
-    The accepted four-feature baseline0e342512e53ba2268425294d61c50e219eaafa4f and accepted shared
-    repair baseline4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad are already adopted; merge history is
-    preserved and no duplicate merge is needed. Current synchronized Strategy HEAD/origin is
-    1f5d982d56eae1f6b3946eebf1b2c1b5ad1c4eb3. The earlier exact CI39886544570 is for9236eec, not
-    current source. The current source has no verified exact CI receipt in this checkpoint, and its
-    new local test change is not included in any recorded exact-source result. Offline runtime,
-    worker-seeder and payload-type matrices, hydration tests, focused MyPy, Ruff, formatting and
-    collect-only checks remain as recorded above. The real PostgreSQL persisted-worker restart bodies
-    have not run because no DB/full-profile slot is assigned. The current bounded test addition
-    mutates the persisted Study payload after successful backtest hydration and requires rejection
-    across all11 types; it is collected but not database-executed. Full local backend/combined DB/
-    application/browser/strict-visual/native gates remain open. All18 original criteria remain open;
-    generic Study output is not native execution evidence. Provider/issuer HTTP, quota/live,
-    paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
-  updated_at: "2026-10-23T02:51:12Z"
+    The accepted four-feature M2 baseline0e342512e53ba2268425294d61c50e219eaafa4f is already an
+    ancestor of Strategy HEAD through the prior accepted staging merge; no duplicate merge is
+    needed. Exact published source6a60a9817fe3f71dcdaf91b1f8f9242ad0e4901f has terminal green CI
+    39891877125: backend5251 unit passes/1 existing skip,530 integration passes/2 existing skips,
+    84% coverage, frontend/branch/E2E success; Exhaustive is skipped by feature policy. This evidence
+    includes the persisted Study restart matrices but does not include the current uncommitted
+    bridge-handoff regression. That focused test now proves the pinned output remains present when
+    the bridge passes component contexts into StrategyInvocationSession; its fake Nautilus boundary
+    is not native execution evidence. Full local backend/combined DB/application/browser/strict-
+    visual and exact pinned RC native execution/settlement gates remain open. All18 original
+    criteria remain open; Provider/issuer HTTP, quota/live, paid/trial, unknown/unsafe, broker/capital
+    and deployment remain disabled or unauthorized.
+  updated_at: "2026-10-23T03:40:14Z"
   next_action: >-
-    Current Strategy HEAD and origin were verified synchronized at
-    1f5d982d56eae1f6b3946eebf1b2c1b5ad1c4eb3. The historical run39886544570 covers only9236eec and
-    is not evidence for the current source; exact-source CI for1f5d982 was not verified in this
-    turn. A local backtest restart regression now complements the forward matrix by mutating the
-    persisted Study payload after successful fresh-session hydration and requiring restart rejection
-    for each of the11 admitted types. Stack-free collection found all11 cases; focused MyPy,
-    Ruff/format/diff and workstream checks pass. Test bodies remain unrun without the assigned
-    PostgreSQL slot. Publish the coherent
-    test/workstream changeset through the normal branch workflow when safe, then capture exact-tip CI.
-    Obtain the assigned PostgreSQL/full-profile slot before running integration bodies; preserve the
-    full local backend/application/browser/strict-visual/native gates and all18 original criteria.
-    Keep exact-scope Nautilus authority and provider/live/quota/paid/trial/unknown/unsafe/broker/
-    capital/deployment boundaries unchanged.
+    Publish this bounded bridge-handoff regression with its honest workstream receipt, then inspect
+    the single exact-source push CI. Next, continue the full roadmap by carrying the same immutable
+    Study reference/output through the assigned exact-pinned Nautilus RC process and production
+    result/settlement path; use only Root-assigned local runtime resources. Keep full local
+    backend/combined DB/application/browser/strict-visual gates open and all18 original criteria
+    intact. Preserve exact-scope Nautilus authority and provider/live/quota/paid/trial/unknown/
+    unsafe/broker/capital/deployment boundaries.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
