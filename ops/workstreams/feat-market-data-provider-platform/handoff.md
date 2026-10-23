@@ -1,5 +1,26 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 11:05Z — SEC source-payload fixture compatibility
+
+- Exact-source Actions run `39941869542` on `bd1581f3cfc85e6dfe030b3158c241494412fd13`
+  is terminal red in Backend unit tests: 5,205 passed, 1 skipped, 1 failed.
+  The failing test is `test_sec_directory_candidate_report_is_admin_only_and_paginated`;
+  its `would_create` fixture had normalized `name_candidates=["New Issuer"]`
+  but its retained `source_payload` omitted `name_candidates`, so the new
+  fail-closed persisted-payload consistency guard correctly returned 409.
+- The production guard remains unchanged. The router fixture now contains the
+  corresponding source field, preserving the admin/pagination/status
+  assertions. The complete SEC scan unit module plus the affected router test
+  passed 32/32 with provider/live routing and availability monitors disabled;
+  Ruff check, Ruff format-check, and `git diff --check` passed. An initial
+  selector command used a stale function name and exited before running tests;
+  the corrected node selection is the 32/32 run.
+- No provider/issuer/SEC HTTP, quota reservation/spend/reset, retained service
+  or data change occurred. Status and full roadmap remain `in_progress`; the
+  F8m local profile remains pending. Next: publish this narrow test-fixture
+  correction coherently and require exact-source CI; do not rerun or relabel
+  the red `39941869542` result.
+
 ## 2026-10-23 10:31Z — SEC persisted-payload consistency
 
 - The no-refetch issuer materializer previously checked persisted normalized

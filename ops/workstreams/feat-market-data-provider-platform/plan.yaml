@@ -1,4 +1,10 @@
 schema: 4
+# 2026-10-23 exact CI 39941869542 on bd1581f3 was red only in the admin
+# SEC-candidate positive fixture: its would_create normalized name_candidates
+# were absent from source_payload, so the unchanged fail-closed consistency
+# guard correctly blocked it. The fixture-only compatibility correction is
+# covered by 32/32 SEC scan plus affected router tests and locked Ruff/format;
+# exact-source CI for the correction is pending. Roadmap/status/holds unchanged.
 # 2026-10-23 SEC report integrity follow-up (working candidate based on
 # 00fefff7164f745ae27ff201b461a13c801213bd): the no-refetch materializer now
 # fails closed if persisted normalized CIK/name/ticker fields do not match the
