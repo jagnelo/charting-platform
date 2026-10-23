@@ -35,48 +35,23 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "F04 is adopted at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 after preserving prior TC records in b59b489913dd4359b6205139e4b4f934d0952667; published exact source 5d7573900449a3007de8b76cf2bae59661d0cbc6 has verified remote parity. Its first exact TC CI39905888099 has Frontend and Backend green, Branch-declared Tests failed because the 4687 frozen manifest pinned hidden_request_observation.ts to an older blob, E2E was still running at last observation, and Exhaustive Integration Gate was skipped. The local exact-F04 receipt/858-path manifest correction passes scope self-tests, actual guard, workstream validation, and diff check; corrective publication and its exact CI remain pending.",
+  "current_candidate_ci_status": "F04 is adopted at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 after preserving prior TC records in b59b489913dd4359b6205139e4b4f934d0952667. Corrected frozen-import manifest and exact F04 receipt are published at branch HEAD 51ab9d03dd139b8959808a23b4f8cc272f8556aa, matching origin. Exact TC CI39908879710 passed Backend, Frontend, Branch-declared Tests and E2E on attempt 1; E2E reported 192 passed/110 declared skips; Exhaustive Integration Gate was an expected skip. The earlier CI39905888099 manifest failure is historical and corrected. F8y browser proof/full local profile, unresolved SX/IX contracts, full AC1-AC9 and official REF-HELP-V25 remain open.",
   "current_exact_ci": {
-    "conclusion": null,
-    "head_sha": "5d7573900449a3007de8b76cf2bae59661d0cbc6",
-    "status": "Exact push CI39905888099 attempt 1 is still in progress. Frontend Unit Tests and Backend Tests succeeded; Branch-declared Tests failed at the scope guard because the accepted F04 helper blob differed from the previous 4687 snapshot; E2E was running at the latest observation; Exhaustive Integration Gate is an expected skip. A precise frozen-manifest/receipt correction is prepared locally and must receive new exact-source CI.",
-    "visuals": "This run is not green and provides no strict104 TC local visual evidence. F8y parent-host proof/full local profile remain pending Root's separate slot; preserve all original references, masks, tolerances, and zero retries."
+    "conclusion": "success",
+    "head_sha": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
+    "run_id": 39908879710,
+    "status": "Exact push CI39908879710 attempt 1 completed successfully: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E passed; E2E reported 192 passed/110 declared skips. Exhaustive Integration Gate was an expected skip. The run is for published source 51ab9d03dd139b8959808a23b4f8cc272f8556aa.",
+    "visuals": "This hosted branch run passed, but provides no strict104 TC local visual evidence. F8y parent-host proof/full local profile remain pending Root's separate slot; preserve all original references, masks, tolerances, and zero retries."
   },
   "dirty_paths": [
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.json"
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 6,
-    "containers": [
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-backend-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-postgres-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
-    ],
-    "known_bytes": 1251726522,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 1248658618,
-    "volume_count": 12,
-    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -153,7 +128,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "5d7573900449a3007de8b76cf2bae59661d0cbc6",
+  "head": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -184,7 +159,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "Hand off the reproduced selected-default coverage inconsistency to its Provider owner; continue only TC-owned work until exact Provider green staging release.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -197,7 +172,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "7b556debd4dd7be0ffc0a989e472dd4e5da941bb674445290fde86ee2ebe3d17",
+  "plan_hash": "85be20117653ad99597047c7ba7101a7077375fd3625b20d63754aa8489a794f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -217,29 +192,29 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "Exact F04 staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 is canonically green on CI39896524209 and merged locally at acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32; own branch publication/exact CI are pending. The accepted hidden-request observer passes its focused unit file 9/9. F8y parent-host proof/full local profile remain pending Root's separate slot. SX/IX identity, weighting, point-in-time membership and local-history lineage are unproven; relative modes remain unavailable. Full AC1-AC9 and official REF-HELP-V25 remain open.",
-    "current_phase": "f04_backmerge_acbfe_local;exact_staging_CI39896524209_and_receipt_green;observer_unit9of9;own_branch_publication_and_CI_pending;F8y_browser_slot_pending_Root;Custom_Date_Sort_SX_IX_identity_weighting_PIT_lineage_open;full_AC1_AC9_REF_HELP_V25_open",
-    "next_action": "Publish the exact F04 adoption and TC workstream checkpoint, then follow exact TC-branch CI. Continue source-backed TC roadmap work without duplicating Root's observer changes. Run the F8y parent-host proof only after Root releases its separate slot. Keep relative Custom Date Sort modes unavailable until producer-backed identity mapping, weighting, point-in-time membership and canonical local-history lineage exist.",
+    "current_blocker": "F04 source 51ab9d03dd139b8959808a23b4f8cc272f8556aa remains clean/origin-synchronized with exact TC CI39908879710 green. A disposable in-memory SQLite reproduction now proves the two generic coverage routes count an alternate-only D1 bar: selector=1, summary=2, range=2 and ready through that alternate date. The router and selector are outside TC ownership; no source/test edit was made. Provider migration repair 3e5ddec14a4185c2620990ac47aa8a95a41e7dc4 is published; exact CI39923818426 terminated cancelled after Frontend test/coverage completed, Backend unit tests were cancelled, and E2E/Branch/Exhaustive jobs were cancelled before starting. This is neither product failure nor green release; it is not adopted. F8y parent-host proof/full local profile remain pending Root's separate slot. SX/IX identity, weighting, point-in-time membership and local-history lineage remain unproven; relative modes remain unavailable. Full AC1-AC9 and official REF-HELP-V25 remain open.",
+    "current_phase": "f04_backmerge_published;TC_source_51ab_CI39908879710_green;selected_default_coverage_mismatch_reproduced_and_Provider_owner_handoff_prepared;Provider_migration_repair_3e5d_CI39923818426_cancelled_not_adopted;F8y_browser_slot_pending_Root;Custom_Date_Sort_contracts_open;full_AC1_AC9_REF_HELP_V25_open",
+    "next_action": "Hand off the exact reproduction and minimal selector-reuse/router-regression proposal to the Provider owner; do not patch excluded backend paths or import unaccepted 3e5d. Continue independent TC-owned work; run the F8y parent-host proof only after Root releases its separate slot. Keep relative Custom Date Sort modes unavailable until producer-backed identity mapping, weighting, point-in-time membership and canonical local-history lineage exist; preserve the full AC1-AC9 and official REF-HELP-V25 roadmap.",
     "total": 5,
-    "updated_at": "2026-10-23T04:15:59Z"
+    "updated_at": "2026-10-23T08:29:01Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
-    "current_pending_range": "Local F04 merge and checkpoint commit b59 are ahead of origin; final TC owner-record checkpoint remains to be committed before publication. Exact TC-branch CI is pending.",
+    "current_local_head": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
+    "current_pending_range": "Published source 51ab9d03dd139b8959808a23b4f8cc272f8556aa matches origin. Only the current plan/handoff/session and append-only validation record updates are pending locally; no product source changes are pending.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
-    "status": "Origin remains fe4a while the exact F04 merge is locally reconciled; publication and exact TC-branch CI are pending."
+    "remote_tracking_sha": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
+    "status": "The published implementation source 51ab9d03dd139b8959808a23b4f8cc272f8556aa is synchronized with origin; the current owned workstream-record updates are pending local publication."
   },
-  "remote": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
-  "remote_sha": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
-  "remote_synchronized": false,
+  "remote": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
+  "remote_sha": "51ab9d03dd139b8959808a23b4f8cc272f8556aa",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

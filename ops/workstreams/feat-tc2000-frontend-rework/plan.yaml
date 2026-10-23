@@ -66,6 +66,33 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
+  Current F04/TC status (2026-10-23): source 51ab9d03dd139b8959808a23b4f8cc272f8556aa
+  is clean and synchronized with origin. Exact branch CI39908879710 passed
+  Backend, Frontend, Branch-declared Tests and E2E on attempt 1; E2E reported
+  192 passed/110 declared skips, and Exhaustive Integration Gate was the
+  expected skip. The earlier 5d757390 scope-guard failure was corrected by the
+  exact F04 receipt and repinned 858-path frozen-import manifest in 51ab.
+  Statements below describing that repair as pending are historical and
+  superseded by this status. F8y's parent-host-to-mutation proof/full local
+  profile remain on Root's separate slot. Custom Date Sort relative modes stay
+  unavailable while SX/IX identity, weighting, PIT membership and canonical
+  local-history lineage lack source-backed contracts. Full AC1–AC9 and official
+  REF-HELP-V25 parity remain open.
+
+  A fresh in-memory SQLite reproduction on 51ab confirms both generic coverage
+  endpoints count an alternate-only D1 row: selected-default helper count 1,
+  summary/range coverage count 2, range reported ready through the alternate
+  row's date. The exact route and selector paths are outside TC ownership
+  (`coverage.py` is not in `owned_paths`; its router tests are excluded except
+  for the narrow released-envelope adaptation; `market_data.py` is Provider
+  excluded). TC made no product/test edit. Provider owns the minimal selector
+  reuse and mapped-default/alternate-only router regression. Provider migration
+  repair 3e5ddec14a4185c2620990ac47aa8a95a41e7dc4 is published but exact CI
+  39923818426 terminated cancelled: Frontend test/coverage steps completed,
+  Backend unit tests were cancelled, and E2E/Branch/Exhaustive jobs were
+  cancelled before starting. This is neither a product failure nor a green
+  release; the commit is not imported or treated as staging.
+
   Latest dependency adoption: exact staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
   is canonically green (receipt 20261023T051709Z-f04fb2a26c63.json; CI39896524209
   attempt 1) and merged into this TC branch at source merge commit
@@ -122,6 +149,18 @@ current_blocker: >-
   AC1–AC9 and official REF-HELP-V25 parity remain open; provider/live/paid
   operations, deployment and promotion remain disabled/unperformed.
 current_checkpoint_status: >-
+  Current committed TC source is 51ab9d03dd139b8959808a23b4f8cc272f8556aa,
+  clean and synchronized with origin. It contains the exact green F04 adoption
+  at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32, preserved checkpoint
+  b59b489913dd4359b6205139e4b4f934d0952667, canonical F04 receipt
+  20261023T051709Z-f04fb2a26c63.json, and corrected 858-path manifest.
+  Exact TC CI39908879710 passed all mandatory jobs on attempt 1; E2E was
+  192 passed/110 declared skips and Exhaustive Integration Gate was skipped as
+  expected. The pending language below records an earlier snapshot and is
+  superseded by this exact-source result. This does not establish F8y local
+  parent-runtime proof, full browser acceptance, full roadmap completion, or
+  official REF-HELP-V25 parity.
+
   TC source adopts exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
   at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 over merge base
   4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad. The four pre-merge dirty TC
@@ -1335,17 +1374,20 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "f04_backmerge_adopted_locally_acbfe;exact_staging_CI39896524209_and_canonical_green;hidden_request_observer_unit9of9;own_branch_CI_pending;F8y_browser_slot_pending_Root;Custom_Date_Sort_SX_IX_identity_weighting_PIT_lineage_open;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "f04_backmerge_acbfe;TC_source_51ab_CI39908879710_green;selected_default_coverage_mismatch_reproduced_and_handed_to_Provider_owner;Provider_migration_repair_3e5d_CI39923818426_cancelled_not_adopted;F8y_parent_runtime_full_profile_waits_for_Root;Custom_Date_Sort_contracts_open;full_AC1_AC9_REF_HELP_V25_open"
   next_action: >-
-    Publish the exact F04 adoption plus owner-record checkpoint and obtain exact
-    TC branch CI. Then continue source-backed TC roadmap work. Run the F8y
-    parent-host proof and strict full profile only when Root releases its
-    separate one-at-a-time slot. Keep relative Custom Date Sort modes
-    unavailable until identity mapping, weighting, point-in-time membership,
-    and canonical local-history lineage have producer-backed contracts.
-    Preserve all assertions, thresholds,
-    references, masks/tolerance, full AC1–AC9, official REF-HELP-V25, provider/live
-    holds, assigned services and data.
+    Hand off the reproduced selected-default coverage inconsistency and exact
+    mapped-default/alternate-only regression proposal to the Provider owner;
+    the affected router/selector are outside TC ownership, so do not patch them
+    or broaden their narrow test exception. Do not import Provider repair
+    3e5ddec while exact CI39923818426 is cancelled and no canonical green release
+    is available. Continue independent TC-owned work. Run F8y parent-host proof
+    and full local profile only when Root releases the separate slot. Keep
+    Custom Date Sort modes unavailable until source-backed SX/IX identity,
+    weighting, point-in-time membership and canonical local-history lineage
+    exist. Preserve all assertions, thresholds, references, masks/tolerance,
+    full AC1–AC9, official REF-HELP-V25, provider/live holds, assigned services,
+    and data.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:

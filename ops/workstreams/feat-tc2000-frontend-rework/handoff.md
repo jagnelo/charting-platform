@@ -2,6 +2,63 @@
 
 ## Current continuation — 2026-10-23: F04 accepted dependency back-merge
 
+### Superseding exact-source status
+
+The F04 adoption and frozen-manifest repair are published at `51ab9d03dd139b8959808a23b4f8cc272f8556aa`, clean and synchronized with origin. Exact TC CI `39908879710` passed Backend, Frontend, Branch-declared Tests, and E2E on attempt 1; E2E reported 192 passed/110 declared skips, with Exhaustive Integration Gate skipped as expected. This supersedes the earlier `5d757390` scope-guard failure and pending-CI text below, which remain historical evidence.
+
+F8y's parent-host-to-mutation proof and full local profile remain on Root's separate slot. Custom Date Sort relative modes remain unavailable pending source-backed SX/IX identity, weighting, point-in-time membership, and canonical local-history lineage. Full AC1–AC9 and official REF-HELP-V25 parity remain open.
+
+### Read-only default-series coverage consumer follow-up — 2026-10-23
+
+The CoverageSummaryTool empty response is explicit (no local adjusted daily observations) and request failures render as an alert. Focused component tests pass 6/6; coverage-router tests pass 6/6 on the in-memory SQLite fixture; default-series selector tests pass 4/4. The router coverage queries aggregate adjusted bars without applying the default-series predicate used by ordinary OHLCV reads, and existing coverage fixtures do not distinguish a selected default from alternate-series-only bars. Treat this as a Provider/consumer contract and test gap to resolve with the Provider owner; it is not evidence that the deployed cold-SPY failure reached the UI or proof of a user-visible false claim. No product or test source was changed. The Provider repair branch has no exact released source/CI receipt at this handoff; do not import its feature-branch commit directly. Continue after an exact coordinator release while keeping F8y, SX/IX, AC1–AC9 and official REF-HELP-V25 open.
+
+The Provider docs further state that `market_series_default` selects the stable
+series for legacy symbol/timeframe reads and alternate feeds are never merged
+into its result (`docs/data-providers.md` 1370-1373). Because both coverage
+routes are symbol-based, this strengthens the default-vs-alternate-series test
+gap; exact intended coverage semantics should be confirmed by the Provider
+owner and tested with mapped-default plus alternate-only bars. This is a
+source-backed reconciliation question, not proof of the deployed cold-SPY
+failure's cause, and no Provider code or migration was changed here.
+
+Additional static path evidence: `MarketSeriesDefault` inherits `TimestampMixin`
+(`backend/app/models/base.py` 7-15), and canonical
+`get_or_create_series` calls `_ensure_default_series`, which selects the ORM
+entity (`backend/app/services/market_series.py` 76-105). If those timestamp
+columns are absent, this entity query is expected to fail before a provider
+request is attempted; this is consistent with, but does not prove, the reported
+cold-SPY failure boundary. The TC coverage component itself calls only the two
+coverage endpoints and handles empty/error responses explicitly; it does not
+read `MarketSeriesDefault` directly. No additional TC test or runtime evidence
+was added in that earlier static review.
+
+### Selected-default coverage mismatch reproduced — 2026-10-23
+
+On unchanged TC source `51ab9d03dd139b8959808a23b4f8cc272f8556aa`, a disposable
+in-memory SQLite reproduction seeded one D1 bar in the mapped default series
+on Jan 2 and one later bar only in an alternate series on Jan 5. The existing
+`_default_series_bar_condition` selected one row, while both
+`/coverage/instruments/SPY` and `/coverage/instruments/SPY/ohlcv` reported two;
+the range endpoint returned `ready` through Jan 5. This proves the coverage
+endpoints can count alternate-series data outside the ordinary selected-series
+result. It does not establish the earlier cold-SPY startup failure cause.
+
+TC did not modify the router or its tests: `backend/app/routers/coverage.py` is
+not in TC `owned_paths`; `backend/tests/unit/routers/test_coverage_router.py`
+is excluded, with only the existing additive lineage/evidence-envelope
+adaptation recorded; and the selector implementation is in excluded
+Provider-owned `backend/app/services/market_data.py`. Proposed owner-side repair
+is to apply the existing selector unchanged to both endpoints (per timeframe
+for the summary aggregate) and extend the router regression with mapped-default
+plus alternate-only rows, retaining legacy/no-mapping fallback assertions. The
+temporary reproduction script and exact output are recorded in the append-only
+validation journal. Provider migration repair `3e5ddec14a4185c2620990ac47aa8a95a41e7dc4`
+is published on its own branch. Exact CI `39923818426` later terminated
+`cancelled`: Frontend finished its test/coverage steps, Backend unit tests were
+cancelled, and E2E/Branch/Exhaustive jobs were cancelled before starting. This
+is neither a product failure nor a green release; it has not been adopted into
+TC. The earlier pending observation is retained in its timestamped journal row.
+
 The coordinator released exact synchronized staging
 `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`; canonical green receipt is
 `/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`.
@@ -37,9 +94,9 @@ tolerance, zero-retry policy, full AC1–AC9, and official REF-HELP-V25 parity a
 open. No provider/issuer/SEC request, paid/live operation, deployment, or
 promotion is authorized or performed.
 
-Next: publish this coherent F04 adoption and TC workstream checkpoint, verify
-the branch ref, and follow exact TC-branch CI. Continue the separate F8y proof
-only when Root releases its slot; keep the broader roadmap open.
+Next: continue source-backed TC roadmap work without duplicating Root's
+observer changes. Run the F8y parent-host proof only after Root releases its
+slot; keep the broader roadmap and unresolved Custom Date Sort contracts open.
 
 ## Historical continuation — pre-F04 Favorites toggle serialization
 
