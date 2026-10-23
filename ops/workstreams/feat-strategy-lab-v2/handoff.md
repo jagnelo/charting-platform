@@ -17520,3 +17520,17 @@ Ruff, format and `git diff --check` pass. No DB, Docker, Compose, browser, nativ
 quota, or live operation ran. The parent exact CI39882200073 was last observed in progress and does
 not include this change; its completion is still required before publishing. The persisted restart
 contract therefore remains unproven until actual PostgreSQL execution and the assigned full gates.
+
+## Exercise typed Study values in the strategy runtime consumer — 2026-10-23 01:36 UTC
+
+Added an offline protocol/runtime regression over all 11 resolver-admitted Study artifact types.
+Each case serializes and decodes the immutable selected reference/output, then executes a simple
+strategy that reads `context.study_artifacts[name].reference.artifact_type` and `.value` and emits a
+deterministic intent only for the matching typed output. The exact focused node passed 11/11 in
+0.37s (single process, 1-GiB address-space limit, 180-second timeout). Ruff, Ruff format and focused
+MyPy for the changed file (1-GiB/120-second bound), plus `git diff --check`, pass. The initial Ruff
+check found the missing test-only `Any` import and the first format check requested formatting; both
+were corrected, with no production changes. This is a generic Python strategy-runtime test, not
+Nautilus/native execution or order routing. No DB, Docker, Compose, browser, native process,
+provider/quota, or live operation ran. Exact parent CI39882200073 was last verified in progress on
+published `dd0a704b`; accumulated local commits remain unpublished until that run is terminal.

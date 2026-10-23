@@ -1669,7 +1669,9 @@ roadmap_progress_history:
     worker-stream matrix, the backtest runtime-bundle/materialized-context path now passes the same
     11 admitted Study artifact types. The real PostgreSQL fresh-session worker-reconstruction test
     is now parameterized across those same 11 types, but its body has not run locally; collection,
-    focused MyPy, Ruff and formatting pass. Historical failures,
+    focused MyPy, Ruff and formatting pass. A stack-free invocation/runtime regression also proves
+    strategy code can read the typed output value for all 11 admitted artifact types after wire
+    decoding. Historical failures,
     including CI39856591934 and CI39874448939, remain in the append-only journal/handoff; generic
     Study output is not native execution evidence. Provider/issuer HTTP, quota, live, paid/trial,
     unknown/unsafe, broker/capital and deployment scopes remain disabled.
