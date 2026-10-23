@@ -29829,3 +29829,34 @@ build is idle.
   No credential values were inspected, repeated, copied, used, rotated, or
   revoked. Alpaca remains held for owner-managed rotation and separate storage
   authorization; production routing remains off.
+
+## 2026-10-23 02:32Z — SEC failure-path composition regression
+
+The current branch was independently rechecked at clean synchronized source
+`b87860e632c0846bfbd6619c9f40d69ba9f9cb55`. Exact Actions run
+`39883122792` is terminal green on that source (Backend, Frontend Unit,
+Branch-declared and Playwright succeeded; Exhaustive is skipped by feature
+branch policy). On this exact checkout, the complete SEC issuer-universe scan
+module passed 28/28, including worker restart, failed-CIK retry, atomic
+rollback, and cursor-lock coverage.
+
+Added one deterministic file-backed SQLite regression for the remaining
+layer-composition gap: it uses the real `refresh_edgar_ipo_pipeline` and
+`refresh_edgar_ipo_pipeline_for_issuer_universe` functions, while mocking only
+the provider executor. It verifies a real-pipeline-caught CIK exception and
+its failed request-log outcome commit with the preceding resume cursor; after
+closing that worker session, a fresh session sees the failure and retries only
+that CIK before continuing to the next issuer. The focused test passed 1/1;
+Ruff check, Ruff format check, and `git diff --check` passed. This test change
+is not included in Actions `39883122792` and needs exact-source CI after
+publication.
+
+The exact full local profile remains deferred until Root completes the
+`331d99b7` focused proof/cleanup and explicitly releases the Provider slot.
+The separate private, resource-bounded profile plan remains preparation only
+and must be rebound to the then-current clean source before any launch. No
+provider, issuer, or SEC HTTP; quota reservation/spend/reset; Docker/Compose or
+browser fixture; data/service cleanup; staging/sibling/master/deployment
+change; paid/trial activation; or credential inspection/change occurred.
+Current owned changes are the SEC regression and this handoff/plan/journal
+evidence; no other source or workstream context is part of this change.

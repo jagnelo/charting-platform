@@ -16,7 +16,7 @@ from app.models.market_data_foundation import (
     SecIssuerDirectoryCandidate,
 )
 from app.models.provider_runtime import ProviderCapability, ProviderRequestLog
-from app.services import market_event_edgar_scan
+from app.services import market_event_edgar_scan, market_events
 from tests.unit.conftest import AsyncSessionAdapter
 
 _DIRECTORY_FINGERPRINT = "a" * 64
@@ -475,6 +475,98 @@ async def test_edgar_failed_cik_is_durable_across_worker_restart_without_replayi
             ("CIK:0000000053", True),
         ]
         resumed_worker.close()
+    finally:
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_edgar_runtime_failure_result_and_cursor_commit_across_worker_restart(
+    tmp_path, monkeypatch
+):
+    """The real pipeline's caught executor failure is durable with its cursor."""
+
+    import app.models  # noqa: F401 - register all tables and foreign-key targets.
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'edgar-runtime-failure-restart.db'}")
+    Base.metadata.create_all(bind=engine)
+    sessions = sessionmaker(bind=engine, expire_on_commit=False)
+    calls: list[str] = []
+
+    async def fake_execute(db, capability, operation, **kwargs):
+        assert capability is ProviderCapability.MARKET_EVENTS
+        assert operation == "fetch_ipo_pipeline_events"
+        cik = kwargs["provider_symbol"].removeprefix("CIK:")
+        calls.append(cik)
+        failed = cik == "0000000072" and calls.count(cik) == 1
+        db.add(
+            ProviderRequestLog(
+                capability=capability,
+                operation=operation,
+                operation_family="market_events",
+                requested_at=datetime.now(UTC),
+                success=not failed,
+                provider_symbol=f"CIK:{cik}",
+                error_type="RuntimeError" if failed else None,
+                error_message="simulated transport failure" if failed else None,
+            )
+        )
+        if failed:
+            raise RuntimeError("simulated transport failure")
+        return SimpleNamespace(provider_name="edgar", result=[])
+
+    monkeypatch.setattr(market_events, "execute_provider_call", fake_execute)
+    try:
+        with sessions() as setup_db:
+            setup_db.add_all([_issuer(71), _issuer(72), _issuer(73)])
+            setup_db.commit()
+
+        first_worker = sessions()
+        first = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+            AsyncSessionAdapter(first_worker), max_issuers=3
+        )
+        first_worker.close()
+
+        with sessions() as observer:
+            state = observer.execute(select(MarketEventScanState)).scalar_one()
+            assert first["status"] == "failed"
+            assert first["issuers"][-1]["status"] == "failed"
+            assert first["issuers"][-1]["error"]["error_type"] == "RuntimeError"
+            assert state.cursor_issuer_id == 1
+            assert state.scanned_count == 1
+            assert state.provenance["last_batch_failed_ciks"] == ["0000000072"]
+            assert [
+                (row.provider_symbol, row.success)
+                for row in observer.execute(
+                    select(ProviderRequestLog).order_by(ProviderRequestLog.id)
+                ).scalars()
+            ] == [("CIK:0000000071", True), ("CIK:0000000072", False)]
+
+        resumed_worker = sessions()
+        try:
+            resumed = await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+                AsyncSessionAdapter(resumed_worker), max_issuers=3
+            )
+            assert resumed["cycle_complete"] is True
+            assert calls == [
+                "0000000071",
+                "0000000072",
+                "0000000072",
+                "0000000073",
+            ]
+            assert [
+                (row.provider_symbol, row.success)
+                for row in resumed_worker.execute(
+                    select(ProviderRequestLog).order_by(ProviderRequestLog.id)
+                ).scalars()
+            ] == [
+                ("CIK:0000000071", True),
+                ("CIK:0000000072", False),
+                ("CIK:0000000072", True),
+                ("CIK:0000000073", True),
+            ]
+        finally:
+            resumed_worker.close()
     finally:
         Base.metadata.drop_all(bind=engine)
         engine.dispose()

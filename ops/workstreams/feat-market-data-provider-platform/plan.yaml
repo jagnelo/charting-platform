@@ -8889,21 +8889,25 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Keep exact branch CI `39877233446` on `1f0c6c0956ecb8c3994c03cfc54c026313155da0`
-    intact until terminal; Frontend Unit and Backend unit tests passed, and
-    Backend integration tests with Testcontainers are running, so no terminal
-    CI result is claimed yet. Current-source SEC durability
-    evidence is now stronger: the two file-backed worker-restart regressions
-    pass 2/2 and the full SEC issuer-scan unit module passes 26/26 with
-    monkeypatched refresh calls and private temporary SQLite. Once exact CI is
-    terminal, continue the full Provider roadmap from the remaining
-    `AC-UNIVERSE-COMPLETE` requirements; do not redefine success around the
-    SEC-only increment. The required local `full_stack_browser` profile remains
-    held until Root explicitly releases the slot after capacity review. When
-    released, pin a single unique seeded/provider-egress-denied fixture to the
-    clean exact-source branch; retain Playwright 1.62.1 Noble, read-only
-    DejaVu, one worker, zero retries, 260 functional and 104 strict visual
-    cases, unchanged references/masks and 0.005 tolerance. Keep all existing
-    provider/issuer/SEC holds and retained datasets/services; no provider
-    HTTP, quota mutation, staging/sibling writes, deployment, paid/trial
-    activation, or retained-resource cleanup.
+    Current branch source `b87860e632c0846bfbd6619c9f40d69ba9f9cb55` is
+    clean and synchronized; exact Actions run `39883122792` is terminal green
+    on that SHA. The SEC issuer-universe scan commits each per-CIK result or
+    failure with its resume cursor. On the current source, all 28 tests in
+    `test_market_event_edgar_scan.py` pass, including the file-backed restart,
+    failed-CIK retry, atomic rollback, concurrent-cursor, and new real-pipeline
+    failure-composition regression; the latter keeps the real SEC refresh and
+    universe scan, mocking only the executor boundary. That test-only working
+    change is not covered by exact-source CI `39883122792` on its parent. Next
+    publish this coherent regression/evidence change and obtain exact-source
+    CI; keep
+    the full original roadmap active and do not treat the SEC increment as
+    overall completion. The full `full_stack_browser` profile remains held
+    until Root completes its `331d99b7` proof/cleanup and explicitly releases
+    the Provider slot. At release, use the separate private plan pinned to the
+    then-current clean source and dynamically discovered full functional and
+    visual selections; retain Noble 1.62.1, read-only DejaVu, one worker, zero
+    retries, unchanged references/masks and 0.005 tolerance, fixture-only
+    resources, and provider/issuer/SEC egress denial. Preserve all existing
+    holds, quotas, retained datasets/services; no provider HTTP, quota
+    mutation, staging/sibling writes, deployment, paid/trial activation, or
+    retained-resource cleanup.
