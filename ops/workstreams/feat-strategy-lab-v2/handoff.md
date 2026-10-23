@@ -18369,3 +18369,48 @@ closure update, and no exact CI has run on these two source commits yet. The old
 is green only for its parent. Next: validate/commit the current owner records, push the branch once,
 and preserve the resulting exact-tip CI. The coordinator still owns the full local app/browser and
 strict-visual resource slot; no such fixture ran here.
+
+### Canonical listing and exact mixed-boundary correction — 2026-10-23 17:15 UTC
+
+Root review rejected the prior `EquityDetail.exchange_mic` assumption: equity-detail venue alone
+does not establish the canonical listing venue. Follow-up commit
+`184caeefe102b30f70c86c02ada9a3bebbc88c02` now derives the optional supported XNYS calendar only
+from exactly one active primary `InstrumentListing` whose related canonical `Exchange.mic`
+normalizes to `XNYS`. The Research instrument queries eagerly load that relationship. Missing,
+inactive, non-primary, duplicate-primary, unknown, or other-venue listings remain fail-closed on
+the no-calendar path; equity-detail metadata is deliberately ignored for this decision.
+
+Mixed exact/date ranges are regression-tested in both directions: the date side keeps its
+inclusive UTC date extent, while the timestamp side remains its exact instant and no session-date
+calendar is supplied. An exact `as_of` that truncates a date-only end also disables the day-granular
+calendar inference; a date-only `as_of` can retain date semantics. The existing coverage
+thresholds, partial/missing-session checks, PIT rules, and no-fetch behavior are unchanged. This
+separate Research correction passed the two focused backend modules (12/12 in 2.72s), Ruff check,
+Ruff format check, and diff check. It has no database/provider/target/browser/native validation.
+
+The earlier Research and inspector source commits remain separate. Exact run `39992653172` is
+still running on prior tip `64d3b12e11118593535b02e8e8a06dd1f263ffdf`; do not cancel or replay it.
+The new Research commit is local and awaits publication with its workstream receipt after that run
+terminates. Its own exact-source CI, Root-assigned full-stack/browser/strict-visual validation,
+remaining full backend/migration qualification, and all full-roadmap criteria remain open. The
+previous focused MyPy attempt is still recorded as interrupted and is not a pass.
+
+### Accepted-target venue metadata limitation — 2026-10-23 17:17 UTC
+
+Root's read-only target observation reports `EquityDetail.exchange_mic` is NULL for both SPY and
+RSP. The canonical `InstrumentListing.exchange -> Exchange.mic` selector above is the supported
+source-backed venue seam, and a new unit case proves it can select XNYS when detail MIC is NULL;
+the existing target's listing rows were not queried, so no claim is made that this will resolve
+those particular date-only requests. In particular, the 2024-11-22 through 2026-10-22 date-only
+run3 remains completed but `DEFERRED` with zero artifacts. Root's run4 using exact acquired bounds
+`2024-11-22T05:00:00Z..2026-10-22T04:00:00Z` remains the verified successful workaround (479
+canonical bars and four matching artifacts); it does not validate date-only calendar selection.
+
+Do not label commits `85a821795`, `184caeefe`, or `9860c84f` as a completed SPY first-human fix.
+To resolve run3's UX, a separately scoped source-backed venue/calendar hydration or explicit
+date-granularity coverage contract must be established, while retaining unknown-venue fail-closed
+behavior and unchanged PIT/coverage/no-fetch safeguards. No target reads or writes, provider
+requests, fixture, or additional run were made here. The current canonical-listing/mixed-boundary
+source commits are locally validated only. Exact CI `39992653172` is still active on prior published
+tip `64d3b12e11118593535b02e8e8a06dd1f263ffdf`; preserve it, then publish the coherent Research
+source and workstream receipt once and capture exact-tip CI.

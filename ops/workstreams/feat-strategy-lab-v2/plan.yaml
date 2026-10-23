@@ -1614,33 +1614,41 @@ roadmap_progress_history:
     - strategy-lab-v2-postgres-backed-curve-download-v1
     - strategy-lab-v2-frozen-study-payload-typing-v1
   total: 18
-  current_phase: full-roadmap-v2-resource-inspector-ui-v1
+  current_phase: research-date-range-venue-fidelity-v1
   active_changeset:
-    id: strategy-lab-v2-resource-inspector-ui-v1
+    id: research-date-range-venue-fidelity-v1
     scope: >-
-      Add an authenticated read-only Strategy Lab v2 resource inspector for owner-scoped strategies,
-      trials, artifacts, and selected immutable Study lineage, including a GET-only pin preview by
-      existing run/artifact IDs. Preserve the legacy route and exact identities; do not create
-      Strategies, dispatch work, or enable native, forward, broker, capital, provider, quota,
-      paid/trial, unknown, or unsafe operations.
+      Preserve inclusive date-only Research bounds while deriving the daily XNYS coverage calendar
+      only from an unambiguous active canonical primary listing and the currently supported
+      calendar policy. Mixed date/timestamp bounds and exact as-of truncation retain timestamp
+      precision and use conservative coverage. Do not alter coverage/PIT rules, fetch data, or
+      change the separate read-only Strategy inspector context.
     owned_paths:
-      - frontend/src/App.vue
-      - frontend/src/router/index.ts
-      - frontend/src/views/StrategyLabV2View.vue
-      - frontend/tests/unit/router/test_application_routes.test.ts
-      - frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts
+      - backend/app/routers/research.py
+      - backend/tests/unit/routers/test_research_router.py
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/session.json
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+    source_commit: 9860c84f8eb2b5b77dc89848325cec3bdc81c7c0
+    validation: >-
+      Focused Research/evaluator-preflight tests passed 12/12, Ruff check and format passed, and
+      git diff --check passed. Exact CI on this source is pending publication; broader MyPy and
+      full-stack validation are not claimed by this bounded repair.
     status: in_progress
   current_blocker: >-
-    Exact push CI 39985325009 on published 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 has Backend,
-    Frontend, and Branch-declared green; E2E remains in progress and Exhaustive is skipped by feature
-    policy. The uncommitted GET-only Study pin preview passes 11 focused frontend tests, but those
-    new assertions are not in the published source. Root's full local browser/strict-visual slot
-    remains pending. No local profile, DB, Compose, provider, or native process was started.
+    The existing exact-source CI 39992653172 is running on prior published tip
+    64d3b12e11118593535b02e8e8a06dd1f263ffdf and does not include Research commits 184caeefe or
+    9860c84f. The bounded venue/mixed-boundary correction passed its focused tests and lint checks.
+    Root reports accepted-target SPY/RSP EquityDetail.exchange_mic is NULL; the canonical listing
+    selector uses Exchange/InstrumentListing only if such rows exist, but their presence on target
+    was not inspected here. Run3 therefore remains genuinely deferred; exact-bound run4 is the
+    verified successful historical Study. Do not claim this selector alone closes the date-only UX.
+    A source-backed metadata/hydration or date-granularity contract follow-up is still needed. Root's
+    full local app/browser/strict-visual slot, full backend equivalence and remaining roadmap gates
+    also remain open.
   next_action: >-
-    Wait for exact run 39985325009 to finish without rerun, then publish the coherent view and pin-
-    preview source for its own exact CI. Keep full browser/strict-visual and remaining roadmap gates
-    open; preserve all original operation boundaries.
+    Preserve exact CI 39992653172 without cancelling or replaying it. Then push the current own-branch
+    Research correction and workstream receipt once, inspect the resulting exact-tip CI, and continue
+    the source-backed venue/date-granularity follow-up without target writes or new provider requests.
+    Keep the full roadmap and Root-assigned resource gates open.
