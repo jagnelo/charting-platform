@@ -367,21 +367,18 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Make SEC XML manual ingestion historical and PIT-safe
-    state: admin_sec_xml_routes_manual_only;provider_enrichment_disabled;known_at_separated_from_published_at;missing_acceptance_uses_postresponse_observed_at;focused_units_and_ruff_green;interim_scoped_publication_permitted_after_focused_checks;full_stack_browser_and_exact_source_ci_pending_before_review_or_acceptance
-    baseline: 867650d1dd8a15683438aa51cd7120d1a893f76f
+    name: Prevent SEC reconstruction from refreshing native ETF adapter health
+    state: automated_sec_filing_source_skips_native_adapter_success;degraded_sec_source_tier_preserved;resolution_and_capability_units_178_pass;ruff_and_diff_green;no_transport_or_provider_admission_changed;source_commit_676cb4e53ef004ee69d9ceabadb12ad06813ce20_pushed_and_remote_verified;exact_source_ci_not_surfaced;full_stack_browser_pending_before_review
+    baseline: 5359f225b70c0e8cd0e15374b58748d917012474
     intent: >-
-      Keep caller-supplied SEC XML imports historical/manual: disable provider
-      enrichment and native adapter-success health, keep filing publication
-      separate from import-time known_at, and use post-response observation
-      time when exact acceptance time is absent. Preserve raw
-      filing bytes, accession, URL and unresolved rows. This does not enable
-      SEC transport or establish issuer-native success.
+      Prevent automated SEC-reconstructed historical snapshots from recording
+      success against the ETF profile's native issuer adapter. Keep SEC source
+      tier and non-current capability semantics intact. Preserve exact filing
+      publication/acceptance and post-response knowledge-time semantics, raw
+      bytes, accession, URL and unresolved rows. Do not enable SEC transport or
+      infer its account, quota, recurring-cost or operation review.
     owned_paths:
-      - backend/app/routers/etf_holdings.py
-      - backend/app/services/etf_holdings_edgar.py
-      - backend/tests/unit/routers/test_etf_holdings_manual_import.py
-      - backend/tests/unit/services/test_etf_holdings_edgar.py
+      - backend/app/services/etf_holdings.py
       - backend/tests/unit/services/test_etf_holdings_resolution.py
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
@@ -563,22 +560,27 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: sec_admin_ingest_historicalization_and_known_at_pit_2026_10_23
+current_phase: sec_reconstruction_native_adapter_health_separation_2026_10_23
 current_blocker: >-
-  CURRENT RECONCILIATION 2026-10-23T15:56:19Z: ETF HEAD and origin remain
-  synchronized at 867650d1dd8a15683438aa51cd7120d1a893f76f. Exact CI
-  39974388339 is terminal green only for that published parent and does not
-  validate this worktree diff. Focused SEC/manual-ingest tests and Ruff pass.
-  The date-only EDGAR known_at fallback uses the post-response observed_at;
-  published_at remains unknown unless exact acceptance time exists. Per the
-  coordinator's publication-sequencing clarification, focused checks permit
-  an interim scoped commit/push and exact-source CI now; the mandatory
-  full_stack_browser profile and any applicable reviewed live evidence remain
-  gates before review/acceptance or normal finish. Preserve AC1-AC14,
-  `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the
-  30-day observation. No SEC/provider/issuer HTTP, quota, credential access,
-  import, activation, fixture, cleanup, staging/sibling/master write,
-  promotion, or deployment occurred.
+  CURRENT RECONCILIATION 2026-10-23T16:11:05Z: Scoped source/test commit
+  676cb4e53ef004ee69d9ceabadb12ad06813ce20 is pushed to the ETF feature branch;
+  an independent `git ls-remote` returned the same SHA. The GitHub commit-status
+  query returned no statuses and the available workflow-run query only exposes
+  PR-triggered runs, so exact-source CI is not surfaced and is not claimed
+  green. The complete holdings-resolution and capability modules passed
+  178/178; the exact narrative-count sentinel passed1/1; workstream validation,
+  Ruff check/format, JSON/JSONL parsing, plan-hash parity and diff checks passed.
+  SEC source-tier `sec_filing` remains degraded/non-current and SEC ingestion
+  does not record native ETF adapter success. SEC account mapping, operation
+  review, quota facts, terms and verified-zero-cost commitment remain
+  unverified; the future transport remains held. Per the publication
+  clarification, this is only an interim scoped source publication. Exact
+  source CI, full_stack_browser and any applicable reviewed live SEC evidence
+  remain mandatory before review/acceptance or normal finish. Preserve AC1-AC14,
+  `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day
+  observation. No SEC/provider/issuer HTTP, quota, credential access, import,
+  activation, fixture, cleanup, staging/sibling/master write, promotion, or
+  deployment occurred.
   synchronizes each of the 74 runtime fallback identity investigation dates
   with its current durable provider-audit row; dates are evidence chronology,
   not route eligibility or current holdings claims. The deterministic capability
@@ -1763,16 +1765,20 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Complete the focused workstream/count/JSON/hash/diff checks, then make one
-  scoped interim commit/push for this SEC manual-ingest context and inspect its
-  exact-source CI. This is publication only, not checkpoint acceptance or
-  normal finish. The required full_stack_browser profile and any applicable
-  reviewed live evidence remain mandatory before review/acceptance; do not
-  weaken or claim those gates. After this context is published, continue the
-  dedicated SEC Provider binding only as offline source/unit/no-network work
-  under the reviewed scope; keep transport held until source/account/operation/
-  host, entitlement, quota and verified-zero-cost budget evidence are reviewed,
-  and preserve the requirement for actual mandatory live evidence before that
-  transport binding can be released. Preserve manual/PIT semantics, AC1-AC14,
-  `15 Tier-0 and 156 Tier-1`, quarantines, disabled routes, retained data and
-  the 30-day observation. Do not issue live requests or write other worktrees.
+  Continue the dedicated SEC shared-runtime bridge only as offline source/unit/
+  no-network preparation while preserving the published health-separation fix.
+  First obtain exact-source CI status for 676cb4e53ef004ee69d9ceabadb12ad06813ce20
+  through an authoritative run/status source when available; do not infer green
+  from an empty status response. Actual request hosts in code are data.sec.gov
+  (current and archived submissions JSON) and www.sec.gov (archived filing
+  documents); proposed operations are separate discovery and filing-fetch
+  attempts bound to committed profile/instrument/CIK identity. The shared
+  Provider SEC source/policy/entitlement/account scope, per-operation quota
+  facts, terms and verified-zero-cost recurring-cost commitment have not been
+  verified here and must not be invented or enabled. Every physical request,
+  redirect, page and retry must use shared admission and durable lineage; SEC
+  snapshots stay historical/degraded and must not update native adapter health.
+  Full_stack_browser and applicable reviewed live evidence remain mandatory
+  before review/acceptance or normal finish. Preserve AC1-AC14,
+  `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data and the 30-day
+  observation. No external requests or other-worktree writes.
