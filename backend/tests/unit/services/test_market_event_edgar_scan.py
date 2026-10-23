@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import create_engine, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
@@ -277,6 +278,103 @@ async def test_edgar_issuer_scan_cursor_survives_worker_session_restart(tmp_path
             ).scalars()
         ] == ["CIK:0000000051", "CIK:0000000052", "CIK:0000000053"]
         resumed_worker.close()
+    finally:
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_edgar_issuer_scan_rolls_back_result_when_cursor_commit_fails(tmp_path, monkeypatch):
+    """The CIK result log and resume cursor share one durable transaction."""
+
+    import app.models  # noqa: F401 - register all tables and foreign-key targets.
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'edgar-scan-atomic-commit.db'}")
+    Base.metadata.create_all(bind=engine)
+    sessions = sessionmaker(bind=engine, expire_on_commit=False)
+
+    try:
+        with sessions.begin() as setup_db:
+            first_issuer = _issuer(64)
+            setup_db.add_all([first_issuer, _issuer(65)])
+            setup_db.flush()
+            setup_db.add(
+                MarketEventScanState(
+                    scan_key=market_event_edgar_scan._SCAN_KEY,
+                    provider=market_event_edgar_scan._PROVIDER,
+                    operation=market_event_edgar_scan._OPERATION,
+                    cursor_issuer_id=None,
+                    cycle_count=0,
+                    scanned_count=0,
+                    last_batch_count=0,
+                    last_event_count=0,
+                    last_failure_count=0,
+                    status="idle",
+                    provenance={"preexisting": "preserve"},
+                )
+            )
+
+        with engine.begin() as connection:
+            connection.exec_driver_sql(
+                """
+                CREATE TRIGGER reject_edgar_scan_cursor_advance
+                BEFORE UPDATE OF cursor_issuer_id ON market_event_scan_state
+                WHEN NEW.cursor_issuer_id IS NOT OLD.cursor_issuer_id
+                BEGIN
+                    SELECT RAISE(ABORT, 'forced cursor advance failure');
+                END
+                """
+            )
+
+        async def fake_refresh(db, ciks, **_kwargs):
+            assert ciks == ["0000000064"]
+            db.add(
+                ProviderRequestLog(
+                    capability=ProviderCapability.MARKET_EVENTS,
+                    operation=market_event_edgar_scan._OPERATION,
+                    operation_family="market_events",
+                    requested_at=datetime.now(UTC),
+                    success=True,
+                    provider_symbol="CIK:0000000064",
+                )
+            )
+            return {
+                "status": "refreshed",
+                "events": 0,
+                "persisted": 0,
+                "failures": 0,
+                "issuers": [
+                    {
+                        "cik": "0000000064",
+                        "status": "refreshed",
+                        "events": 0,
+                        "linked": 0,
+                        "unlinked": 0,
+                        "error": None,
+                    }
+                ],
+            }
+
+        monkeypatch.setattr(market_event_edgar_scan, "refresh_edgar_ipo_pipeline", fake_refresh)
+        failed_worker = sessions()
+        try:
+            with pytest.raises(IntegrityError, match="forced cursor advance failure"):
+                await market_event_edgar_scan.refresh_edgar_ipo_pipeline_for_issuer_universe(
+                    AsyncSessionAdapter(failed_worker), max_issuers=1
+                )
+        finally:
+            failed_worker.close()
+
+        with sessions() as observer:
+            state = observer.execute(
+                select(MarketEventScanState).where(
+                    MarketEventScanState.scan_key == market_event_edgar_scan._SCAN_KEY
+                )
+            ).scalar_one()
+            assert state.cursor_issuer_id is None
+            assert state.scanned_count == 0
+            assert state.provenance == {"preexisting": "preserve"}
+            assert observer.execute(select(ProviderRequestLog)).scalars().all() == []
     finally:
         Base.metadata.drop_all(bind=engine)
         engine.dispose()

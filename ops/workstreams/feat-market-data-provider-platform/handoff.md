@@ -1,5 +1,61 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 01:02Z — published NMS follow-up; SEC transaction rollback regression
+
+- The preserved exact run `39877233446` completed successfully for pushed source
+  `1f0c6c0956ecb8c3994c03cfc54c026313155da0` (Backend, Frontend Unit,
+  Branch-declared, and Playwright succeeded; Exhaustive was skipped by feature
+  policy). This remains evidence only for that source and includes the earlier
+  SEC restart checks recorded below.
+- Pushed the five substantive NMS source/test/documentation commits already
+  present locally. Current local/origin feature commit is
+  `e5e8911bb94faa34ba1c995cbcf0530374dd8534`; exact Actions run
+  `39881532927` is in progress for that SHA; Frontend Unit succeeded and
+  Backend is running unit tests. Do not treat run `39877233446` as
+  coverage for the new NMS changes. The current change derives Tape C scope
+  from verified Nasdaq `nasdaqlisted` evidence and tests same-cycle CTA/Nasdaq
+  union behavior without claiming full all-venue completion.
+- Added one new file-backed, no-network SEC transaction regression. Its first
+  fixture attempt correctly produced no cursor update because one issuer
+  completed the cycle; the test was corrected to seed two issuers and scan one,
+  forcing the cursor-advance commit. The focused test passed `1/1` in `10.06s`
+  and again `1/1` in `8.62s` on the final formatted file: a SQLite trigger
+  rejects that cursor update, and a fresh session
+  confirms both the prior cursor/provenance and absence of the same-transaction
+  request log are preserved. Ruff check/format and diff check pass. The test
+  file is the only product-code working-tree modification; its current diff SHA-256
+  is `acfaa64d0b04b2b2bc55fca0bafad490befedd6f649cc2d2a789105041478f14`.
+- Full profile preparation for the next exact frozen/pushed source: derive the
+  isolated Compose project as `provider-<final-source-short-sha>-full-20261023`
+  (not the retained worktree project); use all 260 functional plus 104 strict
+  visual cases, Playwright `v1.62.1-noble`, one worker, zero retries, unchanged
+  references/masks and `0.005` tolerance, seeded instruments and market data,
+  read-only DejaVu fonts, provider routing false, backend/worker provider
+  egress denied, blank provider credentials, and quota/FINRA state mounts only
+  to new empty fixture-local directories. Existing Makefile limits are
+  Playwright `1536m`/2 CPUs and research runner `768m`/1 CPU/128 PIDs; the
+  browser has no explicit PID/swap cap and main app services have no
+  per-service resource caps. Require at least `1.5 GiB` available host memory
+  after app startup before browser stages, distinct project-owned volumes and
+  networks, no app/Postgres host bindings, and post-start checks of image source
+  labels, mounts, seed flags, credentials-by-name/emptiness, and egress.
+  Once a final source SHA is frozen, the reviewed command sequence must use
+  `docker compose -p "$PROJECT" -f docker-compose.yml -f
+  docker-compose.e2e.yml -f "$FIXTURE/compose.override.yml" config --format
+  json`, then the same project/files for `build` and `up -d --no-build --wait`;
+  run functional cases with the existing Playwright `v1.62.1-noble` Docker
+  invocation and `npx playwright test --retries=0`, then run
+  `tests/e2e/tc2000_visual.spec.ts --retries=0` with
+  `RUN_BOARD_VISUAL_PARITY=1`. Both keep one worker, `E2E_SEED_MARKET_DATA=true`,
+  and existing snapshots/tolerance. The fixture env/override must isolate
+  quota/FINRA state and credentials as described above. `make test-platform`
+  is not a safe isolated invocation here: its trap calls `test-stack-down`
+  (`down -v`) and broad resource cleanup. `make validate-integration` also
+  runs provider probes and the same stack cleanup. Do not use either wrapper;
+  no fixture/build/browser has started, and root slot release remains required.
+- No provider/issuer/SEC HTTP, quota action, fixture, retained resource/data,
+  staging, sibling, or master change occurred. Checkpoint remains in progress.
+
 ## 2026-10-23 00:58Z — NMS coverage-boundary documentation reconciled
 
 - Corrected the venue-coverage section in `docs/data-providers.md` to match
