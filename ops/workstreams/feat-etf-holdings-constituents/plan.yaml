@@ -559,9 +559,32 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: continue_full_roadmap_spdr_identity_and_runtime_onboarding_2026_10_23
+current_phase: fail_closed_etf_publisher_provisioning_and_retained_evidence_audit_2026_10_23
 current_blocker: >-
-  CURRENT CONTINUATION 2026-10-23: ETF source HEAD/origin is 9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b, the exact f04 merge; its exact branch CI 39907317600 passed Backend, Frontend Unit, Branch-declared and Playwright E2E, with Exhaustive skipped under feature-branch policy. Local uncommitted SPDR publisher-alias source/test changes and the first-human recipe have passed the three relevant unit modules (764 tests) plus Ruff/format; they are not covered by hosted CI yet. The source-owned route metadata now binds SPDR adapter and publisher identity, but accepted f04 has no supported bootstrap management path for the initial SPDR DataSource, ETF_HOLDINGS policy/entitlement, or DataSource.config.etf_holdings_review. No Provider record or route was activated, and the sample remains unavailable until independently sourced evidence and an authorized supported provisioning path exist. Root has not assigned the required full_stack_browser host slot; exact-source CI for the pending local changes is still required. The remainder of this field retains historical checkpoint status/evidence; older source and pending-run statements below are not current claims.
+  CURRENT CONTINUATION 2026-10-23 08:20Z: Published ETF HEAD/origin is
+  709bb36880ac960031f309c6dc037bd21ea9d47b. Exact CI39918702578 is on that
+  source and is terminal successful for Backend, Frontend Unit, Branch-declared,
+  and Playwright E2E; Exhaustive was skipped by feature-branch policy. This
+  run does not cover local changes. Local changes add an admin-only
+  ETF-publisher provisioning endpoint
+  and synthetic SQLite route tests. The endpoint accepts explicit review
+  inputs, requires a matching registered ETF adapter, configured account scope,
+  complete quota/operation costs, host and entitlement review fields, creates
+  shared source (source-level is_active=true), policy/entitlement/neutral-health/
+  review rows; the ETF_HOLDINGS policy remains disabled, no aggregate budget or
+  recurring commitment is created, and the response reports routable=false. It
+  is not evidence verification, real Provider DB/Redis proof,
+  route activation, or a SPY admission. Its containing Provider router module
+  passed 10/10 in 23.87s on the latest rerun (24.24s on its first run);
+  changed-file Ruff check/format and diff-check passed, all with live flags
+  zero. The recipe also records that the accepted f04 profile PATCH can persist
+  a real admin-reviewed SPY publisher alias but does not authenticate the
+  evidence; no primary-source evidence was fetched or newly found here.
+  No runtime records, policy activation, quota, issuer/provider/SEC HTTP, fixture,
+  or cleanup occurred. Exact-source CI for these local changes is pending, and
+  the required full_stack_browser profile still awaits Root's exclusive slot.
+  The remainder of this field retains historical checkpoints and receipts;
+  older source/status text below is not current.
   The `full_stack_browser` local profile remains pending Root's exclusive
   resource slot. Keep the accepted checkpoint distinct from the open full
   fourteen-criterion roadmap, issuer onboarding, and 30-day observation.
@@ -1763,18 +1786,20 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Accepted-f04 review confirms that SPY profile identity has a reviewed admin
-  configuration path, while shared SPDR DataSource/policy/entitlement/review
-  provisioning remains unsupported by f04 management routes. A bounded
-  ETF-specific seed now creates a neutral `ProviderHealthState` only for an
-  already-present ETF policy missing that resolver join row, and disables
-  that policy rather than implying health or admission. Its new test and the
-  complete Provider-runtime unit module pass; this does not create a source,
-  entitlement, review record, or routable policy. Next continue offline
-  AC2/AC4/AC5 issuer audit from retained evidence, preserve unqualified routes
-  as held, and document the source-backed provisioning contract still needed
-  for shared SPDR admission. Do not invent quota/cost facts, activate policy,
-  create runtime records in this offline phase, or issue external requests.
+  Preserve the current admin-only publisher-provisioning implementation as a
+  disabled preparation path; review its actual full diff and tests before
+  publication, and do not call it with live publisher evidence or create any
+  runtime rows. CI39918702578 is terminal green on the published base and does
+  not cover this dirty source. Run the final fast checks, publish the coherent
+  source/test/workstream changes once, and inspect exact-source CI. Continue bounded
+  AC2/AC4/AC5 audit from retained evidence; keep MSMR/QQQ and Militia/GOOG
+  quarantined and do not treat the synthetic provisioning fixture as real
+  evidence. The endpoint's administrator attestations still require actual
+  independently reviewed publisher, account, entitlement, quota, operation,
+  and cost evidence before it can be used; policy remains disabled until the
+  separate reviewed activation gate. No issuer/provider/SEC requests, quota,
+  budget or commitment mutation, live activation, or full_stack_browser run
+  without Root's exclusive slot.
   The required
   `full_stack_browser` recipe is `make
   validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents

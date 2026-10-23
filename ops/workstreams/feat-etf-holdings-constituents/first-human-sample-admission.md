@@ -183,14 +183,22 @@ supported evidence-bearing admin path; complete shared Provider admission
 still has a concrete provisioning/management gap. No such profile update,
 review, Provider record, budget, or commitment was made in this preparation.
 
-### Fail-closed provisioning design notes (proposal, not an existing API)
+### Accepted-f04 provisioning design notes and local-delta boundary
 
-If this management gap is later implemented, keep ETF publisher provisioning
-separate from generic API-provider registration: SPDR is an ETF adapter, and
-adding it to the generic registry would imply unrelated provider capabilities.
-A narrow admin-only publisher provisioning/review path should be idempotent
-and source-scoped. It must not infer capabilities, quotas, cost, terms, hosts,
-operations, or account identity from the adapter catalog or SPY profile.
+The following design notes describe the accepted f04 baseline, where this API
+did not exist. The current ETF worktree now has an uncommitted, unaccepted
+admin-only first-create endpoint; it is not evidence that a real SPDR record
+has been provisioned. The endpoint's exact validation, disabled-policy
+behavior, and remaining evidence/DB-runtime limits are recorded in the current
+workstream handoff/session, not attributed to accepted f04.
+
+Any publisher-provisioning implementation must stay separate from generic
+API-provider registration: SPDR is an ETF adapter, and adding it to the generic
+registry would imply unrelated provider capabilities. It must be admin-only
+and source-scoped, and must not infer capabilities, quotas, cost, terms, hosts,
+operations, or account identity from the adapter catalog or SPY profile. The
+current local first-create route rejects an existing source rather than
+overwriting it; it is not an idempotent update path.
 
 The current SQLAlchemy defaults make explicit quarantine essential: a new
 `DataSource.is_active` defaults true, `ProviderPolicy.is_enabled` defaults
@@ -225,8 +233,10 @@ would still leave the ETF publisher absent from the shared resolver. The
 future ETF-specific provisioning/seed path must create the shared health row
 for the same source and `ETF_HOLDINGS` capability without recording a success
 that never happened; policy must remain disabled until the independent
-evidence and explicit activation gates pass. This is a source-derived runtime
-requirement, not a test or a health observation, and no such row was created.
+  evidence and explicit activation gates pass. The local provisioning endpoint
+  now creates a neutral row as part of its transaction, but no such row has
+  actually been created in a runtime. This is a source-derived runtime
+  requirement, not a health observation.
 
 ## Bounded first request and interpretation
 
@@ -337,3 +347,38 @@ commitment, review, account scope, health observation, or route activation was
 created. Until the missing shared records are provisioned through a legitimate
 authorized mechanism and every independent admission check passes, SPY remains
 unadmitted and the sample recipe remains prospective.
+
+### Evidence status for this identity binding
+
+This source review establishes that f04 can persist a reviewed identity; it
+does not itself supply the external evidence needed to make that review. The
+adapter's curated `holdings_adapter=spdr` mapping and XLSX URL are application
+configuration, not proof of current issuer ownership, reachability, use/retention
+rights, or a verified-free plan. No new primary-source evidence was fetched or
+found in the retained local sample material during this read-only check. Thus an
+administrator may use the profile PATCH only after independently obtaining and
+retaining genuine source/product/route evidence in the profile's `legal_metadata`
+alongside the complete alias dictionary. The endpoint does not validate that
+metadata, and this profile-side record alone still cannot satisfy shared
+Provider admission; absent the separate SPDR source/policy/entitlement/health
+and `etf_holdings_review` provisioning, transport remains denied.
+
+### Current worktree-only provisioning implementation (not accepted f04)
+
+The current ETF source delta adds admin-only `POST
+/api/v1/providers/etf-publishers`. It permits only a registered native ETF
+adapter, requires configured account-scope agreement, accepted ETF operations,
+complete shared quota dimensions and explicit operation costs, and retains
+publisher, quota, entitlement, HTTPS-host, operation, and account review
+metadata in the shared Provider rows. It creates the source as active but the
+`ETF_HOLDINGS` policy explicitly disabled, with neutral zero/no-observation
+health and an entitlement revision; it creates no aggregate budget or
+recurring commitment. It refuses to overwrite an existing source and returns
+`routable=false`. The endpoint trusts admin-supplied attestations: nonblank
+evidence fields are not proof that the cited publisher material or terms are
+true. No actual request or runtime provisioning was performed. Synthetic
+SQLite router tests prove only validation/persistence shape and the disabled
+policy invariant, not production PostgreSQL/Redis admission or evidence
+authenticity. Therefore this local delta is not in f04, does not admit SPY,
+and does not close the sample's source-evidence, account/budget, activation,
+live-evidence, full-profile, or roadmap requirements.

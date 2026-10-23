@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Literal
+from urllib.parse import urlsplit
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,9 +17,12 @@ from app.models.provider_runtime import (
     ProviderCapability,
     ProviderEntitlement,
     ProviderEntitlementRevision,
+    ProviderHealthState,
     ProviderPolicy,
 )
 from app.models.user import User
+from app.providers import supported_provider_names
+from app.services.etf_holdings_adapters import get_holdings_adapter
 from app.services.instrument_reconciliation import (
     list_reconciliation_issues,
     resolve_reconciliation_issue,
@@ -37,8 +42,13 @@ from app.services.provider_maintenance import (
     reset_provider_health_state,
     summarize_provider_observations,
 )
+from app.services.provider_quota_coordinator import (
+    ProviderQuotaCoordinatorError,
+    account_scope_for_provider,
+)
 from app.services.provider_runtime import (
     list_provider_status,
+    provider_contract_operation_cost_known,
     quota_contract_missing_dimensions,
     record_entitlement_revision,
     seed_provider_runtime,
@@ -79,9 +89,380 @@ class ProviderEntitlementUpdate(BaseModel):
     live_probe_status: str | None = None
 
 
+class ETFPublisherOperationReview(BaseModel):
+    evidence_source: str = Field(min_length=1, max_length=500)
+    evidence_version: str = Field(min_length=1, max_length=120)
+    reviewed_at: datetime
+
+    @field_validator("evidence_source", "evidence_version")
+    @classmethod
+    def require_nonblank_evidence(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("operation evidence fields cannot be blank")
+        return value
+
+    @field_validator("reviewed_at")
+    @classmethod
+    def require_review_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("reviewed_at must include a timezone")
+        if value > datetime.now(UTC):
+            raise ValueError("reviewed_at cannot be in the future")
+        return value
+
+
+class ETFPublisherEntitlementReview(BaseModel):
+    evidence_source: str = Field(min_length=1, max_length=500)
+    evidence_version: str = Field(min_length=1, max_length=120)
+    reviewed_at: datetime
+    configured_plan: str = Field(min_length=1, max_length=80)
+    is_free: bool
+    authentication_required: bool
+    usage_terms: str = Field(min_length=1)
+    redistribution_allowed: bool
+    quota_policy: dict
+    history_depth: str = Field(min_length=1)
+    venue_coverage: str = Field(min_length=1)
+    freshness_semantics: str = Field(min_length=1)
+    enabled_environments: list[str] = Field(min_length=1)
+    effective_at: datetime
+    review_due_at: datetime
+
+    @field_validator(
+        "evidence_source",
+        "evidence_version",
+        "configured_plan",
+        "usage_terms",
+        "history_depth",
+        "venue_coverage",
+        "freshness_semantics",
+    )
+    @classmethod
+    def require_nonblank_review_values(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("entitlement review fields cannot be blank")
+        return value
+
+    @field_validator("enabled_environments")
+    @classmethod
+    def require_review_environments(cls, values: list[str]) -> list[str]:
+        normalized = [value.strip().lower() for value in values]
+        if any(not value for value in normalized) or len(set(normalized)) != len(normalized):
+            raise ValueError("enabled_environments must be nonblank and unique")
+        return normalized
+
+    @field_validator("reviewed_at")
+    @classmethod
+    def require_review_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("entitlement review dates must include a timezone")
+        if value > datetime.now(UTC):
+            raise ValueError("entitlement review dates cannot be in the future")
+        return value
+
+    @field_validator("effective_at", "review_due_at")
+    @classmethod
+    def require_entitlement_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("entitlement effective/review dates must include a timezone")
+        return value
+
+    @model_validator(mode="after")
+    def validate_review_window(self):
+        if self.review_due_at <= self.effective_at:
+            raise ValueError("review_due_at must be later than effective_at")
+        return self
+
+
+class ETFPublisherUsageReview(BaseModel):
+    mode: Literal["call_count", "weighted_request", "credit_count", "multi_dimensional"]
+    unit_label: str = Field(min_length=1, max_length=80)
+    operation_costs: dict[str, int | Decimal]
+    dimension_costs: dict[str, dict] = Field(default_factory=dict)
+
+
+class ETFPublisherProvisionRequest(BaseModel):
+    """Admin-attested initial registration; it never enables the route."""
+
+    provider_name: str = Field(min_length=2, max_length=50, pattern=r"^[a-z0-9][a-z0-9_-]+$")
+    description: str = Field(min_length=1, max_length=300)
+    https_hosts: list[str] = Field(min_length=1)
+    operations: dict[str, ETFPublisherOperationReview] = Field(min_length=1)
+    publisher_evidence_source: str = Field(min_length=1, max_length=500)
+    publisher_evidence_version: str = Field(min_length=1, max_length=120)
+    publisher_reviewed_at: datetime
+    quota_scope: str = Field(min_length=1, max_length=80)
+    quota_source: str = Field(min_length=1, max_length=240)
+    quota_evidence_version: str = Field(min_length=1, max_length=120)
+    quota_contract: dict
+    quota_verified_at: datetime
+    max_concurrency: int = Field(gt=0)
+    tokens_per_minute: int = Field(gt=0)
+    burst_capacity: int = Field(gt=0)
+    cooldown_seconds: int | None = Field(default=None, gt=0)
+    freshness_seconds: int = Field(gt=0)
+    account_scope: str = Field(min_length=1, max_length=128)
+    usage_tracking: ETFPublisherUsageReview
+    entitlement: ETFPublisherEntitlementReview
+
+    @field_validator(
+        "description",
+        "publisher_evidence_source",
+        "publisher_evidence_version",
+        "quota_scope",
+        "quota_source",
+        "quota_evidence_version",
+        "account_scope",
+    )
+    @classmethod
+    def require_nonblank_provision_values(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("publisher provisioning fields cannot be blank")
+        return value
+
+    @field_validator("publisher_reviewed_at", "quota_verified_at")
+    @classmethod
+    def require_review_timestamps(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("review timestamps must include a timezone")
+        if value > datetime.now(UTC):
+            raise ValueError("review timestamps cannot be in the future")
+        return value
+
+    @field_validator("https_hosts")
+    @classmethod
+    def require_hostnames_only(cls, values: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for value in values:
+            candidate = value.strip().lower().rstrip(".")
+            parsed = urlsplit(f"https://{candidate}")
+            if (
+                not candidate
+                or "*" in candidate
+                or parsed.hostname != candidate
+                or parsed.path
+                or parsed.query
+                or parsed.fragment
+                or parsed.port is not None
+                or "://" in value
+            ):
+                raise ValueError("https_hosts must contain exact hostnames, not URLs or wildcards")
+            normalized.append(candidate)
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("https_hosts cannot contain duplicates")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_publisher_review(self):
+        allowed_operations = {"fetch_etf_holdings_latest", "fetch_etf_holdings_for_date"}
+        if not set(self.operations).issubset(allowed_operations):
+            raise ValueError("operations contains an unreviewed ETF operation")
+        if self.publisher_reviewed_at > datetime.now(UTC):
+            raise ValueError("publisher_reviewed_at cannot be in the future")
+        return self
+
+
 class ReconciliationIssueUpdate(BaseModel):
     status: Literal["open", "resolved", "ignored"]
     resolution: dict | None = None
+
+
+@router.post("/etf-publishers", status_code=status.HTTP_201_CREATED)
+async def provision_etf_publisher(
+    body: ETFPublisherProvisionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create reviewed ETF publisher rows in a deliberately disabled state.
+
+    This is not a route-activation endpoint. Review inputs are retained as
+    admin attestations; missing quota, account, entitlement, or operation
+    evidence is rejected before any database row is created.
+    """
+
+    provider_name = body.provider_name.strip().lower()
+    if provider_name in supported_provider_names():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Generic Provider sources must use their registered seed and review paths",
+        )
+    adapter = get_holdings_adapter(provider_name)
+    if (
+        adapter is None
+        or str(getattr(adapter, "source_provider", "")).strip().lower() != provider_name
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="ETF publisher must match a registered native holdings adapter",
+        )
+
+    account_scope_key = f"{provider_name}:{body.quota_scope.strip().lower()}"
+    account_scopes = settings.PROVIDER_QUOTA_ACCOUNT_SCOPES
+    if not isinstance(account_scopes, dict) or not (
+        account_scope_key in account_scopes or provider_name in account_scopes
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Explicit provider/account-scope configuration is required",
+        )
+    try:
+        expected_scope = account_scope_for_provider(provider_name, body.quota_scope)
+    except ProviderQuotaCoordinatorError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provider/account-scope configuration is invalid",
+        ) from exc
+    if body.account_scope != expected_scope:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Review account scope does not match configured shared quota scope",
+        )
+
+    now = datetime.now(UTC)
+    if body.quota_verified_at > now or body.publisher_reviewed_at > now:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Review timestamps cannot be in the future",
+        )
+    policy_contract = ProviderPolicy(
+        capability=ProviderCapability.ETF_HOLDINGS,
+        quota_contract=body.quota_contract,
+        quota_scope=body.quota_scope,
+        quota_source=body.quota_source,
+        quota_verified_at=body.quota_verified_at,
+    )
+    missing_contract = quota_contract_missing_dimensions(policy_contract)
+    if missing_contract:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"reason": "reviewed quota contract is incomplete", "missing": missing_contract},
+        )
+
+    reviewed_usage_tracking = body.usage_tracking.model_dump(mode="json")
+    usage_source = DataSource(
+        name=provider_name,
+        config={"usage_tracking": reviewed_usage_tracking},
+    )
+    for operation in body.operations:
+        if not provider_contract_operation_cost_known(
+            policy_contract,
+            usage_source,
+            operation,
+            usage_identity="provisioning-review-validation",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Reviewed quota and operation costs are incomplete for {operation}",
+            )
+
+    existing = (
+        await db.execute(select(DataSource).where(DataSource.name == provider_name))
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Provider source already exists; provisioning never overwrites reviewed rows",
+        )
+
+    review = {
+        "https_hosts": body.https_hosts,
+        "operations": {
+            operation: evidence.model_dump(mode="json")
+            for operation, evidence in body.operations.items()
+        },
+        "account_scope": expected_scope,
+        "evidence_source": body.publisher_evidence_source,
+        "evidence_version": body.publisher_evidence_version,
+        "reviewed_at": body.publisher_reviewed_at.isoformat(),
+        "reviewed_by_user_id": current_user.id,
+        "quota_review": {
+            "evidence_source": body.quota_source,
+            "evidence_version": body.quota_evidence_version,
+            "verified_at": body.quota_verified_at.isoformat(),
+            "reviewed_by_user_id": current_user.id,
+        },
+        "entitlement_review": {
+            "evidence_source": body.entitlement.evidence_source,
+            "evidence_version": body.entitlement.evidence_version,
+            "reviewed_at": body.entitlement.reviewed_at.isoformat(),
+            "reviewed_by_user_id": current_user.id,
+        },
+    }
+    data_source = DataSource(
+        name=provider_name,
+        description=body.description,
+        is_active=True,
+        supported_capabilities=[ProviderCapability.ETF_HOLDINGS.value],
+        config={
+            "capabilities": [ProviderCapability.ETF_HOLDINGS.value],
+            "usage_tracking": reviewed_usage_tracking,
+            "etf_holdings_review": review,
+        },
+    )
+    db.add(data_source)
+    await db.flush()
+
+    policy = ProviderPolicy(
+        data_source_id=data_source.id,
+        capability=ProviderCapability.ETF_HOLDINGS,
+        is_enabled=False,
+        is_pinned=False,
+        auto_weight_enabled=False,
+        max_concurrency=body.max_concurrency,
+        tokens_per_minute=body.tokens_per_minute,
+        burst_capacity=body.burst_capacity,
+        cooldown_seconds=body.cooldown_seconds,
+        quota_contract=body.quota_contract,
+        quota_scope=body.quota_scope,
+        quota_source=body.quota_source,
+        quota_verified_at=body.quota_verified_at,
+        freshness_seconds=body.freshness_seconds,
+        effective_score=Decimal("0"),
+    )
+    entitlement = ProviderEntitlement(
+        data_source_id=data_source.id,
+        capability=ProviderCapability.ETF_HOLDINGS,
+        configured_plan=body.entitlement.configured_plan,
+        is_free=body.entitlement.is_free,
+        authentication_required=body.entitlement.authentication_required,
+        usage_terms=body.entitlement.usage_terms,
+        redistribution_allowed=body.entitlement.redistribution_allowed,
+        quota_policy=body.entitlement.quota_policy,
+        history_depth=body.entitlement.history_depth,
+        venue_coverage=body.entitlement.venue_coverage,
+        freshness_semantics=body.entitlement.freshness_semantics,
+        enabled_environments=body.entitlement.enabled_environments,
+        effective_at=body.entitlement.effective_at,
+        review_due_at=body.entitlement.review_due_at,
+        live_probe_status="not_run",
+        revision=1,
+    )
+    health = ProviderHealthState(
+        data_source_id=data_source.id,
+        capability=ProviderCapability.ETF_HOLDINGS,
+        failure_streak=0,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("0"),
+        ewma_completeness=Decimal("0"),
+        ewma_freshness=Decimal("0"),
+        ewma_consistency=Decimal("0"),
+        observed_score=Decimal("0"),
+    )
+    db.add_all([policy, entitlement, health])
+    await db.flush()
+    await record_entitlement_revision(
+        db,
+        entitlement,
+        change_reason=f"etf_publisher_provision:{body.entitlement.evidence_version}"[:240],
+    )
+    return {
+        "provider": provider_name,
+        "capability": ProviderCapability.ETF_HOLDINGS.value,
+        "data_source_id": data_source.id,
+        "policy_enabled": False,
+        "live_probe_status": entitlement.live_probe_status,
+        "routable": False,
+    }
 
 
 @router.get("")

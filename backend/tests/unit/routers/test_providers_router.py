@@ -2,6 +2,8 @@ import json
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import select
+
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_observation import (
@@ -9,7 +11,11 @@ from app.models.provider_observation import (
     InstrumentDatasetState,
     LatestPriceSnapshot,
 )
-from app.models.provider_runtime import ProviderCapability, ProviderHealthState
+from app.models.provider_runtime import (
+    ProviderCapability,
+    ProviderEntitlement,
+    ProviderHealthState,
+)
 
 
 class TestProvidersRouter:
@@ -61,6 +67,218 @@ class TestProvidersRouter:
             ).status_code
             == 403
         )
+        assert (
+            client.post(
+                "/api/v1/providers/etf-publishers",
+                headers=auth_headers,
+                json={},
+            ).status_code
+            == 403
+        )
+
+    def test_etf_publisher_provisioning_stores_attestation_but_never_activates(
+        self, client, admin_headers, auth_headers, db, monkeypatch
+    ):
+        from app.config import settings
+        from app.models.provider_runtime import (
+            ProviderEntitlementRevision,
+            ProviderPolicy,
+            ProviderRequestLog,
+        )
+
+        now = datetime.now(UTC)
+        account_scope = "spdr-test-account"
+        monkeypatch.setattr(
+            settings,
+            "PROVIDER_QUOTA_ACCOUNT_SCOPES",
+            {"spdr:issuer_account": account_scope},
+        )
+        payload = {
+            "provider_name": "spdr",
+            "description": "Synthetic unit-test publisher record; not live evidence.",
+            "https_hosts": ["www.ssga.com"],
+            "operations": {
+                "fetch_etf_holdings_latest": {
+                    "evidence_source": "synthetic-unit-test-only",
+                    "evidence_version": "fixture-v1",
+                    "reviewed_at": now.isoformat(),
+                }
+            },
+            "publisher_evidence_source": "synthetic-unit-test-only",
+            "publisher_evidence_version": "fixture-v1",
+            "publisher_reviewed_at": now.isoformat(),
+            "quota_scope": "issuer_account",
+            "quota_source": "synthetic-unit-test-only",
+            "quota_evidence_version": "fixture-v1",
+            "quota_contract": {
+                "reset": "rolling",
+                "dimensions": [
+                    {
+                        "name": "request",
+                        "limit": 5,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "test-account",
+                        "source": "synthetic-unit-test-only",
+                    }
+                ],
+            },
+            "quota_verified_at": now.isoformat(),
+            "max_concurrency": 1,
+            "tokens_per_minute": 5,
+            "burst_capacity": 1,
+            "freshness_seconds": 3600,
+            "account_scope": account_scope,
+            "usage_tracking": {
+                "mode": "call_count",
+                "unit_label": "requests",
+                "operation_costs": {"fetch_etf_holdings_latest": 1},
+                "dimension_costs": {},
+            },
+            "entitlement": {
+                "evidence_source": "synthetic-unit-test-only",
+                "evidence_version": "fixture-v1",
+                "reviewed_at": now.isoformat(),
+                "configured_plan": "synthetic-test-plan",
+                "is_free": True,
+                "authentication_required": False,
+                "usage_terms": "Synthetic fixture only; not a publisher terms claim.",
+                "redistribution_allowed": False,
+                "quota_policy": {},
+                "history_depth": "test-only",
+                "venue_coverage": "test-only",
+                "freshness_semantics": "test-only",
+                "enabled_environments": ["test"],
+                "effective_at": now.isoformat(),
+                "review_due_at": (now + timedelta(days=1)).isoformat(),
+            },
+        }
+
+        missing_costs = deepcopy(payload)
+        missing_costs["usage_tracking"]["operation_costs"] = {}
+        denied = client.post(
+            "/api/v1/providers/etf-publishers",
+            headers=admin_headers,
+            json=missing_costs,
+        )
+        assert denied.status_code == 422
+        assert db.scalar(select(DataSource).where(DataSource.name == "spdr")) is None
+
+        generic_provider = deepcopy(payload)
+        generic_provider["provider_name"] = "alpaca"
+        denied_generic = client.post(
+            "/api/v1/providers/etf-publishers",
+            headers=admin_headers,
+            json=generic_provider,
+        )
+        assert denied_generic.status_code == 409
+        assert db.scalar(select(DataSource).where(DataSource.name == "alpaca")) is None
+
+        unknown_operation = deepcopy(payload)
+        unknown_operation["operations"] = {
+            "discover_everything": {
+                "evidence_source": "synthetic-unit-test-only",
+                "evidence_version": "fixture-v1",
+                "reviewed_at": now.isoformat(),
+            }
+        }
+        denied_operation = client.post(
+            "/api/v1/providers/etf-publishers",
+            headers=admin_headers,
+            json=unknown_operation,
+        )
+        assert denied_operation.status_code == 422
+        assert db.scalar(select(DataSource).where(DataSource.name == "spdr")) is None
+
+        wildcard_host = deepcopy(payload)
+        wildcard_host["https_hosts"] = ["*.ssga.com"]
+        denied_host = client.post(
+            "/api/v1/providers/etf-publishers",
+            headers=admin_headers,
+            json=wildcard_host,
+        )
+        assert denied_host.status_code == 422
+        assert db.scalar(select(DataSource).where(DataSource.name == "spdr")) is None
+
+        response = client.post(
+            "/api/v1/providers/etf-publishers", headers=admin_headers, json=payload
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["routable"] is False
+        assert response.json()["policy_enabled"] is False
+        assert response.json()["live_probe_status"] == "not_run"
+
+        source = db.scalar(select(DataSource).where(DataSource.name == "spdr"))
+        assert source is not None
+        assert source.is_active is True
+        assert source.supported_capabilities == [ProviderCapability.ETF_HOLDINGS.value]
+        assert source.config["etf_holdings_review"]["https_hosts"] == ["www.ssga.com"]
+        assert (
+            source.config["etf_holdings_review"]["entitlement_review"]["evidence_source"]
+            == "synthetic-unit-test-only"
+        )
+        assert source.config["usage_tracking"]["operation_costs"] == {
+            "fetch_etf_holdings_latest": 1
+        }
+        policy = db.scalar(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        entitlement = db.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == source.id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        health = db.scalar(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == source.id,
+                ProviderHealthState.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        revision = db.scalar(
+            select(ProviderEntitlementRevision).where(
+                ProviderEntitlementRevision.data_source_id == source.id,
+                ProviderEntitlementRevision.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert policy is not None and policy.is_enabled is False
+        assert entitlement is not None and entitlement.live_probe_status == "not_run"
+        assert health is not None
+        assert health.last_success_at is None and health.last_failure_at is None
+        assert health.observed_score == 0
+        assert revision is not None and revision.revision == entitlement.revision == 1
+        assert db.query(ProviderRequestLog).count() == 0
+
+        duplicate = client.post(
+            "/api/v1/providers/etf-publishers", headers=admin_headers, json=payload
+        )
+        assert duplicate.status_code == 409
+        assert db.scalar(select(DataSource).where(DataSource.name == "spdr")).id == source.id
+
+        # The normal shared seeder must preserve this ETF-owned disabled row;
+        # it must not infer activation from the new entitlement/health rows.
+        providers = client.get("/api/v1/providers", headers=auth_headers)
+        assert providers.status_code == 200
+        db.refresh(policy)
+        assert policy.is_enabled is False
+        assert db.query(ProviderRequestLog).count() == 0
+
+    def test_etf_publisher_provisioning_rejects_missing_scope_before_writes(
+        self, client, admin_headers, db, monkeypatch
+    ):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", {})
+        response = client.post(
+            "/api/v1/providers/etf-publishers",
+            headers=admin_headers,
+            json={"provider_name": "spdr"},
+        )
+        assert response.status_code == 422
+        assert db.scalar(select(DataSource).where(DataSource.name == "spdr")) is None
 
     def test_reconciliation_issue_is_listed_and_resolvable(self, client, admin_headers, db):
         from app.models.instrument_reconciliation import InstrumentReconciliationIssue

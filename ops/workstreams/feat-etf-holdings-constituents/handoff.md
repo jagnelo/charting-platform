@@ -1,5 +1,42 @@
 # feat/etf-holdings-constituents
 
+## Current continuation — ETF publisher provisioning (2026-10-23 08:20Z)
+
+The assigned worktree is on published base
+`709bb36880ac960031f309c6dc037bd21ea9d47b` before these local edits, with the
+existing owner claim retained. Exact hosted CI `39918702578` is terminal green
+for Backend, Frontend Unit, Branch-declared, and Playwright E2E; Exhaustive was
+skipped by feature-branch policy. This run does not cover the local changes.
+
+The accepted-f04 review confirms an admin can bind SPY's existing adapter and
+publisher identity through the profile PATCH while retaining genuine review
+evidence, but that endpoint does not authenticate the claims. No real
+publisher/terms/quota evidence was fetched or established here. The accepted
+generic Provider registry/seed still omits SPDR and its existing policy and
+entitlement PATCH routes cannot create its initial rows. The current local
+source delta adds a new admin-only `POST /api/v1/providers/etf-publishers`
+preparation path. It accepts review evidence as administrator attestations,
+requires registered ETF-adapter identity and configured account scope, checks
+quota completeness and per-operation cost, and creates the shared source
+(whose source-level `is_active` value is true), disabled `ETF_HOLDINGS` policy,
+entitlement/revision, neutral health row, and `etf_holdings_review` config. The
+disabled policy keeps the source unroutable. It does not enable the policy,
+create an aggregate budget or recurring commitment, verify the truth of
+supplied evidence, or establish that SPY is admitted. It has not been called
+against any runtime.
+
+The actual changed Provider router unit module passed `10/10` in 23.87s on the
+latest rerun (an earlier same-source run passed in 24.24s). Both used
+`RUN_LIVE_ETF_HOLDINGS_TESTS=0` and `RUN_LIVE_PROVIDER_TESTS=0`. Ruff check,
+Ruff format check, and diff-check passed. These SQLite/unit checks do not prove
+the production shared PostgreSQL/Redis runtime, full stack, source evidence, or
+route admission. No issuer/provider/SEC HTTP, quota, budget/commitment
+mutation, policy activation, fixture, cleanup, or cross-worktree write
+occurred. Exact CI of the local source is still pending; the required
+`full_stack_browser` slot remains Root-assigned. Keep all AC1–AC14, `15 Tier-0
+and 156 Tier-1`, quarantines, route holds, retained data, and the 30-day
+observation gate intact.
+
 ## ETF shared-health seed regression — 2026-10-23 07:28Z
 
 The accepted-f04 source review showed that `resolve_provider_chain` requires a
