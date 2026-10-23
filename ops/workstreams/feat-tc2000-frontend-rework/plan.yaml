@@ -3,9 +3,15 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
-latest_staging_merge_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
-dependency_authorization: "Human-approved four-feature integration; coordinator released exact synchronized Provider+ETF+TC2000+Strategy staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad (canonical receipt 20261023T000222Z-4687bd0cd21a.json; CI39866387942 attempt 1 green) for guarded adoption into this TC-owned branch and continued branch-owned roadmap work."
+latest_staging_parent_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+latest_staging_merge_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+dependency_authorization: >-
+  Human-approved four-feature integration; coordinator released exact synchronized
+  Provider+ETF+TC2000+Strategy staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+  (canonical green receipt 20261023T051709Z-f04fb2a26c63.json; CI39896524209
+  attempt 1) for guarded adoption into this TC-owned branch. Earlier accepted
+  baseline 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad remains its merge base and
+  history; this adoption does not close the full TC roadmap or V25 parity.
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
   and, on 2026-09-15, explicitly approved a scope replan so this branch consumes
@@ -60,6 +66,14 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
+  Latest dependency adoption: exact staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+  is canonically green (receipt 20261023T051709Z-f04fb2a26c63.json; CI39896524209
+  attempt 1) and merged into this TC branch at source merge commit
+  acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32, with merge base 4687bd0c. The
+  merge imports the accepted hidden-request initiation observer and tests;
+  its focused unit file passes 9/9. Branch publication and exact TC-branch CI
+  are pending. The following fe4a status text is preserved as pre-F04 history.
+
   The branch contains accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
   at merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d; earlier accepted
   0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published
@@ -99,6 +113,16 @@ current_blocker: >-
   AC1–AC9 and official REF-HELP-V25 parity remain open; provider/live/paid
   operations, deployment and promotion remain disabled/unperformed.
 current_checkpoint_status: >-
+  Current local source merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 adopts
+  exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 (CI39896524209,
+  canonical receipt 20261023T051709Z-f04fb2a26c63.json). Backend, Frontend,
+  Exhaustive Integration Gate and ordinary E2E succeeded; Branch-declared Tests
+  was the expected skip. E2E reported 191 passed/110 declared skips. The
+  imported hidden-request browser-clock observer and fail-closed coverage tests
+  pass locally 9/9; exact TC branch CI is pending publication. This does not
+  duplicate Root's separate observer work or claim a new TC browser profile.
+  The older fe4a checkpoint details below remain historical and are retained.
+
   Current continuation at 2026-10-23: published feature HEAD
   fe4a1fcba32fe640c6b9e2f1f6e6503f86788418 matches the feature ref and contains
   accepted staging 4687. Exact CI39892894561 attempt 1 completed successfully
@@ -621,12 +645,14 @@ active_changeset_context:
     - frontend/tests/unit/lib/test_tag_columns.test.ts
     - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    After Root grants the one-at-a-time local fixture slot, run the ordinary-
-    click F8y parent-host-to-mutation regression in the full source-pinned
-    profile. The repair is published on fe4a and exact CI39892894561 is green,
-    but actual parent-host runtime proof remains pending. Do not substitute
-    helper tests, template parsing, or collection; preserve behavior assertions,
-    visual references/masks/tolerance, and zero-retry acceptance.
+    Publish this F04 adoption checkpoint and obtain exact TC branch CI. After
+    Root grants the separate one-at-a-time F8y browser slot, run the required
+    ordinary-click parent-host-to-mutation proof in the full source-pinned
+    profile. Do not substitute helper tests, template parsing, or collection;
+    preserve behavior assertions, visual references/masks/tolerance, and
+    zero-retry acceptance. Keep SX/IX relative modes unavailable until the
+    producer supplies identity, weighting, PIT membership, and local-history
+    lineage contracts.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -1294,15 +1320,14 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "4687_adopted;Favorites_toggle_serialization_published_fe4a;exact_CI39892894561_terminal_green;F8y_parent_runtime_pending_Root_slot;Custom_Date_Sort_SX_IX_family_documented_but_identity_weighting_PIT_lineage_open;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "f04_backmerge_adopted_locally_acbfe;exact_staging_CI39896524209_and_canonical_green;hidden_request_observer_unit9of9;own_branch_CI_pending;F8y_browser_slot_pending_Root;Custom_Date_Sort_SX_IX_identity_weighting_PIT_lineage_open;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Continue source-backed TC-owned roadmap work on this branch; the accepted
-    4687 release is already merged. Do not merge another staging SHA without
-    its exact green receipt and explicit release. Run the F8y parent-host proof
-    and strict full profile only when Root releases the one-at-a-time slot.
-    Keep relative Custom Date Sort modes unavailable until TC has a
-    source-backed sector/industry-label-to-SX/IX resolver plus weighting,
-    point-in-time membership, and canonical local-history lineage contracts.
+    Publish the exact F04 adoption plus owner-record checkpoint and obtain exact
+    TC branch CI. Then continue source-backed TC roadmap work. Run the F8y
+    parent-host proof and strict full profile only when Root releases its
+    separate one-at-a-time slot. Keep relative Custom Date Sort modes
+    unavailable until identity mapping, weighting, point-in-time membership,
+    and canonical local-history lineage have producer-backed contracts.
     Preserve all assertions, thresholds,
     references, masks/tolerance, full AC1–AC9, official REF-HELP-V25, provider/live
     holds, assigned services and data.

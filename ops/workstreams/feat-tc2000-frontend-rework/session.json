@@ -35,12 +35,12 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Published source fe4a1fcba32fe640c6b9e2f1f6e6503f86788418 matches the feature ref. Exact push CI39892894561 attempt 1 completed successfully: Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E passed; E2E 191 passed/110 declared skips/0 failures/0 flakes; Exhaustive Integration Gate was an expected skip.",
+  "current_candidate_ci_status": "Local merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 adopts exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61; the merge and owner-record checkpoint are not yet pushed, so exact TC-branch CI is pending. Upstream staging CI39896524209 and canonical receipt20261023T051709Z-f04fb2a26c63.json are green. Previous TC branch CI39892894561 remains bound to published fe4a only.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
-    "status": "Exact-source CI39892894561 attempt 1 completed success at 2026-10-23T03:47:13Z: Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E success; Exhaustive Integration Gate expected skip.",
-    "visuals": "This ordinary branch run does not provide strict104 visual evidence. F8y local parent-host proof and the full local profile remain pending Root's slot. Root owns the separate F8l observer repair; no sibling code imported."
+    "status": "Latest completed TC-branch CI before F04 adoption: CI39892894561 attempt 1 succeeded on fe4a at 2026-10-23T03:47:13Z. It does not cover the local F04 merge; exact TC-branch CI for the adopted source is pending publication.",
+    "visuals": "CI39892894561 is the last completed TC-branch run and predates F04; it does not provide strict104 TC-branch visual evidence. The F04 staging Exhaustive Integration Gate is green, while F8y local parent-host proof/full local profile remain pending Root's separate slot."
   },
   "dirty_paths": [
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
@@ -61,7 +61,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 1251626522,
+    "known_bytes": 1251726522,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -72,7 +72,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 1248558618,
+    "volume_bytes": 1248658618,
     "volume_count": 12,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -151,7 +151,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
+  "head": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -162,23 +162,23 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-23T05:19:41.599524+00:00",
+  "last_checkpoint": "2026-10-23T05:26:38.313319+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
     "conclusion": "success",
-    "e2e_summary": "191 passed,110 existing skips,0 failures,0 flakes; exact attempt 1",
-    "head_sha": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad",
+    "e2e_summary": "191 passed,110 existing skips; E2E job success on exact F04 attempt 1",
+    "head_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
     "jobs": {
-      "backend": "5191 unit + 497 integration passed;84 percent coverage;1 existing unit skip;2 existing integration skips",
-      "branch_declared": "green",
-      "e2e": "green_191_pass_110_existing_skip_0_failure_0_flake",
-      "exhaustive_integration_gate": "green_104 strict visuals;194 functional passed/107 existing skips",
-      "frontend_unit": "green_1331 tests"
+      "backend": "success",
+      "branch_declared": "expected skip",
+      "e2e": "success_191_pass_110_existing_skip",
+      "exhaustive_integration_gate": "success",
+      "frontend_unit": "success"
     },
-    "run_id": 39866387942,
-    "scope": "Exact accepted staging source 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad; canonical receipt20261023T000222Z-4687bd0cd21a.json. Backend5191 unit/497 integration at84%, Frontend1331, declared cleanup/lint/format gates, ordinary E2E191 pass/110 existing skip, and Exhaustive104 strict visuals passed attempt1. This staging release is adopted as a TC branch ancestor; it is not whole-roadmap or official V25 completion and does not substitute for TC branch CI.",
-    "visuals": "Strict104/104 passed in the exact staging Exhaustive Integration Gate under unchanged policy; the TC-owned F8y parent-mutation runtime proof is still pending the assigned local slot, and official REF-HELP-V25 parity/full roadmap remain open."
+    "run_id": 39896524209,
+    "scope": "Exact F04 staging source f04fb2a26c6363c6090e76c2658cfcfe7adabf61; canonical receipt20261023T051709Z-f04fb2a26c63.json. Backend, Frontend, ordinary E2E and Exhaustive Integration Gate succeeded; Branch-declared Tests was the expected skip. E2E reported 191 passed/110 declared skips. This upstream staging CI is not a substitute for exact TC-branch CI after adoption.",
+    "visuals": "The F04 exhaustive gate is green. F8y parent-host runtime proof/full local profile remain pending Root's separate slot; official REF-HELP-V25 parity and the full roadmap remain open."
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
@@ -195,7 +195,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "2af1055390734eb808ee8a0db3d2f8817ad80f29822796590c051134bac151e9",
+  "plan_hash": "8d407193f6063afee488056e536b1740b30a3b620d88a620255934297d0ecd22",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -215,17 +215,17 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "Exact CI39892894561 attempt 1 completed successfully on published fe4a: Backend, Frontend Unit, Branch-declared, and E2E jobs green; E2E 191 passed/110 declared skips/0 failures/0 flakes; Exhaustive Integration Gate expected skip. Accepted staging 4687 is already an ancestor through merge f704; another staging merge requires a new exact green receipt and explicit release. F8y parent-host proof/full local profile remain pending Root's slot. Official Custom Date Sort help identifies the related Sector Index (SX) for vs. Sub Industry and main Industry Index (IX) for vs. Industry; bounded TC source review found no label-to-index instrument mapping. Weighting, point-in-time membership, and canonical local-history lineage remain unavailable, so relative modes stay unavailable.",
-    "current_phase": "4687_adopted;Favorites_toggle_serialization_published_fe4a;exact_CI39892894561_terminal_green;F8y_parent_host_runtime_pending_Root_slot;Custom_Date_Sort_SX_IX_family_documented_but_identity_weighting_PIT_lineage_open;full_AC1_AC9_REF_HELP_V25_open",
-    "next_action": "Continue source-backed TC-owned roadmap work on this branch; the accepted 4687 release is already merged. Keep F8y parent-runtime/full profile gated on Root's slot. Implement Custom Date Sort relative modes only after a source-backed sector/industry-label-to-SX/IX resolver, weighting, point-in-time membership, and canonical local-history lineage contracts are established.",
+    "current_blocker": "Exact F04 staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 is canonically green on CI39896524209 and merged locally at acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32; own branch publication/exact CI are pending. The accepted hidden-request observer passes its focused unit file 9/9. F8y parent-host proof/full local profile remain pending Root's separate slot. SX/IX identity, weighting, point-in-time membership and local-history lineage are unproven; relative modes remain unavailable. Full AC1-AC9 and official REF-HELP-V25 remain open.",
+    "current_phase": "f04_backmerge_acbfe_local;exact_staging_CI39896524209_and_receipt_green;observer_unit9of9;own_branch_publication_and_CI_pending;F8y_browser_slot_pending_Root;Custom_Date_Sort_SX_IX_identity_weighting_PIT_lineage_open;full_AC1_AC9_REF_HELP_V25_open",
+    "next_action": "Publish the exact F04 adoption and TC workstream checkpoint, then follow exact TC-branch CI. Continue source-backed TC roadmap work without duplicating Root's observer changes. Run the F8y parent-host proof only after Root releases its separate slot. Keep relative Custom Date Sort modes unavailable until producer-backed identity mapping, weighting, point-in-time membership and canonical local-history lineage exist.",
     "total": 5,
     "updated_at": "2026-10-23T04:15:59Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
-    "current_pending_range": "Origin independently matches published fe4a. Exact CI39892894561 attempt 1 is green; no newer source changes are committed.",
+    "current_local_head": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
+    "current_pending_range": "Local F04 merge and checkpoint commit b59 are ahead of origin; final TC owner-record checkpoint remains to be committed before publication. Exact TC-branch CI is pending.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
@@ -233,11 +233,11 @@
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
     "remote_tracking_sha": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
-    "status": "Published HEAD and feature ref match at fe4a. Exact CI39892894561 attempt 1 is green; local runtime and strict visual acceptance remain pending."
+    "status": "Origin remains fe4a while the exact F04 merge is locally reconciled; publication and exact TC-branch CI are pending."
   },
   "remote": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
   "remote_sha": "fe4a1fcba32fe640c6b9e2f1f6e6503f86788418",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -321,6 +321,14 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
+  "upstream_backmerge": {
+    "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
+    "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
+    "merge_base": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad",
+    "staging_ci_run": 39896524209,
+    "staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
+    "status": "Merged locally after checkpointing the four dirty TC records; exact TC-branch publication/CI pending. F04 hidden-request browser-clock observer and fail-closed unit coverage are adopted. No F8y browser profile, provider HTTP, quota, or retained-service mutation was performed."
+  },
   "upstream_release_preparation": {
     "accepted_product_checkpoints": 0,
     "coordinator_geometry": {

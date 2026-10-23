@@ -1,6 +1,39 @@
 # feat/tc2000-frontend-rework
 
-## Current continuation — 2026-10-23: published Favorites toggle serialization
+## Current continuation — 2026-10-23: F04 accepted dependency back-merge
+
+The coordinator released exact synchronized staging
+`f04fb2a26c6363c6090e76c2658cfcfe7adabf61`; canonical green receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`.
+Exact staging CI `39896524209` attempt 1 completed green: Backend, Frontend,
+ordinary E2E and Exhaustive Integration Gate succeeded; Branch-declared Tests
+was the expected skip. E2E reported 191 passed/110 declared skips. The exact
+F04 source is merged into this branch at `acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32`
+with merge base `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`. The four existing
+dirty TC records were preserved in checkpoint `b59b489913dd4359b6205139e4b4f934d0952667`.
+
+The imported delta is the accepted hidden-request browser-clock initiation
+observer and its fail-closed unit coverage, plus the Strategy-owned workstream
+changes from F04; no provider API, production behavior, quota, or retained
+service was changed. The focused observer unit file passes 9/9. The merge and
+updated TC owner records are not yet published; exact TC-branch CI is pending.
+This is not a new local browser result or full feature acceptance.
+
+F8y's ordinary-click parent-host-to-mutation proof and full local profile remain
+pending Root's separate browser slot. Custom Date Sort help identifies SX/IX
+index families, but TC source has no source-backed sector/industry-label to
+instrument mapping; identity, weighting, point-in-time membership, and local
+history lineage remain unresolved, so relative modes stay unavailable. Preserve
+all assertions, 70% function-coverage threshold, references/masks/0.005
+tolerance, zero-retry policy, full AC1–AC9, and official REF-HELP-V25 parity as
+open. No provider/issuer/SEC request, paid/live operation, deployment, or
+promotion is authorized or performed.
+
+Next: publish this coherent F04 adoption and TC workstream checkpoint, verify
+the branch ref, and follow exact TC-branch CI. Continue the separate F8y proof
+only when Root releases its slot; keep the broader roadmap open.
+
+## Historical continuation — pre-F04 Favorites toggle serialization
 
 Published HEAD is `fe4a1fcba32fe640c6b9e2f1f6e6503f86788418`, synchronized with
 the feature ref. It contains the accepted four-feature staging release
