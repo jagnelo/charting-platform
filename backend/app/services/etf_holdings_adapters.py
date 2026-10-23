@@ -3076,14 +3076,46 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         end_date: date | None = None,
         max_filings: int = 5,
     ) -> HoldingsFetchResult | None:
+        from app.services.etf_holdings_edgar import (  # noqa: PLC0415
+            sec_fund_execution_scope,
+        )
+
+        async with sec_fund_execution_scope():
+            return await self._fetch_latest_sec_filing_holdings_in_scope(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+                end_date=end_date,
+                max_filings=max_filings,
+            )
+
+    async def _fetch_latest_sec_filing_holdings_in_scope(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        identifiers: dict[str, str],
+        end_date: date | None = None,
+        max_filings: int = 5,
+    ) -> HoldingsFetchResult | None:
         sec_cik = _identifier(identifiers, "sec_cik")
         if not sec_cik:
             return None
+        if not _identifier(identifiers, "sec_series_id", "series_id") or not _identifier(
+            identifiers, "sec_class_id", "class_id"
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "SEC fallback requires committed fund series and class identity"
+            )
 
         from app.services.etf_holdings_edgar import (  # noqa: PLC0415
             LEGACY_HOLDINGS_FORMS,
             NPORT_FORMS,
+            _sec_get,
             discover_holdings_filings,
+        )
+        from app.services.etf_holdings_provider_bridge import (  # noqa: PLC0415
+            current_etf_holdings_request_identity,
         )
         from app.services.etf_holdings_sec import (  # noqa: PLC0415
             parse_sec_legacy_holdings_xml,
@@ -3101,11 +3133,17 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
             ),
         ]
         failures: list[str] = []
+        request_identity = current_etf_holdings_request_identity()
+        if request_identity is None:
+            raise ETFHoldingsRouteHeldError(
+                "SEC fallback requires a separate committed ETF request identity"
+            )
         for label, forms, parser, parser_version, source_format in attempts:
             try:
                 filings = await discover_holdings_filings(
                     cik=sec_cik,
                     forms=forms,
+                    request_identity=request_identity,
                     end_date=end_date,
                     max_filings=max_filings,
                 )
@@ -3113,78 +3151,72 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                 failures.append(f"{label} discovery failed: {exc}")
                 continue
 
-            async with httpx.AsyncClient(
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-            ) as client:
-                for filing in filings:
-                    try:
-                        response = await client.get(
-                            filing.filing_url,
-                            headers={"User-Agent": settings.EDGAR_USER_AGENT},
-                            follow_redirects=True,
-                        )
-                        response.raise_for_status()
-                        filing_identity: dict[str, str] = {}
-                        identity_status = "not_applicable"
-                        if source_format == "nport_xml":
-                            identity_matches, filing_identity, identity_status = (
-                                _sec_nport_identity_match(
-                                    response.text,
-                                    identifiers=identifiers,
-                                )
-                            )
-                            if not identity_matches:
-                                failures.append(
-                                    f"{label} {filing.accession_number} identity rejected: "
-                                    f"{identity_status} ({filing_identity})"
-                                )
-                                continue
-                        composition_date, rows = parser(response.text)
-                    except Exception as exc:  # noqa: BLE001 - try the next filing.
-                        failures.append(f"{label} {filing.accession_number} failed: {exc}")
-                        continue
-                    composition_date = composition_date or filing.report_date
-                    if not composition_date or not rows:
-                        failures.append(
-                            f"{label} {filing.accession_number} had no parseable holdings rows."
-                        )
-                        continue
-                    return HoldingsFetchResult(
-                        rows=rows,
-                        raw_text=response.text,
-                        source_url=filing.filing_url,
-                        source_identifier=filing.accession_number,
-                        legal_metadata={
-                            "source_access": "sec_filing",
-                            "source_provider": "sec",
-                            "adapter_key": self.adapter_key,
-                            "source_format": source_format,
-                            "route_resolution": "sec_edgar_filing_fallback",
-                            "composition_date": composition_date.isoformat(),
-                            "as_of_date": (
-                                filing.report_date.isoformat()
-                                if filing.report_date
-                                else composition_date.isoformat()
-                            ),
-                            "form": filing.form,
-                            "accession_number": filing.accession_number,
-                            "parser_version": parser_version,
-                            "snapshot_provenance": (
-                                "sec_nport_reconstructed_holdings"
-                                if parser_version == "sec-nport-v1"
-                                else "sec_legacy_reconstructed_holdings"
-                            ),
-                            "source_quality": "filing_reconstructed_holdings",
-                            "completeness_status": "filing_reconstructed",
-                            "filing_identity": filing_identity,
-                            "filing_identity_status": identity_status,
-                            "terms_note": "Reconstructed from SEC EDGAR public holdings filings.",
-                        },
+            for filing in filings:
+                try:
+                    response = await _sec_get(
+                        request_identity,
+                        operation="fetch_etf_holdings_sec_filing",
+                        url=filing.filing_url,
                     )
+                    response.raise_for_status()
+                    filing_identity: dict[str, str] = {}
+                    identity_status = "not_applicable"
+                    identity_matches, filing_identity, identity_status = _sec_nport_identity_match(
+                        response.text,
+                        identifiers=identifiers,
+                    )
+                    if not identity_matches:
+                        failures.append(
+                            f"{label} {filing.accession_number} identity rejected: "
+                            f"{identity_status} ({filing_identity})"
+                        )
+                        continue
+                    composition_date, rows = parser(response.text)
+                except Exception as exc:  # noqa: BLE001 - try the next filing.
+                    failures.append(f"{label} {filing.accession_number} failed: {exc}")
+                    continue
+                composition_date = composition_date or filing.report_date
+                if not composition_date or not rows:
+                    failures.append(
+                        f"{label} {filing.accession_number} had no parseable holdings rows."
+                    )
+                    continue
+                return HoldingsFetchResult(
+                    rows=rows,
+                    raw_text=response.text,
+                    source_url=filing.filing_url,
+                    source_identifier=filing.accession_number,
+                    legal_metadata={
+                        "source_access": "sec_filing",
+                        "source_provider": "sec",
+                        "adapter_key": self.adapter_key,
+                        "source_format": source_format,
+                        "route_resolution": "sec_edgar_filing_fallback",
+                        "composition_date": composition_date.isoformat(),
+                        "as_of_date": (
+                            filing.report_date.isoformat()
+                            if filing.report_date
+                            else composition_date.isoformat()
+                        ),
+                        "form": filing.form,
+                        "accession_number": filing.accession_number,
+                        "parser_version": parser_version,
+                        "snapshot_provenance": (
+                            "sec_nport_reconstructed_holdings"
+                            if parser_version == "sec-nport-v1"
+                            else "sec_legacy_reconstructed_holdings"
+                        ),
+                        "source_quality": "filing_reconstructed_holdings",
+                        "completeness_status": "filing_reconstructed",
+                        "filing_identity": filing_identity,
+                        "filing_identity_status": identity_status,
+                        "terms_note": "Reconstructed from SEC EDGAR public holdings filings.",
+                    },
+                )
 
-        if failures:
-            raise ValueError("; ".join(failures))
-        return None
+        if not failures:
+            failures.append("SEC bounded discovery found no qualifying identity-matched filing.")
+        raise ValueError("; ".join(failures))
 
     async def fetch_for_date(
         self,

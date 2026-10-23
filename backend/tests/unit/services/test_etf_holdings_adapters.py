@@ -25877,9 +25877,21 @@ async def test_delaware_adapter_parses_nomura_successor_daily_holdings_table(mon
 async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(monkeypatch):
     adapter = get_holdings_adapter("aegon")
     assert adapter is not None
+    request_identity = SimpleNamespace(
+        db=object(),
+        profile_id=17,
+        instrument_id=23,
+        provider_symbol="CGUS",
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_provider_bridge.current_etf_holdings_request_identity",
+        lambda: request_identity,
+    )
+    sec_attempts = []
 
     async def fake_discover_holdings_filings(**kwargs):
         assert kwargs["cik"] == "0001234567"
+        assert kwargs["request_identity"] is request_identity
         return [
             SimpleNamespace(
                 accession_number="0001234567-26-000001",
@@ -25889,15 +25901,15 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
             )
         ]
 
-    monkeypatch.setattr(
-        "app.services.etf_holdings_edgar.discover_holdings_filings",
-        fake_discover_holdings_filings,
-    )
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
+    async def fake_sec_get(identity, *, operation, url):
+        assert identity is request_identity
+        assert operation == "fetch_etf_holdings_sec_filing"
+        sec_attempts.append(url)
+        return FakeResponse(
             text="""
             <edgarSubmission>
+              <seriesId>S000000001</seriesId>
+              <classId>C000000001</classId>
               <formData>
                 <genInfo>
                   <repPdDate>2026-05-31</repPdDate>
@@ -25919,12 +25931,20 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
             """,
             content_type="application/xml",
         )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_edgar.discover_holdings_filings",
+        fake_discover_holdings_filings,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_edgar._sec_get", fake_sec_get)
 
     result = await adapter.fetch_latest(
         symbol="CGUS",
-        identifiers={"sec_cik": "0001234567"},
+        identifiers={
+            "sec_cik": "0001234567",
+            "sec_series_id": "S000000001",
+            "sec_class_id": "C000000001",
+        },
     )
 
     assert result.rows[0].symbol == "AAPL"
@@ -25932,12 +25952,65 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
     assert result.legal_metadata["source_provider"] == "sec"
     assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
     assert result.legal_metadata["snapshot_provenance"] == "sec_nport_reconstructed_holdings"
+    assert sec_attempts == ["https://www.sec.gov/Archives/edgar/data/1234567/fixture.xml"]
+
+
+@pytest.mark.asyncio
+async def test_sec_fallback_without_qualifying_filings_is_not_an_empty_success(monkeypatch):
+    adapter = get_holdings_adapter("aegon")
+    assert adapter is not None
+    request_identity = SimpleNamespace(
+        db=object(),
+        profile_id=17,
+        instrument_id=23,
+        provider_symbol="CGUS",
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_provider_bridge.current_etf_holdings_request_identity",
+        lambda: request_identity,
+    )
+    discovery_calls = []
+
+    async def no_candidate_filings(**_kwargs):
+        discovery_calls.append("discovery")
+        return []
+
+    async def forbidden_sec_get(*_args, **_kwargs):
+        raise AssertionError("empty discovery must not fetch a filing")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_edgar.discover_holdings_filings",
+        no_candidate_filings,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_edgar._sec_get", forbidden_sec_get)
+
+    with pytest.raises(ValueError, match="no qualifying identity-matched filing"):
+        await adapter.fetch_latest(
+            symbol="CGUS",
+            identifiers={
+                "sec_cik": "0001234567",
+                "sec_series_id": "S000000001",
+                "sec_class_id": "C000000001",
+            },
+        )
+
+    assert discovery_calls == ["discovery", "discovery"]
 
 
 @pytest.mark.asyncio
 async def test_sec_fallback_skips_parseable_nport_for_wrong_series(monkeypatch):
     adapter = get_holdings_adapter("point_bridge")
     assert adapter is not None
+    request_identity = SimpleNamespace(
+        db=object(),
+        profile_id=17,
+        instrument_id=23,
+        provider_symbol="MAGA",
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_provider_bridge.current_etf_holdings_request_identity",
+        lambda: request_identity,
+    )
 
     async def fake_discover_holdings_filings(**kwargs):
         assert kwargs["cik"] == "0001540305"
@@ -25980,6 +26053,7 @@ async def test_sec_fallback_skips_parseable_nport_for_wrong_series(monkeypatch):
         FakeResponse(text=fixture("S000058757", "C000192803", "RIGHT")),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_edgar.httpx.AsyncClient", FakeAsyncClient)
 
     result = await adapter._fetch_latest_sec_filing_holdings(
         symbol="MAGA",
@@ -25997,6 +26071,22 @@ async def test_sec_fallback_skips_parseable_nport_for_wrong_series(monkeypatch):
     assert result.legal_metadata["filing_identity_status"] == "verified"
     assert result.legal_metadata["filing_identity"]["class_id"] == "C000192803"
     assert len(FakeAsyncClient.requested) == 2
+
+
+@pytest.mark.asyncio
+async def test_sec_fallback_without_committed_series_and_class_stays_held():
+    adapter = get_holdings_adapter("ishares")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+
+    with pytest.raises(bridge.ETFHoldingsRouteHeldError, match="committed fund series and class"):
+        await adapter._fetch_latest_sec_filing_holdings(
+            symbol="IWM",
+            issuer_product_id=None,
+            identifiers={"sec_cik": "0001100663"},
+        )
+
+    assert FakeAsyncClient.requested == []
 
 
 def test_registered_holdings_adapters_are_provider_specific():

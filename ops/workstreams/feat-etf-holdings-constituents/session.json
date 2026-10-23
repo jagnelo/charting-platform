@@ -88,20 +88,26 @@
     }
   ],
   "active_changeset": {
-    "baseline": "a2c653638c6bbc98b0c3e18e20cede3221a6c038",
-    "intent": "Preserve issuer-route failure alongside a denied SEC fallback and prove the real refresh caller cannot use an ambient issuer binding to construct or send an SEC request. Record reviewed SEC public-data cost/reuse facts without enabling transport or inventing shared policy/quota values.",
-    "name": "SEC fallback failure lineage and public-data contract facts",
+    "baseline": "7c8cda46a56ee52bc358a6f6c75e0ef59e168903",
+    "intent": "Complete the reviewed SEC one-fund application envelope on the dedicated ETF_HOLDINGS shared bridge: latch hard body/aggregate/access limits before any later candidate admission, reject compressed trailing/member data, and keep zero-qualified backfills explicitly incomplete without enabling transport or inventing provider policy.",
+    "name": "SEC bounded transport and truthful empty-result hardening",
     "owned_paths": [
+      "backend/app/routers/etf_holdings.py",
       "backend/app/services/etf_holdings_adapters.py",
+      "backend/app/services/etf_holdings_edgar.py",
+      "backend/app/services/etf_holdings_provider_bridge.py",
+      "backend/tests/integration/api/test_etf_holdings.py",
       "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+      "backend/tests/unit/services/test_etf_holdings_adapters.py",
+      "backend/tests/unit/services/test_etf_holdings_edgar.py",
       "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+      "backend/tests/unit/services/test_etf_holdings_refresh.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-      "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "This scoped changeset is based on published source a2c653638c6bbc98b0c3e18e20cede3221a6c038. IssuerCsvHoldingsAdapter now uses the existing error-combining fallback helper so SEC fallback denial cannot erase the original issuer failure. Real adapter/refresh MockTransport regression proves one synthetic 503 publisher request, no SEC client construction, and both failures remain visible. Bridge+EDGAR unit modules passed22/22; the full deterministic adapter module passed630/630 with live flags0; changed-file Ruff/format, compilation and diff checks passed. DB-backed integration assertion is updated but not run locally. Official SEC documentation supports public filing reuse/free monetary access, no key for public APIs, declared UA and aggregate 10/s across machines; these are not shared quota/account/route approval. Provider assigned read-only interface review is pending. SEC transport remains held. Exact-source CI and full_stack_browser are still required before review/acceptance; applicable mandatory live evidence remains required before any future SEC transport binding. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines/holds, retained data and the 30-day observation. No external HTTP, quota, credentials, import, activation, fixture, cleanup or cross-worktree action occurred."
+    "state": "Local candidate on synchronized parent 7c8cda46a56ee52bc358a6f6c75e0ef59e168903. SEC requests bind committed CIK/series/class, use shared Provider admission per physical attempt/redirect, preserve exact observed known_at and rejected raw lineage, and leave publication time unknown. Response/aggregate/access/page/redirect/attempt/deadline limits latch before later reservation/transport; compressed tails/concatenated members fail closed; no-qualifying-filing results cannot become completed-empty. Marked HTTP 200 now raises ETFHoldingsRouteHeldError inside the synchronous Provider invoke after telemetry observation and before shared success settlement. The bridge/EDGAR focused unit subset passed44/44 after this correction; broader pre-correction SEC units passed697/697; Ruff/format checks passed. Its new shared-runtime regression is not DB-run. Prior nine-case DB attempt OOM-killed at384MiB without summary and remains partial/inconclusive. New coordinator grant allows one corrected512MiB/no-swap DB attempt only after fresh host MemAvailable>=1536MiB and all guards; two current host readings1212552KiB/1312184KiB failed that floor, so no new resource/test was created. Candidate is being committed/pushed for exact-source CI; full local DB/profile and live gates remain open. SEC transport stays held; preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data and 30-day observation."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -152,14 +158,20 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23T16:26:54Z: The scoped changeset based on a2c653638c6bbc98b0c3e18e20cede3221a6c038 has focused offline evidence: 22/22 bridge+EDGAR tests and 630/630 deterministic adapter tests pass with live flags0; Ruff/format/compile/diff checks pass. SEC public filing reuse/free monetary access and aggregate 10/s with declared UA are documented; native counters/reset, exact fund availability, operator identity and shared Provider account/operation policy/entitlement/active zero-cost commitment remain unresolved. Coordinator-assigned Provider interface review is pending. No SEC transport, requests or quota are enabled. Full local profile, exact-source CI and mandatory reviewed live evidence remain before review/acceptance. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data and 30-day observation.",
-  "current_local_delta": "The adapter error branch preserves the original issuer failure when held SEC fallback discovery also fails, using the existing _sec_fallback_after_route_error helper. A real adapter through _refresh_adapter_route and loop-local MockTransport makes one synthetic publisher 503 and proves zero SEC client construction/transport while retaining both failure causes. The DB integration assertion was updated to the actual guard message but that DB-backed module was not run locally. No SEC/provider/issuer HTTP, quota, credentials, activation, import, fixture or cleanup occurred.",
+  "current_blocker_latest": "2026-10-23T18:14:05Z: The SEC source candidate is ready for branch-owned commit/push. After the marked-HTTP200 accounting fix, the focused bridge/EDGAR unit subset passed44/44; its added DB-backed shared-runtime regression remains unrun. The earlier nine-case DB attempt is partial/inconclusive after a384MiB cgroup OOM with no summary; exact generated resources were cleaned and retained originals verified unchanged. The corrected one-shot512MiB grant is not used because fresh host MemAvailable readings1212552KiB and1312184KiB are below1536MiB; no resources/tests were created on these refusals. Exact hosted CI, corrected local DB/shared-runtime proof, full_stack_browser and mandatory applicable live evidence remain open. Keep SEC transport held and preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data and observation.",
+  "current_local_delta": "The dedicated EDGAR SEC path binds committed CIK/series/class, uses shared Provider admission per physical attempt/redirect, retains rejected raw evidence, records observed known_at and keeps publication unknown. The bounded reader latches response/aggregate/access/page/redirect/attempt/deadline limits, rejects compressed tails/members and prevents completed-empty backfills. The marked HTTP200 fix raises ETFHoldingsRouteHeldError inside the synchronous shared Provider invoke after telemetry and before success settlement; bridge/EDGAR focused units passed44/44 after the fix, while the new shared-runtime regression remains DB-unrun. The prior nine-case DB attempt is partial/inconclusive after384MiB OOM. A new one-shot512MiB grant remains pending fresh1536MiB host availability; two readings failed the floor and no test resource was created. Source publication and exact CI are next; no live transport, quota, or activation occurred. Full AC1-AC14 and all mandatory local/live gates remain open.",
   "dirty_paths": [
+    "backend/app/routers/etf_holdings.py",
     "backend/app/services/etf_holdings_adapters.py",
+    "backend/app/services/etf_holdings_edgar.py",
+    "backend/app/services/etf_holdings_provider_bridge.py",
+    "backend/tests/integration/api/test_etf_holdings.py",
     "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "backend/tests/unit/services/test_etf_holdings_edgar.py",
     "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+    "backend/tests/unit/services/test_etf_holdings_refresh.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
@@ -188,8 +200,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "d26155d949d2f1a9598685beb2b69e110913d125",
-  "implementation_sha": "d26155d949d2f1a9598685beb2b69e110913d125",
+  "head": "7c8cda46a56ee52bc358a6f6c75e0ef59e168903",
+  "implementation_sha": "7c8cda46a56ee52bc358a6f6c75e0ef59e168903",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -299,15 +311,15 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-23T14:57:33Z",
+  "last_checkpoint": "2026-10-23T18:14:05Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "At 2026-10-23T14:57:33Z, exact CI39967540569 on published d26155d is terminal green for Backend, Frontend Unit, Branch-declared and Playwright; Exhaustive is skipped by feature policy. It does not cover the local manual provenance/source_quality/completeness-default change. Focused router/schema plus service tests passed4/4; Ruff, format, count sentinel, workstream validation, JSON/JSONL, plan-hash and diff checks pass. RSST remains unimported due missing original request URL and storage/display rights. Root's full_stack_browser slot remains required. Full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, and 30-day observation remain open.",
+  "latest_checkpoint": "At2026-10-23T18:14:05Z, the SEC accounting correction and publication preparation are current. Marked HTTP200 responses raise inside shared Provider invoke after response telemetry and before success settlement; focused bridge/EDGAR units passed44/44, with Ruff/format checks. The new shared-runtime integration regression is not DB-run. The prior nine-case DB attempt remains partial/inconclusive from a384MiB OOM with no pytest summary; exact generated DB/Redis/volume cleanup and preserved originals were verified. The revised one-shot512MiB grant is pending: two fresh host readings1212552KiB/1312184KiB failed its1536MiB floor, so no fixture or test was started. Commit/push the coherent candidate for exact-source CI. SEC remains held pending policy/cost/account/entitlement/commitment, native limits/reset, qualifying filing/identity, mandatory live evidence, DB proof and full_stack_browser. Preserve full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data and 30-day observation.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T14:56:52Z",
-    "result": "terminal_success; Backend, Frontend Unit, Branch-declared and Playwright passed; Exhaustive skipped by feature-branch policy. This run validates d26155d only, not the current local manual-metadata-default change.",
-    "run_id": 39967540569,
-    "sha": "d26155d949d2f1a9598685beb2b69e110913d125"
+    "recorded_at": "2026-10-23T16:49:15Z",
+    "result": "terminal_red; Backend integration failed five stale known_at expectations and Frontend passed. This exact run validates published7c8cda only, not the current local EDGAR SEC implementation or timestamp corrections.",
+    "run_id": 39987273700,
+    "sha": "7c8cda46a56ee52bc358a6f6c75e0ef59e168903"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
@@ -357,8 +369,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue offline preparation of the dedicated SEC shared-runtime request context bound to committed profile/instrument/CIK identity. Keep the new ambient issuer-binding denial and the previous native-health/PIT protections. Do not reuse issuer operations, add a second ledger, register or enable SEC operations, or infer quota/cost/terms. Require evidence-backed SEC DataSource, policy, entitlement, account scope, host and operation review plus verified zero-cost commitment; absent, unknown or mismatched evidence must reject before request/client, reservation or transport. Exact-source CI was not surfaced for56ae9fd; seek authoritative status when available without treating an empty response as green. Full_stack_browser and mandatory live SEC evidence remain pre-review/acceptance gates. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation. No live requests or cross-worktree writes.",
-  "plan_hash": "2f6abcf822c83741727b213e68baa6044f7739e48147359667aa1af3aa4022a9",
+  "next_action": "Commit/push the coherent SEC source/unit candidate with the durable marked-HTTP200 accounting correction, prior OOM and current resource-refusal receipts; then inspect exact-source hosted CI without replaying live issuer/provider/SEC tests. The prior nine-case DB invocation is partial/inconclusive (384MiB OOM, no summary; generated resources cleaned and retained resources unchanged). The coordinator grants one corrected512MiB/no-swap DB attempt, but fresh host MemAvailable readings1212552KiB and1312184KiB were below the mandatory1536MiB floor. Do not lower thresholds or create fixture resources until a fresh preflight meets that floor, PSI/reserve, exact existing PG identity/growth, new Redis ownership, no-competitor and time guards. Keep IWM historical-candidate-only and the nine-attempt SEC envelope: one archive page, two redirects per GET, no retries, one-second spacing, finite request/deadline, streaming per-response/aggregate decoded-byte caps, sticky terminal response/access limits, strict compressed EOF/tail handling, and explicit no-qualifying outcomes. Until reviewed SEC operations/cost, edgar:ip scope, entitlement, active shared zero-USD commitment, native counter/headroom/reset, qualifying filing/series-class identity and mandatory live evidence exist, keep transport held. Preserve observed known_at, unknown publication, historical/PIT and rejected-raw lineage; no SEC-derived native-health/current claim. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, the30-day observation, full_stack_browser and all exact-source/release gates.",
+  "plan_hash": "53f91d3b817a5d7b232c58f59c40190d7dcbd9a136f99974560fda18dd635ffc",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -409,10 +421,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23T16:16:54Z: SEC ambient-binding isolation commit56ae9fd26b92e32bab04c860ba6a125ecf70813a is pushed and remote-verified; exact-source CI was not surfaced. EDGAR/Provider bridge21 tests plus Ruff/format/diff passed. SEC transport/operation/account/quota/terms/zero-cost facts remain unknown and held. Full_stack_browser and applicable reviewed live evidence remain required before review/acceptance. Preserve `15 Tier-0 and 156 Tier-1` and full AC1-AC14.",
-    "current_phase": "sec_ambient_issuer_binding_isolation_2026_10_23",
-    "next_action": "Continue offline preparation of the dedicated SEC shared-runtime context with committed profile/instrument/CIK identity, separate from issuer bindings. Do not enable transport, invent operations or costs, or create a second ledger. Require evidence-backed SEC policy/account/entitlement/host/operation/terms/zero-cost review; keep denial before client/reservation/transport for missing or mismatched evidence. Full_stack_browser and applicable mandatory live SEC evidence remain pre-review gates. Preserve `15 Tier-0 and 156 Tier-1`, full roadmap, quarantines, holds and observation gate.",
-    "updated_at": "2026-10-23T16:16:54Z"
+    "current_blocker": "2026-10-23T18:14:05Z: Source candidate is ready for branch-owned commit/push. The marked-HTTP200 accounting correction passed the focused bridge/EDGAR unit subset44/44; the actual shared-runtime regression remains DB-unrun. The prior nine-case DB attempt OOM-killed at384MiB with no summary and remains partial/inconclusive. The revised one-shot512MiB grant cannot run until fresh host MemAvailable>=1536MiB; two readings1212552KiB and1312184KiB failed, so no fixture was created. Hosted exact-source CI, DB proof, full_stack_browser and applicable live evidence remain open; SEC stays held. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data and observation.",
+    "current_phase": "sec_marked_http_200_failure_accounting_and_publication_2026_10_23",
+    "next_action": "Commit and push the coherent SEC source/unit candidate with the accounting correction and honest OOM/resource-refusal receipts, then inspect exact-source CI. Do not rerun external/live probes. Use the single corrected512MiB offline DB attempt only after fresh host MemAvailable>=1536MiB and every PSI/reserve/identity/no-competitor/time guard passes; do not lower the floor. Keep SEC transport held pending reviewed policy/cost/account/entitlement/commitment, native limits, qualifying identity-matched filing and mandatory live evidence. Preserve historical/PIT/raw lineage and full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data, full_stack_browser and 30-day observation.",
+    "updated_at": "2026-10-23T18:14:05Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -424,8 +436,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "56ae9fd26b92e32bab04c860ba6a125ecf70813a",
-  "remote_sha": "56ae9fd26b92e32bab04c860ba6a125ecf70813a",
+  "remote": "7c8cda46a56ee52bc358a6f6c75e0ef59e168903",
+  "remote_sha": "7c8cda46a56ee52bc358a6f6c75e0ef59e168903",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
@@ -492,7 +504,7 @@
     ],
     "current_blocker": "Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. Provider is accepted/released at 9b230ba4c97126a2937667138c6eb2a0aa297baf and merged into ETF at 45859aa024a00bf638dc5a2bed619c1778dd7fc6. Scaffold e1860bdb exact CI39501055514 remains terminal RED with four backend unit failures; frontend passed and other jobs were skipped. HTTPX now covers client redirect defaults, hop accounting, credential isolation, redirect body semantics and cookie scope; a real adapter/refresh caller path with worker-local MockTransport verifies the transport lifetime and successful request-ID lineage. Twenty-three focused no-network contracts pass. Unbound discovery/SEC clients are held and require dedicated reviewed Provider source/account/operation bindings; actual shared DB admission/settlement and failed-attempt lineage are unproven. The interrupted 644-test execution was contained after 7/644 partial output. Full retry/page/fallback accounting, API/worker current-vs-historical/PIT coverage, full_stack_browser and fresh exact-source CI remain required. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined; full roadmap/observation gate remain open; ETF is not accepted.",
     "current_phase": "httpx_redirect_compatibility_and_direct_transport_fail_closed_2026_10_20",
-    "next_action": "Finish the scoped source and workstream review, run the bounded 23-test no-network command plus Ruff/format, workstream validation and diff check, then publish this coherent ETF-owned bridge changeset and inspect its exact-source CI. Continue with evidence-reviewed SEC and discovery/enrichment bindings, durable failed-attempt lineage, complete per-attempt retry/page/fallback coverage, and current/historical/PIT consumers. Obtain coordinator fixture allocation before DB-backed settlement/full-stack/full_stack_browser validation. Do not call live endpoints, self-accept, or mark the full roadmap complete.",
+    "next_action": "Do not replay the partial DB profile or raise its384MiB process cap under the consumed one-session grant. Record the OOM and exact cleanup, preserve the 697/697 unit result separately, and continue only safe non-DB source/unit/static work unless the coordinator reviews a revised bounded DB approach. SEC transport remains held until reviewed operation costs, exact edgar:ip mapping, entitlement, active shared zero-USD commitment, native headroom/reset, a qualifying identity-matched filing and mandatory live evidence exist. Preserve current/PIT/raw-lineage semantics, full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, full_stack_browser and 30-day observation; exact-source CI remains open.",
     "total": 14,
     "updated_at": "2026-10-20T21:54:23+00:00"
   },

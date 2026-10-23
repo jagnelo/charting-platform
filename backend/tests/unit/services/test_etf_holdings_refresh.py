@@ -112,6 +112,18 @@ def test_curated_spdr_route_metadata_binds_adapter_and_publisher_identity():
     }
 
 
+def test_curated_iwm_route_metadata_hydrates_fund_scoped_sec_identity():
+    profile_value = _profile("IWM")
+
+    assert refresh._apply_known_route_metadata(profile_value) is True
+
+    assert profile_value.adapter_key == "ishares"
+    assert profile_value.sec_cik == "0001100663"
+    assert profile_value.sec_series_id == "S000004344"
+    assert profile_value.sec_class_id == "C000012074"
+    assert profile_value.provider_aliases["sec_fund_tickers_symbol"] == "IWM"
+
+
 @pytest.mark.asyncio
 async def test_canary_success_records_latency_recovery_and_symbol_gated_capability(monkeypatch):
     profile = _profile()

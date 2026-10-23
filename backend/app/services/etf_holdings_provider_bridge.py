@@ -11,13 +11,16 @@ import asyncio
 import contextvars
 import hashlib
 import inspect
+import threading
+import time
+import zlib
 from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, TypeVar
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import unquote, urljoin, urlsplit
 
 import httpx
 from sqlalchemy import select
@@ -44,6 +47,41 @@ from app.services.provider_runtime import ProviderExecutionResult, execute_provi
 T = TypeVar("T")
 
 _ETF_OPERATIONS = frozenset({"fetch_etf_holdings_latest", "fetch_etf_holdings_for_date"})
+_ETF_SEC_OPERATIONS = frozenset(
+    {
+        "fetch_etf_holdings_sec_submissions",
+        "fetch_etf_holdings_sec_submissions_file",
+        "fetch_etf_holdings_sec_filing",
+    }
+)
+ETF_SEC_ADAPTER_KEY = "edgar_sec_holdings"
+ETF_SEC_MAX_PHYSICAL_ATTEMPTS = 9
+ETF_SEC_MAX_REDIRECTS_PER_GET = 2
+ETF_SEC_MIN_ATTEMPT_INTERVAL_SECONDS = 1.0
+ETF_SEC_ATTEMPT_TIMEOUT_SECONDS = 20.0
+ETF_SEC_FUND_DEADLINE_SECONDS = 210.0
+ETF_SEC_MAX_SUBMISSIONS_BYTES = 2 * 1024 * 1024
+ETF_SEC_MAX_ARCHIVE_PAGE_BYTES = 2 * 1024 * 1024
+ETF_SEC_MAX_FILING_BYTES = 16 * 1024 * 1024
+ETF_SEC_MAX_AGGREGATE_DECODED_BYTES = 20 * 1024 * 1024
+_ETF_SEC_RESPONSE_LIMIT_MARKER = "etf_sec_response_limit_error"
+
+
+def _has_explicit_account_scope_mapping(
+    provider_name: str,
+    quota_scope: str,
+    account_scope_map: dict[str, str],
+) -> bool:
+    provider_name = str(provider_name).strip().lower()
+    quota_scope = str(quota_scope).strip().lower()
+    account_scope_key = f"{provider_name}:{quota_scope}" if quota_scope else ""
+    if provider_name == "edgar" and quota_scope == "ip":
+        # EDGAR's public requests share the deployment egress IP. The shared
+        # resolver intentionally reads the namespaced key for IP scopes, so a
+        # provider-only alias must not masquerade as an explicit binding.
+        configured_scope = account_scope_map.get(account_scope_key)
+        return isinstance(configured_scope, str) and bool(configured_scope.strip())
+    return account_scope_key in account_scope_map or provider_name in account_scope_map
 
 
 class ETFHoldingsRouteHeldError(PermissionError):
@@ -58,8 +96,20 @@ class ETFHoldingsRequestBinding:
     instrument_id: int
     provider_symbol: str
     operation: str
+    sec_request: bool
     request_log_ids: list[int]
     request_urls_by_log_id: dict[int, str]
+    sec_budget: Any | None = None
+
+
+@dataclass(frozen=True)
+class ETFHoldingsRequestIdentity:
+    """Committed ETF identity used to open a separate SEC attempt context."""
+
+    db: AsyncSession
+    profile_id: int
+    instrument_id: int
+    provider_symbol: str
 
 
 _REQUEST_BINDING: contextvars.ContextVar[ETFHoldingsRequestBinding | None] = contextvars.ContextVar(
@@ -88,6 +138,7 @@ def bind_etf_holdings_request_context(
         instrument_id=instrument_id,
         provider_symbol=provider_symbol,
         operation=operation,
+        sec_request=False,
         request_log_ids=[],
         request_urls_by_log_id={},
     )
@@ -98,6 +149,61 @@ def bind_etf_holdings_request_context(
         _REQUEST_BINDING.reset(token)
 
 
+@contextmanager
+def bind_etf_holdings_sec_request_context(
+    *,
+    db: AsyncSession,
+    adapter: Any,
+    profile_id: int,
+    instrument_id: int,
+    provider_symbol: str,
+    operation: str,
+    sec_budget: Any | None = None,
+):
+    """Bind one distinct EDGAR attempt without inheriting an issuer operation."""
+
+    if operation not in _ETF_SEC_OPERATIONS:
+        raise ETFHoldingsRouteHeldError("SEC holdings operation is not in the reviewed contract")
+    if (
+        str(getattr(adapter, "source_provider", "")).strip().lower() != "edgar"
+        or str(getattr(adapter, "adapter_key", "")).strip().lower() != ETF_SEC_ADAPTER_KEY
+    ):
+        raise ETFHoldingsRouteHeldError("SEC holdings request requires its dedicated EDGAR adapter")
+    if profile_id <= 0 or instrument_id <= 0 or not str(provider_symbol).strip():
+        raise ETFHoldingsRouteHeldError("SEC holdings request identity is incomplete")
+    binding = ETFHoldingsRequestBinding(
+        db=db,
+        adapter=adapter,
+        profile_id=profile_id,
+        instrument_id=instrument_id,
+        provider_symbol=provider_symbol,
+        operation=operation,
+        sec_request=True,
+        request_log_ids=[],
+        request_urls_by_log_id={},
+        sec_budget=sec_budget,
+    )
+    token = _REQUEST_BINDING.set(binding)
+    try:
+        yield binding
+    finally:
+        _REQUEST_BINDING.reset(token)
+
+
+def current_etf_holdings_request_identity() -> ETFHoldingsRequestIdentity | None:
+    """Return identity only; callers must establish a new operation binding."""
+
+    binding = _REQUEST_BINDING.get()
+    if binding is None or binding.profile_id is None:
+        return None
+    return ETFHoldingsRequestIdentity(
+        db=binding.db,
+        profile_id=binding.profile_id,
+        instrument_id=binding.instrument_id,
+        provider_symbol=binding.provider_symbol,
+    )
+
+
 def etf_holdings_request_is_bound() -> bool:
     return _REQUEST_BINDING.get() is not None
 
@@ -105,9 +211,9 @@ def etf_holdings_request_is_bound() -> bool:
 def require_unbound_etf_holdings_context(operation: str) -> None:
     """Prevent a different ETF workflow from borrowing an ambient route binding.
 
-    Discovery and SEC enrichment are not yet reviewed ``ETF_HOLDINGS``
-    operations. A surrounding latest/dated refresh context must not silently
-    authorize their independent URL, identity, or request purpose.
+    A surrounding latest/dated refresh context must not silently authorize an
+    independent URL, identity, or request purpose. SEC requests use the
+    separate ``bind_etf_holdings_sec_request_context`` contract instead.
     """
 
     if _REQUEST_BINDING.get() is not None:
@@ -168,6 +274,8 @@ class ProviderBackedHTTPXClient:
         max_redirects = int(kwargs.pop("max_redirects", self._max_redirects))
         if max_redirects < 0:
             raise ETFHoldingsRouteHeldError("ETF redirect limit is invalid")
+        if binding.sec_request:
+            max_redirects = min(max_redirects, ETF_SEC_MAX_REDIRECTS_PER_GET)
         if any(
             inspect.isawaitable(value) or hasattr(value, "__aiter__") for value in kwargs.values()
         ):
@@ -178,6 +286,13 @@ class ProviderBackedHTTPXClient:
         current_method = method.upper()
         current_kwargs = dict(kwargs)
         current_client_kwargs = dict(self._client_kwargs)
+        sec_budget = binding.sec_budget
+        if binding.sec_request:
+            if sec_budget is None:
+                raise ETFHoldingsRouteHeldError(
+                    "SEC request is missing its bounded one-fund execution context"
+                )
+            sec_budget.begin_logical_request(binding.operation)
         request_params = current_kwargs.pop("params", None)
         client_params = current_client_kwargs.pop("params", None)
         current_url = await _effective_initial_request_url(
@@ -190,11 +305,15 @@ class ProviderBackedHTTPXClient:
         history: list[httpx.Response] = []
         previous_origin = _http_origin(current_url)
         for redirect_count in range(max_redirects + 1):
+            if sec_budget is not None:
+                await sec_budget.before_attempt()
             attempt = _make_loop_local_httpx_attempt(
                 method=current_method,
                 url=current_url,
                 request_kwargs=current_kwargs,
                 client_kwargs={**current_client_kwargs, "cookies": self._cookies},
+                sec_budget=sec_budget,
+                sec_operation=binding.operation,
             )
             result = await execute_etf_holdings_request_attempt(
                 binding.db,
@@ -206,6 +325,13 @@ class ProviderBackedHTTPXClient:
                 single_attempt=attempt,
             )
             response = result.result
+            if sec_budget is not None and response.status_code in {403, 429}:
+                sec_budget.latch_terminal(f"SEC access limit returned HTTP {response.status_code}")
+            if response.extensions.get(_ETF_SEC_RESPONSE_LIMIT_MARKER):
+                reason = str(response.extensions[_ETF_SEC_RESPONSE_LIMIT_MARKER])
+                if sec_budget is not None:
+                    sec_budget.latch_terminal(reason)
+                raise ETFHoldingsRouteHeldError(reason)
             response_cookies = httpx.Cookies()
             response_cookies.extract_cookies(response)
             self._cookies.update(response_cookies)
@@ -216,6 +342,8 @@ class ProviderBackedHTTPXClient:
             if not location:
                 return response
             if redirect_count >= max_redirects:
+                if sec_budget is not None:
+                    sec_budget.latch_terminal("SEC logical request exceeded its redirect limit")
                 raise httpx.TooManyRedirects(
                     "ETF publisher exceeded the configured redirect limit",
                     request=response.request,
@@ -336,6 +464,8 @@ class LoopLocalHTTPXAttempt:
     request_kwargs: dict[str, Any]
     client_kwargs: dict[str, Any]
     transport_factory: Callable[[], httpx.AsyncBaseTransport] | None = None
+    sec_budget: Any | None = None
+    sec_operation: str | None = None
 
     async def execute(self) -> httpx.Response:
         if "follow_redirects" in self.request_kwargs:
@@ -352,14 +482,235 @@ class LoopLocalHTTPXAttempt:
             follow_redirects=False,
             **self.client_kwargs,
         ) as client:
-            response = await client.request(
-                self.method,
-                self.url,
-                follow_redirects=False,
-                **self.request_kwargs,
+            request = client.build_request(self.method, self.url, **self.request_kwargs)
+            if self.sec_budget is None:
+                response = await client.send(request, follow_redirects=False, stream=True)
+                try:
+                    await response.aread()
+                    return response
+                finally:
+                    await response.aclose()
+
+            await self.sec_budget.start_attempt()
+            response = None
+            try:
+                async with asyncio.timeout(ETF_SEC_ATTEMPT_TIMEOUT_SECONDS):
+                    response = await client.send(request, follow_redirects=False, stream=True)
+                    return await _read_bounded_sec_response(
+                        response,
+                        budget=self.sec_budget,
+                        operation=self.sec_operation or "",
+                    )
+            finally:
+                if response is not None:
+                    await response.aclose()
+
+
+class ETFSECExecutionBudget:
+    """One finite, in-memory application envelope for a single fund lookup."""
+
+    def __init__(self) -> None:
+        self.started_at = time.monotonic()
+        self.deadline_at = self.started_at + ETF_SEC_FUND_DEADLINE_SECONDS
+        self.physical_attempts = 0
+        self.archived_submissions_pages = 0
+        self.aggregate_decoded_bytes = 0
+        self.last_attempt_started_at: float | None = None
+        self._terminal_failure: str | None = None
+        self._lock = threading.Lock()
+
+    def latch_terminal(self, reason: str) -> None:
+        with self._lock:
+            if self._terminal_failure is None:
+                self._terminal_failure = reason
+
+    def _raise_if_terminal(self) -> None:
+        with self._lock:
+            reason = self._terminal_failure
+        if reason is not None:
+            raise ETFHoldingsRouteHeldError(
+                f"SEC one-fund execution stopped after a terminal response: {reason}"
             )
-            await response.aread()
-            return response
+
+    def _check_deadline(self) -> None:
+        if time.monotonic() >= self.deadline_at:
+            reason = "SEC one-fund execution deadline exceeded"
+            self.latch_terminal(reason)
+            raise ETFHoldingsRouteHeldError(reason)
+
+    def begin_logical_request(self, operation: str) -> None:
+        self._raise_if_terminal()
+        self._check_deadline()
+        if operation == "fetch_etf_holdings_sec_submissions_file":
+            with self._lock:
+                if self.archived_submissions_pages >= 1:
+                    self._terminal_failure = (
+                        "SEC archived-submissions page limit exceeded for one fund"
+                    )
+                    raise ETFHoldingsRouteHeldError(self._terminal_failure)
+                self.archived_submissions_pages += 1
+
+    async def before_attempt(self) -> None:
+        self._raise_if_terminal()
+        self._check_deadline()
+        if self.physical_attempts >= ETF_SEC_MAX_PHYSICAL_ATTEMPTS:
+            reason = "SEC one-fund physical request-attempt limit exceeded"
+            self.latch_terminal(reason)
+            raise ETFHoldingsRouteHeldError(reason)
+        while self.last_attempt_started_at is not None:
+            delay = ETF_SEC_MIN_ATTEMPT_INTERVAL_SECONDS - (
+                time.monotonic() - self.last_attempt_started_at
+            )
+            if delay <= 0:
+                break
+            if time.monotonic() + delay >= self.deadline_at:
+                reason = "SEC one-fund execution deadline prevents another attempt"
+                self.latch_terminal(reason)
+                raise ETFHoldingsRouteHeldError(reason)
+            await asyncio.sleep(delay)
+        self._check_deadline()
+
+    async def start_attempt(self) -> None:
+        # This runs inside the Provider worker immediately before transport.
+        self._raise_if_terminal()
+        self._check_deadline()
+        while True:
+            with self._lock:
+                if self.physical_attempts >= ETF_SEC_MAX_PHYSICAL_ATTEMPTS:
+                    reason = "SEC one-fund physical request-attempt limit exceeded"
+                    self._terminal_failure = reason
+                    raise ETFHoldingsRouteHeldError(reason)
+                now = time.monotonic()
+                delay = (
+                    0.0
+                    if self.last_attempt_started_at is None
+                    else ETF_SEC_MIN_ATTEMPT_INTERVAL_SECONDS - (now - self.last_attempt_started_at)
+                )
+                if delay <= 0:
+                    self.physical_attempts += 1
+                    self.last_attempt_started_at = now
+                    return
+            if time.monotonic() + delay >= self.deadline_at:
+                reason = "SEC one-fund execution deadline prevents another attempt"
+                self.latch_terminal(reason)
+                raise ETFHoldingsRouteHeldError(reason)
+            await asyncio.sleep(delay)
+            self._check_deadline()
+
+    def response_limit(self, operation: str) -> int:
+        if operation == "fetch_etf_holdings_sec_submissions":
+            return ETF_SEC_MAX_SUBMISSIONS_BYTES
+        if operation == "fetch_etf_holdings_sec_submissions_file":
+            return ETF_SEC_MAX_ARCHIVE_PAGE_BYTES
+        if operation == "fetch_etf_holdings_sec_filing":
+            return ETF_SEC_MAX_FILING_BYTES
+        raise ETFHoldingsRouteHeldError("SEC response operation is not in the reviewed contract")
+
+    def max_next_decoded_chunk(self, operation: str, response_bytes: int) -> int:
+        response_remaining = self.response_limit(operation) - response_bytes
+        with self._lock:
+            aggregate_remaining = ETF_SEC_MAX_AGGREGATE_DECODED_BYTES - self.aggregate_decoded_bytes
+        return max(1, min(64 * 1024, response_remaining + 1, aggregate_remaining + 1))
+
+    def record_decoded_bytes(self, operation: str, response_bytes: int, count: int) -> str | None:
+        response_total = response_bytes + count
+        with self._lock:
+            self.aggregate_decoded_bytes += count
+            aggregate_total = self.aggregate_decoded_bytes
+        if response_total > self.response_limit(operation):
+            reason = f"SEC decoded {operation} response exceeded its application byte cap"
+            self.latch_terminal(reason)
+            return reason
+        if aggregate_total > ETF_SEC_MAX_AGGREGATE_DECODED_BYTES:
+            reason = "SEC one-fund aggregate decoded-response byte cap exceeded"
+            self.latch_terminal(reason)
+            return reason
+        self._check_deadline()
+        return None
+
+
+async def _read_bounded_sec_response(
+    response: httpx.Response,
+    *,
+    budget: ETFSECExecutionBudget,
+    operation: str,
+) -> httpx.Response:
+    """Decode in bounded chunks; never materialize an uncapped SEC body."""
+
+    content_encoding = response.headers.get("content-encoding", "").strip().lower()
+    decoder = None
+    if content_encoding in {"", "identity"}:
+        pass
+    elif content_encoding == "gzip":
+        decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    elif content_encoding == "deflate":
+        decoder = zlib.decompressobj()
+    else:
+        marker = f"SEC response used unsupported content encoding: {content_encoding[:32]}"
+        budget.latch_terminal(marker)
+        return _buffer_httpx_response_with_error(response, b"", marker)
+
+    body = bytearray()
+    response_bytes = 0
+    body_error: str | None = None
+    try:
+        async for raw_chunk in response.aiter_raw(chunk_size=64 * 1024):
+            pending = raw_chunk
+            if decoder is not None and decoder.eof and pending:
+                body_error = "SEC compressed response contains trailing or concatenated data"
+                break
+            while pending:
+                max_output = budget.max_next_decoded_chunk(operation, response_bytes)
+                if decoder is None:
+                    decoded = pending[:max_output]
+                    pending = pending[len(decoded) :]
+                else:
+                    decoded = decoder.decompress(pending, max_length=max_output)
+                    pending = decoder.unconsumed_tail
+                    if decoder.unused_data:
+                        body_error = (
+                            "SEC compressed response contains trailing or concatenated data"
+                        )
+                if decoded:
+                    cap_error = budget.record_decoded_bytes(operation, response_bytes, len(decoded))
+                    body_error = body_error or cap_error
+                    response_bytes += len(decoded)
+                    body.extend(decoded)
+                    if body_error:
+                        break
+                if decoder is not None and pending and not decoded:
+                    body_error = "SEC compressed response did not advance within byte bounds"
+                    break
+            if body_error:
+                break
+        if decoder is not None and not body_error and not decoder.eof:
+            body_error = "SEC compressed response ended before a complete decoded body"
+    except zlib.error:
+        body_error = "SEC response compression stream is invalid"
+
+    if body_error:
+        budget.latch_terminal(body_error)
+
+    return _buffer_httpx_response_with_error(response, bytes(body), body_error)
+
+
+def _buffer_httpx_response_with_error(
+    response: httpx.Response, content: bytes, body_error: str | None
+) -> httpx.Response:
+    extensions = dict(response.extensions)
+    if body_error:
+        extensions[_ETF_SEC_RESPONSE_LIMIT_MARKER] = body_error
+    headers = httpx.Headers(response.headers)
+    for header_name in ("content-encoding", "content-length", "transfer-encoding"):
+        if header_name in headers:
+            del headers[header_name]
+    return httpx.Response(
+        status_code=response.status_code,
+        headers=headers,
+        content=content,
+        request=response.request,
+        extensions=extensions,
+    )
 
 
 def _normalized_host(url: str) -> str:
@@ -375,6 +726,45 @@ def _normalized_host(url: str) -> str:
     return parsed.hostname.encode("idna").decode("ascii").lower().rstrip(".")
 
 
+def _sec_request_matches_profile_cik(
+    request_url: str, profile_cik: str | None, operation: str
+) -> bool:
+    """Bind each EDGAR URL path to the CIK stored on its committed ETF profile."""
+
+    raw_cik = str(profile_cik or "").strip()
+    if not raw_cik.isdigit() or len(raw_cik) > 10 or operation not in _ETF_SEC_OPERATIONS:
+        return False
+    normalized_cik = raw_cik.zfill(10)
+    archive_cik = str(int(normalized_cik))
+    parsed = urlsplit(request_url)
+    if (
+        parsed.query
+        or parsed.fragment
+        or parsed.username is not None
+        or parsed.password is not None
+    ):
+        return False
+    path = unquote(parsed.path)
+    if any(part in {".", ".."} for part in path.split("/")):
+        return False
+
+    if operation == "fetch_etf_holdings_sec_submissions":
+        return path == f"/submissions/CIK{normalized_cik}.json"
+    if operation == "fetch_etf_holdings_sec_submissions_file":
+        prefix = f"/submissions/CIK{normalized_cik}-submissions-"
+        return path.startswith(prefix) and path.endswith(".json") and path.count("/") == 2
+
+    parts = path.split("/")
+    if len(parts) < 7 or parts[:5] != ["", "Archives", "edgar", "data", archive_cik]:
+        return False
+    accession_path = parts[5]
+    return (
+        len(accession_path) == 18
+        and accession_path.isdigit()
+        and bool("/".join(parts[6:]).strip("/"))
+    )
+
+
 async def _review_attempt_context(
     db: AsyncSession,
     *,
@@ -385,8 +775,18 @@ async def _review_attempt_context(
     adapter_key: str,
     operation: str,
     request_url: str,
+    sec_request: bool = False,
 ) -> tuple[DataSource, ProviderPolicy, str]:
-    if operation not in _ETF_OPERATIONS:
+    if sec_request:
+        if operation not in _ETF_SEC_OPERATIONS:
+            raise ETFHoldingsRouteHeldError(
+                "SEC holdings operation is not in the reviewed contract"
+            )
+        if provider_name != "edgar" or adapter_key != ETF_SEC_ADAPTER_KEY:
+            raise ETFHoldingsRouteHeldError(
+                "SEC holdings request requires its dedicated EDGAR adapter"
+            )
+    elif operation not in _ETF_OPERATIONS:
         raise ETFHoldingsRouteHeldError("ETF holdings operation is not in the reviewed contract")
     request_host = _normalized_host(request_url)
     profile = await db.get(ETFProfile, profile_id)
@@ -399,22 +799,32 @@ async def _review_attempt_context(
         raise ETFHoldingsRouteHeldError(
             "ETF request symbol does not match its committed instrument"
         )
-    if str(profile.adapter_key or "").strip().lower() != adapter_key:
-        raise ETFHoldingsRouteHeldError("ETF request adapter does not match its committed profile")
-    profile_aliases = profile.provider_aliases if isinstance(profile.provider_aliases, dict) else {}
-    profile_provider = (
-        str(
-            profile_aliases.get("holdings_source_provider")
-            or profile_aliases.get("source_provider")
-            or ""
+    if sec_request:
+        if not _sec_request_matches_profile_cik(request_url, profile.sec_cik, operation):
+            raise ETFHoldingsRouteHeldError(
+                "SEC request URL does not match the committed ETF CIK identity"
+            )
+    else:
+        if str(profile.adapter_key or "").strip().lower() != adapter_key:
+            raise ETFHoldingsRouteHeldError(
+                "ETF request adapter does not match its committed profile"
+            )
+        profile_aliases = (
+            profile.provider_aliases if isinstance(profile.provider_aliases, dict) else {}
         )
-        .strip()
-        .lower()
-    )
-    if profile_provider != provider_name:
-        raise ETFHoldingsRouteHeldError(
-            "ETF request publisher does not match its committed profile route"
+        profile_provider = (
+            str(
+                profile_aliases.get("holdings_source_provider")
+                or profile_aliases.get("source_provider")
+                or ""
+            )
+            .strip()
+            .lower()
         )
+        if profile_provider != provider_name:
+            raise ETFHoldingsRouteHeldError(
+                "ETF request publisher does not match its committed profile route"
+            )
     data_source = await db.scalar(select(DataSource).where(DataSource.name == provider_name))
     if data_source is None:
         raise ETFHoldingsRouteHeldError("ETF publisher has no shared Provider source record")
@@ -454,11 +864,10 @@ async def _review_attempt_context(
     if entitlement is None:
         raise ETFHoldingsRouteHeldError("ETF publisher entitlement review is missing")
 
-    quota_scope = str(policy.quota_scope or "").strip()
+    quota_scope = str(policy.quota_scope or "").strip().lower()
     account_scope_map = settings.PROVIDER_QUOTA_ACCOUNT_SCOPES
-    account_scope_key = f"{provider_name}:{quota_scope}" if quota_scope else ""
-    if not isinstance(account_scope_map, dict) or not (
-        account_scope_key in account_scope_map or provider_name in account_scope_map
+    if not isinstance(account_scope_map, dict) or not _has_explicit_account_scope_mapping(
+        provider_name, quota_scope, account_scope_map
     ):
         raise ETFHoldingsRouteHeldError(
             "ETF publisher account binding is not explicitly configured"
@@ -531,6 +940,7 @@ async def execute_etf_holdings_request_attempt(
     binding = _REQUEST_BINDING.get()
     profile_id = binding.profile_id if binding is not None else None
     adapter_key = str(getattr(adapter, "adapter_key", "")).strip().lower()
+    sec_request = bool(binding and binding.sec_request)
     if profile_id is None:
         raise ETFHoldingsRouteHeldError(
             "ETF request requires a committed profile identity before admission"
@@ -550,6 +960,8 @@ async def execute_etf_holdings_request_attempt(
         raise ETFHoldingsRouteHeldError("async HTTPX attempts must use LoopLocalHTTPXAttempt")
     if instrument_id <= 0 or not str(provider_symbol).strip():
         raise ETFHoldingsRouteHeldError("ETF instrument and publisher symbol binding are required")
+    if (operation in _ETF_SEC_OPERATIONS) != sec_request:
+        raise ETFHoldingsRouteHeldError("SEC operations require their dedicated request binding")
 
     invoke = _sync_provider_invoke(single_attempt)
     physical_request_url = (
@@ -578,6 +990,7 @@ async def execute_etf_holdings_request_attempt(
                 adapter_key=adapter_key,
                 operation=operation,
                 request_url=physical_request_url,
+                sec_request=sec_request,
             )
             result = await execute_provider_call(
                 runtime_db,
@@ -643,6 +1056,9 @@ def _sync_provider_invoke(
                 observe_response(response)
                 if response.status_code >= 400:
                     response.raise_for_status()
+                response_limit_error = response.extensions.get(_ETF_SEC_RESPONSE_LIMIT_MARKER)
+                if response_limit_error:
+                    raise ETFHoldingsRouteHeldError(str(response_limit_error))
                 return response
 
             return asyncio.run(run_httpx_attempt())

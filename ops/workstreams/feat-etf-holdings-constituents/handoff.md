@@ -15087,6 +15087,60 @@ Committed the narrow internal correction as `676cb4e53ef004ee69d9ceabadb12ad0681
 Exact-source CI is not established: the GitHub commit-status connector returned an empty status list and its workflow-run query exposes only PR-triggered runs; do not call this commit green without an authoritative exact-source run. The manual SEC import/known-at changeset is prior history; this new change is still not SEC transport. No SEC/issuer/provider HTTP, quota, credential access, import, activation, fixture, cleanup, or cross-worktree write occurred. SEC account scope, operation review, quota dimensions, legal terms, and a verified-zero-cost commitment remain unverified; no future SEC operation is registered or routable here. The full_stack_browser profile and applicable mandatory reviewed live SEC evidence remain required before review/acceptance or normal finish. Preserve the full AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`, unresolved/quarantined issuers, disabled routes, retained data and the 30-day observation.
 
 Next: continue only offline source/unit/no-network preparation for the shared-runtime SEC path, preserving per-physical-attempt admission/settlement and truthful historical/PIT behavior. Do not enable transport absent source-backed account/operation/host/entitlement/quota/terms/zero-cost review and the actual mandatory live evidence.
+
+## EDGAR shared-runtime interface reconciliation — 2026-10-23 16:46 UTC
+
+Read the forwarded Provider review and its producer heading,
+`/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md`
+(`EDGAR shared-runtime interface note for ETF`, producer source
+`edea60a769a63863f72ef2a19df5df7a9378c277`). The current ETF source confirms
+`ProviderCapability.ETF_HOLDINGS`, the dedicated
+`bind_etf_holdings_request_context` / `execute_etf_holdings_request_attempt`
+path, and reuse of `execute_provider_call` with the shared contract and durable
+quota reserve/settlement. Each bridge invocation is one physical attempt; the
+HTTPX facade creates a worker-loop-local client and manually re-admits each
+redirect hop. The active recurring-cost check requires an active same-environment,
+same-account-scope commitment with amount and monthly equivalent exactly zero,
+and no post-trial charge.
+
+The scope detail is consequential: `account_scope_for_provider("edgar", "ip")`
+resolves the namespaced `PROVIDER_QUOTA_ACCOUNT_SCOPES["edgar:ip"]` key (or the
+provider's default shared-IP scope); a bare `edgar` key is not the resolver's
+IP mapping. The bridge's prior preliminary check nevertheless accepted either
+key. This owned change now requires the exact `edgar:ip` mapping for EDGAR/IP
+while preserving existing provider-level fallback behavior for other routes;
+the resolver still supplies the actual scope and the committed review must
+match it exactly. A focused no-network regression covers bare-key denial,
+namespaced-key acceptance, and unchanged non-EDGAR account-scope behavior.
+
+Static source review also confirms the boundary is not yet a working SEC route:
+the bridge currently recognizes only `fetch_etf_holdings_latest` and
+`fetch_etf_holdings_for_date`, while `etf_holdings_edgar.py` still contains
+direct `httpx.AsyncClient` calls for submissions discovery and filing fetches.
+Its unbound-context guard prevents borrowing an ambient issuer binding but is
+not itself shared admission. No EDGAR-specific ETF adapter/operation binding
+was found. The default EDGAR quota contract records the SEC 10-requests/second
+ceiling with a rolling one-second application safety envelope and
+`application_usage_only`; it retains the unknown native reset dimension and
+does not provide operation costs. Shared admission also requires positive
+operation request units. Operation-specific response-byte bounds, a configured
+exact `edgar:ip` alias, reviewed SEC operation evidence, the actual entitlement,
+and the active zero-USD commitment remain unverified. These missing values are
+not filled with guesses, and no policy or transport was activated.
+
+The narrow source/test diff is limited to the EDGAR namespaced-scope
+precondition and its unit regression. The Provider bridge plus EDGAR unit
+modules passed `23/23`; changed-file Ruff check and format-check passed, as did
+`git diff --check`. This is focused local evidence only. Exact Actions run
+`39987273700` remains in progress on the prior published SHA `7c8cda46`; its
+backend integration phase is running and does not validate this uncommitted
+diff. No SEC/provider/issuer request, quota operation, credential access,
+database write, fixture, import, activation, cleanup, or cross-worktree write
+occurred. Keep SEC transport held; next work must define only source-reviewed
+operation and cost/byte contracts, then cover each denied direct path with
+zero transport before any explicitly authorized live evidence. Preserve
+AC1–AC14, `15 Tier-0 and 156 Tier-1`, all quarantines, retained data, and the
+30-day observation.
 ## SEC ambient issuer-binding isolation — 2026-10-23 16:15 UTC
 
 Added an explicit `require_unbound_etf_holdings_context` guard at the SEC holdings discovery and backfill entry points. This prevents SEC fallback/discovery from borrowing a surrounding issuer latest/dated operation, and runs before constructing the HTTP client or writing a backfill job. The regression binds a synthetic issuer context, invokes both actual entry points, and asserts the client constructor and database `add` are never reached. This does not add a SEC Provider operation, adapter, policy, entitlement, account mapping, cost/quota value, or live transport.
@@ -15139,3 +15193,291 @@ Keep the SEC bridge held until the Provider interface review and all required
 source-backed admission evidence exist. Preserve AC1-AC14, `15 Tier-0 and 156
 Tier-1`, MSMR/QQQ and Militia/GOOG quarantines, disabled routes, retained data,
 all historical red/partial evidence and the 30-day observation gate.
+
+### EDGAR scope-guard regression follow-up — 2026-10-23 16:52 UTC
+
+After the prior 23-test run, added a focused test at the actual attempt-review
+boundary: an `edgar` policy with IP quota scope and only the bare `edgar`
+account alias is rejected before the recurring-cost callback. The complete
+bridge and EDGAR unit modules now pass 24/24 in 2.42 seconds; changed-file Ruff
+and format checks and `git diff --check` pass. No network, DB, quota, credential,
+activation or fixture action occurred. The bridge source change remains local
+and unpublished because the `external_service_path` classifier requires
+mandatory live evidence, which is not present or authorized. The EDGAR direct
+HTTP routines are still not admitted through the shared bridge; operation
+costs, byte bounds, deployment scope mapping, entitlement/commitment and native
+headroom/reset evidence remain open. CI run `39987273700` is on parent `7c8cda`
+and does not cover the local delta. Full AC1-AC14, `15 Tier-0 and 156 Tier-1`,
+quarantines, holds, retained data and the 30-day observation remain open.
+
+### EDGAR scope mapping value validation — 2026-10-23 16:55 UTC
+
+Review found that checking only for the `edgar:ip` key was insufficient:
+`account_scope_for_provider` falls back to its default when that key's value is
+empty. The bridge guard now requires a nonblank string for the explicit
+namespaced value, while preserving existing non-EDGAR alias behavior. The
+actual attempt-review regression verifies that a bare alias, empty value, or
+whitespace value is denied before recurring-cost admission; exact configured
+nonblank values remain accepted by the pure mapping contract. The focused
+bridge and EDGAR modules pass 26/26 (2.53 seconds); Ruff, format and diff checks
+pass. After the record update, the required `15 Tier-0 and 156 Tier-1`
+sentinel passed 1/1; the workstream validator, session/validation parsing, plan
+hash check and diff check also passed. No live request or quota use occurred.
+The bridge change remains local/unpublished because mandatory live evidence
+for this `external_service_path` is absent and unauthorized; EDGAR direct HTTP
+paths, operation costs/byte bounds, deployment scope, entitlement/commitment,
+and native headroom/reset remain unresolved. Exact CI `39987273700` covers only
+parent `7c8cda`; the full roadmap and quarantines remain open.
+
+### Public attempt-entry denial proof — 2026-10-23 16:57 UTC
+
+Extended the blank/bare EDGAR scope regression through
+`execute_etf_holdings_request_attempt`, using only an offline fake session.
+For a provider-level alias, empty namespaced value, and whitespace namespaced
+value, the real bridge entry raises before calling `execute_provider_call`;
+therefore no shared reservation or transport is attempted. The unadmitted
+attempt session rolls back and closes. Bridge and EDGAR unit modules pass
+29/29 (2.44 seconds); Ruff, format and diff checks pass. This is deterministic
+no-network evidence only, not a DB-backed shared-runtime or live SEC proof.
+No external request/quota or data change occurred. The bridge remains local and
+unpublished under the mandatory live-evidence gate; direct EDGAR paths still
+are not wired into the admitted bridge. Full AC1-AC14 and the held SEC evidence
+gaps remain open.
+
+## SEC first-human path: identity, shared transport, and current validation — 2026-10-23 17:20 UTC
+
+The exact parent CI run `39987273700` is terminal red on published source
+`7c8cda46a56ee52bc358a6f6c75e0ef59e168903`; it is not current-worktree
+evidence. Its five failures were stale `known_at` expectations in the N-PORT
+and legacy SEC integration cases. The current implementation now records the
+post-response observation time, keeps SEC acceptance separately as filing
+metadata, leaves `published_at` unknown, and preserves PIT lookup behavior.
+Those five DB-backed integration cases have not been rerun locally.
+
+The local SEC path is now wired through the dedicated `edgar` ETF_HOLDINGS
+bridge. Each submissions, submissions-file, or filing request uses its own
+shared admission/settlement; HTTPX redirects are separately admitted. The
+committed profile CIK is checked against every SEC URL. Before N-PORT rows can
+be ingested, the filing's series and class must match the committed profile;
+missing/mismatched identity is retained as rejected evidence and cannot create
+a snapshot or native issuer success. No outbound request was made.
+
+The newly supplied read-only candidate record
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-existing-identity-candidates-20261023.md`
+identifies IWM as a lower-bootstrap-cost *candidate*, not an admitted/live
+route: target instrument/profile 5 has null SEC profile columns, while existing
+curated aliases and accepted source metadata agree on CIK `0001100663`, series
+`S000004344`, and class `C000012074`. This CIK also covers unrelated funds, so
+CIK alone cannot authorize ingestion. The existing `_apply_known_route_metadata`
+function is the canonical local symbol-map hydrator; the per-symbol N-PORT and
+legacy admin backfill routes now invoke it before their backfill service. It
+does not perform catalog HTTP. An offline unit test confirms IWM's curated
+series/class mapping, and a no-network API regression was added for the N-PORT
+route, but the API regression remains unrun pending a safe DB slot. Do not
+invoke bootstrap or backfill against the target now: bootstrap may attempt an
+issuer fetch, and SEC backfill still requires reviewed shared admission plus
+actual-file identity verification.
+
+The offline no-network bridge/EDGAR/adapter unit modules passed `660/660` after
+updating one old adapter fixture to supply an explicit request identity; the
+initial `659/660` run is retained as the stale-fixture failure, not hidden. The
+new IWM hydration unit case passed `1/1`; changed-file Ruff and format checks
+and `git diff --check` passed. The coordinator's isolated DB-slot preflight
+measured `MemAvailable=1364 MiB` against its `1536 MiB` minimum and declined
+the run. Memory PSI was within the declared limits; Docker socket access was
+denied in this sandbox, so no container/fixture state is inferred. No database
+or container was created or touched. The five timestamp integrations, new
+shared-runtime SEC MockTransport test, and IWM route API regression remain
+unvalidated and must not be counted green.
+
+Still unresolved before any real SEC transport: reviewed deployed SEC
+operations and positive per-operation request costs, response-byte bounds,
+exact nonblank `edgar:ip` account mapping, entitlement, active zero-USD shared
+commitment, native counter/headroom/reset facts, an actual qualifying IWM
+filing with verified series/class identity, and the mandatory live SEC
+validation gate. SEC public filing reuse is documented by the reviewed source;
+this does not itself establish a routable operation or fund-specific filing.
+The SEC public-data terms do not establish native counters or an ETF request
+allowance. Keep transport, paid/trial/unknown paths and quota replay disabled;
+preserve MSMR/QQQ and Militia/GOOG quarantines, all historical evidence, all
+fourteen roadmap criteria, `15 Tier-0 and 156 Tier-1`, and the 30-day
+observation. The source/workstream diff remains local; no target DB, credential,
+live HTTP, quota, staging/sibling/master mutation, cleanup, or deployment
+occurred.
+
+### Bounded SEC terminal-failure and empty-result follow-up — 2026-10-23 17:43 UTC
+
+Applied the read-only source review at
+`/home/m920q/charting-platform/.ai/staging-attempts/sec-bounds-source-review-20261023.md`
+to the current local implementation. The shared one-fund SEC budget now latches
+decoded per-response/aggregate body-limit failures, 403/429 access limits,
+redirect/page/attempt-limit exhaustion, and deadline exhaustion. A later
+candidate checks that latch before entering Provider admission, so it cannot
+reserve or send after a terminal bound. A N-PORT/legacy backfill with no
+identity-qualified, ingested filing now records
+`no_qualifying_filing_within_reviewed_budget` and reports `partial` when
+candidates were skipped or `failed` when discovery was empty; it cannot return
+`completed` with zero snapshots. The latest-adapter fallback also emits an
+explicit no-qualifying error instead of silently returning empty. The bounded
+gzip/deflate decoder rejects `unused_data`, concatenated gzip members and
+trailing bytes under the same decoded-byte budget; it never accepts the first
+member while ignoring a tail.
+
+Added offline regressions for 403, 429 and body-cap latching with a second
+candidate denied before the shared attempt function; concatenated/trailing
+gzip rejection; empty and wrong-series backfill disposition; and retained the
+existing one-fund identity and Provider bridge contracts. Two old synthetic
+tests were corrected to carry committed series/class identity (and valid XML
+identity elements) so their existing intended caller-session/fallback
+assertions remain exercised under the stricter production contract. The first
+combined run passed 670/675 and exposed four new-test expectation/fixture issues
+plus one strict-identity fixture issue; these are retained as initial
+diagnostic failures. After correction, bridge/EDGAR/adapter modules passed
+676/676 and adjacent refresh units passed 21/21; the final four-module suite
+passed 697/697 in 26.29s. Ruff check, format check and `git diff --check` pass
+for the affected files. No HTTP, quota,
+credential, database, Redis, fixture, activation, retained-resource cleanup or
+cross-worktree action occurred.
+
+The earlier 1364 MiB refusal against the first DB slot's 1536 MiB minimum stays
+historical and correct. The later approved existing-ETF-PostgreSQL/new-Redis
+alternative remains unused; it may be considered only at fresh
+MemAvailable >=1280 MiB with all recorded PSI, reserve, exact ownership,
+memory-cap and no-competitor checks satisfied. This unit evidence does not
+validate DB/API/shared-runtime behavior, actual SEC availability, native quota
+headroom, or live transport. Exact published Actions run `39987273700` remains
+terminal red on parent `7c8cda` and does not cover this dirty source. The
+external-service live gate remains unauthorized; SEC route is not declared
+operational. Keep IWM as an identity-backed candidate only, exact observed
+`known_at`, unknown publication time, dated/PIT-only SEC semantics, all AC1–AC14,
+`15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG quarantines, disabled
+unknown/paid/trial routes, retained data and the 30-day observation.
+
+### Existing offline DB-slot recheck — 2026-10-23 17:49 UTC
+
+The user reaffirmed the existing one-session lower-footprint offline validation
+grant. Canonical `make agent-context` and `make agent-session-status` confirmed
+the original ETF branch/worktree/claim, source HEAD and origin remain
+`7c8cda46a56ee52bc358a6f6c75e0ef59e168903`, and only the existing fourteen
+source/workstream paths are dirty. The status helper emitted its known private
+quota-directory warning but returned the exact owner/session successfully.
+
+The fresh host-boundary preflight verified the exact existing PostgreSQL
+container/project/service, loopback `127.0.0.1:15432`, 768 MiB memory cap,
+1.5 GiB swap cap, and 9.691 MiB observed container memory. Its database list
+was unchanged from the earlier preflight. Existing Redis `16379` and cached
+image identity were inspected read-only; neither was reused or modified.
+No pytest/browser/build competitor was present, cgroup v2 and `systemd-run`
+were available, PSI full averages were `0.57`/`0.59`, and the host reserve was
+above 512 MiB. However the decisive `MemAvailable` was only `1,147,404 KiB`
+(about `1,120.5 MiB`), below the lower-footprint grant's `1,310,720 KiB`
+(`1,280 MiB`) minimum. The preflight therefore refused before creating a new
+database or Redis, invoking pytest/conftest, or changing any existing resource.
+
+The five timestamp API regressions, IWM hydration API case and two shared
+runtime SEC MockTransport cases remain unrun against PostgreSQL/Redis; the
+697/697 result remains unit-only. Retry only after a new fresh preflight meets
+all grant thresholds. Keep original databases and Redis, target state, SEC
+transport holds, quota state and all retained data untouched. This refusal
+does not change the source, external-service gate, or full AC1–AC14 roadmap.
+
+### Bounded SEC API/shared-runtime DB attempt — 2026-10-23 17:56 UTC
+
+A later immediate preflight passed and used the existing one-session grant. At
+17:52:05Z, host `MemAvailable` was `1,516,176 KiB` with PSI full avg10/avg60
+`0.00`/`0.03`, no competing pytest/browser/build, exact retained PostgreSQL
+healthy on loopback `127.0.0.1:15432`, and 9.695 MiB baseline PG memory. The
+owned test database `etf_offline_20261023_4c1cca8c8a4c` was confirmed absent
+before creation. A new Redis container
+`etf-offline-20261023-4c1cca8c8a4c` (ID
+`4c089f4d256b2d17fadd316da7c463be774655677475bf34476b7e8ff03a2fbf`) used the
+cached Redis image, loopback port `32808`, 48 MiB memory/no swap, 0.5 CPU and
+64-PID cap. The exact DB, Redis, worktree-ID and loopback-port DSN components
+were asserted without printing credentials before pytest/conftest.
+
+The one pytest invocation used `systemd-run --user --scope` unit
+`etf-offline-validation-20261023-4c1cca8c.scope`, invocation ID
+`8eb9bfc2c3e84abe901dcc069b7de6bc`, with 384 MiB/no-swap/1 CPU/64 tasks and
+`timeout --signal=INT --kill-after=5s 20m`. It collected nine cases: the five
+SEC `known_at` API tests, IWM backfill-hydration API test, ambient SEC binding
+denial, SEC per-hop admission/redirect/wrong-CIK, and held optional SEC
+enrichment. The node IDs were `test_sec_nport_ingestion_reconstructs_filing_holdings`,
+`test_sec_legacy_ingestion_reconstructs_table_like_filing_holdings`,
+`test_sec_legacy_ingestion_reconstructs_html_table_filing_holdings`,
+`test_sec_legacy_ingestion_reconstructs_split_identity_html_rows`,
+`test_sec_legacy_ingestion_handles_month_name_dates_and_value_thousands`,
+`test_sec_backfill_route_hydrates_curated_iwm_identity_without_network`,
+`test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_binding`,
+`test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik`, and
+`test_bootstrap_treats_held_optional_sec_enrichment_separately_from_issuer_route`.
+Console progress showed six API dots and one runtime dot before
+the cgroup ended with `Result=oom-kill` at 384 MiB peak after 43.63 seconds.
+No pytest summary or terminal pass exists; do not report this selection green
+or automatically replay it. Host memory remained above the 512 MiB reserve
+during observation but fell below the 1280 MiB launch floor after OOM; PSI
+temporarily breached avg10. PostgreSQL peaked at 81.78 MiB (72.09 MiB above
+its 9.695 MiB baseline, within the 128 MiB ceiling).
+
+After independently confirming the exact scope/process was gone, the new DB
+had zero connections, and the Redis volume belonged only to the generated
+container, cleanup removed only that DB, container, and its automatically
+created anonymous volume
+`6798e0baa9de0b9f4816c29a6d2b72d8433a01a7b930c56c06d44fc2aa203a71`. The
+original six database names were verified unchanged; retained PostgreSQL
+container `43fb83fd98ad000b6eca0faa014a6d83e64e41b6c54be94f25782bd6c4807856`
+and Redis `7d3b9bd1e3c1c97878378b9794c2570459bf9aa54af77ffcd91d345162c63c39`
+remain running at their original loopback ports/caps. No issuer, SEC or
+provider endpoint, quota, credential, target, or product service was used.
+
+The original offline unit result remains `697/697`; the DB-backed selection is
+partial/inconclusive due the enforced process memory ceiling. No further DB
+replay or cap increase is authorized by the consumed one-session slot. Obtain a
+coordinator-reviewed bounded alternative before another DB-backed attempt;
+continue non-DB source work without changing the external-service hold or full
+roadmap.
+
+### SEC shared-runtime response-limit accounting correction — 2026-10-23 18:12 UTC
+
+The Provider review identified that a marked/capped HTTP 200 was observed by
+the ETF wrapper but still returned normally from `_sync_provider_invoke`, so
+the shared Provider executor could record a successful request before the
+outer SEC reader rejected the response. The bridge now checks the response
+limit marker after recording actual response telemetry and raises the typed
+`ETFHoldingsRouteHeldError` inside the synchronous one-attempt callback, before
+the executor can settle success. This preserves measured physical request,
+decoded-byte, and cost telemetry while making the attempt fail and leaving the
+fund-budget latch sticky.
+
+Added the shared-runtime regression
+`test_sec_invalid_http_200_is_failed_and_measured_before_sticky_denial`: a
+local `MockTransport` returns a concatenated-gzip HTTP 200 whose first member
+is parseable. The test expects one failed Provider log with measured decoded
+bytes and zero successful response items, no capability-support promotion,
+one settled shared reservation, failure health, and a later candidate denied
+before a second transport call. The bridge and EDGAR unit modules passed 44
+tests in 6.32 seconds after this correction; source hashes were rechecked
+unchanged at publication preparation. The new DB-backed regression itself has
+not yet run. The previous nine-case DB attempt remains OOM-killed at its
+384 MiB cap after 43.63 seconds with no final summary; it is partial and
+inconclusive, not a pass.
+
+The revised coordinator grant now permits one corrected attempt with a
+512 MiB/no-swap pytest cap, the same isolated new-database/new-Redis ownership
+rules, and a fresh host `MemAvailable >= 1536 MiB` gate. It does not authorize
+lowering that floor or replaying automatically. Two fresh host readings in
+this continuation turn were 1,212,552 KiB and 1,312,184 KiB (plus a sandbox
+reading of 1,139,636 KiB); both host readings remained below the required
+1,572,864 KiB. PSI full avg10/avg60 remained within the stated limits, but the
+mandatory available-memory floor failed. No database, Redis, pytest, or other
+fixture was created. Retained services and data were not changed. The one
+corrected attempt remains unused.
+
+The coherent SEC source candidate is being prepared for a normal ETF-branch
+commit/push so exact-source hosted CI can validate it. Until that CI and the
+required local DB/full-profile and live gates are satisfied, no checkpoint or
+SEC route acceptance is claimed. Keep SEC transport held; preserve IWM as an
+identity-backed historical candidate only, unknown publication time, exact
+observed `known_at`, historical/PIT and rejected-raw lineage, the full AC1–AC14
+roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG quarantines,
+disabled unknown/paid/trial routes, retained data, `full_stack_browser`, and
+the 30-day observation gate.

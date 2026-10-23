@@ -114,6 +114,7 @@ from app.services.etf_holdings_edgar import (
 )
 from app.services.etf_holdings_refresh import (
     ETFHoldingsRouteNotReadyError,
+    _apply_known_route_metadata,
     bootstrap_etf_holdings_profile,
     discover_etf_profiles_from_issuer_feed,
     discover_etf_profiles_from_sec_fund_tickers,
@@ -1193,6 +1194,10 @@ async def backfill_sec_nport_holdings_for_etf(
     profile = await get_etf_profile_for_instrument(db, etf.id)
     if profile is None:
         profile = await ensure_etf_profile(db, etf)
+    # Backfill may use only the existing curated identity for this exact
+    # symbol. This is local metadata reconciliation (no catalog request) and
+    # lets the SEC path validate the filing's series/class before ingest.
+    _apply_known_route_metadata(profile)
     summary = await backfill_sec_nport_holdings(
         db,
         profile=profile,
@@ -1216,6 +1221,7 @@ async def backfill_sec_legacy_holdings_for_etf(
     profile = await get_etf_profile_for_instrument(db, etf.id)
     if profile is None:
         profile = await ensure_etf_profile(db, etf)
+    _apply_known_route_metadata(profile)
     summary = await backfill_sec_legacy_holdings(
         db,
         profile=profile,

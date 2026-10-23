@@ -8,6 +8,7 @@ contacts an issuer or provider.
 from __future__ import annotations
 
 import asyncio
+import gzip
 import hashlib
 import threading
 from datetime import UTC, date, datetime, timedelta
@@ -33,6 +34,7 @@ from app.models.etf_holdings import (
     ETFProfile,
 )
 from app.models.instrument import Instrument
+from app.models.instrument_identity import InstrumentProviderCapabilityStatus
 from app.models.market_data_foundation import ProviderQuotaWindow
 from app.models.provider_recurring_cost import (
     ProviderRecurringCostBudget,
@@ -174,11 +176,12 @@ async def _seed_reviewed_fixture(
     operation: str = "fetch_etf_holdings_latest",
     provider_name_override: str | None = None,
     instrument_symbol_override: str | None = None,
+    quota_scope_override: str = "api_key",
 ):
     suffix = uuid4().hex[:10]
     provider_name = provider_name_override or f"etf-fixture-{suffix}"
     account_scope = f"etf-offline-test-account-{suffix}"
-    quota_scope = "api_key"
+    quota_scope = quota_scope_override
     now = datetime.now(UTC)
     dimension_source = "test-fixture:etf:synthetic-quota-contract"
     review_account_key = f"{provider_name}:{quota_scope}"
@@ -2438,7 +2441,7 @@ async def test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_bind
 
                 with pytest.raises(
                     ETFHoldingsRouteHeldError,
-                    match="SEC holdings discovery cannot reuse an ambient ETF holdings request binding",
+                    match="explicit committed ETF request identity",
                 ):
                     await edgar.discover_holdings_filings(
                         cik="0000000001",
@@ -2468,6 +2471,344 @@ async def test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_bind
                 assert not sec_fallback.refresh_succeeded
             assert runner.calls == []
             assert await _attempt_counts(session, case) == (0, 0, 0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_sec_invalid_http_200_is_failed_and_measured_before_sticky_denial(
+    provider_db, monkeypatch
+):
+    """A bounded but parseable SEC body cannot be logged as Provider success."""
+
+    from app.services import etf_holdings_edgar as edgar
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    operation = "fetch_etf_holdings_sec_submissions"
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=4,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["data.sec.gov"],
+                operation=operation,
+                provider_name_override="edgar",
+                instrument_symbol_override="IWM",
+                quota_scope_override="ip",
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert instrument is not None
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                adapter_key="ishares",
+                sec_cik="0001100663",
+                sec_series_id="S000004344",
+                sec_class_id="C000012074",
+                provider_aliases={"holdings_source_provider": "ishares"},
+            )
+            setup.add(profile)
+            await setup.flush()
+            profile_id = profile.id
+
+    valid_partial_json = (
+        b'{"filings":{"recent":{"form":[],"accessionNumber":[],"filingDate":[],'
+        b'"reportDate":[],"acceptanceDateTime":[],"primaryDocument":[]},"files":[]}}'
+    )
+    invalid_gzip_body = gzip.compress(valid_partial_json, mtime=0) + gzip.compress(
+        b'{"extra":"second member"}', mtime=0
+    )
+
+    class CappedSECTransport:
+        def __init__(self):
+            self.calls: list[str] = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            self.calls.append(str(request.url))
+            return httpx.Response(
+                200,
+                headers={
+                    "content-type": "application/json",
+                    "content-encoding": "gzip",
+                },
+                stream=httpx.ByteStream(invalid_gzip_body),
+                request=request,
+            )
+
+    runner = CappedSECTransport()
+    _use_mocktransport(monkeypatch, runner)
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+    first_url = "https://data.sec.gov/submissions/CIK0001100663.json"
+    second_url = "https://data.sec.gov/Archives/edgar/data/1100663/candidate.xml"
+
+    async with provider_db() as session:
+        profile = await _load_profile(session, profile_id)
+        request_identity = await edgar._resolve_request_identity(
+            db=session,
+            profile=profile,
+        )
+
+        async def request_candidates():
+            with pytest.raises(ETFHoldingsRouteHeldError, match="concatenated"):
+                await edgar._sec_get(
+                    request_identity,
+                    operation=operation,
+                    url=first_url,
+                )
+            with pytest.raises(ETFHoldingsRouteHeldError, match="terminal response"):
+                await edgar._sec_get(
+                    request_identity,
+                    operation=operation,
+                    url=second_url,
+                )
+
+        await edgar._run_in_sec_fund_scope(request_candidates)
+
+    assert runner.calls == [first_url]
+    async with provider_db() as readback:
+        row = await _assert_one_settled_attempt(
+            readback,
+            case,
+            expected_success=False,
+            expected_http_requests=1,
+        )
+        assert row.error_type == "ETFHoldingsRouteHeldError"
+        assert "concatenated" in (row.error_message or "")
+        assert row.response_bytes == len(valid_partial_json)
+        assert row.response_items == 0
+        # The bounded document may be retained as failed-attempt evidence, but
+        # must never be reported as a successful response or current support.
+        assert row.response_payloads == [
+            {
+                "filings": {
+                    "recent": {
+                        "form": [],
+                        "accessionNumber": [],
+                        "filingDate": [],
+                        "reportDate": [],
+                        "acceptanceDateTime": [],
+                        "primaryDocument": [],
+                    },
+                    "files": [],
+                }
+            }
+        ]
+
+        health = await readback.scalar(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == case.source_id,
+                ProviderHealthState.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert health is not None
+        assert health.failure_streak == 1
+        assert health.last_failure_at is not None
+        assert health.last_success_at is None
+        assert health.ewma_success_rate < Decimal("1")
+
+        support = await readback.scalar(
+            select(InstrumentProviderCapabilityStatus).where(
+                InstrumentProviderCapabilityStatus.instrument_id == case.instrument_id,
+                InstrumentProviderCapabilityStatus.data_source_id == case.source_id,
+                InstrumentProviderCapabilityStatus.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert support is None
+
+        assert await _attempt_counts(readback, case) == (1, 1, 1)
+        windows = list(
+            (
+                await readback.scalars(
+                    select(ProviderQuotaWindow).where(
+                        ProviderQuotaWindow.data_source_id == case.source_id,
+                        ProviderQuotaWindow.dimension == "requests_per_minute",
+                    )
+                )
+            ).all()
+        )
+        _assert_second_bucket_contract(windows, consumed_units=1, reserved_units=0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik(
+    provider_db, monkeypatch, redis_url
+):
+    """Dedicated SEC discovery uses the shared ledger and binds every redirect hop."""
+
+    import redis
+
+    from app.services import etf_holdings_edgar as edgar
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    operation = "fetch_etf_holdings_sec_submissions"
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=4,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["data.sec.gov", "www.sec.gov"],
+                operation=operation,
+                provider_name_override="edgar",
+                instrument_symbol_override="IWM",
+                quota_scope_override="ip",
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert instrument is not None
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                adapter_key="ishares",
+                sec_cik="0001100663",
+                sec_series_id="S000004344",
+                sec_class_id="C000012074",
+                provider_aliases={"holdings_source_provider": "ishares"},
+            )
+            setup.add(profile)
+            await setup.flush()
+            profile_id = profile.id
+    redis_client = redis.Redis.from_url(redis_url, socket_timeout=1)
+    assert redis_client.ping()
+    redis_client.close()
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+
+    class SECTransport:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            self.calls.append(str(request.url))
+            assert request.headers.get("user-agent") == settings.EDGAR_USER_AGENT
+            if request.url.host == "data.sec.gov":
+                return httpx.Response(
+                    302,
+                    headers={
+                        "location": "https://www.sec.gov" + request.url.path,
+                    },
+                    request=request,
+                )
+            return httpx.Response(
+                200,
+                stream=httpx.ByteStream(
+                    b'{"filings":{"recent":{"form":[],"accessionNumber":[],'
+                    b'"filingDate":[],"reportDate":[],"acceptanceDateTime":[],'
+                    b'"primaryDocument":[]},"files":[]}}'
+                ),
+                request=request,
+            )
+
+    runner = SECTransport()
+    _use_mocktransport(monkeypatch, runner)
+    captured_bindings = []
+    original_sec_get = edgar._sec_get
+
+    async def capture_binding(*args, **kwargs):
+        response = await original_sec_get(*args, **kwargs)
+        captured_bindings.append(response.extensions["etf_holdings_request_binding"])
+        return response
+
+    monkeypatch.setattr(edgar, "_sec_get", capture_binding)
+    async with provider_db() as session:
+        async with session.begin():
+            profile = await _load_profile(session, profile_id)
+            request_identity = await edgar._resolve_request_identity(
+                db=session,
+                profile=profile,
+            )
+            filings = await edgar.discover_holdings_filings(
+                cik=profile.sec_cik,
+                forms={"NPORT-P"},
+                request_identity=request_identity,
+                max_filings=1,
+            )
+            assert filings == []
+            assert runner.calls == [
+                "https://data.sec.gov/submissions/CIK0001100663.json",
+                "https://www.sec.gov/submissions/CIK0001100663.json",
+            ]
+            assert len(captured_bindings) == 1
+            binding = captured_bindings[0]
+            assert len(binding.request_log_ids) == 2
+            assert [
+                binding.request_urls_by_log_id[request_id] for request_id in binding.request_log_ids
+            ] == runner.calls
+            logs = list(
+                (
+                    await session.scalars(
+                        select(ProviderRequestLog)
+                        .where(
+                            ProviderRequestLog.id.in_(binding.request_log_ids),
+                            ProviderRequestLog.data_source_id == case.source_id,
+                            ProviderRequestLog.operation == operation,
+                        )
+                        .order_by(ProviderRequestLog.id)
+                    )
+                ).all()
+            )
+            assert [row.id for row in logs] == binding.request_log_ids
+            assert all(row.success and row.http_requests == 1 for row in logs)
+            assert all(row.settled_usage_units == Decimal("1.0000") for row in logs)
+            windows = list(
+                (
+                    await session.scalars(
+                        select(ProviderQuotaWindow).where(
+                            ProviderQuotaWindow.data_source_id == case.source_id,
+                            ProviderQuotaWindow.dimension == "requests_per_minute",
+                        )
+                    )
+                ).all()
+            )
+            _assert_second_bucket_contract(windows, consumed_units=2, reserved_units=0)
+
+            calls_before_mismatch = list(runner.calls)
+            with pytest.raises(
+                ETFHoldingsRouteHeldError, match="does not match the committed ETF CIK"
+            ):
+                await edgar._run_in_sec_fund_scope(
+                    lambda: edgar._sec_get(
+                        request_identity,
+                        operation=operation,
+                        url="https://data.sec.gov/submissions/CIK0000000001.json",
+                    )
+                )
+            assert runner.calls == calls_before_mismatch
+            assert (
+                await session.scalar(
+                    select(func.count(ProviderRequestLog.id)).where(
+                        ProviderRequestLog.data_source_id == case.source_id,
+                        ProviderRequestLog.operation == operation,
+                    )
+                )
+                == 2
+            )
+    quota_engine = quota_coordinator._engine_for(quota_coordinator._engine_url())
+    with quota_engine.connect() as connection:
+        reservations = (
+            connection.execute(
+                select(quota_coordinator._reservations).where(
+                    quota_coordinator._reservations.c.provider_name == "edgar"
+                )
+            )
+            .mappings()
+            .all()
+        )
+    assert len(reservations) == 2
+    assert all(row["state"] == "settled" and row["reserved_units"] == 1 for row in reservations)
 
 
 @pytest.mark.integration
