@@ -2988,20 +2988,12 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
             # the independent EDGAR reconstruction path rather than treating the
             # issuer outage as a permanent capability failure. Preserve the route
             # error so the caller can expose the degraded provenance state.
-            if self.config.supports_sec_filing_fallback:
-                sec_result = await self._fetch_latest_sec_filing_holdings(
-                    symbol=symbol,
-                    issuer_product_id=issuer_product_id,
-                    identifiers=identifiers or {},
-                )
-                if sec_result is not None:
-                    sec_result.legal_metadata = {
-                        **(sec_result.legal_metadata or {}),
-                        "issuer_route_failure": str(route_error),
-                        "issuer_route_fallback": "sec_edgar_filing",
-                    }
-                    return sec_result
-            raise
+            return await self._sec_fallback_after_route_error(
+                route_error,
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
         result.legal_metadata = {
             **(result.legal_metadata or {}),
             "source_access": self.config.source_access,

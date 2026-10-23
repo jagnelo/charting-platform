@@ -15094,3 +15094,48 @@ Added an explicit `require_unbound_etf_holdings_context` guard at the SEC holdin
 The complete EDGAR and shared Provider bridge modules passed `21/21` with live flags disabled; changed-file Ruff/format and `git diff --check` passed. Commit `56ae9fd26b92e32bab04c860ba6a125ecf70813a` was pushed and independent `git ls-remote` matched the feature branch. The exact GitHub status query returned no statuses and workflow discovery is PR-trigger-filtered, so exact-source CI is not surfaced and must not be called green. The prior SEC reconstruction health fix remains published at `676cb4e53ef004ee69d9ceabadb12ad06813ce20`.
 
 Current SEC route facts remain unknown/unreviewed: no verified SEC DataSource/ETF_HOLDINGS policy, account scope, entitlement, host/operation evidence, quota dimensions, terms/retention approval, or zero-cost recurring commitment was established. Keep transport held and do not infer values or spend/replay quota. Next offline step is a dedicated SEC shared-runtime context tied to committed profile/instrument/CIK identity, separate from issuer bindings, with denial before client/reservation/network when evidence is absent or mismatched. Preserve per-attempt shared ledger, truthful SEC historical/degraded/PIT semantics, full AC1–AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data and 30-day observation. Full_stack_browser and applicable mandatory live SEC evidence remain required before review/acceptance or normal finish. No HTTP, quota, credential access, import, activation, fixture, cleanup, or cross-worktree write occurred.
+
+## SEC public-data facts and fallback-failure lineage — 2026-10-23 16:25 UTC
+
+Root's primary-documentation review at
+`/home/m920q/charting-platform/.ai/staging-attempts/sec-public-data-contract-review-20261023.md`
+is now incorporated as contract evidence. SEC public filing access/reuse is
+documented free and the public data APIs require no key; the SEC's 10-request/
+second ceiling is aggregate across machines, and clients must send a declared
+User-Agent. These facts establish public SEC data's monetary access cost and
+reuse basis, not a routable ETF operation or an independent ETF allowance.
+The real operator/contact identity, actual fund/series/class match and filing
+availability, shared Provider account/policy/entitlement, active zero-cost
+commitment, and native account counters/reset remain unverified. Acceptance
+time is not a documented exact public-availability timestamp; the existing
+known-at safeguard must continue using actual post-response observation time
+when exact acceptance evidence is absent and must leave publication unknown.
+No request, credential access, activation or quota use occurred. Provider's
+assigned read-only shared-interface review has not yet been delivered in the
+accessible worktree/coordinator records; no interface is inferred.
+
+An offline real-adapter/refresh regression found and corrected one error-lineage
+gap: if an issuer route failed and SEC fallback was denied by the ambient
+issuer-binding guard, `IssuerCsvHoldingsAdapter.fetch_latest` surfaced only the
+fallback failure, masking the original issuer HTTP failure. It now uses the
+existing `_sec_fallback_after_route_error` helper, retaining both causes. Under
+MockTransport, the actual refresh caller made exactly one synthetic publisher
+request (503); the SEC fallback was attempted but failed closed before SEC
+client construction, with no second transport. The assertions retain the
+original issuer status, explicit ambient-binding denial and zero SEC clients.
+The stale DB integration expectation was updated to the guard's actual error
+message; that integration module has not been run locally because it requires
+the assigned DB fixture.
+
+Validation at 16:25Z: ETF provider-bridge plus EDGAR unit modules passed 22/22;
+the full deterministic adapter unit module passed 630/630 with both live-test
+flags set to 0; changed-file Ruff and format checks, Python compilation and
+`git diff --check` passed. The initial default-UV-cache attempt failed before
+pytest because the cache was read-only; the isolated `/tmp` cache retry ran the
+complete module successfully. No live source or SEC request occurred. This
+does not validate SEC reachability, policy, quota, rights, real-data identity,
+the DB-backed integration assertion, full_stack_browser or exact-source CI.
+Keep the SEC bridge held until the Provider interface review and all required
+source-backed admission evidence exist. Preserve AC1-AC14, `15 Tier-0 and 156
+Tier-1`, MSMR/QQQ and Militia/GOOG quarantines, disabled routes, retained data,
+all historical red/partial evidence and the 30-day observation gate.

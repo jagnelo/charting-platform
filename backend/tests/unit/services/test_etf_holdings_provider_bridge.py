@@ -490,6 +490,83 @@ async def test_real_issuer_adapter_through_refresh_uses_worker_local_mocktranspo
 
 
 @pytest.mark.asyncio
+async def test_issuer_refresh_sec_fallback_cannot_borrow_native_binding(monkeypatch):
+    from app.services import etf_holdings_edgar as edgar
+    from app.services import etf_holdings_refresh as refresh
+    from app.services.etf_holdings_adapters import (
+        IssuerCsvAdapterConfig,
+        IssuerCsvHoldingsAdapter,
+    )
+
+    observed = []
+    sec_client_attempts = []
+
+    def transport(request):
+        observed.append(str(request.url))
+        return httpx.Response(503, request=request)
+
+    original_attempt_factory = bridge._make_loop_local_httpx_attempt
+    monkeypatch.setattr(
+        bridge,
+        "_make_loop_local_httpx_attempt",
+        lambda **kwargs: original_attempt_factory(
+            **kwargs,
+            transport_factory=lambda: httpx.MockTransport(transport),
+        ),
+    )
+
+    async def offline_native_attempt(_db, **kwargs):
+        invoke = _sync_provider_invoke(kwargs["single_attempt"])
+        response = _run_in_finite_worker(invoke, None, None)
+        kwargs["request_log_id_callback"](1)
+        return SimpleNamespace(result=response, request_log_id=1)
+
+    def forbidden_sec_client(*_args, **_kwargs):
+        sec_client_attempts.append("constructed")
+        raise AssertionError("SEC client construction must be denied by the ambient guard")
+
+    monkeypatch.setattr(bridge, "execute_etf_holdings_request_attempt", offline_native_attempt)
+    monkeypatch.setattr(edgar.httpx, "AsyncClient", forbidden_sec_client)
+
+    adapter = IssuerCsvHoldingsAdapter(
+        IssuerCsvAdapterConfig(
+            adapter_key="fixture",
+            source_provider="fixture",
+            url_templates=("https://publisher.example/{symbol}.csv",),
+            supports_sec_filing_fallback=True,
+        )
+    )
+    profile = SimpleNamespace(
+        id=12,
+        adapter_key="fixture",
+        instrument=SimpleNamespace(id=42, symbol="DXJ", name="fixture DXJ"),
+        provider_aliases={"sec_cik": "0000000001"},
+        issuer=None,
+        sponsor=None,
+        fund_family=None,
+        product_url=None,
+        sec_cik="0000000001",
+        sec_series_id=None,
+        sec_class_id=None,
+    )
+    monkeypatch.setattr(refresh, "get_holdings_adapter", lambda _key: adapter)
+
+    async def ignore_rejected_artifact(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(refresh, "_retain_rejected_fetch_artifact", ignore_rejected_artifact)
+
+    with pytest.raises(ValueError) as raised:
+        await refresh._refresh_adapter_route(object(), profile)
+
+    assert "503 Service Unavailable" in str(raised.value)
+    assert "SEC filing fallback failed" in str(raised.value)
+    assert "cannot reuse an ambient ETF holdings request binding" in str(raised.value)
+    assert observed == ["https://publisher.example/DXJ.csv"]
+    assert sec_client_attempts == []
+
+
+@pytest.mark.asyncio
 async def test_cohen_steers_refresh_uses_loop_local_mocktransport_for_each_request(monkeypatch):
     from datetime import UTC, datetime
 

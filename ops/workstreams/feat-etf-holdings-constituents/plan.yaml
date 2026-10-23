@@ -560,26 +560,26 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: sec_ambient_issuer_binding_isolation_2026_10_23
+current_phase: sec_fallback_failure_lineage_and_shared_contract_2026_10_23
 current_blocker: >-
-  CURRENT RECONCILIATION 2026-10-23T16:15:57Z: SEC ambient-binding isolation
-  commit 56ae9fd26b92e32bab04c860ba6a125ecf70813a is pushed; local tracking ref
-  and independent `git ls-remote` matched it. The GitHub status response for
-  that SHA is empty and the available workflow query is PR-trigger-filtered;
-  exact-source CI is not surfaced or claimed green. The EDGAR plus shared
-  Provider bridge unit modules passed21/21 with live flags disabled; changed
-  file Ruff and format checks and diff check passed. The new guard rejects SEC
-  discovery/backfill while an issuer latest binding is active before HTTP
-  client construction or database writes. No SEC operation, transport, policy,
-  account, entitlement, quota or cost was added or enabled. The prior correction
-  keeps SEC reconstruction out of native adapter health and preserves
-  `sec_filing`; exact SEC terms/account/quota/zero-cost evidence remains unknown
-  and all SEC transport remains held. Full_stack_browser and applicable
-  reviewed live SEC evidence remain required before review/acceptance or normal
-  finish. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds,
-  retained data, and the 30-day observation. No external HTTP, quota,
-  credentials, import, activation, fixture, cleanup, cross-worktree/staging/
-  master write, promotion or deployment occurred.
+  CURRENT RECONCILIATION 2026-10-23T16:26:54Z: published baseline and origin are
+  `a2c653638c6bbc98b0c3e18e20cede3221a6c038`; the current owner changeset is
+  based on that source and contains a focused issuer-failure/SEC-fallback
+  lineage correction and its regression. Provider+EDGAR unit modules passed22/22, the full adapter unit
+  module passed630/630 with live flags0, and changed-file Ruff, format,
+  compilation and diff checks passed. SEC official documentation now supports
+  free public filing access/reuse, no API key for public APIs, and a declared
+  User-Agent with a 10-requests/second aggregate-across-machines ceiling. That
+  ceiling is not an ETF quota. Actual fund availability, operator identity,
+  shared account/operation policy, entitlement, active zero-cost commitment,
+  and native counter/reset remain unverified; the assigned Provider
+  shared-interface review has not yet been delivered to this worktree. No new
+  SEC operation or transport is enabled. Full_stack_browser, exact-source CI,
+  and applicable mandatory reviewed live evidence remain required before
+  review/acceptance or normal finish. Preserve AC1-AC14, `15 Tier-0 and 156
+  Tier-1`, quarantines, holds, retained data, and the 30-day observation. No
+  external HTTP, quota, credentials, import, activation, fixture, cleanup,
+  cross-worktree/staging/master write, promotion or deployment occurred.
   synchronizes each of the 74 runtime fallback identity investigation dates
   with its current durable provider-audit row; dates are evidence chronology,
   not route eligibility or current holdings claims. The deterministic capability
@@ -1764,17 +1764,18 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Continue offline preparation of the dedicated SEC shared-runtime bridge,
-  preserving the newly explicit no-ambient-binding boundary and the existing
-  SEC native-health/PIT safeguards. The next implementation must use a
-  dedicated SEC request context bound to committed ETF profile/instrument/CIK
-  identity and an evidence-backed SEC DataSource/policy/entitlement/account/
-  host/operation/verified-zero-cost commitment; do not reuse issuer operations,
-  add a second ledger, or invent quota, terms or costs. Keep all SEC transport
-  held and prove missing/unknown/mismatched review data denies before client,
-  reservation or network construction. Record exact-source CI when authoritative
-  evidence becomes available; an empty status response is not green. Full_stack_
-  browser and mandatory reviewed live evidence remain required before review/
-  acceptance or normal finish. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`,
-  quarantines, holds, retained data, and the 30-day observation. No live HTTP or
-  other-worktree writes.
+  After closing the current bounded fallback-failure context, consume the
+  coordinator-assigned read-only Provider shared-interface review. Reconcile
+  only against the accepted staged API; do not invent a generic callback,
+  capability, policy field, or ETF ledger. SEC public-data reuse/free-cost and
+  aggregate 10-requests/second facts are evidence, not route approval, native
+  quota, or an independent allowance. Implement deterministic no-network
+  request-context/identity and zero-transport denial contracts only where the
+  released Provider interface is confirmed. Keep transport held until exact
+  host/operation/account policy, entitlement, shared quota/settlement and
+  zero-cost commitment are reconciled and mandatory live evidence is explicitly
+  authorized. Preserve observed-known_at, unknown publication, historical/PIT
+  and no-native-health semantics; exact-source CI, full_stack_browser, and
+  applicable live gates remain before review/acceptance. Preserve AC1-AC14,
+  `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day
+  observation. No live HTTP or other-worktree writes.

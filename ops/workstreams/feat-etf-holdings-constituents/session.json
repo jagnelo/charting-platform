@@ -88,18 +88,20 @@
     }
   ],
   "active_changeset": {
-    "baseline": "6cf1d9fda65bc0afd825cbd412ad21c4bc9f5614",
-    "intent": "Reject SEC holdings discovery/backfill while an issuer latest/dated ETF_HOLDINGS binding is active, before HTTP client construction or database writes. Keep SEC transport and all unreviewed operations held; preserve committed SEC identity, historical/PIT semantics and prior native adapter-health separation.",
-    "name": "Prevent SEC requests from borrowing ambient issuer bindings",
+    "baseline": "a2c653638c6bbc98b0c3e18e20cede3221a6c038",
+    "intent": "Preserve issuer-route failure alongside a denied SEC fallback and prove the real refresh caller cannot use an ambient issuer binding to construct or send an SEC request. Record reviewed SEC public-data cost/reuse facts without enabling transport or inventing shared policy/quota values.",
+    "name": "SEC fallback failure lineage and public-data contract facts",
     "owned_paths": [
-      "backend/app/services/etf_holdings_edgar.py",
-      "backend/tests/unit/services/test_etf_holdings_edgar.py",
+      "backend/app/services/etf_holdings_adapters.py",
+      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+      "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+      "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "SEC discovery and backfill now explicitly reject ambient issuer latest/dated bindings before client construction or database writes. EDGAR and Provider bridge modules passed21/21 with live flags disabled; Ruff check/format and diff check passed. Commit56ae9fd26b92e32bab04c860ba6a125ecf70813a is pushed and independently verified at origin. GitHub status returned no statuses and workflow discovery is PR-trigger-filtered; exact-source CI is not surfaced or claimed green. No SEC transport or operation/policy/account/entitlement/quota/cost was enabled. Full_stack_browser and applicable reviewed live SEC evidence remain mandatory before review/acceptance or normal finish. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines/holds, retained data and the 30-day observation."
+    "state": "This scoped changeset is based on published source a2c653638c6bbc98b0c3e18e20cede3221a6c038. IssuerCsvHoldingsAdapter now uses the existing error-combining fallback helper so SEC fallback denial cannot erase the original issuer failure. Real adapter/refresh MockTransport regression proves one synthetic 503 publisher request, no SEC client construction, and both failures remain visible. Bridge+EDGAR unit modules passed22/22; the full deterministic adapter module passed630/630 with live flags0; changed-file Ruff/format, compilation and diff checks passed. DB-backed integration assertion is updated but not run locally. Official SEC documentation supports public filing reuse/free monetary access, no key for public APIs, declared UA and aggregate 10/s across machines; these are not shared quota/account/route approval. Provider assigned read-only interface review is pending. SEC transport remains held. Exact-source CI and full_stack_browser are still required before review/acceptance; applicable mandatory live evidence remains required before any future SEC transport binding. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines/holds, retained data and the 30-day observation. No external HTTP, quota, credentials, import, activation, fixture, cleanup or cross-worktree action occurred."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -150,10 +152,14 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23T16:16:54Z: SEC ambient-binding isolation commit56ae9fd26b92e32bab04c860ba6a125ecf70813a is pushed and independently verified at origin. Exact-source CI was not surfaced: status response was empty and the workflow query is PR-trigger-filtered. EDGAR and Provider bridge modules passed21/21; Ruff/format and diff passed. SEC transport and all operation/policy/account/entitlement/quota/terms/zero-cost facts remain held/unknown. Full_stack_browser and applicable reviewed live SEC evidence remain required before review/acceptance or normal finish. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation.",
-  "current_local_delta": "SEC discovery and backfill entry points now explicitly reject an ambient ETF issuer binding before constructing an HTTP client or writing a backfill job. Regression test asserts zero client construction and zero DB writes. EDGAR+Provider bridge modules passed21/21; Ruff, format and diff checks passed. SEC transport and Provider admission/policy are unchanged and held; prior SEC health-separation commit676cb4e preserves non-current sec_filing without native adapter success. No HTTP, quota, credential, import, fixture, activation, cleanup or cross-worktree action occurred.",
+  "current_blocker_latest": "2026-10-23T16:26:54Z: The scoped changeset based on a2c653638c6bbc98b0c3e18e20cede3221a6c038 has focused offline evidence: 22/22 bridge+EDGAR tests and 630/630 deterministic adapter tests pass with live flags0; Ruff/format/compile/diff checks pass. SEC public filing reuse/free monetary access and aggregate 10/s with declared UA are documented; native counters/reset, exact fund availability, operator identity and shared Provider account/operation policy/entitlement/active zero-cost commitment remain unresolved. Coordinator-assigned Provider interface review is pending. No SEC transport, requests or quota are enabled. Full local profile, exact-source CI and mandatory reviewed live evidence remain before review/acceptance. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data and 30-day observation.",
+  "current_local_delta": "The adapter error branch preserves the original issuer failure when held SEC fallback discovery also fails, using the existing _sec_fallback_after_route_error helper. A real adapter through _refresh_adapter_route and loop-local MockTransport makes one synthetic publisher 503 and proves zero SEC client construction/transport while retaining both failure causes. The DB integration assertion was updated to the actual guard message but that DB-backed module was not run locally. No SEC/provider/issuer HTTP, quota, credentials, activation, import, fixture or cleanup occurred.",
   "dirty_paths": [
+    "backend/app/services/etf_holdings_adapters.py",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/shared-cost-admission.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
@@ -352,7 +358,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue offline preparation of the dedicated SEC shared-runtime request context bound to committed profile/instrument/CIK identity. Keep the new ambient issuer-binding denial and the previous native-health/PIT protections. Do not reuse issuer operations, add a second ledger, register or enable SEC operations, or infer quota/cost/terms. Require evidence-backed SEC DataSource, policy, entitlement, account scope, host and operation review plus verified zero-cost commitment; absent, unknown or mismatched evidence must reject before request/client, reservation or transport. Exact-source CI was not surfaced for56ae9fd; seek authoritative status when available without treating an empty response as green. Full_stack_browser and mandatory live SEC evidence remain pre-review/acceptance gates. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, holds, retained data, and the 30-day observation. No live requests or cross-worktree writes.",
-  "plan_hash": "d18403cdec5b0711e6a7d2d7613d9261b08d42928fda9274e200bcd5937eadd8",
+  "plan_hash": "2f6abcf822c83741727b213e68baa6044f7739e48147359667aa1af3aa4022a9",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

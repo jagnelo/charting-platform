@@ -2438,7 +2438,7 @@ async def test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_bind
 
                 with pytest.raises(
                     ETFHoldingsRouteHeldError,
-                    match="dedicated reviewed ETF_HOLDINGS binding",
+                    match="SEC holdings discovery cannot reuse an ambient ETF holdings request binding",
                 ):
                     await edgar.discover_holdings_filings(
                         cik="0000000001",
