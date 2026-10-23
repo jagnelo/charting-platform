@@ -5,30 +5,49 @@ parent_branch: staging
 parent_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development."
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: docker_integration
+local_validation_reason: Additive PostgreSQL Alembic schema repair; verify fresh and existing mappings with real isolated PostgreSQL, not metadata.create_all or production DDL.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
-live_test_impact: none
-migration_impact: none
-deployment_impact: none
-status: authorized
-remaining_gaps: []
+scope:
+  - Extract only Provider implementation commit 2467a50b6a63fc433bd108413eaf260b1ef50ca6 into this green-f04-based repair.
+  - Add created_at and updated_at to market_series_default through a new forward Alembic revision; preserve existing rows and all selection metadata.
+  - Add PostgreSQL fresh-table and existing-row ORM-read regression coverage and verify the full fresh Alembic chain locally.
+owned_paths:
+  - backend/alembic/versions/d4a5b6c7e812_add_market_series_default_timestamps.py
+  - backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py
+  - ops/workstreams/fix-market-series-default-schema/
+dependencies:
+  - Accepted synchronized staging/master f04fb2a26c6363c6090e76c2658cfcfe7adabf61; canonical green staging39896524209/master39904989064.
+  - Provider isolated patch2467a50b6; no later Provider roadmap source or workstream is imported.
+acceptance_criteria:
+  - id: MSS1
+    text: Forward revision after slv2_0011 adds both non-null timezone-aware ORM timestamp columns with server defaults, without rewriting historical migrations or removing mappings.
+  - id: MSS2
+    text: Real isolated PostgreSQL regression passes for fresh legacy table and retained mapping, preserving instrument, series, timeframe, adjustment, reason, selected_at and provenance; ORM reads succeed.
+  - id: MSS3
+    text: Isolated full Alembic fresh-chain upgrade reaches the new head with all129 accepted model tables and no missing ORM columns; scoped resources are cleaned and datasets preserved.
+  - id: MSS4
+    text: Focused quality checks, required docker_integration local profile and exact-source branch CI pass; reviewable isolated source and durable closure record are ready for coordinator acceptance, with protected staging/master/deployment gates still independently required.
+branch_tests:
+  - uv run --project backend python -m pytest backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py -m integration -q
+branch_tests_reason: The fresh-migration defect needs actual PostgreSQL DDL/ORM regression; static collection or metadata-created tables are not acceptance.
+live_test_impact: No adapter, HTTP, entitlement, quota or data-use contract change. No provider live requests or consumed119-case allowance replay; preserve all holds, consumer assertions and retry policies.
+migration_impact: Additive revision d4a5b6c7e812 after slv2_0011; backfill non-null timestamps through server defaults while retaining selected_at and all existing mapping data. No production ALTER TABLE outside Alembic.
+deployment_impact: Existing private f04 startup/auth/UI is verified but real data remains unaccepted and routing is off. A repaired release needs canonical branch/staging/master gates and a new backend artifact including the migration, preserving target volumes, accounts, secrets and holds.
+status: in_progress
+remaining_gaps:
+  - Required local PostgreSQL profile and full-chain validation pending resource-safe execution.
+  - Exact repair branch CI, technical acceptance, staging/master gates and repaired target deployment remain pending.
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 4
+  current_phase: review isolated Provider migration patch
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: Validate the plan then extract only the two reviewed implementation files; retain the original active unbudgeted coordinator native goal without replacement or accounting reset.

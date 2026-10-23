@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "16a1eb6e-b284-4d1a-888f-5947481b8e64",
   "branch": "fix/market-series-default-schema",
-  "parent_branch": "staging",
-  "implementation_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-market-series-default-schema-a17e2acd",
+      "charting-stack-fix-market-series-default-schema-a17e2acd"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-market-series-default-schema-a17e2acdca"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/market-series-default-schema: Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance fix/market-series-default-schema: Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "planning_required",
+  "goal_state": "planning_required",
+  "head": "b2b7c36aa86f4da4cdaf6b65045c23b5bebad9ce",
+  "implementation_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
+  "local_validation_profile": "pending_agent_assessment",
+  "next_action": "run make agent-session-start",
+  "parent_branch": "staging",
+  "plan_hash": "2c6282e248612ecfd4efa0c002101035a9f41eaf803a00c217538e35a41b2ecc",
+  "planning_required": true,
   "planning_state": "draft",
+  "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "total": 0,
+    "current_blocker": "none",
     "current_phase": "plan",
-    "current_blocker": "none"
+    "total": 0
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "remote": "b2b7c36aa86f4da4cdaf6b65045c23b5bebad9ce",
+  "remote_sha": "b2b7c36aa86f4da4cdaf6b65045c23b5bebad9ce",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "16a1eb6e-b284-4d1a-888f-5947481b8e64",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-market-series-default-schema/ops/workstreams/fix-market-series-default-schema",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-market-series-default-schema/ops/workstreams/fix-market-series-default-schema/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-market-series-default-schema/ops/workstreams/fix-market-series-default-schema/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-market-series-default-schema/ops/workstreams/fix-market-series-default-schema/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-market-series-default-schema/ops/workstreams/fix-market-series-default-schema/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-market-series-default-schema",
+  "worktree_id": "fix-market-series-default-schema-a17e2acdca"
 }
