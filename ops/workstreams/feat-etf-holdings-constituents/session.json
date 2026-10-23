@@ -88,17 +88,19 @@
     }
   ],
   "active_changeset": {
-    "baseline": "62c0f9742b69ba604bde9dceeacd386e58ee26b4",
-    "intent": "Require explicit investigation dates in the durable Tier-0 symbol audit ledger; do not let the unit-test parity check synthesize a date for missing evidence.",
-    "name": "Tier-0 audit investigation date presence guard",
+    "baseline": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
+    "intent": "Use UTC calendar dates consistently for the post-integration Tier-0 shadow observation window, including offset-aware observation timestamps and the implicit current date.",
+    "name": "Tier-0 shadow-gate UTC calendar boundary",
     "owned_paths": [
-      "backend/tests/unit/services/test_etf_holdings_adapters.py",
+      "backend/app/services/etf_holdings_capability.py",
+      "backend/tests/unit/services/test_etf_holdings_capability.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+      "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
     ],
-    "state": "Static audit confirmed all 15 Tier-0 rows include investigated_at; the focused parity test requires the field instead of defaulting to 2026-09-04 and passed1/1. Exact parent CI39888526578 on baseline62c0 is terminal green for Backend, Frontend, Branch-declared and Playwright E2E; Exhaustive was skipped by feature policy. The local test change is excluded and requires exact-source CI after publication. Changed-file Ruff/format/diff, narrative count sentinel and workstream validation passed. No issuer/provider/SEC HTTP, quota, full profile, route activation or cleanup."
+    "state": "Local only; UTC+02:00 boundary regression failed before the fix because the gate returned local date 2026-09-21 instead of UTC date 2026-09-20. After normalization, the full capability module passed113/113, including both offset-boundary and default-UTC-clock regressions; changed-file Ruff/format passed. Workstream state is reconciled against exact published source5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24 and green CI39892126843; this local source change still needs publication and exact-source CI. No issuer/provider/SEC HTTP, quota, full local profile, route activation or cleanup."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -149,10 +151,12 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23 02:30Z: ETF HEAD/origin is62c0f9742b69ba604bde9dceeacd386e58ee26b4 and released staging4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is an ancestor. Exact run39888526578 on this SHA remains active: Frontend passed; Backend integration tests are running. Current local Tier-0 audit-date test change is uncommitted and excluded. Do not push until this exact run is terminal. The required full_stack_browser profile awaits Root's exclusive slot; no issuer/provider/SEC calls, quota, paid/trial activation, cleanup, staging/sibling/master mutation or deployment. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds, retained datasets and the 30-day gate.",
+  "current_blocker_latest": "2026-10-23: Published ETF HEAD/origin is5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24; exact CI39892126843 is terminal green for Backend, Frontend, Branch-declared and Playwright E2E, with Exhaustive skipped by policy. An uncommitted Tier-0 shadow-gate UTC calendar fix passes the complete113-test capability module and changed-file Ruff/format; workstream validation, narrative sentinel, JSON/hash and diff checks pass. It still requires publication and exact-source CI. The full_stack_browser profile awaits Root's exclusive slot. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds, retained data and the 30-day observation. No issuer/provider/SEC calls, quota, paid/trial activation, cleanup or cross-worktree mutation.",
   "dirty_paths": [
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "backend/app/services/etf_holdings_capability.py",
+    "backend/tests/unit/services/test_etf_holdings_capability.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
@@ -181,8 +185,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "62c0f9742b69ba604bde9dceeacd386e58ee26b4",
-  "implementation_sha": "62c0f9742b69ba604bde9dceeacd386e58ee26b4",
+  "head": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
+  "implementation_sha": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -341,8 +345,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the validated Tier-0 audit-date guard with its coherent receipt, then inspect exact-source CI once. Continue offline AC2/AC4/AC5 work from retained evidence. Keep unknown/quota-held/unreviewed/paid/trial/unsafe routes disabled; preserve the full roadmap, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, retained data, and the 30-day observation. The required full_stack_browser profile recipe remains prepared and awaits Root's exclusive slot.",
-  "plan_hash": "d9ea22df69ba579bdd9e3bf7286450872994f20b4b320acd105b51816b91410c",
+  "next_action": "Final workstream, hash, narrative-count, JSON, diff, and changed-file Ruff/format checks pass. Commit and push the coherent Tier-0 shadow-gate UTC boundary source+records change once, then inspect its exact-source CI. The prior published source CI39892126843 is green but does not include this fix. Then continue offline AC2/AC4/AC5 audit without inferring route eligibility. Preserve unknown/quota-held/unreviewed/paid/trial/unsafe holds, full AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, retained data and the 30-day observation. The required full_stack_browser profile awaits Root's exclusive slot.",
+  "plan_hash": "c036208caa6858ca0cf417a0febda9665d9c1c2f333d70e7b4b4fb2c14e08e08",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -393,10 +397,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23: ETF branch HEAD/origin is62c0f9742b69ba604bde9dceeacd386e58ee26b4 and released staging4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is already an ancestor. Exact run39888526578 on this SHA is terminal green for Backend, Frontend, Branch-declared and Playwright E2E; Exhaustive was skipped by feature policy. The local Tier-0 audit-date guard remains uncommitted and excluded from that run; its exact-source CI is needed after publication. The required full_stack_browser profile awaits Root's exclusive slot. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, unresolved/quarantined MSMR/QQQ and Militia/GOOG, all holds, retained data and the 30-day observation. No issuer/provider/SEC calls, quota, paid/trial activation, cleanup or cross-worktree mutation.",
-    "current_phase": "tier_zero_audit_date_field_presence_guard_2026_10_23",
-    "next_action": "Publish the validated Tier-0 audit-date guard with its coherent receipt and inspect exact-source CI once. Continue offline AC2/AC4/AC5 work from retained evidence. Keep all unknown/unreviewed/quota-held/paid/trial/unsafe routes disabled and preserve the full roadmap, retained data, quarantines and 30-day observation. The full_stack_browser profile remains pending Root's exclusive slot.",
-    "updated_at": "2026-10-23T02:53:00Z"
+    "current_blocker": "2026-10-23: Published ETF HEAD/origin is5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24 and exact CI39892126843 is terminal green for Backend, Frontend, Branch-declared and Playwright E2E, with Exhaustive skipped by policy. An uncommitted Tier-0 shadow-gate UTC calendar fix passes the full113-test capability module and changed-file Ruff/format; workstream validation, narrative sentinel, JSON/hash and diff checks pass. Publication and exact-source CI remain pending. The full_stack_browser profile awaits Root's exclusive slot. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds, retained data and the 30-day observation. No issuer/provider/SEC calls, quota, paid/trial activation, cleanup or cross-worktree mutation.",
+    "current_phase": "tier0_shadow_gate_utc_calendar_boundary_fix_2026_10_23",
+    "next_action": "Commit and push the validated Tier-0 shadow-gate UTC calendar boundary fix with its coherent source-qualified records once, then inspect exact-source CI. Keep full_stack_browser pending Root's slot. Continue offline AC2/AC4/AC5 without inferring issuer route eligibility; preserve all holds, quarantines, retained data, the full roadmap and 30-day observation.",
+    "updated_at": "2026-10-23T03:55:22Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -408,8 +412,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "62c0f9742b69ba604bde9dceeacd386e58ee26b4",
-  "remote_sha": "62c0f9742b69ba604bde9dceeacd386e58ee26b4",
+  "remote": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
+  "remote_sha": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

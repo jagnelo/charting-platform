@@ -591,3 +591,44 @@ The final C commit contains only ETF-owned workstream records. After it is
 pushed once, record/inspect exact C CI externally without a tracked metadata
 follow-up. The central coordinator owns final acceptance, guarded staging
 integration and EIG; this worker stops at the prepared checkpoint handoff.
+
+## Current ETF continuation source — 2026-10-23 03:47Z
+
+The Oct 21 C-specific publication instructions above are historical and have
+since been superseded by later owner-session source and CI evidence; preserve
+them as history, not as the current pending state. Current ETF HEAD and origin
+are synchronized at `5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24`. Exact-source
+CI `39892126843` is terminal green for Backend, Frontend Unit,
+Branch-declared, and Playwright E2E; the Exhaustive Integration Gate was
+skipped under feature-branch policy. The accepted synchronized staging
+baseline remains `0e342512e53ba2268425294d61c50e219eaafa4f` (with subsequent
+common green repairs in branch ancestry). This branch CI does not replace the
+required current-source `full_stack_browser` profile, verify external issuer
+routes, or close any of the fourteen original criteria. Three focused offline
+provider-audit ledger/runtime parity checks passed on the current source;
+historical red/partial receipts remain preserved. Continue bounded AC2/AC4/AC5
+audit from retained evidence, without promoting routes or claiming issuer
+validation. MSMR/QQQ and Militia/GOOG remain unresolved/quarantined, all
+unknown/quota-held/unreviewed/paid/trial/unsafe operations remain disabled, and
+the post-integration 30-day observation gate remains open.
+
+## Local Tier-0 shadow-window date correction — 2026-10-23 03:50Z
+
+The current published source and exact CI above remain the validated baseline.
+A local deterministic regression exposed that the 30-day shadow gate took
+calendar dates from non-UTC-offset observations and the host-local default
+date; an observation at `2026-09-21T00:15:00+02:00` with `now` at
+`2026-09-21T00:30:00+02:00` must belong to the UTC date `2026-09-20`. The
+current uncommitted fix normalizes both timestamps to UTC and uses the UTC
+clock when no explicit `now` is supplied. The regression failed before the
+change; afterward the full capability module passed112/112 with changed-file
+Ruff/format checks green. This is focused local proof only: exact-source CI for
+the change is pending, and the required full_stack_browser/30-day observation
+gates remain open. No issuer/provider/SEC request, quota, or route activation
+occurred. All fourteen roadmap criteria, quarantines, and disabled-route
+boundaries remain unchanged.
+
+A further default-clock regression was added at 03:52Z; it asserts the helper
+requests `datetime.now(UTC)` when no end date is supplied. The latest full
+capability module result is113/113, superseding the112-test result above while
+preserving that earlier receipt.

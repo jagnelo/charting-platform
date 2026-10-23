@@ -528,16 +528,19 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: tier_zero_audit_date_field_presence_guard_2026_10_23
+current_phase: tier0_shadow_gate_utc_calendar_boundary_fix_2026_10_23
 current_blocker: >-
-  Current published source is ETF SHA62c0f9742b69ba604bde9dceeacd386e58ee26b4,
-  clean and synchronized before this uncommitted Tier-0 audit-test change;
-  released common staging4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is an
-  ancestor. Exact parent run39884332043 and current-source run39888526578 are
-  terminal green for Backend, Frontend, Branch-declared, and Playwright E2E;
-  Exhaustive was skipped by feature-branch policy. The current local test change
-  is not included and needs exact-source CI after publication. The required
-  full_stack_browser profile remains pending Root's exclusive resource slot.
+  Current published source is ETF SHA5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24;
+  exact-source run39892126843 is terminal green for Backend, Frontend,
+  Branch-declared, and Playwright E2E, with Exhaustive skipped by feature-branch
+  policy. A local, uncommitted UTC-calendar boundary correction for the
+  post-integration Tier-0 shadow window is based on a reproducing regression;
+  the complete 113-test capability module and changed-file Ruff/format checks
+  pass. Workstream validation, narrative-count sentinel, JSON/hash and
+  diff-check now pass; this local change is not included in CI and still needs
+  publication and exact-source CI. The required
+  full_stack_browser profile remains pending Root's exclusive resource slot;
+  the full fourteen-criterion roadmap and post-release observation remain open.
   The `full_stack_browser` local profile remains pending Root's exclusive
   resource slot. Keep the accepted checkpoint distinct from the open full
   fourteen-criterion roadmap, issuer onboarding, and 30-day observation.
@@ -1720,40 +1723,35 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    The exact historical RED run39869367875 on c9aac760e3a62f82e28dca2605ee2fdffa68c8e3
-    remains preserved: its sole failure was the NSI reservation assertion using
-    nonexistent `reserved_at`; the current test uses canonical `created_at,id`
-    and retains every reservation/settlement assertion. That correction is now
-    in the branch but has not received DB-backed local proof. The accepted
-    common repair staging SHA4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is
-    already an ancestor of current ETF source680d8b6c3851f57072d97caee35512f21092ed2d.
-    Exact branch CI39880187551 on published SHA680d8b6c3851f57072d97caee35512f21092ed2d
-    is terminal green for Frontend, Backend, Branch-declared and E2E jobs;
-    Exhaustive Integration was skipped by feature-branch policy. It does not
-    include the current future-known-at fix. The relevant three deterministic
-    unit modules passed locally186/186. Root owns the heavy local slot, so no
-    full profile was launched. Exact CI for the local fix remains pending
-    publication.
+    Current ETF HEAD and origin are synchronized at
+    5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24. Exact-source CI39892126843 is
+    terminal green for Backend, Frontend Unit, Branch-declared, and Playwright
+    E2E; Exhaustive Integration was skipped under feature-branch policy. The
+    UTC-calendar shadow-window correction is not in that run. Its regression
+    failed on the old code at the local-date/UTC-date mismatch; after the fix,
+    the full capability module passed113/113 and changed-file Ruff/format
+    checks passed. The narrative sentinel, three provider-audit parity checks,
+    validator, JSON parsing, plan hash and diff-check also pass for current
+    workstream edits. Exact CI for the local source fix is pending publication;
+    the full_stack_browser profile remains pending Root's exclusive slot.
+    Historical red/partial evidence remains. No issuer/provider/SEC request,
+    quota, paid/trial activation, data cleanup, or cross-worktree write occurred.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  The capability success predicate now rejects a `success` state whose
-  `last_failure_at` is later than `last_success_at`; a prior failure remains
-  compatible when followed by a coherent later success. The full deterministic
-  capability module passed111 tests, with Ruff check/format and diff checks
-  green. Exact parent CI39884332043 is terminal green for Frontend, Backend,
-  Branch-declared, and Playwright E2E; Exhaustive was skipped by feature policy.
-  Exact current-source run39888526578 on parent62c0f9742b69ba604bde9dceeacd386e58ee26b4
-  is terminal green for Backend, Frontend, Branch-declared, and Playwright E2E;
-  Exhaustive was skipped by feature-branch policy. The narrative-count sentinel,
-  workstream validator, JSON/hash/diff checks, focused parity sentinel, and
-  changed-file Ruff/format checks passed for the local Tier-0 audit-date guard.
-  Publish this coherent test+receipt change once, then inspect its exact-source
-  CI without replaying prior validation.
-  Continue offline AC2/AC4/AC5
-  audit and capability work from retained evidence without inferring route
-  eligibility. The required `full_stack_browser` recipe is `make
+  The current local change corrects the post-integration Tier-0 shadow gate's
+  calendar boundary: normalize explicit `now` and observed timestamps to UTC,
+  and derive the implicit date from the UTC clock. A deterministic offset-
+  boundary regression failed before the fix; the full capability module then
+  passed113/113, and changed-file Ruff/format checks passed. Final
+  workstream/hash/narrative checks also pass; commit and push this coherent source+record
+  changeset once, then inspect only its exact-source CI. The prior published
+  source `5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24` remains validated by exact
+  run39892126843 (Backend, Frontend, Branch-declared, Playwright E2E green;
+  Exhaustive skipped by feature policy). Continue offline AC2/AC4/AC5 audit
+  from retained evidence without inferring route eligibility. The required
+  `full_stack_browser` recipe is `make
   validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents
   PLAYWRIGHT_DOCKER=<reviewed pinned zero-retry wrapper>
   RUN_LIVE_PROVIDER_TESTS=0 RUN_LIVE_ETF_HOLDINGS_TESTS=0`, using the wrapper

@@ -2092,9 +2092,12 @@ def evaluate_tier0_shadow_gate(
     """
 
     if isinstance(now, datetime):
-        end_date = _as_utc(now).date() if _as_utc(now) is not None else date.today()
+        normalized_now = _as_utc(now) or datetime.now(UTC)
+        end_date = normalized_now.astimezone(UTC).date()
+    elif isinstance(now, date):
+        end_date = now
     else:
-        end_date = now or date.today()
+        end_date = datetime.now(UTC).date()
     days = max(1, int(window_days))
     start_date = end_date - timedelta(days=days - 1)
     requested_symbols = {
@@ -2127,9 +2130,13 @@ def evaluate_tier0_shadow_gate(
                 continue
             observed_at = observation.get("observed_at") or observation.get("last_canary_at")
             try:
-                observed_date = datetime.fromisoformat(str(observed_at)).date()
+                parsed_observed_at = datetime.fromisoformat(str(observed_at))
             except (TypeError, ValueError):
                 continue
+            normalized_observed_at = _as_utc(parsed_observed_at)
+            if normalized_observed_at is None:
+                continue
+            observed_date = normalized_observed_at.astimezone(UTC).date()
             if observed_date < start_date or observed_date > end_date:
                 continue
             if str(observation.get("status") or "").lower() == "missing_profile":

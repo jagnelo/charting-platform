@@ -1614,3 +1614,36 @@ def test_tier_zero_shadow_gate_normalizes_observation_symbol_keys():
     assert result["missing_symbols"] == []
     assert result["eligible_checks"] == 1
     assert result["passing_checks"] == 1
+
+
+def test_tier_zero_shadow_gate_uses_utc_calendar_dates_for_window_boundaries():
+    result = evaluate_tier0_shadow_gate(
+        {
+            "DXJ": [
+                _shadow_observation("2026-09-21T00:15:00+02:00"),
+            ]
+        },
+        now=datetime.fromisoformat("2026-09-21T00:30:00+02:00"),
+        window_days=1,
+        eligible_symbols=["DXJ"],
+    )
+
+    assert result["window_start"] == "2026-09-20"
+    assert result["window_end"] == "2026-09-20"
+    assert result["status"] == "pass"
+    assert result["eligible_checks"] == 1
+    assert result["passing_checks"] == 1
+
+
+def test_tier_zero_shadow_gate_default_window_uses_utc_clock(monkeypatch):
+    class FrozenUTCDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            assert tz is UTC
+            return cls(2026, 9, 20, 22, 30, tzinfo=UTC)
+
+    monkeypatch.setattr("app.services.etf_holdings_capability.datetime", FrozenUTCDateTime)
+    result = evaluate_tier0_shadow_gate({}, eligible_symbols=["DXJ"])
+
+    assert result["window_end"] == "2026-09-20"
+    assert result["window_start"] == "2026-08-22"
