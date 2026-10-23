@@ -1,5 +1,26 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 00:52Z — same-cycle NMS union regression
+
+- Added a no-network reconciliation regression proving that a completed CTA
+  symbol-file run, Nasdaq EQUITY evidence containing `nasdaqlisted`, and
+  Nasdaq ETF classification form one same-cycle NMS absence union. The test
+  asserts the actual persisted provider/quote-type run identities and shared
+  union provenance; it does not invent a `nasdaq_tape_c` adapter or mark the
+  broader NMS roadmap complete.
+- The new isolated regression passed `1/1` with SQLite and mocked provider
+  calls. Ruff check and format check passed after formatting, and
+  `git diff --check` passed. Working test diff SHA-256:
+  `e90eb2aaa62e34f600b48269c44f312679ab47c885dfecb64d1251dbeaec3902`.
+- Exact hosted run `39877233446` is still active on pushed source
+  `1f0c6c0956ecb8c3994c03cfc54c026313155da0`; it does not validate the two
+  local NMS source commits or this additional regression. Local branch remains
+  two commits ahead of origin, with this test uncommitted. Preserve the run;
+  publish only after its terminal result and coherent exact-source checks.
+- The isolated full-profile recipe remains unchanged and unstarted pending
+  Root's explicit slot. No fixture/build/browser, provider/issuer/SEC HTTP,
+  quota action, retained-resource/data change, or staging/sibling write.
+
 ## 2026-10-23 00:49Z — Nasdaq Tape C scope source refinement
 
 - Read-only inspection of the existing Nasdaq adapter confirms each parsed

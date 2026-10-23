@@ -1176,6 +1176,123 @@ def test_nms_tape_c_scope_comes_from_nasdaqlisted_not_otherlisted():
 
 
 @pytest.mark.asyncio
+async def test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes(db, monkeypatch):
+    """A real Nasdaq-listed file can satisfy Tape C without inventing a provider run."""
+
+    from app.services import market_universe
+
+    sources = {
+        name: DataSource(name=name, base_url=f"https://{name}.example.test")
+        for name in ("cta_plan", "nasdaq")
+    }
+    db.add_all(sources.values())
+    db.flush()
+
+    cta_page = {
+        "total": 1,
+        "quotes": [{"symbol": "CTA1", "name": "CTA Example", "exchange": "XNYS"}],
+        "complete": True,
+        "source_files": ["cta_symbol_file_index", "CTA.Symbol.File.20261020.csv"],
+        "source_snapshot_date": "2026-10-20",
+        "source_row_count": 1,
+        "raw_source_payload": {"index_html": "index", "symbol_file_csv": "row"},
+    }
+    nasdaq_pages = {
+        "EQUITY": {
+            "total": 1,
+            "quotes": [
+                {
+                    "symbol": "NQ1",
+                    "name": "Nasdaq Listed Example",
+                    "exchange": "XNAS",
+                    "quoteType": "EQUITY",
+                    "source_file": "nasdaqlisted",
+                }
+            ],
+            "source_files": ["nasdaqlisted", "otherlisted"],
+            "source_file_creation_times": {
+                "nasdaqlisted": "2026-10-20T17:00:00",
+                "otherlisted": "2026-10-20T17:00:00",
+            },
+        },
+        "ETF": {
+            "total": 1,
+            "quotes": [
+                {
+                    "symbol": "ETF1",
+                    "name": "Nasdaq ETF Example",
+                    "exchange": "ARCX",
+                    "quoteType": "ETF",
+                    "source_file": "otherlisted",
+                }
+            ],
+            "source_files": ["nasdaqlisted", "otherlisted"],
+            "source_file_creation_times": {
+                "nasdaqlisted": "2026-10-20T17:00:00",
+                "otherlisted": "2026-10-20T17:00:00",
+            },
+        },
+    }
+    providers = {
+        "cta_plan": SimpleNamespace(
+            supported_discovery_types=lambda: ["EQUITY"],
+            discover_universe_page=lambda _quote_type, _offset: cta_page,
+        ),
+        "nasdaq": SimpleNamespace(
+            supported_discovery_types=lambda: ["EQUITY", "ETF"],
+            discover_universe_page=lambda quote_type, _offset: nasdaq_pages[quote_type],
+        ),
+    }
+    resolved = [
+        SimpleNamespace(provider_name=name, data_source=source) for name, source in sources.items()
+    ]
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return resolved
+
+    async def execute_fixture(_db, _capability, operation, *, provider_name, invoke, **_kwargs):
+        assert operation.endswith(":0")
+        return SimpleNamespace(
+            result=invoke(providers[provider_name], None),
+            data_source=sources[provider_name],
+        )
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda name: providers[name])
+    monkeypatch.setattr(market_universe, "execute_provider_call", execute_fixture)
+
+    result = await reconcile_us_universe(AsyncSessionAdapter(db))
+
+    runs = (
+        db.query(MarketUniverseReconciliationRun).order_by(MarketUniverseReconciliationRun.id).all()
+    )
+    assert result["status"] == "complete"
+    assert len(runs) == 3
+    assert {(run.provenance["provider"], run.quote_type) for run in runs} == {
+        ("cta_plan", "EQUITY"),
+        ("nasdaq", "EQUITY"),
+        ("nasdaq", "ETF"),
+    }
+    assert all(run.provenance["absence_scope"] == "US_NMS" for run in runs)
+    cycle_ids = {run.provenance["nms_union_cycle_id"] for run in runs}
+    assert len(cycle_ids) == 1
+    expected_union = {
+        "cta_plan:EQUITY": runs[0].id,
+        "nasdaq_tape_c:EQUITY": next(
+            run.id
+            for run in runs
+            if run.provenance["provider"] == "nasdaq" and run.quote_type == "EQUITY"
+        ),
+        "nasdaq:ETF": next(
+            run.id
+            for run in runs
+            if run.provenance["provider"] == "nasdaq" and run.quote_type == "ETF"
+        ),
+    }
+    assert all(run.provenance["nms_union_provider_runs"] == expected_union for run in runs)
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("provider_name", "quote_type", "status", "absence_scope", "source_files"),
     [
