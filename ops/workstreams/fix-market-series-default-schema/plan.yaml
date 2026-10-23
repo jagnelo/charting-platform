@@ -1,0 +1,34 @@
+schema: 4
+branch: fix/market-series-default-schema
+base_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+parent_branch: staging
+parent_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development."
+planning_state: draft
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: full_integration
+human_validation_authorization: agent_default_full_integration
+local_validation_profile: pending_agent_assessment
+local_validation_reason: pending agent assessment from changed paths and runtime impact
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development."
+scope: []
+owned_paths: []
+dependencies: []
+acceptance_criteria: []
+branch_tests: []
+branch_tests_reason: pending agent assessment
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps: []
+progress:
+  completed: []
+  total: 0
+  current_phase: plan
+  current_blocker: none
+  next_action: complete the branch-owned plan before creating a goal
