@@ -423,20 +423,38 @@ def test_forward_sandbox_input_resolver_requires_one_authenticated_owner() -> No
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("study_artifact_type", "study_value"),
+    (
+        ("scalar", 2.5),
+        ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
+        ("boolean", True),
+        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
+        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
+        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
+        ("range", {"low": 1.25, "high": 3.75}),
+        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
+        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
+        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
+        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
+    ),
+)
 async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape(
     tmp_path: Any,
     monkeypatch: Any,
+    study_artifact_type: str,
+    study_value: Any,
 ) -> None:
     values = _trial_inputs()
     snapshot = values["snapshot"]
     manifest = values["strategy_manifest"]
-    study_payload = {"type": "series", "value": [1.0, 2.0]}
+    study_payload = {"type": study_artifact_type, "value": study_value}
     study_reference = SelectedStudyArtifactReference(
         research_run_id=41,
         code_version_id=12,
         artifact_id=87,
         artifact_name="study.close",
-        artifact_type="series",
+        artifact_type=study_artifact_type,
         output_contract="study",
         run_reproducibility_hash="a" * 64,
         code_version_digest=content_digest("forward-worker-study-code-version"),

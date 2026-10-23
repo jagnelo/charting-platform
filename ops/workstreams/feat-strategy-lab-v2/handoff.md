@@ -17470,3 +17470,24 @@ execution semantics. All 11 cases passed in one offline process (`11 passed`, `0
 for the touched test file, Ruff, Ruff format, and `git diff --check` pass. No DB, network, Docker,
 native process, provider/quota or live operation ran. The active parent CI remains the only hosted run
 and does not include any of the three local follow-up commits or this uncommitted expansion.
+
+## Cover every admitted Study type through forward worker seeding — 2026-10-23 01:29 UTC
+
+Extended the existing authenticated forward-worker composition regression across all 11 Study
+artifact types admitted by the resolver. Each case carries the typed payload through the production
+forward preparation path, serialized worker context stream, `_seed_context_windows`, and a
+subsequent event, asserting that the exact Study value reaches the seeded strategy context. The
+focused offline node passed all 11 cases in 5.30s using one pytest process with a 1-GiB address-space
+limit and 180-second timeout. Ruff, Ruff format, focused MyPy for the changed test file (1-GiB /
+120-second bound), and `git diff --check` pass. An initial invocation accidentally set
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=0`; pytest interpreted that nonempty value as disabling plugins and
+skipped all 11 async cases. That invocation ran no test bodies; the corrected normal-plugin run is
+the passing receipt. No database, Docker, Compose, browser, native process, provider/quota, or live
+operation ran.
+
+This is an uncommitted test-only follow-up based on local source commit
+`461a59a64ce50c1713aae151e9cdd95d3cfec64b`; it is not covered by the active exact-source CI
+`39882200073` on published parent `dd0a704b988ffbfb2ea7143e42abbf41105336f0`. Preserve that run
+to terminal before publishing the accumulated local commits. The persisted PostgreSQL restart body,
+assigned full local backend/application/browser/strict-visual profile, native qualification, and
+remaining full-roadmap criteria remain open.

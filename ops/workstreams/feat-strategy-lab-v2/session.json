@@ -85,7 +85,7 @@
   "last_checkpoint": "2026-10-23T00:13:30Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the validated forward Study-output/context and PostgreSQL restart changeset once and inspect its exact-source CI. Keep the PostgreSQL restart body and full local/application/browser/native gates open until Root assigns the one-at-a-time slot.",
+  "next_action": "Preserve exact parent CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 to terminal before publishing accumulated worker-seeder and typed Study payload-shape regressions. Then inspect exact-source CI; keep the PostgreSQL restart body and full local/application/browser/native gates open until Root assigns the one-at-a-time slot.",
   "parent_branch": "staging",
   "plan_hash": "bb78d4c82650e93f81907df0420edc76ec2dfead23edfb0019986640d152b444",
   "planning_required": false,
@@ -117,11 +117,11 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "No current branch-CI blocker: exact-source CI39876950653 on published ee333 is terminal green for Frontend, Backend/coverage, Branch-declared, and E2E; feature-policy EIG was skipped. The unpublished forward Study context and PostgreSQL restart changes are not covered by that run. Focused source tests and touched-boundary checks pass; the PostgreSQL test body and Root-assigned full local profile remain pending.",
+    "current_blocker": "Exact parent CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 was recorded in progress and must reach terminal before the accumulated local commits are pushed. This parent run does not cover the unpublished Study seeder/payload variants. Focused tests and touched-boundary checks pass; the PostgreSQL restart test body and Root-assigned full local profile remain pending.",
     "current_phase": "full-roadmap-forward-study-output-worker-context-revalidation-v3",
-    "next_action": "Publish the validated forward Study-output/context and PostgreSQL restart changeset once and inspect its exact-source CI. Do not launch local DB/Compose/full-stack/browser/native validation until Root assigns the one-at-a-time host slot.",
+    "next_action": "Preserve exact parent CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 to terminal before publishing accumulated worker-seeder and typed Study payload-shape regressions. Then inspect exact-source CI. Do not launch local DB/Compose/full-stack/browser/native validation until Root assigns the one-at-a-time host slot.",
     "total": 5,
-    "updated_at": "2026-10-23T01:05:55Z"
+    "updated_at": "2026-10-23T01:29:05Z"
   },
   "remote": "ee333e450f6883bc45cb90d0a222c1748859370e",
   "remote_sha": "ee333e450f6883bc45cb90d0a222c1748859370e",
