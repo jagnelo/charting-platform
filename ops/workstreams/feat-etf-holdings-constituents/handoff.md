@@ -61,6 +61,15 @@ data was accepted as current. Preserve the 409, stale status, tier `none`,
 `usable_for_current_analysis=false`, and historical positive. No rerun or
 source/test edit was made under the read-only RSST audit scope.
 
+The subsequent documentation-only commit `e0f6aa2a1c488d39ed0e299a629f79409dcc4e2`
+CI `39937538292` is terminal red on one regression in the workstream count
+sentinel: `session.progress.current_blocker` omitted the required exact phrase
+`15 Tier-0 and 156 Tier-1`. Backend unit result was 5234 passed, one failed
+sentinel and one skipped; Frontend Unit passed; later jobs were skipped. This
+does not indicate a product/current-data failure. The exact count phrase was
+restored to that current blocker; the changed-field sentinel passed once in
+4.24s. Retain both CI results and do not rerun either prior workflow.
+
 ## Retained RSST against accepted-f04 manual-import contract — read-only — 2026-10-23
 
 Static inspection of exact accepted staging source `0e342512e53ba2268425294d61c50e219eaafa4f`

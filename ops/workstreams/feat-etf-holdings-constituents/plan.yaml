@@ -368,8 +368,8 @@ integration_checkpoint:
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
     name: Accepted-f04 RSST manual-import feasibility audit (read-only)
-    state: consumer_correction_published_4dae395;exact_ci_39934411063_terminal_red_one_stale_workspace_test_reason;accepted_f04_static_audit_complete;RSST_not_ready_manual_profile_health_enrichment_rights_and_initial_url_gaps_open;no_import_or_runtime_action
-    baseline: 4dae395c1972457e644c8ec18ba289891c20426e
+    state: consumer_correction_published_4dae395;exact_ci_39934411063_terminal_red_one_stale_workspace_test_reason;workstream_audit_commit_e0f6aa2_ci_39937538292_terminal_red_count_sentinel_phrase_omitted;count_phrase_restored_and_focused_sentinel_passed;RSST_static_audit_complete;no_import_or_runtime_action
+    baseline: e0f6aa2a1c488d39ed0e299a629f79409dcc4e2
     intent: >-
       Record a source-backed, read-only determination of whether accepted f04
       supports the retained RSST artifact as manual/noncurrent dated data. The
@@ -1788,8 +1788,14 @@ next_action: >-
   skipped. The failed workspace test still received the correct current-mode
   409 and its selected historical read passed; only the expected denial reason
   conflicts with the profile's earlier-priority unassigned-adapter reason.
-  Do not rerun this CI or alter product/test source under the read-only RSST
-  audit scope. Keep the retained RSST body untouched and non-routable until
+  The subsequent workstream-only commit `e0f6aa2a1c488d39ed0e299a629f79409dcc4e2`
+  CI `39937538292` was red solely because `progress.current_blocker` omitted
+  the required exact `15 Tier-0 and 156 Tier-1` phrase (5234 passed, one
+  sentinel failed, one skipped; frontend passed). Restore that exact narrative
+  phrase and the focused sentinel now passes once; do not rerun either prior
+  CI or alter product/test source under the RSST audit scope. Validate and
+  publish the workstream-only correction on the ETF branch; then continue
+  within the current coordinator scope. Keep the retained RSST body untouched and non-routable until
   rights, initial request URL, no-enrichment, derivative typing, and manual
   profile/health behavior are resolved through supported reviewed paths.
   Continue AC1-AC14; preserve 15 Tier-0 and 156 Tier-1, history,
