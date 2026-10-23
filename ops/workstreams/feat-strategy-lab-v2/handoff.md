@@ -18258,3 +18258,114 @@ validate this dirty UI diff. No full Vue typecheck/build, browser/strict-visual,
 provider, native, or target operation ran; the local full-stack/browser gate remains Root-assigned.
 This context is still in progress pending scoped review, workstream validation, publication, and
 exact-source CI.
+
+## Read-only persisted Study pin preview in the v2 inspector — active continuation, 2026-10-23 16:41 UTC
+
+Extended the same bounded frontend context with a GET-only Study pin preview using the current
+branch's registered `/api/v1/strategy-lab/v2/study-artifact-references/{research_run_id}/{artifact_id}`
+route. The UI validates positive safe-integer IDs and checks the response type, composite ID, run ID,
+artifact ID, and `output_contract="study"` before displaying the immutable fields. The form never
+creates a Strategy, dispatches a job, or implies native execution. This route is current branch
+behavior and must not be confused with accepted f04, which has no public reference-construction GET.
+
+Focused single-process Vitest on the view and route modules passed 11/11 in 2.25s with Node heap
+capped at512MiB. Regressions cover exact owner-scoped GET path, displayed immutable digest fields,
+mismatched response identity rejection, positive-integer validation, and no POST. The first bounded
+attempt exited before tests because an address-space cap prevented V8 CodeRange reservation; the
+next attempt also exited before collection with a transient Rollup optional-module resolution error.
+The native binding then resolved and loaded directly, and the corrected focused run passed. A
+Prettier check was unavailable because no repository-local Prettier executable exists. `git diff
+--check` remains required before publication. The published `1451b9d0f2f4a468961319eda337f5dcc1e06aa7`
+CI run `39985325009` has Backend, Frontend, and Branch-declared green, with E2E still running and
+Exhaustive skipped by feature-branch policy; it does not cover this uncommitted continuation. Do not
+push/cancel that exact run. The next step is its terminal result, then one coherent publication of
+the inspector plus pin preview for new exact-source CI. Root's full local app/browser and strict
+visual gates, the complete 18-criterion roadmap, and native/unsafe scope holds remain open.
+
+### Typed response guard refinement — 2026-10-23 16:50 UTC
+
+The same read-only preview now requires the complete immutable reference shape before rendering:
+positive matching IDs, nonempty artifact identity, `output_contract="study"`, a lowercase 64-hex
+run reproducibility hash, and all three `sha256:`-prefixed content digests. The input IDs must be
+positive decimal strings and safe integers; no GET is issued for malformed input. This is UI-side
+response validation only; the accepted f04 limitation above remains unchanged, and no runtime,
+resolver, API, or persistence behavior was changed.
+
+The first focused run exposed the existing test's invalid reference fixture (bare content digests
+and a non-hex `r` run hash); a second run after partial fixture correction exposed the remaining
+non-hex run hash. The fixture was corrected to match the actual immutable contract. The latest
+single-process view test run passed 8/8 in 1.14s with a 512MiB Node heap cap. Exact run
+`39985325009` remains on published parent `1451b9d0` with E2E still running; it does not cover this
+dirty refinement. No target, database, provider, native, or full-stack operation ran. Preserve both
+failed local attempts in the validation journal. Continue to wait for that exact hosted run before
+publishing this single inspector changeset; all full-roadmap and coordinator-assigned gates remain
+open.
+
+After that source correction, the combined view plus route-contract unit command passed 12/12 in
+2.42s, one process, 512MiB Node heap. The same exact parent CI remains live in E2E; this focused
+result is still not browser/strict-visual or full-stack evidence.
+
+## Research date-only range semantics — active bounded backend correction, 2026-10-23 16:59 UTC
+
+Root reported that accepted-target Study run3 used date-only bounds `2024-11-22` through
+`2026-10-22`, completed but was correctly deferred with zero artifacts. Its canonical manifest
+contained 478 bars through Oct21 because Python's `datetime.fromisoformat` accepts a date-only
+value as midnight before the prior end-of-day fallback could run. Root's separate run4, using the
+same immutable Strategy version and already-acquired exact timestamps, evaluated successfully with
+479 bars and four matching artifacts; this is Root-run target evidence, not validation of this
+branch change or a request performed here.
+
+The branch correction now parses true date-only values first: start is UTC midnight and end is the
+inclusive UTC final microsecond. Explicit timestamps retain their exact instant and UTC-offset
+normalization. For date-granular D1 coverage only, the existing evaluator preflight accepts a
+per-instrument calendar; Research applies the existing XNYS session-date policy only when both
+bounds are date-only and loaded equity detail names the exact supported `XNYS` MIC. This avoids
+treating the first close-timestamped daily bar as a gap from midnight for that known venue, while
+retaining internal missing-session detection, minimum-history gates, mixed/exact-timestamp coverage
+behavior, and the conservative no-calendar path for other or unknown venues. No
+coverage threshold, PIT rule, artifact eligibility, adjustment behavior, provider fetch, or target
+data was changed.
+
+Focused Research-router and evaluator-preflight unit modules passed 12/12 in 2.91s. Ruff check,
+Ruff format check, and `git diff --check` passed. A two-module MyPy invocation expanded into the
+large imported application graph and emitted unrelated dependency diagnostics; it was stopped
+before completion (exit130), so no MyPy pass is claimed. No DB, provider, target, fixture, full
+suite, browser, or native operation ran. Exact-source run `39985325009` remains tied to published
+parent `1451b9d0` with E2E live; do not push or cancel it. Keep this Research correction distinct
+from the read-only inspector, then close/publish after that existing run is terminal. Full local
+profile, exact-new-source CI, and all 18 roadmap criteria remain open.
+
+### Venue and mixed-boundary review correction — 2026-10-23 17:02 UTC
+
+Root review correctly rejected `equity_detail + USD` as proof of XNYS. The selection now requires
+the authoritative loaded `EquityDetail.exchange_mic` to equal the only calendar currently supported
+by the coverage engine, `XNYS`; ARCX and missing/unknown MICs keep the conservative no-calendar
+path. Session-calendar coverage is enabled only when both start and end are date-only. If one side
+is an exact timestamp and the other is date-only, the exact side remains unchanged and no
+session-date substitution is applied. New assertions cover XNYS versus another/unknown venue and
+each mixed-boundary direction. No new calendar mapping or coverage relaxation was introduced.
+
+### Prior exact-source CI terminal update — 2026-10-23 17:04 UTC
+
+The previously live `39985325009` run is now terminal success on published parent
+`1451b9d0f2f4a468961319eda337f5dcc1e06aa7`: Backend, Frontend, Branch-declared, and E2E all
+succeeded; Exhaustive Integration Gate was skipped by feature-branch policy. This does not cover
+the current dirty frontend refinement or Research date-bound correction. Publication can proceed
+without cancelling that run; the new exact-source CI remains required. Root-assigned local
+full-stack/browser and strict-visual gates, plus the full roadmap, remain open.
+
+After that terminal receipt, the final venue/mixed-boundary-reviewed Research test set was rerun:
+12/12 passed in 2.94s. The final Ruff check, Ruff format check, and `git diff --check` also pass.
+The interrupted focused MyPy attempt was not repeated.
+
+### Separate source commit boundaries — 2026-10-23 17:07 UTC
+
+The Research date-range correction is committed separately as `85a821795` (`fix(research): honor
+inclusive date-only bounds`); its four production/test files remain independent from the UI.
+The inspector and typed pin preview are committed as `4a2c6058d` (`feat(strategy-lab): add
+read-only v2 study pin preview`) with only the two frontend view/test paths. Both commits are local
+on top of published parent `1451b9d0`; the four owned workstream records still need their coherent
+closure update, and no exact CI has run on these two source commits yet. The old run `39985325009`
+is green only for its parent. Next: validate/commit the current owner records, push the branch once,
+and preserve the resulting exact-tip CI. The coordinator still owns the full local app/browser and
+strict-visual resource slot; no such fixture ran here.

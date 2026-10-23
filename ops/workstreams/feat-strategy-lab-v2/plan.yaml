@@ -701,8 +701,10 @@ progress:
     id: strategy-lab-v2-resource-inspector-ui-v1
     scope: >-
       Add an authenticated read-only Strategy Lab v2 resource inspector for owner-scoped strategies,
-      trials, artifacts, and selected immutable Study lineage. Preserve the legacy Strategy Lab
-      route; use only authenticated GET collection/detail calls, and expose no dispatch, forward,
+      trials, artifacts, and selected immutable Study lineage. Include a read-only owner-scoped
+      Study pin preview by existing run/artifact IDs using the registered GET resolver route; fail
+      closed on incomplete/malformed immutable reference responses and non-decimal IDs.
+      Preserve the legacy Strategy Lab route and expose no Strategy creation, dispatch, forward,
       broker, capital, provider, quota, or native-execution action.
     owned_paths:
       - frontend/src/App.vue
@@ -716,16 +718,18 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    The focused read-only view and route tests pass 8/8 on the current worktree. Exact-source run
-    39976028981 is green only for parent a5aa2d7d; it does not validate this UI diff. The required
-    full local application/browser and strict-visual profile remains coordinator-assigned and was
-    not started. The full 18-criterion roadmap remains open.
-  updated_at: "2026-10-23T16:11:09Z"
+    Exact push CI 39985325009 on published 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 is terminal
+    success for Backend, Frontend, Branch-declared, and E2E; Exhaustive was skipped by feature
+    policy. Distinct local commits 85a821795 (Research date-only range) and 4a2c6058d (read-only
+    Study inspector/pin preview) are not covered by that run. Focused unit tests pass for both.
+    Root's full local application/browser and strict-visual validation remain coordinator-assigned
+    and were not started. The full 18-criterion roadmap remains open.
+  updated_at: "2026-10-23T17:07:08Z"
   next_action: >-
-    Review the exact source diff, run workstream and formatting/diff validation, then publish this
-    bounded UI changeset for its exact-source branch checks. Keep the local full_stack_browser and
-    strict-visual gates open for Root's serialized slot. Continue the 18-criterion roadmap only
-    after this changeset is coherently closed; do not activate dispatch/native or money-moving scopes.
+    Validate and commit the owned workstream closure records for both separate source commits, then
+    push the branch once and inspect exact-tip CI to terminal. Keep full_stack_browser and
+    strict-visual gates open for Root's serialized slot. Continue the full roadmap without
+    activating dispatch, native, or money-moving scopes.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1615,9 +1619,10 @@ roadmap_progress_history:
     id: strategy-lab-v2-resource-inspector-ui-v1
     scope: >-
       Add an authenticated read-only Strategy Lab v2 resource inspector for owner-scoped strategies,
-      trials, artifacts, and selected immutable Study lineage. Preserve the legacy route and all
-      exact immutable identities. Use only API GET calls; do not dispatch work or enable native,
-      forward, broker, capital, provider, quota, paid/trial, unknown, or unsafe operations.
+      trials, artifacts, and selected immutable Study lineage, including a GET-only pin preview by
+      existing run/artifact IDs. Preserve the legacy route and exact identities; do not create
+      Strategies, dispatch work, or enable native, forward, broker, capital, provider, quota,
+      paid/trial, unknown, or unsafe operations.
     owned_paths:
       - frontend/src/App.vue
       - frontend/src/router/index.ts
@@ -1630,11 +1635,12 @@ roadmap_progress_history:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Focused StrategyLabV2View and route unit modules pass 8/8. The exact CI 39976028981 is green
-    only for parent a5aa2d7d and does not cover this worktree diff. Full local browser/strict-visual
-    validation awaits Root's serialized resource slot; no full profile, DB, Compose, provider, or
-    native process was started for this slice.
+    Exact push CI 39985325009 on published 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 has Backend,
+    Frontend, and Branch-declared green; E2E remains in progress and Exhaustive is skipped by feature
+    policy. The uncommitted GET-only Study pin preview passes 11 focused frontend tests, but those
+    new assertions are not in the published source. Root's full local browser/strict-visual slot
+    remains pending. No local profile, DB, Compose, provider, or native process was started.
   next_action: >-
-    Complete scoped source review and workstream validation, publish this bounded UI slice for exact
-    branch CI, and retain full local browser/strict-visual validation as an open coordinator gate.
-    Preserve the full 18-criterion roadmap and every disabled-operation boundary.
+    Wait for exact run 39985325009 to finish without rerun, then publish the coherent view and pin-
+    preview source for its own exact CI. Keep full browser/strict-visual and remaining roadmap gates
+    open; preserve all original operation boundaries.
