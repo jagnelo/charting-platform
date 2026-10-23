@@ -77,9 +77,10 @@ async def test_sec_discovery_and_backfill_cannot_borrow_ambient_issuer_binding(m
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "candidate_kind, expected_status", [("none", "failed"), ("wrong_series", "partial")]
+    "candidate_kind, expected_status",
+    [("none", "failed"), ("wrong_series", "partial"), ("already_ingested", "completed")],
 )
-async def test_sec_backfill_without_qualifying_filing_is_not_completed_empty(
+async def test_sec_backfill_distinguishes_empty_wrong_identity_and_existing_success(
     monkeypatch, candidate_kind, expected_status
 ):
     class NoopDB:
@@ -112,18 +113,20 @@ async def test_sec_backfill_without_qualifying_filing_is_not_completed_empty(
         return SimpleNamespace()
 
     async def discover(**_kwargs):
-        return [candidate] if candidate_kind == "wrong_series" else []
+        return [candidate] if candidate_kind != "none" else []
 
     async def filing_state(*_args, **_kwargs):
+        already_ingested = candidate_kind == "already_ingested"
         return SimpleNamespace(
-            snapshot_id=None,
-            ingested_at=None,
+            snapshot_id=123 if already_ingested else None,
+            ingested_at=datetime(2026, 10, 20, tzinfo=UTC) if already_ingested else None,
             status="discovered",
             failure_reason=None,
             extra_data={},
         )
 
     async def sec_get(*_args, **_kwargs):
+        assert candidate_kind == "wrong_series"
         return SimpleNamespace(
             text=wrong_identity,
             extensions={},
@@ -142,11 +145,17 @@ async def test_sec_backfill_without_qualifying_filing_is_not_completed_empty(
 
     assert summary["status"] == expected_status
     assert summary["ingested"] == 0
-    assert summary["failures"][-1]["reason"] == "no_qualifying_filing_within_reviewed_budget"
+    if candidate_kind == "already_ingested":
+        assert summary["discovered"] == 1
+        assert summary["skipped"] == 1
+        assert summary["failed"] == 0
+        assert summary["failures"] == []
+    else:
+        assert summary["failures"][-1]["reason"] == "no_qualifying_filing_within_reviewed_budget"
     if candidate_kind == "wrong_series":
         assert summary["skipped"] == 1
         assert summary["failed"] == 0
-    else:
+    elif candidate_kind == "none":
         assert summary["discovered"] == 0
 
 

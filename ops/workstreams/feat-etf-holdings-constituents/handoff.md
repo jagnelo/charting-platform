@@ -1,5 +1,109 @@
 # feat/etf-holdings-constituents
 
+## SEC provisioning and exact-red repairs — 2026-10-23T18:36Z
+
+The preceding 18:30Z note captured CI `40001975210` while it was still
+running. The run is now terminal RED on exact source `c45139b45324a5c3333868e63224d2464240034b`: Backend integration had 498 passed,
+3 failed, and 2 skipped; Frontend passed and downstream jobs were skipped.
+The three failures were two duplicate SEC backfills (N-PORT and legacy),
+which returned `partial` on a repeated already-ingested qualifying accession,
+and `test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik`,
+which raised `httpx.StreamConsumed` on an eagerly constructed mock redirect
+response while production correctly requests with `stream=True`. The exact run
+is preserved; it was not rerun.
+
+The backfill now counts an accession with persisted `snapshot_id` and
+`ingested_at` as an already-successful qualifying filing, separately from the
+`ingested` count of newly created snapshots. Thus a repeated successful filing
+can finish `completed` with `ingested=0, skipped=1`, while zero discovered,
+wrong-fund, or otherwise nonqualifying candidates remain failed/partial. A
+unit regression covers empty, wrong-series and already-ingested cases; the two
+original integration tests retain their strong duplicate assertions. The
+per-hop runtime fixture now supplies an unread `httpx.ByteStream` for its 302
+response, matching the production streaming transport; the bounded production
+reader was not changed to add an eager/unbounded fallback.
+
+The focused SEC/backfill, Provider bridge and provisioning router unit modules
+passed `61/61` in `26.62s`; targeted Ruff check and format-check passed. This is
+lightweight unit evidence only, not the database-backed API/per-hop proof. The
+one-shot 512MiB offline DB allowance remains unused: an immediate host preflight
+at `18:35Z` reported `MemAvailable=1425592KiB`, below the mandatory 1536MiB
+floor. Full PSI averages were within limits and no competing pytest/Playwright/
+Chromium process was found. Read-only Docker checks confirmed only the already
+retained ETF PostgreSQL (`43fb83fd98ad`, loopback `15432`) and Redis
+(`7d3b9bd1e3c1`, loopback `16379`); neither was modified or used for tests, and
+no database, Redis, container, fixture, or test resource was created.
+
+Provider's independent read-only review found no concrete defect in the
+provisioning request's admin/dry-run boundary, shared-cost preservation,
+idempotency, or held-row behavior; this is source review, not runtime or target
+acceptance. The coordinator then confirmed exact accepted green staging tip
+`a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`; its canonical staging-attempt
+record is `/home/m920q/charting-platform/.ai/staging-attempts/20261023T150603Z-a6b9cc8d4fc2.json` (`state=green`, starting from released
+f04). This is not yet an ETF adoption. At the next clean boundary, commit this
+coherent ETF source correction locally, then verify and merge only that exact
+green staging SHA into this feature branch, reconcile additive schema/migration
+and shared test/workstream changes, and publish the combined own-branch tip
+once. Do not push the pre-sync commit. Preserve the terminal red, prior 384MiB
+OOM and all below-floor refusals. The DB-backed SEC cases, full local profile,
+required live evidence and exact new-tip CI remain open; SEC routing stays held. Keep
+all AC1-AC14, `15 Tier-0 and 156 Tier-1`, the IWM candidate-only status,
+MSMR/QQQ and Militia/GOOG quarantines, all quota/paid/trial/unsafe holds,
+retained data and the 30-day observation gate unchanged.
+
+## Dedicated EDGAR ETF provisioning candidate — 2026-10-23T18:30Z
+
+The SEC bounded-transport candidate was published at
+`c45139b45324a5c3333868e63224d2464240034b`; its exact-source Actions run
+`40001975210` was still active at the time of that snapshot; see the later
+18:36Z terminal-red reconciliation above. The earlier 384MiB database attempt
+remains an OOM-killed partial with no pytest summary; two corrected-grant
+preflights were below the 1536MiB floor and created no resources. These receipts
+remain separate and no DB-backed result is claimed.
+
+Provider's read-only EDGAR handoff identifies the concrete provisioning gap:
+generic `seed_provider_runtime` excludes ETF_HOLDINGS for EDGAR, while the
+existing admin PATCH endpoints cannot create absent rows. The reviewed Provider
+source was `5b02caf509107856195ef8cfb2374e2ab6120612`; its handoff records hashes
+for config, quota coordinator, runtime, provider router, admin router, and the
+ETF bridge. Coordinator target inspection (not performed by this ETF session)
+reports an existing EDGAR DataSource with ETF policy and entitlement absent;
+routing and SEC scheduler are off.
+
+The local candidate adds admin-only `POST
+/api/v1/providers/edgar-etf-holdings/provision`, with `apply=false` by default.
+It requires all three dedicated SEC ETF operations, both exact SEC hosts, a
+valid descriptive EDGAR User-Agent, explicit `edgar:ip` mapping, matching
+resolved shared account scope, complete quota dimensions explicitly scoped to
+IP, positive operation costs, and explicit admin-attested publisher/quota/
+entitlement evidence. Applying attaches only the dedicated ETF review and
+operation costs to the existing active EDGAR source and creates missing ETF
+policy/entitlement/neutral-health/revision rows with policy disabled. It does
+not create EDGAR or generic ETF capability declarations, change generic
+supported-capability lists, create a recurring budget/commitment, access a
+ledger, send HTTP, or enable routing. Existing source/review/policy/entitlement
+state is preserved when identical and mismatches are refused. This records
+admin attestations; it does not establish the truth of submitted evidence.
+
+The offline SQLite/TestClient selection passed `9/9` in `11.65s`: admin-only
+access, default dry run, explicit apply, second-run idempotency, preserved
+generic capabilities and source configuration, disabled policy, no request
+logs or recurring-cost records, and refusal of mismatched source/review/policy,
+missing identity/scope/operation evidence, and non-IP quota scope. Changed-file
+Ruff check and format-check pass. These tests use synthetic test-only values;
+they prove provisioning behavior only, not target readiness, actual EDGAR
+review, quota headroom/reset, recurring commitment, DB/Redis admission, or SEC
+availability.
+
+This was an uncommitted add-on at 18:30Z; it is now included in the coherent
+candidate alongside the subsequent SEC idempotence and stream-fixture
+corrections. Publish once under the normal branch workflow and inspect its
+exact-source CI. Do not launch a DB profile below the coordinator's fresh
+1536MiB guard. Full DB/functional/visual and applicable live evidence remain
+OPEN; SEC transport remains held. Preserve all AC1–AC14, `15 Tier-0 and
+156 Tier-1`, IWM candidate-only status, MSMR/QQQ and Militia/GOOG quarantines,
+quota/paid/trial/unsafe holds, retained data, and the 30-day observation gate.
+
 ## Manual-import metadata defaults follow-up — 2026-10-23T14:51:15Z
 
 The manual CSV parser/source context was published as `d26155d949d2f1a9598685beb2b69e110913d125`; local HEAD and origin match and the worktree was clean at the start of this follow-up. The previous section below is retained as a historical snapshot from 14:04Z, when that parser patch was still local. Exact CI `39967540569` is terminal green on `d26155d`: Backend, Frontend Unit, Branch-declared, and Playwright passed; Exhaustive was skipped by feature-branch policy. The run does not cover the new local change below.

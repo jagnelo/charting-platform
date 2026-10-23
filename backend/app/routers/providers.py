@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Literal
@@ -22,6 +23,7 @@ from app.models.provider_runtime import (
 )
 from app.models.user import User
 from app.providers import supported_provider_names
+from app.providers.edgar import is_valid_edgar_user_agent
 from app.services.etf_holdings_adapters import get_holdings_adapter
 from app.services.instrument_reconciliation import (
     list_reconciliation_issues,
@@ -254,17 +256,143 @@ class ETFPublisherProvisionRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_publisher_review(self):
-        allowed_operations = {"fetch_etf_holdings_latest", "fetch_etf_holdings_for_date"}
+        allowed_operations = (
+            {
+                "fetch_etf_holdings_sec_submissions",
+                "fetch_etf_holdings_sec_submissions_file",
+                "fetch_etf_holdings_sec_filing",
+            }
+            if self.provider_name.strip().lower() == "edgar"
+            else {"fetch_etf_holdings_latest", "fetch_etf_holdings_for_date"}
+        )
         if not set(self.operations).issubset(allowed_operations):
             raise ValueError("operations contains an unreviewed ETF operation")
+        if (
+            self.provider_name.strip().lower() == "edgar"
+            and set(self.operations) != allowed_operations
+        ):
+            raise ValueError("EDGAR provisioning requires review for every SEC ETF operation")
         if self.publisher_reviewed_at > datetime.now(UTC):
             raise ValueError("publisher_reviewed_at cannot be in the future")
         return self
 
 
+class EDGARHoldingsProvisionRequest(ETFPublisherProvisionRequest):
+    """Explicit admin attestation for the dedicated SEC ETF route."""
+
+    provider_name: Literal["edgar"] = "edgar"
+    apply: bool = False
+
+
 class ReconciliationIssueUpdate(BaseModel):
     status: Literal["open", "resolved", "ignored"]
     resolution: dict | None = None
+
+
+def _utc_value_matches(recorded: datetime | None, requested: datetime | None) -> bool:
+    if recorded is None or requested is None:
+        return recorded is requested
+    recorded_utc = (
+        recorded.replace(tzinfo=UTC) if recorded.tzinfo is None else recorded.astimezone(UTC)
+    )
+    requested_utc = (
+        requested.replace(tzinfo=UTC) if requested.tzinfo is None else requested.astimezone(UTC)
+    )
+    return recorded_utc == requested_utc
+
+
+def _without_review_actor(value):
+    if isinstance(value, dict):
+        return {
+            key: _without_review_actor(item)
+            for key, item in value.items()
+            if key != "reviewed_by_user_id"
+        }
+    if isinstance(value, list):
+        return [_without_review_actor(item) for item in value]
+    return value
+
+
+def _merge_reviewed_usage_tracking(existing: object, requested: dict) -> dict:
+    """Merge only EDGAR ETF operation costs; never replace existing tracking."""
+    if existing is None:
+        return deepcopy(requested)
+    if not isinstance(existing, dict):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Existing EDGAR usage tracking is not a compatible object",
+        )
+    merged = deepcopy(existing)
+    for field in ("mode", "unit_label"):
+        current = merged.get(field)
+        if current is not None and current != requested[field]:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Existing EDGAR usage tracking {field} conflicts with reviewed ETF values",
+            )
+        merged.setdefault(field, requested[field])
+    for field in ("operation_costs", "dimension_costs"):
+        current = merged.get(field, {})
+        if not isinstance(current, dict):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Existing EDGAR usage tracking {field} is not an object",
+            )
+        combined = deepcopy(current)
+        for key, value in requested[field].items():
+            if key in combined and str(combined[key]) != str(value):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Existing EDGAR usage tracking conflicts for {key}",
+                )
+            combined.setdefault(key, value)
+        merged[field] = combined
+    return merged
+
+
+def _edgar_policy_matches_review(
+    policy: ProviderPolicy, body: EDGARHoldingsProvisionRequest
+) -> bool:
+    if policy.is_enabled is not False:
+        return False
+    exact_fields = {
+        "is_pinned": False,
+        "auto_weight_enabled": False,
+        "max_concurrency": body.max_concurrency,
+        "tokens_per_minute": body.tokens_per_minute,
+        "burst_capacity": body.burst_capacity,
+        "cooldown_seconds": body.cooldown_seconds,
+        "quota_contract": body.quota_contract,
+        "quota_scope": "ip",
+        "quota_source": body.quota_source,
+        "freshness_seconds": body.freshness_seconds,
+    }
+    if any(getattr(policy, name) != expected for name, expected in exact_fields.items()):
+        return False
+    return _utc_value_matches(policy.quota_verified_at, body.quota_verified_at)
+
+
+def _edgar_entitlement_matches_review(
+    entitlement: ProviderEntitlement, body: EDGARHoldingsProvisionRequest
+) -> bool:
+    expected = body.entitlement
+    exact_fields = {
+        "configured_plan": expected.configured_plan,
+        "is_free": expected.is_free,
+        "authentication_required": expected.authentication_required,
+        "usage_terms": expected.usage_terms,
+        "redistribution_allowed": expected.redistribution_allowed,
+        "quota_policy": expected.quota_policy,
+        "history_depth": expected.history_depth,
+        "venue_coverage": expected.venue_coverage,
+        "freshness_semantics": expected.freshness_semantics,
+        "enabled_environments": expected.enabled_environments,
+    }
+    if any(getattr(entitlement, name) != value for name, value in exact_fields.items()):
+        return False
+    return _utc_value_matches(
+        entitlement.effective_at, expected.effective_at
+    ) and _utc_value_matches(entitlement.review_due_at, expected.review_due_at)
 
 
 @router.post("/etf-publishers", status_code=status.HTTP_201_CREATED)
@@ -461,6 +589,323 @@ async def provision_etf_publisher(
         "data_source_id": data_source.id,
         "policy_enabled": False,
         "live_probe_status": entitlement.live_probe_status,
+        "routable": False,
+    }
+
+
+@router.post("/edgar-etf-holdings/provision")
+async def provision_edgar_etf_holdings(
+    body: EDGARHoldingsProvisionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Prepare EDGAR's dedicated ETF rows without enabling or generic seeding.
+
+    The endpoint is a dry run unless ``apply`` is explicitly true. It attaches
+    only the ETF-specific review/quota operations to the existing EDGAR source,
+    creates missing ETF_HOLDINGS rows disabled, and refuses to overwrite any
+    conflicting source, policy, or entitlement state.
+    """
+    if body.quota_scope.strip().lower() != "ip":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="EDGAR ETF holdings must use the reviewed shared IP quota scope",
+        )
+    if not is_valid_edgar_user_agent(settings.EDGAR_USER_AGENT):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="A descriptive EDGAR_USER_AGENT is required before provisioning",
+        )
+    allowed_hosts = {"data.sec.gov", "www.sec.gov"}
+    if set(body.https_hosts) != allowed_hosts:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="EDGAR ETF review must include both exact SEC hosts used by its adapter",
+        )
+
+    scope_key = "edgar:ip"
+    scopes = settings.PROVIDER_QUOTA_ACCOUNT_SCOPES
+    if (
+        not isinstance(scopes, dict)
+        or not isinstance(scopes.get(scope_key), str)
+        or not scopes[scope_key].strip()
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="An explicit edgar:ip shared account-scope mapping is required",
+        )
+    try:
+        expected_scope = account_scope_for_provider("edgar", "ip")
+    except ProviderQuotaCoordinatorError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="EDGAR shared account-scope configuration is invalid",
+        ) from exc
+    if body.account_scope != expected_scope:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Review account scope does not match configured EDGAR shared IP scope",
+        )
+
+    candidate_policy = ProviderPolicy(
+        capability=ProviderCapability.ETF_HOLDINGS,
+        quota_contract=body.quota_contract,
+        quota_scope="ip",
+        quota_source=body.quota_source,
+        quota_verified_at=body.quota_verified_at,
+    )
+    missing_contract = quota_contract_missing_dimensions(candidate_policy)
+    if missing_contract:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"reason": "reviewed quota contract is incomplete", "missing": missing_contract},
+        )
+    dimensions = body.quota_contract.get("dimensions")
+    if not isinstance(dimensions, list) or any(
+        not isinstance(dimension, dict) or dimension.get("scope") != "ip"
+        for dimension in dimensions
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Every EDGAR ETF quota dimension must explicitly use the shared IP scope",
+        )
+    reviewed_usage = body.usage_tracking.model_dump(mode="json")
+    usage_source = DataSource(name="edgar", config={"usage_tracking": reviewed_usage})
+    for operation in body.operations:
+        if not provider_contract_operation_cost_known(
+            candidate_policy,
+            usage_source,
+            operation,
+            usage_identity="edgar-etf-provisioning-review-validation",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Reviewed quota and positive request cost are required for {operation}",
+            )
+
+    data_source_result = await db.execute(
+        select(DataSource).where(DataSource.name == "edgar").with_for_update()
+    )
+    data_source = data_source_result.scalar_one_or_none()
+    if data_source is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The generic EDGAR source must already exist; ETF provisioning will not create it",
+        )
+    if not data_source.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The existing EDGAR source is inactive and will not be changed by ETF provisioning",
+        )
+    if data_source.base_url:
+        try:
+            parsed_source_url = urlsplit(data_source.base_url)
+            _ = parsed_source_url.port
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Existing EDGAR source URL is malformed and will not be replaced",
+            ) from exc
+        if (
+            parsed_source_url.scheme.lower() != "https"
+            or parsed_source_url.hostname not in allowed_hosts
+            or parsed_source_url.username is not None
+            or parsed_source_url.password is not None
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Existing EDGAR source URL does not match its reviewed SEC identity",
+            )
+    if data_source.config is not None and not isinstance(data_source.config, dict):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Existing EDGAR source configuration is not a compatible object",
+        )
+    existing_config = deepcopy(data_source.config or {})
+
+    review = {
+        "https_hosts": body.https_hosts,
+        "operations": {
+            operation: evidence.model_dump(mode="json")
+            for operation, evidence in body.operations.items()
+        },
+        "account_scope": expected_scope,
+        "evidence_source": body.publisher_evidence_source,
+        "evidence_version": body.publisher_evidence_version,
+        "reviewed_at": body.publisher_reviewed_at.isoformat(),
+        "reviewed_by_user_id": current_user.id,
+        "quota_review": {
+            "evidence_source": body.quota_source,
+            "evidence_version": body.quota_evidence_version,
+            "verified_at": body.quota_verified_at.isoformat(),
+            "reviewed_by_user_id": current_user.id,
+        },
+        "entitlement_review": {
+            "evidence_source": body.entitlement.evidence_source,
+            "evidence_version": body.entitlement.evidence_version,
+            "reviewed_at": body.entitlement.reviewed_at.isoformat(),
+            "reviewed_by_user_id": current_user.id,
+        },
+    }
+    existing_review = existing_config.get("etf_holdings_review")
+    if existing_review is not None and _without_review_actor(
+        existing_review
+    ) != _without_review_actor(review):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Existing EDGAR ETF review evidence differs; provisioning will not replace it",
+        )
+    try:
+        merged_usage = _merge_reviewed_usage_tracking(
+            existing_config.get("usage_tracking"), reviewed_usage
+        )
+    except HTTPException:
+        raise
+
+    policy_result = await db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == data_source.id,
+            ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+        )
+    )
+    policy = policy_result.scalar_one_or_none()
+    if policy is not None and not _edgar_policy_matches_review(policy, body):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Existing EDGAR ETF policy differs or is enabled; provisioning will not replace it",
+        )
+
+    entitlement_result = await db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == data_source.id,
+            ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+        )
+    )
+    entitlement = entitlement_result.scalar_one_or_none()
+    if entitlement is not None and not _edgar_entitlement_matches_review(entitlement, body):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Existing EDGAR ETF entitlement differs; provisioning will not replace it",
+        )
+
+    health_result = await db.execute(
+        select(ProviderHealthState).where(
+            ProviderHealthState.data_source_id == data_source.id,
+            ProviderHealthState.capability == ProviderCapability.ETF_HOLDINGS,
+        )
+    )
+    health = health_result.scalar_one_or_none()
+    entitlement_revision = None
+    if entitlement is not None:
+        revision_result = await db.execute(
+            select(ProviderEntitlementRevision).where(
+                ProviderEntitlementRevision.data_source_id == data_source.id,
+                ProviderEntitlementRevision.capability == ProviderCapability.ETF_HOLDINGS,
+                ProviderEntitlementRevision.revision == int(entitlement.revision or 1),
+            )
+        )
+        entitlement_revision = revision_result.scalar_one_or_none()
+    changes: list[str] = []
+    if existing_review is None:
+        changes.append("attach_etf_holdings_review")
+    if existing_config.get("usage_tracking") != merged_usage:
+        changes.append("add_sec_etf_operation_costs")
+    if policy is None:
+        changes.append("create_disabled_policy")
+    if entitlement is None:
+        changes.append("create_reviewed_entitlement")
+    if entitlement_revision is None:
+        changes.append("record_current_entitlement_revision")
+    if health is None:
+        changes.append("create_neutral_health")
+
+    if not body.apply:
+        return {
+            "provider": "edgar",
+            "capability": ProviderCapability.ETF_HOLDINGS.value,
+            "applied": False,
+            "would_change": changes,
+            "policy_enabled": False,
+            "generic_capabilities_changed": False,
+            "routable": False,
+        }
+
+    if changes:
+        merged_config = deepcopy(existing_config)
+        if existing_review is None:
+            merged_config["etf_holdings_review"] = review
+        merged_config["usage_tracking"] = merged_usage
+        data_source.config = merged_config
+
+        if policy is None:
+            db.add(
+                ProviderPolicy(
+                    data_source_id=data_source.id,
+                    capability=ProviderCapability.ETF_HOLDINGS,
+                    is_enabled=False,
+                    is_pinned=False,
+                    auto_weight_enabled=False,
+                    max_concurrency=body.max_concurrency,
+                    tokens_per_minute=body.tokens_per_minute,
+                    burst_capacity=body.burst_capacity,
+                    cooldown_seconds=body.cooldown_seconds,
+                    quota_contract=body.quota_contract,
+                    quota_scope="ip",
+                    quota_source=body.quota_source,
+                    quota_verified_at=body.quota_verified_at,
+                    freshness_seconds=body.freshness_seconds,
+                    effective_score=Decimal("0"),
+                )
+            )
+        if entitlement is None:
+            entitlement = ProviderEntitlement(
+                data_source_id=data_source.id,
+                capability=ProviderCapability.ETF_HOLDINGS,
+                configured_plan=body.entitlement.configured_plan,
+                is_free=body.entitlement.is_free,
+                authentication_required=body.entitlement.authentication_required,
+                usage_terms=body.entitlement.usage_terms,
+                redistribution_allowed=body.entitlement.redistribution_allowed,
+                quota_policy=body.entitlement.quota_policy,
+                history_depth=body.entitlement.history_depth,
+                venue_coverage=body.entitlement.venue_coverage,
+                freshness_semantics=body.entitlement.freshness_semantics,
+                enabled_environments=body.entitlement.enabled_environments,
+                effective_at=body.entitlement.effective_at,
+                review_due_at=body.entitlement.review_due_at,
+                live_probe_status="not_run",
+                revision=1,
+            )
+            db.add(entitlement)
+        if health is None:
+            db.add(
+                ProviderHealthState(
+                    data_source_id=data_source.id,
+                    capability=ProviderCapability.ETF_HOLDINGS,
+                    failure_streak=0,
+                    ewma_latency_ms=Decimal("0"),
+                    ewma_success_rate=Decimal("0"),
+                    ewma_completeness=Decimal("0"),
+                    ewma_freshness=Decimal("0"),
+                    ewma_consistency=Decimal("0"),
+                    observed_score=Decimal("0"),
+                )
+            )
+        await db.flush()
+
+    if entitlement is not None:
+        await record_entitlement_revision(
+            db,
+            entitlement,
+            change_reason=f"edgar_etf_holdings_provision:{body.entitlement.evidence_version}"[:240],
+        )
+    return {
+        "provider": "edgar",
+        "capability": ProviderCapability.ETF_HOLDINGS.value,
+        "applied": True,
+        "created_or_attached": changes,
+        "policy_enabled": False,
+        "generic_capabilities_changed": False,
         "routable": False,
     }
 

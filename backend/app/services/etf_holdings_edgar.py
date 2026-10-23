@@ -759,6 +759,7 @@ async def _backfill_sec_holdings(
     ingested = 0
     skipped = 0
     failed = 0
+    already_ingested = 0
 
     try:
         request_identity = await _resolve_request_identity(db=db, profile=profile)
@@ -792,6 +793,7 @@ async def _backfill_sec_holdings(
         )
         if state.snapshot_id is not None and state.ingested_at is not None:
             skipped += 1
+            already_ingested += 1
             state.status = "duplicate"
             state.failure_reason = None
             state.extra_data = {
@@ -940,13 +942,14 @@ async def _backfill_sec_holdings(
     job.skipped_count = skipped
     job.failed_count = failed
     job.completed_at = _now()
-    if ingested == 0:
+    successful_filings = ingested + already_ingested
+    if successful_filings == 0:
         reason = "no_qualifying_filing_within_reviewed_budget"
         failures.append({"reason": reason})
         job.failure_reason = reason
         job.status = "partial" if skipped else "failed"
-    elif failed:
-        job.status = "partial" if ingested or skipped else "failed"
+    elif failed or failures:
+        job.status = "partial"
     else:
         job.status = "completed"
     job.summary = _job_summary(job, status=job.status, failures=failures)

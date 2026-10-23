@@ -2700,6 +2700,7 @@ async def test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik
                     headers={
                         "location": "https://www.sec.gov" + request.url.path,
                     },
+                    stream=httpx.ByteStream(b""),
                     request=request,
                 )
             return httpx.Response(

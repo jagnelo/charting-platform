@@ -367,7 +367,7 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: SEC bounded transport and truthful failure accounting
+    name: SEC bounded transport, held provisioning and red-failure corrections
     state: >-
       Local candidate based on synchronized published source
       7c8cda46a56ee52bc358a6f6c75e0ef59e168903. The dedicated SEC path binds
@@ -381,15 +381,24 @@ integration_checkpoint:
       response telemetry and before shared success settlement. Its actual
       shared-runtime regression is added but remains DB-unrun. The prior
       384MiB nine-case DB run is partial/inconclusive (OOM, no summary). The
-      revised one-shot 512MiB grant remains unused because two fresh host
-      readings, 1212552KiB and 1312184KiB, were below its 1536MiB floor. The
-      bridge/EDGAR unit subset passed44/44 after the accounting correction;
-      broader pre-correction unit suites passed697/697. Ruff/format/diff checks
-      passed. The source candidate is being committed/pushed for exact-source
-      CI; local DB/full-profile and applicable live evidence remain open. SEC
-      transport remains held; preserve all AC1-AC14, `15 Tier-0 and 156 Tier-1`,
-      IWM candidate-only status, historical/PIT lineage, quarantines, retained
-      data and the 30-day observation.
+      repeat-import outcomes now distinguish a prior persisted snapshot from
+      zero qualifying filings, and the 302 MockTransport response is an unread
+      ByteStream matching production stream=True semantics. An admin-only,
+      dry-run-first EDGAR ETF provisioning endpoint was added with explicit
+      reviewed inputs and disabled policy defaults; Provider read-only review
+      found no concrete defect in its auth/dry-run/shared-cost-preservation/
+      idempotency/held-row source contracts. Exact c451 CI40001975210 is
+      terminal RED (498 integration passed, 3 failed, 2 skipped; Frontend green):
+      the two repeat-import cases and the eager redirect fixture. The 61-test
+      SEC/bridge/provisioning unit selection passes. The prior384MiB DB attempt
+      is partial/inconclusive (OOM, no summary). This turn's immediate host
+      preflight measured1425592KiB available, below the one-shot512MiB grant's
+      1536MiB floor; no DB or Redis test resource was created. Publish the
+      coherent candidate for exact-source CI; DB/shared-runtime, full-profile,
+      and applicable live evidence remain open. SEC transport remains held.
+      Preserve all AC1-AC14, `15 Tier-0 and 156 Tier-1`, IWM candidate-only
+      status, historical/PIT lineage, quarantines, retained data and the 30-day
+      observation.
     baseline: 7c8cda46a56ee52bc358a6f6c75e0ef59e168903
     intent: >-
       Finish the reviewed bounded SEC one-fund application envelope and ensure
@@ -401,6 +410,7 @@ integration_checkpoint:
       live evidence exist.
     owned_paths:
       - backend/app/routers/etf_holdings.py
+      - backend/app/routers/providers.py
       - backend/app/services/etf_holdings_adapters.py
       - backend/app/services/etf_holdings_edgar.py
       - backend/app/services/etf_holdings_provider_bridge.py
@@ -410,6 +420,7 @@ integration_checkpoint:
       - backend/tests/unit/services/test_etf_holdings_edgar.py
       - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
       - backend/tests/unit/services/test_etf_holdings_refresh.py
+      - backend/tests/unit/routers/test_providers_router.py
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/session.json
@@ -1843,17 +1854,22 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Commit and push the coherent SEC source/unit candidate with the durable
-  marked-HTTP200 accounting correction, prior OOM and current launch-refusal
-  receipts; then inspect exact-source hosted CI without replaying any live
-  issuer/provider/SEC tests. The prior nine-case DB invocation remains
+  Run the fast narrative count sentinel, workstream validator, JSON/JSONL and
+  plan-hash checks, targeted Ruff/format and diff checks. Commit the coherent
+  SEC provisioning/idempotence/stream-fixture corrections locally, preserving
+  exact c451 terminal-red and prior OOM/refusal evidence. Before any push,
+  verify and merge only accepted green staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+  into this clean ETF branch, manually reconcile shared schemas/tests and
+  workstream provenance, then run the applicable lightweight checks and push
+  the resulting own-branch tip once for exact-source CI. The pending one-shot
+  512MiB/no-swap DB attempt remains unused because the latest fresh host reading
+  was1425592KiB, below the1536MiB floor; run the three DB regressions only
+  together after a new preflight meets the floor, PSI/reserve, exact existing
+  PG identity/growth, new Redis ownership, no-competitor and time guards. Do
+  not lower thresholds. Focused SEC/bridge/provisioning units passed61/61 with
+  targeted Ruff/format green. The prior nine-case DB invocation remains
   partial/inconclusive (384MiB OOM, no summary; exact generated resources
-  cleaned and retained resources unchanged). The coordinator grants one
-  corrected 512MiB/no-swap DB attempt, but fresh host MemAvailable readings
-  1212552KiB and 1312184KiB were below the mandatory1536MiB floor. Do not lower
-  thresholds or create fixture resources until fresh preflight meets that
-  floor, PSI/reserve, exact existing PG identity/growth, new Redis ownership,
-  no-competitor and time guards. Keep IWM as historical candidate only and the
+  cleaned and retained resources unchanged). Keep IWM as historical candidate only and the
   nine-attempt SEC envelope: one archive page, two redirects per GET, no
   retries, one-second spacing, finite request/deadline, streaming
   per-response/aggregate decoded-byte caps, sticky terminal response/access
