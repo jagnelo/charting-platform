@@ -35,11 +35,11 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Current published base 404fe6d29312999e93930a4b89c27a68430d6d48 matches origin. Exact CI39883137995 is still running E2E; Frontend, Backend, and Branch-declared are green, Exhaustive is skipped. New unpublished Favorites store/test change fixes stale in-flight GET responses after successful add/remove; focused suites pass99/99 and Vue type-check passes.",
+  "current_candidate_ci_status": "Published source99f5cda21f7e6fab2c1c5e411202d02602dcc359 matches origin. Exact CI39887488090 is in progress: Frontend Unit Tests green, Backend integration tests running, Playwright incomplete, Exhaustive skipped. The unpublished extension refreshes the canonical list after add/remove whenever it has not yet loaded; affected suites pass101/101 and Vue type-check passes.",
   "current_exact_ci": {
     "conclusion": "in_progress",
-    "head_sha": "404fe6d29312999e93930a4b89c27a68430d6d48",
-    "status": "Exact branch CI39883137995 has Frontend, Backend, and Branch-declared green; its Playwright E2E step remains in progress and Exhaustive Integration Gate is skipped. This run does not include the unpublished Favorites race fix.",
+    "head_sha": "99f5cda21f7e6fab2c1c5e411202d02602dcc359",
+    "status": "Exact-source CI39887488090 for published99f is in progress: Frontend Unit Tests green, Backend integration tests running, Playwright incomplete, and Exhaustive skipped. The current not-yet-loaded-list refresh extension is unpublished and not included in this run.",
     "visuals": "The run's hosted E2E does not cover strict104 screenshot parity. F8y local parent-host proof and the full local profile remain pending Root's slot. Root owns the separate F8l observer repair; no sibling code imported."
   },
   "dirty_paths": [
@@ -129,7 +129,7 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "404fe6d29312999e93930a4b89c27a68430d6d48",
+  "head": "99f5cda21f7e6fab2c1c5e411202d02602dcc359",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -140,7 +140,7 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-23T00:19:54+00:00",
+  "last_checkpoint": "2026-10-23T02:15:13+00:00",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -160,7 +160,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Complete coherent review/publication of the Favorites in-flight load/mutation race fix and records, then inspect its exact-source CI. Do not start any local fixture/browser/build while Root owns the slot. Preserve F8y parent-runtime/full-profile gates, F8l ownership, all assertions/references/masks/tolerances/zero-retry policy, full AC1-AC9/V25 roadmap, provider/live holds, retained services and data.",
+  "next_action": "Publish the verified Favorites incomplete-initial-load extension with its focused red/green evidence and run exact-source CI. Do not start any local fixture/browser/build while Root owns the slot. Preserve F8y parent-runtime/full-profile gates, F8l ownership, all assertions/references/masks/tolerances/zero-retry policy, full AC1-AC9/V25 roadmap, provider/live holds, retained services and data.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -173,7 +173,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "c04dcf3c808a05315d527e20b98d05539c0402bd1c2ce1dff8102d30d8bc645d",
+  "plan_hash": "89b90e80f1936ee95455b6659a04f3da7ce4f8ccf7c795ebd83462ffd21926a4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -193,28 +193,28 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "Exact CI39883137995 for published 404fe remains in E2E; other mandatory branch jobs are green and the exhaustive gate is skipped. The current Favorites change is unpublished: deferred tests showed stale /favorites GET success/error can overwrite the result of a successful add/remove. Focused store+WatchList suites are 99/99 and Vue type-check passes; Root's local fixture slot remains occupied.",
-    "current_phase": "4687_adopted;404fe_CI39883137995_E2E_in_progress;Favorites_stale_load_race_fix_99_tests_and_typecheck_green_pending_publication;F8y_local_runtime_pending_Root;F8l_repair_owned_by_Root;full_AC1_AC9_and_official_REF_HELP_V25_open",
-    "next_action": "Finish scope/workstream review and publish the coherent Favorites store race fix with its exact focused evidence; obtain exact-source CI after publication. Keep local browser/profile gated on Root's slot.",
+    "current_blocker": "CI39887488090 is in progress on published99f: Frontend Unit Tests green, Backend integration tests running, Playwright incomplete, Exhaustive skipped. The unpublished Favorites extension refreshes the canonical list after add/remove whenever it has not yet loaded; two incomplete-initial-load regressions are baseline-red and focused101/101 plus type-check are green. Root owns the local fixture slot; F8y parent-runtime proof/full profile remain pending.",
+    "current_phase": "4687_adopted;Favorites_stale_load_fix_published_99f;exact_CI39887488090_active_on_99f;not-yet-loaded-list-refresh_extension_unpublished_101_focused_and_typecheck_green;F8y_parent_host_runtime_pending_Root;F8l_repair_owned_by_Root;full_AC1_AC9_REF_HELP_V25_open",
+    "next_action": "Publish the incomplete-initial-load regression/fix with its coherent workstream record, then qualify exact-source CI; keep browser/full profile gated on Root's slot.",
     "total": 5,
-    "updated_at": "2026-10-23T02:00:10Z"
+    "updated_at": "2026-10-23T02:15:13Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "404fe6d29312999e93930a4b89c27a68430d6d48",
-    "current_pending_range": "Origin matches published base404fe. Current worktree has the uncommitted Favorites store/test fix and its workstream records; exact branch CI39883137995 is still running against 404fe. No current change has been pushed.",
+    "current_local_head": "99f5cda21f7e6fab2c1c5e411202d02602dcc359",
+    "current_pending_range": "Origin matches published99f5. The incomplete-initial-load extension is working-tree-only with its tests; exact CI39887488090 is still running on prior published99f5 and does not include this extension.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "404fe6d29312999e93930a4b89c27a68430d6d48",
-    "status": "Local HEAD and feature remote match at404fe. Favorites source/test/record changes remain uncommitted and require exact-source CI after coherent publication; no local runtime or strict visual acceptance is claimed."
+    "remote_tracking_sha": "99f5cda21f7e6fab2c1c5e411202d02602dcc359",
+    "status": "Local HEAD and feature remote match at99f5. The incomplete-initial-load extension is uncommitted and requires exact-source CI; no local runtime or strict visual acceptance is claimed."
   },
-  "remote": "404fe6d29312999e93930a4b89c27a68430d6d48",
-  "remote_sha": "404fe6d29312999e93930a4b89c27a68430d6d48",
+  "remote": "99f5cda21f7e6fab2c1c5e411202d02602dcc359",
+  "remote_sha": "99f5cda21f7e6fab2c1c5e411202d02602dcc359",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

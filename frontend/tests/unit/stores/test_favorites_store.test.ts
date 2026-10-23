@@ -43,6 +43,7 @@ describe('useFavoritesStore', () => {
 
   it('adds idempotently and removes only the requested instrument', async () => {
     const store = useFavoritesStore()
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([favorite])
     ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
     ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
 
@@ -58,7 +59,7 @@ describe('useFavoritesStore', () => {
     let resolveLoad!: (rows: typeof favorite[]) => void
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise(resolve => {
       resolveLoad = resolve
-    }))
+    })).mockResolvedValueOnce([favorite])
     ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
 
     const store = useFavoritesStore()
@@ -75,21 +76,62 @@ describe('useFavoritesStore', () => {
     expect(store.loading).toBe(false)
   })
 
+  it('reloads the complete list when an add wins an incomplete initial load', async () => {
+    const otherFavorite = { ...favorite, id: 5, instrument_id: 18, position: 1, symbol: 'MSFT' }
+    let resolveInitialLoad!: (rows: typeof favorite[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>)
+      .mockImplementationOnce(() => new Promise(resolve => { resolveInitialLoad = resolve }))
+      .mockResolvedValueOnce([favorite, otherFavorite])
+    ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
+
+    const store = useFavoritesStore()
+    const initialLoad = store.load()
+    await expect(store.add(17)).resolves.toEqual(favorite)
+    resolveInitialLoad([otherFavorite])
+    await initialLoad
+
+    await vi.waitFor(() => expect(store.favorites.map(item => item.instrument_id)).toEqual([17, 18]))
+    expect(api.get).toHaveBeenCalledTimes(2)
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
+  })
+
+  it('reloads the complete list after a failed initial load and a successful add', async () => {
+    const otherFavorite = { ...favorite, id: 5, instrument_id: 18, position: 1, symbol: 'MSFT' }
+    ;(api.get as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error('initial list unavailable'))
+      .mockResolvedValueOnce([favorite, otherFavorite])
+    ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
+
+    const store = useFavoritesStore()
+    await store.load()
+    expect(store.loaded).toBe(false)
+    expect(store.error).toBe('initial list unavailable')
+
+    await expect(store.add(17)).resolves.toEqual(favorite)
+    await vi.waitFor(() => expect(store.favorites.map(item => item.instrument_id)).toEqual([17, 18]))
+    expect(api.get).toHaveBeenCalledTimes(2)
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
+  })
+
   it('does not let a stale in-flight load restore a successfully removed favorite', async () => {
+    const otherFavorite = { ...favorite, id: 5, instrument_id: 18, position: 1, symbol: 'MSFT' }
     let resolveLoad!: (rows: typeof favorite[]) => void
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise(resolve => {
       resolveLoad = resolve
-    }))
+    })).mockResolvedValueOnce([otherFavorite])
     ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
 
     const store = useFavoritesStore()
     const load = store.load()
     await expect(store.remove(17)).resolves.toBe(true)
-    resolveLoad([favorite])
+    resolveLoad([favorite, otherFavorite])
     await load
 
-    expect(store.favorites).toEqual([])
+    expect(store.favorites).toEqual([otherFavorite])
     expect(store.isFavorite(17)).toBe(false)
+    expect(store.isFavorite(18)).toBe(true)
     expect(store.loaded).toBe(true)
     expect(store.loading).toBe(false)
   })
@@ -98,7 +140,7 @@ describe('useFavoritesStore', () => {
     let rejectLoad!: (cause: Error) => void
     ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise((_resolve, reject) => {
       rejectLoad = reject
-    }))
+    })).mockResolvedValueOnce([favorite])
     ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
 
     const store = useFavoritesStore()

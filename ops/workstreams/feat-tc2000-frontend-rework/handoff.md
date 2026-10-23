@@ -2,14 +2,16 @@
 
 ## Current continuation — 2026-10-23: Favorites load/mutation race
 
-The branch is at `404fe6d29312999e93930a4b89c27a68430d6d48`, synchronized with
+The branch is at `99f5cda21f7e6fab2c1c5e411202d02602dcc359`, synchronized with
 its feature ref. It already contains the accepted four-feature staging release
 `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`; the earlier accepted
 `0e342512e53ba2268425294d61c50e219eaafa4f` is an ancestor, so no backward
-fast-forward or staging rewrite is appropriate. The exact branch CI
-`39883137995` is still running its E2E job as of this update; its other required
-jobs are green and the exhaustive gate is skipped as configured. This CI binds
-to `404fe…`, not the current uncommitted Favorites change.
+fast-forward or staging rewrite is appropriate. The prior exact branch CI
+`39883137995` on `404fe…` was cancelled by the new push before E2E completed.
+Exact-source CI `39887488090` now binds to this published SHA and remains in
+progress; Frontend Unit Tests are green, Backend is in integration tests, and
+Playwright is incomplete. The configured exhaustive gate is skipped on
+ordinary branch CI.
 
 Review of `useFavoritesStore` found that successful add/remove mutations could
 be overwritten by a `/favorites` GET already in flight. The same stale load
@@ -17,10 +19,16 @@ could also publish an obsolete error after the mutation had succeeded. New
 deferred-response tests reproduced both stale-row loss (baseline: 1 failed,
 3 passed) and stale-error publication (partial fix: 1 failed, 5 passed). The
 store now invalidates pending load generations after successful add/remove and
-ignores stale load errors. The focused Favorites store and WatchList component
-suites pass `99/99`; `npm run type-check` and `git diff --check` pass. This is
-unit/type evidence only; no local browser, backend, full coverage or build run
-was performed. The change is pending publication and exact-source CI.
+ignores stale load errors. A further deferred regression found that an add
+could lose unrelated rows when it invalidated an incomplete initial list load
+(baseline 1 failed/6 passed). A failed initial load followed by an add exposed
+the same loss when no request remained pending (baseline 1 failed/7 passed).
+The store now refreshes whenever the list is not yet loaded, including after a
+pending or failed initial read, while applying the successful mutation and
+ignoring stale responses. The affected Favorites store and WatchList component
+suites pass `101/101`; `npm run type-check` and `git diff --check` pass. This
+extension is unpublished and needs exact-source CI; no local browser, backend,
+full coverage or build run was performed.
 
 F8y Tag Columns remains a separate browser gate. Its parent-host-to-mutation
 flow is in the hosted E2E scope; the full local profile remains held for Root's
@@ -28,8 +36,8 @@ one-at-a-time slot. Root owns the independent F8l Market Map timing-observer
 repair; no source from that worktree has been imported. Preserve all original
 assertions, 70% coverage threshold, 104 visual references/masks/tolerance, and
 zero-retry policy. Full AC1–AC9 and official REF-HELP-V25 remain open. Next:
-finish this coherent source/workstream publication, then qualify its exact
-branch CI; do not start a local fixture until Root releases the slot.
+publish this coherent extension and qualify its exact branch CI; do not start
+a local fixture until Root releases the slot.
 
 ## Historical continuation — F8y stale configuration repair
 

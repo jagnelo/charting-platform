@@ -63,10 +63,11 @@ current_blocker: >-
   The branch contains accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
   at merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d; earlier accepted
   0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Current
-  published HEAD 404fe6d29312999e93930a4b89c27a68430d6d48 matches the feature
-  ref. Its exact CI39883137995 is still running the E2E job; Frontend, Backend
-  and Branch-declared jobs are green, and the exhaustive gate is skipped. That
-  run tests 404fe, not the current unpublished change.
+  published HEAD 99f5cda21f7e6fab2c1c5e411202d02602dcc359 matches the feature
+  ref. CI39883137995 on prior HEAD 404fe was cancelled by the new push before
+  E2E completed. Exact CI39887488090 on 99f5 is in progress: Frontend Unit
+  Tests are green, Backend is in integration tests, and Playwright is
+  incomplete; the configured exhaustive gate is skipped on ordinary branch CI.
 
   A concrete TC-owned Favorites race is being repaired: a successful add or
   remove could be overwritten by an older in-flight /favorites GET, and a stale
@@ -74,9 +75,15 @@ current_blocker: >-
   regressions produced baseline red (1 failed/3 passed) for stale-row loss and
   intermediate red (1 failed/5 passed) for stale-error publication. Successful
   add/remove now invalidate pending-load generations and stale load errors are
-  ignored. The affected Favorites store plus WatchList component suites pass
-  99/99, Vue type-check passes, and diff-check is clean. This is unit/type
-  evidence only; current change is unpublished and has no exact-source CI.
+  ignored. A further deferred regression found that a successful add during an
+  incomplete initial list read retained the new row but lost unrelated rows
+  (baseline 1 failed/6 passed). A failed initial load followed by a successful
+  add showed the same loss after the request had already ended (baseline 1
+  failed/7 passed). The store now refreshes the canonical list whenever it is
+  not yet loaded, covering pending and failed initial reads. The combined
+  Favorites store and WatchList suites pass101/101, Vue type-check passes, and
+  diff-check is clean. This extension is unpublished; CI39887488090 tests prior
+  source99f and remains active, so the extension needs exact-source CI.
 
   The F8y ordinary-click parent-host-to-mutation browser proof and full local
   profile remain pending Root's single-owner fixture slot. Root separately owns
@@ -87,13 +94,15 @@ current_blocker: >-
   operations, deployment and promotion remain disabled/unperformed.
 current_checkpoint_status: >-
   Current continuation at 2026-10-23: published feature HEAD
-  404fe6d29312999e93930a4b89c27a68430d6d48 contains accepted staging 4687,
-  with earlier accepted 0e already an ancestor. Exact CI39883137995 remains
-  active at E2E; Frontend, Backend, and Branch-declared are green, while the
-  exhaustive job is skipped. The current Favorites working-tree change prevents
-  stale in-flight /favorites GET success/errors from overriding completed
-  mutations; focused affected suites pass99/99 and Vue type-check passes. This
-  new source change is unpublished and not included in CI398831. The full local
+  99f5cda21f7e6fab2c1c5e411202d02602dcc359 contains accepted staging 4687,
+  with earlier accepted 0e already an ancestor. Exact CI39887488090 is active
+  on99f; Frontend Unit Tests are green, Backend integration tests are running,
+  Playwright is incomplete, and the exhaustive job is skipped. The published
+  Favorites fix prevents stale in-flight /favorites GET results/errors from
+  overriding completed mutations. Its unpublished extension refreshes the
+  canonical list whenever it is not yet loaded, including after pending or
+  failed initial GET; focused affected suites pass101/101 and Vue type-check
+  passes on the working tree. The full local
   browser slot remains held by Root, who separately owns F8l; no sibling patch
   was imported. Full AC1–AC9 and official REF-HELP-V25 remain open.
 
@@ -1274,13 +1283,12 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "4687_adopted;404fe_exact_CI39883137995_E2E_in_progress_after_frontend_backend_declared_green;Favorites_inflight_load_mutation_race_fix_focused_99_typecheck_green_pending_publication_and_exact_CI;F8y_local_parent_runtime_slot_pending_Root;F8l_observer_fix_owned_by_Root;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "4687_adopted;Favorites_inflight_load_mutation_fix_published_99f;CI39887488090_active_on_prior_99f_source;not-yet-loaded-list-refresh_extension_unpublished_101_focused_and_typecheck_green;F8y_parent_runtime_pending_Root_slot;F8l_repair_owned_by_Root;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Finish the Favorites load/mutation race changeset with the exact 99/99
-    focused suites, Vue type-check and scope/workstream checks, then publish
-    source and its coherent record once and inspect exact-source branch CI.
-    Continue the F8y parent-host browser proof and strict full profile only when
-    Root releases the one-at-a-time slot. Preserve all original assertions,
+    Publish the verified incomplete-initial-load extension to the Favorites
+    race fix and inspect its exact-source CI. Continue the F8y parent-host
+    browser proof and strict full profile only when Root releases the
+    one-at-a-time slot. Preserve all original assertions,
     thresholds, references/masks/tolerance, full AC1–AC9, official REF-HELP-V25,
     provider/live holds, assigned services and data.
 
