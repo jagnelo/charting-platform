@@ -696,21 +696,21 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-study-context-native-bridge-handoff-v8
+  current_phase: full-roadmap-persisted-study-runtime-assembly-v9
   current_blocker: >-
     The accepted M2 baseline0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of this
     branch. Exact CI39891877125 on6a60 is terminal green (5251 unit pass/1 existing skip,530
     integration pass/2 existing skips,84% coverage; frontend, branch-declared and E2E succeeded;
-    Exhaustive skipped by feature policy). The scoped bridge handoff commit4f547f0d9ba89e121d153907853b12886a7db63f has terminal-green exact CI39896546865 (Backend, Frontend Unit, Branch-declared and E2E succeeded; Exhaustive skipped by feature policy). The current uncommitted follow-up expands the same bridge regression to all11 admitted Study output types; its22 focused cases, Ruff and focused MyPy pass, but they are not in that hosted source. Fake Nautilus classes qualify this as Python callback handoff only, not native execution. Full local backend/combined DB/application/browser/strict-visual and exact-pinned RC native execution/settlement gates remain open. All18 original criteria remain open; Provider/issuer HTTP, quota/live, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
-  updated_at: "2026-10-23T04:30:19Z"
+    Exhaustive skipped by feature policy). Exact CI39896546865 on4f547f0d9ba89e121d153907853b12886a7db63f is terminal green for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive was skipped by feature policy. Exact CI39900753635 on94ff90b9d59d4f32dbd368b69ccafeed291950d8 is terminal red only in E2E: 190 passed,110 existing skips, one flaky F8l case, caused by unavailable Request.startTime in the hidden-request observer; its retry passed. Backend, frontend and branch-declared passed; Exhaustive skipped. Root has a separate hidden-refresh proof at331d99b7, but no Strategy branch repair is inferred. The current owned integration test extends real persisted-worker restart hydration through NautilusTrialRuntimeInputMaterializer and decoded runtime contexts for all11 admitted Study types; 11 cases collected and Ruff/format/focused MyPy pass, but the PostgreSQL cases have not run locally. No actual native RC process or authoritative publication is proven. Full local backend/combined DB/application/browser/strict-visual and exact-pinned native execution/settlement gates remain open. All18 original criteria remain open; Provider/issuer HTTP, quota/live, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
+  updated_at: "2026-10-23T05:21:03Z"
   next_action: >-
-    Publish the validated all11-type bridge follow-up with its workstream receipt, then capture its
-    single exact-source CI to terminal. Continue the full roadmap by carrying the same immutable
-    Study reference/output through the assigned exact-pinned Nautilus RC process and production
-    result/settlement path, using only Root-assigned runtime resources. Keep full local
-    backend/combined DB/application/browser/strict-visual gates open and all18 original criteria
-    intact. Preserve exact-scope Nautilus authority and all provider/live/quota/paid/trial/unknown/
-    unsafe/broker/capital/deployment boundaries.
+    Finish bounded validation/workstream closure for the persisted-restart-to-runtime-assembly test,
+    then publish this scoped context and inspect its exact-source CI without weakening or hiding the
+    existing F8l red. Obtain the coordinator's released repair before backmerging shared F8l changes;
+    run the real PostgreSQL integration under the normal assigned/full gate, not by collecting tests.
+    Continue exact-pinned Nautilus RC execution/result settlement only on a Root-assigned runtime
+    slot. Keep full local backend/combined DB/application/browser/strict-visual gates open and all18
+    criteria intact; preserve exact-scope authority and all existing operation holds.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

@@ -17668,3 +17668,29 @@ validate the current uncommitted 22-case extension. That extension remains bound
 test-only evidence pending its own exact-source CI. Full local backend/combined DB,
 application/browser/strict-visual and exact-pinned native execution/result settlement remain open.
 The full 18-criterion roadmap and all operation holds remain unchanged.
+
+## Persisted Study restart through runtime assembly — 2026-10-23 05:21 UTC
+
+The exact CI run `39900753635` for published `94ff90b9d59d4f32dbd368b69ccafeed291950d8`
+is terminal failure, not green: Backend Tests, Frontend Unit Tests, and Branch-declared Tests
+succeeded; Exhaustive Integration Gate was skipped by feature policy; E2E ended with 190 passed,
+110 existing skips, and one flaky F8l case. Its first attempt failed in the browser observation
+helper because `Request.startTime` was unavailable for
+`/api/v1/analysis/benchmark-families/readiness` (`hidden_request_observation.ts:19`); the retry
+passed, but Playwright reported the flaky case and exited1. Artifact `12480675829` retains the report.
+This is a shared F8l observer failure, not evidence of a Study regression or a proven application
+visibility defect. No F8l source was changed here, no retry was requested, and the failure remains
+historical evidence. Root separately held a bounded proof on source `331d99b7`; this Strategy
+workstream does not assume that proof repairs this hosted occurrence until the released source is
+verified.
+
+The new owned integration-test context extends the actual persisted backtest-worker Study restart
+matrix: after a fresh PostgreSQL-backed hydrator reconstructs each admitted output type from
+owner-scoped rows, the production `NautilusTrialRuntimeInputMaterializer` now writes the typed output
+into the runtime component-context stream. The test decodes the content-addressed bundle and checks
+the exact immutable reference/output in the binding and every event context for all11 admitted types,
+then retains the existing persisted-drift denial. Collection found11 cases; only collection, Ruff,
+format and focused MyPy were run locally. The real PostgreSQL test was not launched locally; its
+ordinary integration execution remains required. This proves neither native RC execution nor
+authoritative result publication. The full 18-criterion roadmap and all local/full-stack/native gates
+remain open.

@@ -50,6 +50,7 @@ from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
 from app.strategy_lab_v2.forward_worker_composition import (
     create_authenticated_forward_worker_runtime_input_resolver,
 )
+from app.strategy_lab_v2.nautilus_runtime_bundle import load_materialized_nautilus_runtime_bundle
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_forward_account import (
     PostgresForwardAccountAdapter,
@@ -87,7 +88,11 @@ from app.strategy_lab_v2.trial_hydration import (
     NautilusTrialDomainHydrator,
     TrialDomainHydrationError,
 )
-from strategy_runtime import deserialize_strategy_manifest, serialize_strategy_manifest
+from strategy_runtime import (
+    deserialize_component_invocation_context_stream,
+    deserialize_strategy_manifest,
+    serialize_strategy_manifest,
+)
 
 _NOW = datetime(2026, 10, 22, 4, 0, tzinfo=UTC)
 _STUDY_TABLES: tuple[Table, ...] = (cast(Table, ResearchArtifact.__table__),)
@@ -973,10 +978,12 @@ async def test_reconstructed_backtest_worker_hydrates_each_persisted_study_type(
             .values(artifact_type=study_artifact_type, payload=study_payload)
         )
     reference = await _reference(sessions)
-    graph, _artifacts, _package_resolver, _materializer, _context, _worker_state = _setup(
-        tmp_path / "backtest-study-worker"
+    graph, artifact_store, _package_resolver, materializer, preparation_context, _worker_state = (
+        _setup(tmp_path / "backtest-study-worker")
     )
-    graph = await _strategy_graph_with_reference(graph, reference, sessions)
+    graph = await _strategy_graph_with_reference(
+        graph, reference, sessions, artifact_store=artifact_store
+    )
     adapter, _store = _adapter(sessions, study_database.storage_schema)
     await _persist_graph(adapter, graph, uuid.uuid4().hex)
 
@@ -1001,6 +1008,36 @@ async def test_reconstructed_backtest_worker_hydrates_each_persisted_study_type(
         assert hydrated.study_artifacts == {
             strategy.fingerprint: ResolvedStudyArtifactOutput(reference, study_payload)
         }
+
+        # Reconstruct the worker graph after process restart, then exercise the
+        # real materializer that writes typed Study outputs into the runtime
+        # component-context stream consumed by the isolated bridge.
+        materialized = materializer.materialize(
+            graph=hydrated,
+            market_context=preparation_context.market_context,
+        )
+        bundle = load_materialized_nautilus_runtime_bundle(
+            materialized.assembly.runtime_input_artifact,
+            artifact_store,
+            max_input_bytes=1_000_000,
+        )
+        assert bundle.context_stream is not None
+        context_stream_bytes = artifact_store.read(bundle.context_stream.artifact.storage_key)
+        expected_counts = dict(bundle.context_stream.component_counts)
+        bindings, contexts = deserialize_component_invocation_context_stream(
+            BytesIO(context_stream_bytes),
+            expected_component_counts=expected_counts,
+        )
+        expected_output = ResolvedStudyArtifactOutput(reference, study_payload)
+        (component_id,) = expected_counts
+        assert bindings[component_id].study_artifacts == {reference.artifact_name: expected_output}
+        decoded_contexts = tuple(contexts)
+        assert len(decoded_contexts) == expected_counts[component_id]
+        assert all(
+            decoded_component_id == component_id
+            and decoded_context.study_artifacts == {reference.artifact_name: expected_output}
+            for decoded_component_id, decoded_context in decoded_contexts
+        )
 
         drifted_payload = {**study_payload, "drift_marker": "changed-after-pin"}
         async with fresh_sessions.begin() as session:

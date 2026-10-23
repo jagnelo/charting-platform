@@ -35,7 +35,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
-    "backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py",
+    "backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -73,14 +73,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "4f547f0d9ba89e121d153907853b12886a7db63f",
+  "head": "94ff90b9d59d4f32dbd368b69ccafeed291950d8",
   "implementation_sha": "85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db",
-  "last_checkpoint": "2026-10-23T04:30:19Z",
+  "last_checkpoint": "2026-10-23T05:21:03Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the validated all-11-type bridge handoff follow-up and inspect its single exact-source CI. Continue exact-pinned Nautilus RC process/result settlement only on a Root-assigned runtime slot; retain every full local backend/combined DB/application/browser/strict-visual gate.",
+  "next_action": "Finish bounded validation and publish the persisted-worker-restart-to-runtime-assembly integration test with its workstream receipt; inspect exact-source CI without hiding the existing F8l E2E failure. Continue exact-pinned Nautilus RC execution/result settlement only on a Root-assigned runtime slot; retain all full local/combined DB/application/browser/native gates.",
   "parent_branch": "staging",
-  "plan_hash": "53f89eec2da6fb1f3f47387c703a24880ebc80865b424a847040af39fb8d84d4",
+  "plan_hash": "f783b6334ec46cd7a45ef48e88d79222dbbe06359d281046410074dd80534680",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -110,14 +110,14 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Exact CI39891877125 on published6a60 and exact CI39896546865 on published4f547f0d9ba89e121d153907853b12886a7db63f are terminal green; CI39896546865 passed Backend, Frontend Unit, Branch-declared and E2E, with Exhaustive skipped by feature policy. The current all-11-type bridge matrix has bounded offline evidence only and is not included in that source. Full local backend/combined DB/application/browser/strict-visual gates and exact-pinned Nautilus RC execution/result settlement remain open and require Root-assigned resources.",
-    "current_phase": "full-roadmap-study-context-native-bridge-handoff-v8",
-    "next_action": "Publish the validated all-11-type bridge handoff follow-up and inspect its single exact-source CI. Continue exact-pinned Nautilus RC process/result settlement only on a Root-assigned runtime slot; retain every full local backend/combined DB/application/browser/strict-visual gate.",
+    "current_blocker": "Exact CI39900753635 on published94ff90b9d59d4f32dbd368b69ccafeed291950d8 is terminal failure because E2E reported one flaky F8l observer case (190 passed/110 existing skips; first attempt lacked Request.startTime for the benchmark-families readiness request; retry passed). Backend, Frontend Unit and Branch-declared succeeded; Exhaustive was skipped by feature policy. This branch has a separate in-progress PostgreSQL-backed test extension from persisted worker restart through runtime materialization; it has been collected but not executed against PostgreSQL locally. The F8l proof at331d99b7 is coordinator-owned; no shared repair is imported without its release. Full local/combined DB/application/browser/strict-visual and exact-pinned Nautilus native execution/settlement remain open.",
+    "current_phase": "full-roadmap-persisted-study-runtime-assembly-v9",
+    "next_action": "Finish bounded validation and publish the persisted-worker-restart-to-runtime-assembly integration test with its workstream receipt; inspect exact-source CI without hiding the existing F8l E2E failure. Continue exact-pinned Nautilus RC execution/result settlement only on a Root-assigned runtime slot; retain all full local/combined DB/application/browser/native gates.",
     "total": 5,
-    "updated_at": "2026-10-23T04:30:19Z"
+    "updated_at": "2026-10-23T05:21:03Z"
   },
-  "remote": "4f547f0d9ba89e121d153907853b12886a7db63f",
-  "remote_sha": "4f547f0d9ba89e121d153907853b12886a7db63f",
+  "remote": "94ff90b9d59d4f32dbd368b69ccafeed291950d8",
+  "remote_sha": "94ff90b9d59d4f32dbd368b69ccafeed291950d8",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
