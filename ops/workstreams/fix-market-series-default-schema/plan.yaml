@@ -19,9 +19,11 @@ scope:
   - Extract only Provider implementation commit 2467a50b6a63fc433bd108413eaf260b1ef50ca6 into this green-f04-based repair.
   - Add created_at and updated_at to market_series_default through a new forward Alembic revision; preserve existing rows and all selection metadata.
   - Add PostgreSQL fresh-table and existing-row ORM-read regression coverage and verify the full fresh Alembic chain locally.
+  - Reconcile the existing Strategy migration-history test with the legitimate additive successor: assert the exact new sole head and its exact parent, retaining unique IDs and shared-base ancestry checks.
 owned_paths:
   - backend/alembic/versions/d4a5b6c7e812_add_market_series_default_timestamps.py
   - backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py
+  - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
   - ops/workstreams/fix-market-series-default-schema/
 dependencies:
   - Accepted synchronized staging/master f04fb2a26c6363c6090e76c2658cfcfe7adabf61; canonical green staging39896524209/master39904989064.
@@ -37,6 +39,7 @@ acceptance_criteria:
     text: Focused quality checks, required docker_integration local profile and exact-source branch CI pass; reviewable isolated source and durable closure record are ready for coordinator acceptance, with protected staging/master/deployment gates still independently required.
 branch_tests:
   - uv run --project backend python -m pytest backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py -m integration -q
+  - uv run --project backend python -m pytest backend/app/strategy_lab_v2/tests/test_migration_compatibility.py -q
 branch_tests_reason: The fresh-migration defect needs actual PostgreSQL DDL/ORM regression; static collection or metadata-created tables are not acceptance.
 live_test_impact: No adapter, HTTP, entitlement, quota or data-use contract change. No provider live requests or consumed119-case allowance replay; preserve all holds, consumer assertions and retry policies.
 migration_impact: Additive revision d4a5b6c7e812 after slv2_0011; backfill non-null timestamps through server defaults while retaining selected_at and all existing mapping data. No production ALTER TABLE outside Alembic.
@@ -48,6 +51,6 @@ remaining_gaps:
 progress:
   completed: [MSS1, MSS2, MSS3]
   total: 4
-  current_phase: local PostgreSQL profile passed; publishing isolated candidate
+  current_phase: reconcile exact additive head in migration compatibility regression
   current_blocker: none
-  next_action: Commit and push reviewed candidate/evidence, follow exact branch CI, then preserve all independent staging/master/deployment gates. Retain the original active unbudgeted coordinator goal.
+  next_action: Update the exact-head expectation and add explicit successor-parent assertion, run the complete focused compatibility module, publish separately, and follow final exact CI. No runtime migration changes or gate weakening.

@@ -101,3 +101,27 @@ implementation; its enclosing HEAD/origin equality is verified externally,
 without a self-referential hash loop. No further product source is changed.
 Next: follow that exact implementation run and prepare technical acceptance
 only after its required jobs pass. Staging/master/deployment remain independent.
+
+## Compatibility follow-up context — 2026-10-23 08:36 UTC
+
+Published operational tip16e979cb0f6f316b1695366d0d0447c161aa6897 was verified
+clean and equal to origin before opening this new context. Exact CI39924168252
+failed Backend120316694040:5190passed/1skipped, exactly1failure in
+test_strategy_chain_has_unique_ids_and_preserves_shared_base, expecting old
+sole head slv2_0011 rather than legitimate new d4a5b6c7e812. Frontend passed;
+downstream branch/browser jobs skipped because backend failed. Preserve this
+red result. Earlier39923818426 was automatically superseded/cancelled by the
+operational tip, not a failing test run.
+
+Context owns only backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
+and these own workstream records. Plan adds that path and focused module check.
+Root will retain an EXACT sole-head assertion for d4a5b6c7e812 and explicitly
+assert its parent slv2_0011, preserving all original uniqueness, shared merge,
+legacy-history rejection and ancestry checks. This is expected schema-contract
+reconciliation, not a relaxed oracle or imported later Strategy feature.
+Provider33e62f1 had a related follow-up; Root reviewed it but chooses the stronger
+specific exact-head/parent assertion for this isolated release. No code changed
+yet; commit plan and run plan-ready before implementing this bounded context.
+Original realPG runtime source is unchanged; its evidence remains qualified to
+backend tree1c54d4dc0e1d02dcd2f7f423144efd102794dca9, independently equal in
+the staged tested candidate and implementation3e5ddec.
