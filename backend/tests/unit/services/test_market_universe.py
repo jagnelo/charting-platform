@@ -469,6 +469,124 @@ async def test_otc_missing_counts_distinct_complete_snapshot_dates(db, instrumen
 
 
 @pytest.mark.asyncio
+async def test_nms_union_missing_requires_three_distinct_complete_snapshot_sessions(db, instrument):
+    """Only distinct complete union dates count toward NMS deactivation."""
+
+    source = DataSource(name="cta_plan", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    session = AsyncSessionAdapter(db)
+    exchange = await ensure_exchange(session, "XNAS")
+    listing = InstrumentListing(
+        instrument_id=instrument.id,
+        exchange_id=exchange.id,
+        ticker=instrument.symbol,
+        is_primary=True,
+        is_active=True,
+    )
+    binding = InstrumentProviderSymbol(
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        provider_symbol=instrument.symbol,
+        provider_exchange_code="XNAS",
+        is_primary=True,
+        is_active=True,
+    )
+    db.add_all([listing, binding])
+    db.flush()
+    observed_at = datetime(2026, 9, 3, 21, tzinfo=UTC)
+    observation = MarketUniverseLifecycleObservation(
+        data_source_id=source.id,
+        instrument_id=instrument.id,
+        listing_id=listing.id,
+        provider_symbol=instrument.symbol,
+        exchange_mic="XNAS",
+        quote_type="EQUITY",
+        observed_at=observed_at,
+        present=True,
+        lifecycle_status="active",
+        first_seen_at=observed_at,
+        last_seen_at=observed_at,
+        consecutive_seen=1,
+        consecutive_missing=0,
+        payload={"symbol": instrument.symbol},
+    )
+    db.add(observation)
+    db.flush()
+
+    async def record_complete_union(snapshot_date: str, hour: int = 21):
+        cycle_id = f"fixture-{snapshot_date}-{hour}"
+        run_at = datetime.fromisoformat(f"{snapshot_date}T{hour:02d}:00:00+00:00")
+        run = MarketUniverseReconciliationRun(
+            data_source_id=source.id,
+            quote_type="EQUITY",
+            observed_at=run_at,
+            finished_at=run_at,
+            status="complete",
+            provenance={
+                "provider": "cta_plan",
+                "quote_type": "EQUITY",
+                "snapshot_complete": True,
+                "source_files": ["cta_symbol_file_index", "CTA.Symbol.File.fixture.csv"],
+                "source_snapshot_date": snapshot_date,
+                "absence_scope": "US_NMS",
+                "reconciliation_cycle_id": cycle_id,
+                "nms_union_complete": True,
+                "nms_union_cycle_id": cycle_id,
+                "nms_union_snapshot_date": snapshot_date,
+                "nms_union_provider_runs": {
+                    "cta_plan:EQUITY": 1,
+                    "nasdaq_tape_c:EQUITY": 2,
+                    "nasdaq:ETF": 3,
+                },
+            },
+        )
+        db.add(run)
+        db.flush()
+        await _mark_missing(
+            session,
+            run=run,
+            provider_name="cta_plan",
+            quote_type="EQUITY",
+            active_keys=set(),
+            active_symbol_mics=set(),
+            observed_at=run_at,
+            missing_confirmations=3,
+        )
+        return run
+
+    first = await record_complete_union("2026-09-04")
+    assert observation.consecutive_missing == 1
+    assert observation.lifecycle_status == "missing_pending"
+    assert first.missing_count == 1
+    assert listing.is_active is True
+    assert binding.is_active is True
+
+    duplicate = await record_complete_union("2026-09-04", hour=22)
+    assert duplicate.missing_count == 0
+    assert observation.consecutive_missing == 1
+    assert listing.is_active is True
+    assert binding.is_active is True
+
+    second = await record_complete_union("2026-09-08")
+    assert second.missing_count == 1
+    assert observation.consecutive_missing == 2
+    assert observation.lifecycle_status == "missing_pending"
+    assert listing.is_active is True
+    assert binding.is_active is True
+
+    third = await record_complete_union("2026-09-09")
+    assert third.missing_count == 1
+    assert observation.consecutive_missing == 3
+    assert observation.lifecycle_status == "missing"
+    assert observation.present is False
+    assert listing.is_active is False
+    assert listing.delisted_at is not None
+    assert binding.is_active is False
+    assert binding.retired_at is not None
+
+
+@pytest.mark.asyncio
 async def test_cik_does_not_merge_a_new_symbol_without_security_identifier(db, instrument):
     issuer = Issuer(
         domain_key="cik:0000123456",

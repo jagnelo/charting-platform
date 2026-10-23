@@ -1,5 +1,36 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 06:27Z — NMS distinct-session lifecycle contract
+
+- Current clean/synchronized base before this change was
+  `3d078bc02e0722352cefaf72618c0cf69c765b35`; exact Actions run `39905248908`
+  is green on that base. It already contains the SEC issuer-universe durability
+  fix: each CIK's provider result/failure and resume cursor commit atomically;
+  the file-backed worker-restart regression proves a failed CIK is retried
+  without replaying the preceding committed CIK. The staging adoption is the
+  released `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`.
+- Roadmap review found the unit suite proved OTC distinct snapshot dates and
+  NMS same-session deduplication, but not the NMS complete-union three-session
+  deactivation boundary. Added
+  `test_nms_union_missing_requires_three_distinct_complete_snapshot_sessions`
+  in `backend/tests/unit/services/test_market_universe.py`. It feeds the real
+  `_mark_missing` path synthetic complete CTA/Nasdaq union provenance and
+  seeded XNAS session rules: a same-date rerun is ignored; the first two
+  distinct sessions keep listing/provider binding active; the third records
+  missing state and retires both. No production lifecycle logic or live
+  provider behavior changed.
+- On the working tree based on the exact `3d078bc` source, the entire
+  market-universe unit module plus the SEC failure/restart composition test
+  passed `51/51` (`10.04s`). The four focused NMS union/same-session/incomplete
+  guards passed `4/4`; Ruff check, Ruff format check, and `git diff --check`
+  passed. This test change still needs one coherent publication and
+  exact-source CI; the green `39905248908` receipt does not cover it.
+- Status remains `in_progress`; complete NMS/OTC reconciliation and other full
+  roadmap items remain open. The full functional/strict-visual profile remains
+  held for Root's separately assigned slot. No provider/issuer/SEC HTTP, quota
+  action, build, fixture, retained-service/data change, staging/sibling/master
+  write, deployment, paid/trial activation, or cleanup occurred.
+
 ## 2026-10-23 05:17Z — released f04 staging backmerge
 
 - Adopted the exact canonical green staging source

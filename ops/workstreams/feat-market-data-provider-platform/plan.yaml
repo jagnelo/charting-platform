@@ -1,4 +1,12 @@
 schema: 4
+# 2026-10-23 06:27Z continuation: exact released staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`
+# is already adopted; Provider HEAD `3d078bc02e0722352cefaf72618c0cf69c765b35`
+# is clean/synchronized and exact Actions `39905248908` is green. The SEC
+# per-CIK result/failure plus resume-cursor durability regression is present
+# and green in that source. This continuation adds deterministic NMS lifecycle
+# coverage for three distinct complete union snapshot sessions; production
+# lifecycle code is unchanged. Full roadmap remains open and the full local
+# profile remains held for Root's separate slot.
 # 2026-10-23 05:17Z current source reconciliation: exact green staging
 # `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` (Actions `39896524209`, canonical
 # receipt `20261023T051709Z-f04fb2a26c63.json`) is adopted by Provider merge
@@ -8904,25 +8912,23 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Current branch source `b87860e632c0846bfbd6619c9f40d69ba9f9cb55` is
-    clean and synchronized; exact Actions run `39883122792` is terminal green
-    on that SHA. The SEC issuer-universe scan commits each per-CIK result or
-    failure with its resume cursor. On the current source, all 28 tests in
-    `test_market_event_edgar_scan.py` pass, including the file-backed restart,
-    failed-CIK retry, atomic rollback, concurrent-cursor, and new real-pipeline
-    failure-composition regression; the latter keeps the real SEC refresh and
-    universe scan, mocking only the executor boundary. That test-only working
-    change is not covered by exact-source CI `39883122792` on its parent. Next
-    publish this coherent regression/evidence change and obtain exact-source
-    CI; keep
-    the full original roadmap active and do not treat the SEC increment as
-    overall completion. The full `full_stack_browser` profile remains held
-    until Root completes its `331d99b7` proof/cleanup and explicitly releases
-    the Provider slot. At release, use the separate private plan pinned to the
-    then-current clean source and dynamically discovered full functional and
-    visual selections; retain Noble 1.62.1, read-only DejaVu, one worker, zero
-    retries, unchanged references/masks and 0.005 tolerance, fixture-only
-    resources, and provider/issuer/SEC egress denial. Preserve all existing
-    holds, quotas, retained datasets/services; no provider HTTP, quota
-    mutation, staging/sibling writes, deployment, paid/trial activation, or
+    The published clean base is `3d078bc02e0722352cefaf72618c0cf69c765b35`,
+    which includes released staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`;
+    exact Actions `39905248908` is terminal green for that base. The SEC
+    issuer-universe per-CIK result/failure and resume-cursor transaction is
+    implemented and covered by deterministic file-backed restart/rollback
+    regressions. A new no-network `test_market_universe.py` case now proves
+    that NMS absence requires three distinct complete union snapshot sessions;
+    same-date rereads do not add confirmations, and listing/provider-symbol
+    retirement occurs only at the third distinct session. Its focused unit,
+    adjacent NMS guard tests, full market-universe unit module, and SEC
+    restart-composition test pass locally; this new test is not covered by the
+    green base CI and needs publication plus exact-source CI. Keep the full
+    original roadmap and all holds open. The required full `full_stack_browser`
+    profile remains held for Root's separate slot; at release, use the
+    source-pinned dynamically discovered functional and visual selections,
+    Noble 1.62.1, read-only DejaVu, one worker, zero retries, unchanged
+    references/masks and 0.005 tolerance, fixture-only resources, and
+    provider/issuer/SEC egress denial. No provider HTTP, quota mutation,
+    staging/sibling/master write, deployment, paid/trial activation, or
     retained-resource cleanup.
