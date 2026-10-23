@@ -35,17 +35,16 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Published candidate c5da52934224570539ac72dbd120e1cfa7bde97a exact branch CI39877709985 is RED only at F8y Tag Columns after successful membership POST; retry also failed. An unpublished source repair uses liveToolConfiguration for selection publication, with affected suites 104/104 and typecheck green; it awaits exact CI and Root's full local browser slot.",
+  "current_candidate_ci_status": "Current published base 404fe6d29312999e93930a4b89c27a68430d6d48 matches origin. Exact CI39883137995 is still running E2E; Frontend, Backend, and Branch-declared are green, Exhaustive is skipped. New unpublished Favorites store/test change fixes stale in-flight GET responses after successful add/remove; focused suites pass99/99 and Vue type-check passes.",
   "current_exact_ci": {
-    "conclusion": "failure",
-    "head_sha": "c5da52934224570539ac72dbd120e1cfa7bde97a",
-    "status": "Exact branch CI39877709985 failed only at F8y Tag Columns: target WatchList POST succeeded but returning to the target list rendered XLE without its configured In cell; the existing retry also failed. The working-tree fix and focused tests/typecheck are not published or CI-validated.",
-    "visuals": "F8y real parent-host-to-mutation browser proof remains pending Root's one-at-a-time full local fixture slot. Staging visuals and historical source-qualified visuals are not rebound to this TC candidate."
+    "conclusion": "in_progress",
+    "head_sha": "404fe6d29312999e93930a4b89c27a68430d6d48",
+    "status": "Exact branch CI39883137995 has Frontend, Backend, and Branch-declared green; its Playwright E2E step remains in progress and Exhaustive Integration Gate is skipped. This run does not include the unpublished Favorites race fix.",
+    "visuals": "The run's hosted E2E does not cover strict104 screenshot parity. F8y local parent-host proof and the full local profile remain pending Root's slot. Root owns the separate F8l observer repair; no sibling code imported."
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/lib/workstation/tagColumns.ts",
-    "frontend/tests/unit/components/test_workstation_tool_content_tag_columns.test.ts",
+    "frontend/src/stores/favorites.ts",
+    "frontend/tests/unit/stores/test_favorites_store.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -130,7 +129,7 @@
   "goal_request_state": "ready",
   "goal_state": "usageLimited",
   "goal_unavailable_reason": null,
-  "head": "c5da52934224570539ac72dbd120e1cfa7bde97a",
+  "head": "404fe6d29312999e93930a4b89c27a68430d6d48",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -161,7 +160,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish the focused F8y stale-configuration repair with baseline-red, affected-unit, typecheck and exact one-case Playwright collection evidence; inspect exact branch CI. Wait for Root's one-at-a-time slot before any local fixture/browser profile. Proposed recipe: TC-owned disposable project pinned to the final repair SHA, pinned Noble/Playwright 1.62.1, one worker/zero retries, browser1536MiB/2CPU, strict104 at unchanged0.005 refs/masks/no host DejaVu, full unchanged functional, internal-only backend/worker, provider/live/paid operations off, isolated generated state. Bind project IDs/ports/service caps from Root's slot receipt. Preserve assigned services/data/holds/15190 and full AC1-AC9/V25 roadmap.",
+  "next_action": "Complete coherent review/publication of the Favorites in-flight load/mutation race fix and records, then inspect its exact-source CI. Do not start any local fixture/browser/build while Root owns the slot. Preserve F8y parent-runtime/full-profile gates, F8l ownership, all assertions/references/masks/tolerances/zero-retry policy, full AC1-AC9/V25 roadmap, provider/live holds, retained services and data.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -174,7 +173,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "1cabe87ebd65d7466b63231131f094e644d28b10faa215d2a5b97f27f408626f",
+  "plan_hash": "c04dcf3c808a05315d527e20b98d05539c0402bd1c2ce1dff8102d30d8bc645d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -194,28 +193,28 @@
       "TCP4",
       "TCP5"
     ],
-    "current_blocker": "Published candidate c5da52934224570539ac72dbd120e1cfa7bde97a exact CI39877709985 is red only at F8y Tag Columns after successful target POST; returning to target rendered XLE without In, and retry failed. Source-binding regression identified stale props.tool.configuration selection publication. The working-tree repair uses liveToolConfiguration and focused checks pass, but source is unpublished; browser profile waits Root's slot.",
-    "current_phase": "4687_adopted_c5da;exact_CI39877709985_F8y_red;stale-config-fix-unpublished_104_affected_tests_typecheck_and_collection_green;full_profile_wait_root_slot;roadmap_and_V25_open",
-    "next_action": "Publish the narrow F8y stale-configuration repair with honest baseline-red/green focused evidence and inspect exact branch CI. Do not start local browser/Compose before Root releases the one-at-a-time slot; retain full assertions, references, thresholds, data and roadmap.",
+    "current_blocker": "Exact CI39883137995 for published 404fe remains in E2E; other mandatory branch jobs are green and the exhaustive gate is skipped. The current Favorites change is unpublished: deferred tests showed stale /favorites GET success/error can overwrite the result of a successful add/remove. Focused store+WatchList suites are 99/99 and Vue type-check passes; Root's local fixture slot remains occupied.",
+    "current_phase": "4687_adopted;404fe_CI39883137995_E2E_in_progress;Favorites_stale_load_race_fix_99_tests_and_typecheck_green_pending_publication;F8y_local_runtime_pending_Root;F8l_repair_owned_by_Root;full_AC1_AC9_and_official_REF_HELP_V25_open",
+    "next_action": "Finish scope/workstream review and publish the coherent Favorites store race fix with its exact focused evidence; obtain exact-source CI after publication. Keep local browser/profile gated on Root's slot.",
     "total": 5,
-    "updated_at": "2026-10-23T01:16:06Z"
+    "updated_at": "2026-10-23T02:00:10Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "c5da52934224570539ac72dbd120e1cfa7bde97a",
-    "current_pending_range": "The published c5da candidate is clean and synchronized with origin; its exact CI39877709985 is red at F8y Tag Columns. The new uncommitted source/test/record repair is focused-green and awaits coherent publication. Parent-event browser proof remains pending the Root-assigned full local slot.",
+    "current_local_head": "404fe6d29312999e93930a4b89c27a68430d6d48",
+    "current_pending_range": "Origin matches published base404fe. Current worktree has the uncommitted Favorites store/test fix and its workstream records; exact branch CI39883137995 is still running against 404fe. No current change has been pushed.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "c5da52934224570539ac72dbd120e1cfa7bde97a",
-    "status": "Origin matched c5da before this working-tree repair. The narrow fix is not yet published; no browser runtime or parent-event acceptance is claimed."
+    "remote_tracking_sha": "404fe6d29312999e93930a4b89c27a68430d6d48",
+    "status": "Local HEAD and feature remote match at404fe. Favorites source/test/record changes remain uncommitted and require exact-source CI after coherent publication; no local runtime or strict visual acceptance is claimed."
   },
-  "remote": "c5da52934224570539ac72dbd120e1cfa7bde97a",
-  "remote_sha": "c5da52934224570539ac72dbd120e1cfa7bde97a",
+  "remote": "404fe6d29312999e93930a4b89c27a68430d6d48",
+  "remote_sha": "404fe6d29312999e93930a4b89c27a68430d6d48",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

@@ -54,6 +54,65 @@ describe('useFavoritesStore', () => {
     expect(api.delete).toHaveBeenCalledWith('/favorites/instruments/17')
   })
 
+  it('does not let a stale in-flight load erase a successful favorite addition', async () => {
+    let resolveLoad!: (rows: typeof favorite[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise(resolve => {
+      resolveLoad = resolve
+    }))
+    ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
+
+    const store = useFavoritesStore()
+    const load = store.load()
+    expect(store.loading).toBe(true)
+
+    await expect(store.add(17)).resolves.toEqual(favorite)
+    resolveLoad([])
+    await load
+
+    expect(store.favorites).toEqual([favorite])
+    expect(store.isFavorite(17)).toBe(true)
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
+  })
+
+  it('does not let a stale in-flight load restore a successfully removed favorite', async () => {
+    let resolveLoad!: (rows: typeof favorite[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise(resolve => {
+      resolveLoad = resolve
+    }))
+    ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
+
+    const store = useFavoritesStore()
+    const load = store.load()
+    await expect(store.remove(17)).resolves.toBe(true)
+    resolveLoad([favorite])
+    await load
+
+    expect(store.favorites).toEqual([])
+    expect(store.isFavorite(17)).toBe(false)
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
+  })
+
+  it('does not surface a stale load error after a favorite mutation succeeds', async () => {
+    let rejectLoad!: (cause: Error) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise((_resolve, reject) => {
+      rejectLoad = reject
+    }))
+    ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
+
+    const store = useFavoritesStore()
+    const load = store.load()
+    await expect(store.add(17)).resolves.toEqual(favorite)
+    rejectLoad(new Error('stale load failed'))
+    await load
+
+    expect(store.error).toBe('')
+    expect(store.favorites).toEqual([favorite])
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
+  })
+
   it('does not issue requests for invalid instrument identities', async () => {
     const store = useFavoritesStore()
     await expect(store.add(0)).resolves.toBeNull()

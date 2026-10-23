@@ -60,36 +60,46 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  TC merge commit f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d adopts the exact
-  coordinator-accepted GREEN combined staging release
-  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad (CI39866387942 attempt 1; canonical
-  receipt 20261023T000222Z-4687bd0cd21a.json). The adoption is a clean merge
-  from the prior TC source 4a88aaf8388b72f1b3eb22b21b2f50312bf12500; no
-  conflicts occurred. The exact 4687 frozen-import manifest repins all 858
-  previously frozen paths and includes the six newly changed non-TC-owned
-  files; the two changed Market Map paths remain under their existing narrow
-  TC shared-path exceptions. This is branch reconciliation, not broader
-  feature acceptance. The ordinary-click F8y Tag Column parent-event test is
-  present in the TC source and collected earlier, but its positive/negative
-  real parent-host-to-mutation browser proof has NOT run and remains pending
-  the Root-assigned full local fixture slot. Keep the existing assertions,
-  exact 70% function-coverage threshold, and all screenshot rules unchanged.
-  The exact TC branch CI39877709985 for published c5da is RED only at F8y
-  Tag Columns: after the target WatchList POST succeeded, switching back
-  rendered XLE without its configured membership cell; the built-in retry
-  also failed. Source review found selection publication spreads the
-  potentially stale props.tool.configuration even though Tag Column
-  rendering reads liveToolConfiguration. A new focused source-binding test
-  failed against that stale binding (1 failed/8 passed); the working-tree
-  repair emits watchlist_id over the live canonical configuration. The
-  affected suites now pass104/104 and vue-tsc --noEmit exits0. The repair is
-  unpublished and exact CI remains pending; these tests are not real parent
-  browser proof. The 570c full frontend coverage/build results remain historical
-  exact-source evidence and are not rebound to this merged candidate. The prior
-  accepted 0e release remains an ancestor, superseded for latest adoption by
-  4687. Full AC1–AC9, official REF-HELP-V25 parity, broader feature acceptance,
-  and any deployment or live-provider operations remain open/disabled.
+  The branch contains accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+  at merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d; earlier accepted
+  0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Current
+  published HEAD 404fe6d29312999e93930a4b89c27a68430d6d48 matches the feature
+  ref. Its exact CI39883137995 is still running the E2E job; Frontend, Backend
+  and Branch-declared jobs are green, and the exhaustive gate is skipped. That
+  run tests 404fe, not the current unpublished change.
+
+  A concrete TC-owned Favorites race is being repaired: a successful add or
+  remove could be overwritten by an older in-flight /favorites GET, and a stale
+  failed GET could report an obsolete error after a mutation succeeded. Deferred
+  regressions produced baseline red (1 failed/3 passed) for stale-row loss and
+  intermediate red (1 failed/5 passed) for stale-error publication. Successful
+  add/remove now invalidate pending-load generations and stale load errors are
+  ignored. The affected Favorites store plus WatchList component suites pass
+  99/99, Vue type-check passes, and diff-check is clean. This is unit/type
+  evidence only; current change is unpublished and has no exact-source CI.
+
+  The F8y ordinary-click parent-host-to-mutation browser proof and full local
+  profile remain pending Root's single-owner fixture slot. Root separately owns
+  the F8l request-timing observer repair; no source from that worktree was
+  imported. Preserve all assertions, the 70% function-coverage threshold,
+  screenshot references/masks/0.005 tolerance and zero-retry policy. Full
+  AC1–AC9 and official REF-HELP-V25 parity remain open; provider/live/paid
+  operations, deployment and promotion remain disabled/unperformed.
 current_checkpoint_status: >-
+  Current continuation at 2026-10-23: published feature HEAD
+  404fe6d29312999e93930a4b89c27a68430d6d48 contains accepted staging 4687,
+  with earlier accepted 0e already an ancestor. Exact CI39883137995 remains
+  active at E2E; Frontend, Backend, and Branch-declared are green, while the
+  exhaustive job is skipped. The current Favorites working-tree change prevents
+  stale in-flight /favorites GET success/errors from overriding completed
+  mutations; focused affected suites pass99/99 and Vue type-check passes. This
+  new source change is unpublished and not included in CI398831. The full local
+  browser slot remains held by Root, who separately owns F8l; no sibling patch
+  was imported. Full AC1–AC9 and official REF-HELP-V25 remain open.
+
+  The following F8y source details describe the pre-404fe history; latest
+  publication and CI state is stated above and in current_blocker.
+
   The current TC source merges the coordinator-accepted GREEN staging release
   4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad at branch merge commit
   f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d. Canonical receipt
@@ -1264,15 +1274,15 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "4687_green_staging_adopted_c5da;exact_branch_CI39877709985_F8y_tag_cell_red;live-config-selection-fix-unpublished_104_affected_tests_typecheck_and_collection_green;parent-runtime-and-full-profile-wait_root_slot;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "4687_adopted;404fe_exact_CI39883137995_E2E_in_progress_after_frontend_backend_declared_green;Favorites_inflight_load_mutation_race_fix_focused_99_typecheck_green_pending_publication_and_exact_CI;F8y_local_parent_runtime_slot_pending_Root;F8l_observer_fix_owned_by_Root;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Publish the narrow stale-configuration repair with its baseline-red,
-    affected-unit, typecheck and F8y collection evidence, then inspect exact
-    branch CI. Keep the real parent-host-to-mutation browser proof and complete
-    functional plus strict104 local profile pending Root's one-at-a-time slot.
-    Preserve the 70% threshold, all assertions/references/masks/tolerance, full
-    AC1–AC9, official REF-HELP-V25 gap, provider/live holds, assigned services
-    and data; do not start heavy work before slot release.
+    Finish the Favorites load/mutation race changeset with the exact 99/99
+    focused suites, Vue type-check and scope/workstream checks, then publish
+    source and its coherent record once and inspect exact-source branch CI.
+    Continue the F8y parent-host browser proof and strict full profile only when
+    Root releases the one-at-a-time slot. Preserve all original assertions,
+    thresholds, references/masks/tolerance, full AC1–AC9, official REF-HELP-V25,
+    provider/live holds, assigned services and data.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:

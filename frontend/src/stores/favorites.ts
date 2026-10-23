@@ -11,6 +11,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
   let loadGeneration = 0
   const pendingAdds = new Map<number, Promise<FavoriteInstrument | null>>()
 
+  function invalidatePendingLoad(): void {
+    loadGeneration += 1
+    loading.value = false
+  }
+
   async function load(): Promise<void> {
     if (loading.value || loaded.value) return
     loading.value = true
@@ -22,7 +27,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
       favorites.value = [...(rows ?? [])].sort((a, b) => a.position - b.position || a.id - b.id)
       loaded.value = true
     } catch (cause) {
-      error.value = cause instanceof Error ? cause.message : 'Unable to load My Favorites'
+      if (generation === loadGeneration) {
+        error.value = cause instanceof Error ? cause.message : 'Unable to load My Favorites'
+      }
     } finally {
       if (generation === loadGeneration) loading.value = false
     }
@@ -38,6 +45,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       error.value = ''
       try {
         const favorite = await api.put<FavoriteInstrument>(`/favorites/instruments/${instrumentId}`, {})
+        invalidatePendingLoad()
         favorites.value = [...favorites.value.filter(item => item.instrument_id !== instrumentId), favorite]
           .sort((a, b) => a.position - b.position || a.id - b.id)
         loaded.value = true
@@ -60,6 +68,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     error.value = ''
     try {
       await api.delete(`/favorites/instruments/${instrumentId}`)
+      invalidatePendingLoad()
       favorites.value = favorites.value.filter(item => item.instrument_id !== instrumentId)
       loaded.value = true
       return true
