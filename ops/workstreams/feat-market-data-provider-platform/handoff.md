@@ -15,7 +15,8 @@ which uses isolated disposable schemas to exercise an empty legacy-to-repair
 upgrade and an existing-row upgrade, reading rows through the actual ORM and
 asserting selection metadata/provenance are preserved.
 
-The exact separable implementation commit is `2467a50b6` (two source/test
+The exact separable implementation commit is
+`2467a50b6a63fc433bd108413eaf260b1ef50ca6` (two source/test
 paths only). Static/local evidence on its source: Alembic resolves one head,
 `d4a5b6c7e812`; Ruff check/format pass; the unchanged historical SQLite
 migration test passes 1/1; and the PostgreSQL integration test collects 1/1.

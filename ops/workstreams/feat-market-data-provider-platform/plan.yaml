@@ -3,7 +3,7 @@ schema: 4
 # chart warm-up exposed that `market_series_default` lacks the two columns
 # required by `TimestampMixin`. Additive successor revision
 # `d4a5b6c7e812` and a PostgreSQL fresh/upgrade preservation regression are in
-# isolated source/test commit `2467a50b6`. Ruff, migration-head resolution,
+# isolated source/test commit `2467a50b6a63fc433bd108413eaf260b1ef50ca6`. Ruff, migration-head resolution,
 # integration-test collection, and the unchanged historical migration unit
 # test pass. The PostgreSQL integration test has NOT yet run; it awaits the
 # coordinator's bounded Docker resource grant. Current branch CI/full-profile
