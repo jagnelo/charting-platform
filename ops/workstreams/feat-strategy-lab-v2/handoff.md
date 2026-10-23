@@ -18579,3 +18579,76 @@ venue commits, inspector/pin-preview commits, Research-result navigation, or the
 link gate. Publish the coherent accumulated branch source once and inspect its exact-tip CI; do not
 rerun or cancel the parent run. Full local `full_stack_browser`, combined PostgreSQL/worker recovery,
 strict-visual, exact-pinned native qualification, and the original 18-criterion roadmap remain open.
+
+### First-human inspector checkpoint: exact gates and acceptance route — 2026-10-23 18:15 UTC
+
+The exact published Strategy tip is `8cd6440dec803364d34f982c8bb69878e818c87b`, clean and
+synchronized with `origin/feat/strategy-lab-v2` at this observation. Its push CI is run
+`40000884411` on that exact SHA. Frontend Unit Tests are green; Backend Tests remain in progress
+and the run has no terminal conclusion yet. The preceding parent run `39992653172` is terminal
+green only for `64d3b12e11118593535b02e8e8a06dd1f263ffdf`; it is not evidence for this tip. Do not
+cancel, rerun or replace either run. No unchanged 72-test focused Vitest replay or local fixture is
+needed while exact CI is active.
+
+Root's next local qualification for this first-user checkpoint is the canonical
+`make validate-integration INTEGRATION_BRANCH=feat/strategy-lab-v2` profile from this exact clean
+tip, once the one-at-a-time host slot is assigned. This repository gate runs workstream/dependency
+and migration checks, backend coverage, frontend tests/build, Compose contract, then the branch-
+scoped application stack, worker probes, functional Playwright, strict visual Playwright and
+declared branch tests. Preserve the existing full test inventory, source-specific database and
+worker assertions, pinned Playwright `v1.62.1-noble`, visual references/masks/tolerances, and zero
+browser retries. Use Root's bounded private runner/resource caps and exact owned project/fixture
+cleanup; serialize the profile (do not overlap another heavy backend/browser/build run), keep
+provider HTTP and quota work disabled, and preserve retained services/datasets. This handoff does
+not authorize launching it or establish a numeric host-capacity threshold; Root must release the
+slot and its exact fixture recipe. The backend's exact-source CI is still running, so no local
+replay is requested now.
+
+Normal-user positive path, on a branch build containing all four prerequisites (not deployed
+`a6b9`): sign in as a non-admin owner, open Research results, select an already completed/evaluated
+run with `output_contract=study`, and use the visible “Inspect in Strategy Lab v2” link on a
+supported output. The route is `/legacy/strategy-lab-v2?researchRunId=<run>&artifactId=<artifact>`;
+it calls only authenticated `GET /api/v1/strategy-lab/v2/study-artifact-references/{run_id}/{artifact_id}`.
+The inspector displays the exact owner-scoped run, CodeAsset/CodeVersion, output identity and
+immutable digests, with no create/dispatch control; it states that generic Study output is not
+native execution evidence. Automated acceptance must retain the positive persisted-row readback
+and reject malformed/repeated route IDs before GET, plus foreign-owner, nonterminal/unevaluated,
+missing/ambiguous/unsupported output, identity mismatch and run/code/dataset/artifact digest drift
+through the registered API and PostgreSQL test. All denials remain read-only (no POST, dispatch,
+provider call or quota change). The existing UI/API prerequisite SHAs and accepted-target boundary
+are listed above; do not treat a6b9 as having this route or mutate the target for this check.
+
+After run `40000884411` reaches terminal, record its exact result and then hand Root this exact
+command/profile and acceptance procedure for slot scheduling. Keep the full 18-criterion roadmap,
+combined PostgreSQL/restart/runtime, full-stack/browser/strict-visual and native qualification
+gates open; this is a bounded first-human inspector qualification, not topic completion.
+
+#### Exact-run progress — 2026-10-23 18:23 UTC
+
+The same run remains active on `8cd6440dec803364d34f982c8bb69878e818c87b`. Backend Tests completed
+successfully; Branch-declared Tests and E2E Playwright are running. Exhaustive Integration Gate is
+skipped under feature-branch policy. This is an interim observation only; retain the final exact-run
+receipt when terminal. No source or test changes, local profile, fixture, or rerun was started.
+
+At 18:27 UTC the same run remains active. Frontend Unit Tests, Backend Tests, and Branch-declared
+Tests are all successful; E2E Playwright is executing its Playwright test step. The feature-branch
+Exhaustive Integration Gate remains skipped by policy. This advances the prior 18:23 observation;
+no rerun or local fixture was started.
+
+Workflow inspection confirms the E2E job has a 45-minute job timeout; its Playwright step began at
+18:22:57 UTC and was still active at 18:37 UTC. This is a bounded live CI wait, not a test failure
+or a reason to rerun. Local full-profile slot requirements and the acceptance procedure above are
+unchanged.
+
+### Exact-source CI terminal receipt — 2026-10-23 18:46 UTC
+
+Run `40000884411` is terminal green for exact source
+`8cd6440dec803364d34f982c8bb69878e818c87b` (attempt 1). Backend Tests, Frontend Unit Tests,
+Branch-declared Tests and E2E Playwright succeeded; the Exhaustive Integration Gate was skipped by
+feature-branch policy. The preceding in-progress observations above are preserved as historical
+state, not failures. No local fixture or rerun was started. The remote `staging` and `master` refs
+were independently verified at the accepted green release
+`a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`; this branch does not yet contain that release. The
+next action is to reconcile that exact baseline into this branch, preserve the read-only inspector
+work and full roadmap, then validate the resulting merged source on its own exact CI. This receipt
+does not close the full Strategy Lab v2 roadmap or authorize a heavy local profile.
