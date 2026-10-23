@@ -42,6 +42,7 @@ from app.strategy_lab_v2.contracts import (
     StrategyVersion,
 )
 from app.strategy_lab_v2.forward_account import ForwardAccountState
+from app.strategy_lab_v2.forward_context import ForwardStrategyContextWindow
 from app.strategy_lab_v2.forward_execution_plan import (
     ForwardComponentExecutionPlan,
     ForwardExecutionPlan,
@@ -50,6 +51,9 @@ from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
 from app.strategy_lab_v2.forward_worker_composition import (
     create_authenticated_forward_worker_runtime_input_resolver,
 )
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
+from app.strategy_lab_v2.nautilus_forward_input import VerifiedForwardMarketPayload
+from app.strategy_lab_v2.nautilus_forward_session import ResolvedForwardExecutionPlanRecipeResolver
 from app.strategy_lab_v2.nautilus_runtime_bundle import load_materialized_nautilus_runtime_bundle
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
 from app.strategy_lab_v2.postgres_forward_account import (
@@ -65,6 +69,7 @@ from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore, Postgre
 from app.strategy_lab_v2.provider_capability_host import CAPABILITY_SCOPE_CONFIG_ENV
 from app.strategy_lab_v2.provider_preflight import ProviderLocalCapabilityEvidenceReader
 from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
+from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.search_dispatch_rpc import (
     STRATEGY_LAB_V2_ARTIFACT_ROOT_ENV,
     WALK_FORWARD_CALENDAR_FACTORY_ENV,
@@ -1221,6 +1226,45 @@ async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
                 study_payload,
             )
         }
+
+        recipe_resolver = ResolvedForwardExecutionPlanRecipeResolver(
+            resolved.execution_plan,
+            component_id=graph.portfolio.components[0].component_id,
+            principal="1",
+        )
+        recipe = recipe_resolver(principal="1", instance=instance)
+        assert recipe.study_artifacts == component.study_artifacts
+        forward_window = ForwardStrategyContextWindow(
+            instance.instance_id,
+            recipe.manifest,
+            parameters=recipe.parameters,
+            random_seed=recipe.random_seed,
+            study_artifacts=recipe.study_artifacts,
+        )
+        dependency = recipe.manifest.data_dependencies[0]
+        event_time = dependency.requirement.start + timedelta(seconds=1)
+        event_id = f"forward-study-after-restart-{suffix}"
+        source_digest = content_digest({"forward-study-source": suffix})
+        canonical_event = CanonicalForwardEvent(
+            event_id,
+            1,
+            event_time,
+            event_time + timedelta(milliseconds=1),
+            source_digest,
+        )
+        market_event = MarketEvent(
+            dependency.dependency_id,
+            event_id,
+            dependency.requirement.instrument_id,
+            event_time,
+            1,
+            {field: 1 for field in dependency.fields},
+        )
+        forward_context = forward_window.append(
+            VerifiedForwardMarketPayload(canonical_event, market_event, source_digest),
+            instance_id=instance.instance_id,
+        )
+        assert forward_context.study_artifacts == component.study_artifacts
 
         with pytest.raises(
             ValueError,

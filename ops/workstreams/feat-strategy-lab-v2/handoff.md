@@ -17761,3 +17761,30 @@ repair baseline, not product acceptance. All18 roadmap criteria, the exact
 native-execution/settlement requirement, disabled provider/quota/paid/trial/
 unsafe/broker/capital scopes, and full local/combined DB/application/browser/
 strict-visual gates remain open.
+
+## Forward Study restart-to-context seam — 2026-10-23 06:45 UTC
+
+The decoder correction and the preceding backtest materializer integration case are already
+published at `45b946658b91477493c0172e3a7a71cf3bb7180c`. I independently checked exact push CI
+`39908472662`: Backend, Frontend Unit, Branch-declared Tests and E2E Playwright are green; Exhaustive
+Integration Gate is skipped under feature-branch policy. Hosted backend ran `5,271` unit cases with
+one existing skip and `530` integration cases with two existing skips at `84%` combined coverage;
+E2E passed `191` with `110` existing skips and no retries/flakes. This run exercised the published
+backtest worker materializer matrix and forward resolver/restart cases. It does not cover the new
+unpublished assertion below.
+
+The current bounded test-only change connects the freshly PostgreSQL-reconstructed forward plan to
+`ResolvedForwardExecutionPlanRecipeResolver`, constructs the production `ForwardStrategyContextWindow`
+from that recipe, and confirms the exact owner-resolved immutable Study output survives into a
+forward event context. It adds no production behavior and does not infer native Nautilus execution.
+Local evidence on the work-in-progress: the existing pure Study context regression passed `1/1`;
+the PostgreSQL module collected `53` cases without running their bodies; Ruff check, Ruff format and
+`git diff --check` pass. No local database/Compose/browser/native/provider operation ran. The
+changed PostgreSQL body awaits exact hosted CI or a coordinator-assigned local DB slot.
+
+The old CI `39905794221` red decoder failure remains preserved above and in the append-only
+validation journal; it is superseded only by the green corrected source, not erased. Exact staging
+f04 adoption is already in this branch history and remains common-repair baseline only. The full
+18-criterion roadmap, exact-pinned native execution/settlement, Exhaustive and assigned full local
+backend/combined DB/application/browser/strict-visual gates remain open. Provider/live/quota/
+paid/trial/unknown/unsafe/broker/capital and deployment holds remain unchanged.

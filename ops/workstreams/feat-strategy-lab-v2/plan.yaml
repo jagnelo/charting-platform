@@ -696,28 +696,25 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-study-materializer-stream-decoder-correction-v11
+  current_phase: full-roadmap-study-forward-restart-context-binding-v1
   current_blocker: >-
-    Exact-source CI39905794221 on published061e94c620acd7c6e8f561e61e728d9064450243 is terminal
-    red: Backend failed with11 parameterized PostgreSQL integration failures in the new Study
-    worker-materializer test; Frontend passed; Exhaustive, Branch-declared, and E2E were skipped or
-    not run. All11 failures share a test decoder mismatch: the production single-component
-    materializer emits the standard invocation-context stream, while the test selected the
-    multi-component decoder. The dirty test-only correction now uses
-    deserialize_invocation_context_stream, checks the single-component bundle shape, manifest
-    reference, expected context count, and exact typed output in every decoded context. Focused
-    assembly tests pass11/11, PostgreSQL collection finds53 cases, focused MyPy/Ruff/format/diff
-    checks pass; no PostgreSQL body ran locally. Preserve CI39905794221 and prior CI39900753635 as
-    history. F04 is a common repair baseline, not product acceptance. Full local backend/combined
+    Published source45b946658b91477493c0172e3a7a71cf3bb7180c exact CI39908472662 is terminal green
+    for Backend, Frontend, Branch-declared and E2E; Exhaustive is skipped by feature policy. That
+    source corrects the single-component materializer stream decoder and its hosted PostgreSQL
+    backtest worker materialization matrix passed. The exact released f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+    is already merged into this branch; it remains a shared repair baseline, not product acceptance.
+    Current uncommitted test-only work connects the restarted PostgreSQL-resolved forward plan to
+    the production plan-recipe and context-window path. Its related stack-free Study context test
+    passed1/1, the PostgreSQL module collects53 cases without running bodies, and Ruff/diff checks
+    pass. The changed database case has not run locally. Full local backend/combined
     DB/application/browser/strict-visual and exact-pinned native execution/settlement gates remain
-    open. All18 criteria and all operation holds remain intact.
-  updated_at: "2026-10-23T05:53:18Z"
+    open and require assigned slots. All18 roadmap criteria and operation holds remain intact.
+  updated_at: "2026-10-23T06:44:21Z"
   next_action: >-
-    Finish focused correction/workstream validation and publish the corrected integration test with
-    its coherent evidence; inspect the single exact-source push CI without replaying the failed run.
-    Run the PostgreSQL test body only in an assigned slot, then continue exact-pinned Nautilus RC
-    execution/result settlement only on a Root-assigned runtime slot. Keep full local backend,
-    combined DB/application/browser/strict-visual gates open and all18 criteria intact; preserve
+    Finish this narrow forward restart-to-context regression and its owned workstream record, then
+    publish the coherent changeset and inspect its exact-source CI once. Do not run the PostgreSQL
+    body or any full local profile without an assigned slot. Continue the full roadmap afterward;
+    exact-pinned Nautilus execution/settlement and all combined local gates remain open. Preserve
     exact-scope authority and every existing operation hold.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
@@ -1634,52 +1631,22 @@ roadmap_progress_history:
       - backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
     status: in_progress
   current_blocker: >-
-    Released common staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 is already in this Strategy
-    branch's merge history; it is not product-checkpoint acceptance. The owner-scoped Study resolver, hydration
-    graph, immutable typed output wrapper, forward context stream and native worker seeder now bind
-    exact selected artifact references and payload digests; legacy no-reference fingerprints remain
-    preserved. Published dd0a704b988ffbfb2ea7143e42abbf41105336f0 contains the production
-    forward-runtime propagation and a real PostgreSQL fresh-session restart regression. Its exact
-    CI39882200073 is terminal green and superseded. Local commit72a4c605b010e608446a6d5d0a6433fd4cceae26 adds native worker seed reconstruction
-    evidence; local commit ae03ee943498822eca1596326468a665d66e0d51 adds typed scalar/range/table/events
-    invocation round-trips, and the working diff extends all 11 resolver-admitted artifact types
-    through the worker component context stream. Published source is
-    9236eecbd545ccc1d9216bfe95a36a7d13bba027. Exact CI39886544570 has Frontend Unit, Backend, and
-    Branch-declared jobs green; Playwright is in progress and Exhaustive is skipped by feature-branch
-    policy. Later published source061e94c620acd7c6e8f561e61e728d9064450243 has terminal red exact
-    CI39905794221 (Backend failed, Frontend passed;11 PostgreSQL integration parameter cases share
-    a test decoder mismatch). The dirty correction now selects the standard invocation-context
-    decoder emitted by the actual one-component production materializer and asserts manifest pin,
-    context count, and typed output. Focused assembly tests pass11/11, integration collection finds53
-    cases, and focused MyPy/Ruff/format/diff checks pass. No PostgreSQL test body has run locally.
-    This supersedes the older published-source CI status above. The
-    PostgreSQL test body has not run
-    locally because no DB slot is assigned. Full local backend/combined DB/application/browser/strict-
-    visual/native gates remain open and require coordinator-assigned slots. In addition to the
-    worker-stream matrix, the backtest runtime-bundle/materialized-context path now passes the same
-    11 admitted Study artifact types. The real PostgreSQL fresh-session worker-reconstruction test
-    is now parameterized across those same 11 types, but its body has not run locally; collection,
-    focused MyPy, Ruff and formatting pass. A stack-free invocation/runtime regression also proves
-    strategy code can compare the exact immutable typed output value for all 11 admitted artifact
-    types after wire decoding. The existing hydration resolver regression now uses the actual TC
-    producer contract (artifact name `study.output`, `output_contract: study`, canonical SHA-256
-    run digest, and typed payload) and verifies exact hydrated outputs for all 11 admitted types;
-    the missing-trusted-resolver denial remains asserted. Its focused 12 cases pass, with focused
-    MyPy, Ruff, formatting and diff checks. Historical failures,
-    including CI39856591934 and CI39874448939, remain in the append-only journal/handoff; generic
-    Study output is not native execution evidence. Provider/issuer HTTP, quota, live, paid/trial,
-    unknown/unsafe, broker/capital and deployment scopes remain disabled.
+    The complete typed Study payload binding and persisted backtest/forward worker reconstruction
+    source is published at45b946658b91477493c0172e3a7a71cf3bb7180c; exact CI39908472662 is green for
+    Backend, Frontend, Branch-declared and E2E, with Exhaustive skipped by feature policy. Earlier
+    red CI39905794221 and all previous failures remain in handoff/journal history; its decoder fix
+    is now included in the green source. Exact released f04 is already in this branch history and is
+    common-repair adoption only. This active narrow extension verifies DB-restored forward Study
+    output through ResolvedForwardExecutionPlanRecipeResolver into ForwardStrategyContextWindow.
+    Only an existing pure Study context test and PostgreSQL module collection ran locally; the new
+    database-backed assertion awaits hosted or coordinator-assigned PostgreSQL execution. No local
+    database body ran. Full local backend/combined DB/application/browser/strict-visual and
+    exact-pinned native execution/settlement gates remain open. Generic Study output is not native
+    evidence; provider/live/quota/paid/trial/unknown/unsafe/broker/capital/deployment remain disabled.
   next_action: >-
-    Publish the focused decoder correction and coherent evidence through the normal source workflow,
-    then inspect its exact-source CI. Obtain the assigned PostgreSQL/full-profile slot and execute
-    the collected backtest and forward restart bodies without weakening assertions or changing
-    fixture constraints. The current new
-    backtest payload-drift cases are collect-only and unverified at runtime; do not publish them as
-    completed validation. After the DB bodies pass and focused review is complete, publish the
-    coherent source/workstream changeset through the normal branch workflow and capture exact-tip CI.
-    For that future slot, use the unchanged
-    scripts/backend_coverage.py --shard-size 25 complete collector, exact source archive and private
-    coverage/quota/FINRA state, coordinator-pinned PostgreSQL/Redis fixtures, existing 75% combined
-    threshold, and zero retries. Do not launch a local DB/application/browser/build or native gate
-    before Root releases the one-at-a-time slot. Continue all 18 criteria and preserve provider/live/
-    quota/paid/trial/unknown/unsafe/broker/capital holds.
+    Complete and publish this focused forward restart/context regression with coherent workstream
+    evidence, then inspect its exact-source CI once. The backtest and forward Study PostgreSQL cases
+    have already executed in hosted CI on45b; the new forward context-window extension has not yet
+    executed. Do not launch local DB/application/browser/build/native gates without Root's slot.
+    Continue all18 criteria and preserve provider/live/quota/paid/trial/unknown/unsafe/broker/capital
+    holds.
