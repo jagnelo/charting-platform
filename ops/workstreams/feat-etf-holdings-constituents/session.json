@@ -1,4 +1,15 @@
 {
+  "latest_staging_reconciliation": {
+    "recorded_at": "2026-10-23T00:13:02Z",
+    "released_staging_sha": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json",
+    "exact_staging_ci": 39866387942,
+    "merge_policy": "merged only exact accepted staging SHA into the ETF worktree; no conflict, reset, rebase, sibling import, or staging write",
+    "focused_results": "workflow session tests 38 passed; MarketMapTool unit tests 61 passed",
+    "own_branch_ci": "pending publication of this merge/evidence checkpoint",
+    "full_stack_browser": "required; not launched pending Root's exclusive host-slot release",
+    "full_roadmap": "AC1-AC14 remain open beyond the accepted initial checkpoint; preserve all holds, quarantines and 30-day observation"
+  },
   "acceptance_criteria": [
     {
       "id": "AC1",
@@ -183,8 +194,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "c9aac760e3a62f82e28dca2605ee2fdffa68c8e3",
-  "implementation_sha": "c9aac760e3a62f82e28dca2605ee2fdffa68c8e3",
+  "head": "58a0fdd81779561c434d8690aa5906f8ed71c1db",
+  "implementation_sha": "58a0fdd81779561c434d8690aa5906f8ed71c1db",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -294,7 +305,7 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-22T21:26:54Z",
+  "last_checkpoint": "2026-10-23T00:13:02Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
   "latest_checkpoint": "2026-10-22: The exact green staging release 0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of the ETF branch. Published source/origin is 4823bcf889b5ef0a51808fbfa39aa83ed6359953; exact CI39857543318 is in_progress on that base. ETF Architect is published. This local continuation removes HTTPX-403 raw requests.get fallbacks from the shared PublicCsvHoldingsAdapter and registered NEOS aggregate CSV path; focused3, adapter614, checkpoint consumers plus route drift38, offline contracts9 passed/537 skipped, Ruff/format, frontend type-check, ETF frontend17, build, narrative sentinel, validator, hash, JSON/JSONL and diff checks pass with live flags0. Commit/push and new exact-head CI remain pending; no external HTTP or quota operation occurred. The prior session.json reconciliation is retained in this coherent update. The local full profile awaits a Root-assigned safe slot. Preserve all fourteen criteria, 15 Tier-0 and 156 Tier-1, unresolved MSMR/QQQ and Militia/GOOG quarantines, disabled holds and the 30-day observation gate. No route promotion or full-roadmap completion is claimed.",
   "local_profile_execution": {
@@ -332,8 +343,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run bounded no-network focused/static checks for the NSI reservation ordering correction and Arax/Day Hagan denial regression; then run the exact narrative-count sentinel and workstream/JSON/plan-hash/diff validation. Publish this coherent test-only context and inspect only its exact-source ETF CI. Do not replay red CI39869367875 or start DB/browser/full profile while Root holds the heavy slot; do not poll/adopt Root staging repair until an exact green release arrives. Preserve all route/quota/data holds, quarantines, full roadmap, 15 Tier-0 and 156 Tier-1, and30-day observation.",
-"plan_hash": "5c37ae7c0decd750c9fbf642ff7cf41a7422616ed689a94d310e425ceecab790",
+  "next_action": "Publish the accepted common-staging merge and coherent ETF evidence checkpoint to the feature branch, then inspect only that exact branch CI. Continue offline AC2/AC4/AC5 audit and capability work from retained evidence. Keep Arax/Day Hagan held; preserve retained DB/Redis data, the complete roadmap, 15 Tier-0 and 156 Tier-1, all quarantines/holds, and the 30-day observation. The required source-pinned full_stack_browser profile remains pending Root's exclusive host-slot release.",
+  "plan_hash": "a0417f19c501c8563b6745f856e81059df9bd03dda3b51336a05c6c87be10596",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -384,10 +395,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "At2026-10-22 23:27Z published HEAD/origin c9aac760e3a62f82e28dca2605ee2fdffa68c8e3 exact CI39869367875 is terminal RED: frontend and backend unit passed; backend integration1 failed/497 passed/2 skipped/57 warnings in625.23s; later jobs skipped. Sole failure was test_nsi_real_adapter_submits_product_redirect_and_csv_to_shared_admission ordering the Provider reservation table by nonexistent reserved_at; canonical table uses created_at,id. The test now uses actual fields and retains all reservation/settlement assertions; no DB rerun while Root owns the heavy local slot. Arax/Day Hagan held-route regression is uncommitted and absent from this run; focused denial/parser selection previously passed4/4 with neither underlying transport invoked. Preserve exact red and prior history. Root staging repair4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live, not released; do not poll/adopt. No external requests/quota, heavy profile, cleanup or cross-worktree action. Preserve full roadmap, 15 Tier-0 and 156 Tier-1, quarantines/holds/history and30-day gate.",
-    "current_phase": "continue_full_etf_roadmap_after_accepted_checkpoint_2026_10_22",
-    "next_action": "Run bounded no-network focused/static checks for the NSI reservation ordering correction and Arax/Day Hagan denial regression; run the narrative-count sentinel and workstream/JSON/plan-hash/diff validation. Publish the coherent test-only context and inspect only its exact-source ETF CI. Do not replay CI39869367875 or start DB/browser/full profile while Root holds the slot; do not poll/adopt Root staging repair until exact green release. Preserve all route/quota/data holds, quarantines, full roadmap and30-day observation.",
-    "updated_at": "2026-10-22T23:27:52Z"
+    "current_blocker": "At2026-10-23 00:13Z accepted common staging4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad was merged into this ETF worktree after origin/FETCH_HEAD verification. Changed-surface tests passed38 workflow cases and61 MarketMapTool cases. The merged feature branch has not yet been pushed; exact ETF CI follows its publication. Root's one-at-a-time full-profile slot remains unavailable, so full_stack_browser was not run. The old ETF red39869367875 remains preserved; the NSI created_at,id correction remains without local DB proof. No live HTTP, quota, paid/trial activation, data cleanup or sibling/staging/master mutation. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, held routes and30-day observation.",
+    "current_phase": "post_accepted_common_staging_reconciliation_2026_10_23",
+    "next_action": "Publish the accepted common-staging merge and coherent ETF evidence checkpoint to the feature branch, then inspect only that exact branch CI. Continue offline AC2/AC4/AC5 audit and capability work from retained evidence. Keep Arax/Day Hagan held; preserve retained DB/Redis data, the complete roadmap, 15 Tier-0 and 156 Tier-1, all quarantines/holds, and the 30-day observation. The required source-pinned full_stack_browser profile remains pending Root's exclusive host-slot release.",
+    "updated_at": "2026-10-23T00:13:02Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -399,9 +410,9 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "c9aac760e3a62f82e28dca2605ee2fdffa68c8e3",
-  "remote_sha": "c9aac760e3a62f82e28dca2605ee2fdffa68c8e3",
-  "remote_synchronized": true,
+  "remote": "58a0fdd81779561c434d8690aa5906f8ed71c1db",
+  "remote_sha": "58a0fdd81779561c434d8690aa5906f8ed71c1db",
+  "remote_synchronized": false,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",

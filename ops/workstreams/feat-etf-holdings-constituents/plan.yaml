@@ -3,8 +3,8 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
-latest_staging_merge_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
-latest_staging_parent_sha: 5178b414b426ec61bdcb22257b4f956581c25d0c
+latest_staging_merge_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+latest_staging_parent_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: >-
   Continue the existing ETF holdings provider coverage goal from current green
@@ -528,10 +528,22 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: post_green_staging_full_roadmap_continuation_2026_10_22
+current_phase: post_accepted_common_staging_reconciliation_2026_10_23
 current_blocker: >-
   Historical validation detail in this field preserves earlier exact-source
-  receipts; the current state below supersedes those older source/status values.
+  receipts; the current reconciliation below supersedes older source/status
+  values. On 2026-10-23 the coordinator's accepted green common staging source
+  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad (exact CI39866387942, canonical
+  receipt /home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json)
+  was fetched and verified, then merged only into this ETF worktree. Local
+  workflow-session tests passed 38/38 and the changed MarketMapTool unit module
+  passed 61/61. Exact ETF branch CI after publishing this merge remains pending;
+  the required full_stack_browser profile remains unrun on this source pending
+  Root's one-at-a-time host-slot release. The accepted bounded ETF checkpoint
+  remains accepted, but the full fourteen-criterion roadmap, issuer onboarding,
+  and post-integration 30-day observation remain open. Preserve all historical
+  red/partial receipts, quarantines, holds, and the `15 Tier-0 and 156 Tier-1`
+  investigations.
   The initial ETF integration checkpoint is accepted in synchronized green
   staging 0e342512e53ba2268425294d61c50e219eaafa4f; all fourteen original
   roadmap criteria, issuer onboarding, and post-integration 30-day observation
@@ -1689,34 +1701,29 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    Exact Actions run39869367875 on c9aac760e3a62f82e28dca2605ee2fdffa68c8e3
-    is terminal RED. Frontend Unit and backend unit passed; backend integration
-    had1 failed,497 passed,2 skipped,57 warnings in625.23s; later jobs skipped.
-    Sole failure was the NSI real-adapter test ordering Provider reservations
-    by nonexistent reserved_at; actual shared schema uses created_at and id.
-    The test-only correction now orders by those real fields and preserves all
-    reservation/settlement assertions. It has not yet run against DB. Preserve
-    this exact red receipt; no rerun. Arax/Day Hagan held-route regression is
-    uncommitted and absent from this CI. Root staging repair
-    4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live and unreleased; do not
-    poll/adopt it. Prior red, partial and cancelled results remain historical.
+    The exact historical RED run39869367875 on c9aac760e3a62f82e28dca2605ee2fdffa68c8e3
+    remains preserved: its sole failure was the NSI reservation assertion using
+    nonexistent `reserved_at`; the current test uses canonical `created_at,id`
+    and retains every reservation/settlement assertion. That correction is now
+    in the branch but has not received DB-backed local proof. The accepted
+    common repair staging source4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is
+    merged locally; own-branch publication and exact-source CI are pending.
+    Root owns the heavy local slot, so no full profile was launched.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Preserve exact red CI39869367875 on c9aac760e3a62f82e28dca2605ee2fdffa68c8e3
-  (backend integration1 failed/497 passed/2 skipped; stale test ordering used
-  nonexistent reservation reserved_at, while actual Provider schema has
-  created_at,id). The test now orders by those real columns and keeps all
-  reservation/settlement assertions. Run bounded no-network unit/static checks,
-  count sentinel and workstream/JSON/plan-hash/diff validation; then commit and
-  push this substantive test-only correction together with the prepared
-  Arax/Day Hagan zero-transport denial regression and inspect only the new
-  exact-source ETF CI. Do not rerun the historical red run or start a local
-  DB/browser/full profile while Root owns the heavy slot. Root staging repair
-  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is live, not released; do not
-  poll/adopt. Keep Arax/Day Hagan held pending reviewed publisher/account/terms
-  evidence. Preserve full AC1–AC14, 15 Tier-0 and 156 Tier-1, quarantines,
-  history, disabled unknown/quota-held/paid/trial/unsafe routes and the
-  30-day observation. No external requests/quota, data cleanup, cross-worktree
-  write, promotion or deployment.
+  Publish the coherent ETF-owned merge/evidence checkpoint to this branch and
+  inspect only its exact-source ETF CI. Keep the held Arax/Day Hagan transport
+  unavailable pending reviewed publisher/account/terms evidence. Continue
+  offline AC2/AC4/AC5 audit and capability work from retained evidence; do not
+  infer policy or route eligibility. The required full_stack_browser profile
+  must use the exact published ETF HEAD, repository validate-integration
+  matrix, reviewed pinned-browser zero-retry launcher and root-approved
+  resource-preserving cleanup guard, but only after Root assigns the next
+  one-at-a-time host slot. Preserve the assigned ETF DB/Redis services and all
+  retained datasets/volumes; no issuer/provider/SEC requests, quota, paid/trial
+  activation, staging/sibling/master writes, promotion, or deployment. Keep all
+  AC1–AC14, `15 Tier-0 and 156 Tier-1`, historical results, MSMR/QQQ and
+  Militia/GOOG quarantines, disabled unsafe/unreviewed routes and the 30-day
+  observation gate intact.

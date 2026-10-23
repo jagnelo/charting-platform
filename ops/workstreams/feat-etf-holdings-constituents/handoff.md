@@ -14122,3 +14122,53 @@ inspect only the resulting exact ETF CI. Root's staging repair
 not poll or adopt it. Keep unknown/quota-held/paid/trial/unsafe routes disabled,
 preserve all AC1–AC14, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
 quarantines, all history, and the 30-day observation gate.
+
+## Accepted common staging repair reconciled — 2026-10-23 00:13Z
+
+The coordinator released synchronized green common staging at exact SHA
+`4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`. Its canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json`;
+exact staging CI `39866387942` attempt 1 is terminal green. The release reports
+104 backend unit shards, 497 integration checks with 2 skips at 84%, 1331
+frontend tests, 194 functional cases with 107 existing skips, 104 strict
+visuals, and ordinary E2E 191 passed / 110 existing skips, without failures or
+flakes. The prior ETF integration checkpoint remains accepted at `0e342512`;
+this common repair is not a new ETF roadmap acceptance and does not close any
+of AC1–AC14 or the 30-day observation gate.
+
+At the safe owner boundary, this worktree was confirmed clean and synchronized
+at ETF source `58a0fdd81779561c434d8690aa5906f8ed71c1db`; the origin staging
+ref and fetched `FETCH_HEAD` both matched the exact released SHA. The histories
+had diverged, so only `4687bd0` was merged as a two-parent merge into this ETF
+branch; no reset/rebase, staging write, sibling checkout change, or direct
+feature-branch import occurred. The merge had no conflicts. Its shared changes
+include the accepted Market Map late-selection repair and its unit coverage,
+plus workflow-owned resource-label handling and tests.
+
+Bounded local regressions passed after the merge: `tests/workflow/test_agent_session.py`
+38/38 and `frontend/tests/unit/components/test_market_map_tool.test.ts` 61/61.
+No backend integration database, Compose stack, browser/native profile, or
+external provider/issuer/SEC request was started. The branch push and exact ETF
+CI for the resulting branch HEAD are the next publication boundary; no status
+or acceptance claim is inferred from the staging run. The historical ETF red
+run `39869367875` remains preserved, and its NSI reservation-field correction
+still lacks local DB-backed proof. MSMR/QQQ and Militia/GOOG remain
+unresolved/quarantined; all unknown, quota-held, unreviewed, paid/trial and
+unsafe operations remain disabled.
+
+The next local full-profile execution recipe is source-pinned to the exact
+published ETF HEAD and the existing required `make validate-integration`
+matrix with `INTEGRATION_BRANCH=feat/etf-holdings-constituents`; do not add
+global `E2E_SEED_MARKET_DATA` or `PYTEST_ADDOPTS`. Use only after Root grants
+the exclusive host slot. Recheck the existing writer claim, exact HEAD/origin,
+memory/disk, Docker readiness, complete baseline container/volume/network/image/
+builder inventory, ports and mounts. Preserve the assigned retained ETF DB/
+Redis containers at `127.0.0.1:15432` and `127.0.0.1:16379` and their volumes;
+do not mount or seed from them. Use the generated ETF stack project and ports
+from the assigned runtime allocation, fresh synthetic DB/Redis volumes, the
+reviewed pinned Noble image digest, worker count 1, zero browser retries,
+existing screenshot references/tolerances, and the reviewed egress-deny and
+resource-preserving cleanup wrapper. Record every created resource ID and
+remove only exact new resources after all profile parents/descendants exit;
+never stop or clean retained or baseline services/data. This is preparation
+only, not launch authorization or profile evidence.
