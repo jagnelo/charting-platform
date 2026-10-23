@@ -35,6 +35,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "backend/tests/unit/routers/test_research_router.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -72,12 +73,15 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "last_checkpoint": "2026-10-23T17:18:43Z",
+  "head": "f5bcfe6d2dd50f75b1f0dd05a33485d4edcf9161",
+  "implementation_sha": "f5bcfe6d2dd50f75b1f0dd05a33485d4edcf9161",
+  "last_checkpoint": "2026-10-23T17:38:33Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Preserve exact CI 39992653172 on published 64d3b12 until terminal; do not cancel or replay it. Then publish Research source commits 184caeefe and 9860c84f with the coherent workstream receipt once and inspect exact-tip CI. The accepted-target SPY/RSP canonical listing presence remains unverified; date-only run3 is still deferred, exact-bound run4 is the verified successful Study, and a source-backed venue/date-granularity follow-up remains open. Keep full local app/browser/strict-visual gates, the full roadmap, and all disabled operation boundaries open.",
+  "next_action": "Preserve exact CI 39992653172 on published 64d3b12 until terminal; do not cancel or replay it. Then publish the existing Research and read-only inspector source commits with the offline Massive-to-listing-to-Research regression and coherent records in one branch push, and inspect exact-tip CI to terminal. The smallest read-only V2 inspector checkpoint is now defined in handoff.md: authenticated owner-scoped strategy/trial/artifact browsing and immutable Study-pin inspection by explicit existing IDs, no create/dispatch actions, and no claim that generic Study output is native. SPY/RSP target canonical listing remains uninspected; date-only run3 is deferred and exact-bound run4 is verified. Keep full local app/browser/strict-visual gates and the full roadmap open.",
+  "plan_hash": "df48f222653b773954b26b89b9eca5dd50cabf40cbd225bbbf4131546d7b6fd1",
   "parent_branch": "staging",
-  "plan_hash": "d8ef021e48ebc915492cb8d46dc67809784d9f3592f652b19935b8363736d221",
+  "plan_hash": "9abbe8e82660a35f00adcc08a53c45b4de44fa368f4eda3b03be12a8717f00d1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -107,15 +111,12 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Exact-source run 39992653172 remains in progress on published 64d3b12e11118593535b02e8e8a06dd1f263ffdf. It does not include Research commits 184caeefe or 9860c84f. Accepted-target SPY/RSP EquityDetail.exchange_mic is NULL and target canonical listing rows were not inspected; date-only run3 remains deferred with zero artifacts, while exact-bound run4 is verified successful. Root local full-stack/browser/strict-visual and broader backend/migration gates remain open.",
-    "current_phase": "research-date-range-venue-fidelity-v1",
-    "next_action": "Wait for the exact 39992653172 run to finish without cancellation/replay, then push the two separate Research commits and this coherent receipt once. Inspect the resulting exact-source CI, preserve the run3/run4 distinction, and continue the source-backed target venue/date-granularity follow-up without target or provider operations.",
-    "updated_at": "2026-10-23T17:18:43Z",
+    "current_blocker": "Exact-source run 39992653172 remains in progress on published 64d3b12e11118593535b02e8e8a06dd1f263ffdf. It covers none of Research commits 184caeefe/9860c84f, the read-only inspector commit 4a2c6058d, or the staged offline venue-flow regression. Accepted-target SPY/RSP EquityDetail.exchange_mic is NULL and target canonical listing/provider-binding/provenance rows were not inspected; date-only run3 remains deferred with zero artifacts, while exact-bound run4 is verified successful. The read-only inspector checkpoint contract and dependencies are now recorded in handoff.md; exact-tip CI and full local app/browser/strict-visual and broader backend/migration gates remain open.",
+    "current_phase": "strategy-lab-v2-resource-inspector-ui-v1",
+    "next_action": "Preserve exact run 39992653172 until terminal. Then publish the existing Research and inspector source commits, offline venue-flow regression and coherent records once; inspect exact-tip CI to terminal. Keep the handoff-defined read-only checkpoint limited to authenticated owner-scoped browsing and explicit immutable Study-pin GET inspection; never claim native execution from generic Study results. Do not access or mutate the target, request provider data, launch fixtures, or weaken holds.",
     "total": 5,
-    "updated_at": "2026-10-23T11:24:06Z"
+    "updated_at": "2026-10-23T17:38:33Z"
   },
-  "head": "9860c84f8eb2b5b77dc89848325cec3bdc81c7c0",
-  "implementation_sha": "9860c84f8eb2b5b77dc89848325cec3bdc81c7c0",
   "remote": "64d3b12e11118593535b02e8e8a06dd1f263ffdf",
   "remote_sha": "64d3b12e11118593535b02e8e8a06dd1f263ffdf",
   "remote_synchronized": false,

@@ -190,6 +190,99 @@ def test_date_granular_daily_coverage_uses_only_the_exact_supported_instrument_v
     )
 
 
+@pytest.mark.parametrize(
+    ("provider_exchange", "expected_calendar"),
+    [("XNYS", "XNYS"), ("UNVERIFIED-VENUE", None)],
+)
+@pytest.mark.asyncio
+async def test_massive_listing_venue_flows_through_reconciliation_to_research_calendar(
+    db, instrument, provider_exchange: str, expected_calendar: str | None
+):
+    """Only persisted canonical listing evidence can enable Research's date calendar."""
+    from sqlalchemy.orm import selectinload
+
+    from app.models.data_source import DataSource
+    from app.models.instrument_identity import InstrumentProviderSymbol
+    from app.models.listing import InstrumentListing
+    from app.models.market_data_foundation import MarketUniverseReconciliationRun
+    from app.providers.massive import MassiveProvider
+    from app.services.instrument_mastering import register_provider_symbol
+    from app.services.market_universe import _reconcile_rows
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    db_session = AsyncSessionAdapter(db)
+    instrument.symbol = "SPY"
+    instrument.name = "SPDR S&P 500 ETF Trust"
+    source = DataSource(name="massive", base_url="https://massive.example.test")
+    db.add(source)
+    db.flush()
+
+    # Model the already-persisted provider identity and a locally supplied
+    # discovery row; no provider transport or quota admission is involved.
+    await register_provider_symbol(
+        db_session,
+        instrument,
+        "massive",
+        "SPY",
+        provider_exchange_code=provider_exchange,
+        provider_instrument_type="ETF",
+        is_primary=True,
+    )
+    run = MarketUniverseReconciliationRun(
+        data_source_id=source.id,
+        quote_type="EQUITY",
+        observed_at=datetime(2026, 10, 23, tzinfo=UTC),
+    )
+    db.add(run)
+    db.flush()
+
+    parsed = MassiveProvider._result(
+        {"ticker": "SPY", "name": instrument.name, "primary_exchange": provider_exchange}
+    )
+    assert parsed is not None
+    await _reconcile_rows(
+        db_session,
+        run=run,
+        provider_name="massive",
+        rows=[
+            {
+                "symbol": parsed.symbol,
+                "name": parsed.name,
+                "exchange": parsed.exchange,
+                "instrument_type": parsed.instrument_type,
+                "raw_payload": parsed.raw_payload,
+            }
+        ],
+        quote_type="EQUITY",
+        observed_at=run.observed_at,
+    )
+    db.flush()
+
+    persisted = (
+        db.query(Instrument)
+        .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        .filter(Instrument.id == instrument.id)
+        .one()
+    )
+    calendars = _research_coverage_calendars(
+        {"timeframe": Timeframe.D1, "date_only_bounds": {"start": True, "end": True}},
+        [persisted],
+    )
+    assert calendars == {instrument.id: expected_calendar}
+    provider_binding = (
+        db.query(InstrumentProviderSymbol)
+        .filter(InstrumentProviderSymbol.instrument_id == instrument.id)
+        .one()
+    )
+    assert provider_binding.provider_exchange_code == provider_exchange
+    assert len(persisted.listings) == 1
+    assert persisted.listings[0].is_primary is True
+    if expected_calendar is None:
+        assert persisted.listings[0].exchange is None
+    else:
+        assert persisted.listings[0].exchange.mic == expected_calendar
+
+
 def test_research_dataset_rejects_as_of_before_requested_start():
     with pytest.raises(HTTPException) as error:
         _dataset_options(

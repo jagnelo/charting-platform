@@ -718,18 +718,25 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Exact push CI 39985325009 on published 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 is terminal
-    success for Backend, Frontend, Branch-declared, and E2E; Exhaustive was skipped by feature
-    policy. Distinct local commits 85a821795 (Research date-only range) and 4a2c6058d (read-only
-    Study inspector/pin preview) are not covered by that run. Focused unit tests pass for both.
-    Root's full local application/browser and strict-visual validation remain coordinator-assigned
-    and were not started. The full 18-criterion roadmap remains open.
-  updated_at: "2026-10-23T17:07:08Z"
+    Exact CI 39992653172 remains in progress on published source
+    64d3b12e11118593535b02e8e8a06dd1f263ffdf. It covers none of the current local source commits
+    (184caeefe, 9860c84f, or the read-only inspector commit 4a2c6058d) nor the staged
+    Massive-to-listing-to-Research regression. Preserve that run; do not cancel or replay it.
+    The inspector checkpoint definition is recorded in handoff.md. Its UI/API contract is present
+    locally but not exact-tip-CI-qualified. The accepted target's SPY/RSP canonical listing remains
+    uninspected, so date-only run3 remains deferred and exact-bound run4 is still the verified
+    successful target Study. Root's full local app/browser/strict-visual and remaining full-roadmap
+    gates remain open.
+  updated_at: "2026-10-23T17:38:33Z"
   next_action: >-
-    Validate and commit the owned workstream closure records for both separate source commits, then
-    push the branch once and inspect exact-tip CI to terminal. Keep full_stack_browser and
-    strict-visual gates open for Root's serialized slot. Continue the full roadmap without
-    activating dispatch, native, or money-moving scopes.
+    Preserve exact CI 39992653172 until terminal. Then publish the existing Research commits,
+    read-only inspector source, offline venue-flow regression, and coherent owned records together
+    in one normal branch push; inspect that exact-tip CI to terminal. The smallest read-only V2
+    inspector checkpoint is defined in handoff.md: authenticated owner-scoped Strategy/trial/
+    artifact browsing and immutable Study-pin inspection by explicit existing IDs, with no create
+    or execution actions and no claim that generic Study output is native. Keep full_stack_browser,
+    strict-visual, backend/migration and all remaining full-roadmap gates open; do not access the
+    target, request provider data, launch fixtures, or activate native/money-moving scopes.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1632,23 +1639,32 @@ roadmap_progress_history:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     source_commit: 9860c84f8eb2b5b77dc89848325cec3bdc81c7c0
     validation: >-
-      Focused Research/evaluator-preflight tests passed 12/12, Ruff check and format passed, and
-      git diff --check passed. Exact CI on this source is pending publication; broader MyPy and
-      full-stack validation are not claimed by this bounded repair.
+      Focused Research/evaluator-preflight tests passed 14/14, including two offline source-flow
+      cases from Massive primary_exchange parsing through canonical listing reconciliation into
+      the Research calendar selector; an unknown venue remains denied. Ruff check/format and
+      git diff --check passed. This is deterministic offline evidence, not the accepted target's
+      SPY/RSP listing state or exact-source CI; broader MyPy and full-stack validation are not
+      claimed by this bounded repair.
     status: in_progress
   current_blocker: >-
     The existing exact-source CI 39992653172 is running on prior published tip
     64d3b12e11118593535b02e8e8a06dd1f263ffdf and does not include Research commits 184caeefe or
-    9860c84f. The bounded venue/mixed-boundary correction passed its focused tests and lint checks.
+    9860c84f. The bounded venue/mixed-boundary correction and offline
+    Massive-to-listing-to-Research flow regression passed focused tests and lint checks.
     Root reports accepted-target SPY/RSP EquityDetail.exchange_mic is NULL; the canonical listing
     selector uses Exchange/InstrumentListing only if such rows exist, but their presence on target
     was not inspected here. Run3 therefore remains genuinely deferred; exact-bound run4 is the
     verified successful historical Study. Do not claim this selector alone closes the date-only UX.
-    A source-backed metadata/hydration or date-granularity contract follow-up is still needed. Root's
+    A source-backed metadata/hydration or date-granularity contract follow-up is still needed.
+    Existing code can persist Massive primary_exchange into InstrumentListing.exchange during an
+    admitted universe reconciliation; this offline regression proves that code path, but the
+    target's persisted canonical listing/provider-binding/provenance remains uninspected. Root's
     full local app/browser/strict-visual slot, full backend equivalence and remaining roadmap gates
     also remain open.
   next_action: >-
     Preserve exact CI 39992653172 without cancelling or replaying it. Then push the current own-branch
-    Research correction and workstream receipt once, inspect the resulting exact-tip CI, and continue
-    the source-backed venue/date-granularity follow-up without target writes or new provider requests.
-    Keep the full roadmap and Root-assigned resource gates open.
+    Research correction and workstream receipt once, inspect the resulting exact-tip CI, and then
+    identify the smallest complete read-only V2 inspector checkpoint against existing immutable
+    Study contracts. The accepted target still has no V2 inspector UI; no target writes, new provider
+    requests or new fixture are authorized. Keep the date-only venue limitation, full roadmap and
+    Root-assigned resource gates open.

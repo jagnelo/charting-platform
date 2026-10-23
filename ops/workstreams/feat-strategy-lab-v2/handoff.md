@@ -18414,3 +18414,71 @@ requests, fixture, or additional run were made here. The current canonical-listi
 source commits are locally validated only. Exact CI `39992653172` is still active on prior published
 tip `64d3b12e11118593535b02e8e8a06dd1f263ffdf`; preserve it, then publish the coherent Research
 source and workstream receipt once and capture exact-tip CI.
+
+### Massive-to-Research venue flow regression — 2026-10-23 17:30 UTC
+
+The accepted target still has no confirmed SPY/RSP canonical listing venue; the only target fact
+provided is NULL `EquityDetail.exchange_mic`. Source review found the existing local evidence path:
+`MassiveProvider._result` extracts `primary_exchange`, and `_reconcile_rows` passes that provider
+value through `ensure_exchange` and `upsert_instrument_listing`. Research then accepts only an
+unambiguous active primary listing whose canonical exchange is supported by its calendar policy.
+
+Added a two-case offline regression to `backend/tests/unit/routers/test_research_router.py` that
+exercises those actual functions together using a local discovery row: XNYS is persisted and
+selected; an unknown venue creates no canonical exchange and remains denied. The test makes no
+provider transport/quota call and does not inspect or mutate target data. Research/evaluator
+preflight modules pass 14/14 in 2.60s; Ruff check/format and `git diff --check` pass. This proves
+the code path, not that the accepted target already has provider-binding evidence or that run3 is
+fixed. The target listing/provider-binding/provenance check remains outstanding; no default venue
+or USD inference is permitted.
+
+Root also directed that after the current exact-source CI reaches terminal, the next product
+checkpoint be scoped to the smallest complete read-only V2 inspector for a normal user: inspect a
+genuine immutable Study linkage and show truthful held-native state. The accepted a6b9 UI currently
+has no `StrategyLabV2View.vue`; the branch's separate local inspector/pin-preview commits are
+relevant but are not yet exact-CI-qualified. After the in-flight parent CI finishes, close/publish
+the current coherent source+receipt, inspect its exact-tip CI, then document the inspector's exact
+existing API/schema dependencies and unchanged full local/hosted gates before any additional
+implementation. No fixture, target, provider, deployment, native, or money-moving operation is
+authorized by this follow-up.
+
+### Minimal read-only V2 inspector checkpoint definition — 2026-10-23 17:38 UTC
+
+The smallest useful first-user checkpoint is the existing read-only `StrategyLabV2View.vue` at
+`/legacy/strategy-lab-v2` (also reached through `/strategy-lab-v2`), behind the ordinary
+authenticated router guard. It lists and opens owner-scoped Strategy Lab v2 strategies, trials,
+and artifacts; it must not add create, dispatch, forward, broker, capital, or provider actions. A
+normal user can inspect a persisted Study pin either on a Strategy detail that already carries
+`selected_study_artifact`, or by entering explicit existing Research run/artifact IDs in the
+read-only pin preview. The view validates the returned identity and all typed digest fields before
+displaying the linkage. It reports the immutable Study provenance only; generic Study output is
+not a backtest result or native-engine proof.
+
+The supporting backend contract is already present in the accepted integrated source: `main.py`
+registers `create_registered_strategy_lab_v2_router()` under `/api/v1`; the registered dependency
+uses the authenticated `get_current_user` principal. `api_router.py` exposes GET collection/detail
+routes and `GET /api/v1/strategy-lab/v2/study-artifact-references/{research_run_id}/{artifact_id}`.
+`PostgresStrategyLabV2Adapter.resolve_study_artifact_reference` delegates to the existing
+`create_selected_study_artifact_reference_factory` / `_resolve_selected_study_artifact` in
+`study_artifact_resolver.py`. That resolver binds an explicitly selected artifact to the
+authenticated owner's completed-and-evaluated `ResearchRun`, its owner-scoped `CodeAsset` and
+immutable `CodeVersion`, one unambiguous supported `ResearchArtifact`, and the run, code, dataset,
+and artifact digests. Missing, foreign-owner, nonterminal, ambiguous, malformed, or drifted rows
+remain denied/not found. No `latest` alias or UI-supplied digest is authority.
+
+The corresponding local source prerequisite is the separate inspector commit `4a2c6058d`
+(`frontend/src/views/StrategyLabV2View.vue` plus its focused tests), layered on the accepted
+backend resolver/registration and the existing router `/api/v1` prefix. Its focused component
+tests cover owner-scoped list/detail GETs, immutable Study-pin GET validation, malformed/mismatched
+IDs, and the absence of POST calls. This source is still awaiting publication and exact-tip CI;
+parent run `39992653172` remains in progress on `64d3b12e11118593535b02e8e8a06dd1f263ffdf` and
+does not validate it. The required full local profile remains `full_stack_browser`, with normal
+backend/API/migration and frontend/browser/strict-visual gates, exact-source CI, unchanged visual
+references/masks/tolerances and zero retries. No gate is waived by the prior accepted checkpoint.
+
+The truthful held-native boundary for this read-only UI is deliberately narrow: display that this
+page has no execution controls, that no native execution is represented by the shown Study
+artifact, and that broker/capital actions are not offered here. Do not infer a current account or
+engine capability from a persisted capability summary, label generic Study evaluation as native,
+or claim native execution has run. A live, account-specific capability indicator would require a
+separate current read-only contract; it is not needed to complete this inspector checkpoint.
