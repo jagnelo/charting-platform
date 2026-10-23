@@ -1,14 +1,51 @@
 schema: 4
 branch: fix/strategy-staging-quality
-base_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
+base_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+previous_marketmap_checkpoint_sha: 3d26dd34da6c1682d33b843a62a0ef0f2d31be92
+previous_marketmap_checkpoint_staging_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
 previous_checkpoint_sha: b1934946f9863a6a0b2ca3b18516e45bac6d48e8
 previous_checkpoint_staging_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
 parent_branch: staging
-parent_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
-dependency_authorization: "Under the recorded 2026-10-20 standing four-feature production authorization, Root continues its existing owned quality-repair worktree from accepted green staging0e342512 to repair that exact source's failed independent master replay39845561267. No new feature scope, writer takeover, gate weakening, provider HTTP or retained-data mutation."
-human_intent_authorization: "Human explicitly requests continued ownership through four-feature staging/production and first human deployment; standing authorization and delegated technical-repair acceptance are recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md. Root applies that direction to the concrete Market Map initialization and scoped shared-image cleanup failures in master39845561267, documented in master-market-map-repair-20261022.md. Previous B193 closure remains historical and unchanged."
+parent_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+dependency_authorization: "Under the recorded2026-10-20 standing four-feature production authorization, Root continues its existing claimed quality-repair worktree from accepted green staging4687 to repair the failed independent master39875818716 F8l observation. No new feature scope, writer takeover, gate weakening, provider HTTP or retained-data mutation."
+human_intent_authorization: "Human explicitly requests continued ownership through four-feature staging/production and first human deployment. Standing authority and delegated technical-repair acceptance are recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md. Root applies that direction to the concrete F8l request-start observation failure in master39875818716. Prior Map/shared-image and B193 checkpoints remain historical, unchanged and source-qualified; their acceptance does not cover this new repair."
 planning_state: ready
 human_closure_authorization: >-
+  Human delegated careful technical repair acceptance without individual review,
+  under standing four-feature staging/production authority recorded2026-10-20.
+  Root accepts ONLY the locally and hosted-proven hidden-refresh observation
+  repair at implementation331d99b7cda0df74355a7e4ddfffb6a2f151a45f,
+  CONDITIONAL on terminal-green full exact FINAL closing-head branch CI before
+  guarded integration. New staging and independent master exhaustive gates
+  remain mandatory before deployment. No later feature changes are accepted.
+closure_summary: >-
+  Browser-clock fetch/XHR initiation capture replaces unavailable native timing
+  as the initiation oracle; native request-count coverage still fails closed.
+  F8l isolates the target document before installing observers and deliberately
+  holds readiness across the unchanged hidden transition. Original3000/1500ms
+  windows, no-hidden-start assertion, retries and visual policies are unchanged.
+  Collector units9pass; full frontend1337pass/typecheck0 retain unchanged-input
+  qualification after the final3line document setup correction. Actual pinned
+  Noble1.62.1 isolated F8l on331d passes1/1in16.7s, retries0, state0falseexited;
+  logSHA5d5d2beb7f1bb1998f25b325f6d5c4d41e3f8992634120764f4965dc58af82a1.
+  Backend built331d; frontend explicitly reuses immutable4687 application image
+  dcf90f7d90ca0cceb3ac382830c8b4cc77ae6c6100c431d8f533492d5007b77b after
+  proving every non-test frontend input identical. This is NOT a fresh331d
+  frontend build: earlier bounded1.5GiB build OOM remains recorded. No fake
+  build-complete receipt. Exact six-service/browser/generated-volume/network
+  cleanup11262exit0; all3global retained inventory differences0bytes; only owned
+  unused temporary backend tag22a86782 removed nonforced. Artifacts/cache/
+  production image/retained datasets/services preserved. Implementation331d
+  CI39887117146 is green: all mandatory branch jobs, ordinary browser191pass/
+  110existing skips including F8l. Initiala3c local coverage failure and original
+  master39875818716 failure remain durable, not relabeled. No production source,
+  dependency, provider/quota, data, schema, deployment or visual oracle changes.
+  Full exact FINAL branch CI and new staging/master exhaustive gates remain
+  required. OBS3/MAP2 remain external release gates, not completed here. Full
+  feature roadmaps and held/unsafe routes remain unchanged. No merge conflicts
+  anticipated; test-only repair is behavior-compatible.
+  integration_capture: exact branch HEAD.
+previous_marketmap_human_closure_authorization: >-
   Human delegated technical repair acceptance without individual verification:
   Yes I approve, and you do not need my acceptance to close it off. Standing
   four-feature production authority is recorded2026-10-20. Root accepts ONLY
@@ -28,7 +65,7 @@ previous_checkpoint_human_closure_authorization: >-
   d32151b3e67243592c05aed6429607b51c706b59 after actual local validation and exact
   cleanup, subject to mandatory exact FINAL branch CI green before guarded
   integration. This does not assert that pending hosted checks pass.
-closure_summary: >-
+previous_marketmap_closure_summary: >-
   New implementationf19854ae50a37435f7010205bd05f99d1e7cd58b repairs master
   replay39845561267's concrete Market Map initialization race: a late mount
   continuation no longer replays an already-started user/source run and clears
@@ -86,6 +123,13 @@ validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
 local_validation_reason: >-
+  New checkpoint changes test-only hidden-refresh observation. Require actual
+  browser-clock collector/coverage regressions and pinned isolated affected-flow
+  proof, preserving observation intervals, fail-closed semantics, zero retries
+  and all visual policies. All production source is unchanged at this scope;
+  prior full results retain their exact inputs, not a fresh-profile label.
+  Mandatory full final branch CI and new staging/master functional/strict-visual
+  gates remain required. The following prior reasoning stays historical:
   Current checkpoint changes Market Map initialization behavior and scoped image
   cleanup. Require deterministic mounted regressions, workflow ownership-negative
   tests and actual bounded Docker/browser proof, full exact branch CI, new staging
@@ -101,8 +145,10 @@ local_validation_reason: >-
   functional/visual gates before acceptance/release. No live provider calls.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
-goal: Continue the accepted four-feature quality repair from synchronized green staging to diagnose and fix the exact master Market Map selection regression and scoped image-cleanup failure, preserving all prior checkpoint evidence and all tests, then validate a new checkpoint for guarded staging and master release.
+goal: Continue the same coordinator-owned four-feature quality repair from accepted green staging4687 to repair master39875818716 F8l request-initiation observation, preserving the no-hidden-refresh contract, prior accepted checkpoints, full feature roadmaps and all exact-source branch/staging/master gates before first private human deployment.
 scope:
+  - Record analysis request initiation on the browser clock before fetch or XHR transport completion or cancellation, rather than treating unavailable native request timing as proof of hidden activity or safety.
+  - Keep unknown or unobserved transport evidence fail-closed; retain the existing hidden transition clock, observation intervals and no-hidden-refresh assertion. Prove pending and aborted pre-hidden requests and post-hidden starts deterministically.
   - Diagnose first-failure master39845561267 artifacts and repair the proven Market Map initialization/interaction cause without weakening the unchanged dense-map contract.
   - Diagnose and repair owned image cleanup with shared backend/worker tags; never force-remove foreign references or globally prune.
   - Apply only pinned Ruff 0.4.7 formatting to the 139 reported Python files.
@@ -110,6 +156,8 @@ scope:
   - Validate lint and focused unit contracts; preserve all gates and original feature roadmaps.
   - Wait explicitly for the readiness fixture response before the existing adjacent provenance assertions; preserve all text, timeouts, retries and visual oracles.
 owned_paths:
+  - frontend/tests/e2e/hidden_request_observation.ts
+  - frontend/tests/unit/lib/test_hidden_request_observation.test.ts
   - frontend/src/components/workstation/MarketMapTool.vue
   - frontend/tests/unit/components/test_market_map_tool.test.ts
   - frontend/tests/e2e/workstation_performance.spec.ts
@@ -122,9 +170,13 @@ owned_paths:
   - ops/workstreams/fix-strategy-staging-quality/
   - frontend/tests/e2e/flows.spec.ts
 dependencies:
+  - Accepted repaired staging4687 passed full exact CI39866387942; its independent master39875818716 failed only F8l due unavailable readiness request timing (193 functional pass,107existing skips, strict visuals not run). This is not accepted full master evidence.
   - Accepted M2 staging0e342512 is green; its independent master39845561267 fails the Market Map selection contract and scoped shared-image cleanup. This new repair is not covered by previous acceptance.
   - Exact degraded staging 5178b414b426ec61bdcb22257b4f956581c25d0c contains all four accepted feature checkpoints; exhaustive lint failed before its remaining stages.
 acceptance_criteria:
+  - {id: OBS1, text: "Browser-clock observation captures every relevant fetch/XHR initiation before completion or abort; pending native timing is not silently dropped, post-hidden starts remain failures, and missing observation remains fail-closed."}
+  - {id: OBS2, text: "Deterministic collector/coverage regressions and an actual isolated pinned-Noble hidden-refresh flow pass with zero retries; existing hidden-state assertion, timing windows and visual policies remain unchanged."}
+  - {id: OBS3, text: "Clean published final source passes full exact branch CI, then new staging and independent master functional/strict-visual gates before deployment; old failure and source-qualified prior evidence remain durable."}
   - {id: MAP1, text: "Deterministic regressions reproduce the proven delayed-initialization selection reset on the accepted source and pass after the smallest product correction."}
   - {id: MAP2, text: "The unchanged actual dense-map browser flow passes with zero retries; full exact branch CI and new staging/master exhaustive functional/visual gates remain mandatory."}
   - {id: CLN1, text: "Owned shared-tag images clean completely, while foreign resources/tags and retained datasets remain protected; workflow regressions and actual bounded cleanup proof pass."}
@@ -142,13 +194,13 @@ migration_impact: none
 deployment_impact: none
 status: ready_for_integration
 remaining_gaps:
-  - New Market Map/shared-image repair still requires actual Docker/browser proof and all exact-source branch/staging/master gates; previous B193 acceptance does not cover it.
-  - Exact final pushed repair branch CI remains mandatory before guarded remediation integration; no hosted pass is claimed yet.
+  - OBS1/OBS2 are proven locally and implementation331d hosted CI39887117146 is green; exact FINAL closing-head CI remains mandatory before integration.
+  - OBS3/MAP2 require new staging and independent master exhaustive functional/strict-visual gates; no deployment or full roadmap acceptance is claimed.
   - Exact repaired staging exhaustive gate remains mandatory before owner backmerge/release, master promotion or deployment.
   - Historical source4fd11ebd CI39806090414 remains RED from one flaky provenance case; its retry pass was not accepted. Corrected implementationd32151b3 has actual local browser proof; final closing HEAD still requires full exact CI.
 progress:
-  completed: [FMT1, FMT2, FMT3, PROV1, PROV2, MAP1, CLN1]
-  total: 8
-  current_phase: locally-validated-master-repair-awaiting-final-ci
+  completed: [FMT1, FMT2, FMT3, PROV1, PROV2, MAP1, CLN1, OBS1, OBS2]
+  total: 11
+  current_phase: final-closing-head-exact-ci
   current_blocker: none
-  next_action: Freeze final closing HEAD, require its exact full branch CI green before guarded repair integration, then require new exact staging and independent master exhaustive gates before first human deployment. MAP2 remains pending those external gates, never asserted complete prospectively.
+  next_action: Freeze and publish this final technical closure; require its exact full branch CI green, then guarded integration and new staging/master exhaustive gates before the private m920q deployment. Preserve all prior evidence and full feature roadmaps.

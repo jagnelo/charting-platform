@@ -155,6 +155,37 @@ integration_checkpoint:
       ETF source checkpoint remains in_progress/not accepted. Implement and
       validate the ETF-owned bridge in this branch; no live issuer replay, paid
       or trial operation, staging write, deployment, or whole-roadmap acceptance.
+  latest_green_staging_adoption_2026_10_23:
+    recorded_at: "2026-10-23T05:17:09Z"
+    status: released_green_baseline_adopted_in_existing_etf_branch
+    released_staging_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+    release_record: /home/m920q/charting-platform/.ai/staging-attempts/f04-four-owner-green-release-20261023.md
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json
+    exact_staging_ci_run: 39896524209
+    exhaustive_gate_job: 120233695506
+    release_evidence: >-
+      Exact staging CI and Exhaustive Integration Gate are terminal green:
+      104 backend unit shards, 497 integration with 2 existing skips at 84%
+      coverage, 1337 frontend, 194 functional with 107 existing skips, 104
+      strict visuals with zero retries, and ordinary E2E 191 passed/110 existing
+      skips. Canonical reconcile29507 exited0 and staging-degraded is absent.
+      This is a synchronized common baseline, not acceptance of new ETF roadmap
+      work. Root owns master gates and deployment.
+    source_before_adoption: 8e25283c7464ec429a96c7216eeeb0becc79de37
+    exact_pre_adoption_ci_run: 39901930128
+    exact_pre_adoption_ci_result: >-
+      Terminal success on 8e25283: Backend, Frontend Unit, Branch-declared and
+      Playwright passed; Exhaustive was skipped under feature-branch policy.
+    fetched_staging_ref_verified: true
+    merge_result: >-
+      Only exact f04 was merged into this assigned ETF worktree. The common
+      delta adds the released hidden-refresh browser request-observation tests
+      and their Strategy repair handoff/plan/session/validation records. ETF
+      implementation, all prior receipts and the AC1-AC14 roadmap are retained.
+      No staging, sibling, or master ref was written.
+    branch_publication: validated_and_ready_for_single_merge_commit; exact_postmerge_ci_required
+    full_roadmap_status: open; no later ETF checkpoint acceptance inferred
+    provider_http_quota_activation_cleanup: none
   checkpoint_acceptance_delegation:
     recorded_at: "2026-10-15T22:55:31Z"
     exact_question: >-
@@ -528,19 +559,18 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: capability_utc_calendar_date_projection_2026_10_23
+current_phase: adopt_f04_green_staging_baseline_2026_10_23
 current_blocker: >-
-  Published source and origin are ETF SHA66c9780278cd810a870b8025a091df58d9c091d1;
-  exact-source CI39897635916 is terminal green for Backend, Frontend Unit,
-  Branch-declared and Playwright E2E, with Exhaustive skipped by feature-branch
-  policy. A second local correction normalizes capability date projections to
-  UTC for offset-aware `now`; its deterministic regression reproduced false
-  staleness at the UTC freshness boundary, and the full 114-test capability
-  module plus changed-file Ruff/format checks pass. This correction is not in
-  run39897635916; complete final workstream checks, publish the coherent source
-  change, and obtain exact-source CI. The required
-  full_stack_browser profile remains pending Root's exclusive resource slot;
-  the full fourteen-criterion roadmap and post-release observation remain open.
+  The exact pre-adoption ETF source 8e25283c7464ec429a96c7216eeeb0becc79de37
+  passed run39901930128 (Backend, Frontend Unit, Branch-declared and Playwright;
+  Exhaustive skipped by feature-branch policy). Released synchronized green
+  staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 has been merged only into
+  this ETF worktree. Coherent publication and exact merged-source CI are next.
+  No local full_stack_browser run is authorized until Root assigns the host slot.
+  The prior accepted ETF checkpoint remains distinct from the open AC1-AC14
+  roadmap, issuer onboarding, unresolved quarantines and 30-day observation.
+  The remainder of this field retains historical checkpoint status/evidence;
+  older source and pending-run statements below are not current claims.
   The `full_stack_browser` local profile remains pending Root's exclusive
   resource slot. Keep the accepted checkpoint distinct from the open full
   fourteen-criterion roadmap, issuer onboarding, and 30-day observation.
@@ -1742,17 +1772,10 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  The first UTC calendar fix is published at66c9780278cd810a870b8025a091df58d9c091d1;
-  exact run39897635916 is terminal green for Backend, Frontend Unit, Branch-
-  declared and Playwright E2E, with Exhaustive skipped by feature policy. A
-  second local fix normalizes `evaluate_capability`'s explicit clock to UTC
-  before calendar-date future/freshness guards and converts canary audit date
-  projections to UTC. Its regression failed before correction at the local-
-  date/UTC-date boundary; the full module passes114/114 and changed-file
-  Ruff/format checks pass. Complete final workstream/hash/narrative checks,
-  commit and push this coherent second source+record change once, then inspect
-  only its exact-source CI. The previous base 5433 CI remains historical.
-  Continue offline AC2/AC4/AC5 audit
+  Commit and push the validated f04 merge and ETF-owned workstream edits once,
+  verify local/origin parity, and inspect
+  only the resulting exact-source branch CI. Do not rerun the already-green
+  pre-adoption CI. Then continue offline AC2/AC4/AC5 audit
   from retained evidence without inferring route eligibility. The required
   `full_stack_browser` recipe is `make
   validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents

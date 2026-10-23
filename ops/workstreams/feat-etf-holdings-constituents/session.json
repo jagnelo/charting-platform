@@ -150,15 +150,8 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23: Published ETF HEAD/origin is66c9780278cd810a870b8025a091df58d9c091d1. Exact run39897635916 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright E2E; Exhaustive was skipped under feature-branch policy. The second local UTC date-projection correction is not part of that run; its capability module passes114/114 with changed-file Ruff/format. Final workstream checks are being completed before one coherent publication; exact-source CI for the local correction remains pending. The full_stack_browser profile awaits Root's exclusive slot. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds, retained data and the 30-day observation. No issuer/provider/SEC calls, quota, paid/trial activation, cleanup or cross-worktree mutation.",
-  "dirty_paths": [
-    "backend/app/services/etf_holdings_capability.py",
-    "backend/tests/unit/services/test_etf_holdings_capability.py",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "current_blocker_latest": "2026-10-23: Pre-adoption ETF source/origin 8e25283c7464ec429a96c7216eeeb0becc79de37 is clean/synchronized; exact CI39901930128 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright E2E, with Exhaustive skipped under feature policy. Exact released synchronized green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 was fetched and merged only into this ETF worktree without conflicts. The merge plus current workstream reconciliation need one coherent publication, then exact merged-source CI. The full_stack_browser profile remains pending Root's exclusive slot. The accepted initial ETF checkpoint does not close AC1-AC14, issuer onboarding, unresolved MSMR/QQQ and Militia/GOOG quarantines, disabled holds, or the 30-day observation. No issuer/provider/SEC requests, quota, paid/trial activation, fixture, cleanup, or staging/sibling/master writes.",
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -183,8 +176,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "66c9780278cd810a870b8025a091df58d9c091d1",
-  "implementation_sha": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
+  "head": "8e25283c7464ec429a96c7216eeeb0becc79de37",
+  "implementation_sha": "8e25283c7464ec429a96c7216eeeb0becc79de37",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -296,17 +289,19 @@
   },
   "last_checkpoint": "2026-10-23T01:28:00Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-23: Accepted common staging4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad (CI39866387942) was freshly verified and is already in ETF HEAD680d8b6c3851f57072d97caee35512f21092ed2d ancestry; no duplicate merge was needed. Future known_at was missing from both ingestion rejection and current-capability future-lineage checks. Both now fail closed, and the three affected unit modules passed186/186 including non-current/degraded and pre-profile-hydration tests. Narrative sentinel, workstream validator, Ruff/format and diff checks passed. Parent exact CI39880187551 on680d8b6 is terminal green for frontend/backend/branch-declared/E2E; Exhaustive was skipped by feature-branch policy. The committed fix is not in that run and its exact-source CI is pending push. No live HTTP/quota, local full profile, cleanup, or provider activation. Full_stack_browser awaits Root's exclusive slot; all AC1-AC14, 15 Tier-0 and156 Tier-1, unresolved MSMR/QQQ and Militia/GOOG, disabled holds and30-day observation remain open.",
+  "latest_checkpoint": "2026-10-23: Exact pre-adoption source8e25283c7464ec429a96c7216eeeb0becc79de37 was clean/synchronized and exact CI39901930128 completed green for Backend, Frontend Unit, Branch-declared and Playwright; Exhaustive skipped under feature-branch policy. The coordinator-released synchronized green staging SHAf04fb2a26c6363c6090e76c2658cfcfe7adabf61 was fetched and verified from the canonical release record, then merged only into this ETF worktree without conflict. Incoming changes are the reviewed hidden-refresh browser request-initiation test repair and Strategy repair records; ETF product source and full roadmap are preserved. Coherent workstream publication and exact merged-source CI remain pending. Root's full_stack_browser slot, all AC1-AC14, 15 Tier-0 and156 Tier-1, unresolved MSMR/QQQ and Militia/GOOG, held routes, retained data and30-day observation remain unchanged/open. No external HTTP, quota, activation, local fixture, cleanup, or cross-worktree write.",
   "latest_staging_reconciliation": {
-    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json",
-    "exact_staging_ci": 39866387942,
-    "focused_results": "workflow session tests 38 passed; MarketMapTool unit tests 61 passed",
-    "full_roadmap": "AC1-AC14 remain open beyond the accepted initial checkpoint; preserve all holds, quarantines and 30-day observation",
-    "full_stack_browser": "required; not launched pending Root's exclusive host-slot release",
-    "merge_policy": "merged only exact accepted staging SHA into the ETF worktree; no conflict, reset, rebase, sibling import, or staging write",
-    "own_branch_ci": "Parent CI39880187551 is terminal green on published source680d8b6 for frontend/backend/branch-declared/E2E; the Exhaustive gate was skipped under feature policy. The committed local fix is excluded and requires fresh exact-source CI after push.",
-    "recorded_at": "2026-10-23T00:13:02Z",
-    "released_staging_sha": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad"
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
+    "exact_staging_ci": 39896524209,
+    "exhaustive_gate_job": 120233695506,
+    "full_roadmap": "AC1-AC14 remain open beyond the accepted initial checkpoint; preserve all holds, quarantines, retained data and 30-day observation",
+    "full_stack_browser": "required; no new local fixture/profile launched pending Root's exclusive slot",
+    "merge_policy": "fetched and merged only exact released f04fb2a26c6363c6090e76c2658cfcfe7adabf61 into this ETF worktree; conflict-free; no staging/sibling/master writes",
+    "own_branch_ci_before_merge": "Run39901930128 on synchronized source8e25283 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright; Exhaustive skipped by feature policy. It is not merged-source CI.",
+    "merged_source_publication": "workstream checks passed; single coherent merge commit and push pending; exact post-merge CI required",
+    "recorded_at": "2026-10-23T05:17:09Z",
+    "released_staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
+    "source_before_merge": "8e25283c7464ec429a96c7216eeeb0becc79de37"
   },
   "local_profile_execution": {
     "cleanup": {
@@ -343,8 +338,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Exact run39897635916 on published66c9780278cd810a870b8025a091df58d9c091d1 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright E2E; Exhaustive was skipped by feature-branch policy. The second local correction normalizes evaluate_capability's explicit offset-aware clock and canary audit date projection to UTC; the regression reproduced false staleness at the UTC deadline, then the full capability module passed114/114 and changed-file Ruff/format passed. Complete final workstream/hash/narrative-count/JSON/diff checks, commit and push this coherent correction once, and inspect only the exact-source CI it creates. Continue offline AC2/AC4/AC5 audit without inferring route eligibility. Preserve unknown/quota-held/unreviewed/paid/trial/unsafe holds, full AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, retained data and the 30-day observation. The required full_stack_browser profile awaits Root's exclusive slot.",
-  "plan_hash": "3b0e677aff919e93696e5f195b8a09c39ff30001d227ff97b3141cde44156eb6",
+  "next_action": "Validate the exact f04 merge and ETF-owned workstream edits with bounded no-network checks, then commit/push this coherent adoption once, verify local/origin parity and follow exact merged-source CI without replaying the green pre-adoption run. Continue offline AC2/AC4/AC5 work from retained evidence without inferring route eligibility. Keep the required full_stack_browser profile pending Root's exclusive slot; preserve unknown/quota-held/unreviewed/paid/trial/unsafe holds, full AC1-AC14, 15 Tier-0 and 156 Tier-1, unresolved MSMR/QQQ and Militia/GOOG, retained data and the 30-day observation.",
+  "plan_hash": "4d9ba5481d0fa501101d31ed55d0b9718ebcc869007dc09acbcb165bbfa1eaf4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -410,8 +405,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "66c9780278cd810a870b8025a091df58d9c091d1",
-  "remote_sha": "66c9780278cd810a870b8025a091df58d9c091d1",
+  "remote": "8e25283c7464ec429a96c7216eeeb0becc79de37",
+  "remote_sha": "8e25283c7464ec429a96c7216eeeb0becc79de37",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

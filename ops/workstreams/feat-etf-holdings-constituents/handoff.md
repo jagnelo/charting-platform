@@ -1,5 +1,48 @@
 # feat/etf-holdings-constituents
 
+## Current green-baseline adoption — 2026-10-23
+
+The coordinator released exact staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`
+as a synchronized green common baseline. Release evidence is
+`/home/m920q/charting-platform/.ai/staging-attempts/f04-four-owner-green-release-20261023.md`
+and canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`.
+Exact staging CI `39896524209` and Exhaustive job `120233695506` are terminal
+green: 104 backend unit shards, 497 integration/2 existing skips/84% coverage,
+1337 frontend, 194 functional/107 existing skips, 104 strict visual cases with
+zero retries, and ordinary E2E 191 passed/110 existing skips. Canonical
+reconcile `29507` exited zero and the degraded marker is absent. This baseline
+release does not accept later ETF roadmap work; Root owns master gates and
+deployment.
+
+Before adoption, this assigned ETF worktree and origin were clean and
+synchronized at `8e25283c7464ec429a96c7216eeeb0becc79de37`; exact branch CI
+`39901930128` is now terminal successful for Backend, Frontend Unit,
+Branch-declared and Playwright E2E, with Exhaustive skipped by feature-branch
+policy. The run was allowed to finish and was not canceled or rerun.
+
+After verifying the fetched staging ref was exactly `f04fb2a...`, I merged
+only that release into this ETF worktree. The merge is conflict-free. The
+incoming common delta consists of the hidden-refresh browser request-initiation
+observer and its tests in three frontend test paths, plus the Strategy repair
+handoff/plan/session/validation records delivered by staging. Those imported
+records are preserved unchanged; ETF implementation, historical receipts,
+quarantines and full AC1–AC14 roadmap remain intact. The focused no-network
+checks and workstream validation pass; this exact merge and ETF-owned record
+update are prepared for one coherent merge commit, followed by exact-source CI.
+Only lightweight checks are in scope now. The required `full_stack_browser`
+profile remains pending Root's exclusive host slot; no fixture, provider/issuer/
+SEC request, quota operation, paid/trial/unsafe activation, cleanup, or
+staging/sibling/master write occurred.
+
+The bounded ETF checkpoint already accepted in green staging remains distinct
+from the open full roadmap. Keep all 140 starting fallback dispositions, the
+`15 Tier-0 and 156 Tier-1` investigations, MSMR/QQQ and Militia/GOOG
+quarantines, held routes, retained data, and the post-integration 30-day
+observation gate. Next: validate this exact merge, publish the coherent
+workstream/source adoption once, and follow only its exact-source branch CI;
+then continue offline roadmap work without inferring route eligibility.
+
 ## Current full-roadmap continuation — shared CSV transport boundary — 2026-10-22
 
 The central coordinator released the exact synchronized green four-feature
