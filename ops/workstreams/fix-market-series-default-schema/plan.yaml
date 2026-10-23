@@ -46,8 +46,8 @@ remaining_gaps:
   - Required local PostgreSQL profile and full-chain validation pending resource-safe execution.
   - Exact repair branch CI, technical acceptance, staging/master gates and repaired target deployment remain pending.
 progress:
-  completed: []
+  completed: [MSS1, MSS2, MSS3]
   total: 4
-  current_phase: review isolated Provider migration patch
+  current_phase: local PostgreSQL profile passed; publishing isolated candidate
   current_blocker: none
-  next_action: Validate the plan then extract only the two reviewed implementation files; retain the original active unbudgeted coordinator native goal without replacement or accounting reset.
+  next_action: Commit and push reviewed candidate/evidence, follow exact branch CI, then preserve all independent staging/master/deployment gates. Retain the original active unbudgeted coordinator goal.

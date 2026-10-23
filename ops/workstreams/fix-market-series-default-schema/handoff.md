@@ -35,12 +35,13 @@ the new columns. Regression covers empty legacy table and preserved mapping
 identity/selection/provenance with actual ORM reads. Full fresh-chain/local
 Docker proof is still required, not replaced by collection or hosted results.
 
-Owned paths and MSS1–MSS4 are in plan.yaml. Current context is uncommitted plan
-and extraction preparation; no implementation imported yet. No tests/CI/local
-profile is claimed passed. New worktree baseline scaffold b2b7c36aa86f4da4cdaf6b65045c23b5bebad9ce
-is synchronized. Next: plan-ready, record the existing native goal as execution
-aid, extract isolated patch, run bounded PostgreSQL validation and close the
-implementation/operational contexts separately. No test weakening, paid/trial
+Owned paths and MSS1–MSS4 are in plan.yaml. Planning checkpoint
+eaa363aec40321350a2ccb9b603a36459ef3d195 is synchronized; plan-ready passed.
+Only the two implementation files were extracted via apply_patch, with blobs
+e8870601ab4aa22d0b54a4e658d307518b17d1ca and
+b874bd444be4b76f18b814748471a02990cf4546 independently matching Provider2467.
+This SAME repair context remains active through publication; no other theme
+is mixed into its dirty operational records. No test weakening, paid/trial
 activation, new provider transport, sibling writes or deployment from this
 implementation checkout. Root coordinator owns later conditional acceptance.
 
@@ -51,3 +52,42 @@ the actual migration-only boundary without that irrelevant phrase; owned paths
 and docker_integration requirement are unchanged. This is not a remote-only
 exception: real local PostgreSQL and all full hosted integration/release gates
 remain mandatory, and no consumer assertion or visual oracle is changed.
+
+## Local validation completed — 2026-10-23 08:10 UTC
+
+Ruff check/format pass; normal pytest collection finds exactly1 regression
+(collection is not execution). Staged candidate tree
+dd454648667a7c091ec54e8a52cfd15a681083d4 contains the exact source blobs above;
+only operational state was unstaged during the application-source test.
+
+An isolated real PostgreSQL16 fixture used256MiB plus a512MiB capped runner,
+equal memory/swap limits, internal-only networking and no provider credentials,
+published ports, production data or quota mounts. The cached accepted runtime
+image supplied unchanged dependencies/models; candidate backend was mounted
+read-only. Its TRUE image build source remains4687, not the candidate source.
+The normal entrypoint ran the candidate's complete fresh Alembic chain to
+d4a5b6c7e812. All129 model tables then had no missing tables/columns. The exact
+unchanged regression body passed both fresh-empty and retained-mapping cases.
+This was direct real-PostgreSQL assertion execution, NOT a pytest-run claim;
+the declared normal pytest/Testcontainers run remains in exact-source CI.
+
+Preserved setup failures: first OCI launch could not execute the read-only
+source entrypoint; explicit sh invocation fixed fixture permissions. The next
+launch completed the fresh migration chain but harness import failed because
+/check.py lacked /app on sys.path. Adding fixture PYTHONPATH=/app allowed the
+first actual assertion execution to pass. No assertion, skip, tolerance or
+product source was changed; no product-test retry is claimed green.
+
+The1280MiB headroom guard deferred the fixture twice before launch. Only the
+new target's verified-idle worker/researchrunner were paused, then restored.
+Fixture20673 reachedhealthy; assertion59570 exited0; exact scoped cleanup
+removed only its synthetic PostgreSQL volume/network/container. Fresh global
+audit08:10 confirms all original26containers44volumes9networks and original
+running start-times preserved, fixture objects gone, all6target services back.
+Private frontend health remainsok with all3seedflagsfalse. No provider HTTP or
+production DDL occurred. MSS1–MSS3 pass; MSS4/exactbranchCI remains pending.
+
+Next: commit/push this isolated candidate, record its exact implementation SHA
+in a separate operational checkpoint, follow exact-source CI, then coordinator
+technical acceptance and protected staging/master gates. The actual private
+target still has the old schema and routingOFF; it is not yet human-data-ready.
