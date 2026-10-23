@@ -17639,3 +17639,32 @@ test/workstream changeset, inspect its one exact-source branch CI, then continue
 through the exact-pinned RC process and production result/settlement path only on a Root-assigned
 runtime slot. Keep full local backend/combined DB/application/browser/strict-visual and native gates
 open and preserve all scope holds.
+
+## Carry every admitted Study output type through the bridge context — 2026-10-23 03:47 UTC
+
+Extended the same bridge handoff regression from its initial scalar case to all11 artifact types
+admitted by the trusted Study resolver, in both invocation-result-retention modes (22 cases). Each
+case verifies the exact immutable `ResolvedStudyArtifactOutput` reaches the selected alpha component's
+`StrategyInvocationSession.invoke` context and does not leak to beta. The bounded offline test passes
+22/22 in0.69s; Ruff check/format and focused one-file MyPy pass. No production code changed. Fake
+Nautilus classes remain a test seam: this does not establish actual Nautilus RC process execution or
+native strategy behavior.
+
+This extension is local and uncommitted against published parent
+`4f547f0d9ba89e121d153907853b12886a7db63f`; its exact CI `39896546865` is still running and does not
+include this matrix. Preserve that run to terminal before pushing the follow-up. The earlier exact
+CI for `6a60a9817fe3f71dcdaf91b1f8f9242ad0e4901f` remains green. Full local backend/combined DB,
+application/browser/strict-visual and exact pinned native execution/result settlement gates remain
+open; the complete 18-criterion roadmap and all operation holds remain unchanged.
+
+## Exact-source bridge-context CI closed — 2026-10-23 04:29 UTC
+
+The exact push run `39896546865` for published source
+`4f547f0d9ba89e121d153907853b12886a7db63f` is terminal green (attempt1): Backend Tests,
+Frontend Unit Tests, Branch-declared Tests, and E2E Playwright succeeded; Exhaustive Integration
+Gate was skipped by feature-branch policy. The E2E job completed at `2026-10-23T04:28:36Z`.
+This closes hosted validation for the earlier two-case bridge-handoff change only; it does not
+validate the current uncommitted 22-case extension. That extension remains bounded offline
+test-only evidence pending its own exact-source CI. Full local backend/combined DB,
+application/browser/strict-visual and exact-pinned native execution/result settlement remain open.
+The full 18-criterion roadmap and all operation holds remain unchanged.

@@ -315,9 +315,27 @@ def test_stream_component_context_groups_reject_manifest_history_mismatch() -> N
 
 
 @pytest.mark.parametrize("retain_invocation_results", (True, False))
+@pytest.mark.parametrize(
+    ("study_artifact_type", "study_value"),
+    (
+        ("scalar", 2.5),
+        ("series", [{"time": "t1", "value": 1.25}, {"time": "t2", "value": 2.5}]),
+        ("boolean", True),
+        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
+        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
+        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
+        ("range", {"low": 1.25, "high": 3.75}),
+        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
+        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
+        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
+        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
+    ),
+)
 def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     monkeypatch,
     retain_invocation_results: bool,
+    study_artifact_type: str,
+    study_value: object,
 ) -> None:
     import sys
     from dataclasses import replace
@@ -457,13 +475,13 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
     source_alpha = _SOURCE
     source_beta = "\nclass Strategy:\n    def on_event(self, context):\n        return [1]\n"
     base_manifest = _manifest()
-    study_payload = {"type": "scalar", "value": 2.5}
+    study_payload = {"type": study_artifact_type, "value": study_value}
     study_reference = SelectedStudyArtifactReference(
         research_run_id=11,
         code_version_id=12,
         artifact_id=13,
         artifact_name="study.output",
-        artifact_type="scalar",
+        artifact_type=study_artifact_type,
         output_contract="study",
         run_reproducibility_hash=content_digest("study-run"),
         code_version_digest=content_digest("study-code-version"),
