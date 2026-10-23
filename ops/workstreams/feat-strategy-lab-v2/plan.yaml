@@ -1655,8 +1655,10 @@ roadmap_progress_history:
     forward-runtime propagation and a real PostgreSQL fresh-session restart regression. Its exact
     CI39882200073 attempt1 is currently in progress in Backend unit tests; Frontend Unit Tests have
     passed. Local commit72a4c605b010e608446a6d5d0a6433fd4cceae26 adds native worker seed reconstruction
-    evidence, and the working diff adds typed scalar/range/table/events payload round-trip coverage;
-    neither is included in that hosted run or yet published. The PostgreSQL test body has not run
+    evidence; local commit ae03ee943498822eca1596326468a665d66e0d51 adds typed scalar/range/table/events
+    invocation round-trips, and the working diff extends those cases through the worker component
+    context stream. None of these follow-ups is included in that hosted run or yet published. The
+    PostgreSQL test body has not run
     locally because no DB slot is assigned. Full local backend/combined DB/application/browser/strict-
     visual/native gates remain open and require coordinator-assigned slots. Historical failures,
     including CI39856591934 and CI39874448939, remain in the append-only journal/handoff; generic

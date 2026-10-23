@@ -322,6 +322,28 @@ def test_invocation_wire_preserves_typed_study_payload_shapes(artifact_type, val
     assert decoded_context.study_artifacts[reference.artifact_name].value == output.value
     assert decoded_context.study_artifacts[reference.artifact_name].reference == reference
 
+    component_stream = BytesIO()
+    serialize_component_invocation_context_stream(
+        component_stream,
+        components=(
+            InvocationContextStreamSource(
+                component_id="component-1",
+                source=source,
+                manifest=manifest,
+                contexts=(context,),
+                entrypoint="strategy.main:Strategy",
+            ),
+        ),
+    )
+    bindings, contexts = deserialize_component_invocation_context_stream(
+        BytesIO(component_stream.getvalue()),
+        expected_component_counts={"component-1": 1},
+    )
+    component_id, component_context = next(contexts)
+    assert component_id == "component-1"
+    assert bindings[component_id].study_artifacts == {reference.artifact_name: output}
+    assert component_context.study_artifacts == {reference.artifact_name: output}
+
 
 def test_result_wire_round_trip_preserves_intents_and_fingerprint() -> None:
     source = "class Strategy:\n    def on_event(self, context):\n        return []\n"

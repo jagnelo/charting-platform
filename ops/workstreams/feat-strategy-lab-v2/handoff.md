@@ -17448,3 +17448,14 @@ is still running Backend unit tests (Frontend Unit Tests passed); neither local 
 Publish the coherent accumulated follow-up after that parent run reaches terminal. The real PostgreSQL
 restart body and coordinator-assigned full backend/combined DB/application/browser/strict-visual/native
 gates remain open. Full 18-criterion roadmap and all operational safety holds are unchanged.
+
+## Exercise typed Study variants through the worker component stream — 2026-10-23 01:18 UTC
+
+Extended the four typed payload-shape cases to also encode/decode the `InvocationContextStreamSource`
+component stream used to seed native worker context windows. Each case asserts that the exact pinned
+reference and immutable output survive both the invocation envelope and the component binding plus
+context stream. The four cases pass (`4 passed`, `0.41s`); focused MyPy on the touched test file,
+Ruff, Ruff format and `git diff --check` pass. A MyPy command with a mistyped path exited2 without
+running MyPy; the corrected command passed with no issues. This remains serialization/seeding-input
+evidence only, not native execution evidence. The exact parent CI and all real PostgreSQL and full
+runtime gates remain open as recorded above.
