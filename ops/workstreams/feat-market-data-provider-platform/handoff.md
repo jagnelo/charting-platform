@@ -1,5 +1,33 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 01:16Z — integration fixture provenance correction after exact CI failure
+
+- Exact Actions run `39881532927` is terminal red on parent
+  `e5e8911bb94faa34ba1c995cbcf0530374dd8534`: Backend failed with one
+  integration assertion (`1 failed, 496 passed, 2 skipped`); Frontend Unit
+  passed and downstream jobs were skipped. The failure was
+  `test_nms_absence_requires_same_cycle_cta_and_nasdaq_equity_etf_scopes`:
+  expected three union-tagged runs, observed zero.
+- Root cause is the integration fixture, not the fail-closed production rule:
+  both mocked Nasdaq quote rows omitted the row-level `source_file`, while
+  reconciliation requires each Nasdaq row to identify its source file before
+  accepting same-cycle absence evidence. Updated only the integration fixture:
+  its XNAS EQUITY and ETF rows now identify `nasdaqlisted`, consistent with
+  their exchange and the existing Nasdaq adapter response shape. Production
+  validation and test assertions are unchanged.
+- The analogous no-network unit regression
+  `test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes` passed
+  `1/1` in `2.60s` against the current source. `git diff --check` passed. The
+  integration case itself was not rerun locally because its default fixture
+  starts Testcontainers; exact CI remains required for the corrected source.
+- Local HEAD remains `4ea0d5198b2dbea9b91c10625a27a12c52ec6b14`, one commit
+  ahead of origin, plus this uncommitted fixture/evidence correction. Preserve
+  the parent CI failure and the SEC restart/26-test and rollback-test proofs;
+  none is relabeled as passing evidence for the corrected source. Full local
+  profile remains held for Root's exact slot. No provider/issuer/SEC HTTP,
+  quota action, fixture, retained resource/data, staging, sibling, or master
+  change occurred.
+
 ## 2026-10-23 01:02Z — published NMS follow-up; SEC transaction rollback regression
 
 - The preserved exact run `39877233446` completed successfully for pushed source
