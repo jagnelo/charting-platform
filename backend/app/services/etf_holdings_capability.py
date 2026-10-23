@@ -2255,7 +2255,7 @@ def evaluate_capability(
 ) -> ETFHoldingsCapability:
     """Evaluate current usability without contacting an external provider."""
 
-    now = _as_utc(now or datetime.now(UTC)) or datetime.now(UTC)
+    now = (_as_utc(now or datetime.now(UTC)) or datetime.now(UTC)).astimezone(UTC)
     state_metadata = _metadata(state.extra_data if state else None)
     source_tier = _source_tier(snapshot, state)
     future_snapshot_reason = _future_snapshot_reason(snapshot, now=now)
@@ -2412,7 +2412,7 @@ def evaluate_capability(
             symbol_audit,
             outcome=CURRENT,
             evidence_state="issuer_current_canary_reverified",
-            investigated_at=audit_revalidated_at.date(),
+            investigated_at=audit_revalidated_at.astimezone(UTC).date(),
             next_action=(
                 "Keep current only while complete, dated, identity-verified rows pass the "
                 "freshness window; degrade again on issuer challenge, route drift, or stale data."

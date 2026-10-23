@@ -88,19 +88,18 @@
     }
   ],
   "active_changeset": {
-    "baseline": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
-    "intent": "Use UTC calendar dates consistently for the post-integration Tier-0 shadow observation window, including offset-aware observation timestamps and the implicit current date.",
-    "name": "Tier-0 shadow-gate UTC calendar boundary",
+    "baseline": "66c9780278cd810a870b8025a091df58d9c091d1",
+    "intent": "Normalize capability freshness and future-snapshot calendar-date projections to UTC for offset-aware times, preserving current/degraded/stale semantics at midnight boundaries.",
+    "name": "Capability UTC calendar date projection guards",
     "owned_paths": [
       "backend/app/services/etf_holdings_capability.py",
       "backend/tests/unit/services/test_etf_holdings_capability.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-      "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
-      "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
+      "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
     ],
-    "state": "Local only; UTC+02:00 boundary regression failed before the fix because the gate returned local date 2026-09-21 instead of UTC date 2026-09-20. After normalization, the full capability module passed113/113, including both offset-boundary and default-UTC-clock regressions; changed-file Ruff/format passed. Workstream state is reconciled against exact published source5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24 and green CI39892126843; this local source change still needs publication and exact-source CI. No issuer/provider/SEC HTTP, quota, full local profile, route activation or cleanup."
+    "state": "Local only; a UTC+02:00 composition date at 2026-09-21T00:30+02:00 reproduced a false stale classification because capability evaluation used the offset-local calendar date rather than UTC date2026-09-20. After normalizing `now` and canary audit date projections to UTC, the full capability module passed114/114 and changed-file Ruff/format passed. Exact-source run39897635916 on published66c9780278cd810a870b8025a091df58d9c091d1 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright E2E; Exhaustive was skipped by feature-branch policy. This local second change is excluded from that run and still needs final records, publication, and its own exact-source CI. No issuer/provider/SEC HTTP, quota, full local profile, route activation or cleanup."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -151,12 +150,11 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23: Published ETF HEAD/origin is5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24; exact CI39892126843 is terminal green for Backend, Frontend, Branch-declared and Playwright E2E, with Exhaustive skipped by policy. An uncommitted Tier-0 shadow-gate UTC calendar fix passes the complete113-test capability module and changed-file Ruff/format; workstream validation, narrative sentinel, JSON/hash and diff checks pass. It still requires publication and exact-source CI. The full_stack_browser profile awaits Root's exclusive slot. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds, retained data and the 30-day observation. No issuer/provider/SEC calls, quota, paid/trial activation, cleanup or cross-worktree mutation.",
+  "current_blocker_latest": "2026-10-23: Published ETF HEAD/origin is66c9780278cd810a870b8025a091df58d9c091d1. Exact run39897635916 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright E2E; Exhaustive was skipped under feature-branch policy. The second local UTC date-projection correction is not part of that run; its capability module passes114/114 with changed-file Ruff/format. Final workstream checks are being completed before one coherent publication; exact-source CI for the local correction remains pending. The full_stack_browser profile awaits Root's exclusive slot. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds, retained data and the 30-day observation. No issuer/provider/SEC calls, quota, paid/trial activation, cleanup or cross-worktree mutation.",
   "dirty_paths": [
     "backend/app/services/etf_holdings_capability.py",
     "backend/tests/unit/services/test_etf_holdings_capability.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/integration-checkpoint.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
@@ -185,7 +183,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
+  "head": "66c9780278cd810a870b8025a091df58d9c091d1",
   "implementation_sha": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -345,8 +343,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Final workstream, hash, narrative-count, JSON, diff, and changed-file Ruff/format checks pass. Commit and push the coherent Tier-0 shadow-gate UTC boundary source+records change once, then inspect its exact-source CI. The prior published source CI39892126843 is green but does not include this fix. Then continue offline AC2/AC4/AC5 audit without inferring route eligibility. Preserve unknown/quota-held/unreviewed/paid/trial/unsafe holds, full AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, retained data and the 30-day observation. The required full_stack_browser profile awaits Root's exclusive slot.",
-  "plan_hash": "c036208caa6858ca0cf417a0febda9665d9c1c2f333d70e7b4b4fb2c14e08e08",
+  "next_action": "Exact run39897635916 on published66c9780278cd810a870b8025a091df58d9c091d1 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright E2E; Exhaustive was skipped by feature-branch policy. The second local correction normalizes evaluate_capability's explicit offset-aware clock and canary audit date projection to UTC; the regression reproduced false staleness at the UTC deadline, then the full capability module passed114/114 and changed-file Ruff/format passed. Complete final workstream/hash/narrative-count/JSON/diff checks, commit and push this coherent correction once, and inspect only the exact-source CI it creates. Continue offline AC2/AC4/AC5 audit without inferring route eligibility. Preserve unknown/quota-held/unreviewed/paid/trial/unsafe holds, full AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and Militia/GOOG quarantines, retained data and the 30-day observation. The required full_stack_browser profile awaits Root's exclusive slot.",
+  "plan_hash": "3b0e677aff919e93696e5f195b8a09c39ff30001d227ff97b3141cde44156eb6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -412,8 +410,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
-  "remote_sha": "5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24",
+  "remote": "66c9780278cd810a870b8025a091df58d9c091d1",
+  "remote_sha": "66c9780278cd810a870b8025a091df58d9c091d1",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

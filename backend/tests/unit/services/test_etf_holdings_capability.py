@@ -252,6 +252,35 @@ def test_future_dated_snapshot_is_never_current_even_if_route_succeeded():
         assert "future" in result.reason.lower()
 
 
+def test_capability_uses_utc_calendar_date_for_future_and_freshness_guards():
+    offset_now = datetime.fromisoformat("2026-09-21T00:30:00+02:00")
+    coherent_state = state(checked=offset_now, success=offset_now)
+
+    at_utc_deadline = evaluate_capability(
+        profile(),
+        snapshot(
+            composition_date=date(2026, 9, 13),
+            published_at=offset_now,
+        ),
+        coherent_state,
+        now=offset_now,
+    )
+    future_by_utc_date = evaluate_capability(
+        profile(),
+        snapshot(
+            composition_date=date(2026, 9, 21),
+            published_at=offset_now,
+        ),
+        coherent_state,
+        now=offset_now,
+    )
+
+    assert at_utc_deadline.freshness_deadline == date(2026, 9, 20)
+    assert at_utc_deadline.availability == CURRENT
+    assert future_by_utc_date.availability == DEGRADED
+    assert "future" in future_by_utc_date.reason.lower()
+
+
 def test_missing_snapshot_is_unknown_until_a_route_check_records_outcome():
     result = evaluate_capability(profile(), None, None, now=NOW)
 

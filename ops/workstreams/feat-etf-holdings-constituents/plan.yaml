@@ -528,17 +528,17 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: tier0_shadow_gate_utc_calendar_boundary_fix_2026_10_23
+current_phase: capability_utc_calendar_date_projection_2026_10_23
 current_blocker: >-
-  Current published source is ETF SHA5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24;
-  exact-source run39892126843 is terminal green for Backend, Frontend,
-  Branch-declared, and Playwright E2E, with Exhaustive skipped by feature-branch
-  policy. A local, uncommitted UTC-calendar boundary correction for the
-  post-integration Tier-0 shadow window is based on a reproducing regression;
-  the complete 113-test capability module and changed-file Ruff/format checks
-  pass. Workstream validation, narrative-count sentinel, JSON/hash and
-  diff-check now pass; this local change is not included in CI and still needs
-  publication and exact-source CI. The required
+  Published source and origin are ETF SHA66c9780278cd810a870b8025a091df58d9c091d1;
+  exact-source CI39897635916 is terminal green for Backend, Frontend Unit,
+  Branch-declared and Playwright E2E, with Exhaustive skipped by feature-branch
+  policy. A second local correction normalizes capability date projections to
+  UTC for offset-aware `now`; its deterministic regression reproduced false
+  staleness at the UTC freshness boundary, and the full 114-test capability
+  module plus changed-file Ruff/format checks pass. This correction is not in
+  run39897635916; complete final workstream checks, publish the coherent source
+  change, and obtain exact-source CI. The required
   full_stack_browser profile remains pending Root's exclusive resource slot;
   the full fourteen-criterion roadmap and post-release observation remain open.
   The `full_stack_browser` local profile remains pending Root's exclusive
@@ -1723,33 +1723,36 @@ latest_green_staging_adoption:
     and git diff --check passed. No external HTTP or quota use.
   checkpoint_status: accepted_and_integrated_in_staging; full_feature_roadmap_open
   latest_branch_ci_status: >-
-    Current ETF HEAD and origin are synchronized at
-    5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24. Exact-source CI39892126843 is
-    terminal green for Backend, Frontend Unit, Branch-declared, and Playwright
-    E2E; Exhaustive Integration was skipped under feature-branch policy. The
-    UTC-calendar shadow-window correction is not in that run. Its regression
-    failed on the old code at the local-date/UTC-date mismatch; after the fix,
-    the full capability module passed113/113 and changed-file Ruff/format
-    checks passed. The narrative sentinel, three provider-audit parity checks,
-    validator, JSON parsing, plan hash and diff-check also pass for current
-    workstream edits. Exact CI for the local source fix is pending publication;
-    the full_stack_browser profile remains pending Root's exclusive slot.
-    Historical red/partial evidence remains. No issuer/provider/SEC request,
-    quota, paid/trial activation, data cleanup, or cross-worktree write occurred.
+    Published ETF HEAD and origin are synchronized at
+    66c9780278cd810a870b8025a091df58d9c091d1. Exact-source Actions run
+    39897635916 is terminal green for Backend, Frontend Unit, Branch-declared
+    and Playwright E2E; Exhaustive was skipped under feature-branch policy.
+    The first shadow-window UTC fix is included; the second capability date-
+    projection fix is not. The latter's regression failed before correction
+    (offset-aware local calendar date produced `stale` at the UTC freshness
+    deadline); afterward the full capability module passed114/114 and
+    changed-file Ruff/format checks passed. Narrative sentinel, provider-audit
+    parity, workstream validator, JSON parsing, plan hash and diff-check pass.
+    Publish the second fix coherently, then inspect its exact-source CI. The
+    full_stack_browser profile remains pending Root's
+    exclusive slot. Historical red/partial evidence remains. No
+    issuer/provider/SEC request, quota, paid/trial activation, data cleanup,
+    or cross-worktree write occurred.
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  The current local change corrects the post-integration Tier-0 shadow gate's
-  calendar boundary: normalize explicit `now` and observed timestamps to UTC,
-  and derive the implicit date from the UTC clock. A deterministic offset-
-  boundary regression failed before the fix; the full capability module then
-  passed113/113, and changed-file Ruff/format checks passed. Final
-  workstream/hash/narrative checks also pass; commit and push this coherent source+record
-  changeset once, then inspect only its exact-source CI. The prior published
-  source `5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24` remains validated by exact
-  run39892126843 (Backend, Frontend, Branch-declared, Playwright E2E green;
-  Exhaustive skipped by feature policy). Continue offline AC2/AC4/AC5 audit
+  The first UTC calendar fix is published at66c9780278cd810a870b8025a091df58d9c091d1;
+  exact run39897635916 is terminal green for Backend, Frontend Unit, Branch-
+  declared and Playwright E2E, with Exhaustive skipped by feature policy. A
+  second local fix normalizes `evaluate_capability`'s explicit clock to UTC
+  before calendar-date future/freshness guards and converts canary audit date
+  projections to UTC. Its regression failed before correction at the local-
+  date/UTC-date boundary; the full module passes114/114 and changed-file
+  Ruff/format checks pass. Complete final workstream/hash/narrative checks,
+  commit and push this coherent second source+record change once, then inspect
+  only its exact-source CI. The previous base 5433 CI remains historical.
+  Continue offline AC2/AC4/AC5 audit
   from retained evidence without inferring route eligibility. The required
   `full_stack_browser` recipe is `make
   validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents
