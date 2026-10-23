@@ -696,21 +696,17 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-persisted-study-runtime-assembly-v9
+  current_phase: full-roadmap-persisted-study-runtime-assembly-v10-f04-adopted
   current_blocker: >-
-    The accepted M2 baseline0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor of this
-    branch. Exact CI39891877125 on6a60 is terminal green (5251 unit pass/1 existing skip,530
-    integration pass/2 existing skips,84% coverage; frontend, branch-declared and E2E succeeded;
-    Exhaustive skipped by feature policy). Exact CI39896546865 on4f547f0d9ba89e121d153907853b12886a7db63f is terminal green for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive was skipped by feature policy. Exact CI39900753635 on94ff90b9d59d4f32dbd368b69ccafeed291950d8 is terminal red only in E2E: 190 passed,110 existing skips, one flaky F8l case, caused by unavailable Request.startTime in the hidden-request observer; its retry passed. Backend, frontend and branch-declared passed; Exhaustive skipped. Root has a separate hidden-refresh proof at331d99b7, but no Strategy branch repair is inferred. The current owned integration test extends real persisted-worker restart hydration through NautilusTrialRuntimeInputMaterializer and decoded runtime contexts for all11 admitted Study types; 11 cases collected and Ruff/format/focused MyPy pass, but the PostgreSQL cases have not run locally. No actual native RC process or authoritative publication is proven. Full local backend/combined DB/application/browser/strict-visual and exact-pinned native execution/settlement gates remain open. All18 original criteria remain open; Provider/issuer HTTP, quota/live, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
-  updated_at: "2026-10-23T05:21:03Z"
+    The coordinator-released common green baseline f04fb2a26c6363c6090e76c2658cfcfe7adabf61 (receipt 20261023T051709Z-f04fb2a26c63.json; exact CI39896524209 including Exhaustive) was merged into this branch as second parent of8944f442dff4e3a80bcbdcab91e44e10958d0351. It is a shared repair baseline, not product-checkpoint acceptance. The merge includes the hidden-request browser-clock observer repair; focused Vitest passed9/9. Prior exact CI39900753635 remains historical red with one flaky F8l observer case (190 passed/110 existing skips); the new merged source still needs its own exact-source CI. The current owned integration test extends real persisted-worker restart hydration through NautilusTrialRuntimeInputMaterializer and decoded runtime contexts for all11 admitted Study types; 11 cases are collected and Ruff/format/focused MyPy pass, but its PostgreSQL body has not run locally. No actual native RC process or authoritative publication is proven. Full local backend/combined DB/application/browser/strict-visual and exact-pinned native execution/settlement gates remain open. All18 original criteria remain open; Provider/issuer HTTP, quota/live, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled or unauthorized.
+  updated_at: "2026-10-23T05:25:04Z"
   next_action: >-
-    Finish bounded validation/workstream closure for the persisted-restart-to-runtime-assembly test,
-    then publish this scoped context and inspect its exact-source CI without weakening or hiding the
-    existing F8l red. Obtain the coordinator's released repair before backmerging shared F8l changes;
-    run the real PostgreSQL integration under the normal assigned/full gate, not by collecting tests.
-    Continue exact-pinned Nautilus RC execution/result settlement only on a Root-assigned runtime
-    slot. Keep full local backend/combined DB/application/browser/strict-visual gates open and all18
-    criteria intact; preserve exact-scope authority and all existing operation holds.
+    Complete bounded workstream/diff validation and publish the f04 merge plus its owned adoption
+    receipt; inspect exact-source CI on the resulting branch tip without weakening tests or hiding
+    prior F8l evidence. Run the real PostgreSQL integration only in an assigned slot, then continue
+    exact-pinned Nautilus RC execution/result settlement only on a Root-assigned runtime slot. Keep
+    full local backend/combined DB/application/browser/strict-visual gates open and all18 criteria
+    intact; preserve exact-scope authority and every existing operation hold.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

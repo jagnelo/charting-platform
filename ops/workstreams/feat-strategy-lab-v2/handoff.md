@@ -17694,3 +17694,39 @@ format and focused MyPy were run locally. The real PostgreSQL test was not launc
 ordinary integration execution remains required. This proves neither native RC execution nor
 authoritative result publication. The full 18-criterion roadmap and all local/full-stack/native gates
 remain open.
+
+## Materializer integration case and released f04 baseline — 2026-10-23 05:25 UTC
+
+The current Strategy-owned integration-test changeset was closed and pushed first
+as `a32950e282ab92ecfc695b68493cc7afa7e6b4b7`. Its PostgreSQL-backed
+`test_reconstructed_backtest_worker_hydrates_each_persisted_study_type` now
+retains the real package artifact store/materializer, persists the selected
+immutable reference in the worker package, reconstructs after restart, invokes
+`NautilusTrialRuntimeInputMaterializer`, loads the content-addressed bundle,
+decodes the component context stream, and verifies exact Study reference/output
+in the strategy binding and every event context for all11 types. Existing
+persisted-drift denial remains. Collection found11 cases; Ruff, format and
+focused MyPy passed. The PostgreSQL test body was not run locally, so this is
+not DB acceptance or proof of native Nautilus execution. The publication was
+followed immediately by the coordinator-released common baseline adoption.
+
+Exact released staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` was verified
+from `origin/staging` and merged into this clean Strategy branch as second
+parent of `8944f442dff4e3a80bcbdcab91e44e10958d0351`. Release receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`;
+CI `39896524209` is fully green including Exhaustive. This is a common repair
+baseline, not product-checkpoint acceptance. It brings the shared browser-clock
+hidden-request observer repair and tests; focused Vitest passed9/9. The first
+attempt with a 1-GiB address-space cap stopped V8 before test collection, so the
+same focused file was run successfully with `NODE_OPTIONS=--max-old-space-size=512`
+and one worker. No browser/profile was launched.
+
+The prior exact CI `39900753635` on `94ff90b9d59d4f32dbd368b69ccafeed291950d8`
+remains historical red due to one flaky F8l observer case (190 passed,110
+existing skips); it is not erased by the new local unit result. The merged
+Strategy tip needs its own exact-source CI after publication. Full local backend,
+PostgreSQL/application, browser/strict-visual, and exact-pinned native execution
+and settlement remain open. All18 roadmap criteria and the operation holds
+remain intact. Do not mutate another worktree, staging or master; do not launch
+an unassigned fixture/profile or enable provider/live/quota/paid/trial/broker/
+capital operations.
