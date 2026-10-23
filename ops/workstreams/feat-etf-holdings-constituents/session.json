@@ -88,17 +88,18 @@
     }
   ],
   "active_changeset": {
-    "baseline": "095a08a4dcd88a0deb306b943813d8f94f5c61bf",
-    "intent": "Correct the exact workspace integration assertion to match capability precedence for an unassigned adapter while preserving current-mode 409, tier none/stale/unusable status, and explicit historical access. The failed exact CI response proved the API behavior was correct and only the expected reason was stale. Preserve the completed read-only RSST feasibility findings; no sample or runtime mutation occurred.",
-    "name": "Correct manual-import workspace denial-reason expectation",
+    "baseline": "e4ce7dd423620d2cad00e2c68f0468b53893314d",
+    "intent": "Prevent manual imports from being backdated in point-in-time history: default omitted known_at to the service's UTC import clock, reject a supplied earlier known_at, and prove exclusion from an earlier PIT query while preserving explicit snapshot selection. Keep provider-refresh date semantics unchanged. Reconcile prior exact CI and the already-published manual-import context without changing retained artifact, rights, routes, or provider state.",
+    "name": "Prevent manual-import known-at backdating in PIT history",
     "owned_paths": [
-      "backend/tests/integration/api/test_workspaces.py",
+      "backend/app/services/etf_holdings.py",
+      "backend/tests/unit/services/test_etf_holdings_resolution.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Exact CI39938965987 on base095a08a4dcd88a0deb306b943813d8f94f5c61bf is terminal red: Frontend Unit passed; Backend unit passed5235 with one skip; Backend integration passed497 with two skips and failed only test_etf_industries_are_derived_from_point_in_time_holdings on the expected reason. Logs confirm current-mode409, correct stale/source-tier-none capability and explicit historical200; only the reason differed because unassigned-adapter precedes source-tier. The local test changes only that expected reason; Ruff and format pass, no local integration profile ran due Root slot. Earlier CI39934411063 and count-sentinel CI39937538292 remain preserved red; the required count phrase has been restored and the focused sentinel passed. The RSST audit found accepted-f04 manual profile binding, health isolation, no-enrichment, derivative parser, rights and initial-URL gaps. No sample import or external/runtime operation occurred. Preserve all AC1-AC14 and safety gates."
+    "state": "At baseline e4ce7dd, exact CI39942187427 is terminal green for Backend, Frontend Unit, Branch-declared Tests, and Playwright E2E; Exhaustive was skipped by feature-branch policy. Current local service+regression change passes the 61-test resolution module plus 1 router test (62 total) with both live flags zero, Ruff check/format, and diff check. Exact-source CI for this local change is pending publication; full_stack_browser remains Root-slot-gated. Earlier red CI and the 09:08/09:12 timestamp qualification remain historical and unmodified. RSST remains unimported and non-routable; no issuer/provider/SEC HTTP, quota, profile mutation, fixture, cleanup, staging/sibling/master write, or deployment occurred. Preserve all AC1-AC14."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -149,13 +150,13 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23: Exact CI39934411063 on4dae395c1972457e644c8ec18ba289891c20426e and CI39938965987 on095a08a4dcd88a0deb306b943813d8f94f5c61bf are terminal red on the same workspace denial-reason expectation. Both logs prove current-mode409 and explicit historical access; stale/source_tier none/unusable remain, but the unassigned profile's earlier-priority adapter reason differs. Workstream CI39937538292 also remains red because an intermediate narrative omitted the count phrase; that phrase has been restored and the focused sentinel passed. Preserve 15 Tier-0 and 156 Tier-1 investigations, all AC1-AC14, quarantines, holds, retained data, 30-day observation and Root-owned full_stack_browser slot. RSST is not safely importable through accepted f04 because manual-profile/health isolation, no-enrichment, derivative parsing, rights and initial URL gaps remain.",
-  "current_local_delta": "2026-10-23: One test expectation is changed in backend/tests/integration/api/test_workspaces.py to match the logged unassigned-adapter reason while retaining the 409, stale/source_tier none/unusable assertions and explicit historical positive. Ruff and format pass; no local integration ran because Root owns the fixture slot. Workstream records capture exact CI39938965987 and prior failures plus the RSST audit. No import, external HTTP, quota, profile/provider/runtime mutation, activation, fixture, cleanup, or cross-worktree write occurred.",
+  "current_blocker_latest": "2026-10-23T11:48:22Z: Exact published baseline e4ce7dd423620d2cad00e2c68f0468b53893314d is synchronized; CI39942187427 is terminal green for Backend, Frontend Unit, Branch-declared, and Playwright, with Exhaustive skipped. Current local manual-import PIT fix passed 62 focused tests after formatting and Ruff/diff checks. New exact-source CI is pending publication; the required full_stack_browser remains pending Root's exclusive slot. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, unresolved MSMR/QQQ and Militia/GOOG, disabled held routes, retained data, the timestamp-history qualification, and 30-day observation. No external HTTP, quota, artifact import, activation, fixture, cleanup, or cross-worktree write occurred.",
+  "current_local_delta": "2026-10-23: backend/app/services/etf_holdings.py now uses the UTC ingestion clock for an omitted manual-import known_at and rejects supplied timestamps earlier than that import time; provider refresh defaults are unchanged. A service regression proves a later-imported 2026-10-15 composition is absent from that date's PIT holdings lookup yet remains selectable by explicit snapshot ID. Service+router modules pass 62/62 with live flags zero; Ruff and format pass. This source+record changeset is not yet published; no issuer/provider/SEC HTTP, quota, RSST import, provider/profile mutation, fixture, cleanup, or staging/sibling/master write occurred.",
   "dirty_paths": [
-    "backend/tests/integration/api/test_workspaces.py",
+    "backend/app/services/etf_holdings.py",
+    "backend/tests/unit/services/test_etf_holdings_resolution.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
@@ -182,7 +183,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "095a08a4dcd88a0deb306b943813d8f94f5c61bf",
+  "head": "e4ce7dd423620d2cad00e2c68f0468b53893314d",
   "implementation_sha": "04f49d940c877635de52c0c0616e54f47018bf25",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -295,13 +296,13 @@
   },
   "last_checkpoint": "2026-10-23T01:28:00Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-23: CI39938965987 on095a08a4dcd88a0deb306b943813d8f94f5c61bf reproduced the single workspace expected-reason mismatch already present in CI39934411063: current-mode endpoint409 and historical read200 are correct; only the reason order differs. Local test expectation is corrected with no API behavior change; Ruff/format pass, and local integration remains unrun under Root's slot. CI39937538292's separate narrative sentinel failure is historical; the exact count phrase is restored and its one changed-field sentinel passed. Preserve all three receipts and full roadmap; the RSST artifact remains unimported and unsupported as manual-only data on f04.",
+  "latest_checkpoint": "2026-10-23: Baseline e4ce7dd exact CI39942187427 is terminal green for the required ordinary branch jobs; Exhaustive was skipped by feature policy. The current local changeset closes the manual-import PIT knowledge-time gap with a bounded service regression (62 combined service/router tests green after formatting). It remains uncommitted/unpublished pending final workstream checks. Earlier CI red receipts and timestamp discrepancy are retained as history. RSST remains unimported; f04 rights, initial-request URL and manual-only contract gaps remain. The full roadmap and Root-owned full_stack_browser gate stay open.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T10:47:39Z",
-    "result": "terminal_failure;Frontend Unit passed;Backend unit 5235 passed one skipped;Backend integration 497 passed two skipped one workspace denial-reason failure;downstream jobs skipped",
-    "run_id": 39938965987,
-    "sha": "095a08a4dcd88a0deb306b943813d8f94f5c61bf"
+    "recorded_at": "2026-10-23T11:40:51Z",
+    "result": "terminal_success;Backend, Frontend Unit, Branch-declared Tests, and Playwright E2E passed; Exhaustive Integration Gate skipped by feature-branch policy",
+    "run_id": 39942187427,
+    "sha": "e4ce7dd423620d2cad00e2c68f0468b53893314d"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
@@ -351,8 +352,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "The count sentinel has passed once; finish JSONL/workstream/diff validation after recording that result, then publish this coherent test/workstream correction. Require hosted exact-source CI; do not rerun prior CI or start local integration/browser work without Root's slot. Do not import RSST or make issuer/provider/SEC requests. Continue the full AC1-AC14 roadmap; preserve prior evidence, quarantines, holds, retained data and the 30-day observation. No quota, paid/trial activation, staging/sibling/master mutation, cleanup or deployment.",
-  "plan_hash": "1040018d38b8d726f4ec3252c8d549f573acec550e1dd591ead121d6be546716",
+  "next_action": "Focused 62-test service/router profile, Ruff check/format, changed-field narrative sentinel1/1, workstream validator, JSON/JSONL parse, plan hash, and diff check pass. Inspect exact owned diff; commit and push this source+records changeset, verify origin parity, and inspect exact-source CI. Do not rerun CI39942187427 or launch full_stack_browser without Root's slot. Continue offline AC2/AC4/AC5 issuer-ledger reconciliation after publication; preserve the entire roadmap, holds, quarantines, retained data, and 30-day observation. No external HTTP, quota, artifact import, activation, fixture, cleanup, staging/sibling/master write, or deployment.",
+  "plan_hash": "1cc2ee1a80d6cbf0d0731d519022f3afca632c2838a8f6fe870dedda86c1ea7b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -403,10 +404,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23: CI39934411063 and exact-source CI39938965987 are terminal red on the same stale workspace denial-reason string; the API correctly returns current-mode409 and explicit historical200. The current local assertion is corrected to the logged unassigned-adapter reason; 15 Tier-0 and 156 Tier-1 symbol investigations remain fully tracked. The separate workstream count-sentinel issue from CI39937538292 is fixed and its targeted test passed. RSST remains unsupported as manual-only data on accepted f04. No external HTTP, quota, import or runtime action occurred; full roadmap and gates remain open.",
-    "current_phase": "manual_import_workspace_reason_test_correction_and_workstream_closure_2026_10_23",
-    "next_action": "The count sentinel passed once. Complete the post-record JSONL/workstream/diff checks, then publish this coherent test/workstream correction and follow its exact-source CI.",
-    "updated_at": "2026-10-23T10:51:10Z"
+    "current_blocker": "2026-10-23T11:48:22Z: Published baseline e4ce7dd is synchronized and CI39942187427 is green for the required ordinary branch jobs. The current local manual-import known_at/PIT fix passes 62 focused tests and Ruff/format; exact-source CI is pending publication, and the required full_stack_browser still awaits Root's exclusive slot. Preserve 15 Tier-0 and 156 Tier-1, all AC1-AC14, MSMR/QQQ and Militia/GOOG quarantine, disabled held routes, retained data, timestamp-history caveat, and 30-day gate. No external HTTP, quota, import, activation, fixture, cleanup, or cross-worktree write.",
+    "current_phase": "manual_import_known_at_point_in_time_safety_2026_10_23",
+    "next_action": "Focused source tests and final fast workstream checks are green. Review exact diff, then publish this focused source+records changeset and inspect its exact-source CI. Continue offline AC2/AC4/AC5 ledger reconciliation; keep full_stack_browser Root-slot-gated and preserve all safety holds.",
+    "updated_at": "2026-10-23T11:50:51Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -418,8 +419,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "095a08a4dcd88a0deb306b943813d8f94f5c61bf",
-  "remote_sha": "095a08a4dcd88a0deb306b943813d8f94f5c61bf",
+  "remote": "e4ce7dd423620d2cad00e2c68f0468b53893314d",
+  "remote_sha": "e4ce7dd423620d2cad00e2c68f0468b53893314d",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

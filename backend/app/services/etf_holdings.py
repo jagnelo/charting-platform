@@ -1144,6 +1144,18 @@ async def ingest_holdings_snapshot(
         # Admin-supplied uploads are stored evidence, not proof that a native
         # provider request passed shared admission. Do not let caller metadata
         # promote the artifact to issuer-current or refresh native route health.
+        if known_at is not None:
+            normalized_known_at = (
+                known_at if known_at.tzinfo is not None else known_at.replace(tzinfo=UTC)
+            )
+            if normalized_known_at < now:
+                raise ValueError("Manual-import known-at timestamp cannot predate the import time.")
+            known_at = normalized_known_at.astimezone(UTC)
+        else:
+            # A manual upload becomes known to this system at import time, not
+            # at the historical composition date or an unverified publication
+            # timestamp. Preserve that knowledge boundary for PIT consumers.
+            known_at = now
         legal_metadata["ingestion_mode"] = "manual_import"
         # Keep the non-current SEC classification when the import is explicitly
         # identified as a filing; otherwise ignore caller-supplied tier claims.
@@ -1177,7 +1189,10 @@ async def ingest_holdings_snapshot(
         )
         for row in rows
     ]
-    known_at = known_at or published_at or _date_end(composition_date)
+    if manual_import:
+        known_at = known_at or now
+    else:
+        known_at = known_at or published_at or _date_end(composition_date)
     data_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
     snapshot_hash = _snapshot_hash(canonical_rows)
     capability_metadata = {

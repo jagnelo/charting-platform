@@ -561,26 +561,29 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: published_etf_publisher_provisioning_and_spy_sample_evidence_review_2026_10_23
+current_phase: manual_import_known_at_point_in_time_safety_2026_10_23
 current_blocker: >-
-  CURRENT CONTINUATION 2026-10-23 08:42Z: Published ETF HEAD/origin are
-  synchronized at 04f49d940c877635de52c0c0616e54f47018bf25. Exact CI
-  39924473582 is on that SHA: Frontend Unit passed, Backend unit tests passed,
-  and Backend integration tests are in progress; no terminal CI result is
-  claimed. The published admin-only ETF-publisher provisioning endpoint and
-  SQLite route tests leave ETF_HOLDINGS policy disabled and create no budget or
-  commitment; they do not verify administrator-supplied evidence or establish
-  SPY admission. Accepted f04's admin profile PATCH can persist a reviewed
-  identity alias plus legal_metadata, but does not verify evidence or create
-  SPDR's shared Provider source/policy/entitlement/health/review rows. A
-  read-only local evidence check found no SPY/RSP issuer basket. The retained
-  Return Stacked RSST CSV capture is a real dated artifact candidate for RSST
-  only; its SPYM row is not an SPY source artifact. No profile or Provider
-  records, policy activation, quota, issuer/provider/SEC HTTP, fixture, or
-  cleanup occurred. The required full_stack_browser profile still awaits
-  Root's exclusive slot.
-  The remainder of this field retains historical checkpoints and receipts;
-  older source/status text below is not current.
+  CURRENT CONTINUATION 2026-10-23T11:48:22Z: Exact published ETF source
+  e4ce7dd423620d2cad00e2c68f0468b53893314d is clean and synchronized. Exact
+  CI39942187427 is terminal success for Backend, Frontend Unit, Branch-declared
+  Tests, and Playwright E2E; Exhaustive was skipped by feature-branch policy.
+  This is branch CI, not full_stack_browser evidence or full-roadmap acceptance.
+  The next owned source change prevents manual imports from backdating
+  knowledge-time: when known_at is omitted, the service uses its UTC import
+  clock; a supplied known_at earlier than that clock is rejected. The service
+  and resolution+router tests pass 62/62 after formatting, with live flags 0;
+  Ruff and diff checks pass. This change is local/unpublished and requires its
+  own exact-source CI. The required full_stack_browser profile remains pending
+  Root's exclusive slot. The earlier manual-import source context is already
+  published; no uncommitted router change is being carried. The retained RSST
+  artifact remains unimported and non-routable because accepted f04 lacks the
+  safe manual-only contract and use/retention rights and initial-request URL
+  evidence remain missing. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1,
+  quarantines, disabled routes, retained data, and the post-integration
+  30-day observation gate. No external HTTP, quota, import, activation,
+  fixture, cleanup, staging/sibling/master write, or deployment occurred.
+  Everything below this current block is preserved historical evidence and
+  does not override the state recorded here.
   The `full_stack_browser` local profile remains pending Root's exclusive
   resource slot. Keep the accepted checkpoint distinct from the open full
   fourteen-criterion roadmap, issuer onboarding, and 30-day observation.
@@ -1782,41 +1785,16 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Preserve exact-source CI `39934411063` as terminal red on
-  `4dae395c1972457e644c8ec18ba289891c20426e`: Frontend Unit passed, Backend unit
-  passed with one skip, Backend integration had 497 passes, two skips and one
-  stale exact-reason assertion; Branch-declared, E2E and Exhaustive were
-  skipped. The failed workspace test still received the correct current-mode
-  409 and its selected historical read passed; only the expected denial reason
-  conflicts with the profile's earlier-priority unassigned-adapter reason.
-  The subsequent workstream-only commit `e0f6aa2a1c488d39ed0e299a629f79409dcc4e2`
-  CI `39937538292` was red solely because `progress.current_blocker` omitted
-  the required exact `15 Tier-0 and 156 Tier-1` phrase (5234 passed, one
-  sentinel failed, one skipped; frontend passed). Restore that exact narrative
-  phrase and the focused sentinel passed once; do not rerun either prior
-  CI. The workspace expectation now matches the logged capability precedence
-  while retaining the 409, stale tier and historical positive. Run the count
-  sentinel once after current-record edits. Complete the post-record
-  workstream/JSON/hash/diff validation and publish this coherent test/workstream
-  correction, then inspect its exact-source CI. Keep the
-  retained RSST body untouched and non-routable until
-  rights, initial request URL, no-enrichment, derivative typing, and manual
-  profile/health behavior are resolved through supported reviewed paths.
-  Continue AC1-AC14; preserve 15 Tier-0 and 156 Tier-1, history,
-  quarantines, holds, retained data and the 30-day observation. The required
-  `full_stack_browser` profile remains Root-slot-gated. No external requests,
-  quota, activation, staging/sibling/master mutation, cleanup or deployment.
-  The required
-  `full_stack_browser` recipe is `make
-  validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents
-  PLAYWRIGHT_DOCKER=<reviewed pinned zero-retry wrapper>
-  RUN_LIVE_PROVIDER_TESTS=0 RUN_LIVE_ETF_HOLDINGS_TESTS=0`, using the wrapper
-  as a MAKE command-line assignment, one worker, reviewed resource limits,
-  backend egress deny, and generated synthetic stack data only. Launch only
-  after Root assigns the exclusive slot and reviews a fresh immutable resource
-  baseline. Preserve retained loopback ETF DB/Redis services and datasets.
-  No issuer/provider/SEC requests, quota, paid/trial activation,
-  staging/sibling/master writes, promotion, deployment, or cleanup. Keep all
-  AC1–AC14, `15 Tier-0 and 156 Tier-1`, history, MSMR/QQQ and Militia/GOOG
-  quarantines, disabled unsafe/unreviewed routes, and the 30-day observation
-  gate intact.
+  Focused source tests (62/62), Ruff check/format, the changed-field narrative
+  count sentinel (1/1), workstream validation, JSON/JSONL parsing, plan hash,
+  and diff check now pass. Inspect the exact owned diff, then commit and push
+  the coherent manual-import knowledge-time fix plus its owner records. Verify
+  local/origin parity and inspect exact-source CI without rerunning
+  CI39942187427. Keep the full local
+  `full_stack_browser` gate pending Root's exclusive slot; do not launch its
+  Compose/browser profile independently. Continue offline issuer-ledger
+  reconciliation from retained evidence after this source boundary, preserving
+  15 Tier-0 and 156 Tier-1, AC1-AC14, unresolved MSMR/QQQ and Militia/GOOG,
+  route/quota holds, retained datasets, and the 30-day observation gate. No
+  issuer/provider/SEC requests, quota, paid/trial activation, unsafe route
+  enablement, staging/sibling/master writes, promotion, deployment, or cleanup.

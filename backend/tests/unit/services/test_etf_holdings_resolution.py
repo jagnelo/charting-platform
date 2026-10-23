@@ -18,6 +18,7 @@ from app.services.etf_holdings import (
     _snapshot_hash,
     ensure_etf_profile,
     ensure_lightweight_etf_instrument,
+    get_holdings_page,
     ingest_holdings_snapshot,
     reconcile_snapshot_constituents,
 )
@@ -172,7 +173,9 @@ async def test_ingest_persists_none_for_unclassified_source_tier(db):
 
 
 @pytest.mark.asyncio
-async def test_manual_import_cannot_claim_native_current_or_refresh_adapter_health(db, instrument):
+async def test_manual_import_cannot_claim_native_current_or_refresh_adapter_health(
+    db, instrument, monkeypatch
+):
     async_db = AsyncSessionAdapter(db)
     etf_instrument = await ensure_lightweight_etf_instrument(
         async_db,
@@ -180,6 +183,7 @@ async def test_manual_import_cannot_claim_native_current_or_refresh_adapter_heal
         name="SPDR S&P 500 ETF Trust",
     )
     now = datetime.now(UTC)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: now)
     snapshot = await ingest_holdings_snapshot(
         async_db,
         etf_instrument=etf_instrument,
@@ -231,8 +235,79 @@ async def test_manual_import_cannot_claim_native_current_or_refresh_adapter_heal
 
 
 @pytest.mark.asyncio
+async def test_manual_import_known_at_uses_import_time_and_preserves_pit_cutoff(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="RSST",
+        name="Return Stacked U.S. Stocks & Managed Futures ETF",
+    )
+    import_time = datetime(2026, 10, 23, 10, 0, tzinfo=UTC)
+    composition_date = date(2026, 10, 15)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: import_time)
+    row = CanonicalHoldingRow(
+        symbol=instrument.symbol,
+        name=instrument.name,
+        weight=Decimal("1"),
+        holding_type="equity",
+        row_type="security",
+    )
+
+    with pytest.raises(ValueError, match="cannot predate the import time"):
+        await ingest_holdings_snapshot(
+            async_db,
+            etf_instrument=etf_instrument,
+            rows=[row],
+            composition_date=composition_date,
+            known_at=datetime(2026, 10, 15, 19, 9, 11, tzinfo=UTC),
+            provenance="manual_import",
+            source_provider="manual_csv",
+            source_url="https://issuer.example/retained-artifact.csv",
+            source_quality="unknown",
+            completeness_status="unknown",
+            raw_payload_text="Ticker,Weight\nMSFT,100%\n",
+            legal_metadata={"source_tier": "none"},
+            allow_provider_enrichment=False,
+            manual_import=True,
+        )
+
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[row],
+        composition_date=composition_date,
+        provenance="manual_import",
+        source_provider="manual_csv",
+        source_url="https://issuer.example/retained-artifact.csv",
+        source_quality="unknown",
+        completeness_status="unknown",
+        raw_payload_text="Ticker,Weight\nMSFT,100%\n",
+        legal_metadata={"source_tier": "none"},
+        allow_provider_enrichment=False,
+        manual_import=True,
+    )
+
+    persisted_known_at = snapshot.known_at
+    if persisted_known_at.tzinfo is None:
+        persisted_known_at = persisted_known_at.replace(tzinfo=UTC)
+    assert persisted_known_at == import_time
+    assert (
+        await get_holdings_page(
+            async_db,
+            "RSST",
+            snapshot_date=composition_date,
+            point_in_time=True,
+        )
+        is None
+    )
+    assert await get_holdings_page(async_db, "RSST", snapshot_id=snapshot.id) is not None
+
+
+@pytest.mark.asyncio
 async def test_manual_sec_import_retains_sec_source_tier_without_native_adapter_health(
-    db, instrument
+    db, instrument, monkeypatch
 ):
     async_db = AsyncSessionAdapter(db)
     etf_instrument = await ensure_lightweight_etf_instrument(
@@ -241,6 +316,7 @@ async def test_manual_sec_import_retains_sec_source_tier_without_native_adapter_
         name="Synthetic SEC Filing ETF",
     )
     now = datetime.now(UTC)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: now)
     snapshot = await ingest_holdings_snapshot(
         async_db,
         etf_instrument=etf_instrument,

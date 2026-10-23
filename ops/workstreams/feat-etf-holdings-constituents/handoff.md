@@ -1,5 +1,49 @@
 # feat/etf-holdings-constituents
 
+## Manual-import knowledge-time/PIT guard — 2026-10-23 11:48Z
+
+The prior manual-import safety/router context is already present in the clean,
+published ETF branch; no dirty router patch was found at resume. Exact source
+`e4ce7dd423620d2cad00e2c68f0468b53893314d` is synchronized to origin. Exact CI
+`39942187427` is terminal success for Backend, Frontend Unit, Branch-declared,
+and Playwright E2E; Exhaustive was skipped under feature-branch policy. This
+does not prove the required local `full_stack_browser` profile or complete the
+full AC1–AC14 roadmap.
+
+A remaining PIT issue was found in the already-published manual import path:
+`ingest_holdings_snapshot` defaulted omitted `known_at` to `published_at` or
+the end of the composition date. A later manual upload could therefore be
+visible to a historical query from before the application imported it. The
+current local fix sets an omitted manual-import `known_at` to the service's UTC
+import timestamp, rejects a supplied timestamp earlier than that import time,
+and leaves non-manual provider ingestion's existing publication/composition
+fallback unchanged. The regression verifies a 2026-10-15 composition imported
+on 2026-10-23 is excluded from the October 15 PIT lookup but remains explicitly
+selectable by snapshot ID. The affected service and manual-import router test
+modules pass `62/62` with both live flags `0`; Ruff check/format and
+`git diff --check` pass. No issuer/provider/SEC HTTP, quota, import of the
+retained RSST artifact, profile or Provider mutation, fixture, cleanup,
+staging/sibling/master write, or deployment occurred. This source change is
+not yet published and requires exact-source CI.
+
+Keep the retained RSST bytes non-routable: the accepted-f04 importer still
+lacks evidence-backed rights, the initial request URL, a supported manual
+profile identity, and accepted manual-only enrichment/health behavior. Current
+branch safeguards are not a claim of native SPDR admission or a legal grant.
+The earlier journal timestamp discrepancy at 09:08/09:12 remains qualified in
+validation history without rewriting those append-only entries.
+
+Final bounded verification completed at 2026-10-23 11:50Z: the exact
+`15 Tier-0 and 156 Tier-1` narrative sentinel passed `1/1`; the workstream
+validator passed; session JSON and validation JSONL parsed; recorded plan hash
+matched the current plan; `git diff --check` passed. The service+router focused
+tests remain `62/62` green after formatting. Next inspect the exact owned diff,
+commit and push this coherent source+records checkpoint, and inspect its
+exact-source CI. Continue offline AC2/AC4/AC5 evidence reconciliation after
+publication; do not start the Root-assigned full_stack_browser profile, issue
+external requests, spend quota, activate held routes, alter retained data, or
+shrink the full roadmap.
+
 ## Manual-import current-health consumer correction — 2026-10-23
 
 Follow-up exact CI `39938965987` on `095a08a4dcd88a0deb306b943813d8f94f5c61bf`
