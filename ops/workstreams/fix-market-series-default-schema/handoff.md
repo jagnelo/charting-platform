@@ -91,3 +91,13 @@ Next: commit/push this isolated candidate, record its exact implementation SHA
 in a separate operational checkpoint, follow exact-source CI, then coordinator
 technical acceptance and protected staging/master gates. The actual private
 target still has the old schema and routingOFF; it is not yet human-data-ready.
+
+## Implementation publication — 2026-10-23 08:20 UTC
+
+Implementation 3e5ddec14a4185c2620990ac47aa8a95a41e7dc4 is committed and pushed.
+The worktree was clean after publication. Exact-source push CI39923818426 is
+pending, not green. This separate operational checkpoint records that immutable
+implementation; its enclosing HEAD/origin equality is verified externally,
+without a self-referential hash loop. No further product source is changed.
+Next: follow that exact implementation run and prepare technical acceptance
+only after its required jobs pass. Staging/master/deployment remain independent.

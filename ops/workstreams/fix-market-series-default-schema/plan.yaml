@@ -43,7 +43,7 @@ migration_impact: Additive revision d4a5b6c7e812 after slv2_0011; backfill non-n
 deployment_impact: Existing private f04 startup/auth/UI is verified but real data remains unaccepted and routing is off. A repaired release needs canonical branch/staging/master gates and a new backend artifact including the migration, preserving target volumes, accounts, secrets and holds.
 status: in_progress
 remaining_gaps:
-  - Required local PostgreSQL profile and full-chain validation pending resource-safe execution.
+  - Local real PostgreSQL profile and full-chain validation passed; hosted exact-source checks remain independent.
   - Exact repair branch CI, technical acceptance, staging/master gates and repaired target deployment remain pending.
 progress:
   completed: [MSS1, MSS2, MSS3]
