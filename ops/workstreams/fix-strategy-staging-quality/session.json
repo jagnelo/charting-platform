@@ -1,6 +1,18 @@
 {
   "acceptance_criteria": [
     {
+      "id": "MAP1",
+      "text": "Deterministic regressions reproduce the proven delayed-initialization selection reset on the accepted source and pass after the smallest product correction."
+    },
+    {
+      "id": "MAP2",
+      "text": "The unchanged actual dense-map browser flow passes with zero retries; full exact branch CI and new staging/master exhaustive functional/visual gates remain mandatory."
+    },
+    {
+      "id": "CLN1",
+      "text": "Owned shared-tag images clean completely, while foreign resources/tags and retained datasets remain protected; workflow regressions and actual bounded cleanup proof pass."
+    },
+    {
       "id": "FMT1",
       "text": "Pinned backend code and formatting checks pass without policy changes."
     },
@@ -67,14 +79,14 @@
   "goal_request_state": "planning_required",
   "goal_state": "unavailable",
   "goal_unavailable_reason": "Original coordinator native production goal is active and unbudgeted in this same visible thread and covers this repair. No duplicate goal or accounting reset; all required new repair gates remain pending.",
-  "head": "0e342512e53ba2268425294d61c50e219eaafa4f",
+  "head": "3d26dd34da6c1682d33b843a62a0ef0f2d31be92",
   "implementation_sha": "92cf8aef19324eb67d147fbb4a637dde5735e2b8",
   "last_checkpoint": "2026-10-22T16:58:26.280298+00:00",
   "last_human_progress_update": "2026-10-22T16:54:40.709361+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "4fe8c2f97fac9cf7cd3a34051ce9fd5f6548ca91ea54f50f71c0a2fa06d9364c",
+  "plan_hash": "86f0bbf99ff1f671d367f075609534fdc43953d7dc1274b15a756b8917ca6d69",
   "planning_required": true,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -91,9 +103,9 @@
     "total": 5,
     "updated_at": "2026-10-22T16:54:40.709327+00:00"
   },
-  "remote": "b1934946f9863a6a0b2ca3b18516e45bac6d48e8",
-  "remote_sha": "92cf8aef19324eb67d147fbb4a637dde5735e2b8",
-  "remote_synchronized": false,
+  "remote": "3d26dd34da6c1682d33b843a62a0ef0f2d31be92",
+  "remote_sha": "3d26dd34da6c1682d33b843a62a0ef0f2d31be92",
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "706a780f-1b88-48e7-bef2-2a2b0524fbb1",

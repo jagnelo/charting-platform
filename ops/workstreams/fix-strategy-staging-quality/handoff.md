@@ -1,5 +1,34 @@
 # fix/strategy-staging-quality
 
+## ACTIVE CONTINUATION — 2026-10-23: hidden-refresh observation
+
+Same Root writer706a780f-1b88-48e7-bef2-2a2b0524fbb1 verified by UV-managed
+context/status preflight; no takeover or duplicate native goal. Root's original
+active unbudgeted production goal covers this repair. Clean synchronized3d26
+fast-forwarded to accepted green staging4687, preserving all previous checkpoints.
+New-topic creation correctly refused master-degraded; no bypass/marker removal.
+Continue this existing quality-repair branch, not a sibling feature worktree.
+
+Master39875818716 EIG120165861490 failed F8l because
+request.timing().startTime was unavailable for benchmark-families/readiness.
+All104 backend unit shards,497integration, frontend and193other functional
+cases passed;107existing functional skips, strict visuals not run. Ordinary
+master browser191pass110skip independently green. Exact artifact12470989237
+retained at/tmp/master-hidden-refresh-39875818716.9EqcGm/diagnostics.zip.
+There is no first-failure trace in that artifact: do not claim a proven abort
+or post-hidden request from its screenshot/video. Known source gap: native
+timing is read after a fixed wait and can be unavailable for an in-flight or
+failed request; the helper correctly refuses to infer safety from unknown data.
+
+Repair the observation source, not the hidden-refresh behavior or assertion:
+capture fetch/XHR initiation in the browser's clock before completion/abort;
+retain native request coverage checks so unobserved traffic remains a failure.
+Keep the atomic browser hidden transition,3000ms/1500ms windows, zero retries,
+all references/masks/tolerances and provider/data holds unchanged. Add pending/
+aborted/pre-hidden/post-hidden and missing-coverage regressions. Require actual
+pinned isolated browser proof, full final branch CI and new staging/master gates.
+No application code change is justified by the current evidence. Closure pending.
+
 ## ACTIVE NEW CHECKPOINT — 2026-10-22 21:31 UTC
 
 ## New repair local acceptance — 2026-10-22 21:55 UTC
