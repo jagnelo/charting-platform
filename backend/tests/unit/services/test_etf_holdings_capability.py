@@ -289,6 +289,38 @@ def test_missing_snapshot_is_unknown_until_a_route_check_records_outcome():
     assert result.displayable_last_known is False
 
 
+def test_historical_tier_zero_current_audit_does_not_imply_current_holdings():
+    profile_value = profile_with_symbol("UTWO", "us_benchmark_series")
+    assert symbol_audit_for_profile(profile_value).outcome == CURRENT
+    observed_now = datetime(2026, 10, 23, 12, tzinfo=UTC)
+
+    no_snapshot = evaluate_capability(profile_value, None, None, now=observed_now)
+    expired_snapshot = evaluate_capability(
+        profile_value,
+        snapshot(
+            composition_date=observed_now.date() - timedelta(days=8),
+            published_at=observed_now - timedelta(days=8),
+        ),
+        state(checked=observed_now, success=observed_now),
+        now=observed_now,
+    )
+    fresh_snapshot = evaluate_capability(
+        profile_value,
+        snapshot(composition_date=observed_now.date(), published_at=observed_now),
+        state(checked=observed_now, success=observed_now),
+        now=observed_now,
+    )
+
+    assert no_snapshot.availability == UNKNOWN
+    assert no_snapshot.usable_for_current_analysis is False
+    assert no_snapshot.displayable_last_known is False
+    assert expired_snapshot.availability == STALE
+    assert expired_snapshot.usable_for_current_analysis is False
+    assert expired_snapshot.displayable_last_known is True
+    assert fresh_snapshot.availability == CURRENT
+    assert fresh_snapshot.usable_for_current_analysis is True
+
+
 def test_unassigned_profile_without_snapshot_is_unknown_not_not_applicable():
     result = evaluate_capability(profile(None), None, None, now=NOW)
 

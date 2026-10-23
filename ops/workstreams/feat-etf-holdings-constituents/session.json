@@ -88,18 +88,21 @@
     }
   ],
   "active_changeset": {
-    "baseline": "66c9780278cd810a870b8025a091df58d9c091d1",
-    "intent": "Normalize capability freshness and future-snapshot calendar-date projections to UTC for offset-aware times, preserving current/degraded/stale semantics at midnight boundaries.",
-    "name": "Capability UTC calendar date projection guards",
+    "baseline": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
+    "intent": "Bind curated SPDR route and publisher identity canonically, preserve real CURRENT versus historical/stale capability, and document the remaining shared Provider bootstrap gate without activating or inventing records.",
+    "name": "SPDR canonical identity and first-human sample readiness",
     "owned_paths": [
-      "backend/app/services/etf_holdings_capability.py",
+      "backend/app/services/etf_holdings_adapters.py",
+      "backend/tests/unit/services/test_etf_holdings_adapters.py",
       "backend/tests/unit/services/test_etf_holdings_capability.py",
+      "backend/tests/unit/services/test_etf_holdings_refresh.py",
+      "ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+      "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
-      "ops/workstreams/feat-etf-holdings-constituents/session.json",
-      "ops/workstreams/feat-etf-holdings-constituents/plan.yaml"
+      "ops/workstreams/feat-etf-holdings-constituents/session.json"
     ],
-    "state": "Local only; a UTC+02:00 composition date at 2026-09-21T00:30+02:00 reproduced a false stale classification because capability evaluation used the offset-local calendar date rather than UTC date2026-09-20. After normalizing `now` and canary audit date projections to UTC, the full capability module passed114/114 and changed-file Ruff/format passed. Exact-source run39897635916 on published66c9780278cd810a870b8025a091df58d9c091d1 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright E2E; Exhaustive was skipped by feature-branch policy. This local second change is excluded from that run and still needs final records, publication, and its own exact-source CI. No issuer/provider/SEC HTTP, quota, full local profile, route activation or cleanup."
+    "state": "Local only at published f04 merge 9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b; exact CI39907317600 is green for Backend, Frontend Unit, Branch-declared, and Playwright, with Exhaustive skipped by feature policy. The continuation adds holdings_source_provider=spdr beside holdings_adapter=spdr in canonical SPDR route metadata and tests metadata hydration plus preservation of unrelated aliases. The accepted f04 source lacked that publisher alias. The full adapter, refresh, and capability unit modules passed 764/764 together; changed-file Ruff and format checks passed. The recipe distinguishes this code identity binding from actual external terms/quota evidence and records the still-missing shared runtime bootstrap for the SPDR DataSource, ETF_HOLDINGS policy/entitlement, and etf_holdings_review configuration. No Provider runtime records were created or activated, and no upstream HTTP, quota, paid/trial operation, fixture/build/browser, cleanup, or cross-worktree write occurred. Current edits still require final workstream checks, publication, exact-source CI, and Root's exclusive full_stack_browser slot."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -151,7 +154,17 @@
     "token_budget": null
   },
   "current_blocker_latest": "2026-10-23: Pre-adoption ETF source/origin 8e25283c7464ec429a96c7216eeeb0becc79de37 is clean/synchronized; exact CI39901930128 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright E2E, with Exhaustive skipped under feature policy. Exact released synchronized green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 was fetched and merged only into this ETF worktree without conflicts. The merge plus current workstream reconciliation need one coherent publication, then exact merged-source CI. The full_stack_browser profile remains pending Root's exclusive slot. The accepted initial ETF checkpoint does not close AC1-AC14, issuer onboarding, unresolved MSMR/QQQ and Militia/GOOG quarantines, disabled holds, or the 30-day observation. No issuer/provider/SEC requests, quota, paid/trial activation, fixture, cleanup, or staging/sibling/master writes.",
-  "dirty_paths": [],
+  "dirty_paths": [
+    "backend/app/services/etf_holdings_adapters.py",
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "backend/tests/unit/services/test_etf_holdings_capability.py",
+    "backend/tests/unit/services/test_etf_holdings_refresh.py",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
+    "ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -176,8 +189,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "8e25283c7464ec429a96c7216eeeb0becc79de37",
-  "implementation_sha": "8e25283c7464ec429a96c7216eeeb0becc79de37",
+  "head": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
+  "implementation_sha": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "accepted_canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json",
@@ -289,7 +302,7 @@
   },
   "last_checkpoint": "2026-10-23T01:28:00Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-23: Exact pre-adoption source8e25283c7464ec429a96c7216eeeb0becc79de37 was clean/synchronized and exact CI39901930128 completed green for Backend, Frontend Unit, Branch-declared and Playwright; Exhaustive skipped under feature-branch policy. The coordinator-released synchronized green staging SHAf04fb2a26c6363c6090e76c2658cfcfe7adabf61 was fetched and verified from the canonical release record, then merged only into this ETF worktree without conflict. Incoming changes are the reviewed hidden-refresh browser request-initiation test repair and Strategy repair records; ETF product source and full roadmap are preserved. Coherent workstream publication and exact merged-source CI remain pending. Root's full_stack_browser slot, all AC1-AC14, 15 Tier-0 and156 Tier-1, unresolved MSMR/QQQ and Militia/GOOG, held routes, retained data and30-day observation remain unchanged/open. No external HTTP, quota, activation, local fixture, cleanup, or cross-worktree write.",
+  "latest_checkpoint": "2026-10-23: Released green staging f04 is adopted only in this ETF branch at published merge9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b; exact CI39907317600 passed Backend, Frontend Unit, Branch-declared, and Playwright, with Exhaustive skipped by feature policy. The new local continuation adds a canonical SPDR publisher alias beside the adapter and preserves other profile aliases; the adapter, refresh, and capability modules pass764/764 and Ruff/format checks pass. The recipe records that f04's admin profile PATCH can persist an evidence-backed alias, while its generic Provider registry/admin surface still lacks initial SPDR source/policy/entitlement/review bootstrap. No sample, route admission, or external evidence is claimed. Full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, route/cost holds, retained data, and 30-day observation remain open. Root owns the full_stack_browser slot. No upstream HTTP, quota, activation, fixture, cleanup, or cross-worktree write.",
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "exact_staging_ci": 39896524209,
@@ -297,8 +310,8 @@
     "full_roadmap": "AC1-AC14 remain open beyond the accepted initial checkpoint; preserve all holds, quarantines, retained data and 30-day observation",
     "full_stack_browser": "required; no new local fixture/profile launched pending Root's exclusive slot",
     "merge_policy": "fetched and merged only exact released f04fb2a26c6363c6090e76c2658cfcfe7adabf61 into this ETF worktree; conflict-free; no staging/sibling/master writes",
+    "merged_source_publication": "Published and synchronized as exact ETF merge 9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b; exact-source CI 39907317600 is terminal green for Backend, Frontend Unit, Branch-declared, and Playwright E2E, with Exhaustive skipped by feature-branch policy",
     "own_branch_ci_before_merge": "Run39901930128 on synchronized source8e25283 is terminal green for Backend, Frontend Unit, Branch-declared and Playwright; Exhaustive skipped by feature policy. It is not merged-source CI.",
-    "merged_source_publication": "workstream checks passed; single coherent merge commit and push pending; exact post-merge CI required",
     "recorded_at": "2026-10-23T05:17:09Z",
     "released_staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
     "source_before_merge": "8e25283c7464ec429a96c7216eeeb0becc79de37"
@@ -338,8 +351,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Validate the exact f04 merge and ETF-owned workstream edits with bounded no-network checks, then commit/push this coherent adoption once, verify local/origin parity and follow exact merged-source CI without replaying the green pre-adoption run. Continue offline AC2/AC4/AC5 work from retained evidence without inferring route eligibility. Keep the required full_stack_browser profile pending Root's exclusive slot; preserve unknown/quota-held/unreviewed/paid/trial/unsafe holds, full AC1-AC14, 15 Tier-0 and 156 Tier-1, unresolved MSMR/QQQ and Militia/GOOG, retained data and the 30-day observation.",
-  "plan_hash": "4d9ba5481d0fa501101d31ed55d0b9718ebcc869007dc09acbcb165bbfa1eaf4",
+  "next_action": "Work out the narrowly scoped, admin-only, fail-closed management/provisioning gap for an ETF-only publisher DataSource, initial ETF_HOLDINGS policy/entitlement, and evidence-backed etf_holdings_review configuration; generic Provider seeding and existing policy/entitlement PATCH routes do not create these rows. Do not invent evidence, quota/cost values, create runtime records, activate policy, or issue external requests. Continue offline AC2/AC4/AC5 audit from retained evidence. Preserve full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, historical evidence, retained data, and the 30-day observation. No full_stack_browser without Root's slot, and no staging/sibling/master/deployment mutation.",
+  "plan_hash": "99651fe186127d7f3089a7fe30623fc5875ce62e6910aa38767cfa1e215e8677",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -405,8 +418,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "8e25283c7464ec429a96c7216eeeb0becc79de37",
-  "remote_sha": "8e25283c7464ec429a96c7216eeeb0becc79de37",
+  "remote": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
+  "remote_sha": "9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

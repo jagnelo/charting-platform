@@ -183,7 +183,7 @@ integration_checkpoint:
       and their Strategy repair handoff/plan/session/validation records. ETF
       implementation, all prior receipts and the AC1-AC14 roadmap are retained.
       No staging, sibling, or master ref was written.
-    branch_publication: validated_and_ready_for_single_merge_commit; exact_postmerge_ci_required
+    branch_publication: published_and_synchronized_at_9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b; exact_postmerge_ci_39907317600_terminal_green
     full_roadmap_status: open; no later ETF checkpoint acceptance inferred
     provider_http_quota_activation_cleanup: none
   checkpoint_acceptance_delegation:
@@ -559,18 +559,9 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: adopt_f04_green_staging_baseline_2026_10_23
+current_phase: continue_full_roadmap_spdr_identity_and_runtime_onboarding_2026_10_23
 current_blocker: >-
-  The exact pre-adoption ETF source 8e25283c7464ec429a96c7216eeeb0becc79de37
-  passed run39901930128 (Backend, Frontend Unit, Branch-declared and Playwright;
-  Exhaustive skipped by feature-branch policy). Released synchronized green
-  staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 has been merged only into
-  this ETF worktree. Coherent publication and exact merged-source CI are next.
-  No local full_stack_browser run is authorized until Root assigns the host slot.
-  The prior accepted ETF checkpoint remains distinct from the open AC1-AC14
-  roadmap, issuer onboarding, unresolved quarantines and 30-day observation.
-  The remainder of this field retains historical checkpoint status/evidence;
-  older source and pending-run statements below are not current claims.
+  CURRENT CONTINUATION 2026-10-23: ETF source HEAD/origin is 9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b, the exact f04 merge; its exact branch CI 39907317600 passed Backend, Frontend Unit, Branch-declared and Playwright E2E, with Exhaustive skipped under feature-branch policy. Local uncommitted SPDR publisher-alias source/test changes and the first-human recipe have passed the three relevant unit modules (764 tests) plus Ruff/format; they are not covered by hosted CI yet. The source-owned route metadata now binds SPDR adapter and publisher identity, but accepted f04 has no supported bootstrap management path for the initial SPDR DataSource, ETF_HOLDINGS policy/entitlement, or DataSource.config.etf_holdings_review. No Provider record or route was activated, and the sample remains unavailable until independently sourced evidence and an authorized supported provisioning path exist. Root has not assigned the required full_stack_browser host slot; exact-source CI for the pending local changes is still required. The remainder of this field retains historical checkpoint status/evidence; older source and pending-run statements below are not current claims.
   The `full_stack_browser` local profile remains pending Root's exclusive
   resource slot. Keep the accepted checkpoint distinct from the open full
   fourteen-criterion roadmap, issuer onboarding, and 30-day observation.
@@ -1772,10 +1763,11 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Commit and push the validated f04 merge and ETF-owned workstream edits once,
-  verify local/origin parity, and inspect
-  only the resulting exact-source branch CI. Do not rerun the already-green
-  pre-adoption CI. Then continue offline AC2/AC4/AC5 audit
+  Complete bounded source review/design for an authorized, fail-closed SPDR
+  shared-runtime provisioning path that can create/review the ETF-only source,
+  initial ETF_HOLDINGS policy/entitlement, and host/operation/account evidence
+  without inventing quota or cost facts; do not activate policy, create runtime
+  records, or issue external requests. Continue offline AC2/AC4/AC5 issuer audit
   from retained evidence without inferring route eligibility. The required
   `full_stack_browser` recipe is `make
   validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents

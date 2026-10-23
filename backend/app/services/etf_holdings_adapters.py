@@ -3591,7 +3591,10 @@ for _spdr_symbol in (
         _spdr_symbol,
         {
             "issuer": "State Street Global Advisors",
-            "provider_aliases": {"holdings_adapter": "spdr"},
+            "provider_aliases": {
+                "holdings_adapter": "spdr",
+                "holdings_source_provider": "spdr",
+            },
         },
     )
 

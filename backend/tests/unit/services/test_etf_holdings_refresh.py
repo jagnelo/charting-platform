@@ -97,6 +97,21 @@ async def _no_prior_snapshot(*_args, **_kwargs):
     return None
 
 
+def test_curated_spdr_route_metadata_binds_adapter_and_publisher_identity():
+    profile_value = _profile("SPY")
+    profile_value.provider_aliases = {"operator_review_ref": "retained-review-record"}
+
+    assert refresh._apply_known_route_metadata(profile_value) is True
+
+    assert profile_value.issuer == "State Street Global Advisors"
+    assert profile_value.adapter_key == "spdr"
+    assert profile_value.provider_aliases == {
+        "operator_review_ref": "retained-review-record",
+        "holdings_adapter": "spdr",
+        "holdings_source_provider": "spdr",
+    }
+
+
 @pytest.mark.asyncio
 async def test_canary_success_records_latency_recovery_and_symbol_gated_capability(monkeypatch):
     profile = _profile()

@@ -24463,6 +24463,7 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
         metadata = known_etf_route_metadata(symbol)
         assert metadata["issuer"] == "State Street Global Advisors"
         assert metadata["provider_aliases"]["holdings_adapter"] == "spdr"
+        assert metadata["provider_aliases"]["holdings_source_provider"] == "spdr"
 
     for symbol, product_slug in {
         "SMH": "semiconductor-etf-smh",

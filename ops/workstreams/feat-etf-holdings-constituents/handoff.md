@@ -27,21 +27,75 @@ incoming common delta consists of the hidden-refresh browser request-initiation
 observer and its tests in three frontend test paths, plus the Strategy repair
 handoff/plan/session/validation records delivered by staging. Those imported
 records are preserved unchanged; ETF implementation, historical receipts,
-quarantines and full AC1–AC14 roadmap remain intact. The focused no-network
-checks and workstream validation pass; this exact merge and ETF-owned record
-update are prepared for one coherent merge commit, followed by exact-source CI.
-Only lightweight checks are in scope now. The required `full_stack_browser`
-profile remains pending Root's exclusive host slot; no fixture, provider/issuer/
-SEC request, quota operation, paid/trial/unsafe activation, cleanup, or
-staging/sibling/master write occurred.
+quarantines and full AC1–AC14 roadmap remain intact. Merge commit
+`9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b` is published and local/origin refs
+are synchronized. Exact post-merge run `39907317600` is terminal green for
+Backend, Frontend Unit, Branch-declared Tests, and Playwright E2E; Exhaustive
+was skipped by feature-branch policy. That CI covers only the merge source and
+does not cover the current local capability test or source-preparation recipe.
+The required `full_stack_browser` profile remains pending Root's exclusive
+host slot; no fixture, provider/issuer/SEC request, quota operation,
+paid/trial/unsafe activation, cleanup, or staging/sibling/master write
+occurred.
 
 The bounded ETF checkpoint already accepted in green staging remains distinct
 from the open full roadmap. Keep all 140 starting fallback dispositions, the
 `15 Tier-0 and 156 Tier-1` investigations, MSMR/QQQ and Militia/GOOG
 quarantines, held routes, retained data, and the post-integration 30-day
-observation gate. Next: validate this exact merge, publish the coherent
-workstream/source adoption once, and follow only its exact-source branch CI;
-then continue offline roadmap work without inferring route eligibility.
+observation gate. The current local continuation adds the canonical
+`holdings_source_provider=spdr` identity beside the SPDR adapter route, with
+tests for metadata selection/application and preservation of unrelated profile
+aliases. The complete adapter, refresh, and capability modules passed 764/764
+with live flags set to zero; changed-file Ruff and format checks passed. The
+accepted f04 baseline lacked this field. The shared runtime
+registration/review bootstrap gap remains: generic Provider seeding does not
+register `spdr`, and its admin PATCH APIs cannot create the initial publisher
+source, `ETF_HOLDINGS` policy/entitlement, or the host/operation/account review
+configuration. The source recipe records this separately from the supported
+admin profile PATCH. These changes do not create runtime records or admit a
+route.
+
+## First-human SPY sample admission recipe — 2026-10-23
+
+Source-only review used exact accepted baseline `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`.
+No real SPY/RSP response body suitable for dated import was found in the
+reviewed local test/evidence paths. The SPY adapter's XLSX in its unit test is
+mocked data, not issuer evidence. The durable recipe is
+[`first-human-sample-admission.md`](first-human-sample-admission.md).
+
+SPY is the most direct candidate: f04 maps it to native adapter `spdr`, whose
+fund-specific workbook URL is on `www.ssga.com`, and whose parser checks the
+workbook's SPY identity and issuer as-of date. This is route/code evidence,
+not a recent live test, evidence of present availability, legal permission, or
+an enabled Provider policy. The recipe records all accepted Provider gates,
+the single-symbol canary path and its redirect/timeout limits, current-vs-PIT
+interpretation, and constituent-resolution caveats. It also records the
+original pre-request blocker: f04's SPY profile metadata supplied only
+`holdings_adapter=spdr`, while the bridge also requires
+`source_provider` or `holdings_source_provider=spdr` on the committed profile.
+The current local branch now supplies `holdings_source_provider=spdr` from
+canonical SPDR route metadata; this is a source identity correction, not a live
+review or admission. The independent missing Provider source/policy/entitlement
+and `etf_holdings_review` bootstrap described in the recipe remains unresolved
+and requires a supported authorized provisioning path before any attempt.
+
+The local uncommitted capability regression separately proves that a static
+Tier-0 `CURRENT` audit does not establish current holdings: no snapshot is
+unknown, an expired snapshot is stale/last-known, and only a fresh snapshot
+with successful route state becomes current. The whole capability module
+passed 115/115 after that test; the exact narrative-count sentinel passed1/1,
+Ruff check/format and `git diff --check` passed, and the workstream validator
+accepted the record. This later branch-local check is not a claim that f04
+contains the regression, nor is it the sample's live evidence.
+
+No upstream request, quota use, route activation, paid/trial operation, target
+fixture, cleanup, or cross-worktree write occurred. Continue with a supported,
+fail-closed SPDR shared-runtime provisioning path only when its source and
+policy/terms evidence can be supplied; until then keep SPY non-routable and
+continue other bounded offline roadmap work. Keep full AC1–AC14,
+`15 Tier-0 and 156 Tier-1`, all prior failures, quarantines, route/cost holds,
+and the 30-day observation gate intact. Do not claim SPY usable/current until
+the exact evidence gates and a human-authorized first sample are satisfied.
 
 ## Current full-roadmap continuation — shared CSV transport boundary — 2026-10-22
 
