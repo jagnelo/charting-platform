@@ -1,5 +1,49 @@
 # feat/etf-holdings-constituents
 
+## Manual-import current-health consumer correction — 2026-10-23
+
+Exact parent source `9e183e6c75940e4c6e0abf5bfc32afa589d95969` CI
+`39929980961` is terminal red: Backend unit and Frontend Unit passed; Backend
+integration failed four cases; Branch-declared, Playwright E2E and Exhaustive
+were skipped after that failure. The failures were:
+
+- `test_etf_holdings_snapshot_can_materialize_read_only_basket` expected an
+  admin-manual upload to serve as current; the API correctly returned 409.
+- `test_etf_holdings_basket_rejects_non_current_without_historical_selection`
+  expected SEC filing lineage, but the first manual-import guard had replaced
+  it with tier `none`.
+- `test_strategy_run_can_use_etf_holdings_snapshot_universe` expected a manual
+  upload to be current after directly inserting fabricated successful native
+  adapter-health state.
+- `test_etf_industries_are_derived_from_point_in_time_holdings` expected an
+  unrecognized manual source to have `issuer_native` tier.
+
+The current owned correction preserves `sec_filing` only when explicit
+provenance and source-provider values identify a filing; it remains
+non-current and does not write native adapter-success health. The basket API
+test asserts current-mode rejection and retains explicit historical basket
+access as its positive assertion. The Strategy test verifies that manual data
+cannot populate a latest/current analysis universe; its former positive fixture
+was not native-route evidence because it fabricated adapter-success state.
+The workspace expectation now matches tier `none` for its unrecognized manual
+source. Historical/PIT behavior and current-analysis rejection remain intact.
+
+Focused validation on these local changes: the complete
+`test_etf_holdings_resolution.py` module passed `60/60` in `45.51s` with both
+live flags set to zero. Ruff check passed and Ruff format check confirmed all
+five changed Python files are formatted. No local integration or full-stack
+profile was run; this does not replace hosted validation. Exact new-source CI
+is pending after publication. Preserve the parent CI red receipt; do not rerun
+it.
+
+No issuer/provider/SEC HTTP, quota, data import, profile/Provider mutation,
+activation, fixture, cleanup, or cross-worktree write occurred. The RSST
+read-only feasibility result below remains unchanged: do not import until the
+documented rights, initial-request URL, derivative-row and no-enrichment/manual-
+profile gaps are resolved. Preserve AC1–AC14, the `15 Tier-0 and 156 Tier-1`
+investigations, historical evidence, quarantines, holds, retained data, the
+30-day observation and Root's exclusive `full_stack_browser` slot.
+
 ## RSST manual/noncurrent sample feasibility — 2026-10-23
 
 Follow-up against immutable accepted f04 and the retained RSST artifact finds a

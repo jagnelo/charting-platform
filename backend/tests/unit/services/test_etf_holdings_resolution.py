@@ -231,6 +231,62 @@ async def test_manual_import_cannot_claim_native_current_or_refresh_adapter_heal
 
 
 @pytest.mark.asyncio
+async def test_manual_sec_import_retains_sec_source_tier_without_native_adapter_health(
+    db, instrument
+):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="SECX",
+        name="Synthetic SEC Filing ETF",
+    )
+    now = datetime.now(UTC)
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[
+            CanonicalHoldingRow(
+                symbol=instrument.symbol,
+                name=instrument.name,
+                weight=Decimal("1"),
+                currency="USD",
+                holding_type="equity",
+                row_type="security",
+            )
+        ],
+        composition_date=now.date(),
+        known_at=now,
+        provenance="sec_filing",
+        source_provider="sec",
+        source_quality="sec_filing",
+        completeness_status="filing_reconstructed",
+        legal_metadata={"source_tier": "issuer_native"},
+        allow_provider_enrichment=False,
+        manual_import=True,
+    )
+    profile = await ensure_etf_profile(async_db, etf_instrument)
+    profile.adapter_key = "spdr"
+
+    assert snapshot.extra_data["source_tier"] == "sec_filing"
+    assert snapshot.extra_data["legal_metadata"]["source_tier"] == "sec_filing"
+    assert profile.legal_metadata["source_tier"] == "sec_filing"
+    assert (
+        db.execute(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                ETFHoldingsAdapterState.adapter_key == "sec",
+            )
+        ).scalar_one_or_none()
+        is None
+    )
+
+    capability = evaluate_capability(profile, snapshot, None, now=now)
+    assert capability.availability == "degraded"
+    assert capability.source_tier == "sec_filing"
+    assert not capability.usable_for_current_analysis
+
+
+@pytest.mark.asyncio
 async def test_ingest_rejects_future_metadata_before_profile_hydration(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     etf_instrument = await ensure_lightweight_etf_instrument(

@@ -1145,7 +1145,15 @@ async def ingest_holdings_snapshot(
         # provider request passed shared admission. Do not let caller metadata
         # promote the artifact to issuer-current or refresh native route health.
         legal_metadata["ingestion_mode"] = "manual_import"
-        legal_metadata["source_tier"] = "none"
+        # Keep the non-current SEC classification when the import is explicitly
+        # identified as a filing; otherwise ignore caller-supplied tier claims.
+        manual_source_tier = _capability_source_tier(
+            provenance=provenance,
+            source_provider=source_provider,
+        )
+        legal_metadata["source_tier"] = (
+            "sec_filing" if manual_source_tier == "sec_filing" else "none"
+        )
     profile = await ensure_etf_profile(db, etf_instrument, legal_metadata=legal_metadata)
     canonical_rows = [
         row

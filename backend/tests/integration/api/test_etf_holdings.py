@@ -3431,7 +3431,7 @@ def test_admin_can_ingest_and_user_can_read_etf_holdings(client, admin_headers, 
     assert search.json()[0]["symbol"] == "SPY"
 
 
-def test_etf_holdings_snapshot_can_materialize_read_only_basket(
+def test_manual_snapshot_materializes_read_only_basket_only_with_historical_selection(
     client,
     admin_headers,
     auth_headers,
@@ -3482,9 +3482,22 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
     )
     assert profile.status_code == 200
 
-    materialized = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
-    assert materialized.status_code == 200
-    basket = materialized.json()
+    current = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
+    assert current.status_code == 409
+    capability = client.get("/api/v1/etf-holdings/DIA/capability", headers=auth_headers)
+    assert capability.status_code == 200
+    assert capability.json()["source_tier"] == "none"
+    assert capability.json()["availability"] == "degraded"
+    assert capability.json()["displayable_last_known"] is True
+    assert capability.json()["usable_for_current_analysis"] is False
+
+    historical = client.get(
+        "/api/v1/etf-holdings/DIA/basket",
+        headers=auth_headers,
+        params={"date": current_composition_date.isoformat()},
+    )
+    assert historical.status_code == 200
+    basket = historical.json()
     assert basket["source_type"] == "etf_holdings"
     assert basket["is_system_managed"] is True
     assert basket["is_read_only"] is True

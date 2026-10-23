@@ -1191,21 +1191,15 @@ class TestStrategyLabAPI:
         assert payload["benchmark"]["requested_status"] == "partial"
         assert payload["benchmark"]["requested_first_bar_at"].startswith("2024-03-01")
 
-    def test_strategy_run_can_use_etf_holdings_snapshot_universe(
+    def test_strategy_latest_universe_rejects_manually_imported_holdings(
         self,
         client,
         admin_headers,
         auth_headers,
-        db,
         instrument,
         ohlcv_bars,
     ):
         from datetime import UTC, datetime
-
-        from sqlalchemy import select
-
-        from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
-        from app.models.instrument import Instrument
 
         checked_at = datetime.now(UTC)
         current_composition_date = checked_at.date() - timedelta(days=1)
@@ -1246,32 +1240,6 @@ class TestStrategyLabAPI:
             json={"provider_aliases": {"holdings_adapter": "spdr"}},
         )
         assert profile_res.status_code == 200
-        profile = db.execute(
-            select(ETFProfile)
-            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
-            .where(Instrument.symbol == "SPY")
-        ).scalar_one()
-        db.add(
-            ETFHoldingsAdapterState(
-                etf_profile_id=profile.id,
-                adapter_key="spdr",
-                status="success",
-                last_success_at=checked_at,
-                last_checked_at=checked_at,
-                composition_date=current_composition_date,
-                completeness_status="complete",
-                extra_data={
-                    "source_tier": "issuer_native",
-                    "expected_cadence": "unspecified",
-                    "artifact_identity_validation": {
-                        "status": "matched",
-                        "matched": [{"value": "SPY"}],
-                    },
-                },
-            )
-        )
-        db.flush()
-
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",
             headers=auth_headers,
@@ -1326,29 +1294,11 @@ class TestStrategyLabAPI:
         )
         assert preview_res.status_code == 200
         preview = preview_res.json()
-        assert preview["universe"]["instrument_count"] == 1
-        assert preview["universe"]["resolved_symbols"] == [instrument.symbol]
-
-        run_res = client.post(
-            f"/api/v1/strategy-lab/versions/{version['id']}/runs",
-            headers=auth_headers,
-            json={
-                "test_mode": "backtest",
-                "timeframe": "D1",
-                "date_from": ohlcv_bars[0].ts.isoformat(),
-                "date_to": ohlcv_bars[-1].ts.isoformat(),
-                "parameter_values": {},
-                "execution_assumptions": {
-                    "initial_capital": 100000,
-                    "risk_per_trade_pct": 1.0,
-                    "slippage_bps": 5,
-                },
-            },
+        assert preview["universe"]["instrument_count"] == 0
+        assert preview["universe"]["resolved_symbols"] == []
+        assert any(
+            "cannot be used for current analysis" in warning for warning in preview["warnings"]
         )
-        assert run_res.status_code == 201
-        run = run_res.json()
-        assert run["result_summary"]["universe"]["resolved_instrument_count"] == 1
-        assert run["result_summary"]["universe"]["resolved_symbols"] == [instrument.symbol]
 
     def test_strategy_etf_universe_excludes_newer_controlled_fixture_snapshot(
         self,
