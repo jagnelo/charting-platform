@@ -1,5 +1,69 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 10:18Z — F8m fixture inventory and E2E port containment
+
+- Read-only inventory found the retained seeded Provider E2E project
+  `charting-stack-feat-market-data-provider-platform-c6e40c66` with eight
+  services. Its worktree label is `feat-market-data-provider-platform-c6e40c6608`;
+  app image tags use `c6e40c66` and have no full OCI source-revision label, so it
+  is not exact-current-source proof for `ee3d8680`. SPY and QQQ each have 520
+  adjusted D1 rows from controlled `e2e_reference` (2024-01-02 through
+  2025-12-29); these are fixture data, not current provider evidence.
+- The E2E network is internal and provider routing/proxy settings deny provider
+  egress. The host-port relay was bound on all interfaces; this source change
+  binds it to loopback and resets inherited host ports for backend, frontend,
+  PostgreSQL, and Redis. The owner-managed quota ledger remains shared across
+  worktrees by design and is not replaced/reset. The old running project was
+  not changed or used. No local browser/profile process was visible; no app job
+  queue was inspected. Normal auth session availability remains unverified;
+  no credentials were read or printed and no account was created.
+- Changed only `docker-compose.e2e.yml`, `Makefile`, and the Compose contract
+  tests `backend/tests/unit/test_research_runner_deployment.py` and
+  `tests/workflow/test_staging_workflow.py` for this source context. Focused
+  tests passed 17/17; all 143 workflow tests passed; Ruff check/format and
+  rendered merged Compose contract passed. Two initial test failures were
+  harness assumptions: the E2E override does not define base `frontend`, and
+  the existing workflow test's plain YAML loader did not understand Compose's
+  `!reset`; both tests now parse/assert the override correctly. `make
+  test-compose-contract` exited 0 after the usual runtime-helper warning that
+  the sandbox could not prepare the shared quota directory; no Compose service
+  was started. Exact-source CI is pending for this uncommitted candidate.
+- The full local profile remains pending an explicit coordinator slot and an
+  exact-source isolated fixture. Keep the SEC durability proof and all roadmap
+  criteria/holds intact; no provider/issuer/SEC HTTP, quota operation, retained
+  service/data change, staging/sibling/master write, or deployment occurred.
+
+## 2026-10-23 10:05Z — exact-source CI and SEC durability checkpoint
+
+- Current code source is `ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7`, matching
+  its configured upstream. Exact Actions run `39930261098` attempt 1 is
+  terminal green on that SHA: Backend passed 5,202 unit / 1 skipped and 498
+  integration / 2 skipped with 84% combined coverage; Frontend Unit and
+  Branch-declared passed; Playwright passed 191 / skipped 110 with no test
+  retries or flaky marker; Exhaustive was skipped by feature-branch policy.
+- The SEC per-CIK result/failure and resume-cursor implementation in
+  `backend/app/services/market_event_edgar_scan.py` remains present. The full
+  file-backed no-network SEC scan module passed 28/28 on this exact source;
+  successful CIKs remain committed across worker restart while the failed CIK
+  is retried. No provider/issuer/SEC request or quota operation occurred.
+- The owned workstream validator passed (45 workstream records); after the
+  latest evidence append, the targeted validator passed this Provider record
+  again. Its only local bootstrap warning was inability to prepare the private
+  quota-ledger directory in this sandbox; validation still exited 0.
+- Status remains `in_progress`; preserve all original roadmaps and operation
+  holds. The required local full functional/visual profile is still pending
+  Root's explicit slot release. The latest visible coordinator handoff is
+  08:54Z and does not grant a Provider slot; do not start a fixture based on
+  that stale snapshot. No code, service, retained data, quota, staging, sibling,
+  master, or deployment state changed. The append-only validation journal is
+  the only dirty path from the prior evidence context.
+- Next: continue only bounded Provider-owned no-network roadmap work while the
+  full-profile slot is not explicitly released. On an actual release, verify
+  current ownership/capacity and run the unchanged source-pinned full profile;
+  do not re-run the completed SEC module or CI for documentation. Keep the
+  goal active and do not claim `ready_for_human_review` until every required
+  gate is actually satisfied.
+
 ## 2026-10-23 07:26Z — additive MarketSeriesDefault timestamp repair
 
 The first private f04 deployment's cold D1 warm-up failed before provider
