@@ -10,8 +10,8 @@ human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: docker_integration
-local_validation_reason: Additive PostgreSQL Alembic schema repair; verify fresh and existing mappings with real isolated PostgreSQL, not metadata.create_all or production DDL.
+local_validation_profile: full_stack_browser
+local_validation_reason: Preserve the real PostgreSQL migration profile and add first-click browser evidence for the F8m setup-readiness correction; reuse prior components only with explicit identical-input qualification. No local-profile or hosted-gate waiver.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development."
@@ -20,10 +20,12 @@ scope:
   - Add created_at and updated_at to market_series_default through a new forward Alembic revision; preserve existing rows and all selection metadata.
   - Add PostgreSQL fresh-table and existing-row ORM-read regression coverage and verify the full fresh Alembic chain locally.
   - Reconcile the existing Strategy migration-history test with the legitimate additive successor: assert the exact new sole head and its exact parent, retaining unique IDs and shared-base ancestry checks.
+  - Resolve the required F8m first-click setup-readiness gate without production UI changes, click retries, forced clicks, timeout/assertion changes or visual-oracle changes.
 owned_paths:
   - backend/alembic/versions/d4a5b6c7e812_add_market_series_default_timestamps.py
   - backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py
   - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
+  - frontend/tests/e2e/flows.spec.ts
   - ops/workstreams/fix-market-series-default-schema/
 dependencies:
   - Accepted synchronized staging/master f04fb2a26c6363c6090e76c2658cfcfe7adabf61; canonical green staging39896524209/master39904989064.
@@ -36,21 +38,23 @@ acceptance_criteria:
   - id: MSS3
     text: Isolated full Alembic fresh-chain upgrade reaches the new head with all129 accepted model tables and no missing ORM columns; scoped resources are cleaned and datasets preserved.
   - id: MSS4
-    text: Focused quality checks, required docker_integration local profile and exact-source branch CI pass; reviewable isolated source and durable closure record are ready for coordinator acceptance, with protected staging/master/deployment gates still independently required.
+    text: Focused quality checks, source-qualified full_stack_browser local component evidence and exact-source branch CI pass; reviewable isolated source and durable closure record are ready for coordinator acceptance, with protected staging/master/deployment gates still independently required.
+  - id: MSS5
+    text: F8m explicitly establishes the intended open indicator rail and SPY symbols before one ordinary group-menu click; existing expansion, Purple/Yellow/Grey, linked-symbol and isolation assertions, timeouts, retry policy and all visual references remain unchanged. Required browser validation passes without accepting retry-only evidence.
 branch_tests:
   - uv run --project backend python -m pytest backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py -m integration -q
   - uv run --project backend python -m pytest backend/app/strategy_lab_v2/tests/test_migration_compatibility.py -q
 branch_tests_reason: The fresh-migration defect needs actual PostgreSQL DDL/ORM regression; static collection or metadata-created tables are not acceptance.
-live_test_impact: No adapter, HTTP, entitlement, quota or data-use contract change. No provider live requests or consumed119-case allowance replay; preserve all holds, consumer assertions and retry policies.
+live_test_impact: No adapter, HTTP, entitlement, quota or data-use contract change. No provider live requests or consumed119-case allowance replay; preserve all holds, consumer assertions and retry policies. Normal exact-source browser jobs and full staging/master exhaustive replay remain mandatory.
 migration_impact: Additive revision d4a5b6c7e812 after slv2_0011; backfill non-null timestamps through server defaults while retaining selected_at and all existing mapping data. No production ALTER TABLE outside Alembic.
 deployment_impact: Existing private f04 startup/auth/UI is verified but real data remains unaccepted and routing is off. A repaired release needs canonical branch/staging/master gates and a new backend artifact including the migration, preserving target volumes, accounts, secrets and holds.
 status: in_progress
 remaining_gaps:
   - Local real PostgreSQL profile and full-chain validation passed; hosted exact-source checks remain independent.
-  - Exact repair branch CI, technical acceptance, staging/master gates and repaired target deployment remain pending.
+  - Required first-click local browser evidence, final exact repair branch CI, technical acceptance, staging/master gates and repaired target deployment remain pending.
 progress:
   completed: [MSS1, MSS2, MSS3]
-  total: 4
-  current_phase: reconcile exact additive head in migration compatibility regression
+  total: 5
+  current_phase: establish explicit initial F8m UI readiness without weakening its first-click contract
   current_blocker: none
-  next_action: Update the exact-head expectation and add explicit successor-parent assertion, run the complete focused compatibility module, publish separately, and follow final exact CI. No runtime migration changes or gate weakening.
+  next_action: Commit this bounded gate-follow-up plan, run plan-ready, add only explicit initial-state assertions, then publish and run required source-qualified local and hosted browser gates. No runtime migration or production UI changes.

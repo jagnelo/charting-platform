@@ -154,3 +154,38 @@ This is not a second PostgreSQL run or a pytest execution claim for the original
 direct assertion harness. Hosted normal PostgreSQL and full gates remain required.
 This operational checkpoint is source-only bookkeeping and has no final self SHA;
 verify its enclosing HEAD and remote externally. Follow its exact hosted CI.
+
+## F8m gate-follow-up plan — 2026-10-23 09:51 UTC
+
+Prior context96b7ab93d3834a713bd78df0a7808ba3fd8fc33e was clean and synchronized.
+ExactCI39926317928 is terminal red: backend5191unit/1skip,498integration/2skip,
+84%coverage, frontend1337/139files and branch1PG+19compatibility passed.
+E2E120332615681 ended190passed110existing skips1flaky in19.9m; F8m-chart-panels
+failed first-click aria-expanded at flows.spec.ts2528 and passed on retry.
+FailOnFlaky correctly rejects that result; no blind replay or acceptance.
+
+Exact uploaded report12491488217 was downloaded once after a transport failure;
+ZIP SHA2567c7ad0cef7780ade7be834c528d51bdd20cc378395f00db2037c644a0d1d9032
+matches upload receipt. Ignored coordinator artifact directory is
+.ai/staging-attempts/mss-f8m-ci-39926317928/. First-failure PNG/video are distinct
+from the nested trace, which records the SUCCESSFUL RETRY. Video frames3.2s
+and3.4s show p1 changing from Symbol placeholder to SPY while the initially
+collapsed indicator rail opens, shifting panel/header geometry. First-attempt
+pointer coordinates are not captured, so exact lost-event causality remains
+qualified rather than claimed proven.
+
+This new context owns frontend/tests/e2e/flows.spec.ts and these own workstream
+records only. Establish the intended open rail before switching to two columns,
+then explicitly assert both initial panel symbols are SPY before the existing
+single ordinary picker click. No production UI/layout change, repeated/forced
+click, sleep, assertion removal, retry/timeout/oracle/skip/tolerance change.
+The current test already assumes both initial symbols are SPY later; the new
+checks expose those setup preconditions instead of racing their hydration.
+
+Local profile increases to full_stack_browser, with existing realPG evidence
+retained and reuse allowed only for explicitly identical runtime inputs.
+Fresh focused browser evidence is still PENDING; no remote-only exception,
+weakened profile, new fixture launch or first-human acceptance is claimed.
+Provider owner has been asked only to inventory a safe existing seeded,
+egress-denied fixture; TC owner is diagnosing the same failure read-only.
+Commit this plan and run supported plan-ready before editing the test.
