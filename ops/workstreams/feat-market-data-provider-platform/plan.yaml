@@ -1,4 +1,15 @@
 schema: 4
+# 2026-10-23 07:26Z priority deployment-schema repair: the accepted f04 cold
+# chart warm-up exposed that `market_series_default` lacks the two columns
+# required by `TimestampMixin`. Additive successor revision
+# `d4a5b6c7e812` and a PostgreSQL fresh/upgrade preservation regression are in
+# isolated source/test commit `2467a50b6`. Ruff, migration-head resolution,
+# integration-test collection, and the unchanged historical migration unit
+# test pass. The PostgreSQL integration test has NOT yet run; it awaits the
+# coordinator's bounded Docker resource grant. Current branch CI/full-profile
+# evidence is not rebound to this commit. No target DB patch, provider request,
+# quota action, or retained-resource change occurred. Full roadmap and
+# in_progress status remain unchanged.
 # 2026-10-23 06:27Z continuation: exact released staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`
 # is already adopted; Provider HEAD `3d078bc02e0722352cefaf72618c0cf69c765b35`
 # is clean/synchronized and exact Actions `39905248908` is green. The SEC
@@ -7,6 +18,11 @@ schema: 4
 # coverage for three distinct complete union snapshot sessions; production
 # lifecycle code is unchanged. Full roadmap remains open and the full local
 # profile remains held for Root's separate slot.
+# 2026-10-23 07:21Z: exact synchronized HEAD `759921fbc4625aabd2fe12c60d98df0c7c195a5b`
+# has terminal-green Actions run `39911899935`. Backend, Frontend Unit,
+# Branch-declared, and Playwright passed; E2E logged 191 passed/110 skipped;
+# Exhaustive was skipped by normal feature-branch policy. Full roadmap remains
+# open and the required local full profile remains pending Root's separate slot.
 # 2026-10-23 05:17Z current source reconciliation: exact green staging
 # `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` (Actions `39896524209`, canonical
 # receipt `20261023T051709Z-f04fb2a26c63.json`) is adopted by Provider merge
@@ -6874,16 +6890,17 @@ progress:
       request was made, and the historical live receipt remains source-bound.
   completed: []
   total: 7
-  current_phase: released_f04_backmerge_exact_provider_ci_pending
+  current_phase: exact_source_ci_green_full_profile_pending
   current_blocker: >-
-    CURRENT STATUS — 2026-10-23: released synchronized staging
-    `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` is merged into Provider at
-    `c9bccae0b4f62404a021c0b2bcb7ddd44201581a`; staging CI `39896524209` and
-    canonical receipt `20261023T051709Z-f04fb2a26c63.json` are green. The next
-    exact Provider branch CI is pending the coherent owned publication. SEC
-    durability remains proven on its original `61e31e7` source; no receipts are
-    rebound. The required local full functional/104-visual profile remains held
-    for a separate Root slot. Preserve full roadmap and all operation holds.
+    CURRENT STATUS — 2026-10-23: exact synchronized Provider HEAD
+    `759921fbc4625aabd2fe12c60d98df0c7c195a5b` passed Actions `39911899935`
+    (Backend, Frontend Unit, Branch-declared, and Playwright; Exhaustive skipped
+    by feature-branch policy). E2E logged 191 passed and 110 skipped with no
+    retry/flaky marker in the completed job log. The SEC per-CIK
+    result/failure and resume-cursor transaction remains proven by its original
+    source-bound restart regression; historical receipts are not rebound. The
+    required local full functional/104-visual profile remains pending Root's
+    separate slot. Preserve the complete roadmap and all operation holds.
     CURRENT STATUS — 2026-10-19 18:46Z: the prior evidence context is closed
     in `8d368aae4`, and exact released staging
     `26443f94c5b9fd3741d28db392fecf9aafe9c699` is merged without conflict into
@@ -8912,20 +8929,17 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    The published clean base is `3d078bc02e0722352cefaf72618c0cf69c765b35`,
-    which includes released staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`;
-    exact Actions `39905248908` is terminal green for that base. The SEC
-    issuer-universe per-CIK result/failure and resume-cursor transaction is
-    implemented and covered by deterministic file-backed restart/rollback
-    regressions. A new no-network `test_market_universe.py` case now proves
-    that NMS absence requires three distinct complete union snapshot sessions;
-    same-date rereads do not add confirmations, and listing/provider-symbol
-    retirement occurs only at the third distinct session. Its focused unit,
-    adjacent NMS guard tests, full market-universe unit module, and SEC
-    restart-composition test pass locally; this new test is not covered by the
-    green base CI and needs publication plus exact-source CI. Keep the full
-    original roadmap and all holds open. The required full `full_stack_browser`
-    profile remains held for Root's separate slot; at release, use the
+    Exact synchronized source `759921fbc4625aabd2fe12c60d98df0c7c195a5b` is
+    clean on `origin/feat/market-data-provider-platform`, and exact Actions run
+    `39911899935` is terminal green. The NMS lifecycle regression is included:
+    same-date union rereads do not advance absence evidence and retirement
+    occurs only after three distinct complete sessions. The SEC failure/restart
+    persistence regression remains valid on its original source and passed as
+    part of the current SEC module check; it proves a fresh worker retries the
+    failed CIK without replaying the prior committed CIK. Keep the full roadmap
+    and all holds open. Next, continue bounded Provider-owned no-network
+    roadmap work while the required `full_stack_browser` profile awaits Root's
+    explicit slot release; at release, use the
     source-pinned dynamically discovered functional and visual selections,
     Noble 1.62.1, read-only DejaVu, one worker, zero retries, unchanged
     references/masks and 0.005 tolerance, fixture-only resources, and

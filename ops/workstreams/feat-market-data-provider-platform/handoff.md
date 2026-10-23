@@ -1,5 +1,54 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 07:26Z — additive MarketSeriesDefault timestamp repair
+
+The first private f04 deployment's cold D1 warm-up failed before provider
+transport because PostgreSQL lacks `market_series_default.created_at` and
+`updated_at`, although `MarketSeriesDefault` inherits `TimestampMixin`. The
+historical table-creation migration `a0b1c2d3e4f5` is intentionally unchanged.
+Added forward-only Alembic revision
+`backend/alembic/versions/d4a5b6c7e812_add_market_series_default_timestamps.py`
+(parent `slv2_0011`) with non-null timezone-aware timestamps and `now()` server
+defaults. Added
+`backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py`,
+which uses isolated disposable schemas to exercise an empty legacy-to-repair
+upgrade and an existing-row upgrade, reading rows through the actual ORM and
+asserting selection metadata/provenance are preserved.
+
+The exact separable implementation commit is `2467a50b6` (two source/test
+paths only). Static/local evidence on its source: Alembic resolves one head,
+`d4a5b6c7e812`; Ruff check/format pass; the unchanged historical SQLite
+migration test passes 1/1; and the PostgreSQL integration test collects 1/1.
+The new PostgreSQL test has NOT run yet: it must run with the promised bounded
+coordinator Docker grant; collection is not a substitute. Exact-source hosted
+CI also remains pending for this commit. No database target was modified, no
+provider/issuer/SEC request or quota action occurred, and no existing service
+or dataset was changed. Preserve this repair as a separable patch for Root's
+authorized extraction; do not integrate/deploy from this feature worktree.
+Full Provider roadmap remains open and status remains `in_progress`.
+
+## 2026-10-23 07:21Z — exact-source CI terminal receipt
+
+- Exact synchronized Provider HEAD is
+  `759921fbc4625aabd2fe12c60d98df0c7c195a5b`; local HEAD and
+  `origin/feat/market-data-provider-platform` match. Actions run `39911899935`
+  attempt 1 is terminal green on that exact SHA. Backend, Frontend Unit,
+  Branch-declared, and Playwright jobs succeeded; Exhaustive Integration Gate
+  was skipped by normal feature-branch policy. Backend logs show 5,201 unit
+  passed / 1 skipped, 497 integration passed / 2 skipped, and combined coverage
+  84% against the 75% threshold. Playwright logged 191 passed and 110 skipped
+  in 19.6 minutes; the completed job log contains no retry/flaky marker.
+- The source-bound SEC durability implementation and file-backed
+  `test_edgar_runtime_failure_result_and_cursor_commit_across_worker_restart`
+  remain intact; the exact-head SEC module check passed 28/28. The NMS
+  three-distinct-complete-union-session regression is included in this source
+  and covered by its focused local evidence.
+- This receipt does not complete the broader roadmap or substitute for the
+  required local full functional/strict-visual profile, which remains pending
+  Root's separately assigned slot. No provider/issuer/SEC HTTP, quota action,
+  service/data change, staging/sibling/master write, deployment, or cleanup
+  occurred. Continue no-network roadmap work while preserving every hold.
+
 ## 2026-10-23 06:27Z — NMS distinct-session lifecycle contract
 
 - Current clean/synchronized base before this change was
@@ -23,8 +72,10 @@
   market-universe unit module plus the SEC failure/restart composition test
   passed `51/51` (`10.04s`). The four focused NMS union/same-session/incomplete
   guards passed `4/4`; Ruff check, Ruff format check, and `git diff --check`
-  passed. This test change still needs one coherent publication and
-  exact-source CI; the green `39905248908` receipt does not cover it.
+  passed. The regression is now published in exact pushed HEAD
+  `759921fbc4625aabd2fe12c60d98df0c7c195a5b`; Actions run `39911899935`
+  targets that exact SHA and remains in progress at the latest check. The older
+  green `39905248908` receipt does not cover it.
 - Status remains `in_progress`; complete NMS/OTC reconciliation and other full
   roadmap items remain open. The full functional/strict-visual profile remains
   held for Root's separately assigned slot. No provider/issuer/SEC HTTP, quota
@@ -29993,3 +30044,102 @@ browser fixture; data/service cleanup; staging/sibling/master/deployment
 change; paid/trial activation; or credential inspection/change occurred.
 Current owned changes are the SEC regression and this handoff/plan/journal
 evidence; no other source or workstream context is part of this change.
+
+## 2026-10-23 — frozen f04 first-human Massive admission recipe (preparation only; corrected)
+
+Source basis is accepted staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`,
+not later Provider changes. In a fresh non-seeded private deployment, keep
+`E2E_SEED_MARKET_DATA=false` and `E2E_SEED_LARGE_UNIVERSE=false`, retain
+`PROVIDER_FREE_ONLY_CHECKPOINT=true` and every checkpoint hold, and leave
+`PROVIDER_ROUTING_ENABLED=false` until a separate deployment preflight. Do not
+reuse seeded bars as provider evidence.
+
+The ordinary user flow is exact-symbol search for SPY/RSP, exact canonical
+instrument resolution/profile, then the authenticated chart request
+`GET /ohlcv/{symbol}/D1?adjusted=true&limit=500` (the normal OHLCV endpoint
+defaults to adjusted and refreshes only if the local series is cold/incomplete).
+`/instruments/search` uses the configured search preference, whose f04 seed
+includes EDGAR, Massive, and Alpha Vantage; the default price-history seed is
+Alpaca then Alpha Vantage, not Massive. Crucially,
+`PROVIDER_CHAIN_SEEDS` is an ordering preference, not an allowlist:
+`seed_provider_runtime()` appends all supported providers for each capability
+and creates missing policy rows enabled. Therefore setting those preferences
+to Massive does NOT prove Massive-only routing or prevent fan-out. Before any
+normal routing is enabled, inspect the target's resolved per-provider policies
+for both `instrument_search` and `price_history`, including all providers in
+each resolved chain, and confirm that only the specifically intended route is
+enabled while every other provider remains disabled and all holds remain
+effective. The existing admin control is
+`PATCH /api/v1/providers/policies/{provider_name}/{capability}` with
+`{"is_enabled": false}` (or true only for the reviewed Massive capability);
+the handler requires an already-managed admin principal. Do not create a
+privileged account or alter target policies as part of this preparation. Also
+verify the resolved chain/status after any separately authorized deployment
+configuration, rather than inferring it from seed order.
+
+Search results are cached; new canonical identity/profile resolution requires
+a fresh provider search cache or can repeat the Massive search, followed by
+one ticker-profile request per symbol. The cold initial 500-bar D1 chart page
+is one Massive aggregate request per symbol under the accepted estimator
+(calendar lookback about 701 days, within the configured two-year Stocks Basic
+history and one 50,000-base-aggregate page); any continuation/cursor page must
+be admitted and reserved separately. That is normally three calls per new
+symbol when exact search cache is fresh, but conservatively allow a repeated
+search: up to four per symbol/eight total for both symbols, not a guaranteed
+successful response. Calls may be fewer if a fresh canonical identity/cache
+already exists. Search/profile costs one call each; history is dynamically
+estimated from timeframe/range and cursor paging, not assumed globally to be
+one.
+
+Admission remains fail-closed until target-specific checks pass: only the
+privately provisioned Massive key is present (check field presence only); the
+actual entitlement is reviewed as `free-stocks-basic` with `is_free=true`,
+the operation is admitted by runtime policy, and its bounded requests have
+fresh durable-ledger reservations. No paid/trial/broker configuration is
+permitted. The already recorded
+`PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK=true` is the accepted single-user
+private-use/storage risk disposition; in f04,
+`massive_market_data_use_authority_missing()` consequently returns no missing
+authority fields. Do not request another owner approval or invent a missing
+provider-written-waiver prerequisite. This owner decision does not change
+Massive's terms or prove a provider-granted exception; keep the actual audience,
+display, retention, and deletion constraints accurately represented.
+
+F04's Massive seed documents five Stocks requests per account per minute,
+shared across keys, with the native minute-reset boundary unspecified. Its
+quota dimension supplies `safety_reset=rolling`, a 60-second window,
+`baseline_mode=local_zero`, and `application_usage_only=true`; the quota
+admission code resolves the unknown native reset dimension through this
+configured safety envelope. Thus `MASSIVE_REVIEWED_RESET`/quota-override
+evidence is not inherently mandatory when this accepted seed contract is what
+the target actually uses. The envelope is not a provider-native usage counter
+and does not establish zero total account use. Verify the target's effective
+contract and fresh shared durable coordinator state, including writable ledger,
+recent reservations/settlements, known concurrent use, and sufficient
+per-operation headroom in its rolling window; reserve each request before
+transport and pace the bounded flow across windows. Do not infer headroom or
+reset from the seed, or use recurring-cost budget admission as permission for
+paid routing.
+
+Still unknown here: target key presence, actual plan/zero-recurring-cost status,
+resolved policy enablement/chains, current durable-ledger headroom and
+reservations, and whether the runtime configuration matches the accepted
+f04 safety envelope. The configured `free-stocks-basic` seed and historical
+probe status are not current account or admission evidence. No HTTP,
+reservation, quota change, key inspection, policy mutation, or activation
+occurred; this is preparation, not live acceptance. If any target prerequisite
+is missing or unknown, leave routing off and preserve the ordinary fail-closed
+unavailable/capacity response; do not fall back to another provider or seeded
+data.
+
+Exact f04 pointers reviewed: `backend/app/config.py` (owner-risk default,
+`massive_market_data_use_authority_missing`, Massive quota seed and
+`PROVIDER_CHAIN_SEEDS`); `backend/app/services/provider_runtime.py`
+(`seed_provider_runtime`, entitlement/hold/admission); the existing
+`backend/app/routers/providers.py` policy PATCH and `ProviderPolicyUpdate`;
+`backend/app/services/provider_quota_coordinator.py` rolling safety-reset
+resolution; `backend/app/providers/massive.py` search/profile/adjusted aggregate
+and page-cost estimators; `backend/app/routers/instruments.py` and
+`backend/app/routers/ohlcv.py` ordinary request paths; and
+`docs/provider-live-validation.md` (2026-10-04 Massive audit and recorded
+single-user decision).
