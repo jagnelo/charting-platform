@@ -1,5 +1,30 @@
 # fix/market-series-default-schema
 
+## Superseding finalizer classification defect — 2026-10-23 12:20 UTC
+
+Review checkpoint f494231c6b29d98f374357e3f4c45a100cb9509f is local, not yet
+pushed. All original MSS1–MSS5 are evidenced. Canonical normal finish refused
+because external_service_path marks EVERY Alembic file as an external-service
+change. The canonical acceptance definition instead covers actual adapter,
+capability, authentication/configuration, quota/usage, pagination, entitlement
+and data-use changes. This new two-column migration only restores the existing
+ORM's internal TimestampMixin; all application runtime is unchanged.
+
+Do not replay the consumed119-request allowance, invent a new matrix receipt,
+use interrupted finish to evade acceptance, edit claims/goals directly, or
+remove the actual external-integration guard. Under the standing authorization
+to implement the necessary narrow repair, the same topic now owns the required
+finalizer-correctness amendment and MSS6. This is an implementation classification
+bug fix to match the written policy, not a policy waiver or a new human quote.
+The classifier must recognize only an ADDED migration with a statically exact
+safe import/metadata/upgrade/downgrade shape adding created_at/updated_at to
+market_series_default. Any other SQL, side effect, historical rewrite, mixed
+runtime change, real integration path or classification error remains guarded.
+Add positive and adversarial workflow regressions; keep all existing live-matrix
+assertions and acceptance checks. The full_stack_browser profile and all
+protected exact-source staging/master gates remain unchanged. Publish the
+planning checkpoint before implementation, then finish through the normal tool.
+
 ## Superseding review checkpoint — 2026-10-23 12:03 UTC
 
 MSS1–MSS5 are now evidenced; status ready_for_human_review. Implementation

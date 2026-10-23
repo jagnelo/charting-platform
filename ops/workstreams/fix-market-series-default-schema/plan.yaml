@@ -21,11 +21,15 @@ scope:
   - Add PostgreSQL fresh-table and existing-row ORM-read regression coverage and verify the full fresh Alembic chain locally.
   - Reconcile the existing Strategy migration-history test with the legitimate additive successor: assert the exact new sole head and its exact parent, retaining unique IDs and shared-base ancestry checks.
   - Resolve the required F8m first-click setup-readiness gate without production UI changes, click retries, forced clicks, timeout/assertion changes or visual-oracle changes.
+  - Correct the session finalizer's path-only false positive against the documented external-service integration definition. Recognize only a newly added, statically exact internal market_series_default TimestampMixin parity repair with unchanged application runtime; preserve the full live-matrix requirement for every actual integration, mixed change, other migration or uncertain classification. No validation waiver or live allowance replay.
 owned_paths:
   - backend/alembic/versions/d4a5b6c7e812_add_market_series_default_timestamps.py
   - backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py
   - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
   - frontend/tests/e2e/flows.spec.ts
+  - scripts/agent-session.py
+  - tests/workflow/test_agent_session.py
+  - docs/agent-orchestration.md
   - ops/workstreams/fix-market-series-default-schema/
 dependencies:
   - Accepted synchronized staging/master f04fb2a26c6363c6090e76c2658cfcfe7adabf61; canonical green staging39896524209/master39904989064.
@@ -41,20 +45,23 @@ acceptance_criteria:
     text: Focused quality checks, source-qualified full_stack_browser local component evidence and exact-source branch CI pass; reviewable isolated source and durable closure record are ready for coordinator acceptance, with protected staging/master/deployment gates still independently required.
   - id: MSS5
     text: F8m explicitly establishes the intended open indicator rail and SPY symbols before one ordinary group-menu click; existing expansion, Purple/Yellow/Grey, linked-symbol and isolation assertions, timeouts, retry policy and all visual references remain unchanged. Required browser validation passes without accepting retry-only evidence.
+  - id: MSS6
+    text: Finalizer impact classification matches the documented external-service rule for the exact internal timestamp-parity repair; static regression tests reject modified historical migrations, different SQL, dynamic execution, mixed application/runtime and actual integration changes. Full live-matrix evidence remains required for real integration changes; no stale receipt is relabelled and no consumed allowance is replayed.
 branch_tests:
   - uv run --project backend python -m pytest backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py -m integration -q
   - uv run --project backend python -m pytest backend/app/strategy_lab_v2/tests/test_migration_compatibility.py -q
+  - uv run --project backend python -m pytest tests/workflow/test_agent_session.py -q
 branch_tests_reason: The fresh-migration defect needs actual PostgreSQL DDL/ORM regression; static collection or metadata-created tables are not acceptance.
 live_test_impact: No adapter, HTTP, entitlement, quota or data-use contract change. No provider live requests or consumed119-case allowance replay; preserve all holds, consumer assertions and retry policies. Normal exact-source browser jobs and full staging/master exhaustive replay remain mandatory.
 migration_impact: Additive revision d4a5b6c7e812 after slv2_0011; backfill non-null timestamps through server defaults while retaining selected_at and all existing mapping data. No production ALTER TABLE outside Alembic.
 deployment_impact: Existing private f04 startup/auth/UI is verified but real data remains unaccepted and routing is off. A repaired release needs canonical branch/staging/master gates and a new backend artifact including the migration, preserving target volumes, accounts, secrets and holds.
-status: ready_for_human_review
+status: in_progress
 remaining_gaps:
-  - Implementation-source CI39935920665 and source-qualified local full_stack_browser components pass. Final closing-head CI remains independently required before integration.
+  - Implementation-source CI39935920665 and source-qualified local full_stack_browser components pass. Correct the newly exposed finalizer classification defect with workflow regressions, then require final closing-head CI before integration.
   - Coordinator acceptance, synchronized full staging/master gates and actual repaired private-target upgrade/real-data proof remain separate release work; no deployment acceptance is claimed.
 progress:
   completed: [MSS1, MSS2, MSS3, MSS4, MSS5]
-  total: 5
-  current_phase: all five repair criteria evidenced; ready for coordinator technical review
+  total: 6
+  current_phase: correct finalizer's internal-schema false positive without weakening actual integration gates
   current_blocker: none
-  next_action: Publish review evidence, finish this implementation context normally, then record delegated coordinator acceptance and obtain final closing-head CI before protected staging/master replay and a separate accepted target upgrade.
+  next_action: Publish this required workflow-correctness planning amendment, validate the narrow classifier and adversarial regressions, qualify unchanged application components, then finish normally and obtain exact closing-head CI before protected release gates.
