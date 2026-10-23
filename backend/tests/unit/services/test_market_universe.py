@@ -1295,13 +1295,17 @@ def test_nms_tape_c_scope_comes_from_nasdaqlisted_not_otherlisted():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("cta_snapshot_date", "expected_union"),
-    [("2026-10-20", True), ("2026-10-19", False)],
+    ("cta_snapshot_date", "expected_union", "expected_cta_status"),
+    [
+        ("2026-10-20", True, "complete"),
+        ("2026-10-19", False, "complete"),
+        (("2026-10-20", "2026-10-19"), False, "failed"),
+    ],
 )
 async def test_nms_absence_union_requires_same_snapshot_date_for_cta_and_nasdaq_scopes(
-    db, instrument, monkeypatch, cta_snapshot_date, expected_union
+    db, instrument, monkeypatch, cta_snapshot_date, expected_union, expected_cta_status
 ):
-    """Only same-date complete sources can count as one NMS absence snapshot."""
+    """Only same-date complete sources/pages can count as one NMS absence snapshot."""
 
     from app.services import market_universe
 
@@ -1341,18 +1345,32 @@ async def test_nms_absence_union_requires_same_snapshot_date_for_cta_and_nasdaq_
     db.add(prior_cta_observation)
     db.flush()
 
-    cta_page = {
-        "total": 1,
-        "quotes": [{"symbol": "CTA1", "name": "CTA Example", "exchange": "XNYS"}],
-        "complete": True,
-        "source_files": [
-            "cta_symbol_file_index",
-            f"CTA.Symbol.File.{cta_snapshot_date.replace('-', '')}.csv",
-        ],
-        "source_snapshot_date": cta_snapshot_date,
-        "source_row_count": 1,
-        "raw_source_payload": {"index_html": "index", "symbol_file_csv": "row"},
-    }
+    cta_snapshot_dates = (
+        cta_snapshot_date if isinstance(cta_snapshot_date, tuple) else (cta_snapshot_date,)
+    )
+    cta_pages = {}
+    for offset, page_date in enumerate(cta_snapshot_dates):
+        cta_page = {
+            "total": len(cta_snapshot_dates),
+            "quotes": [
+                {
+                    "symbol": f"CTA{offset + 1}",
+                    "name": f"CTA Example {offset + 1}",
+                    "exchange": "XNYS",
+                }
+            ],
+            "complete": True,
+            "source_files": [
+                "cta_symbol_file_index",
+                f"CTA.Symbol.File.{page_date.replace('-', '')}.csv",
+            ],
+            "source_snapshot_date": page_date,
+            "source_row_count": 1,
+            "raw_source_payload": {"index_html": "index", "symbol_file_csv": "row"},
+        }
+        if offset < len(cta_snapshot_dates) - 1:
+            cta_page["next_offset"] = offset + 1
+        cta_pages[offset] = cta_page
     nasdaq_pages = {
         "EQUITY": {
             "total": 1,
@@ -1392,7 +1410,7 @@ async def test_nms_absence_union_requires_same_snapshot_date_for_cta_and_nasdaq_
     providers = {
         "cta_plan": SimpleNamespace(
             supported_discovery_types=lambda: ["EQUITY"],
-            discover_universe_page=lambda _quote_type, _offset: cta_page,
+            discover_universe_page=lambda _quote_type, offset: cta_pages[offset],
         ),
         "nasdaq": SimpleNamespace(
             supported_discovery_types=lambda: ["EQUITY", "ETF"],
@@ -1407,7 +1425,7 @@ async def test_nms_absence_union_requires_same_snapshot_date_for_cta_and_nasdaq_
         return resolved
 
     async def execute_fixture(_db, _capability, operation, *, provider_name, invoke, **_kwargs):
-        assert operation.endswith(":0")
+        assert operation.rsplit(":", 1)[-1] in {"0", "1"}
         return SimpleNamespace(
             result=invoke(providers[provider_name], None),
             data_source=sources[provider_name],
@@ -1422,13 +1440,15 @@ async def test_nms_absence_union_requires_same_snapshot_date_for_cta_and_nasdaq_
     runs = (
         db.query(MarketUniverseReconciliationRun).order_by(MarketUniverseReconciliationRun.id).all()
     )
-    assert result["status"] == "complete"
+    assert result["status"] == ("partial" if expected_cta_status == "failed" else "complete")
     assert len(runs) == 3
-    assert all(run.status == "complete" for run in runs)
+    cta_run = next(run for run in runs if run.provenance.get("provider") == "cta_plan")
+    assert cta_run.status == expected_cta_status
+    assert all(run.status == "complete" for run in runs if run is not cta_run)
     union_runs = [run for run in runs if run.provenance.get("nms_union_complete")]
     if not expected_union:
         assert union_runs == []
-        assert all(run.provenance["absence_scope"] is None for run in runs)
+        assert all(run.provenance.get("absence_scope") is None for run in runs)
         assert prior_cta_observation.present is True
         assert prior_cta_observation.consecutive_missing == 0
         return

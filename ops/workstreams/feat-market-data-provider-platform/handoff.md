@@ -1,5 +1,63 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 14:30Z — NMS pagination rejects CTA source-date drift
+
+- Added a third case to the existing database-backed NMS snapshot-union test:
+  two paginated CTA rows carrying different dated symbol-file identities must
+  make the CTA run fail and must not form an NMS absence union. The existing
+  same-date positive and complete-but-cross-source-date-mismatch negative are
+  preserved. The prior XNAS lifecycle observation remains present and its
+  missing count remains unchanged. Production code/policy is unchanged; the
+  test exercises the existing `CTA Plan symbol file date changed during
+  pagination` guard.
+- The exact working candidate based on synchronized parent
+  `33bc44f6068e05f03cdbe1b3a745290ee4a5f830` passes the complete market-universe
+  unit module 52/52 in 3.38 seconds. Ruff check, Ruff format-check, and
+  `git diff --check` pass. Test-only patch SHA-256:
+  `ba32702f243d61275531f4ed432309bae3d01deba342f60f93ba8f019628f8fe`.
+- First attempts exposed fixture expectation issues, not product failures:
+  the mock initially accepted only offset `:0`; after allowing declared page
+  offset `:1`, the existing product guard correctly failed CTA on date drift,
+  so the test was corrected to expect a partial reconciliation/failed CTA
+  run and to treat absent `absence_scope` as non-authoritative. The final
+  focused three-case selection and full module pass. No provider/issuer/SEC
+  HTTP or quota action occurred. Exact CI `39960567287` validates the parent,
+  not this candidate; new-source CI remains required. Full roadmap and local
+  full_stack_browser/F8m evidence remain open.
+
+## 2026-10-23 14:27Z — exact-current SEC durability module
+
+- On synchronized source `33bc44f6068e05f03cdbe1b3a745290ee4a5f830`, the
+  complete `backend/tests/unit/services/test_market_event_edgar_scan.py`
+  module passed 31/31 in 54.20 seconds. It uses mocked provider execution and
+  temporary SQLite database fixtures; live routing and availability monitors
+  were disabled. This includes per-CIK result/cursor atomicity, worker-session
+  restart/no-replay, failed-CIK retry, and rollback-on-commit-failure cases.
+- No provider/issuer/SEC HTTP, quota operation, Docker/container action, or
+  retained-service/data change occurred. Exact Actions run `39960567287`
+  remains the current green hosted receipt. The full Provider roadmap and
+  isolated local `full_stack_browser`/F8m profile remain open. The supported
+  session progress snapshot now reflects the synchronized source and terminal
+  CI; goal state remains active. No source files changed.
+
+## 2026-10-23 14:18Z — exact-source CI receipt for 33bc44f
+
+- Exact pushed source `33bc44f6068e05f03cdbe1b3a745290ee4a5f830` passed
+  Actions run `39960567287`, attempt 1. Backend, Frontend Unit, and
+  Branch-declared jobs succeeded; Playwright succeeded with 191 passed and
+  110 skipped in 18.1 minutes. The Exhaustive Integration Gate was skipped
+  under normal feature-branch policy. No retry/flaky claim is made because the
+  CI summary did not expose a retry count.
+- This current-source result validates the previously recorded SEC durability
+  implementation/tests and NMS regression change. It does not replace the
+  required isolated local full profile: F8m/full-profile remains open. The
+  retained Provider E2E project is not safe for that interaction because the
+  flow resets/persists workspace state and the project shares writable quota
+  state and exposes host relay ports on all interfaces. No local browser or
+  test was launched; no provider/issuer/SEC HTTP, quota action, retained
+  service/data change, staging/sibling/deployment write occurred. Workstream
+  remains `in_progress`; full roadmap and holds are preserved.
+
 ## 2026-10-23 13:20Z — complete NMS snapshot-date regression module
 
 - The complete `backend/tests/unit/services/test_market_universe.py` module
