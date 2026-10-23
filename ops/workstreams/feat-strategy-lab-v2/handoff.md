@@ -17506,3 +17506,17 @@ parent CI39882200073 was last observed `in_progress` on published `dd0a704b`; th
 the prior local commits are not covered. Preserve that run to terminal before pushing. The real
 PostgreSQL fresh-session restart body and assigned full backend/application/browser/strict-visual/
 native gates remain open.
+
+## Parameterize persisted Study worker restart over every admitted type — 2026-10-23 01:34 UTC
+
+Extended the existing real-PostgreSQL fresh-session forward-worker reconstruction regression to
+seed and pin each of the 11 resolver-admitted Study artifact types. The worker must restore the
+exact typed `ResolvedStudyArtifactOutput` after reopening persistence, reject a stale checkpoint,
+deny a foreign owner, and reject persisted payload-content drift for every type. The fixture remains
+the existing mapped-schema integration fixture with its current constraints; no schema or
+production code changed. Stack-free `--collect-only` discovered all 11 parameter cases in 1.45s;
+the test bodies were not executed because no local DB slot is assigned. Focused MyPy for the module,
+Ruff, format and `git diff --check` pass. No DB, Docker, Compose, browser, native process, provider/
+quota, or live operation ran. The parent exact CI39882200073 was last observed in progress and does
+not include this change; its completion is still required before publishing. The persisted restart
+contract therefore remains unproven until actual PostgreSQL execution and the assigned full gates.

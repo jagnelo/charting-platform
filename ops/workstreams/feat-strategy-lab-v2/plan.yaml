@@ -1667,7 +1667,9 @@ roadmap_progress_history:
     locally because no DB slot is assigned. Full local backend/combined DB/application/browser/strict-
     visual/native gates remain open and require coordinator-assigned slots. In addition to the
     worker-stream matrix, the backtest runtime-bundle/materialized-context path now passes the same
-    11 admitted Study artifact types. Historical failures,
+    11 admitted Study artifact types. The real PostgreSQL fresh-session worker-reconstruction test
+    is now parameterized across those same 11 types, but its body has not run locally; collection,
+    focused MyPy, Ruff and formatting pass. Historical failures,
     including CI39856591934 and CI39874448939, remain in the append-only journal/handoff; generic
     Study output is not native execution evidence. Provider/issuer HTTP, quota, live, paid/trial,
     unknown/unsafe, broker/capital and deployment scopes remain disabled.

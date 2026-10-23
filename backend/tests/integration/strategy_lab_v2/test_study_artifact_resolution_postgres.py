@@ -944,11 +944,36 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drif
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("study_artifact_type", "study_value"),
+    (
+        ("scalar", 2.5),
+        ("series", [{"time": "t1", "value": 2.5}, {"time": "t2", "value": 3.0}]),
+        ("boolean", True),
+        ("table", {"columns": ["time", "value"], "rows": [["t1", 4.0]]}),
+        ("bar", {"time": "t1", "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5}),
+        ("histogram", {"bins": [{"lower": 0.0, "upper": 1.0, "count": 2}]}),
+        ("range", {"low": 1.25, "high": 3.75}),
+        ("scatter", {"points": [{"x": 1.0, "y": 2.0}]}),
+        ("heatmap", {"x": ["x1"], "y": ["y1"], "values": [[2.0]]}),
+        ("dashboard", {"panels": [{"name": "equity", "value": [1.0, 2.0]}]}),
+        ("events", [{"event_id": "event-1", "timestamp": "2026-10-23T00:00:00Z"}]),
+    ),
+)
 async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
     tmp_path: Path,
     study_database: StudyDatabase,
+    study_artifact_type: str,
+    study_value: Any,
 ) -> None:
     sessions = study_database.sessions
+    study_payload = {"type": study_artifact_type, "value": study_value}
+    async with sessions.begin() as session:
+        await session.execute(
+            update(ResearchArtifact)
+            .where(ResearchArtifact.id == 40)
+            .values(artifact_type=study_artifact_type, payload=study_payload)
+        )
     reference = await _reference(sessions)
     graph, _artifact_store, package_resolver, _materializer, _context, _worker_state = _setup(
         tmp_path / "forward-study-worker"
@@ -1095,7 +1120,7 @@ async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
         assert component.study_artifacts == {
             reference.artifact_name: ResolvedStudyArtifactOutput(
                 reference,
-                {"type": "series", "value": [1.0, 2.0]},
+                study_payload,
             )
         }
 
@@ -1119,11 +1144,12 @@ async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
                 checkpoint_fingerprint=checkpoint.checkpoint.fingerprint,
             )
 
+        drifted_payload = {**study_payload, "drift_marker": "changed-after-pin"}
         async with fresh_sessions.begin() as session:
             await session.execute(
                 update(ResearchArtifact)
                 .where(ResearchArtifact.id == reference.artifact_id)
-                .values(payload={"type": "series", "value": [99.0]})
+                .values(payload=drifted_payload)
             )
         with pytest.raises(SelectedStudyArtifactResolutionError):
             await worker_resolver.resolve(
