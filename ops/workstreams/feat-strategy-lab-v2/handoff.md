@@ -17730,3 +17730,34 @@ and settlement remain open. All18 roadmap criteria and the operation holds
 remain intact. Do not mutate another worktree, staging or master; do not launch
 an unassigned fixture/profile or enable provider/live/quota/paid/trial/broker/
 capital operations.
+
+## Materializer stream decoder correction — 2026-10-23 05:53 UTC
+
+The exact-source push run `39905794221` for published source
+`061e94c620acd7c6e8f561e61e728d9064450243` is terminal red. Backend failed in
+11 parameterizations of the new PostgreSQL-backed Study restart/materializer
+test; Frontend Unit passed. Branch-declared and E2E did not run, and Exhaustive
+was skipped by feature policy. The repeated failure was
+`ValueError: component invocation context stream header fields are invalid` at
+`protocol.py:1259`, raised because the test chose the multi-component decoder
+for output emitted by the production single-component materializer. Production
+uses `materialize_nautilus_context_stream()` for a single component, whose
+artifact is the standard invocation-context stream. This was a test decoder
+mismatch; persisted hydration and materialization had already completed. The
+failed run is preserved and was not replayed.
+
+The current dirty correction uses `deserialize_invocation_context_stream`,
+asserts the single-component bundle has no component-count map, supplies its
+recorded expected context count, verifies the decoded manifest pins the exact
+selected Study reference, and checks the exact typed output in every decoded
+event context across all11 admitted artifact types. Evidence on this correction:
+the focused assembly module passed11/11; the integration module collected53
+cases without executing test bodies; focused MyPy passed; Ruff check, Ruff
+format, and `git diff --check` passed. No local PostgreSQL body was run and no
+fixture was started. Preserve all prior CI failures and full gates; the corrected
+source still needs its own exact-source CI and assigned PostgreSQL validation.
+The released `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` remains only a common
+repair baseline, not product acceptance. All18 roadmap criteria, the exact
+native-execution/settlement requirement, disabled provider/quota/paid/trial/
+unsafe/broker/capital scopes, and full local/combined DB/application/browser/
+strict-visual gates remain open.

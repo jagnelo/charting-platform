@@ -89,7 +89,7 @@ from app.strategy_lab_v2.trial_hydration import (
     TrialDomainHydrationError,
 )
 from strategy_runtime import (
-    deserialize_component_invocation_context_stream,
+    deserialize_invocation_context_stream,
     deserialize_strategy_manifest,
     serialize_strategy_manifest,
 )
@@ -1023,20 +1023,20 @@ async def test_reconstructed_backtest_worker_hydrates_each_persisted_study_type(
         )
         assert bundle.context_stream is not None
         context_stream_bytes = artifact_store.read(bundle.context_stream.artifact.storage_key)
-        expected_counts = dict(bundle.context_stream.component_counts)
-        bindings, contexts = deserialize_component_invocation_context_stream(
-            BytesIO(context_stream_bytes),
-            expected_component_counts=expected_counts,
+        assert not bundle.context_stream.component_counts
+        _source, decoded_manifest, contexts, _entrypoint, _max_intents = (
+            deserialize_invocation_context_stream(
+                BytesIO(context_stream_bytes),
+                expected_context_count=bundle.context_stream.context_count,
+            )
         )
         expected_output = ResolvedStudyArtifactOutput(reference, study_payload)
-        (component_id,) = expected_counts
-        assert bindings[component_id].study_artifacts == {reference.artifact_name: expected_output}
+        assert decoded_manifest.strategy.selected_study_artifact == reference
         decoded_contexts = tuple(contexts)
-        assert len(decoded_contexts) == expected_counts[component_id]
+        assert len(decoded_contexts) == bundle.context_stream.context_count
         assert all(
-            decoded_component_id == component_id
-            and decoded_context.study_artifacts == {reference.artifact_name: expected_output}
-            for decoded_component_id, decoded_context in decoded_contexts
+            decoded_context.study_artifacts == {reference.artifact_name: expected_output}
+            for decoded_context in decoded_contexts
         )
 
         drifted_payload = {**study_payload, "drift_marker": "changed-after-pin"}

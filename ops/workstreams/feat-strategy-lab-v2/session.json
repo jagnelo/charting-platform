@@ -35,6 +35,7 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -72,14 +73,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "8944f442dff4e3a80bcbdcab91e44e10958d0351",
-  "implementation_sha": "8944f442dff4e3a80bcbdcab91e44e10958d0351",
-  "last_checkpoint": "2026-10-23T05:25:04Z",
+  "head": "061e94c620acd7c6e8f561e61e728d9064450243",
+  "implementation_sha": "061e94c620acd7c6e8f561e61e728d9064450243",
+  "last_checkpoint": "2026-10-23T05:54:59Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Finish bounded workstream/diff validation and publish the f04 merge plus its owned adoption receipt; inspect exact-source CI on the resulting branch tip. Run the real PostgreSQL integration only in an assigned slot, then continue exact-pinned Nautilus RC execution/result settlement only on a Root-assigned runtime slot; retain all full local/combined DB/application/browser/native gates.",
+  "next_action": "Publish the corrected single-component integration decoder test with its coherent exact evidence, then inspect the one exact-source push CI without replaying CI39905794221. Run its PostgreSQL body only in an assigned slot; retain all full local/combined DB/application/browser/native gates.",
   "parent_branch": "staging",
-  "plan_hash": "2496ae3cb7283603ce4c2c48e1d073fe04bfcfd87f9715de1edf1a9abf3b829a",
+  "plan_hash": "273b44bebd1170bad74d7545f1be4098978d21c0f8e0b4782affd83fbeeb3687",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -109,15 +110,15 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "The exact coordinator-released common green baseline f04fb2a26c6363c6090e76c2658cfcfe7adabf61 (receipt20261023T051709Z-f04fb2a26c63.json; CI39896524209 including Exhaustive) is merged locally as second parent of8944f442dff4e3a80bcbdcab91e44e10958d0351; this is shared-repair adoption, not later product-checkpoint acceptance. Its hidden-request observer unit file passed9/9. Exact branch CI for this merged tip has not yet run. Preserve prior exact CI39900753635 red (one flaky F8l case) as history. The owned Study restart-to-runtime-materialization integration test has 11 cases collected and static checks passed, but PostgreSQL body is not locally run. Full local backend/combined DB/application/browser/strict-visual and exact-pinned Nautilus native execution/settlement remain open.",
-    "current_phase": "full-roadmap-persisted-study-runtime-assembly-v10-f04-adopted",
-    "next_action": "Complete bounded workstream/diff validation and publish the f04 merge plus its owned adoption receipt; inspect exact-source CI on the resulting branch tip. Run the real PostgreSQL integration only in an assigned slot, then continue exact-pinned Nautilus RC execution/result settlement only on a Root-assigned runtime slot; retain all full local/combined DB/application/browser/native gates.",
+    "current_blocker": "Published061e94c620acd7c6e8f561e61e728d9064450243 has terminal red exact CI39905794221: 11 parameterized PostgreSQL integration failures share a test decoder mismatch (multi-component decoder selected for production single-component stream). A focused test-only correction now uses the standard invocation-context decoder; focused assembly 11/11, PG collect-only53, focused MyPy/Ruff/format/diff pass. PG body remains unrun locally pending assigned slot. Preserve the red and all prior failures. Full local/combined DB/application/browser/strict-visual/native gates remain open.",
+    "current_phase": "full-roadmap-study-materializer-stream-decoder-correction-v11",
+    "next_action": "Publish the corrected single-component integration decoder test with its coherent exact evidence, then inspect the one exact-source push CI without replaying CI39905794221. Run its PostgreSQL body only in an assigned slot; retain all full local/combined DB/application/browser/native gates.",
     "total": 5,
-    "updated_at": "2026-10-23T05:25:04Z"
+    "updated_at": "2026-10-23T05:54:59Z"
   },
-  "remote": "a32950e282ab92ecfc695b68493cc7afa7e6b4b7",
-  "remote_sha": "a32950e282ab92ecfc695b68493cc7afa7e6b4b7",
-  "remote_synchronized": false,
+  "remote": "061e94c620acd7c6e8f561e61e728d9064450243",
+  "remote_sha": "061e94c620acd7c6e8f561e61e728d9064450243",
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
