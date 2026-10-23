@@ -1617,7 +1617,7 @@ roadmap_progress_history:
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
   total: 18
-  current_phase: full-roadmap-selected-study-payload-typing-v1
+  current_phase: full-roadmap-selected-study-payload-typing-v1-ci-caller-fix
   active_changeset:
     id: strategy-lab-v2-frozen-study-payload-typing-v1
     scope: >-
@@ -1633,20 +1633,23 @@ roadmap_progress_history:
       - backend/app/strategy_lab_v2/tests/test_authenticated_forward_context_resolver.py
       - backend/app/strategy_lab_v2/tests/test_forward_execution_plan.py
       - backend/app/strategy_lab_v2/tests/test_nautilus_forward_bootstrap.py
+      - backend/app/strategy_lab_v2/tests/test_strategy_runtime_protocol.py
+      - backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/session.json
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    The new frozen payload annotation and test-only call-site casts pass the scoped 14-file MyPy,
-    Ruff and 61-case pure resolver checks. Exact-source CI39967811561 for the current parent
-    1a407d6c is still in progress; preserve it to terminal before publishing this new source. No
-    database/application/browser/native fixture is authorized by this changeset. Full local and
-    combined runtime gates, exact-pinned native qualification and the remaining roadmap stay open.
+    Published source 3ac7b0ed73d169746c536f3f861c6a4561ca9d27 has exact-source run 39970578484:
+    backend and frontend passed, but Branch-declared failed on three test-fixture argument typing
+    errors after ResolvedStudyArtifactOutput.payload became FrozenStudyArtifactPayload; E2E was
+    still in progress at the last check and EIG is skipped by feature policy. Narrow test-only casts
+    at the three caller seams now pass focused MyPy for both affected files and Ruff. Preserve the
+    red receipt; no database/application/browser/native fixture was started by this repair.
   next_action: >-
-    Keep this coherent changeset in progress until CI39967811561 on parent1a407d6c is terminal;
-    then validate workstream/diff, commit and publish the seven source/test files plus their exact
-    evidence once, and inspect the resulting exact-source CI. Do not run broader coverage, full
-    MyPy, database, Compose, browser, native or external/provider operations without an assigned
-    slot. Preserve all original roadmap criteria and disabled-operation boundaries.
+    Let exact run 39970578484 reach terminal without a canceling push, then publish this bounded
+    test-only typing correction with accurate workstream evidence once and inspect the new
+    exact-source CI. Do not run broader coverage, full MyPy, database, Compose, browser, native or
+    external/provider operations without an assigned slot. Preserve all original roadmap criteria
+    and disabled-operation boundaries.

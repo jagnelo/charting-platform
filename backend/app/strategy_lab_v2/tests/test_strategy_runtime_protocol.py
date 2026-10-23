@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from io import BytesIO
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -33,6 +33,7 @@ from app.strategy_lab_v2.sdk import (
     TargetPositionIntent,
     TimeInForce,
 )
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
 from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from strategy_runtime import (
     BATCH_WIRE_PROTOCOL_VERSION,
@@ -246,7 +247,9 @@ def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift(tmp_p
         base_manifest,
         strategy=replace(base_manifest.strategy, selected_study_artifact=reference),
     )
-    output = ResolvedStudyArtifactOutput(reference, output_payload)
+    output = ResolvedStudyArtifactOutput(
+        reference, cast(FrozenStudyArtifactPayload, output_payload)
+    )
     context = replace(_context(), study_artifacts={reference.artifact_name: output})
     encoded = serialize_invocation(
         source=source,
@@ -337,7 +340,8 @@ def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift(tmp_p
         context,
         study_artifacts={
             reference.artifact_name: ResolvedStudyArtifactOutput(
-                replace(reference, artifact_id=reference.artifact_id + 1), output_payload
+                replace(reference, artifact_id=reference.artifact_id + 1),
+                cast(FrozenStudyArtifactPayload, output_payload),
             )
         },
     )

@@ -18159,3 +18159,26 @@ passed, 110 skipped` in 20.1 minutes; Exhaustive Integration Gate was skipped by
 policy. This closes only the bounded event-risk-free builder changeset. Full local/combined runtime
 gates and all 18 roadmap criteria remain open; the next roadmap item is the existing irregular
 timestamped-equity elapsed-time metric contract, preserving v17 cadence semantics.
+
+## Frozen Study payload typing CI caller correction — 2026-10-23 15:02 UTC
+
+Published source `3ac7b0ed73d169746c536f3f861c6a4561ca9d27` has exact push run `39970578484`.
+Backend and Frontend passed; Branch-declared failed only on three MyPy fixture-boundary errors:
+`test_strategy_runtime_protocol.py` at the selected-output constructors and
+`test_nautilus_strategy_bridge.py` at its selected-output constructor. The payload field is now
+the recursive `FrozenStudyArtifactPayload`; these generic fixture dictionaries needed explicit
+test-only casts. Added those casts using the existing payload alias, without changing production
+types, runtime data, assertions, or resolver behavior. Focused MyPy over both affected files now
+passes; Ruff and `git diff --check` pass. No pytest, database, application, browser, native,
+provider or quota operation ran for this correction.
+
+At the last exact run check, E2E Playwright was still in progress and the feature-branch Exhaustive
+Integration Gate was skipped by policy. Preserve run `39970578484` through its terminal E2E result
+before publishing the correction so the in-flight job is not canceled. The f04-only first-human
+read-only recipe is already durable earlier in this handoff at
+`ops/workstreams/feat-strategy-lab-v2/handoff.md:17966`; it reads owner 1's persisted asset/run,
+constructs the reference only in-process from persisted immutable IDs and digests, and invokes
+f04's read-only resolver. There is no public f04 reference-construction endpoint; the later
+branch-only API must not be used as accepted-release evidence. The target recipe is not an API
+write, a new Study run, or native execution proof. Full local/combined gates and all 18 roadmap
+criteria remain open.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import cast
 
 import pytest
 
@@ -30,6 +31,7 @@ from app.strategy_lab_v2.sdk import (
     StrategyContext,
     TargetPositionIntent,
 )
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
 from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from strategy_runtime import InvocationContextStreamBinding
 from strategy_runtime.runner import InvocationStatus, StrategyInvocationResult
@@ -477,7 +479,9 @@ def test_native_bridge_invokes_component_contexts_by_portfolio_priority(
         dataset_manifest_digest=content_digest("study-dataset"),
         artifact_content_digest=content_digest(study_payload),
     )
-    study_output = ResolvedStudyArtifactOutput(study_reference, study_payload)
+    study_output = ResolvedStudyArtifactOutput(
+        study_reference, cast(FrozenStudyArtifactPayload, study_payload)
+    )
 
     def component_manifest(
         component_id: str,
