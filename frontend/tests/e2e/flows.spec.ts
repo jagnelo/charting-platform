@@ -2513,12 +2513,17 @@ test.describe('TC2000 workstation', () => {
   test('F8m-chart-panels — eight symbol groups, yellow wildcard, and grey isolation', async ({ page, browserDiagnostics }) => {
     await page.goto('/legacy/chart/SPY')
     await expect(page.locator('.chart-view')).toBeVisible()
+    // Initial instrument hydration opens the right rail and changes the grid.
+    // Establish the intended layout before the first ordinary picker click.
+    await expect(page.getByRole('button', { name: 'Hide indicator panel', exact: true })).toHaveAttribute('aria-expanded', 'true')
     await page.getByRole('button', { name: 'Two columns', exact: true }).click()
 
     const panels = page.locator('.chart-panel')
     await expect(panels).toHaveCount(2)
     const source = panels.nth(0)
     const wildcard = panels.nth(1)
+    await expect(source.locator('.psym')).toHaveText('SPY')
+    await expect(wildcard.locator('.psym')).toHaveText('SPY')
     const sourceLink = source.getByRole('button', { name: /Symbol link group/ })
     const wildcardLink = wildcard.getByRole('button', { name: /Symbol link group/ })
 
