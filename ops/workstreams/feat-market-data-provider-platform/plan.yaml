@@ -1,4 +1,20 @@
 schema: 4
+# 2026-10-23 follow-up: exact Actions run 39918492546 on
+# 34c954f7d5dfcfa7c887ef3b5a39d3baea749447 was terminal red in Backend unit
+# tests because the Strategy migration compatibility test hard-coded the old
+# global head `slv2_0011`. The additive Provider successor is now the sole
+# head; the Strategy merge parent/shared ancestry is unchanged. Updated only
+# that compatibility assertion to require one head and evaluate ancestry from
+# the current head. Focused compatibility + historical SQLite migration tests
+# pass 20/20. Follow-up test-only commit
+# `33e62f1c88cb7a51e3b58d7591dcb315358c069c` is pushed and synchronized;
+# exact Actions run `39919722629` is terminal green (Backend, Frontend Unit,
+# Branch-declared, and Playwright; 5,201 unit / 498 integration tests, 84%
+# combined coverage, 191 E2E passed / 110 skipped; Exhaustive is skipped by
+# feature-branch policy). The separate local PostgreSQL regression execution
+# is recorded from the coordinator's isolated repair fixture; no duplicate
+# fixture or target DB patch was made here. No provider/issuer/SEC transport,
+# quota, or retained resource was touched. Checkpoint remains in_progress.
 # 2026-10-23 07:26Z priority deployment-schema repair: the accepted f04 cold
 # chart warm-up exposed that `market_series_default` lacks the two columns
 # required by `TimestampMixin`. Additive successor revision

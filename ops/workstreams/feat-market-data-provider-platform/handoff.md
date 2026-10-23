@@ -30144,3 +30144,46 @@ and page-cost estimators; `backend/app/routers/instruments.py` and
 `backend/app/routers/ohlcv.py` ordinary request paths; and
 `docs/provider-live-validation.md` (2026-10-04 Massive audit and recorded
 single-user decision).
+
+## 2026-10-23 — CI compatibility follow-up
+
+Exact Actions run `39918492546` on source
+`34c954f7d5dfcfa7c887ef3b5a39d3baea749447` is preserved as terminal red. Its
+Backend unit stage had one failure in
+`test_strategy_chain_has_unique_ids_and_preserves_shared_base`: it asserted
+the global Alembic head must remain `slv2_0011`, which is no longer true after
+the additive Provider timestamp revision. The Strategy merge parent remains
+`("e9c23a7b1d40", "slv2_0010")`, and the unique Strategy namespace/shared
+ancestry assertions remain. Only the test now requires exactly one global
+head and walks ancestry from that head. Compatibility plus existing SQLite
+migration tests pass 20/20. The PostgreSQL fresh/upgrade preservation test is
+still not executed pending the coordinator's bounded Docker grant; collection
+and static SQL rendering are not substitutes. No historical migration,
+production runtime, target database, provider/issuer/SEC transport, quota, or
+retained resource was changed. Branch remains `in_progress`; exact follow-up
+test-only commit `33e62f1c88cb7a51e3b58d7591dcb315358c069c` is pushed and
+matches origin. Exact Actions run `39919722629` is queued; its terminal result
+is not yet known.
+
+The broader active roadmap's SEC scan durability regression module was also
+rerun at `33e62f1c88cb7a51e3b58d7591dcb315358c069c`: all 28 tests passed,
+including worker restart/cursor persistence coverage. This is deterministic
+no-network evidence only; it does not change the separate migration Docker
+gate or mark the roadmap complete.
+
+## 2026-10-23 08:25Z — exact-source CI terminal receipt
+
+Exact synchronized Provider HEAD `33e62f1c88cb7a51e3b58d7591dcb315358c069c`
+matches origin. Actions run `39919722629` attempt 1 is terminal green:
+Backend, Frontend Unit, Branch-declared, and Playwright succeeded; Playwright
+reported 191 passed and 110 skipped. Exhaustive was skipped under normal
+feature-branch policy. Backend reported 5,201 unit tests (1 skipped), 498
+integration tests (2 skipped), and 84% combined coverage above the 75%
+threshold. The run includes the SEC CIK result/failure plus resume-cursor
+restart regression, and the separate Strategy migration-head compatibility
+follow-up. The PostgreSQL timestamp-repair regression was executed by the
+coordinator's isolated green-f04-based repair validation, not by a duplicate
+fixture in this Provider worktree. No provider/issuer/SEC HTTP, quota action,
+target database change, retained-resource cleanup, sibling/staging/master
+write, or deployment occurred. Broader Provider roadmap remains open and
+status remains `in_progress`.
