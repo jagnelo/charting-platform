@@ -56,11 +56,16 @@ describe('ResearchResultsTool', () => {
   })
 
   it('links completed Study outputs to the read-only v2 inspector with their persisted IDs', async () => {
-    apiGet.mockResolvedValue([{ id: 29, status: 'completed', output_contract: 'study', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 73, name: 'score', artifact_type: 'scalar', payload: { value: 6 } }] }])
+    apiGet.mockResolvedValue([{ id: 29, status: 'completed', output_contract: 'study', reproducibility_hash: 'abc', diagnostics: [], artifacts: [
+      { id: 73, name: 'score', artifact_type: 'scalar', payload: { type: 'scalar', value: 6 } },
+      { id: 74, name: 'unsupported', artifact_type: 'custom', payload: { type: 'custom', value: 6 } },
+      { id: 75, name: 'mismatched', artifact_type: 'scalar', payload: { type: 'series', value: 6 } },
+    ] }])
     const wrapper = mountTool()
     await flushPromises()
 
     const link = wrapper.get('a[aria-label="Inspect score immutable Study lineage in Strategy Lab v2"]')
+    expect(wrapper.findAll('a[aria-label*="immutable Study lineage"]')).toHaveLength(1)
     expect(JSON.parse(link.attributes('data-to')!)).toEqual({
       path: '/legacy/strategy-lab-v2',
       query: { researchRunId: '29', artifactId: '73' },

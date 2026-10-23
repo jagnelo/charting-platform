@@ -18550,3 +18550,32 @@ with one worker. One intermediate new route-reuse assertion initially failed bec
 helper did not await the watcher-plus-GET sequence; the unchanged application assertions then passed
 with the test waiting for the complete async turn, and the final whole-module run passed. No
 resolver denial, product guard, or acceptance assertion was weakened.
+
+### Study-link producer-contract gate — 2026-10-23 18:03 UTC
+
+The visible Research-result link now appears only for a completed `study`-contract run with positive
+persisted IDs, one of the 11 exact artifact types accepted by the current TC Study payload contract,
+and a payload `type` discriminator equal to the artifact's declared type. This avoids presenting
+unsupported or internally inconsistent legacy rows as inspectable immutable inputs; the backend
+resolver remains authoritative for owner, run state, lineage and digest checks. A focused regression
+includes a valid scalar, an unsupported type and a mismatched discriminator, and confirms only the
+valid item links. The two affected Vitest modules pass `72/72` in `3.54s` with one worker. This is
+frontend-only evidence, not a replacement for the branch-local backend prerequisite commits
+`344f87f835f392bd103c20db2044aa0de72148df` and `068d03f1ff55f5b1701d071980b4405d83e65cc6`,
+view/router/App navigation commit `1451b9d0f2f4a468961319eda337f5dcc1e06aa7`, typed preview
+commit `4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5`, exact-tip CI or full local application profile.
+None of those prerequisites is in accepted/deployed `a6b9`; do not deploy the frontend separately.
+No target, provider, database, fixture, browser, native, forward, broker or capital operation ran.
+
+### Parent exact-CI terminal correction — 2026-10-23 18:05 UTC
+
+Root's authenticated Actions read confirms exact run `39992653172` is terminal green on the prior
+published source `64d3b12e11118593535b02e8e8a06dd1f263ffdf`: Backend `120548052606`, Frontend
+`120548052883`, Branch-declared `120558991743`, and E2E `120558991873` all succeeded; the
+feature-branch Exhaustive Integration Gate was skipped by policy. This supersedes earlier
+observations that the run was in progress or unverified; those observations remain historical and
+are not test failures. The green parent does not cover the later local Research date-bound/canonical
+venue commits, inspector/pin-preview commits, Research-result navigation, or the current 11-type
+link gate. Publish the coherent accumulated branch source once and inspect its exact-tip CI; do not
+rerun or cancel the parent run. Full local `full_stack_browser`, combined PostgreSQL/worker recovery,
+strict-visual, exact-pinned native qualification, and the original 18-criterion roadmap remain open.

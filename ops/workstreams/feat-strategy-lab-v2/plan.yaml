@@ -696,16 +696,18 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: strategy-v2-study-output-inspector-link-v1
+  current_phase: strategy-v2-study-output-inspector-link-v2
   active_changeset:
-    id: strategy-v2-study-output-inspector-link-v1
+    id: strategy-v2-study-output-inspector-link-v2
     scope: >-
       Complete the normal-user read-only path from a completed immutable Study output in Research
       results to the Strategy Lab v2 inspector using persisted run/artifact IDs. Validate route
       query IDs and call only the authenticated owner-scoped resolver GET. Preserve fail-closed
-      behavior for absent, malformed, foreign, nonterminal, ambiguous, or drifted records. The
-      branch-local UI depends on Strategy-owned backend prerequisites not present in deployed a6b9;
-      never deploy the frontend alone or infer native execution from generic Study output.
+      behavior for absent, malformed, foreign, nonterminal, ambiguous, or drifted records. Offer the
+      link only for the exact TC-supported 11 Study artifact types with matching payload type
+      discriminators. The branch-local UI depends on Strategy-owned backend prerequisites not
+      present in deployed a6b9; never deploy the frontend alone or infer native execution from
+      generic Study output.
     owned_paths:
       - frontend/src/components/workstation/ResearchResultsTool.vue
       - frontend/src/views/StrategyLabV2View.vue
@@ -717,21 +719,25 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Accepted/deployed a6b9 lacks the Study-reference GET/resolver and V2 view/App navigation.
-    Backend prerequisites are branch-only commits 344f87f83 and 068d03f1f; UI route/App is
-    1451b9d0f and pin preview is 4a2c6058d. Exact parent CI 39992653172 remains in progress on
-    64d3b12e and covers none of these or the new link. Accepted-target SPY/RSP canonical listing is
-    uninspected; date-only run3 remains deferred, exact-bound run4 succeeded. Full exact-tip CI,
-    local backend/combined PostgreSQL and worker recovery, full-stack/browser/strict-visual gates,
-    and the full roadmap remain open.
-  updated_at: "2026-10-23T17:56:20Z"
+    Accepted/deployed a6b9 lacks the Study-reference API and V2 view/App navigation. Exact
+    Strategy-branch prerequisites are 344f87f835f392bd103c20db2044aa0de72148df (persisted Study
+    payload validation), 068d03f1ff55f5b1701d071980b4405d83e65cc6 (typed resolver, API adapter and
+    authenticated GET), 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 (view, route and App navigation),
+    and 4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5 (typed pin preview); none is in a6b9. Exact run
+    39992653172 is terminal green on published 64d3b12e (Backend, Frontend,
+    Branch-declared and E2E jobs passed; feature-branch EIG was skipped by policy). Accepted-target
+    SPY/RSP canonical listing remains uninspected; date-only run3 remains deferred, exact-bound
+    run4 succeeded. Full
+    exact-tip CI, local backend/combined PostgreSQL and worker recovery, full-stack/browser/strict-
+    visual gates, and the full roadmap remain open.
+  updated_at: "2026-10-23T18:05:30Z"
   next_action: >-
-    Preserve exact CI 39992653172 until terminal; do not cancel or replay it. Then publish the
-    accumulated branch source and coherent workstream records once and inspect exact-tip CI.
-    Continue selected-Study runtime assembly and typed payload/worker restart verification against
-    the accepted TC producer contract. Obtain Root-assigned backend/combined-DB/runtime/browser/
-    native slots before heavy gates; keep all provider, quota, paid/trial, broker/capital, unknown,
-    and unsafe operation boundaries disabled.
+    Parent run 39992653172 is green only for 64d3b12e and does not cover later local Research/UI
+    source. Publish the accumulated branch tip and coherent workstream records once, then inspect
+    its exact-source CI. Continue selected-Study runtime assembly and typed payload/worker restart
+    verification against accepted TC contracts. Obtain Root-assigned backend/combined-DB/runtime/
+    browser/native slots before heavy gates; keep provider, quota, paid/trial, broker/capital,
+    unknown, and unsafe operation boundaries disabled.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1616,17 +1622,18 @@ roadmap_progress_history:
     - strategy-lab-v2-postgres-backed-curve-download-v1
     - strategy-lab-v2-frozen-study-payload-typing-v1
   total: 18
-  current_phase: strategy-v2-study-output-inspector-link-v1
+  current_phase: strategy-v2-study-output-inspector-link-v2
   active_changeset:
-    id: strategy-v2-study-output-inspector-link-v1
+    id: strategy-v2-study-output-inspector-link-v2
     scope: >-
       Complete the normal-user read-only path from a completed immutable Study output in Research
       results to the Strategy Lab v2 inspector using persisted run/artifact IDs. Keep the route
       query validated, invoke only the authenticated owner-scoped resolver GET, and preserve
       fail-closed behavior for absent, malformed, foreign, nonterminal, ambiguous, or drifted
-      records. This local UI depends on Strategy-owned backend prerequisites not present in
-      deployed a6b9; never deploy the frontend alone or infer native execution from generic Study
-      output.
+      records. Offer the link only for the exact TC-supported 11 Study artifact types with matching
+      payload type discriminators. This local UI depends on Strategy-owned backend prerequisites not
+      present in deployed a6b9; never deploy the frontend alone or infer native execution from
+      generic Study output.
     owned_paths:
       - frontend/src/components/workstation/ResearchResultsTool.vue
       - frontend/src/views/StrategyLabV2View.vue
@@ -1636,29 +1643,25 @@ roadmap_progress_history:
       - ops/workstreams/feat-strategy-lab-v2/plan.yaml
       - ops/workstreams/feat-strategy-lab-v2/session.json
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
-    source_commit: 5558acd1698a4cff31b1ac991e6a53d9bbd58414
+    source_commit: f1c453270 (base for this focused follow-up; current source change remains local)
     validation: >-
-      ResearchResultsTool and StrategyLabV2View module tests passed 72/72 in a single-worker
-      Vitest run. Assertions cover the visible Study-output link and run/artifact query IDs, valid
-      query hydration and in-place route reuse into the existing GET resolver, malformed/missing/
-      repeated ID denial, and no POST/dispatch behavior. Exact parent CI 39992653172 remains in
-      progress on 64d3b12e; these unpushed local changes are not covered. No full frontend
-      typecheck, backend, DB, browser, native, provider, target, or fixture gate is claimed.
+      ResearchResultsTool and StrategyLabV2View pass 72/72 in 3.54s with one worker. The Study
+      link requires one of the accepted 11 output types and a matching payload discriminator; tests
+      include unsupported and mismatched negative cases. Parent exact CI 39992653172 is green only
+      for published 64d3b12e; this local follow-up is not covered. No full frontend typecheck,
+      backend, DB, browser, native, provider, target, or fixture gate is claimed.
     status: in_progress
   current_blocker: >-
-    Accepted/deployed a6b9 lacks the Study-reference GET, resolver, V2 view, and its App
-    navigation. Branch-only backend prerequisites are 344f87f83 and 068d03f1f; the view/route/App
-    navigation are 1451b9d0f and typed pin preview is 4a2c6058d. Exact CI 39992653172 remains in
-    progress on published 64d3b12e and covers none of those local commits or the current link.
-    Preserve it. Accepted-target SPY/RSP canonical listing remains uninspected; date-only run3
-    remains deferred and exact-bound run4 is the verified successful historical Study. Full
-    exact-tip CI, local backend/combined PostgreSQL and worker recovery, full-stack/browser/strict-
-    visual gates, and the remaining 18-criterion roadmap are open.
+    Accepted/deployed a6b9 lacks the Study-reference API and V2 view/App navigation. Exact
+    Strategy-branch prerequisites are 344f87f835f392bd103c20db2044aa0de72148df (persisted Study
+    payload validation), 068d03f1ff55f5b1701d071980b4405d83e65cc6 (typed resolver, API adapter,
+    authenticated GET), 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 (view, route and App navigation),
+    and 4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5 (typed pin preview). None is in a6b9. Parent
+    run 39992653172 is terminal green on 64d3b12e only; it does not validate later local changes.
+    Accepted-target SPY/RSP listing and full local/combined/browser gates remain open.
   next_action: >-
-    Preserve exact CI 39992653172 until terminal; do not cancel or replay it. Then publish the
-    accumulated branch source and coherent workstream records once and inspect exact-tip CI.
-    Continue the full-roadmap selected-Study runtime assembly and typed payload/worker restart
-    verification against the accepted TC producer contract. Obtain Root-assigned backend/combined-
-    DB/runtime/browser/native slots before heavy gates; preserve all provider, quota, paid/trial,
-    broker/capital, unknown and unsafe denials and the unresolved accepted-target SPY/RSP venue
-    limitation.
+    Publish the accumulated branch source and coherent records once, inspect its exact-tip CI, then
+    continue selected-Study runtime assembly and typed payload/worker restart verification against
+    the accepted TC producer contract. Obtain Root-assigned backend/combined-DB/runtime/browser/
+    native slots before heavy gates; keep provider, quota, paid/trial, broker/capital, unknown, and
+    unsafe operation boundaries disabled.

@@ -36,9 +36,7 @@
   },
   "dirty_paths": [
     "frontend/src/components/workstation/ResearchResultsTool.vue",
-    "frontend/src/views/StrategyLabV2View.vue",
     "frontend/tests/unit/components/test_research_results_tool.test.ts",
-    "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -76,15 +74,15 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "5558acd1698a4cff31b1ac991e6a53d9bbd58414",
-  "implementation_sha": "5558acd1698a4cff31b1ac991e6a53d9bbd58414",
-  "last_checkpoint": "2026-10-23T17:56:20Z",
+  "head": "f1c453270168260ba7c845bb81627e1c7baca8a0",
+  "implementation_sha": "f1c453270168260ba7c845bb81627e1c7baca8a0",
+  "last_checkpoint": "2026-10-23T18:05:30Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Preserve exact CI 39992653172 until terminal; do not cancel or replay it. Then publish the accumulated branch source and coherent workstream records once, inspect exact-tip CI, and continue the full-roadmap selected-Study runtime assembly and typed payload/worker restart verification against accepted TC producer contracts. Obtain Root-assigned backend/combined-DB/runtime/browser/native slots before heavy gates. Keep the missing a6b9 Study-reference API/UI dependency, accepted-target SPY/RSP listing uncertainty, all historical failures, and all disabled provider/quota/paid/trial/broker/capital boundaries explicit.",
-  "plan_hash": "1d92b6d5601d433e3d3760d5cec9db2a3897894c92bf615df6d2dad164d37a42",
+  "next_action": "Parent exact CI 39992653172 is terminal green only on published 64d3b12e. Finish the current supported-Study-link test and records, publish the accumulated branch tip once, then inspect its exact CI. Continue selected-Study runtime assembly and typed payload/worker restart verification. Preserve all 18 criteria, the exact backend/API and view/router/App prerequisite commits absent from a6b9, accepted-target SPY/RSP venue uncertainty, historical failures, and all disabled provider/quota/paid/trial/broker/capital boundaries. Heavy local gates remain coordinator-assigned.",
+  "plan_hash": "ec917b48055c653a245ed9f4b2b0e854dfb4b0d8bbdd6a9cad41abc831221c84",
   "parent_branch": "staging",
-  "plan_hash": "1d92b6d5601d433e3d3760d5cec9db2a3897894c92bf615df6d2dad164d37a42",
+  "plan_hash": "ec917b48055c653a245ed9f4b2b0e854dfb4b0d8bbdd6a9cad41abc831221c84",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -114,11 +112,11 @@
       "SLICP4",
       "SLICP5"
     ],
-    "current_blocker": "Accepted/deployed a6b9 lacks the Study-reference GET/resolver and V2 view/App navigation. Branch-only prerequisites are backend commits 344f87f83 and 068d03f1f plus frontend route/App commit 1451b9d0f and pin-preview commit 4a2c6058d; the current parent CI 39992653172 covers none of them or this new link. Accepted-target SPY/RSP canonical listing is uninspected, run3 remains deferred and exact-bound run4 is successful. Full exact-tip CI, local backend/combined PostgreSQL and worker recovery, full-stack/browser/strict-visual gates, and the 18-criterion roadmap remain open.",
-    "current_phase": "strategy-v2-study-output-inspector-link-v1",
-    "next_action": "Preserve exact run 39992653172 until terminal; then publish accumulated branch source and coherent workstream records once and inspect exact-tip CI. Continue selected-Study runtime assembly and typed payload/worker restart verification against accepted TC contracts. No target/provider/fixture/native access; obtain assigned heavy resource slots and preserve all disabled-operation boundaries.",
+    "current_blocker": "Accepted/deployed a6b9 lacks the Study-reference API and V2 view/App navigation. Strategy-branch prerequisites are 344f87f835f392bd103c20db2044aa0de72148df (persisted payload validation), 068d03f1ff55f5b1701d071980b4405d83e65cc6 (typed resolver/API adapter/authenticated GET), 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 (V2 view/router/App navigation), and 4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5 (typed pin preview); none is in a6b9. Parent run39992653172 is green only on64d3b12e and does not cover local commits. Accepted-target SPY/RSP listing and all full local/combined/browser gates remain open.",
+    "current_phase": "strategy-v2-study-output-inspector-link-v2",
+    "next_action": "Publish the accumulated branch source and coherent records once, inspect exact-tip CI, then continue selected-Study runtime assembly and typed payload/worker restart verification against accepted TC contracts. No target/provider/fixture/native access; obtain assigned heavy resource slots and preserve all disabled-operation boundaries.",
     "total": 5,
-    "updated_at": "2026-10-23T17:56:20Z"
+    "updated_at": "2026-10-23T18:05:30Z"
   },
   "remote": "64d3b12e11118593535b02e8e8a06dd1f263ffdf",
   "remote_sha": "64d3b12e11118593535b02e8e8a06dd1f263ffdf",

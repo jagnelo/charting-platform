@@ -227,6 +227,9 @@ interface ResearchRunSummary {
   artifacts: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }>
 }
 type ResearchArtifact = ResearchRunSummary['artifacts'][number]
+const SUPPORTED_STUDY_ARTIFACT_TYPES = new Set([
+  'scalar', 'series', 'boolean', 'table', 'bar', 'histogram', 'range', 'scatter', 'heatmap', 'dashboard', 'events',
+])
 interface ComparisonArtifactPair {
   key: string
   name: string
@@ -462,6 +465,8 @@ function canInspectStudyArtifact(run: ResearchRunSummary | null, artifact: Resea
     && run.id > 0
     && Number.isSafeInteger(artifact.id)
     && artifact.id > 0
+    && SUPPORTED_STUDY_ARTIFACT_TYPES.has(artifact.artifact_type)
+    && artifact.payload?.type === artifact.artifact_type
 }
 function studyArtifactInspectorLocation(run: ResearchRunSummary, artifact: ResearchArtifact) {
   return {
