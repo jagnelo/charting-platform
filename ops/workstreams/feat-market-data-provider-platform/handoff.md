@@ -1,5 +1,104 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 13:20Z — complete NMS snapshot-date regression module
+
+- The complete `backend/tests/unit/services/test_market_universe.py` module
+  passes 51/51 in 6.94 seconds on a working test candidate based on exact HEAD
+  `3283d668b27fd5b714369d79cb9db79db86398a7`. The added negative case proves
+  otherwise-complete CTA and Nasdaq scopes with different source dates do not
+  form an NMS absence union; the same-date positive remains passing. All
+  provider execution is mocked; live routing and monitors are disabled.
+- Test-only diff SHA-256:
+  `01cc9c8143c7329b9008ce54d8970982e82c2c712ed7033339c780e92585b483`.
+  Production files and policies are unchanged. No provider/issuer/SEC HTTP,
+  quota action, retained service/data change, or staging/sibling/deployment
+  write occurred. Candidate hosted CI and the PostgreSQL integration fixture
+  remain open; full roadmap and local F8m/full profile remain in_progress.
+
+## 2026-10-23 13:20Z — NMS union rejects mixed snapshot dates
+
+- Expanded the deterministic same-cycle NMS union regression with an otherwise
+  complete CTA snapshot one day older than Nasdaq Tape C/ETF files. The
+  same-date positive remains asserted; the mismatched-date case confirms no
+  `US_NMS` absence union is recorded and prior listing observation state remains
+  unchanged. Both parameter cases pass 2/2 on the working test candidate.
+- Candidate is based on exact HEAD `3283d668b27fd5b714369d79cb9db79db86398a7`;
+  only `backend/tests/unit/services/test_market_universe.py` changed, with diff
+  SHA-256 `01cc9c8143c7329b9008ce54d8970982e82c2c712ed7033339c780e92585b483`.
+  Ruff check/format and `git diff --check` pass. No production behavior changed.
+  Exact candidate CI and the PostgreSQL integration profile remain open; no
+  provider HTTP/quota, retained resource/data, staging/sibling/deployment
+  changes occurred.
+
+## 2026-10-23 13:17Z — full market-universe unit module
+
+- The complete `backend/tests/unit/services/test_market_universe.py` module
+  passed 50/50 in 6.91 seconds on exact source `3283d668b27fd5b714369d79cb9db79db86398a7`.
+  Provider execution was mocked; live/provider routing and availability
+  monitors were disabled. This includes the same-cycle NMS union, required
+  Tape C source, and distinct-complete-session lifecycle regressions.
+- The separate PostgreSQL integration selector remains unexecuted because its
+  Testcontainers setup could not access the Docker socket (EPERM); the earlier
+  setup failure is preserved in `validation.jsonl`. No container was created.
+  No source, provider/issuer/SEC HTTP, quota, retained service/data, or
+  staging/sibling/deployment state changed. Full roadmap and local F8m/full
+  profile remain open.
+
+## 2026-10-23 13:16Z — current-source NMS unit regressions; integration fixture unavailable
+
+- Three deterministic SQLite/unit regressions passed on exact source
+  `3283d668b27fd5b714369d79cb9db79db86398a7`: Tape C requires the
+  `nasdaqlisted` scope, NMS absence requires same-cycle CTA/Nasdaq equity/ETF
+  scopes, and deactivation requires three distinct complete snapshot dates.
+  Provider execution was mocked.
+- The paired PostgreSQL integration test did not execute: Testcontainers could
+  not read the Docker API version (`PermissionError: EPERM` on the Docker
+  socket). The setup failure is preserved in `validation.jsonl`; no container
+  was created or changed. This is not a product-test result.
+- No provider/issuer/SEC HTTP, quota action, source change, retained
+  service/data change, or staging/sibling/deployment write occurred. Full
+  roadmap and the required local F8m/full profile remain open.
+
+## 2026-10-23 13:07Z — full SEC scan unit module verified on current source
+
+- The complete `backend/tests/unit/services/test_market_event_edgar_scan.py`
+  module passed 31/31 on exact synchronized source
+  `3283d668b27fd5b714369d79cb9db79db86398a7`. This includes per-CIK
+  result/cursor commits, fresh-session restart and no-replay, failed-CIK retry,
+  cursor-commit rollback, SEC directory retry/materialization, and source-payload
+  integrity cases. Live/provider execution and routing were disabled; this
+  used unit-test database fixtures only. No Docker, provider/issuer/SEC HTTP,
+  quota operation, retained-resource/data change, or staging/sibling/deployment
+  write occurred. Full roadmap and the required local `full_stack_browser` /
+  F8m profile remain open.
+
+## 2026-10-23 12:56Z — exact-source CI terminal green; local profile remains open
+
+- Exact pushed source `3283d668b27fd5b714369d79cb9db79db86398a7` passed Actions
+  run `39952646134`, attempt 1. Backend Tests, Frontend Unit Tests,
+  Branch-declared Tests, and Playwright E2E completed successfully; the
+  Exhaustive Integration Gate was skipped under normal feature-branch policy.
+  Playwright's test and teardown steps both completed successfully. The job
+  interface did not expose a test-count log/artifact, so no case count is
+  asserted here.
+- The SEC issuer-universe per-CIK result/failure-plus-resume-cursor restart
+  regressions are included in the successful Backend job. The full roadmap
+  remains `in_progress`; the required local full profile/F8m proof remains
+  open. The retained `c6e40c66` fixture is not suitable as-is: its app images
+  lack an exact source revision, its host relay binds all interfaces, and its
+  real quota/state paths are shared writable mounts. No local browser was
+  launched, no service/data/quota changed, and no provider/issuer/SEC request
+  or staging/sibling/deployment write occurred. Continue only after a safe
+  exact-source fixture slot is available; preserve all historical evidence.
+- 2026-10-23 13:02Z current-source SEC durability spot-check: six focused
+  no-network tests passed locally on `3283d668b27fd5b714369d79cb9db79db86398a7`,
+  covering per-CIK commit/restart, cursor persistence, rollback on cursor-commit
+  failure, durable failed-CIK retry without replay, runtime failure/restart,
+  and cursor recheck before advancing. No Docker, provider/issuer/SEC HTTP,
+  quota operation, or retained-resource/data change occurred. This confirms
+  the named SEC durability gap is closed on current source; full roadmap and
+  local `full_stack_browser`/F8m gates remain open.
+
 ## 2026-10-23 12:20Z — page-boundary conflict control
 
 - Extended the SEC/prelisting page-boundary regression to cover both outcomes:

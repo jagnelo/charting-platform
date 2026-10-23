@@ -6956,6 +6956,22 @@ progress:
   total: 7
   current_phase: exact_source_ci_green_full_profile_pending
   current_blocker: >-
+    CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
+    `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
+    `39952646134` is terminal green for Backend, Frontend Unit,
+    Branch-declared, and Playwright jobs (Exhaustive skipped by feature
+    policy). The complete SEC issuer-scan unit module passes 31/31 on this
+    source, including the focused no-network durability cases. The SEC per-CIK result/failure plus resume-cursor restart gap is
+    closed; full roadmap criteria remain open. Required local `full_stack_browser`
+    /F8m evidence is still pending: retained project `c6e40c66` has images
+    without exact source-revision labels, a host relay bound to all interfaces,
+    and backend/worker mounts of the real quota and FINRA state directories
+    read-write. E2E seed flags are true and the provider network is internally
+    denied, but those protections do not isolate quota state, auth/workspace
+    writes, or the host relay. No browser/profile, provider/issuer/SEC request,
+    quota operation, or retained-resource/data mutation was performed. No safe
+    current-source fixture slot is released; preserve all holds and wait for
+    coordinator release before the unchanged required profile.
     CURRENT STATUS — 2026-10-23 10:18Z: an uncommitted E2E Compose safety
     correction is based on synchronized source `ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7`.
     The read-only retained-stack inventory found only an old `c6e40c66` seeded
@@ -7223,21 +7239,19 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Finish the coherent loopback E2E port-containment candidate against base
-    `ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7`: validate workstream and exact
-    changed paths, publish once under Provider ownership, and observe exact
-    source CI without rerunning unchanged SEC tests. Preserve CI `39930261098`
-    as parent evidence, the SEC per-CIK transaction/restart proof, every prior
-    source-bound result, complete roadmap criteria, and holds. Do not start a
-    browser/Compose profile until the coordinator grants a slot and the exact
-    source-pinned isolated fixture is reviewed. On release, recheck source,
-    process/resource ownership and recipe; run the unchanged full profile with
-    pinned runtime, one worker, zero retries, unchanged references/masks/
-    tolerance, shared durable local quota coordination, isolated fixture state,
-    and provider egress denial. No provider/issuer/SEC HTTP, quota mutation,
-    paid/trial activation, retained service/data cleanup, sibling/staging/master
-    writes, deployment, or roadmap reduction. Keep status `in_progress` until
-    all required gates pass; do not claim `ready_for_human_review` early.
+    Preserve current exact-source evidence at `3283d668b27fd5b714369d79cb9db79db86398a7`
+    / Actions `39952646134` and the focused SEC restart/failure/rollback proof.
+    Continue the full Provider roadmap without changing operation holds. The
+    next required local gate is the unchanged `full_stack_browser` profile,
+    including F8m; do not reuse retained project `c6e40c66` because its relay,
+    shared writable quota/FINRA paths, and unpinned app images are unsuitable.
+    Wait for a coordinator-released safe current-source fixture slot, then
+    recheck ownership and run the approved unchanged profile. Until then, only
+    bounded Provider-owned no-network work is in scope. No provider/issuer/SEC
+    HTTP, quota mutation, retained-service/data cleanup, sibling/staging/master
+    writes, deployment, paid/trial activation, or roadmap reduction. Keep status
+    `in_progress` until all required gates pass; do not claim
+    `ready_for_human_review` early.
   historical_next_action_pre_20261017T1512Z: >-
     Reconcile exact green Actions run `39040380183` and preserve prior red
     `39037691098` in the packet, handoff, session and append-only journal. The

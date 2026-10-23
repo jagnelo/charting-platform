@@ -1294,10 +1294,14 @@ def test_nms_tape_c_scope_comes_from_nasdaqlisted_not_otherlisted():
 
 
 @pytest.mark.asyncio
-async def test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes(
-    db, instrument, monkeypatch
+@pytest.mark.parametrize(
+    ("cta_snapshot_date", "expected_union"),
+    [("2026-10-20", True), ("2026-10-19", False)],
+)
+async def test_nms_absence_union_requires_same_snapshot_date_for_cta_and_nasdaq_scopes(
+    db, instrument, monkeypatch, cta_snapshot_date, expected_union
 ):
-    """A real Nasdaq-listed file can satisfy Tape C without inventing a provider run."""
+    """Only same-date complete sources can count as one NMS absence snapshot."""
 
     from app.services import market_universe
 
@@ -1341,8 +1345,11 @@ async def test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes(
         "total": 1,
         "quotes": [{"symbol": "CTA1", "name": "CTA Example", "exchange": "XNYS"}],
         "complete": True,
-        "source_files": ["cta_symbol_file_index", "CTA.Symbol.File.20261020.csv"],
-        "source_snapshot_date": "2026-10-20",
+        "source_files": [
+            "cta_symbol_file_index",
+            f"CTA.Symbol.File.{cta_snapshot_date.replace('-', '')}.csv",
+        ],
+        "source_snapshot_date": cta_snapshot_date,
         "source_row_count": 1,
         "raw_source_payload": {"index_html": "index", "symbol_file_csv": "row"},
     }
@@ -1417,6 +1424,15 @@ async def test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes(
     )
     assert result["status"] == "complete"
     assert len(runs) == 3
+    assert all(run.status == "complete" for run in runs)
+    union_runs = [run for run in runs if run.provenance.get("nms_union_complete")]
+    if not expected_union:
+        assert union_runs == []
+        assert all(run.provenance["absence_scope"] is None for run in runs)
+        assert prior_cta_observation.present is True
+        assert prior_cta_observation.consecutive_missing == 0
+        return
+
     assert {(run.provenance["provider"], run.quote_type) for run in runs} == {
         ("cta_plan", "EQUITY"),
         ("nasdaq", "EQUITY"),
