@@ -1,5 +1,26 @@
 # feat/market-data-provider-platform
 
+## 2026-10-23 11:27Z — SEC integration fixture compatibility
+
+- Exact-source Actions run `39944289265` on `e815b37463ee6e4a4fe083e81450496ed0c1e5e6`
+  is terminal red. Backend unit stage passed 5,206 with 1 skipped; integration
+  passed 497 with 2 skipped and failed one test. Frontend Unit passed;
+  Branch-declared, Playwright and Exhaustive were skipped after Backend
+  failure. The integration failure was
+  `test_sec_issuer_report_materialization_uses_persisted_clean_rows_only`:
+  its positive `would_create` row's normalized `name_candidates` and `tickers`
+  were absent from retained `source_payload`, so the unchanged integrity guard
+  correctly returned 409.
+- The integration test fixture now includes both matching source fields. The
+  focused PostgreSQL integration regression passed 1/1 using its own disposable
+  Testcontainers database; the earlier full SEC scan plus affected router test
+  passed 32/32. Ruff check/format-check and `git diff --check` passed. No
+  production code/assertion changed; no provider,
+  issuer, or SEC HTTP, quota action, or retained service/data change occurred.
+- Status and full roadmap remain `in_progress`; no F8m browser or other heavy
+  profile ran. Next: validate/publish this narrow test-fixture correction and
+  require exact-source CI; preserve the red `39944289265` receipt unchanged.
+
 ## 2026-10-23 11:05Z — SEC source-payload fixture compatibility
 
 - Exact-source Actions run `39941869542` on `bd1581f3cfc85e6dfe030b3158c241494412fd13`

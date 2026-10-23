@@ -1,4 +1,9 @@
 schema: 4
+# 2026-10-23 exact CI 39944289265 on e815b374 was red in one SEC integration
+# positive fixture: normalized name_candidates/tickers were absent from its
+# source_payload, so the unchanged fail-closed guard correctly returned 409.
+# The fixture-only correction passed the isolated PostgreSQL integration test
+# 1/1; exact-source CI is pending. Roadmap/status/holds unchanged.
 # 2026-10-23 exact CI 39941869542 on bd1581f3 was red only in the admin
 # SEC-candidate positive fixture: its would_create normalized name_candidates
 # were absent from source_payload, so the unchanged fail-closed consistency
