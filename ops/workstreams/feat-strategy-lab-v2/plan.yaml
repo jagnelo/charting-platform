@@ -698,10 +698,14 @@ progress:
   total: 5
   current_phase: full-roadmap-forward-study-output-worker-revalidation-v1
   current_blocker: >-
-    The accepted four-feature baseline 0e342512e53ba2268425294d61c50e219eaafa4f remains adopted at
-    05acff1aa624b2f6ba9e1085a796e17b664ed87a; Root's later shared repair is not adopted absent its
-    exact accepted green release. On source 4dd82b25fb911ed8ea1abb615a71d7e45764dc70, hosted CI
-    39861566214 is terminal green, including the repaired persisted Study restart integration.
+    The accepted four-feature baseline 0e342512e53ba2268425294d61c50e219eaafa4f was previously
+    adopted at 05acff1aa624b2f6ba9e1085a796e17b664ed87a. The later shared Market Map/cleanup repair
+    is now accepted at exact synchronized staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+    (canonical receipt 20261023T000222Z-4687bd0cd21a.json; exact CI 39866387942, including the
+    Exhaustive gate). This Strategy branch merged only that release as
+    85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db, preserving both histories. Focused own-branch
+    regressions pass: 38 workflow tests and 61 Market Map unit tests. This merge is not yet
+    published or covered by exact-source branch CI.
     The owner-scoped typed Study payload now reaches backtest hydration and restart revalidation.
     This continuation also closes the forward-worker consumer gap: the authenticated forward plan
     resolver must revalidate a selected Study output, stores only the matching immutable output, and
@@ -724,12 +728,13 @@ progress:
     unknown/unsafe, broker/capital and deployment actions remain disabled or unauthorized; no
     provider, issuer or SEC HTTP was used.
   next_action: >-
-    Record the terminal exact CI39869340272 receipt for dff6afadc without replay. Then close the
-    prepared real-PG forward Study reconstruction test as its own validated source context; do not
-    launch a local database fixture without an assigned slot. Continue AC-WORKERS/AC-FORWARD and
-    AC-NAUTILUS using coordinator-assigned database/runtime/native slots. Preserve all
-    18 original criteria, exact-scope Nautilus authority, disabled provider/live/quota/paid/trial/
-    unknown/unsafe/broker/capital boundaries, and the accepted checkpoint history.
+    Publish the released-staging merge and owned evidence, inspect its exact-source CI once, then
+    continue the typed Study payload/runtime work. Keep the persisted forward Study PostgreSQL
+    regression in the required evidence set; no local DB slot is currently assigned. Do not launch
+    a full local profile, database fixture, browser, build, or native gate until Root assigns the
+    one-at-a-time host slot. Preserve all 18 original criteria, exact-scope Nautilus authority,
+    disabled provider/live/quota/paid/trial/unknown/unsafe/broker/capital boundaries, and the
+    accepted checkpoint history.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1662,11 +1667,14 @@ roadmap_progress_history:
     production quota behavior and performs no provider request. Publish this scoped test-fixture
     correction and require its exact-source CI to execute the new PostgreSQL regression. Persisted
     restart behavior and the complete combined runtime/browser/strict-visual/native gates remain open;
-    generic Study output is not native execution evidence.
+    generic Study output is not native execution evidence. The exact accepted staging repair
+    4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is now merged locally at
+    85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db. Its focused workflow and Market Map tests pass
+    38/38 and 61/61; exact-source CI on the merged Strategy branch awaits publication.
   next_action: >-
-    Perform final scoped workstream/diff checks and publish the deterministic quota-test fixture
-    correction with its exact prior-source red receipt. The resulting exact-source hosted CI must
-    execute the persisted forward Study PostgreSQL regression; collection is not runtime proof.
-    Continue the complete 18-criterion roadmap and all coordinator-assigned
-    database/runtime/browser/native gates. Keep provider/live/quota/paid/trial/
-    unknown/unsafe/broker/capital holds.
+    Publish the exact accepted staging reconciliation with its focused test evidence and complete
+    normal exact-source CI for the resulting Strategy tip. Then continue the typed Study payload/runtime
+    and forward-worker restart work; the persisted PostgreSQL regression remains required. Do not
+    launch a full local profile, database fixture, browser, build, or native gate until Root assigns
+    the one-at-a-time host slot. Continue the complete 18-criterion roadmap and all coordinator-assigned
+    database/runtime/browser/native gates. Keep provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.
