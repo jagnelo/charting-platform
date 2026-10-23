@@ -51,7 +51,12 @@ from app.strategy_lab_v2.commands import (
     ExecutionCommandKind,
     ExecutionCommandResolution,
 )
-from app.strategy_lab_v2.contracts import ArtifactManifest, CarryInMode, ForwardState
+from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    CarryInMode,
+    ForwardState,
+    SelectedStudyArtifactReference,
+)
 from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
 from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
 from app.strategy_lab_v2.forward_account import ForwardAccountState
@@ -167,6 +172,16 @@ class StrategyLabApiAdapter(Protocol):
         resource_type: ApiResourceType,
         resource_id: str,
     ) -> Awaitable[ResourceDocument | None] | ResourceDocument | None: ...
+
+    def resolve_study_artifact_reference(
+        self,
+        *,
+        principal: Any,
+        research_run_id: int,
+        artifact_id: int,
+    ) -> (
+        Awaitable[SelectedStudyArtifactReference | None] | SelectedStudyArtifactReference | None
+    ): ...
 
     def create_resource(
         self,
@@ -2318,6 +2333,86 @@ def create_strategy_lab_router(
                 _api_error(
                     ApiErrorCode.INTERNAL_ERROR,
                     "Strategy Lab v2 resource read failed",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    retryable=True,
+                )
+            )
+
+    @router.get("/study-artifact-references/{research_run_id}/{artifact_id}")
+    async def get_study_artifact_reference(
+        research_run_id: int,
+        artifact_id: int,
+        request: Request,
+        adapter: StrategyLabApiAdapter = Depends(adapter_dependency),
+        principal: Any = Depends(principal_dependency),
+    ) -> JSONResponse:
+        """Derive one verified immutable pin from explicit owner-scoped producer IDs."""
+
+        try:
+            request_id = _request_id(request, request_id_factory)
+            if research_run_id <= 0 or artifact_id <= 0:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.VALIDATION_ERROR,
+                        "research_run_id and artifact_id must be positive integers",
+                        request_id,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
+                )
+            reference = await _resolve(
+                adapter.resolve_study_artifact_reference(
+                    principal=principal,
+                    research_run_id=research_run_id,
+                    artifact_id=artifact_id,
+                )
+            )
+            if reference is None:
+                return _error_response(
+                    _api_error(
+                        ApiErrorCode.NOT_FOUND,
+                        "selected Study artifact was not found for the authenticated owner",
+                        request_id,
+                        status.HTTP_404_NOT_FOUND,
+                    )
+                )
+            if (
+                not isinstance(reference, SelectedStudyArtifactReference)
+                or reference.research_run_id != research_run_id
+                or reference.artifact_id != artifact_id
+            ):
+                raise ValueError("adapter returned a different Study selection")
+            response = JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={
+                    "data": {
+                        "type": "study-artifact-references",
+                        "id": f"{research_run_id}:{artifact_id}",
+                        "attributes": asdict(reference),
+                    },
+                    "meta": {"request_id": request_id},
+                },
+            )
+            response.headers["X-Request-ID"] = request_id
+            return response
+        except ApiAdapterError as error:
+            return _error_response(error.error)
+        except (TypeError, ValueError) as error:
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.PRECONDITION_FAILED,
+                    "selected Study artifact is incomplete or invalid",
+                    locals().get("request_id", "unknown"),
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    details={"reason": str(error)},
+                )
+            )
+        except Exception:  # pragma: no cover - defensive adapter boundary
+            logger.exception("Strategy Lab v2 Study reference resolution failed")
+            return _error_response(
+                _api_error(
+                    ApiErrorCode.INTERNAL_ERROR,
+                    "Study artifact reference could not be resolved",
                     locals().get("request_id", "unknown"),
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                     retryable=True,

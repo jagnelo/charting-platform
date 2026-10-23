@@ -17890,3 +17890,59 @@ ancestry via `8944f442dff4e3a80bcbdcab91e44e10958d0351`; no duplicate merge is n
 18-criterion roadmap and full local/combined PostgreSQL/application/browser/strict-visual and
 scope-qualified native execution/settlement gates open; all provider/quota/paid/trial/unsafe/
 broker/capital/deployment holds remain intact.
+
+## Persisted TC Study payload contract — exact-source CI closure, 2026-10-23 10:05 UTC
+
+The source slice described above is now published at `344f87f835f392bd103c20db2044aa0de72148df`;
+local HEAD and `origin/feat/strategy-lab-v2` match. Exact push run `39930681310` completed
+successfully on that SHA: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E
+Playwright are green. Exhaustive Integration Gate was skipped by feature-branch policy. The
+102-case focused payload/runtime selection, focused MyPy on 11 touched files, Ruff/format and
+diff checks passed; the PostgreSQL module was collect-only (53 discovered), not executed locally.
+This closes only the payload-contract source changeset. The complete 18-criterion roadmap,
+combined PostgreSQL/application/browser/strict-visual and exact-pinned native execution/settlement
+gates remain open. No provider/issuer/SEC request, quota operation, capability activation, broker,
+capital or deployment action occurred; all holds remain intact. Continue from the next incomplete
+Strategy-owned roadmap item without repeating the already-green hosted run or launching an
+unassigned heavy profile.
+
+## Explicit Study-reference resolution API — in progress, 2026-10-23
+
+The prior `strategy-lab-v2-tc-study-payload-contract-v1` source slice is closed at published
+`344f87f835f392bd103c20db2044aa0de72148df` with exact CI `39930681310` green for Backend,
+Frontend Unit, Branch-declared and E2E; Exhaustive was skipped by feature-branch policy. Its
+accepted-TC payload shapes and typed immutable runtime values remain the source of truth. The
+current branch-owned gap is caller construction of those references: existing authenticated API
+readbacks expose owner-scoped CodeAsset/CodeVersion and ResearchRun/ResearchArtifact fields, but
+there is no V2 operation to derive the full reference/digests from an explicitly selected completed
+run and artifact. The current changeset adds that read-only explicit-ID resolver to the registered
+V2 API, preserving fail-closed runtime revalidation and adding success/readback and rejection/no-
+persistence evidence. It must not add a latest alias, dispatch jobs, loosen exact owner/terminal/
+payload checks, or claim native execution.
+
+The f04 first-human recipe has been delivered separately: a constant generic Study result can run
+without OHLCV, but it is not native V2 execution. This changeset does not activate native,
+forward, broker, capital, provider or quota scopes. Full local PostgreSQL/combined app/browser/
+strict-visual and exact-pinned native execution/settlement gates remain open and coordinator-
+assigned; no fixture or external provider request is authorized by this work.
+
+## Explicit Study-reference API — current validation checkpoint, 2026-10-23 10:29 UTC
+
+The registered route is `GET /api/v1/strategy-lab/v2/study-artifact-references/{research_run_id}/{artifact_id}`.
+It accepts only explicit positive IDs and an authenticated owner; the adapter derives the typed
+pin from a fully completed/evaluated Study run and its persisted artifact, verifies the code
+version/asset and content digests, and returns 404 for absent or foreign selections. Incomplete or
+drifted evidence fails closed. It does not select “latest,” create/dispatch a run, or claim native
+execution. The PostgreSQL integration module now exercises route derivation/readback and rejection
+against persisted rows, but its body has not run locally.
+
+The bounded stack-free resolver/router/application selection completed with 63 passing tests in
+5.15s. Preserve the earlier 59-pass/1-fail diagnostic, which identified a missing rejection for an
+unavailable/zero owner and was corrected. Focused MyPy and Ruff/format checks had passed on the
+touched boundary before this handoff; final scoped style/workstream/diff checks remain to be closed.
+The PostgreSQL test module was collect-only; no SQL, Compose, browser, provider, quota or native
+operation ran. This source slice remains in progress until those final static checks and coherent
+publication. Exact-source CI for the new source, real PostgreSQL execution, full application/
+browser/strict-visual, and exact-pinned native execution/settlement remain open. The full
+18-criterion roadmap remains active; all external/provider, quota, paid/trial, broker/capital and
+deployment holds remain in force.

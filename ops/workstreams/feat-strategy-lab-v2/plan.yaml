@@ -696,26 +696,26 @@ acceptance_criteria:
 progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: full-roadmap-study-forward-restart-context-binding-v1
+  current_phase: full-roadmap-explicit-study-reference-resolution-v1
   current_blocker: >-
-    Published source45b946658b91477493c0172e3a7a71cf3bb7180c exact CI39908472662 is terminal green
-    for Backend, Frontend, Branch-declared and E2E; Exhaustive is skipped by feature policy. That
-    source corrects the single-component materializer stream decoder and its hosted PostgreSQL
-    backtest worker materialization matrix passed. The exact released f04fb2a26c6363c6090e76c2658cfcfe7adabf61
-    is already merged into this branch; it remains a shared repair baseline, not product acceptance.
-    Current uncommitted test-only work connects the restarted PostgreSQL-resolved forward plan to
-    the production plan-recipe and context-window path. Its related stack-free Study context test
-    passed1/1, the PostgreSQL module collects53 cases without running bodies, and Ruff/diff checks
-    pass. The changed database case has not run locally. Full local backend/combined
-    DB/application/browser/strict-visual and exact-pinned native execution/settlement gates remain
-    open and require assigned slots. All18 roadmap criteria and operation holds remain intact.
-  updated_at: "2026-10-23T06:44:21Z"
+    The active explicit Study-reference resolver/API source is still an uncommitted changeset
+    based on published source344f87f835f392bd103c20db2044aa0de72148df. Its bounded stack-free
+    resolver/router/application selection passed 63 tests in 5.15s; preserve the earlier diagnostic
+    failure (59 passed/1 failed) that exposed and then fixed the zero-owner rejection. Focused
+    MyPy and Ruff/format checks were previously green on the touched boundary, but final scoped
+    static/workstream checks and exact-source CI are still required. The PostgreSQL module was
+    collect-only; no SQL body ran. This API derives one immutable reference from explicit
+    owner-scoped IDs and does not execute a strategy or prove native execution. All18 roadmap
+    criteria and full local/combined database/application/browser/strict-visual/native gates remain
+    open. Provider/live, quota, paid/trial, unknown/unsafe, broker/capital and deployment remain
+    disabled.
+  updated_at: "2026-10-23T10:29:32Z"
   next_action: >-
-    Finish this narrow forward restart-to-context regression and its owned workstream record, then
-    publish the coherent changeset and inspect its exact-source CI once. Do not run the PostgreSQL
-    body or any full local profile without an assigned slot. Continue the full roadmap afterward;
-    exact-pinned Nautilus execution/settlement and all combined local gates remain open. Preserve
-    exact-scope authority and every existing operation hold.
+    Finish bounded Ruff/format/workstream/diff checks for this explicit-ID resolver changeset,
+    preserve its existing focused test/type evidence and failure history, then publish the coherent
+    source and owned records and inspect exact-source CI. Keep SQL-body, combined runtime/browser,
+    strict-visual and exact-pinned native execution/settlement gates open; no unassigned heavy
+    profile or provider/issuer/SEC operation.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -1599,49 +1599,34 @@ roadmap_progress_history:
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
   total: 18
-  current_phase: continue-original-18-criterion-roadmap-after-f04-adoption
+  current_phase: full-roadmap-explicit-study-reference-resolution-v1
   active_changeset:
-    id: strategy-lab-v2-tc-study-payload-contract-v1
+    id: strategy-lab-v2-explicit-study-reference-resolution-v1
     scope: >-
-      Validate immutable payload shapes persisted and reconstructed by the accepted TC Study
-      materializer against its actual research_runner adapters. Preserve exact typed values through
-      backtest/forward worker contexts and reject malformed digest-bound payloads before runtime
-      admission. This is payload integrity only, not native execution evidence, and it does not
-      alter Nautilus authority or enable trading.
+      Derive a typed immutable Study-artifact reference only from explicit owner-scoped IDs for a
+      fully completed accepted-TC ResearchRun and one persisted artifact; expose it through the
+      registered Strategy Lab v2 API and prove exact readback/rejection boundaries. Do not add
+      latest aliases, weaken runtime verification, dispatch work, or claim native execution.
     owned_paths:
-      - backend/app/strategy_lab_v2/contracts.py
-      - backend/app/strategy_lab_v2/study_artifact_payloads.py
       - backend/app/strategy_lab_v2/study_artifact_resolver.py
-      - backend/app/strategy_lab_v2/tests/study_artifact_fixtures.py
       - backend/app/strategy_lab_v2/tests/test_study_artifact_resolver.py
-      - backend/app/strategy_lab_v2/tests/test_forward_worker_composition.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_strategy_bridge.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_trial_assembly.py
-      - backend/app/strategy_lab_v2/tests/test_strategy_runtime_protocol.py
-      - backend/app/strategy_lab_v2/tests/test_trial_hydration.py
+      - backend/app/strategy_lab_v2/application.py
+      - backend/app/strategy_lab_v2/api_router.py
+      - backend/app/strategy_lab_v2/tests/test_api_router.py
+      - backend/app/strategy_lab_v2/tests/test_application.py
       - backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py
-    status: validated_waiting_for_parent_ci
+      - docs/strategy-lab-v2.md
+    status: in_progress
   current_blocker: >-
-    The production Study materializer and forward restart-to-context integration cases are complete
-    at 2190711b79fb97cd0aafb3227a4bba48c582086a (exact CI39913683591 green). The separate
-    forward-tape correction rejection guard and regression are complete at
-    f5f3519a15261bddfa1ee7d5bf87474b250de7a7: exact CI39918971415 is terminal green for Backend,
-    Frontend Unit, Branch-declared and E2E; Exhaustive is skipped by feature-branch policy. The
-    test file is included in that published changeset; the worktree is clean, with no dirty test
-    file to carry forward. Released common baseline f04fb2a26c6363c6090e76c2658cfcfe7adabf61 is
-    already an ancestor through 8944f442dff4e3a80bcbdcab91e44e10958d0351, so no duplicate merge
-    was made. This is not full-roadmap completion or native execution proof. Full local/combined
-    PostgreSQL/application/browser/strict-visual and exact-pinned native execution/settlement gates
-    remain open; provider/live/quota/paid/trial/unknown/unsafe/broker/capital/deployment remain
-    disabled. That preceding publication state is historical; the current 2026-10-23 context adds the
-    active Study payload-contract changeset above. Its102 focused cases, collection-only53-case PG
-    check, Ruff, formatting, focused MyPy and diff check pass. Exact predecessor CI39924763989 on
-    published27120a006c5e368b2b86fde364a787059ff2e0c4 remains in progress; wait for its terminal
-    result before publishing this source. This body-level SQL and all full profiles remain open.
+    The current uncommitted changeset adds the explicit-ID owner-scoped reference resolver to the
+    registered V2 API and application adapter, with fake-session, route, factory and existing
+    PostgreSQL integration assertions. The latest focused selection passed 63 tests in 5.15s; an
+    earlier zero-owner diagnostic failed once and is preserved. The PostgreSQL module was
+    collect-only and its SQL body is unverified locally. Exact-source CI for this changeset,
+    combined application/browser/strict-visual and exact-pinned native execution/settlement gates
+    remain open. No strategy dispatch, native proof, provider/quota, paid/trial, broker/capital or
+    deployment operation is enabled.
   next_action: >-
-    Continue the existing full 18-criterion roadmap from its next incomplete Strategy-owned item.
-    Preserve the already-green exact source receipt and f04 ancestry; do not rerun completed CI or
-    create a status-only follow-up. No unassigned DB/application/browser/build/native profile or
-    provider/issuer/SEC operation; retain all capability holds. Immediate action: preserve and
-    record terminal CI39924763989, then publish the currently validated changeset and inspect its
-    exact-source CI; do not run its PostgreSQL body or any full profile without an assigned slot.
+    Run only bounded static/workstream/diff checks now, then publish this coherent source changeset
+    and its owned records for exact-source CI. Do not run PostgreSQL, full application/browser,
+    strict-visual or native profiles without an assigned slot; preserve all capability holds.

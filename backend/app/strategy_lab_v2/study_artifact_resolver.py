@@ -32,6 +32,9 @@ class SelectedStudyArtifactResolutionError(ValueError):
 
 
 SelectedStudyArtifactResolver = Callable[..., Awaitable[SelectedStudyArtifactReference]]
+SelectedStudyArtifactReferenceFactory = Callable[
+    ..., Awaitable[SelectedStudyArtifactReference | None]
+]
 ResolvedStudyArtifactOutputResolver = Callable[..., Awaitable[ResolvedStudyArtifactOutput]]
 
 
@@ -60,6 +63,148 @@ def create_selected_study_artifact_resolver(
                 "reference-only Study resolution returned a payload"
             )
         return resolved
+
+    return resolve
+
+
+def create_selected_study_artifact_reference_factory(
+    session_factory: Callable[[], Any],
+) -> SelectedStudyArtifactReferenceFactory:
+    """Derive a typed reference for one explicitly selected, owner-owned Study artifact.
+
+    Both IDs are required; this boundary never selects a latest run or artifact. The derived
+    reference is passed back through the existing verifier before it is returned.
+    """
+
+    if not callable(session_factory):
+        raise TypeError("session_factory must be callable")
+
+    async def resolve(
+        *, principal: Any, research_run_id: int, artifact_id: int
+    ) -> SelectedStudyArtifactReference | None:
+        for name, value in (("research_run_id", research_run_id), ("artifact_id", artifact_id)):
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                raise SelectedStudyArtifactResolutionError(f"{name} must be a positive integer")
+        owner_id = _study_owner_id(principal)
+        if owner_id <= 0:
+            raise SelectedStudyArtifactResolutionError("authenticated Study owner is unavailable")
+
+        async with session_factory() as session:
+            run_rows = (
+                (
+                    await session.execute(
+                        select(ResearchRun).where(
+                            ResearchRun.id == research_run_id,
+                            ResearchRun.user_id == owner_id,
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            if not run_rows:
+                return None
+            if len(run_rows) != 1:
+                raise SelectedStudyArtifactResolutionError("selected Study run is ambiguous")
+            run = run_rows[0]
+            if run.status != "completed" or run.evaluation_status != "completed":
+                raise SelectedStudyArtifactResolutionError(
+                    "selected Study run is not fully completed"
+                )
+            if (
+                not isinstance(run.reproducibility_hash, str)
+                or not _RUN_HASH.fullmatch(run.reproducibility_hash)
+                or not isinstance(run.run_config, Mapping)
+                or not isinstance(run.dataset_manifest, Mapping)
+            ):
+                raise SelectedStudyArtifactResolutionError(
+                    "selected Study run evidence is malformed"
+                )
+
+            version = await _load_exactly_one(
+                session,
+                select(CodeVersion).where(CodeVersion.id == run.code_version_id),
+                description="code version",
+            )
+            if version.code_asset_id is None:
+                raise SelectedStudyArtifactResolutionError("selected Study code asset is missing")
+            asset = await _load_exactly_one(
+                session,
+                select(CodeAsset).where(
+                    CodeAsset.id == version.code_asset_id,
+                    CodeAsset.user_id == owner_id,
+                ),
+                description="code asset",
+            )
+            if (
+                asset.kind != "study"
+                or version.output_contract != "study"
+                or run.run_config.get("output_contract", version.output_contract) != "study"
+            ):
+                raise SelectedStudyArtifactResolutionError(
+                    "selected Study code version does not declare the Study output contract"
+                )
+
+            artifact_rows = (
+                (
+                    await session.execute(
+                        select(ResearchArtifact).where(
+                            ResearchArtifact.id == artifact_id,
+                            ResearchArtifact.research_run_id == run.id,
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            if not artifact_rows:
+                return None
+            if len(artifact_rows) != 1:
+                raise SelectedStudyArtifactResolutionError(
+                    "selected Study artifact identity is ambiguous"
+                )
+            artifact = artifact_rows[0]
+            if (
+                not isinstance(artifact.name, str)
+                or not artifact.name.strip()
+                or not isinstance(artifact.artifact_type, str)
+                or artifact.artifact_type not in _SUPPORTED_STUDY_ARTIFACT_TYPES
+                or not isinstance(artifact.payload, Mapping)
+                or artifact.payload.get("type") != artifact.artifact_type
+                or "value" not in artifact.payload
+            ):
+                raise SelectedStudyArtifactResolutionError(
+                    "selected Study artifact has an unsupported or inconsistent type/payload"
+                )
+            try:
+                reference = SelectedStudyArtifactReference(
+                    research_run_id=run.id,
+                    code_version_id=version.id,
+                    artifact_id=artifact.id,
+                    artifact_name=artifact.name,
+                    artifact_type=artifact.artifact_type,
+                    output_contract=version.output_contract,
+                    run_reproducibility_hash=run.reproducibility_hash,
+                    code_version_digest=_code_version_digest(version, asset),
+                    dataset_manifest_digest=content_digest(run.dataset_manifest),
+                    artifact_content_digest=content_digest(artifact.payload),
+                )
+            except (TypeError, ValueError) as error:
+                raise SelectedStudyArtifactResolutionError(
+                    "selected Study immutable evidence is malformed"
+                ) from error
+
+            verified = await _resolve_selected_study_artifact(
+                session=session,
+                principal=owner_id,
+                reference=reference,
+                materialize_payload=False,
+            )
+            if not isinstance(verified, SelectedStudyArtifactReference):
+                raise SelectedStudyArtifactResolutionError(
+                    "selected Study reference verification returned an invalid result"
+                )
+            return verified
 
     return resolve
 
@@ -155,13 +300,7 @@ async def _resolve_selected_study_artifact(
 
     if not isinstance(reference, SelectedStudyArtifactReference):
         raise SelectedStudyArtifactResolutionError("selected Study reference is not typed")
-    raw_owner_id = getattr(principal, "id", principal)
-    if isinstance(raw_owner_id, int) and not isinstance(raw_owner_id, bool):
-        owner_id = raw_owner_id
-    elif isinstance(raw_owner_id, str) and re.fullmatch(r"[1-9][0-9]*", raw_owner_id):
-        owner_id = int(raw_owner_id)
-    else:
-        owner_id = 0
+    owner_id = _study_owner_id(principal)
     if owner_id <= 0:
         raise SelectedStudyArtifactResolutionError("authenticated Study owner is unavailable")
 
@@ -193,7 +332,6 @@ async def _resolve_selected_study_artifact(
         raise SelectedStudyArtifactResolutionError(
             "selected Study run configuration or dataset manifest is invalid"
         )
-
     version = await _load_exactly_one(
         session,
         select(CodeVersion).where(CodeVersion.id == reference.code_version_id),
@@ -287,3 +425,12 @@ async def _resolve_selected_study_artifact(
         raise SelectedStudyArtifactResolutionError(
             "selected Study artifact payload cannot be frozen for runtime use"
         ) from error
+
+
+def _study_owner_id(principal: Any) -> int:
+    raw_owner_id = getattr(principal, "id", principal)
+    if isinstance(raw_owner_id, int) and not isinstance(raw_owner_id, bool):
+        return raw_owner_id
+    if isinstance(raw_owner_id, str) and re.fullmatch(r"[1-9][0-9]*", raw_owner_id):
+        return int(raw_owner_id)
+    return 0

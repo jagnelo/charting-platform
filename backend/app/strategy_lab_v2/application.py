@@ -142,6 +142,7 @@ from app.strategy_lab_v2.storage import (
     StorageTransactionRequest,
 )
 from app.strategy_lab_v2.study_artifact_resolver import (
+    create_selected_study_artifact_reference_factory,
     create_selected_study_artifact_resolver,
 )
 from app.strategy_lab_v2.submissions import SubmissionReceipt, SubmissionRequest
@@ -504,6 +505,9 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             )
         self._capability_preflight = capability_preflight
         self._selected_study_artifact_resolver = selected_study_artifact_resolver
+        self._selected_study_artifact_reference_factory = (
+            create_selected_study_artifact_reference_factory(session_factory)
+        )
         self._search_dispatch = search_dispatch
         self._search_dispatch_evidence = search_dispatch_evidence
         self._walk_forward_observation_calendar = walk_forward_observation_calendar
@@ -552,6 +556,21 @@ class PostgresStrategyLabV2Adapter(StrategyLabApiAdapter):
             principal=_principal_identity(principal),
             resource_type=resource_type,
             resource_id=resource_id,
+        )
+
+    async def resolve_study_artifact_reference(
+        self,
+        *,
+        principal: Any,
+        research_run_id: int,
+        artifact_id: int,
+    ) -> SelectedStudyArtifactReference | None:
+        """Derive one explicit Study pin through the authenticated local SQL reader."""
+
+        return await self._selected_study_artifact_reference_factory(
+            principal=principal,
+            research_run_id=research_run_id,
+            artifact_id=artifact_id,
         )
 
     async def preflight_capability(

@@ -19,6 +19,7 @@ from app.strategy_lab_v2.contracts import (
 from app.strategy_lab_v2.study_artifact_resolver import (
     SelectedStudyArtifactResolutionError,
     _resolve_selected_study_artifact,
+    create_selected_study_artifact_reference_factory,
     create_selected_study_artifact_resolver,
 )
 from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
@@ -66,7 +67,6 @@ class FakeAsyncSession:
         if model is ResearchRun:
             assert ("research_run", "id") in where_columns
             assert ("research_run", "user_id") in where_columns
-            assert _RUN_ID in params
             assert _OWNER_ID in params
         elif model is CodeVersion:
             assert ("code_version", "id") in where_columns
@@ -78,9 +78,11 @@ class FakeAsyncSession:
             assert _OWNER_ID in params
         elif model is ResearchArtifact:
             assert ("research_artifact", "research_run_id") in where_columns
-            assert ("research_artifact", "name") in where_columns
             assert _RUN_ID in params
-            assert "close-series" in params
+            assert (
+                ("research_artifact", "id") in where_columns
+                and any(isinstance(value, int) for value in params)
+            ) or (("research_artifact", "name") in where_columns and "close-series" in params)
         else:
             raise AssertionError(f"unexpected model query: {model!r}")
         return FakeResult(self._responses.pop(0))
@@ -335,6 +337,155 @@ async def test_host_resolver_owns_one_read_session_and_returns_exact_pin(monkeyp
     assert resolved is reference or resolved == reference
     assert lifecycle == ["enter", "exit"]
     assert len(session.statements) == 4
+
+
+@pytest.mark.asyncio
+async def test_reference_factory_derives_and_revalidates_only_explicit_owner_selection() -> None:
+    expected, rows, principal = _graph()
+    session = FakeAsyncSession([*rows, *rows])
+    lifecycle: list[str] = []
+
+    class SessionContext:
+        async def __aenter__(self) -> AsyncSession:
+            lifecycle.append("enter")
+            return _as_test_async_session(session)
+
+        async def __aexit__(self, *_args: Any) -> None:
+            lifecycle.append("exit")
+
+    factory = create_selected_study_artifact_reference_factory(SessionContext)
+    resolved = await factory(
+        principal=principal,
+        research_run_id=_RUN_ID,
+        artifact_id=_ARTIFACT_ID,
+    )
+
+    assert resolved == expected
+    assert lifecycle == ["enter", "exit"]
+    assert len(session.statements) == 8
+    assert session._responses == []
+
+
+@pytest.mark.parametrize(
+    ("selection", "expected_remaining_queries"),
+    (
+        ((9999, _ARTIFACT_ID), 3),
+        ((_RUN_ID, 9999), 0),
+    ),
+)
+@pytest.mark.asyncio
+async def test_reference_factory_returns_not_found_for_unowned_or_unselected_ids(
+    selection: tuple[int, int], expected_remaining_queries: int
+) -> None:
+    _expected, rows, principal = _graph()
+    if selection[0] != _RUN_ID:
+        rows[0] = []
+    else:
+        rows[3] = []
+    session = FakeAsyncSession([*rows])
+
+    class SessionContext:
+        async def __aenter__(self) -> AsyncSession:
+            return _as_test_async_session(session)
+
+        async def __aexit__(self, *_args: Any) -> None:
+            return None
+
+    factory = create_selected_study_artifact_reference_factory(SessionContext)
+    resolved = await factory(
+        principal=principal,
+        research_run_id=selection[0],
+        artifact_id=selection[1],
+    )
+
+    assert resolved is None
+    assert len(session.statements) == (1 if selection[0] != _RUN_ID else 4)
+    assert expected_remaining_queries == len(session._responses)
+
+
+@pytest.mark.asyncio
+async def test_reference_factory_rejects_nonterminal_run_before_artifact_selection() -> None:
+    _expected, rows, principal = _graph()
+    rows[0][0].status = "running"
+    session = FakeAsyncSession(rows)
+
+    class SessionContext:
+        async def __aenter__(self) -> AsyncSession:
+            return _as_test_async_session(session)
+
+        async def __aexit__(self, *_args: Any) -> None:
+            return None
+
+    factory = create_selected_study_artifact_reference_factory(SessionContext)
+    with pytest.raises(SelectedStudyArtifactResolutionError, match="fully completed"):
+        await factory(
+            principal=principal,
+            research_run_id=_RUN_ID,
+            artifact_id=_ARTIFACT_ID,
+        )
+    assert len(session.statements) == 1
+
+
+@pytest.mark.asyncio
+async def test_reference_factory_rejects_ambiguous_artifact_name_during_reverification() -> None:
+    _reference, rows, principal = _graph()
+    artifact = rows[3][0]
+    duplicate = ResearchArtifact(
+        id=_ARTIFACT_ID + 1,
+        research_run_id=_RUN_ID,
+        artifact_type=artifact.artifact_type,
+        name=artifact.name,
+        payload=artifact.payload,
+    )
+    session = FakeAsyncSession([*rows, rows[0], rows[1], rows[2], [artifact, duplicate]])
+
+    class SessionContext:
+        async def __aenter__(self) -> AsyncSession:
+            return _as_test_async_session(session)
+
+        async def __aexit__(self, *_args: Any) -> None:
+            return None
+
+    factory = create_selected_study_artifact_reference_factory(SessionContext)
+    with pytest.raises(SelectedStudyArtifactResolutionError, match="missing or ambiguous"):
+        await factory(
+            principal=principal,
+            research_run_id=_RUN_ID,
+            artifact_id=_ARTIFACT_ID,
+        )
+    assert len(session.statements) == 8
+
+
+@pytest.mark.asyncio
+async def test_reference_factory_rejects_producer_drift_between_selection_and_verification() -> (
+    None
+):
+    _reference, rows, principal = _graph()
+    session = FakeAsyncSession([*rows, *rows])
+
+    class DriftingSession(FakeAsyncSession):
+        async def execute(self, statement: Any) -> FakeResult:
+            if len(self.statements) == 4:
+                rows[3][0].payload = {"type": "series", "value": [99.0]}
+            return await super().execute(statement)
+
+    drifting_session = DriftingSession(session._responses)
+
+    class SessionContext:
+        async def __aenter__(self) -> AsyncSession:
+            return _as_test_async_session(drifting_session)
+
+        async def __aexit__(self, *_args: Any) -> None:
+            return None
+
+    factory = create_selected_study_artifact_reference_factory(SessionContext)
+    with pytest.raises(SelectedStudyArtifactResolutionError, match="immutable reference"):
+        await factory(
+            principal=principal,
+            research_run_id=_RUN_ID,
+            artifact_id=_ARTIFACT_ID,
+        )
+    assert len(drifting_session.statements) == 8
 
 
 @pytest.mark.parametrize(

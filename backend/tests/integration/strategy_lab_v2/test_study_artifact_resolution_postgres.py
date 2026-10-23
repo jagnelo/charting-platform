@@ -458,6 +458,18 @@ async def test_strategy_api_authenticates_exact_study_reference_before_persisten
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://strategy-lab.test"
     ) as client:
+        derived = await client.get(
+            "/api/v1/strategy-lab/v2/study-artifact-references/30/40",
+            headers={"X-Test-Owner": "1"},
+        )
+        assert derived.status_code == 200, derived.text
+        assert derived.json()["data"]["attributes"] == freeze_json(reference)
+        foreign_selection = await client.get(
+            "/api/v1/strategy-lab/v2/study-artifact-references/30/40",
+            headers={"X-Test-Owner": "2"},
+        )
+        assert foreign_selection.status_code == 404
+
         accepted = await client.post(
             "/api/v1/strategy-lab/v2/strategies",
             headers={"Idempotency-Key": "study-valid", "X-Test-Owner": "1"},
@@ -517,6 +529,11 @@ async def test_strategy_api_authenticates_exact_study_reference_before_persisten
             },
         )
         assert drift.status_code == 422
+        drifted_readback = await client.get(
+            "/api/v1/strategy-lab/v2/strategies/drifted-study",
+            headers={"X-Test-Owner": "1"},
+        )
+        assert drifted_readback.status_code == 404
 
         async with sessions.begin() as session:
             await session.execute(
@@ -547,6 +564,14 @@ async def test_strategy_api_authenticates_exact_study_reference_before_persisten
     assert (
         await adapter.get_resource(
             principal="2", resource_type=ApiResourceType.STRATEGY, resource_id="foreign-study"
+        )
+        is None
+    )
+    assert (
+        await adapter.get_resource(
+            principal="1",
+            resource_type=ApiResourceType.STRATEGY,
+            resource_id="drifted-study",
         )
         is None
     )

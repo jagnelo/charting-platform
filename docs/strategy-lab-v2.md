@@ -210,6 +210,35 @@ authorization, and execution-summary timestamps. Retries and persisted
 read-model projections therefore retain one identity for equivalent instants
 through the full local execution handoff.
 
+## Explicit immutable Study inputs
+
+An authenticated owner can resolve one exact completed Study output through
+`GET /api/v1/strategy-lab/v2/study-artifact-references/{research_run_id}/{artifact_id}`.
+Both IDs are required; the route has no latest-run or latest-artifact alias. It
+returns a `SelectedStudyArtifactReference` only when the run and evaluation are
+completed, the run/code version/asset belong to the caller, the version still
+declares the Study contract, and exactly one supported artifact payload matches
+its persisted content. Unknown or foreign IDs return not-found; incomplete,
+ambiguous, malformed, or inconsistent producer state fails closed without
+persisting a strategy.
+
+The returned object can be copied unchanged into a V2 strategy's
+`attributes.selected_study_artifact` on `POST /api/v1/strategy-lab/v2/strategies`.
+The application adapter independently revalidates every pinned digest before
+the mutation is accepted. A successful `202` is a mutation receipt; clients
+must read the strategy back and compare the exact selected reference and
+revision digest to prove persistence. Rejected references create no strategy
+resource. The existing backtest and forward worker hydrators re-resolve this
+same immutable reference from PostgreSQL when rebuilding runtime context and
+validate the TC Study payload before use. Current reconstructed-context tests
+are not by themselves proof of an actual worker OS-process restart.
+
+A generic `POST /api/v1/research/runs` Study with an empty dataset manifest may
+produce deterministic non-capital results without OHLCV, but that is isolated
+Study execution, not a Strategy Lab v2 Nautilus backtest. The reference itself
+proves immutable producer lineage only; it does not establish native execution,
+market-data availability, or broker authority.
+
 Attempt records and worker leases apply the same normalization to acquisition,
 heartbeat, expiry, release, creation, and transition timestamps, keeping
 capacity reservations and retry lineage stable across offset-changing storage
