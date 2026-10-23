@@ -1,5 +1,31 @@
 # fix/market-series-default-schema
 
+## Finalizer correction published — 2026-10-23 12:47 UTC
+
+Implementation f7b4a5e951900a62c74b18cd4be055c067617f1e is pushed to origin.
+Owned implementation paths: scripts/agent-session.py,
+tests/workflow/test_agent_session.py and docs/agent-orchestration.md. Strict
+immutable-HEAD classification allows only the added internal timestamp repair;
+historical/other/multiple/mixed/dynamic changes remain gated. Actual provider
+full-matrix requirements remain unchanged. No live call or allowance replay.
+All161 workflow tests passed in0.89s; Ruff and git diff --check pass. Planning
+preflight completed normally through Docker-capable host access; same claim,
+original active native goal, models and accounting preserved.
+
+Current full_stack_browser evidence is an explicit component matrix: all
+backend/Alembic/model/frontend runtime and browser-test/config inputs are
+unchanged from1ebcdd4, so the earlier realPG and attempt9 browser evidence is
+reused only for those identical inputs. The new workflow source is covered by
+the161-case local suite. This does NOT claim old browser execution of new
+workflow code. All MSS1–MSS6 are evidenced. Normal finish, delegated checkpoint
+acceptance and exact final closing-head CI remain next; protected staging/master
+gates and actual target upgrade/real-data acceptance remain independent.
+
+Outstanding operational paths are ops/workstreams/fix-market-series-default-schema/plan.yaml,
+ops/workstreams/fix-market-series-default-schema/handoff.md,
+ops/workstreams/fix-market-series-default-schema/validation.jsonl and
+ops/workstreams/fix-market-series-default-schema/session.json.
+
 ## Superseding finalizer classification defect — 2026-10-23 12:20 UTC
 
 Review checkpoint f494231c6b29d98f374357e3f4c45a100cb9509f is local, not yet
