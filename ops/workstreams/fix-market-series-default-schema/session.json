@@ -1,9 +1,30 @@
 {
   "acceptance_criteria": [],
-  "active_session_id": "16a1eb6e-b284-4d1a-888f-5947481b8e64",
+  "active_session_id": null,
   "branch": "fix/market-series-default-schema",
   "dirty_paths": [],
   "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-market-series-default-schema-a17e2acd",
+      "charting-stack-fix-market-series-default-schema-a17e2acd"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-market-series-default-schema-a17e2acdca"
+  },
+  "docker_before_cleanup": {
     "accounting_complete": true,
     "available": true,
     "build_cache_bytes": null,
@@ -29,6 +50,8 @@
     "started_desktop": false,
     "wait_seconds": 0
   },
+  "finished": true,
+  "finished_at": "2026-10-23T12:48:18.973306+00:00",
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance fix/market-series-default-schema: Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development.. Acceptance criteria: MSS1: Forward revision after slv2_0011 adds both non-null timezone-aware ORM timestamp columns with server defaults, without rewriting historical migrations or removing mappings.; MSS2: Real isolated PostgreSQL regression passes for fresh legacy table and retained mapping, preserving instrument, series, timeframe, adjustment, reason, selected_at and provenance; ORM reads succeed.; MSS3: Isolated full Alembic fresh-chain upgrade reaches the new head with all129 accepted model tables and no missing ORM columns; scoped resources are cleaned and datasets preserved.; MSS4: Focused quality checks, source-qualified full_stack_browser local component evidence and exact-source branch CI pass; reviewable isolated source and durable closure record are ready for coordinator acceptance, with protected staging/master/deployment gates still independently required.; MSS5: F8m explicitly establishes the intended open indicator rail and SPY symbols before one ordinary group-menu click; existing expansion, Purple/Yellow/Grey, linked-symbol and isolation assertions, timeouts, retry policy and all visual references remain unchanged. Required browser validation passes without accepting retry-only evidence.; MSS6: Finalizer impact classification matches the documented external-service rule for the exact internal timestamp-parity repair; static regression tests reject modified historical migrations, different SQL, dynamic execution, mixed application/runtime and actual integration changes. Full live-matrix evidence remains required for real integration changes; no stale receipt is relabelled and no consumed allowance is replayed.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-10-23T12:27:40.141714+00:00",
@@ -36,13 +59,14 @@
     "objective": "Advance fix/market-series-default-schema: Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development.. Acceptance criteria: MSS1: Forward revision after slv2_0011 adds both non-null timezone-aware ORM timestamp columns with server defaults, without rewriting historical migrations or removing mappings.; MSS2: Real isolated PostgreSQL regression passes for fresh legacy table and retained mapping, preserving instrument, series, timeframe, adjustment, reason, selected_at and provenance; ORM reads succeed.; MSS3: Isolated full Alembic fresh-chain upgrade reaches the new head with all129 accepted model tables and no missing ORM columns; scoped resources are cleaned and datasets preserved.; MSS4: Focused quality checks, source-qualified full_stack_browser local component evidence and exact-source branch CI pass; reviewable isolated source and durable closure record are ready for coordinator acceptance, with protected staging/master/deployment gates still independently required.; MSS5: F8m explicitly establishes the intended open indicator rail and SPY symbols before one ordinary group-menu click; existing expansion, Purple/Yellow/Grey, linked-symbol and isolation assertions, timeouts, retry policy and all visual references remain unchanged. Required browser validation passes without accepting retry-only evidence.; MSS6: Finalizer impact classification matches the documented external-service rule for the exact internal timestamp-parity repair; static regression tests reject modified historical migrations, different SQL, dynamic execution, mixed application/runtime and actual integration changes. Full live-matrix evidence remains required for real integration changes; no stale receipt is relabelled and no consumed allowance is replayed.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "active",
+  "goal_state": "finished",
   "goal_unavailable_reason": null,
   "head": "b2b7c36aa86f4da4cdaf6b65045c23b5bebad9ce",
   "implementation_sha": "455a8bc00a037ded81727ebbc98644b8708c9b20",
+  "interrupted": false,
   "last_human_progress_update": "2026-10-23T12:47:28.916180+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "continue implementation from the branch workstream",
+  "next_action": "",
   "parent_branch": "staging",
   "plan_hash": "66f95928cec90791015db4710e062b766b230f00949fba833ef550de1c1b33f4",
   "planning_required": true,
@@ -69,6 +93,7 @@
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "16a1eb6e-b284-4d1a-888f-5947481b8e64",
+  "state": "finished",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-market-series-default-schema/ops/workstreams/fix-market-series-default-schema",
   "workstream_files": [

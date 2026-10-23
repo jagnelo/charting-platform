@@ -6,8 +6,8 @@ parent_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Standing human authorization recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md: I explicitly authorize any and all actions the AI agents may request to progress development, reconciliation and promotion of the four feature branches into staging and production for human testing. Derived coordinator repair within that scope: fix fresh-Alembic MarketSeriesDefault missing created_at and updated_at columns blocking real D1 data on the accepted private f04 deployment, preserve rows and add fresh/upgrade regressions, then complete all required acceptance and release gates. Do not merge unrelated later feature development."
 planning_state: ready
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: "Delegated coordinator acceptance under the human's standing authorization in .ai/staging-attempts/human-standing-integration-authorization-20261020.md to own ordinary development, reconciliation, acceptance and promotion mechanics. Accept this narrow internal-schema/F8m/finalizer checkpoint after reviewed six-criterion evidence; actual integration remains conditional on exact closing-head branch CI and normal protected gates. This is exercised delegated authority, not a new human utterance."
+closure_summary: "Delivered additive d4a5b6c7e812 after slv2_0011, preserving mappings/selection metadata; actual local fresh-chain/fresh/retained-row PostgreSQL proof; compatibility19; unchanged ordinary F8m flow with explicit rail/SPY preconditions and zero-retry local browser pass; strict internal-only finalizer classification with161 workflow regressions. Validated implementation f7b4a5e951900a62c74b18cd4be055c067617f1e through explicit identical-input component matrix; product-source CI39935920665 green. No later feature roadmap imported, no provider live calls/allowance replay or visual/assertion/timeout/tolerance weakening. Exact final branch CI and independent full staging/master gates remain mandatory. Target requires normal Alembic upgrade with backup/data preservation and actual real-data/human acceptance. integration_capture: exact branch HEAD"
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -55,9 +55,9 @@ branch_tests_reason: The fresh-migration defect needs actual PostgreSQL DDL/ORM 
 live_test_impact: No adapter, HTTP, entitlement, quota or data-use contract change. No provider live requests or consumed119-case allowance replay; preserve all holds, consumer assertions and retry policies. Normal exact-source browser jobs and full staging/master exhaustive replay remain mandatory.
 migration_impact: Additive revision d4a5b6c7e812 after slv2_0011; backfill non-null timestamps through server defaults while retaining selected_at and all existing mapping data. No production ALTER TABLE outside Alembic.
 deployment_impact: Existing private f04 startup/auth/UI is verified but real data remains unaccepted and routing is off. A repaired release needs canonical branch/staging/master gates and a new backend artifact including the migration, preserving target volumes, accounts, secrets and holds.
-status: ready_for_human_review
+status: ready_for_integration
 remaining_gaps:
-  - Implementation-source CI39935920665 and source-qualified local full_stack_browser components pass. Correct the newly exposed finalizer classification defect with workflow regressions, then require final closing-head CI before integration.
+  - Implementation-source CI39935920665, current qualified local full_stack_browser matrix and161 workflow regressions pass; exact final closing-head branch CI is required before integration.
   - Coordinator acceptance, synchronized full staging/master gates and actual repaired private-target upgrade/real-data proof remain separate release work; no deployment acceptance is claimed.
 progress:
   completed: [MSS1, MSS2, MSS3, MSS4, MSS5, MSS6]
