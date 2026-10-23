@@ -10,8 +10,41 @@ parent_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
 dependency_authorization: "Under the recorded2026-10-20 standing four-feature production authorization, Root continues its existing claimed quality-repair worktree from accepted green staging4687 to repair the failed independent master39875818716 F8l observation. No new feature scope, writer takeover, gate weakening, provider HTTP or retained-data mutation."
 human_intent_authorization: "Human explicitly requests continued ownership through four-feature staging/production and first human deployment. Standing authority and delegated technical-repair acceptance are recorded in .ai/staging-attempts/human-standing-integration-authorization-20261020.md. Root applies that direction to the concrete F8l request-start observation failure in master39875818716. Prior Map/shared-image and B193 checkpoints remain historical, unchanged and source-qualified; their acceptance does not cover this new repair."
 planning_state: ready
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: >-
+  Human delegated careful technical repair acceptance without individual review,
+  under standing four-feature staging/production authority recorded2026-10-20.
+  Root accepts ONLY the locally and hosted-proven hidden-refresh observation
+  repair at implementation331d99b7cda0df74355a7e4ddfffb6a2f151a45f,
+  CONDITIONAL on terminal-green full exact FINAL closing-head branch CI before
+  guarded integration. New staging and independent master exhaustive gates
+  remain mandatory before deployment. No later feature changes are accepted.
+closure_summary: >-
+  Browser-clock fetch/XHR initiation capture replaces unavailable native timing
+  as the initiation oracle; native request-count coverage still fails closed.
+  F8l isolates the target document before installing observers and deliberately
+  holds readiness across the unchanged hidden transition. Original3000/1500ms
+  windows, no-hidden-start assertion, retries and visual policies are unchanged.
+  Collector units9pass; full frontend1337pass/typecheck0 retain unchanged-input
+  qualification after the final3line document setup correction. Actual pinned
+  Noble1.62.1 isolated F8l on331d passes1/1in16.7s, retries0, state0falseexited;
+  logSHA5d5d2beb7f1bb1998f25b325f6d5c4d41e3f8992634120764f4965dc58af82a1.
+  Backend built331d; frontend explicitly reuses immutable4687 application image
+  dcf90f7d90ca0cceb3ac382830c8b4cc77ae6c6100c431d8f533492d5007b77b after
+  proving every non-test frontend input identical. This is NOT a fresh331d
+  frontend build: earlier bounded1.5GiB build OOM remains recorded. No fake
+  build-complete receipt. Exact six-service/browser/generated-volume/network
+  cleanup11262exit0; all3global retained inventory differences0bytes; only owned
+  unused temporary backend tag22a86782 removed nonforced. Artifacts/cache/
+  production image/retained datasets/services preserved. Implementation331d
+  CI39887117146 is green: all mandatory branch jobs, ordinary browser191pass/
+  110existing skips including F8l. Initiala3c local coverage failure and original
+  master39875818716 failure remain durable, not relabeled. No production source,
+  dependency, provider/quota, data, schema, deployment or visual oracle changes.
+  Full exact FINAL branch CI and new staging/master exhaustive gates remain
+  required. OBS3/MAP2 remain external release gates, not completed here. Full
+  feature roadmaps and held/unsafe routes remain unchanged. No merge conflicts
+  anticipated; test-only repair is behavior-compatible.
+  integration_capture: exact branch HEAD.
 previous_marketmap_human_closure_authorization: >-
   Human delegated technical repair acceptance without individual verification:
   Yes I approve, and you do not need my acceptance to close it off. Standing
@@ -159,16 +192,15 @@ branch_tests_reason: Full hosted backend CI already executes all backend unit an
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_integration
 remaining_gaps:
-  - Current F8l observation repair, actual browser proof and all new exact-source release gates are pending; previous Map repair remains independently accepted in staging, not sufficient master acceptance.
-  - New Market Map/shared-image repair still requires actual Docker/browser proof and all exact-source branch/staging/master gates; previous B193 acceptance does not cover it.
-  - Exact final pushed repair branch CI remains mandatory before guarded remediation integration; no hosted pass is claimed yet.
+  - OBS1/OBS2 are proven locally and implementation331d hosted CI39887117146 is green; exact FINAL closing-head CI remains mandatory before integration.
+  - OBS3/MAP2 require new staging and independent master exhaustive functional/strict-visual gates; no deployment or full roadmap acceptance is claimed.
   - Exact repaired staging exhaustive gate remains mandatory before owner backmerge/release, master promotion or deployment.
   - Historical source4fd11ebd CI39806090414 remains RED from one flaky provenance case; its retry pass was not accepted. Corrected implementationd32151b3 has actual local browser proof; final closing HEAD still requires full exact CI.
 progress:
-  completed: [FMT1, FMT2, FMT3, PROV1, PROV2, MAP1, CLN1]
+  completed: [FMT1, FMT2, FMT3, PROV1, PROV2, MAP1, CLN1, OBS1, OBS2]
   total: 11
-  current_phase: diagnosing-hidden-refresh-observation
+  current_phase: final-closing-head-exact-ci
   current_blocker: none
-  next_action: Add browser-clock initiation and coverage regressions, validate the affected real hidden-refresh flow with unchanged assertion/intervals, then publish coherent source and require all exact-source branch/staging/master gates. Preserve all previous checkpoint evidence and all feature roadmaps.
+  next_action: Freeze and publish this final technical closure; require its exact full branch CI green, then guarded integration and new staging/master exhaustive gates before the private m920q deployment. Preserve all prior evidence and full feature roadmaps.

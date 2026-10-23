@@ -1,6 +1,18 @@
 {
   "acceptance_criteria": [
     {
+      "id": "OBS1",
+      "text": "Browser-clock observation captures every relevant fetch/XHR initiation before completion or abort; pending native timing is not silently dropped, post-hidden starts remain failures, and missing observation remains fail-closed."
+    },
+    {
+      "id": "OBS2",
+      "text": "Deterministic collector/coverage regressions and an actual isolated pinned-Noble hidden-refresh flow pass with zero retries; existing hidden-state assertion, timing windows and visual policies remain unchanged."
+    },
+    {
+      "id": "OBS3",
+      "text": "Clean published final source passes full exact branch CI, then new staging and independent master functional/strict-visual gates before deployment; old failure and source-qualified prior evidence remain durable."
+    },
+    {
       "id": "MAP1",
       "text": "Deterministic regressions reproduce the proven delayed-initialization selection reset on the accepted source and pass after the smallest product correction."
     },
@@ -43,7 +55,12 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-strategy-staging-quality",
     "worktree_id": "fix-strategy-staging-quality-a3afbefe16"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/fix-strategy-staging-quality/handoff.md",
+    "ops/workstreams/fix-strategy-staging-quality/plan.yaml",
+    "ops/workstreams/fix-strategy-staging-quality/session.json",
+    "ops/workstreams/fix-strategy-staging-quality/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -72,21 +89,21 @@
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance fix/strategy-staging-quality: Continue the same coordinator-owned four-feature quality repair from accepted green staging4687 to repair master39875818716 F8l request-initiation observation, preserving the no-hidden-refresh contract, prior accepted checkpoints, full feature roadmaps and all exact-source branch/staging/master gates before first private human deployment.. Acceptance criteria: OBS1: Browser-clock observation captures every relevant fetch/XHR initiation before completion or abort; pending native timing is not silently dropped, post-hidden starts remain failures, and missing observation remains fail-closed.; OBS2: Deterministic collector/coverage regressions and an actual isolated pinned-Noble hidden-refresh flow pass with zero retries; existing hidden-state assertion, timing windows and visual policies remain unchanged.; OBS3: Clean published final source passes full exact branch CI, then new staging and independent master functional/strict-visual gates before deployment; old failure and source-qualified prior evidence remain durable.; MAP1: Deterministic regressions reproduce the proven delayed-initialization selection reset on the accepted source and pass after the smallest product correction.; MAP2: The unchanged actual dense-map browser flow passes with zero retries; full exact branch CI and new staging/master exhaustive functional/visual gates remain mandatory.; CLN1: Owned shared-tag images clean completely, while foreign resources/tags and retained datasets remain protected; workflow regressions and actual bounded cleanup proof pass.; FMT1: Pinned backend code and formatting checks pass without policy changes.; FMT2: All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes.; FMT3: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.; PROV1: Affected readiness browser flows wait for their fixture response before the unchanged provenance assertions; no assertion, timeout, retry, skip, reference or production behavior changes.; PROV2: Actual isolated full-stack focused browser validation passes with exact cleanup; full final branch CI and new staging exhaustive functional/visual gates remain required.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-22T21:37:25.188189+00:00",
+  "goal_recorded_at": "2026-10-23T02:56:15.377676+00:00",
   "goal_request": {
     "objective": "Advance fix/strategy-staging-quality: Continue the same coordinator-owned four-feature quality repair from accepted green staging4687 to repair master39875818716 F8l request-initiation observation, preserving the no-hidden-refresh contract, prior accepted checkpoints, full feature roadmaps and all exact-source branch/staging/master gates before first private human deployment.. Acceptance criteria: OBS1: Browser-clock observation captures every relevant fetch/XHR initiation before completion or abort; pending native timing is not silently dropped, post-hidden starts remain failures, and missing observation remains fail-closed.; OBS2: Deterministic collector/coverage regressions and an actual isolated pinned-Noble hidden-refresh flow pass with zero retries; existing hidden-state assertion, timing windows and visual policies remain unchanged.; OBS3: Clean published final source passes full exact branch CI, then new staging and independent master functional/strict-visual gates before deployment; old failure and source-qualified prior evidence remain durable.; MAP1: Deterministic regressions reproduce the proven delayed-initialization selection reset on the accepted source and pass after the smallest product correction.; MAP2: The unchanged actual dense-map browser flow passes with zero retries; full exact branch CI and new staging/master exhaustive functional/visual gates remain mandatory.; CLN1: Owned shared-tag images clean completely, while foreign resources/tags and retained datasets remain protected; workflow regressions and actual bounded cleanup proof pass.; FMT1: Pinned backend code and formatting checks pass without policy changes.; FMT2: All 139 formatter changes are exact pinned formatter output and AST-equivalent to the degraded baseline; no semantic, assertion, reference or dependency changes.; FMT3: Focused local tests and exact full hosted branch CI pass; clean pushed records preserve the failed staging evidence and are ready for delegated acceptance.; PROV1: Affected readiness browser flows wait for their fixture response before the unchanged provenance assertions; no assertion, timeout, retry, skip, reference or production behavior changes.; PROV2: Actual isolated full-stack focused browser validation passes with exact cleanup; full final branch CI and new staging exhaustive functional/visual gates remain required.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "requested",
-  "goal_unavailable_reason": "Original coordinator native production goal is active and unbudgeted in this same visible thread and covers this repair. No duplicate goal or accounting reset; all required new repair gates remain pending.",
-  "head": "3d26dd34da6c1682d33b843a62a0ef0f2d31be92",
+  "goal_state": "unavailable",
+  "goal_unavailable_reason": "This coordinator-owned repair uses the original active unbudgeted Root goal 01a115f5-8fd9-7951-ab39-0e484eb17135; no duplicate branch-local goal or replacement session. Root continues through required release gates and private m920q deployment.",
+  "head": "331d99b7cda0df74355a7e4ddfffb6a2f151a45f",
   "implementation_sha": "671ff1b1f05fb3e925eb7b1316207d824288c58d",
-  "last_checkpoint": "2026-10-22T16:58:26.280298+00:00",
-  "last_human_progress_update": "2026-10-22T16:54:40.709361+00:00",
+  "last_checkpoint": "2026-10-23T02:57:02.014912+00:00",
+  "last_human_progress_update": "2026-10-23T02:56:15.652183+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "create the session-local Codex goal from goal_request, then record it as active",
+  "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "cf042ba2d2329f938e270213612782121b537fefa40dccbde78c70aadb375996",
+  "plan_hash": "6ad97f41edf7cdf4a20e51dcea3e7d5cd607cef05dc8a786ac2ec5a6ad28d2d8",
   "planning_required": true,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -94,17 +111,22 @@
     "completed": [
       "FMT1",
       "FMT2",
+      "FMT3",
       "PROV1",
-      "PROV2"
+      "PROV2",
+      "MAP1",
+      "CLN1",
+      "OBS1",
+      "OBS2"
     ],
     "current_blocker": "none",
-    "current_phase": "local-quality-validation-green",
-    "next_action": "Finalize technical closure and require final exact full branch CI green before canonical remediation integration; all new staging exhaustive gates remain mandatory.",
-    "total": 5,
-    "updated_at": "2026-10-22T16:54:40.709327+00:00"
+    "current_phase": "final-closing-head-exact-ci",
+    "next_action": "Publish this single final closure and freeze; require exact final full branch CI, canonical staging exhaustive and independent master gates before private m920q deployment. OBS3/MAP2 remain pending release gates.",
+    "total": 11,
+    "updated_at": "2026-10-23T02:56:15.652160+00:00"
   },
-  "remote": "3d26dd34da6c1682d33b843a62a0ef0f2d31be92",
-  "remote_sha": "671ff1b1f05fb3e925eb7b1316207d824288c58d",
+  "remote": "331d99b7cda0df74355a7e4ddfffb6a2f151a45f",
+  "remote_sha": "331d99b7cda0df74355a7e4ddfffb6a2f151a45f",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

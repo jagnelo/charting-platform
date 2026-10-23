@@ -286,3 +286,41 @@ ops/workstreams/fix-strategy-staging-quality/handoff.md
 ops/workstreams/fix-strategy-staging-quality/session.json
 ops/workstreams/fix-strategy-staging-quality/validation.jsonl
 No additional implementation/theme may start while final CI is evaluated.
+
+## Hidden-refresh checkpoint closure — 2026-10-23 02:50 UTC
+
+Implementation331d99b7cda0df74355a7e4ddfffb6a2f151a45f is clean/pushed.
+Exact CI39887117146 is terminal green, all required jobs; E2E120204997321
+191passed110existing skipped18.2m, F8l executed successfully. This is the
+implementation receipt, NOT the final closing-head CI which must also pass.
+
+Actual local pinned Noble1.62.1 F8l passes1/1in16.7s, one worker/retries0,
+state0 false exited. Log private runtime:
+/tmp/strategy-full-hidden-refresh-331d99b7-20261023/artifacts/hidden-refresh-focus.log
+SHA2565d5d2beb7f1bb1998f25b325f6d5c4d41e3f8992634120764f4965dc58af82a1.
+Fixture backend built331d. Frontend deliberately used immutable4687 production
+image dcf90f7d90ca0cceb3ac382830c8b4cc77ae6c6100c431d8f533492d5007b77b:
+ALL non-test frontend inputs are unchanged; only3test files differ. This explicit
+application-input equivalence is not a successful fresh331d frontend build.
+The bounded1.5GiB frontend build OOM is preserved; builder remains stopped at
+original caps/cache intact. No temporary2GiB build occurred or fake build.complete.
+
+Cleanup11262exit0 removed only the exact fixture/browser/generated volumes/
+network. All3independent global inventory differences0bytes. Only the owned,
+singly-tagged unused backend22a86782 image was removed, nonforced. Reused4687
+frontend remains independently verified unchanged. Artifacts/private source/
+cache and every retained service/dataset remain intact. No Root fixture remains.
+
+Collector9units pass on331d; prior1337full units/typecheck0 are qualified to
+unchanged inputs, not relabeled fresh full local runs. Original master red and
+a3c document-coverage failure remain recorded. Browser-clock capture and strict
+native coverage preserve missing-evidence failure, hidden-start failure,
+original observation intervals/assertions/retries and all visual oracles.
+
+Standing human delegated acceptance closes only this narrow repair CONDITIONAL
+on final closing-head full CI green. OBS1/OBS2 done; OBS3/MAP2 remain release gates.
+Publish one final snapshot, freeze, then canonical guarded staging integration,
+new full staging and independent master gates. No repeated self-SHA/CI record
+commits. Deployment remains unstarted pending green master. Root original goal
+continues active and unbudgeted; no branch-local replacement goal/session.
+integration_capture: exact branch HEAD.
