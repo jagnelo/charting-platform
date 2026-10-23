@@ -367,29 +367,21 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: Manual-import native-health boundary and noncurrent consumer reconciliation
-    state: local_resolution_module_60_passed;changed_file_ruff_and_format_pass;exact_parent_ci_39929980961_red_four_manual_import_expectation_failures;current_source_fix_validated_focused_only;exact_new_source_ci_pending;RSST_not_ready_rights_url_derivative_and_no_enrichment_gaps_open
-    baseline: 9e183e6c75940e4c6e0abf5bfc32afa589d95969
+    name: Accepted-f04 RSST manual-import feasibility audit (read-only)
+    state: consumer_correction_published_4dae395;exact_ci_39934411063_terminal_red_one_stale_workspace_test_reason;accepted_f04_static_audit_complete;RSST_not_ready_manual_profile_health_enrichment_rights_and_initial_url_gaps_open;no_import_or_runtime_action
+    baseline: 4dae395c1972457e644c8ec18ba289891c20426e
     intent: >-
-      Reconcile consumer fixtures after the manual-import safeguard: manual
-      uploads cannot claim native adapter health or current eligibility;
-      explicit SEC provenance remains classified as SEC and non-current.
-      Preserve the historical read-only basket path and truthful Strategy and
-      workspace rejection behavior. Exact parent CI 39929980961 is red on four
-      tests that expected manual imports to behave as native/current or expected
-      caller-injected source tiers. The bounded local resolution module and
-      changed-file Ruff/format checks pass. The retained RSST sample remains
-      unimported: rights, initial request URL, derivative row classification,
-      and a no-provider-enrichment/manual representation are unresolved. No
-      data, profile, Provider record, import, or route was changed or activated.
+      Record a source-backed, read-only determination of whether accepted f04
+      supports the retained RSST artifact as manual/noncurrent dated data. The
+      exact f04 schemas permit an explicit composition/known-at/raw payload and
+      typed normalized rows, but the profile API cannot bind manual_csv, ingest
+      writes adapter-success state, routes have no no-enrichment switch, and
+      the CSV parser misclassifies futures. Retained rights and initial request
+      URL remain unverified. No import, profile change, Provider/runtime action,
+      external request, quota operation, or product-source change occurred.
     owned_paths:
-      - backend/app/services/etf_holdings.py
-      - backend/tests/unit/services/test_etf_holdings_resolution.py
-      - backend/tests/integration/api/test_etf_holdings.py
-      - backend/tests/integration/api/test_strategy_lab.py
-      - backend/tests/integration/api/test_workspaces.py
-      - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
+      - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/session.json
       - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
 scope:
@@ -1789,17 +1781,21 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Publish the reviewed manual-import consumer correction and its truthful
-  workstream evidence once, then inspect exact-source CI; the parent CI
-  39929980961 is terminal red and the local focused module is not a replacement
-  for integration validation. Keep the retained RSST body untouched: its
-  rights, initial request-URL lineage, safe no-provider-enrichment route,
-  derivative typing, and supported manual-profile representation are still
-  unresolved. Continue AC1-AC14, preserve 15 Tier-0 and 156 Tier-1, history,
+  Preserve exact-source CI `39934411063` as terminal red on
+  `4dae395c1972457e644c8ec18ba289891c20426e`: Frontend Unit passed, Backend unit
+  passed with one skip, Backend integration had 497 passes, two skips and one
+  stale exact-reason assertion; Branch-declared, E2E and Exhaustive were
+  skipped. The failed workspace test still received the correct current-mode
+  409 and its selected historical read passed; only the expected denial reason
+  conflicts with the profile's earlier-priority unassigned-adapter reason.
+  Do not rerun this CI or alter product/test source under the read-only RSST
+  audit scope. Keep the retained RSST body untouched and non-routable until
+  rights, initial request URL, no-enrichment, derivative typing, and manual
+  profile/health behavior are resolved through supported reviewed paths.
+  Continue AC1-AC14; preserve 15 Tier-0 and 156 Tier-1, history,
   quarantines, holds, retained data and the 30-day observation. The required
-  `full_stack_browser` profile requires Root's exclusive slot. No external
-  requests, quota, activation, staging/sibling/master mutation, cleanup or
-  deployment.
+  `full_stack_browser` profile remains Root-slot-gated. No external requests,
+  quota, activation, staging/sibling/master mutation, cleanup or deployment.
   The required
   `full_stack_browser` recipe is `make
   validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents

@@ -33,8 +33,8 @@ Focused validation on these local changes: the complete
 live flags set to zero. Ruff check passed and Ruff format check confirmed all
 five changed Python files are formatted. No local integration or full-stack
 profile was run; this does not replace hosted validation. Exact new-source CI
-is pending after publication. Preserve the parent CI red receipt; do not rerun
-it.
+was pending when this correction note was first written; see the terminal
+result below. Preserve the parent CI red receipt; do not rerun it.
 
 No issuer/provider/SEC HTTP, quota, data import, profile/Provider mutation,
 activation, fixture, cleanup, or cross-worktree write occurred. The RSST
@@ -43,6 +43,94 @@ documented rights, initial-request URL, derivative-row and no-enrichment/manual-
 profile gaps are resolved. Preserve AC1–AC14, the `15 Tier-0 and 156 Tier-1`
 investigations, historical evidence, quarantines, holds, retained data, the
 30-day observation and Root's exclusive `full_stack_browser` slot.
+
+Exact-source CI `39934411063` for `4dae395c1972457e644c8ec18ba289891c20426e`
+is terminal red, not a checkpoint acceptance: Frontend Unit passed; Backend
+unit passed `5235` with one skip; Backend integration passed `497` with two
+skips and one failure; Branch-declared, E2E and Exhaustive were skipped after
+integration failure. The only failure was
+`test_etf_industries_are_derived_from_point_in_time_holdings` at
+`backend/tests/integration/api/test_workspaces.py:2120`. The test's actual
+current-mode request returned 409 and its explicit dated historical request
+passed. The mismatch is only the exact denial `reason`: this fixture has no
+concrete adapter assigned, so the API correctly reports `No concrete ETF
+holdings adapter is assigned to this profile.` before considering the
+artifact's `source_tier=none`; the assertion expected the lower-priority
+source-tier reason. This is a stale test expectation, not evidence that manual
+data was accepted as current. Preserve the 409, stale status, tier `none`,
+`usable_for_current_analysis=false`, and historical positive. No rerun or
+source/test edit was made under the read-only RSST audit scope.
+
+## Retained RSST against accepted-f04 manual-import contract — read-only — 2026-10-23
+
+Static inspection of exact accepted staging source `0e342512e53ba2268425294d61c50e219eaafa4f`
+and the retained `.ai/validation/structural-return-stacked-20261015.{body,headers}`
+answers the feasibility question as **not safely importable through accepted f04
+yet**. F04 can physically store an explicitly dated artifact, but cannot provide
+the complete requested manual-only contract without unsupported identity/profile
+workarounds or side effects:
+
+- `ETFHoldingsIngestRequest` accepts `composition_date`, `known_at`, nullable
+  `published_at`, `provenance`, `source_provider`, `source_url`, raw payload,
+  legal metadata and normalized row fields. It can represent derivatives and
+  cash with explicit row/holding types while retaining `raw_payload_text`.
+  `legal_metadata.source_tier=none` is recognized by capability classification.
+  Do not rely on schema defaults: the schema otherwise defaults quality to
+  issuer-current and completeness to complete, neither of which is evidenced
+  for this manual sample.
+- `ETFHoldingsProfileUpdateRequest` does not accept `adapter_key`. It accepts
+  `provider_aliases`, but `ensure_etf_profile` applies `holdings_adapter` only
+  when that key exists in the registered ETF adapter catalog. `manual_csv` is
+  not registered at f04 (`git grep` found it only as the CSV request's default
+  `source_provider`). A direct DB alias/key insert would be an unsupported
+  workaround, not a reviewed operator path.
+- Both accepted admin ingest routes call the common snapshot ingestion with
+  default `allow_provider_enrichment=true`; there is no request field or
+  documented manual-only no-enrichment switch. Outside test configuration,
+  unresolved rows can reach identifier-provider enrichment. The generic CSV
+  parser defaults non-cash rows to `holding_type=equity` and `row_type=security`,
+  so it would misclassify the RSST futures. The normalized-row ingest endpoint
+  can encode correctly reviewed derivative/cash types, but it does not solve
+  enrichment or manual profile binding.
+- Accepted-f04 `ingest_holdings_snapshot` always calls `_record_adapter_success`.
+  An explicit `source_tier=none` prevents the snapshot from becoming usable for
+  current analysis, but the import still writes a successful adapter-health
+  row. With an unassigned profile the capability can be `stale`; with a
+  concrete profile adapter and tier `none` it is `degraded`. Thus f04 does not
+  guarantee the requested clean manual/noncurrent health representation. The
+  ETF branch's newer unaccepted safeguard skips that native-success write, but
+  is not an accepted-f04 operator contract and does not yet disable enrichment.
+- F04 history reads filter explicit point-in-time requests by both
+  `composition_date <= requested_date` and `known_at <= end_of_requested_date`
+  (or a null `known_at`). The full holdings view offers snapshot-date selection;
+  the panel shows a non-current capability notice and only enables opening a
+  constituent when capability is current. The basket endpoint rejects an
+  unselected non-current request with 409 while an explicit date/snapshot is a
+  historical selection. If a later approved import is ever made, it must set a
+  non-null `known_at` to the actual import/observation time so an October 15
+  query cannot see an artifact imported later; leaving it null would bypass the
+  PIT cutoff. `published_at` can remain null. The service's fallback
+  `known_at` based on composition date is not suitable for a later import.
+
+Retained evidence identifies a CSV response redirected to
+`https://static.returnstackedetfs.com/data/TidalFG_Holdings_RSST.csv`, with
+HTTP 200 observed at `2026-10-15T19:09:11Z`; the body has 36 RSST-scoped rows
+dated `2026-10-15`, including SPYM, cash, and long/short futures. It is not
+SPY/RSP holdings evidence. The initial request URL is absent from the retained
+header capture, so only the redirect target is proven. `Last-Modified` is not
+verified publication time. The reviewed local materials do not establish
+storage/display/redistribution rights; this is an evidence gap, not a claim
+that rights are prohibited. No import, profile/admin mutation, runtime
+operation, HTTP request, quota action or external lookup was performed.
+
+Disposition: keep the RSST body untouched and non-routable. The schema could
+store a future explicit manual artifact with raw body, evidence-backed source
+URL, reviewed row typing, `provenance=manual_import`, `source_provider=manual_csv`,
+`source_tier=none`, unknown publication time, and an actual non-null import-time
+`known_at`; but rights, initial-request provenance, no-enrichment behavior and
+manual-profile/health semantics must first be resolved through supported
+reviewed paths. Preserve all AC1–AC14, `15 Tier-0 and 156 Tier-1`, quarantines,
+holds, retained data and the 30-day observation.
 
 ## RSST manual/noncurrent sample feasibility — 2026-10-23
 

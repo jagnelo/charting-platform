@@ -88,21 +88,16 @@
     }
   ],
   "active_changeset": {
-    "baseline": "9e183e6c75940e4c6e0abf5bfc32afa589d95969",
-    "intent": "Correct the four exact integration expectations exposed after the manual-import safety boundary: retain explicit SEC classification as non-current, deny manually uploaded evidence for current basket/Strategy use, retain selected historical basket access, and correct the workspace tier expectation. Preserve prior read-only RSST feasibility findings; no artifact, profile, Provider, or runtime data was changed or activated.",
-    "name": "Manual-import current-health boundary and consumer regressions",
+    "baseline": "4dae395c1972457e644c8ec18ba289891c20426e",
+    "intent": "Record a read-only source-backed assessment of whether accepted f04 can safely store the retained RSST file as explicit manual/noncurrent dated history. The audit found missing supported manual profile binding, adapter-health isolation, no-enrichment path, rights and initial-request URL evidence, and correct derivative parsing in the CSV route. No source/runtime/profile/data/provider operation occurred.",
+    "name": "Accepted-f04 RSST manual-import feasibility audit",
     "owned_paths": [
-      "backend/app/services/etf_holdings.py",
-      "backend/tests/unit/services/test_etf_holdings_resolution.py",
-      "backend/tests/integration/api/test_etf_holdings.py",
-      "backend/tests/integration/api/test_strategy_lab.py",
-      "backend/tests/integration/api/test_workspaces.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Exact parent source9e183e6c75940e4c6e0abf5bfc32afa589d95969 CI39929980961 is terminal red: Backend unit and Frontend Unit passed, Backend integration had four failures because manual uploads were expected to behave as native/current or retain caller-asserted tiers, and downstream jobs were skipped. Current changes correct those cases; the resolution module passes60/60 and Ruff check/format pass on five changed Python files. No local integration/full-stack test was run and exact new-source CI is pending. The retained RSST sample remains not ready to import because rights, initial request URL, no-enrichment behavior, derivative typing and manual-profile semantics remain unresolved. No issuer/provider/SEC HTTP, quota, artifact import, profile/Provider mutation, activation, fixture, cleanup or cross-worktree write occurred. Keep AC1-AC14, quarantines, holds, retained data, 30-day observation and Root-owned full_stack_browser slot open."
+    "state": "The manual-import consumer correction was committed/pushed as4dae395c1972457e644c8ec18ba289891c20426e. Exact CI39934411063 is terminal red: Frontend Unit passed; Backend unit passed5235 with one skip; Backend integration passed497 with two skips and failed only the workspace ETF industry test on an expected-vs-actual denial-reason mismatch; Branch-declared, E2E and Exhaustive skipped. The actual API correctly returned current-mode409 and the selected historical read passed. The test expected the source-tier reason, but this profile has no concrete adapter and the API reports that earlier-priority reason. No rerun or source/test edit occurred under the read-only audit scope. Accepted-f04 RSST audit concludes the sample is not safely importable yet: manual_csv profile binding, adapter-health isolation, no-enrichment behavior, correct CSV derivative typing, initial request URL and rights remain unresolved. No sample import or external/runtime operation was performed. Preserve all AC1-AC14 and safety gates."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -153,14 +148,9 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23: Exact parent SHA9e183e6c75940e4c6e0abf5bfc32afa589d95969 CI39929980961 is terminal red in Backend integration with four manual-import/source-tier expectation failures; Backend unit and Frontend Unit passed. Current owned changes correct those contracts; test_etf_holdings_resolution.py passes60/60 and five-file Ruff/format checks pass, but no integration/full_stack_browser result covers these edits yet. RSST remains a separate read-only non-importable candidate: the retained body is a genuine 36-row RSST structural sample, not SPY/RSP; accepted f04 generic CSV typing mislabels derivatives, importer routes permit provider enrichment by default, manual_csv is unregistered, rights and initial request URL are unverified, and publication time is unknown. Do not import or mutate profile/runtime state. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, 30-day observation and Root-owned full_stack_browser slot.",
-  "current_local_delta": "2026-10-23: On top of9e183e6, manual-import classification now preserves SEC tier only when explicit provenance/source provider identify a filing; it remains non-current and no native adapter-success state is written. Integration expectations require manual data to fail current basket/Strategy use while an explicitly selected historical basket remains readable; workspace expected tier/reason now match unrecognized manual data. test_etf_holdings_resolution.py passes60/60 with live flags off; Ruff check and format check pass on all five changed Python files. Exact parent CI39929980961 is red on four related integration expectations; corrected changes have not yet run in hosted CI. No local integration/full-stack run, external request, quota, import, profile/Provider mutation, fixture or cleanup occurred.",
+  "current_blocker_latest": "2026-10-23: Exact published ETF source4dae395c1972457e644c8ec18ba289891c20426e run39934411063 is terminal red: Frontend Unit passed; Backend unit passed5235 with one skip; Backend integration passed497 with two skips and one workspace test failure; later jobs skipped. The API correctly denies current use with409 and the explicit historical read passes; the sole assertion expected a lower-priority source-tier reason instead of the actual unassigned-adapter reason. No rerun or source/test edit occurred under read-only audit scope. RSST remains not importable through a supported manual-only path because manual profile/health isolation, no-enrichment, derivative parser behavior, rights and initial URL are unresolved. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data, 30-day observation and Root-owned full_stack_browser slot.",
+  "current_local_delta": "2026-10-23: Source correction4dae395c1972457e644c8ec18ba289891c20426e is pushed and exact CI39934411063 is terminal red with one stale workspace denial-reason expectation; the CI log confirms current-mode409 and historical read success. The remaining local dirty set is only the substantive RSST manual-import feasibility handoff and its workstream records. No import, profile/runtime/provider mutation, HTTP, quota, activation, fixture, cleanup, or sibling/staging/master write occurred.",
   "dirty_paths": [
-    "backend/app/services/etf_holdings.py",
-    "backend/tests/unit/services/test_etf_holdings_resolution.py",
-    "backend/tests/integration/api/test_etf_holdings.py",
-    "backend/tests/integration/api/test_strategy_lab.py",
-    "backend/tests/integration/api/test_workspaces.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -190,7 +180,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "9e183e6c75940e4c6e0abf5bfc32afa589d95969",
+  "head": "4dae395c1972457e644c8ec18ba289891c20426e",
   "implementation_sha": "04f49d940c877635de52c0c0616e54f47018bf25",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -303,13 +293,13 @@
   },
   "last_checkpoint": "2026-10-23T01:28:00Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "2026-10-23: Parent SHA9e183e6c75940e4c6e0abf5bfc32afa589d95969 exact CI39929980961 terminal red (Backend unit and Frontend Unit passed, Backend integration had four manual-import expectation failures, downstream jobs skipped). Current local resolution-module proof is60/60 and five-file Ruff/format checks pass. Existing RSST read-only finding remains: the retained artifact is not safely importable and is not SPY/RSP evidence; no data or Provider operation occurred. Exact-source CI for corrected changes and the full_stack_browser profile remain pending. AC1-AC14, 15 Tier-0 and 156 Tier-1, holds, quarantines, retained data and 30-day observation remain open. Historical journal entries labeled09:08:30Z and09:12:30Z are unchanged; validation row957 preserves the clock discrepancy qualification.",
+  "latest_checkpoint": "2026-10-23: Manual-import correction4dae395c1972457e644c8ec18ba289891c20426e was verified at origin. Exact run39934411063 is terminal red: Frontend Unit passed; Backend unit passed5235 with one skip; integration passed497 with two skips and one stale workspace denial-reason assertion; downstream jobs skipped. The failing API response still correctly denies current use with409, and explicit historical read passed. Accepted-f04 static RSST assessment remains not ready to import: manual-only profile/health/enrichment behavior, derivatives, rights and initial URL are unresolved. No import or network/runtime operation occurred. Keep full AC1-AC14, 15 Tier-0 and156 Tier-1, all holds, quarantines, retained data and 30-day observation. Historical journal labels09:08:30Z and09:12:30Z remain unchanged; row957 contains the clock discrepancy qualification.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T09:32:06Z",
-    "result": "terminal_failure;Backend unit passed;Frontend Unit passed;Backend integration failed four manual-import/source-tier expectation cases;Branch-declared, E2E and Exhaustive skipped",
-    "run_id": 39929980961,
-    "sha": "9e183e6c75940e4c6e0abf5bfc32afa589d95969"
+    "recorded_at": "2026-10-23T10:09:03Z",
+    "result": "terminal_failure;Frontend Unit passed;Backend unit 5235 passed one skipped;Backend integration 497 passed two skipped one failed exact denial-reason assertion;Branch-declared E2E Exhaustive skipped",
+    "run_id": 39934411063,
+    "sha": "4dae395c1972457e644c8ec18ba289891c20426e"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
@@ -359,8 +349,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Finish reviewing and validating the five-path manual-import consumer correction against exact CI39929980961, update coherent branch-owned evidence, then commit/push once and inspect exact new-source CI. After that context closes, finish the bounded read-only RSST feasibility note without import or requests. Continue AC1-AC14; preserve 15 Tier-0 and 156 Tier-1, prior evidence, MSMR/QQQ and Militia/GOOG quarantines, holds, retained data and 30-day observation. full_stack_browser remains Root-slot-gated. No issuer/provider/SEC HTTP, quota, paid/trial activation, staging/sibling/master mutation, cleanup or deployment.",
-  "plan_hash": "1a2ce996d481ab6aa18f5693bac2c2607a7f336ae162fc6e7a7d58f0317632e4",
+  "next_action": "Finish validating and publish the coherent branch-owned RSST audit handoff and exact CI39934411063 terminal result in one workstream-record closure; do not rerun the failed CI or change product/test source under the current read-only scope. Preserve its single stale expected-reason failure honestly: current-mode use remains409 and explicit historical use passed. Do not import RSST or make issuer/provider/SEC requests. Continue the full AC1-AC14 roadmap; preserve 15 Tier-0 and 156 Tier-1, prior evidence, quarantines, holds, retained data and the 30-day observation. full_stack_browser remains Root-slot-gated. No quota, paid/trial activation, staging/sibling/master mutation, cleanup or deployment.",
+  "plan_hash": "5639c53e0bd746df41f31ae0e129f6f876ba71e1e0859e2576db6fd8ba497478",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -411,10 +401,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "2026-10-23: Parent source9e183e6c75940e4c6e0abf5bfc32afa589d95969 exact CI39929980961 is terminal red with four manual-import/current-tier integration expectation failures; Backend unit and Frontend Unit passed. The focused current source correction passes the complete 60-test resolution module and Ruff/format checks on five files, but hosted exact-source CI remains pending and no local integration/full_stack_browser profile was run. Keep current-vs-manual and historical/PIT assertions intact. RSST remains unimported pending rights, initial URL lineage, derivative typing and no-enrichment/manual-profile resolution. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines/holds, retained data and 30-day observation. No issuer/provider/SEC requests, quota, activation, cleanup or cross-worktree mutation.",
-    "current_phase": "manual_import_current_health_consumer_reconciliation_2026_10_23",
-    "next_action": "Complete workstream serialization/validator and exact count sentinel once, then commit and push the coherent manual-import correction and inspect the exact new-source CI. After that, answer the bounded read-only RSST import-feasibility question without import or external requests. Keep full_stack_browser pending Root's exclusive slot; preserve the full roadmap, holds, quarantines, retained data and 30-day observation.",
-    "updated_at": "2026-10-23T09:45:38Z"
+    "current_blocker": "2026-10-23: Exact published source4dae395c1972457e644c8ec18ba289891c20426e CI39934411063 is terminal red on one workspace test's denial-reason expectation. Actual current-mode endpoint denial409 and selected historical read both pass; no current-data safety failure is indicated. RSST manual-only import remains unsupported in accepted f04. No import, external HTTP, quota or runtime action occurred. All original roadmap items and review gates remain open.",
+    "current_phase": "accepted_f04_rsst_manual_import_audit_and_exact_ci_red_record_2026_10_23",
+    "next_action": "Close this coherent audit context by validating and publishing the RSST feasibility note together with the exact terminal CI finding. Do not rerun CI or change product/test source within the current read-only audit scope; preserve the precise stale expected-reason failure and all roadmap gates.",
+    "updated_at": "2026-10-23T10:10:41Z"
   },
   "provider_release": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -426,8 +416,8 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "9e183e6c75940e4c6e0abf5bfc32afa589d95969",
-  "remote_sha": "9e183e6c75940e4c6e0abf5bfc32afa589d95969",
+  "remote": "4dae395c1972457e644c8ec18ba289891c20426e",
+  "remote_sha": "4dae395c1972457e644c8ec18ba289891c20426e",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
