@@ -1,5 +1,86 @@
 # fix/strategy-staging-quality
 
+## ACTIVE NEW CHECKPOINT — 2026-10-22 21:31 UTC
+
+## New repair local acceptance — 2026-10-22 21:55 UTC
+
+Implementationf19854ae is locally proven: unchanged 10k Market Map E2E passes
+1/1in20.8s, retries0, actual pinnedNoble1.62.1 browser state0falseexited. Existing
+5s renderbudget and every ordinary selection/zoom/pan/diagnostic assertion stay
+byte-identical toM2. All six fixture services' actual caps/no-extra-swap/private
+network/loopback boundaries verified. No new product/data/provider gate is waived.
+38workflowtests and actual shared-image cleanup proof pass;61mountedtests and
+Vue typecheck pass. Exact private fixture/browser cleanup and2own temporary image
+removals complete; all global container-state/volume/network diffs0bytes and
+canonical current-worktree cleanup passes. Original datasets/services untouched,
+artifacts and stopped shared builder/cache preserved. See appended raw hashes
+and paths in validation.jsonl, not a blanket full visual/profile acceptance.
+
+Root exercises delegated narrow technical closure SUBJECT TO exact final HEAD
+full CI. New closure record contains no further product edits; it captures
+integration_capture: exact branch HEAD. Freeze once published; do not add a
+self-SHA/CI acknowledgment commit. MAP2 remains incomplete until independently
+enforced hosted/staging/master gates actually succeed. Previous B193 closure is
+historical, not authority to accept this new source. Full later feature work,
+roadmaps, official HelpV25 and provider/legal/quota holds remain separate.
+
+21:40 validation update: the delayed-initialization regression failed on original
+M2 with2maprequests instead of1. Minimal onMounted runGeneration===0 guard now
+passes61/61 mounted tests; Vue type-check0. Shared-image cleanup regression also
+failed original helper with the exact retained-image error. Safe project-tag
+cleanup passes the workflow suite and an ACTUAL unique scratch-image proof:
+imagefc5d58dcfdd21c92dd329200ac8d7e4eabfb6d05b800e956044556812d10659a
+had2ownedtags; original non-forced ID removal failed "multiple repositories".
+Initial conservative patch refused Docker OCI's local repo@digest aliases (no
+deletion); refined guard accepts only exact verified-owned repositories and
+valid digest syntax, still denying foreign registry/alias/owner/in-use cases.
+Actual patched helper removed both own tags without force; independent inspect
+confirms both absent. Only this empty disposable test image was deleted; its
+Dockerfile remains reproducible, no retained image/service/data was touched.
+
+Implementation92cf8aef is pushed and CI39858555845 started, but the local OCI
+alias refinement below is additional meaningful source and must be published
+and validated at its new SHA; do not call92cf final. Plan-ready succeeded after
+publication with same claim. Native original Root goal stays ACTIVE/unbudgeted;
+branch goal-state unavailable means it deliberately uses that existing visible
+coordinator goal, not a paused task or need for a duplicate goal.
+
+Prepared reviewed source-pinned isolation recipe at
+/tmp/staging-market-map-app-runner-20261022.sh, private current92cf archive
+/tmp/strategy-full-market-map-92cf8aef-20261022. Config passes; no fixture started.
+Supplemental private bounds disable extra swap and add pid caps. Refresh exact
+source pins/private paths to the final actual source before build/run; preserve
+the92cf preparation as historical, never relabel it. Run unchanged dense-map case
+withzero retries under the existing full_stack_browser gate. All new exact
+branch/staging/master gates and real deployment remain pending.
+
+Previous B193 checkpoint is accepted in green M2 staging0e342512; its exact SHA,
+closure narrative and evidence below remain historical, immutable acceptance.
+Root resumed this SAME clean repair worktree/claim706a780f and fast-forwarded to
+M2 for the NEW master39845561267 failure. Context/status preflight verified exact
+implementation role and same existing writer. `start` correctly refuses a second
+claim; no takeover/new writer was attempted. Native original Root production goal
+remains active/unbudgeted, covering this repair; no duplicate or accounting reset.
+
+Master EIG120064856919: all104 backend shards,497integration (2 existing skips),
+1330frontend pass; functional193pass107skip1fail, no strict visual execution.
+The 10k Market Map search SPY selection assertion failed after5s; performance
+budget itself passed. Exact first-failure ZIP12460156125 hash
+ffc2292a4a189d3a537289401f8f64b40e6a990c371f92722034470b4534ca68, retained
+/tmp/master-39845561267-exhaustive.zip. Video shows a painted map at6.4s followed
+by Loading at6.6s; search SPY/hint later present with no selection. This proves a
+second loading transition, not yet exact request timing. Source onMounted awaits
+other initialization then unconditionally runs, even after a user/source run.
+Add a deterministic delayed-snapshot initialization regression before changing
+code. No assertion, timeout, retry, performance budget or oracle changes.
+
+Separate cleanup error retains OWNED image1025eea5dde4. Build log independently
+shows backend and worker export the same exact image config ID; current cleanup
+removes by ID and ignores individual removal failures. Confirm shared-tag cause
+and test safe tag-based cleanup without force/global prune/foreign deletion.
+No new feature/production acceptance or deployment start. Keep master/staging
+source untouched while this existing Root-owned repair is validated.
+
 Created from `staging` at `5178b414b426ec61bdcb22257b4f956581c25d0c`.
 
 ## Human authorization

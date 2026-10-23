@@ -1979,7 +1979,10 @@ onMounted(async () => {
     }
   }
   if (!componentMounted) return
-  if (sourceId.value || explicitSymbols.value.trim()) await run()
+  // Initialization can finish after a user refresh or source-watcher run.
+  // That run already owns the map (and any subsequent selection); replaying
+  // it here would clear the map and erase interaction after it was painted.
+  if ((sourceId.value || explicitSymbols.value.trim()) && runGeneration === 0) await run()
   if (!componentMounted) return
   if (sourceId.value) await loadHistoryStatus()
   if (sourceId.value) await loadBenchmarkCoverage()

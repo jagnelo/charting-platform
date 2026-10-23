@@ -50,6 +50,32 @@ describe('MarketMapTool', () => {
     wrapper.unmount()
   })
 
+  it('does not replay initialization after a user refresh and erase its selection', async () => {
+    let releaseSnapshots!: (value: unknown) => void
+    const snapshots = new Promise(resolve => { releaseSnapshots = resolve })
+    apiGet.mockImplementation((path: string) => path === '/analysis/market-map/snapshots'
+      ? snapshots
+      : Promise.resolve([]))
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: defaultSources[0].source_id } } })
+    try {
+      await flushPromises()
+      expect(apiGet).toHaveBeenCalledWith('/analysis/market-map/snapshots')
+      await wrapper.get('.market-map-tool__run').trigger('click')
+      await flushPromises()
+      await wrapper.get('.market-map-tool__tile').trigger('click')
+      expect(wrapper.get('.market-map-tool__selection-announcement').text()).toBe('1 selected member: NVDA')
+
+      releaseSnapshots([])
+      await flushPromises()
+
+      expect(apiPost.mock.calls.filter(([path]) => path === '/analysis/market-map')).toHaveLength(1)
+      expect(wrapper.get('.market-map-tool__selection-announcement').text()).toBe('1 selected member: NVDA')
+    } finally {
+      releaseSnapshots([])
+      wrapper.unmount()
+    }
+  })
+
   it('announces history and benchmark readiness loading states politely', async () => {
     let resolveHistory!: (value: unknown) => void
     let resolveCoverage!: (value: unknown) => void
