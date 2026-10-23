@@ -1,16 +1,21 @@
 # feat/tc2000-frontend-rework
 
-## Current continuation — 2026-10-23: serialize repeated Favorites toggles
+## Current continuation — 2026-10-23: published Favorites toggle serialization
 
-Published HEAD is `a7e5ae02461a987a228dbff67558be56a2bc08e4`, synchronized with
+Published HEAD is `fe4a1fcba32fe640c6b9e2f1f6e6503f86788418`, synchronized with
 the feature ref. It contains the accepted four-feature staging release
 `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`; the earlier accepted
 `0e342512e53ba2268425294d61c50e219eaafa4f` is an ancestor, so no backward
-fast-forward or staging rewrite is appropriate. Exact CI `39888731289` binds
-to published `a7e5`; Frontend Unit Tests, Backend Tests, Branch-declared Tests,
-and E2E passed on attempt 1. E2E logged 192 passed, 110 declared skips, and no
-failures or flakes; the exhaustive gate was an expected skip. That run does not
-include the working-tree change below.
+fast-forward or staging rewrite is appropriate. Exact CI `39892894561` attempt
+1 completed successfully on `fe4a` at 03:47:13Z: Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and E2E passed; Exhaustive Integration Gate was
+an expected skip. E2E passed 191 with 110 declared skips and no failures or
+flakes. This hosted result does not replace the pending TC local parent-runtime
+and full-profile gates.
+The accepted `4687bd0c` release is already an ancestor through merge
+`f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d`; another staging merge requires a
+new exact green receipt and explicit coordinator release.
+The earlier `39888731289` green result is bound to `a7e5` only.
 
 Review of `useFavoritesStore` found that successful add/remove mutations could
 be overwritten by a `/favorites` GET already in flight. The same stale load
@@ -31,15 +36,16 @@ A separate deferred regression covers repeated chart-star toggles while an add
 is pending. The `ToolWindow` star remains enabled during the request, and
 `toggle()` previously inspected only the pre-mutation list; two rapid clicks
 therefore coalesced into one add instead of applying the second toggle. The
-new test failed on the published source (1 failed/8 passed). The working-tree
-fix queues toggle intents per instrument and reevaluates membership after each
-earlier mutation; a second test confirms different instruments still mutate
+new test failed on published `a7e5` (1 failed/8 passed). Commit `fe4a` queues
+toggle intents per instrument and reevaluates membership after each earlier
+mutation; a second test confirms different instruments still mutate
 concurrently. Focused Favorites/WatchList suites pass `103/103`; Vue type-check
 exits zero; workstream validation (45 records), scope self-tests (35), actual
 scope guard (998 paths, 858 immutable imports, 29 approved adaptations), and
-`git diff --check` pass. The two source/test files remain unpublished and need
-their own exact-source CI. No full frontend suite, backend suite, build, browser,
-Compose, provider HTTP, reference, threshold or retry-policy change was made.
+`git diff --check` passed before publication. Exact CI `39892894561` is the
+required hosted validation for `fe4a` and is green. No full local
+profile, build, browser, Compose, provider HTTP, reference, threshold or retry
+policy change was made.
 
 F8y Tag Columns remains a separate browser gate. Its parent-host-to-mutation
 flow is in the hosted E2E scope; the full local profile remains held for Root's
@@ -47,9 +53,14 @@ one-at-a-time slot. Root owns the independent F8l Market Map timing-observer
 repair; no source from that worktree has been imported. Preserve all original
 assertions, 70% coverage threshold, 104 visual references/masks/tolerance, and
 zero-retry policy. Full AC1–AC9 and official REF-HELP-V25 remain open. Next:
-publish the tested toggle serialization change as one coherent source/workstream
-commit, then obtain its exact-source CI. Do not start a local fixture until Root
-releases the slot.
+continue source-backed TC-owned roadmap work; do not start a local fixture
+until Root releases the slot. Official Custom Date Sort help defines `vs. Sub
+Industry` against the related Sector Index (SX) and `vs. Industry` against the
+main Industry Index (IX). A bounded TC source review found no mapping from the
+stored sector/industry labels to those index instruments. Weighting,
+point-in-time membership, and canonical local-history lineage also remain
+unresolved, so relative modes stay unavailable; do not infer an instrument or
+series.
 
 ## Historical continuation — F8y stale configuration repair
 

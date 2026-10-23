@@ -63,58 +63,60 @@ current_blocker: >-
   The branch contains accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
   at merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d; earlier accepted
   0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published
-  HEAD a7e5ae02461a987a228dbff67558be56a2bc08e4 matches the feature ref.
-  Exact CI39888731289 completed green on published a7e5: Frontend Unit Tests,
-  Backend Tests, Branch-declared Tests, and E2E all passed; E2E reported 192
-  passed and 110 declared skips with no failures or flakes. This run is for the
-  published source, not the current working-tree change.
+  HEAD fe4a1fcba32fe640c6b9e2f1f6e6503f86788418 matches the feature ref.
+  Exact CI39892894561 attempt 1 completed successfully on fe4a at 03:47:13Z.
+  Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E passed;
+  Exhaustive Integration Gate was an expected skip. E2E passed 191 with 110
+  declared skips and no failures or flakes. This is branch CI, not completion of
+  the held TC local parent-runtime/full-profile gate or the full roadmap.
+  The explicitly accepted 4687 release is already an ancestor through merge
+  f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d. Do not treat later staging-ref
+  movement as a release; another staging SHA requires its own exact green
+  receipt and coordinator release.
 
-  A concrete TC-owned Favorites race is being repaired: a successful add or
-  remove could be overwritten by an older in-flight /favorites GET, and a stale
-  failed GET could report an obsolete error after a mutation succeeded. Deferred
-  regressions produced baseline red (1 failed/3 passed) for stale-row loss and
-  intermediate red (1 failed/5 passed) for stale-error publication. Successful
-  add/remove now invalidate pending-load generations and stale load errors are
-  ignored. A further deferred regression found that a successful add during an
-  incomplete initial list read retained the new row but lost unrelated rows
-  (baseline 1 failed/6 passed). A failed initial load followed by a successful
-  add showed the same loss after the request had already ended (baseline 1
-  failed/7 passed). The store now refreshes the canonical list whenever it is
-  not yet loaded, covering pending and failed initial reads; that fix is
-  published in a7e5. A deferred test found that two quick chart-star toggles
-  during one pending add coalesced into one add and lost the second intent
-  (baseline 1 failed/8 passed). The working-tree fix serializes toggles per
-  instrument and reevaluates membership after each earlier mutation while
-  keeping different instrument IDs independent. Favorites store and WatchList
-  suites pass103/103; Vue type-check, workstream validation, TC scope
-  self-tests and actual scope guard pass. This two-file follow-up remains
-  unpublished and requires exact-source CI. CI39888731289 validates published
-  a7e5 only.
+  The TC-owned Favorites toggle race was reproduced on published a7e5 (1
+  failed/8 passed): two rapid chart-star toggles during a pending add coalesced
+  into one add, losing the second intent. The fix serializes toggle intents by
+  instrument and reevaluates membership after prior mutations; distinct
+  instruments remain concurrent. Focused Favorites/WatchList suites passed
+  103/103, Vue type-check exited 0, workstream/scope validation passed, and the
+  exact implementation is published at fe4a. Its hosted CI is green; these
+  focused checks and branch CI do not substitute for the held TC local
+  parent-runtime/full-profile gate.
 
   The F8y ordinary-click parent-host-to-mutation browser proof and full local
-  profile remain pending Root's single-owner fixture slot. Root separately owns
-  the F8l request-timing observer repair; no source from that worktree was
-  imported. Preserve all assertions, the 70% function-coverage threshold,
+  profile remain pending Root's single-owner fixture slot. Official Custom
+  Date Sort help identifies the `vs. Sub Industry` comparator as the related
+  Sector Index and the `vs. Industry` comparator as the main Industry Index;
+  the related index families use SX and IX ticker symbols. TC-owned source
+  stores sector/industry labels but no source-backed mapping from those labels
+  to the corresponding SX/IX instruments. Weighting, point-in-time membership,
+  and canonical local-history lineage also remain unresolved. Keep relative
+  modes unavailable until those contracts exist; do not infer a comparator
+  instrument or series. Preserve
+  all assertions, the 70% function-coverage threshold,
   screenshot references/masks/0.005 tolerance and zero-retry policy. Full
   AC1–AC9 and official REF-HELP-V25 parity remain open; provider/live/paid
   operations, deployment and promotion remain disabled/unperformed.
 current_checkpoint_status: >-
   Current continuation at 2026-10-23: published feature HEAD
-  a7e5ae02461a987a228dbff67558be56a2bc08e4 contains accepted staging 4687;
-  earlier accepted 0e is already an ancestor. Exact CI39888731289 completed
-  green on a7e5 (E2E 192 passed, 110 declared skips, zero failures/flakes).
-  It does not include the current working-tree change.
-  The published Favorites fix refreshes the
-  canonical list after successful add/remove when the list was not yet loaded.
-  A separate working-tree follow-up preserves rapid chart-star toggle intent
-  per instrument without serializing different symbols. Its baseline is red
-  (1 failed/8 passed); affected store and WatchList suites pass103/103, Vue
-  type-check exits0, workstream validation covers45 records, TC scope
-  self-tests pass35, actual guard validates998 paths/858 immutable imports/29
-  approved adaptations, and diff-check passes. This follow-up is unpublished
-  and needs exact-source CI. The full local
-  browser slot remains held by Root, who separately owns F8l; no sibling patch
-  was imported. Full AC1–AC9 and official REF-HELP-V25 remain open.
+  fe4a1fcba32fe640c6b9e2f1f6e6503f86788418 matches the feature ref and contains
+  accepted staging 4687. Exact CI39892894561 attempt 1 completed successfully
+  on fe4a at 03:47:13Z: Backend Tests, Frontend Unit Tests, Branch-declared
+  Tests, and E2E passed; Exhaustive Integration Gate was an expected skip. E2E
+  passed 191 with 110 declared skips and no failures or flakes. The
+  per-instrument Favorites toggle
+  serialization fix and two deferred regressions are published in fe4a; the
+  published-source baseline red was 1 failed/8 passed and focused store/WatchList
+  suites passed103/103, with Vue type-check, workstream validation and scope
+  guards green. The full local browser slot remains held by Root; F8y parent-host
+  runtime proof is still pending. Official Custom Date Sort guides identify the
+  related Sector Index (SX) for `vs. Sub Industry` and the main Industry Index
+  (IX) for `vs. Industry`; current TC-owned source has no mapping from stored
+  sector/industry labels to those instruments. Weighting, point-in-time
+  membership, and canonical local-history lineage remain unresolved, so these
+  modes stay unavailable. Full AC1–AC9 and official REF-HELP-V25 remain
+  open.
 
   The following F8y source details describe the pre-404fe history; latest
   publication and CI state is stated above and in current_blocker.
@@ -602,9 +604,9 @@ historical_blocker_archive: >-
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
   name: TC2000 personal WatchList Tag Columns
-  status: published_parent_mutation_E2E_collected_frontend_coverage_build_historical_exact_branch_CI_pending_slot_wait
-  commit_sha: f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d
-  remote_sha: 4a88aaf8388b72f1b3eb22b21b2f50312bf12500
+  status: published_parent_mutation_E2E_and_exact_branch_CI_green_runtime_pending_Root_slot
+  commit_sha: 404fe6d29
+  remote_sha: fe4a1fcba32fe640c6b9e2f1f6e6503f86788418
   intent: >-
     Persist explicit personal WatchList targets as Tag Columns, display membership
     from canonical target-list rows, and let Alt+click or the accessible row menu
@@ -619,13 +621,12 @@ active_changeset_context:
     - frontend/tests/unit/lib/test_tag_columns.test.ts
     - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Publish the clean exact-4687 merge and this coherent adoption checkpoint on
-    the TC feature ref, then use its automatic branch CI. After Root grants the
-    one-at-a-time local fixture slot, run the ordinary-click F8y parent-host-to-
-    mutation regression in the full source-pinned profile; runtime proof is
-    still pending. Do not substitute helper tests, template parsing, or
-    collection; preserve behavior assertions, visual references/masks/tolerance,
-    and zero-retry acceptance.
+    After Root grants the one-at-a-time local fixture slot, run the ordinary-
+    click F8y parent-host-to-mutation regression in the full source-pinned
+    profile. The repair is published on fe4a and exact CI39892894561 is green,
+    but actual parent-host runtime proof remains pending. Do not substitute
+    helper tests, template parsing, or collection; preserve behavior assertions,
+    visual references/masks/tolerance, and zero-retry acceptance.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -1293,13 +1294,17 @@ status: ready_for_integration
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
   total: 5
-  current_phase: "4687_adopted;Favorites_initial_load_refresh_published_a7e5;exact_CI39888731289_green_on_published_a7e5;per-instrument_rapid-chart-toggle-serialization-working-tree-only_103-focused-typecheck-scope-green;F8y_parent_runtime_pending_Root_slot;F8l_repair_owned_by_Root;full_AC1_AC9_and_official_REF_HELP_V25_open"
+  current_phase: "4687_adopted;Favorites_toggle_serialization_published_fe4a;exact_CI39892894561_terminal_green;F8y_parent_runtime_pending_Root_slot;Custom_Date_Sort_SX_IX_family_documented_but_identity_weighting_PIT_lineage_open;full_AC1_AC9_and_official_REF_HELP_V25_open"
   next_action: >-
-    Publish the working-tree-only per-instrument chart-toggle serialization fix
-    as one coherent source/workstream change, then obtain exact-source CI. Continue
-    the F8y parent-host browser proof and strict full profile only when Root
-    releases the one-at-a-time slot. Preserve all assertions, thresholds,
-    references/masks/tolerance, full AC1–AC9, official REF-HELP-V25, provider/live
+    Continue source-backed TC-owned roadmap work on this branch; the accepted
+    4687 release is already merged. Do not merge another staging SHA without
+    its exact green receipt and explicit release. Run the F8y parent-host proof
+    and strict full profile only when Root releases the one-at-a-time slot.
+    Keep relative Custom Date Sort modes unavailable until TC has a
+    source-backed sector/industry-label-to-SX/IX resolver plus weighting,
+    point-in-time membership, and canonical local-history lineage contracts.
+    Preserve all assertions, thresholds,
+    references, masks/tolerance, full AC1–AC9, official REF-HELP-V25, provider/live
     holds, assigned services and data.
 
     Historical next-action record follows unchanged, superseded only for the
