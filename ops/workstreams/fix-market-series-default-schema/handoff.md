@@ -138,3 +138,19 @@ same context; it does not create/replace/reset the original native root goal.
 Next: publish this coherent test correction, then its separate qualified
 operational receipt and follow the final exact-source hosted run. Old CI red
 is retained; no full green, closure, integration or target update is claimed.
+
+### Follow-up publication receipt — 2026-10-23 08:40 UTC
+
+Compatibility implementation2018f865d2f346e6111ba50d4e202773746021be is pushed;
+local HEAD/origin tracking agree and worktree was clean. Only backend change
+since tested3e5ddec is the19/19 passing compatibility test above. Alembic tree
+02f14a19074761408503bf98b5127bf87784c47e, models tree
+abed5024e550366ed3936a12f289cfea0aa8778a and unchanged PG regression blob
+b874bd444be4b76f18b814748471a02990cf4546 match the realPG-tested inputs exactly;
+full new backend tree isac2b71d8b2e69e630296b742f718274ae69c6a38.
+Qualified docker_integration component evidence is retained for those identical
+runtime/migration/test inputs, combined with newly executed compatibility module.
+This is not a second PostgreSQL run or a pytest execution claim for the original
+direct assertion harness. Hosted normal PostgreSQL and full gates remain required.
+This operational checkpoint is source-only bookkeeping and has no final self SHA;
+verify its enclosing HEAD and remote externally. Follow its exact hosted CI.
