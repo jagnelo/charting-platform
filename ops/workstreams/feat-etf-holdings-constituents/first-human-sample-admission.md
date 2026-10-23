@@ -382,3 +382,227 @@ policy invariant, not production PostgreSQL/Redis admission or evidence
 authenticity. Therefore this local delta is not in f04, does not admit SPY,
 and does not close the sample's source-evidence, account/budget, activation,
 live-evidence, full-profile, or roadmap requirements.
+
+### f04 profile-binding and shared-registration clarification (read-only, 2026-10-23)
+
+The accepted f04 tree supports a canonical admin profile write for the identity
+binding itself: `PATCH /api/v1/etf-holdings/{symbol}/profile` requires
+`require_admin`; `ETFProfileUpdateRequest` accepts both `provider_aliases` and
+`legal_metadata`, and `update_etf_profile` passes both to
+`ensure_etf_profile`. The persisted alias map can therefore retain the existing
+`holdings_adapter: "spdr"` together with the bridge's expected
+`holdings_source_provider: "spdr"` (the bridge also accepts legacy
+`source_provider`). Prefer the explicit `holdings_source_provider` key and
+preserve any other existing aliases rather than replacing the map. Actual
+review provenance may be retained in `legal_metadata` through this same
+supported configuration path. This is a documented/admin-controlled profile
+binding, not a direct database bypass.
+
+That path is not an evidence-verification workflow: the endpoint accepts
+admin-supplied dictionaries and does not validate their cited source, terms,
+freshness, or truth, nor does the profile PATCH alone create immutable shared
+Provider review records. No qualifying primary-source evidence was established
+in this read-only source review, and no profile was changed. A bounded local
+artifact search found one superficially relevant retained capture:
+`.ai/validation/structural-return-stacked-20261015.headers` records a redirect
+to `static.returnstackedetfs.com/data/TidalFG_Holdings_RSST.csv` and an HTTP 200
+CSV; its paired body is dated 2026-10-15 and scoped to account `RSST`. It lists
+`SPYM` (State Street SPDR Portfolio S&P 500 ETF) as one RSST constituent. This
+is a real retained Return Stacked artifact candidate for a dated RSST import,
+but it is not SPY's complete basket, is not an artifact fetched from SPDR, and
+cannot support SPY's current basket or source binding. It remains evidence for
+the RSST artifact only. Thus the route is
+available for an administrator to record a binding only after separately
+reviewing and retaining genuine issuer/product/route and rights evidence; the
+alias alone is not evidence and does not make SPY admitted.
+
+Accepted f04 registers SPDR as an ETF-native adapter/route, not as a generic
+Provider-registry publisher. The ETF adapter registry and curated SPDR symbol
+metadata let ETF refresh select the SPDR adapter. Separately,
+`ProviderCapability.ETF_HOLDINGS` exists in the shared runtime, but generic
+`seed_provider_runtime` iterates `supported_provider_names()` from the generic
+`app.providers.registry._PROVIDERS`; `spdr` is absent there. The seed logic
+explicitly preserves ETF policy rows for the ETF bridge's adapter, which is
+not equivalent to creating SPDR's `DataSource`, publisher policy, entitlement,
+health, or review configuration.
+
+The accepted f04 admin surface has no publisher bootstrap for those SPDR
+records. `PATCH /api/v1/providers/policies/{provider_name}/{capability}` and
+`PATCH /api/v1/providers/entitlements/{provider_name}/{capability}` only update
+rows found after lookup and return 404 when source/capability rows are absent.
+`PUT /api/v1/market-data/recurring-costs/budget` can record the reviewed
+aggregate ceiling; `POST /api/v1/market-data/recurring-costs/commitments` can
+create a commitment, including a verified-free one, but requires an existing
+`data_source_id`. Neither creates SPDR's source, initial ETF policy or
+entitlement, health, account/review configuration, or publisher-review record.
+So f04's profile PATCH solves the legitimate profile identity-binding part
+without a product change, but **it cannot by itself satisfy bridge admission**;
+the accepted f04 management gap for initial shared SPDR publisher records
+remains concrete.
+
+The current ETF worktree additionally has the unaccepted admin-only
+`POST /api/v1/providers/etf-publishers` provisioning implementation described
+above. It creates the shared source, disabled ETF policy, entitlement, neutral
+health, and admin-attested source/quota/operation/account review metadata, but
+does not create the aggregate budget or recurring-cost commitment and does not
+verify the truth of supplied evidence. It is not part of frozen f04 and is not
+an f04 management path; no endpoint was called and no record or policy was
+created or activated in this preparation.
+
+### Accepted-f04 operator import boundary
+
+Accepted f04 does include admin-only manual import APIs:
+`POST /api/v1/etf-holdings/{symbol}/ingest` for normalized rows and
+`POST /api/v1/etf-holdings/{symbol}/ingest-csv` for a supplied CSV. The CSV
+request can retain the supplied bytes as `raw_csv` and accepts composition,
+as-of, known-at and publication times, provenance, source provider/URL/
+identifier, quality, completeness, parser version, legal metadata and notes.
+The handler passes those values to `ingest_holdings_snapshot`; that service
+persists the snapshot/raw artifact under the internal `etf_holdings_internal`
+data source. This is a supported admin import path for a real artifact already
+obtained through an independently authorized means. It is not an upload of a
+synthetic test fixture and is not a native SPDR fetch.
+
+Crucially, the import handlers call the ingestion service directly; they do
+not call the ETF shared-Provider bridge, reserve quota, or create SPDR's shared
+`DataSource`/policy/entitlement/health/review records. The request schema's
+defaults (`source_provider=manual_csv`, `provenance=issuer_current_holdings`,
+`source_quality=issuer_current`, `completeness_status=complete`) are caller
+defaults, not source verification. Do not use them to relabel an old,
+incomplete, synthetic, or unverified file as current/complete. An import may
+preserve a genuinely sourced dated artifact for historical/PIT use, with its
+actual dates, original payload and provenance; it cannot be cited as evidence
+that native SPDR transport passed Provider admission. Source tracing found an
+important caveat: `ingest_holdings_snapshot` unconditionally calls
+`_record_adapter_success`, including when invoked by these manual-import
+handlers. Capability classification can infer `issuer_native` from the
+caller-supplied default provenance, and identity verification consumes
+caller-supplied `artifact_identity_validation` metadata. Therefore an admin
+import can potentially satisfy the generic `CURRENT` checks without any
+shared-Provider request/reservation/settlement lineage, if the remaining
+identity/freshness/completeness conditions are supplied. That is not proof of
+native SPDR admission. Do not use the importer as a workaround or represent
+such a result as Provider-admitted; the import-success versus native-transport
+success distinction is a concrete semantics gap for an implementation/test
+decision. No runtime/test was used to claim that this conditional path actually
+produced `CURRENT` for SPY.
+
+This makes the first-human choice precise. If an already retained, lawful,
+provenance-verifiable SPY/RSP issuer artifact is later found, the accepted
+manual-import route can preserve it as a dated artifact without an upstream
+request, but accepted f04 does not clearly isolate manual-import health from
+native adapter health; until that behavior is corrected or an explicit manual
+source contract is accepted, do not rely on it to prove current SPY support.
+The bounded local evidence search recorded above found no such artifact. For a
+native SPY request, the reviewed profile PATCH can legitimately store both
+`holdings_adapter=spdr` and `holdings_source_provider=spdr` (with real review
+evidence retained in `legal_metadata`), but only the first is in f04's curated
+SPY metadata by default. That profile binding is separate from and insufficient
+for shared Provider admission. In accepted f04, generic seeding only creates
+runtime rows for generic registry providers; the admin policy/entitlement
+PATCHes update existing rows, and the recurring-cost commitment POST requires
+an existing source ID. I found no accepted-f04 admin creation route or
+documented operator runbook for bootstrapping SPDR's shared source, ETF policy,
+entitlement, health and review configuration. That is the concrete native
+admission provisioning gap; do not fill it with a direct DB alias or by
+claiming that manual import admitted a publisher request.
+
+The shared recurring-cost API paths are the existing admin-reviewed aggregate
+budget `PUT /api/v1/market-data/recurring-costs/budget` and commitment
+`POST /api/v1/market-data/recurring-costs/commitments`. They do not establish
+publisher terms, quota dimensions, account binding, HTTPS host/operation
+review, or free status on their own. No endpoint or import was invoked and no
+profile, provider, budget, commitment, health, policy or entitlement record
+was changed in this source review. The sample remains not admitted/not seeded;
+all evidence and the missing provisioning step remain explicit.
+
+The adapter fetch timeout, redirect ceiling, canary symbol cap, and any local
+request-size/concurrency guards are application safety envelopes. They are not
+claims that SPDR permits that request rate, has those quota counters, allows
+retention, or charges zero. Publisher-native limits/account counters and cost
+remain unknown until supported by reviewed source evidence.
+
+### Retained RSST sample: manual/noncurrent feasibility follow-up — 2026-10-23
+
+The retained `.ai/validation/structural-return-stacked-20261015.body` is a
+genuine captured Return Stacked CSV, not synthetic fixture data. Its rows are
+all dated `2026-10-15` and account-scoped `RSST`; the paired response headers
+record observation at `2026-10-15T19:09:11Z`, a redirect to
+`https://static.returnstackedetfs.com/data/TidalFG_Holdings_RSST.csv`, and an
+HTTP 200 CSV. The separate retained transport event reports 36 rows. The
+saved header capture does not preserve the initial request URL; only the
+redirect target/final CSV URL is explicit in the files inspected, so complete
+request-URL lineage must be recovered before an import. The body includes the
+full captured mix of SPYM, cash, long futures, and short futures. This
+establishes a structural-return-stacked
+sample, not a SPY/RSP basket or an SPDR-source observation.
+
+Accepted f04 has an admin CSV-ingest request capable of carrying the raw CSV,
+composition date, `known_at`, nullable `published_at`, provenance, source
+provider/URL/identifier, quality/completeness, and legal metadata. The
+normalized-row `/ingest` schema can also preserve an exact raw body alongside
+explicit row classifications. However, f04 does **not** expose a profile
+`adapter_key` field on the profile PATCH. It stores only the alias map, and
+`ensure_etf_profile` honors an explicit `holdings_adapter` only if that key is
+registered by `get_holdings_adapter`; `manual_csv` is not a registered adapter
+key. Setting `holdings_adapter: manual_csv` is therefore not an accepted
+operator path to a manual profile binding, while a direct DB edit would be an
+unsupported bypass.
+
+The generic f04 CSV parser recognizes the retained header's ticker, CUSIP,
+security name, shares, market value, and `Weightings` fields; it preserves raw
+row fields in `extra_data` and recognizes `Cash&Other` as cash. But the source
+has no asset-class/type column. The parser defaults every non-cash row to
+`holding_type=equity`, so its default CSV route would mislabel the futures as
+equities. The normalized-row route permits explicit `holding_type`,
+`row_type`, raw body, and `source_row_id`, so it could represent cash and
+derivatives faithfully while retaining unresolved reported identities. That
+route is not yet safe for a no-network operator import: both accepted f04
+handlers leave `allow_provider_enrichment` at its service default (`true`),
+which can call external metadata/identifier providers for unresolved rows.
+Do not invoke either route under the current no-HTTP boundary. A safe
+manual-only import needs an explicitly no-enrichment path and a verified
+normalization of derivative rows; no such operator flag is exposed by f04.
+
+If those boundaries were resolved and a human authorized an actual import,
+the truthful record would use ETF symbol `RSST`, composition/as-of date
+`2026-10-15`, `provenance=manual_import`, `source_provider=manual_csv`,
+`source_tier=none`, non-current quality/completeness values, the original
+artifact and issuer URL/redirect evidence, and `published_at=null` because
+the retained HTTP `Last-Modified` header is not itself verified publication
+evidence. `known_at` must be no earlier than the retained observation and the
+actual import time (use the later proven timestamp); the source's `Date` field
+supports composition date only. Preserve all raw rows/bytes, including the
+short futures and cash, and leave identities unresolved unless independently
+supported by existing canonical identity evidence. Public availability does
+not establish license, redistribution, or retention rights; written/otherwise
+reviewable rights for storing and displaying this captured issuer artifact
+remain missing. No such rights evidence or publication time was found here.
+
+The f04 capability evaluator recognizes explicit `source_tier=none` and
+reports an existing snapshot as non-current/degraded with
+`usable_for_current_analysis=false` while remaining displayable as
+last-known. Its historical `get_nearest_snapshot(..., point_in_time=True)`
+filters both composition date and `known_at` cutoff: a snapshot imported after
+2026-10-15 must not appear in an as-of-October-15 view, but may be visible at
+or after its actual import/knowledge time. The ETF holdings panel displays
+capability/provenance/known-at and gates opening constituents on current
+capability; it does not provide a separate date-selection control in that
+panel. The accepted-f04 ingest path nevertheless writes adapter-success state
+unconditionally. The current ETF worktree's unaccepted follow-up now tags
+admin row/CSV ingestion as `manual_import`, forces source tier `none` before
+profile hydration, and skips native adapter-success writes; its resolution plus
+route-wiring tests pass 60/60 with live flags off. This is local unaccepted
+source, not a claim that frozen f04 has the safeguard, and it does not yet
+close the separate provider-enrichment/network risk above.
+
+Disposition: **not ready to import** under the current scope. The retained
+body is a credible offline RSST sample candidate, but no import/admin/profile
+operation was made. The remaining real blockers are rights/retention evidence,
+initial request-URL provenance, a no-enrichment operator path, truthful
+derivative row typing, a supported
+manual-profile representation (or an explicit decision that no adapter key is
+needed), and a final human-authorized sample scope. No SPY substitution,
+native entitlement/health claim, provider admission, source quota/cost claim,
+or external request is implied. The full AC1–AC14 roadmap, all quarantines,
+and observation gate remain open.

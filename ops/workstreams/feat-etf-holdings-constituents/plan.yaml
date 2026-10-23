@@ -367,18 +367,25 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: ETF Architect guarded retry boundary
-    state: three_etf_architect_contracts_pass;adapter_613_pass;declared_offline_branch_suite_pass;final_records_checks_pending;exact_CI_pending
-    baseline: 5f4117ad4df3f239bf4df8d12bb3a237293836de
+    name: ETF manual-import capability safety and retained RSST sample feasibility
+    state: publisher_endpoint_published_at_04f49d9;manual_import_safety_change_uncommitted;resolution_and_router_modules_60_passed;ruff_and_format_pass;RSST_import_not_ready_rights_and_no_enrichment_gaps_open;workstream_receipts_pending_validation
+    baseline: 709bb36880ac960031f309c6dc037bd21ea9d47b
     intent: >-
-      Remove ETF Architect's raw requests.get fallback for product-page 403,
-      transient gateway responses and timeouts. Keep bounded retries on the
-      shared Provider-backed HTTPX client so each physical attempt is admitted
-      and settled, preserve 403 as failure, and never use an unadmitted transport.
-      No live request or route promotion is claimed.
+      The current published feature source adds a disabled-by-default shared
+      Provider publisher provisioning path. The local follow-up prevents
+      manual row/CSV imports from claiming native source tier or writing native
+      adapter-success health, and evaluates whether retained RSST data can be
+      represented honestly as dated/noncurrent history. The accepted f04 CSV
+      parser misclassifies futures as equities and both importer routes can
+      perform provider-backed identity enrichment; source rights and a
+      supported manual adapter binding are also unproven. No data, profile,
+      Provider record, import, or route was changed or activated.
     owned_paths:
-      - backend/app/services/etf_holdings_adapters.py
-      - backend/tests/unit/services/test_etf_holdings_adapters.py
+      - backend/app/routers/etf_holdings.py
+      - backend/app/services/etf_holdings.py
+      - backend/tests/unit/services/test_etf_holdings_resolution.py
+      - backend/tests/unit/routers/test_etf_holdings_manual_import.py
+      - ops/workstreams/feat-etf-holdings-constituents/first-human-sample-admission.md
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/session.json
@@ -559,30 +566,24 @@ status: in_progress
 progress:
   completed: []
   total: 14
-current_phase: fail_closed_etf_publisher_provisioning_and_retained_evidence_audit_2026_10_23
+current_phase: published_etf_publisher_provisioning_and_spy_sample_evidence_review_2026_10_23
 current_blocker: >-
-  CURRENT CONTINUATION 2026-10-23 08:20Z: Published ETF HEAD/origin is
-  709bb36880ac960031f309c6dc037bd21ea9d47b. Exact CI39918702578 is on that
-  source and is terminal successful for Backend, Frontend Unit, Branch-declared,
-  and Playwright E2E; Exhaustive was skipped by feature-branch policy. This
-  run does not cover local changes. Local changes add an admin-only
-  ETF-publisher provisioning endpoint
-  and synthetic SQLite route tests. The endpoint accepts explicit review
-  inputs, requires a matching registered ETF adapter, configured account scope,
-  complete quota/operation costs, host and entitlement review fields, creates
-  shared source (source-level is_active=true), policy/entitlement/neutral-health/
-  review rows; the ETF_HOLDINGS policy remains disabled, no aggregate budget or
-  recurring commitment is created, and the response reports routable=false. It
-  is not evidence verification, real Provider DB/Redis proof,
-  route activation, or a SPY admission. Its containing Provider router module
-  passed 10/10 in 23.87s on the latest rerun (24.24s on its first run);
-  changed-file Ruff check/format and diff-check passed, all with live flags
-  zero. The recipe also records that the accepted f04 profile PATCH can persist
-  a real admin-reviewed SPY publisher alias but does not authenticate the
-  evidence; no primary-source evidence was fetched or newly found here.
-  No runtime records, policy activation, quota, issuer/provider/SEC HTTP, fixture,
-  or cleanup occurred. Exact-source CI for these local changes is pending, and
-  the required full_stack_browser profile still awaits Root's exclusive slot.
+  CURRENT CONTINUATION 2026-10-23 08:42Z: Published ETF HEAD/origin are
+  synchronized at 04f49d940c877635de52c0c0616e54f47018bf25. Exact CI
+  39924473582 is on that SHA: Frontend Unit passed, Backend unit tests passed,
+  and Backend integration tests are in progress; no terminal CI result is
+  claimed. The published admin-only ETF-publisher provisioning endpoint and
+  SQLite route tests leave ETF_HOLDINGS policy disabled and create no budget or
+  commitment; they do not verify administrator-supplied evidence or establish
+  SPY admission. Accepted f04's admin profile PATCH can persist a reviewed
+  identity alias plus legal_metadata, but does not verify evidence or create
+  SPDR's shared Provider source/policy/entitlement/health/review rows. A
+  read-only local evidence check found no SPY/RSP issuer basket. The retained
+  Return Stacked RSST CSV capture is a real dated artifact candidate for RSST
+  only; its SPYM row is not an SPY source artifact. No profile or Provider
+  records, policy activation, quota, issuer/provider/SEC HTTP, fixture, or
+  cleanup occurred. The required full_stack_browser profile still awaits
+  Root's exclusive slot.
   The remainder of this field retains historical checkpoints and receipts;
   older source/status text below is not current.
   The `full_stack_browser` local profile remains pending Root's exclusive
@@ -1786,20 +1787,18 @@ latest_green_staging_adoption:
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
 next_action: >-
-  Preserve the current admin-only publisher-provisioning implementation as a
-  disabled preparation path; review its actual full diff and tests before
-  publication, and do not call it with live publisher evidence or create any
-  runtime rows. CI39918702578 is terminal green on the published base and does
-  not cover this dirty source. Run the final fast checks, publish the coherent
-  source/test/workstream changes once, and inspect exact-source CI. Continue bounded
-  AC2/AC4/AC5 audit from retained evidence; keep MSMR/QQQ and Militia/GOOG
-  quarantined and do not treat the synthetic provisioning fixture as real
-  evidence. The endpoint's administrator attestations still require actual
-  independently reviewed publisher, account, entitlement, quota, operation,
-  and cost evidence before it can be used; policy remains disabled until the
-  separate reviewed activation gate. No issuer/provider/SEC requests, quota,
-  budget or commitment mutation, live activation, or full_stack_browser run
-  without Root's exclusive slot.
+  Keep the tested manual_import safeguard as an uncommitted source change until
+  this context is coherently reviewed; its 60-test local proof does not imply
+  branch CI or checkpoint acceptance. Do not import the retained RSST CSV yet:
+  resolve rights/retention evidence and the missing initial request-URL lineage,
+  provide a manual-only no-provider-enrichment path, preserve derivatives with
+  accurate row types rather than the generic CSV parser's equity default, and
+  decide whether a manual profile needs an adapter key. If those conditions are
+  not met, leave the artifact untouched and noncurrent. Continue the complete
+  AC1-AC14 roadmap, preserve 15 Tier-0 and
+  156 Tier-1, prior evidence, retained data, quarantines and 30-day observation.
+  `full_stack_browser` requires Root's exclusive slot; no external requests,
+  staging/sibling/master mutation, cleanup or deployment.
   The required
   `full_stack_browser` recipe is `make
   validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents

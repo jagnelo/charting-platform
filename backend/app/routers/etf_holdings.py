@@ -1036,6 +1036,8 @@ async def ingest_holdings_rows(
         raw_payload_json=body.raw_payload_json,
         legal_metadata=body.legal_metadata,
         notes=body.notes,
+        allow_provider_enrichment=False,
+        manual_import=True,
     )
     loaded = await get_latest_snapshot(db, etf.id)
     if loaded is None:
@@ -1070,6 +1072,8 @@ async def ingest_holdings_csv(
         raw_payload_text=body.raw_csv,
         legal_metadata=body.legal_metadata,
         notes=body.notes,
+        allow_provider_enrichment=False,
+        manual_import=True,
     )
     loaded = await get_latest_snapshot(db, etf.id)
     if loaded is None:

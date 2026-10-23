@@ -6,7 +6,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import select
 
-from app.models.etf_holdings import ETFHolding
+from app.models.etf_holdings import ETFHolding, ETFHoldingsAdapterState
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
@@ -22,6 +22,7 @@ from app.services.etf_holdings import (
     reconcile_snapshot_constituents,
 )
 from app.services.etf_holdings_adapters import CanonicalHoldingRow
+from app.services.etf_holdings_capability import evaluate_capability
 from app.services.etf_holdings_refresh import reconcile_all_etf_holdings_classifications
 from app.services.instrument_mastering import ensure_instrument_type, register_identifier
 
@@ -168,6 +169,65 @@ async def test_ingest_persists_none_for_unclassified_source_tier(db):
     )
 
     assert snapshot.extra_data["source_tier"] == "none"
+
+
+@pytest.mark.asyncio
+async def test_manual_import_cannot_claim_native_current_or_refresh_adapter_health(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="SPY",
+        name="SPDR S&P 500 ETF Trust",
+    )
+    now = datetime.now(UTC)
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[
+            CanonicalHoldingRow(
+                symbol=instrument.symbol,
+                name=instrument.name,
+                weight=Decimal("1"),
+                currency="USD",
+                holding_type="equity",
+                row_type="security",
+            )
+        ],
+        composition_date=now.date(),
+        known_at=now,
+        published_at=now,
+        provenance="issuer_current_holdings",
+        source_provider="spdr",
+        source_quality="issuer_current",
+        completeness_status="complete",
+        legal_metadata={
+            "source_tier": "issuer_native",
+            "artifact_identity_validation": {"status": "matched"},
+        },
+        allow_provider_enrichment=False,
+        manual_import=True,
+    )
+    profile = await ensure_etf_profile(async_db, etf_instrument)
+
+    assert snapshot.extra_data["source_tier"] == "none"
+    assert snapshot.extra_data["legal_metadata"]["ingestion_mode"] == "manual_import"
+    assert snapshot.extra_data["legal_metadata"]["source_tier"] == "none"
+    assert profile.legal_metadata["ingestion_mode"] == "manual_import"
+    assert profile.legal_metadata["source_tier"] == "none"
+    assert (
+        db.execute(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                ETFHoldingsAdapterState.adapter_key == "spdr",
+            )
+        ).scalar_one_or_none()
+        is None
+    )
+
+    capability = evaluate_capability(profile, snapshot, None, now=now)
+    assert capability.availability == "degraded"
+    assert capability.source_tier == "none"
+    assert not capability.usable_for_current_analysis
 
 
 @pytest.mark.asyncio

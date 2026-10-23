@@ -1129,6 +1129,7 @@ async def ingest_holdings_snapshot(
     legal_metadata: dict | None = None,
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
+    manual_import: bool = False,
 ) -> ETFHoldingsSnapshot:
     now = _now()
     _ensure_holdings_dates_are_not_future(
@@ -1138,6 +1139,13 @@ async def ingest_holdings_snapshot(
         published_at=published_at,
         now=now,
     )
+    legal_metadata = dict(legal_metadata or {})
+    if manual_import:
+        # Admin-supplied uploads are stored evidence, not proof that a native
+        # provider request passed shared admission. Do not let caller metadata
+        # promote the artifact to issuer-current or refresh native route health.
+        legal_metadata["ingestion_mode"] = "manual_import"
+        legal_metadata["source_tier"] = "none"
     profile = await ensure_etf_profile(db, etf_instrument, legal_metadata=legal_metadata)
     canonical_rows = [
         row
@@ -1164,7 +1172,6 @@ async def ingest_holdings_snapshot(
     known_at = known_at or published_at or _date_end(composition_date)
     data_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
     snapshot_hash = _snapshot_hash(canonical_rows)
-    legal_metadata = dict(legal_metadata or {})
     capability_metadata = {
         "source_tier": _capability_source_tier(
             provenance=provenance,
@@ -1314,22 +1321,23 @@ async def ingest_holdings_snapshot(
 
     snapshot.resolved_count = resolved
     snapshot.unresolved_count = unresolved
-    await _record_adapter_success(
-        db,
-        profile=profile,
-        data_source_id=data_source.id,
-        adapter_key=profile.adapter_key or source_provider,
-        source_url=source_url,
-        source_identifier=source_identifier,
-        parser_version=parser_version,
-        row_count=len(canonical_rows),
-        resolved_count=resolved,
-        unresolved_count=unresolved,
-        composition_date=composition_date,
-        published_at=published_at,
-        completeness_status=completeness_status,
-        observation_metadata=snapshot.extra_data,
-    )
+    if not manual_import:
+        await _record_adapter_success(
+            db,
+            profile=profile,
+            data_source_id=data_source.id,
+            adapter_key=profile.adapter_key or source_provider,
+            source_url=source_url,
+            source_identifier=source_identifier,
+            parser_version=parser_version,
+            row_count=len(canonical_rows),
+            resolved_count=resolved,
+            unresolved_count=unresolved,
+            composition_date=composition_date,
+            published_at=published_at,
+            completeness_status=completeness_status,
+            observation_metadata=snapshot.extra_data,
+        )
     await db.flush()
     await db.refresh(snapshot)
     return snapshot

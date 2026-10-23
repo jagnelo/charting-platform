@@ -1,5 +1,116 @@
 # feat/etf-holdings-constituents
 
+## RSST manual/noncurrent sample feasibility — 2026-10-23
+
+Follow-up against immutable accepted f04 and the retained RSST artifact finds a
+potential dated **RSST** sample, not SPY/RSP data. Retained response headers
+show observation at `2026-10-15T19:09:11Z`, redirect to the static Return
+Stacked CSV, and HTTP 200; the separate retained transport event reports 36
+rows dated `2026-10-15` and scoped to `RSST`. They include SPYM, cash, and
+long/short futures. The retained header does not identify the initial request
+URL; only the final CSV URL/redirect target is explicit, so initial-request
+lineage must be recovered before import. No verified publication
+timestamp or evidence granting storage/display/redistribution rights was
+found; HTTP `Last-Modified` is not treated as `published_at`.
+
+Accepted f04 can store raw CSV and composition/known-at/publication/source
+fields through its admin import schema, but the path is **not safe to execute
+as-is**. The profile PATCH does not accept `adapter_key`; it honors a supplied
+`holdings_adapter` only if it is registered, and `manual_csv` is not a
+registered ETF adapter. The generic CSV parser has no asset-class mapping for
+this body and defaults its non-cash futures to equities. The normalized-row
+route can explicitly represent derivatives/cash and retain raw bytes, but
+both accepted import handlers leave `allow_provider_enrichment=true` by
+default, so unresolved identities can trigger external provider lookup. No
+no-enrichment flag is exposed. Accepted f04 also writes adapter-success state
+for manual import. Current unaccepted ETF changes force `manual_import` and
+`source_tier=none` before profile hydration and skip the native-health write;
+the full resolution module plus route-wiring test pass 60/60 with live flags
+off. That local correction is not in f04 and does not close the separate
+identity-enrichment/network risk.
+
+If later authorized after rights and safe-path gaps are resolved, truthful
+metadata would use symbol `RSST`, composition/as-of `2026-10-15`,
+`provenance=manual_import`, `source_provider=manual_csv`,
+`source_tier=none`, and `published_at=null`. `known_at` must be no earlier than
+both the retained observation and actual import time. Preserve the exact raw
+body, final CSV URL/redirect headers, every derivative/cash row, and unresolved
+identities absent canonical evidence. The initial request URL is not in the
+retained capture. Historical PIT
+queries before actual `known_at` must exclude this later-imported snapshot;
+later as-of reads may display it as degraded/last-known, never current
+analysis. f04's PIT endpoint filters by composition and `known_at`; the ETF
+panel shows capability, provenance and known-at and gates opening constituents
+on current capability, but has no date selector itself.
+
+Disposition: **not ready to import**. The retained file is an offline RSST
+candidate, but no admin/profile/import operation was made. Missing evidence
+includes retention/display rights; initial-request URL provenance; safe
+no-enrichment import; accurate
+derivative classification; and a supported manual-profile representation (or
+a decision that a manual profile key is unnecessary). Do not substitute SPY,
+claim native entitlement/health or Provider admission, infer source quota/cost
+from app caps, or make any external request. Preserve the full AC1–AC14
+roadmap, quarantines, holds and 30-day observation gate.
+
+## Current continuation — published provisioning and first-sample evidence review (2026-10-23 08:44Z)
+
+Current branch HEAD and origin are synchronized at
+`04f49d940c877635de52c0c0616e54f47018bf25`. Exact CI `39924473582` on this
+SHA started at 08:25Z; Frontend Unit and Backend unit tests have passed, while
+Backend integration tests are in progress. This run has no terminal result yet.
+Earlier run `39918702578` is terminal green only for its parent source
+`709bb36880ac960031f309c6dc037bd21ea9d47b`. The publisher
+provisioning implementation is now published at `04f49d9`; its admin-created
+source has `DataSource.is_active=true`, but its `ETF_HOLDINGS` policy remains
+disabled, and no aggregate budget, commitment, evidence verification, or route
+admission is claimed. The local router module passed 10/10 with both live flags
+zero; Root still owns the required `full_stack_browser` slot.
+
+Offline retained-evidence audit: the provider ledger accounts for all 140
+baseline records and 74 current fallback identities. Their disposition counts
+are 18 issuer-access-blocked, 18 inactive/successor, 20 non-publishers, and 18
+non-executable public sources. Recorded fallback `last_checked` dates range
+from 2026-09-02 through 2026-10-05. The 15 Tier-0 symbol rows currently split
+11 current / 2 degraded / 2 unavailable, investigated 2026-09-05 through
+2026-10-15; the 156 Tier-1 rows split 17 current / 82 unavailable /
+57 not-applicable, investigated 2026-09-02 through 2026-10-05. Six existing
+no-network tests passed for provider/runtime/YAML parity, symbolless holds,
+vendor budget/activation disposition, symbol-ledger parity, and the narrative
+count sentinel. This is static completeness evidence only: no issuer evidence
+was refreshed, and the dates do not prove present source availability. No
+provider/issuer/SEC HTTP, quota, fixture, runtime mutation, activation, or
+cleanup occurred. Keep MSMR/QQQ and Militia/GOOG quarantined, retain all AC1–AC14
+and the 30-day observation gate, and do not infer a new provider disposition.
+
+The source-backed first-sample review confirmed that accepted f04's admin
+`PATCH /api/v1/etf-holdings/{symbol}/profile` can persist the existing
+`holdings_adapter: spdr` plus `holdings_source_provider: spdr` and supporting
+`legal_metadata`, but it does not authenticate those claims or create SPDR's
+shared Provider source, ETF_HOLDINGS policy/entitlement/health, or review
+configuration. The generic Provider seed omits `spdr`; policy/entitlement
+PATCHes are update-only. The existing recurring-cost budget and commitment
+routes cannot create the missing source; commitments require its `data_source_id`.
+The newer ETF-branch `POST /api/v1/providers/etf-publishers` creates disabled
+shared rows from admin attestations but is not part of accepted f04 and does
+not create a budget/commitment or verify evidence truth.
+
+The bounded local evidence search found a retained real Return Stacked capture:
+`.ai/validation/structural-return-stacked-20261015.headers` redirects to its
+dated RSST CSV, whose body is account-scoped to RSST and lists SPYM as a
+constituent. It is not a complete SPY or RSP holdings artifact and is not
+SPDR-sourced; no profile or runtime record was changed. No SPY/RSP artifact in
+the inspected local evidence presently qualifies for dated import. No upstream
+HTTP or quota action occurred.
+
+Fast record validation after these edits passed: the workstream validator,
+the exact narrative-count sentinel (`15 Tier-0 and 156 Tier-1`), session and
+JSONL parsing, session-to-plan hash comparison, and `git diff --check`. Exact
+CI `39924473582` remained nonterminal at the last check: Frontend Unit and
+Backend unit tests passed; Backend integration tests were still running. No
+local integration/browser profile was started; Docker access is permission-
+denied in this sandbox and Root retains the exclusive full-stack slot.
+
 ## Current continuation — ETF publisher provisioning (2026-10-23 08:20Z)
 
 The assigned worktree is on published base
@@ -14524,3 +14635,16 @@ On published source `66c9780278cd810a870b8025a091df58d9c091d1`, exact Actions ru
 ### Parent exact-source CI closure — 2026-10-23 04:42Z
 
 Exact Actions run `39897635916` on published source `66c9780278cd810a870b8025a091df58d9c091d1` is terminal green for Backend, Frontend Unit, Branch-declared Tests, and Playwright E2E; Exhaustive Integration was skipped by feature-branch policy. This run does not include the local capability date-projection correction described above. The corrected local capability module passes114/114, changed-file Ruff/format checks pass, the `15 Tier-0 and 156 Tier-1` narrative sentinel passes1/1, and the workstream validator accepts45 records. Publish the source+records correction once and inspect its exact-source CI. The full AC1–AC14 roadmap, unresolved quarantines, route/cost holds, retained data, 30-day observation, and Root-owned full_stack_browser resource gate remain open.
+
+## Accepted-f04 first-human sample/operator path audit — 2026-10-23
+
+Read-only inspection of immutable accepted f04 `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` confirms two separate supported admin operations, with different evidentiary meaning:
+
+- `PATCH /api/v1/etf-holdings/{symbol}/profile` persists admin-reviewed `provider_aliases` and `legal_metadata`. It can bind SPY to `holdings_adapter=spdr` and `holdings_source_provider=spdr` without product-source changes when the retained evidence genuinely supports that identity. The endpoint stores the supplied values; it does not authenticate or validate the evidence and does not create Provider admission records.
+- `POST /api/v1/etf-holdings/{symbol}/ingest-csv` (or `/ingest`) imports an already obtained artifact and calls `ingest_holdings_snapshot` directly, retaining raw payload and caller-provided provenance/timestamps under `etf_holdings_internal`. It does not pass through the shared Provider bridge or reserve/settle Provider quota. Static source tracing found a caveat: `ingest_holdings_snapshot` unconditionally calls `_record_adapter_success`, including for manual imports, while capability evaluation may infer `issuer_native` from caller-supplied provenance and accepts caller-supplied `artifact_identity_validation` metadata. Thus an admin import may potentially satisfy generic `CURRENT` checks without native Provider request/reservation lineage. This static condition is not a reproduced SPY runtime result, but it means the import must not be used as a workaround or claimed as Provider-admitted. Before treating an imported sample as current, resolve whether manual imports are a distinct reviewed source contract or must be prevented from updating native adapter success/current state. The schema's issuer-current/complete defaults are not evidence. A real artifact can be retained as dated/PIT data, but the SEC ingest/backfill routes are separate SEC workflows and not a substitute for the SPDR route.
+
+SPDR's native adapter/curated symbol mapping is in the ETF adapter catalog, while the generic shared runtime seeds only `supported_provider_names()` from `app.providers.registry._PROVIDERS`; that registry has the internal ETF provider but no `spdr` publisher. In f04, the policy and entitlement admin PATCH routes only update existing rows, and the recurring-cost budget PUT/commitment POST do not create the missing publisher source, capability rows, health, or host/operation/account review. Commitment creation requires the existing source ID. No accepted-f04 publisher bootstrap endpoint or documented operator provisioning runbook was found. The later unaccepted ETF-owned disabled publisher-provisioning API is not f04 and remains separate.
+
+Practical disposition: if a real, rights-reviewed SPY/RSP artifact is independently available, an administrator may import it with original body and accurate source, identity, publication/composition/as-of/known-at, completeness, and rights provenance, but accepted f04 does not clearly isolate imported success from native adapter success; do not rely on that import for current support until the distinction is resolved. Static source logic indicates the API could still mark a sufficiently caller-attested import `CURRENT`; this has not been reproduced at runtime and is not evidence of Provider admission. The local artifact search found no such SPY/RSP basket: the retained RSST CSV is for RSST and lists SPYM only as a constituent. For a native SPY request, the profile binding is supported, but f04 lacks a demonstrated bootstrap path for the shared SPDR admission records. Required evidence still includes actual issuer/product and route identity, reviewed host/redirect and permitted-use/retention terms, actual request/quota dimension facts, account-scope binding, and evidence for any zero recurring commitment plus the reviewed aggregate budget; none is inferred from public reachability or application safety caps. Do not call the route or imported sample admitted/current until those records and runtime checks exist.
+
+No API, import, profile/runtime row, policy, entitlement, quota, commitment, budget, activation, upstream HTTP, fixture, data operation, cleanup, or external write was performed. This is a source/retained-evidence conclusion only; all ETF roadmap and safety gates remain open. The adapter timeout, redirect ceiling, canary symbol cap, and other app-side safety limits are not SPDR quota/rate-limit/account-counter or cost facts. Those publisher-native facts remain unknown absent reviewed evidence. The corrected workstream validator accepted the record, the exact narrative-count sentinel passed1/1, session/JSONL parsing and session-to-plan hash comparison passed, and `git diff --check` passed. These checks do not establish Provider admission or sample eligibility.
