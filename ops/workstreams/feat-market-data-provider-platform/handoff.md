@@ -30224,3 +30224,20 @@ restart coverage. The broader roadmap and branch status remain
 `in_progress`; this receipt does not establish full-profile or live-provider
 acceptance. No provider/issuer/SEC HTTP, quota operation, retained-resource
 change, sibling/staging/master write, or deployment occurred.
+
+## 2026-10-23 09:12Z — coverage default-series alignment
+
+Closed the preceding receipt context at synchronized commit
+`23820901272438a107bc10c01805200f2dc1184d`. The requested TC reproduction
+showed the mismatch: the shared default-read selector returned only the
+mapped series, while coverage summary/range queries included a later
+alternate-series bar. The separate repair now applies
+`_default_series_bar_condition` to both coverage queries. The regression keeps
+the later alternate-only date and asserts it does not advance summary `newest`
+or range `covered_end`/readiness; adjustment mode, requested range, visibility,
+and selector's mapped/canonical/legacy fallback remain unchanged. Focused
+router tests pass 7/7, adjacent mapped/canonical/legacy selector tests pass
+4/4, and Ruff plus `git diff --check` pass. This candidate is separate from
+the prior receipt commit; exact-source CI is pending. No provider/issuer/SEC
+HTTP, quota operation, retained resource, target DB, sibling/staging/master
+write, or deployment occurred. Checkpoint remains `in_progress`.

@@ -10,7 +10,7 @@ from app.services.market_data import _default_series_bar_condition
 
 
 class TestCoverageRouter:
-    def test_coverage_includes_later_alternate_series_without_changing_default_reads(
+    def test_coverage_excludes_later_alternate_series_like_default_reads(
         self, client, auth_headers, db, instrument
     ):
         selected = MarketSeries(
@@ -95,8 +95,8 @@ class TestCoverageRouter:
         )
         assert summary.status_code == 200, summary.text
         summary_coverage = summary.json()["local_coverage"]["D1"]
-        assert summary_coverage["bar_count"] == 2
-        assert summary_coverage["newest"] == "2026-01-05T00:00:00Z"
+        assert summary_coverage["bar_count"] == 1
+        assert summary_coverage["newest"] == "2026-01-02T00:00:00Z"
 
         ranged = client.get(
             f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
@@ -111,9 +111,9 @@ class TestCoverageRouter:
         )
         assert ranged.status_code == 200, ranged.text
         range_coverage = ranged.json()
-        assert range_coverage["status"] == "ready"
-        assert range_coverage["bar_count"] == 2
-        assert range_coverage["covered_end"] == "2026-01-05T00:00:00Z"
+        assert range_coverage["status"] == "partial"
+        assert range_coverage["bar_count"] == 1
+        assert range_coverage["covered_end"] == "2026-01-02T00:00:00Z"
 
     def test_exposes_missing_range_without_provider_routing(self, client, auth_headers, instrument):
         response = client.get(

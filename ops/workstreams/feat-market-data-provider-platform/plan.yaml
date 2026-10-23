@@ -1,4 +1,10 @@
 schema: 4
+# 2026-10-23 coverage default-series alignment: the `/coverage` summary and
+# requested-range queries now reuse `_default_series_bar_condition`, so a
+# later bar from an alternate series cannot make the selected default appear
+# newer or fully covered. Adjustment, visibility, UTC range and legacy/default
+# fallback rules remain intact. Local focused validation is recorded in the
+# append-only journal; exact-source CI is pending for this candidate.
 # 2026-10-23 coverage-selector follow-up: the coordinator's
 # `/tmp/tc_default_series_coverage_repro.py` passes on the current source:
 # `_default_series_bar_condition` selects the mapped default bar, while the
