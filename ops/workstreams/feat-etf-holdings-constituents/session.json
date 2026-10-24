@@ -30,28 +30,20 @@
     }
   ],
   "active_changeset": {
-    "baseline": "d42e5ff07490af8f0fb894e7ab924e4f62cc4379",
-    "current_delta": "The dedicated ETF holdings view distinguishes profile current-analysis eligibility from selected-snapshot latest-versus-historical status and shows provenance, observed known_at, and publication only when reported. Existing focused UI6/6 and type-check receipts are preserved. The exact offline SEC DB/API/shared-runtime selection then passed12/12 on source45c6 in window2129; log hash and exact cleanup are recorded in handoff.md and validation.jsonl. No source changed during that run.",
-    "intent": "Prepare and validate the next named first-human SEC source checkpoint without claiming a live acquisition or accepting the checkpoint. Preserve exact EDGAR identity, shared Provider accounting, disabled-by-default provisioning, idempotent historical ingestion, truthful API/UI lineage, full original roadmap, and Root-owned deployment acceptance boundary.",
-    "name": "etf-first-human-sec-source-1 checkpoint preparation",
+    "baseline": "e429b55807b559cc90e268dc177649a1d85ecb50",
+    "current_delta": "FHSC3 worker attempts now preserve the early expiry guard and recompute the min(attempt cap, remaining fund deadline) after loop-local transport/client/request setup immediately before physical send. Added a slow-setup MockTransport regression proving setup that crosses expiry sends zero requests. Retained real-transport cancellation and DB-backed durable-settlement regressions; only the offline unit module was run locally.",
+    "intent": "Close the Root-reviewed FHSC3 in-flight SEC deadline defect without changing the one-fund request envelope, shared accounting, held routes, or full first-human/full-roadmap acceptance boundaries.",
+    "name": "FHSC3 SEC worker send-boundary deadline correction",
     "owned_paths": [
-      "backend/app/routers/etf_holdings.py",
-      "backend/app/routers/providers.py",
-      "backend/app/services/etf_holdings_adapters.py",
-      "backend/app/services/etf_holdings_edgar.py",
       "backend/app/services/etf_holdings_provider_bridge.py",
-      "backend/tests/integration/api/test_etf_holdings.py",
       "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-      "backend/tests/unit/routers/test_providers_router.py",
-      "backend/tests/unit/services/test_etf_holdings_edgar.py",
-      "frontend/src/views/ETFHoldingsView.vue",
-      "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Current source 45c6a5f69029aa3b873ad68d717202f308845dd5 is clean and origin-synchronized. Exact CI40006029802 is terminal green only for prior source d42e5ff07490af8f0fb894e7ab924e4f62cc4379, not current source. The explicit offline DB/API/shared-runtime selection passed12/12 in window2129 (five warnings,66.84s,pytest exit0); exact log, invocation, resource metrics and cleanup are recorded in the workstream. Preserve window2119's eight progress markers and exit137 after its then-128MiB PostgreSQL-growth guard as partial/inconclusive without summary; preserve the earlier384MiB OOM likewise. No live sample/acquisition is proven and SEC remains held. Broader full-profile/full_stack_browser, applicable live evidence, deployed positive sample and current-source CI remain open; first-human checkpoint acceptance is pending Root review. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data and 30-day gate."
+    "state": "The source baseline is e429b55807b559cc90e268dc177649a1d85ecb50. The FHSC3 send-boundary correction adds an immediate pre-send deadline recheck and a slow-setup zero-send regression. The focused bridge unit module passed39/39; Ruff, format-check and diff-check passed. The DB-backed cancellation/settlement regression is present but awaits Root-assigned fixture validation. The earlier e429 full profile and exact CI do not cover this delta; new exact-source CI and full local profile remain open. SEC transport remains held; the first-human checkpoint is pending Root review. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data and 30-day gate."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -102,8 +94,8 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-24T11:38:19Z: Frozen source 57f898af1e020c007b226e20d9b61bd57b02c896 remains clean and origin-synchronized. Exact CI40089689933 is terminal RED only on the unchanged narrative-count sentinel: backend unit job 5,426 passed, 1 failed, 1 declared skip; the current plan/session blocker summaries omitted the runtime/YAML-derived 15 Tier-0 and 156 Tier-1 phrase. Root frontend qualification passed1,353 tests across140 files (85.69% statements,73.68% branches,75.51% functions), canonical uPlot/visual-policy checks passed, type-check exited134 at the imposed Node512MiB heap cap without a diagnosed source error, and build was not run. Root did not start the local full backend profile. This record-only repair preserves the exact failure and frontend results; no product/test source changes or checkpoint acceptance are implied. Full local profile, applicable live/deployed sample, SEC transport and AC1-AC14 roadmap remain open; preserve 15 Tier-0 and 156 Tier-1, all holds/quarantines, retained data, PIT/raw lineage and 30-day observation.",
-  "current_local_delta": "The dedicated EDGAR SEC path binds committed CIK/series/class, shares Provider admission per physical attempt/redirect, retains rejected raw evidence, records observed known_at and keeps publication unknown. The bounded reader latches response/aggregate/access/page/redirect/attempt/deadline limits, rejects compressed tails/members and prevents completed-empty backfills. The marked HTTP200 fix raises inside synchronous shared Provider invoke after telemetry and before success settlement. Repeat imports now distinguish a persisted verified snapshot from no qualifying filing; the SEC per-hop runtime mock uses an unread ByteStream. An admin-only, dry-run-first EDGAR ETF provisioning endpoint requires explicit reviewed evidence and preserves disabled defaults; Provider read-only review found no concrete source-contract defect. The 61-test SEC/bridge/provisioning unit selection and targeted Ruff/format checks pass. The prior nine-case DB attempt remains partial after384MiB OOM; this fresh512MiB slot preflight refused at1425592KiB below1536MiB and created no resources. No live transport/quota/activation occurred. Full AC1-AC14 and all mandatory DB/full-profile/live gates remain open.",
+  "current_blocker_latest": "2026-10-24T15:53:38Z: Root review identified that loop-local transport/client/request setup could consume the remaining SEC one-fund time while the worker still started a stale relative attempt timeout afterward. The code now retains its early expiry guard and recomputes remaining time immediately before send; a delayed-setup MockTransport regression proves zero physical sends after expiry. Deadline-triggered timeout now preserves TimeoutError classification and carries a non-secret deadline reason for durable Provider logging; unrelated attempt timeouts remain unchanged. The final focused bridge unit run passes39/39, the narrative sentinel passes1/1, and Ruff/format/diff checks pass. The DB-backed durable-settlement regression has not been run locally because no fixture slot was assigned. Exact CI and full local full_stack_browser evidence for this changed source remain pending; the prior e429 profile/CI do not cover the delta. SEC remains held and the first-human checkpoint remains pending Root review. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, all holds/quarantines, retained data, PIT/raw lineage and 30-day observation.",
+  "current_local_delta": "FHSC3 rechecks the one-fund deadline after transport/client/request setup and immediately before every physical HTTPX send. The timeout remains min(existing attempt cap, remaining fund time); expiry is latched terminal before any send. When the fund deadline triggers cancellation, the worker raises TimeoutError with a non-secret deadline message so shared Provider persistence is truthful; independent attempt timeouts keep their prior messages and type. Unit coverage proves real HTTPX transport cancellation and the slow-setup zero-send case. The existing DB-backed regression covers shared durable settlement but remains unrun here. No issuer/SEC HTTP, credentials, quota, DB, service, browser, or full-profile action occurred.",
   "dirty_paths": [],
   "docker": {
     "available": false,
@@ -129,26 +121,26 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "45c6a5f69029aa3b873ad68d717202f308845dd5",
-  "implementation_sha": "45c6a5f69029aa3b873ad68d717202f308845dd5",
+  "head": "e429b55807b559cc90e268dc177649a1d85ecb50",
+  "implementation_sha": "e429b55807b559cc90e268dc177649a1d85ecb50",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
     "current_exact_ci": {
       "backend": "passed",
       "branch_declared": "passed",
-      "checked_at": "2026-10-23T19:51:41Z",
+      "checked_at": "2026-10-24T15:54:36Z",
       "conclusion": "success",
       "e2e": "passed",
       "exhaustive": "skipped by feature-branch policy",
       "frontend": "passed",
-      "run_id": 40006029802,
-      "source_sha": "d42e5ff07490af8f0fb894e7ab924e4f62cc4379",
+      "run_id": 40090963944,
+      "source_sha": "e429b55807b559cc90e268dc177649a1d85ecb50",
       "covers_current_source": false,
       "status": "completed"
     },
-    "current_source_sha": "45c6a5f69029aa3b873ad68d717202f308845dd5",
+    "current_source_sha": "e429b55807b559cc90e268dc177649a1d85ecb50",
     "full_original_roadmap": "AC1-AC14 remain unchanged in goal_objective and roadmap_acceptance_criteria; the checkpoint dispositions are in plan.yaml.",
-    "full_stack_browser": "required; no current-source run recorded",
+    "full_stack_browser": "The exact e429 source has a completed full local profile; this FHSC3 delta is outside that source evidence and must be requalified in the next Root-assigned full profile.",
     "id": "etf-first-human-sec-source-1",
     "planning_authorization": "Human direction received 2026-10-23; the exact scope and full-roadmap dispositions are in plan.yaml.integration_checkpoint.",
     "root_deployment_acceptance": "pending; not represented as passed",
@@ -187,15 +179,15 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-23T21:40:13Z",
+  "last_checkpoint": "2026-10-24T15:54:36Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "At2026-10-23T21:40:13Z: the resource-corrected offline SEC DB/API/shared-runtime selection passed12/12 (five warnings,66.84s) on source45c6a5f69029aa3b873ad68d717202f308845dd5; exact log SHA, systemd invocation, resource metrics and cleanup are in handoff.md/validation.jsonl. The preceding window2119 emitted eight progress markers then SIGINT/SIGKILL/exit137 above its then-128MiB PG-growth threshold without summary; retain it as partial/inconclusive, not no tests, failure, or pass. The earlier384MiB OOM remains partial. Current source is clean/synchronized, but known green CI40006029802 is for prior d42 only and does not cover45c6. Root restored all six app services and verified data/auth/seeds/request-log unchanged. This selected offline result does not close full local profile/full_stack_browser, live/deployed sample acceptance, or the pending first-human checkpoint. Preserve integration-1 history, AC1-AC14, 15 Tier-0 and 156 Tier-1, holds, quarantines, retained data, and 30-day gate; Root assigns the next profile phase.",
+  "latest_checkpoint": "At2026-10-24T15:54:36Z: FHSC3 worker recomputes remaining fund time after transport/client/request setup immediately before physical send. Final focused bridge units passed39/39 in5.64s, narrative count sentinel1/1 in2.68s, Ruff check/format-check and diff-check passed. The deadline-triggered timeout preserves TimeoutError type and carries the non-secret deadline reason for durable Provider logging; generic attempt timeouts remain unchanged. Unit coverage confirms real HTTPX transport cancellation and zero sends after slow setup crosses expiry. The DB-backed durable-settlement regression remains unrun pending Root's fixture slot. The prior e429 full-profile and exact CI receipts apply to their tested source only and do not cover this delta. The automatic preflight's blocked-runtime receipt remains in validation.jsonl; no resources were created. SEC remains held, and exact CI/full local profile on the changed source plus first-human checkpoint acceptance remain open. Preserve all historical full-profile, partial, failure, staging-adoption, and offline-window evidence; AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, and the 30-day gate.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "recorded_at": "2026-10-23T19:51:41Z",
-    "result": "terminal_success for prior source d42e5ff07490af8f0fb894e7ab924e4f62cc4379; Frontend, Backend, Branch-declared and E2E jobs passed; Exhaustive skipped by feature-branch policy. It does not cover current source45c6a5f69029aa3b873ad68d717202f308845dd5.",
-    "run_id": 40006029802,
-    "sha": "d42e5ff07490af8f0fb894e7ab924e4f62cc4379"
+    "recorded_at": "2026-10-24T15:51:10Z",
+    "result": "Exact CI40090963944 is terminal green on published source e429b55807b559cc90e268dc177649a1d85ecb50, before the current FHSC3 send-boundary delta. It does not cover the changed working tree; new exact-source CI remains pending publication.",
+    "run_id": 40090963944,
+    "sha": "e429b55807b559cc90e268dc177649a1d85ecb50"
   },
   "latest_staging_baseline_adoption": {
     "conflicts": [],
@@ -274,7 +266,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Repair only the current owner-record narrative omitted from the published 57f898af source: restore the runtime/YAML-derived 15 Tier-0 and 156 Tier-1 phrase in plan.current_blocker, session.progress.current_blocker, and the latest handoff, without changing tests or product source. Run the exact narrative sentinel under a bounded lightweight scope, canonical workstream/record/plan-hash and diff checks, then commit/push the coherent records and report exact source/CI. Root will qualify the new frozen head and resolve its separately capped type-check; the local full backend profile was intentionally not started. Preserve exact CI40089689933 as red for one narrative unit failure (5426 passed, 1 failed, 1 declared skip), Root frontend1353/140 files and coverage, uPlot/visual-policy successes, type-check exit134 at the Node512MiB cap, and build-not-run. SEC remains held; full local integration/browser, applicable live/deployed sample, AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, PIT/raw lineage and 30-day observation remain open. No checkpoint acceptance is claimed.",
-  "plan_hash": "3a902bbbcd73d625616033af33fccc2e99847fafc617ff0cd0286032e2f2bbe0",
+  "plan_hash": "e9f5b7aa0fe7f887d64af9e253917bb11241ededc063f059b7e74bdb9041b990",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -454,10 +446,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Frozen published source57f898af1e020c007b226e20d9b61bd57b02c896 is clean and origin-synchronized. Exact CI40089689933 is terminal RED only on the unchanged narrative-count sentinel: backend unit job5426 passed,1 failed,1 declared skip because the current plan/session blocker summaries omitted the runtime/YAML-derived phrase 15 Tier-0 and 156 Tier-1. Root frontend qualification passed1353 tests across140 files (85.69% statements,73.68% branches,75.51% functions), canonical uPlot and visual-policy checks passed; type-check exited134 at the imposed Node512MiB heap cap without a diagnosed source error, and build was not run. Root did not start the local full backend profile. The narrow record correction preserves this exact failure and frontend results; no product/test source change or checkpoint acceptance is implied. Full local profile, applicable live/deployed sample and SEC transport remain open/held; preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, all quarantines/holds, retained data, PIT/raw lineage and the30-day observation.",
-    "current_phase": "cdc33442_green_staging_adoption_2026_10_24",
-    "next_action": "Restore the runtime/YAML-derived 15 Tier-0 and 156 Tier-1 invariant in the current plan/session summaries and latest handoff only. Run the exact narrative sentinel under a bounded lightweight scope, canonical workstream/JSON/JSONL/plan-hash/diff checks, then commit and push this coherent owner-record correction. Root will qualify the new frozen head and resolve the separately capped type-check; do not rerun frontend or broad backend validation. Preserve exact CI40089689933 red (one narrative failure;5426 passed,1 failed,1 declared skip), Root frontend1353/140 files and coverage, uPlot/visual-policy successes, Node512MiB type-check exit134 without a diagnosed source error, and build-not-run. No product/test source changes, fixture, Docker, HTTP, quota or acceptance claim. Keep full local integration/browser, applicable live/deployed sample, SEC holds, AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, PIT/raw lineage and the30-day observation open.",
-    "updated_at": "2026-10-24T11:38:19Z"
+    "current_blocker": "The published source e429b55807b559cc90e268dc177649a1d85ecb50 had a complete local profile and exact CI40090963944 before the current FHSC3 delta. Root identified and the current changes correct a setup-delay bug that could start SEC transport after the one-fund deadline. The worker now rechecks immediately before send, refuses zero-send on expiry, and gives a deadline-triggered TimeoutError a durable non-secret message while preserving its type; other timeout messages remain unchanged. Focused bridge units pass39/39, the narrative sentinel passes1/1, and Ruff/format/diff checks pass. The DB-backed settlement regression and requalification of the changed source remain pending Root-assigned gates. SEC transport remains held; the first-human checkpoint and all AC1-AC14 work remain open. Preserve 15 Tier-0 and 156 Tier-1, all holds/quarantines, retained data, PIT/raw lineage and the30-day observation.",
+    "current_phase": "FHSC3_worker_send_boundary_deadline_correction_2026_10_24",
+    "next_action": "Run the exact 15 Tier-0 and 156 Tier-1 narrative sentinel, canonical workstream validator, JSON/JSONL parse, plan-hash parity and diff checks for the FHSC3 send-boundary correction. Commit and push the focused source plus evidence on this ETF branch, then report its exact tip for Root's qualification. Do not run the DB-backed settlement regression or full_stack_browser locally without Root's assigned fixture slot. Prior e429 profile/CI do not cover this delta. Preserve the runtime-preflight refusal receipt, all historical reds/skips/partials, held SEC operations, AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, PIT/raw lineage and the 30-day observation; do not claim checkpoint acceptance.",
+    "updated_at": "2026-10-24T15:54:36Z"
   },
   "provider_release_2026_10_20": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",

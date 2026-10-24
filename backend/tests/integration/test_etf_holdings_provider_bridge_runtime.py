@@ -11,6 +11,7 @@ import asyncio
 import gzip
 import hashlib
 import threading
+import time
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -1254,6 +1255,144 @@ async def test_timeout_preserves_uncertain_reservation_and_failed_attempt_lineag
             assert len(account_windows) == 1
             assert account_windows[0]["reserved_units"] == 1
             assert account_windows[0]["consumed_units"] == 0
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_sec_fund_deadline_cancels_worker_transport_before_durable_settlement(
+    provider_db, monkeypatch
+):
+    """Fund expiry cancels the worker I/O, then persists its uncertain attempt."""
+
+    from app.services import etf_holdings_edgar as edgar
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    operation = "fetch_etf_holdings_sec_submissions"
+    deadline_seconds = 2.0
+    worker_attempt_cap = 5.0
+    monkeypatch.setattr(edgar, "ETF_SEC_FUND_DEADLINE_SECONDS", deadline_seconds)
+    monkeypatch.setattr(bridge, "ETF_SEC_FUND_DEADLINE_SECONDS", deadline_seconds)
+    # Keep this offline regression quick while preserving the ordering under
+    # test: the whole-fund deadline is shorter than the independent attempt cap.
+    monkeypatch.setattr(bridge, "ETF_SEC_ATTEMPT_TIMEOUT_SECONDS", worker_attempt_cap)
+    budgets = []
+    budget_type = bridge.ETFSECExecutionBudget
+
+    def new_budget():
+        budget = budget_type()
+        budgets.append(budget)
+        return budget
+
+    monkeypatch.setattr(edgar, "ETFSECExecutionBudget", new_budget)
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=3,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["data.sec.gov"],
+                operation=operation,
+                provider_name_override="edgar",
+                instrument_symbol_override="IWM",
+                quota_scope_override="ip",
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert instrument is not None
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                adapter_key="ishares",
+                sec_cik="0001100663",
+                sec_series_id="S000004344",
+                sec_class_id="C000012074",
+                provider_aliases={"holdings_source_provider": "ishares"},
+            )
+            setup.add(profile)
+            await setup.flush()
+            profile_id = profile.id
+
+    class WaitingSECTransport(httpx.AsyncBaseTransport):
+        def __init__(self):
+            self.started = threading.Event()
+            self.cancelled = threading.Event()
+            self.started_at = None
+            self.cancelled_at = None
+            self.calls = []
+
+        async def handle_async_request(self, request):
+            self.calls.append(str(request.url))
+            self.started_at = time.monotonic()
+            self.started.set()
+            try:
+                # A real HTTPX transport coroutine that cannot finish by itself.
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled_at = time.monotonic()
+                self.cancelled.set()
+                raise
+
+        async def aclose(self):
+            return None
+
+    transports = []
+
+    def transport_factory():
+        transport = WaitingSECTransport()
+        transports.append(transport)
+        return transport
+
+    original_attempt_factory = bridge._make_loop_local_httpx_attempt
+
+    def attempt_factory(**kwargs):
+        return original_attempt_factory(**kwargs, transport_factory=transport_factory)
+
+    monkeypatch.setattr(bridge, "_make_loop_local_httpx_attempt", attempt_factory)
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+    request_url = "https://data.sec.gov/submissions/CIK0001100663.json"
+
+    async with provider_db() as session:
+        profile = await _load_profile(session, profile_id)
+        identity = await edgar._resolve_request_identity(db=session, profile=profile)
+        with pytest.raises(ETFHoldingsRouteHeldError, match="execution deadline exceeded"):
+            await edgar._run_in_sec_fund_scope(
+                lambda: edgar._sec_get(
+                    identity,
+                    operation=operation,
+                    url=request_url,
+                )
+            )
+
+    assert len(budgets) == 1
+    budget = budgets[0]
+    assert len(transports) == 1
+    transport = transports[0]
+    assert transport.started.wait(1)
+    assert transport.cancelled.wait(1), "fund expiry did not cancel the active HTTPX transport"
+    assert transport.calls == [request_url]
+    assert transport.started_at is not None
+    assert transport.cancelled_at is not None
+    assert transport.cancelled_at <= budget.deadline_at + 0.5
+    assert budget._terminal_failure == "SEC one-fund execution deadline exceeded"
+    with pytest.raises(ETFHoldingsRouteHeldError, match="terminal response"):
+        await budget.before_attempt()
+
+    async with provider_db() as reopened:
+        row = await _assert_one_settled_attempt(
+            reopened,
+            case,
+            expected_success=False,
+            expected_http_requests=0,
+            expected_settled_usage=Decimal("0"),
+            expected_reservation_state="uncertain",
+        )
+        assert row.completed_at is not None
+        assert row.error_type == "TimeoutError"
+        assert "deadline" in (row.error_message or "").lower()
+        assert row.response_bytes == 0
 
 
 @pytest.mark.integration

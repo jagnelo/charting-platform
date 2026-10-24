@@ -476,6 +476,12 @@ class LoopLocalHTTPXAttempt:
             raise ETFHoldingsRouteHeldError(
                 "HTTPX attempts cannot override the per-attempt transport boundary"
             )
+        if self.sec_budget is not None:
+            # Fail early before setup when the fund deadline has already
+            # expired. Setup itself may take time, so this is not the send
+            # timeout; that is recomputed after request construction below.
+            await self.sec_budget.start_attempt()
+            self.sec_budget.attempt_timeout_seconds()
         transport = self.transport_factory() if self.transport_factory is not None else None
         async with httpx.AsyncClient(
             transport=transport,
@@ -491,16 +497,30 @@ class LoopLocalHTTPXAttempt:
                 finally:
                     await response.aclose()
 
-            await self.sec_budget.start_attempt()
             response = None
             try:
-                async with asyncio.timeout(ETF_SEC_ATTEMPT_TIMEOUT_SECONDS):
+                # Client/transport construction and request building can be
+                # slow. Recompute immediately before the physical send so a
+                # setup delay cannot extend the fund-wide deadline.
+                attempt_timeout = self.sec_budget.attempt_timeout_seconds()
+                async with asyncio.timeout(attempt_timeout):
                     response = await client.send(request, follow_redirects=False, stream=True)
                     return await _read_bounded_sec_response(
                         response,
                         budget=self.sec_budget,
                         operation=self.sec_operation or "",
                     )
+            except TimeoutError as exc:
+                # A fixed per-attempt timeout remains a recoverable attempt
+                # failure. If the worker timer reached the shared fund
+                # deadline, latch it before Provider settles this failure so
+                # no later candidate/redirect can be admitted.
+                if self.sec_budget.latch_deadline_if_expired():
+                    # Provider persists the invoke exception's type and text.
+                    # Keep TimeoutError for classification, but make fund
+                    # expiry distinguishable from a generic attempt timeout.
+                    raise TimeoutError("SEC one-fund execution deadline exceeded") from exc
+                raise
             finally:
                 if response is not None:
                     await response.aclose()
@@ -537,6 +557,25 @@ class ETFSECExecutionBudget:
             reason = "SEC one-fund execution deadline exceeded"
             self.latch_terminal(reason)
             raise ETFHoldingsRouteHeldError(reason)
+
+    def attempt_timeout_seconds(self) -> float:
+        """Return the remaining fund budget capped by the reviewed 20s attempt."""
+
+        self._raise_if_terminal()
+        remaining = self.deadline_at - time.monotonic()
+        if remaining <= 0:
+            reason = "SEC one-fund execution deadline exceeded"
+            self.latch_terminal(reason)
+            raise ETFHoldingsRouteHeldError(reason)
+        return min(ETF_SEC_ATTEMPT_TIMEOUT_SECONDS, remaining)
+
+    def latch_deadline_if_expired(self) -> bool:
+        """Make an in-flight deadline timeout terminal before settlement."""
+
+        if time.monotonic() < self.deadline_at:
+            return False
+        self.latch_terminal("SEC one-fund execution deadline exceeded")
+        return True
 
     def begin_logical_request(self, operation: str) -> None:
         self._raise_if_terminal()

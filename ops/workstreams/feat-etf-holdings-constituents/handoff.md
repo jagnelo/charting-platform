@@ -1,5 +1,55 @@
 # feat/etf-holdings-constituents
 
+## FHSC3 send-boundary deadline correction — 2026-10-24T15:48Z
+
+Root's review of the in-progress FHSC3 repair found that the worker computed
+the SEC attempt timeout before constructing the loop-local transport/client,
+then started that duration only after setup. The retained offline probe
+`/home/m920q/charting-platform/.ai/staging-attempts/probe-etf-setup-deadline-20261024.py`
+reproduced a 0.05-second fund budget with a 0.10-second factory delay: the
+physical send began after expiry and was cancelled later. The worker now keeps
+the early expiry guard, then recomputes the remaining fund duration after
+transport/client/request setup immediately before `client.send`. Expired
+setup latches the terminal deadline and performs no send; an in-flight request
+still uses the minimum of the existing attempt cap and remaining fund budget,
+with timeout settlement behavior unchanged.
+
+Root's follow-up review noted that bare `asyncio.timeout` produces an empty-
+message `TimeoutError`, while the DB regression correctly expects a durable
+deadline reason. Only when the fund deadline itself expires, the worker now
+rethrows `TimeoutError` with the explicit non-secret message `SEC one-fund
+execution deadline exceeded`; ordinary attempt timeouts remain unchanged. The
+offline real-transport cancellation test asserts that message, preserving the
+type used by shared Provider classification.
+
+Added `test_sec_worker_rechecks_deadline_after_slow_setup_before_send`, which
+uses only a 0.10-second local setup delay and MockTransport, then asserts that
+the send handler is never called and the deadline remains terminal. The
+focused `test_etf_holdings_provider_bridge.py` module passed **39/39** in
+5.70s. Ruff check, Ruff format-check (three changed Python files), and
+`git diff --check` passed. The DB-backed regression
+`test_sec_fund_deadline_cancels_worker_transport_before_durable_settlement`
+remains present but was not run locally because it requires the assigned
+database fixture; it must be covered by Root's later validation slot. No live
+HTTP, credentials, quota, DB, service, browser, or full-profile action was
+performed.
+
+The exact prior e429 full-profile proof remains valid for its then-tested
+source only; this FHSC3 source delta has not yet received full-profile or
+exact-source hosted CI validation. The original first-human checkpoint and
+full AC1–AC14 roadmap remain pending, and SEC transport remains held. Preserve
+`15 Tier-0 and 156 Tier-1`, all quarantines, raw/PIT/known-at lineage, disabled
+unknown/paid/trial routes, retained data, and the 30-day observation gate.
+An attempted automatic session preflight could not access the Docker API in
+this runtime; its exact blocked-local-runtime receipt remains in
+`validation.jsonl`. It is not evidence that Docker Desktop or the daemon is
+stopped. The preflight also could not prepare the external private quota config
+under this sandbox; no permission workaround or service action was attempted.
+
+Next: finish the exact narrative-count sentinel and owner-workstream checks,
+commit/push this source-plus-receipt change on the ETF branch, and report the
+new exact tip. Root assigns any DB/full-profile gates; do not launch them here.
+
 ## Proposed first-human SEC source checkpoint — 2026-10-23T19:00Z
 
 The prior `etf-holdings-integration-1` acceptance and its complete closure,

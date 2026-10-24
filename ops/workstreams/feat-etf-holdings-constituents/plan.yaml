@@ -992,22 +992,23 @@ historical_execution_context: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  Current frozen source is `57f898af1e020c007b226e20d9b61bd57b02c896`, clean
-  and synchronized with origin. Exact CI `40089689933` is terminal RED: its
-  backend unit job had 5,426 passed, 1 failed, and 1 declared skip. The sole
-  failure is the unchanged narrative-count sentinel because this field and the
-  corresponding session summary omitted the runtime/YAML-derived phrase
-  `15 Tier-0 and 156 Tier-1`; restore the accurate counts in the current
-  summaries without changing tests or product code. Root's fresh frontend
-  qualification passed 1,353 tests across 140 files (85.69% statements,
-  73.68% branches, 75.51% functions); canonical uPlot and visual-policy checks
-  passed. Type-check exited 134 at Root's Node 512 MiB heap cap, so that is not
-  a diagnosed source failure; frontend build was not run. Root did not start
-  the local full backend profile. The failed CI and resource-limited frontend
-  result do not accept the SEC checkpoint or close the full roadmap. Keep
-  `15 Tier-0 and 156 Tier-1`, AC1-AC14, all holds/quarantines, retained data,
-  truthful current/PIT lineage, live/deployed sample gates, full local profile,
-  and the 30-day observation explicit and open.
+  Source `e429b55807b559cc90e268dc177649a1d85ecb50` had a complete qualified
+  local profile and exact branch CI before this FHSC3 repair. Root then found
+  that the worker started its relative attempt timeout only after potentially
+  slow loop-local transport/client/request setup; an offline probe showed a
+  physical send beginning after the whole-fund deadline. The current repair
+  retains the early guard and recomputes remaining time immediately before
+  send, with a zero-send slow-setup regression. Focused bridge unit tests pass
+  39/39; deadline-triggered worker timeout keeps its `TimeoutError` type while
+  persisting an explicit non-secret deadline message. Ruff/format/diff checks
+  pass. The DB-backed cancellation and durable
+  settlement regression is present but awaits an assigned fixture slot. The
+  changed source has not yet received exact-source CI or a full local profile;
+  the previous e429 profile/CI do not cover this delta. The first-human SEC
+  checkpoint remains pending Root review, transport remains held, and all
+  original gates remain open. Preserve `15 Tier-0 and 156 Tier-1`, AC1-AC14,
+  all holds/quarantines, retained data, truthful current/PIT lineage, live and
+  deployed-sample gates, and the 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2090,14 +2091,14 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Restore the runtime/YAML-derived `15 Tier-0 and 156 Tier-1` invariant in the
-  current plan/session summaries and latest handoff, preserving the exact
-  57f898af source, released-staging adoption, full AC1-AC14 roadmap and all
-  historical evidence. Validate the unchanged count sentinel, workstream
-  records, plan hash and diff under a bounded lightweight scope; commit and push
-  only the coherent branch-owned record correction. Root will qualify the new
-  frozen head. Keep full local integration/browser, applicable live SEC and
-  deployed positive-sample gates open; SEC transport, unknown account/cost/
-  native-headroom facts, paid/trial/unsafe routes and issuer quarantines remain
-  held. Preserve retained data, current/PIT/raw lineage and the 30-day
-  observation. Do not change product/test source or claim checkpoint acceptance.
+  Complete the exact `15 Tier-0 and 156 Tier-1` narrative sentinel and
+  canonical workstream/JSON/JSONL/plan-hash/diff checks for the FHSC3 send-boundary
+  correction. Commit and push the focused source change plus its evidence on
+  this ETF branch, then report the exact new tip for Root's qualification.
+  The DB-backed durable-settlement regression and full local
+  `full_stack_browser` profile remain for Root-assigned validation; prior e429
+  profile and CI evidence do not cover this delta. Keep live SEC transport,
+  unknown account/cost/native-headroom facts, paid/trial/unsafe routes and
+  issuer quarantines held. Preserve AC1-AC14, retained data, current/PIT/raw
+  lineage, `15 Tier-0 and 156 Tier-1`, and the 30-day observation. Do not claim
+  checkpoint acceptance or full-roadmap completion.

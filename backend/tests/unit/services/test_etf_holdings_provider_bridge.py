@@ -73,6 +73,122 @@ async def test_sec_execution_budget_enforces_total_attempt_archive_page_and_dead
         await budget.before_attempt()
 
 
+def test_expired_sec_budget_refuses_worker_transport_before_factory_or_send():
+    budget = ETFSECExecutionBudget()
+    budget.deadline_at = time.monotonic() - 0.01
+    factory_calls = []
+
+    def transport_factory():
+        factory_calls.append("created")
+        return httpx.MockTransport(lambda request: httpx.Response(200, request=request))
+
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://data.sec.gov/submissions/CIK0000000001.json",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=transport_factory,
+        sec_budget=budget,
+        sec_operation="fetch_etf_holdings_sec_submissions",
+    )
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="deadline exceeded"):
+        _run_sync_attempt_in_finite_worker(attempt)
+
+    assert factory_calls == []
+    assert budget.physical_attempts == 0
+    assert budget._terminal_failure == "SEC one-fund execution deadline exceeded"
+
+
+def test_sec_worker_rechecks_deadline_after_slow_setup_before_send(monkeypatch):
+    monkeypatch.setattr(bridge, "ETF_SEC_ATTEMPT_TIMEOUT_SECONDS", 0.75)
+    budget = ETFSECExecutionBudget()
+    budget.deadline_at = time.monotonic() + 0.05
+    factory_calls = []
+    send_calls = []
+
+    def transport_factory():
+        # Model loop-local client/transport setup that crosses the whole-fund
+        # deadline after the early guard but before HTTPX can send.
+        time.sleep(0.1)
+        factory_calls.append("created")
+
+        def handler(request):
+            send_calls.append(str(request.url))
+            return httpx.Response(200, request=request)
+
+        return httpx.MockTransport(handler)
+
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://data.sec.gov/submissions/CIK0000000001.json",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=transport_factory,
+        sec_budget=budget,
+        sec_operation="fetch_etf_holdings_sec_submissions",
+    )
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="deadline exceeded"):
+        _run_sync_attempt_in_finite_worker(attempt)
+
+    assert factory_calls == ["created"]
+    assert send_calls == []
+    assert budget.physical_attempts == 1
+    assert budget._terminal_failure == "SEC one-fund execution deadline exceeded"
+
+
+def test_sec_worker_cancels_real_httpx_transport_at_remaining_fund_deadline(monkeypatch):
+    # Bound a regression failure too: the old fixed-attempt behavior must not
+    # leave a daemon worker alive for the production twenty-second timeout.
+    monkeypatch.setattr(bridge, "ETF_SEC_ATTEMPT_TIMEOUT_SECONDS", 0.75)
+    budget = ETFSECExecutionBudget()
+    budget.deadline_at = time.monotonic() + 0.2
+    transports = []
+
+    class WaitingTransport(httpx.AsyncBaseTransport):
+        def __init__(self):
+            self.started = threading.Event()
+            self.cancelled = threading.Event()
+
+        async def handle_async_request(self, request):
+            self.started.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled.set()
+                raise
+
+        async def aclose(self):
+            return None
+
+    def transport_factory():
+        transport = WaitingTransport()
+        transports.append(transport)
+        return transport
+
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://data.sec.gov/submissions/CIK0000000001.json",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=transport_factory,
+        sec_budget=budget,
+        sec_operation="fetch_etf_holdings_sec_submissions",
+    )
+    started_at = time.monotonic()
+
+    with pytest.raises(TimeoutError, match="SEC one-fund execution deadline exceeded"):
+        _run_sync_attempt_in_finite_worker(attempt)
+
+    elapsed = time.monotonic() - started_at
+    assert len(transports) == 1
+    assert transports[0].started.is_set()
+    assert transports[0].cancelled.is_set()
+    assert elapsed < 0.6
+    assert budget._terminal_failure == "SEC one-fund execution deadline exceeded"
+
+
 @pytest.mark.asyncio
 async def test_sec_physical_attempt_limit_denies_before_shared_admission_or_transport(monkeypatch):
     budget = ETFSECExecutionBudget()
