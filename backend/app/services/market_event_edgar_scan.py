@@ -49,6 +49,39 @@ def _validate_issuer_materialization_mode(value: str) -> str:
     return mode
 
 
+def _sec_directory_candidate_payload_names(payload: dict[str, Any]) -> list[str] | None:
+    raw_names = payload.get("name_candidates")
+    if raw_names is None:
+        return []
+    if not isinstance(raw_names, list) or any(
+        not isinstance(name, str) or not name.strip() for name in raw_names
+    ):
+        return None
+    return sorted({name.strip() for name in raw_names}, key=lambda name: (name.casefold(), name))
+
+
+def _sec_directory_candidate_payload_name(payload: dict[str, Any]) -> str | None:
+    raw_name = payload.get("name")
+    if raw_name is not None and not isinstance(raw_name, str):
+        return None
+    names = _sec_directory_candidate_payload_names(payload)
+    if names is None:
+        return None
+    conformed_name = (raw_name or (names[0] if names else "")).strip()
+    return conformed_name or None
+
+
+def _sec_directory_candidate_payload_tickers(payload: dict[str, Any]) -> list[str] | None:
+    raw_tickers = payload.get("tickers")
+    if raw_tickers is None:
+        return []
+    if not isinstance(raw_tickers, list) or any(
+        not isinstance(ticker, str) or not ticker.strip() for ticker in raw_tickers
+    ):
+        return None
+    return sorted({ticker.strip().upper() for ticker in raw_tickers})
+
+
 async def _materialize_directory_issuers(
     db: AsyncSession,
     rows: list[dict[str, Any]],
@@ -419,11 +452,19 @@ async def materialize_sec_directory_issuer_report(
         or row.name_candidates[0].strip() != row.conformed_name.strip()
         or not isinstance(row.tickers, list)
         or any(not isinstance(ticker, str) or not ticker.strip() for ticker in row.tickers)
+        or not isinstance(row.source_payload, dict)
+        or str(row.source_payload.get("cik") or "").strip() != row.cik
+        or _sec_directory_candidate_payload_name(row.source_payload) != row.conformed_name
+        or _sec_directory_candidate_payload_names(row.source_payload) != row.name_candidates
+        or _sec_directory_candidate_payload_tickers(row.source_payload) != row.tickers
         for row in pending
     ):
         return {
             "status": "blocked",
-            "reason": "one or more would-create rows failed CIK/name/ticker validation",
+            "reason": (
+                "one or more would-create rows failed source-payload CIK/name/ticker "
+                "consistency validation"
+            ),
             "report_cycle_number": report_cycle,
         }
 
@@ -595,7 +636,9 @@ async def refresh_edgar_ipo_pipeline_for_issuer_universe(
     # A completed cycle starts the next invocation from the beginning.  Keep
     # this explicit in the response so operators can distinguish a fresh
     # cycle from the first ever scan, even though both use a NULL cursor.
-    wrapped = state.cursor_issuer_id is None and state.cycle_count > 0
+    wrapped = (
+        state.cursor_issuer_id is None and state.cycle_count > 0 and state.status == "complete"
+    )
     if wrapped:
         state.cycle_started_at = now
 
@@ -641,47 +684,141 @@ async def refresh_edgar_ipo_pipeline_for_issuer_universe(
             "wrapped": wrapped,
         }
 
-    result = await refresh_edgar_ipo_pipeline(
-        db,
-        [str(issuer.cik) for issuer in issuer_rows if issuer.cik],
-        start=start,
-        end=end,
-        max_ciks=max_issuers,
-        max_events_per_issuer=max_events_per_issuer,
-        commit=False,
-    )
-    cycle_complete = not truncated
-    state.cursor_issuer_id = None if cycle_complete else issuer_rows[-1].id
-    state.cycle_count += 1 if cycle_complete else 0
-    state.scanned_count += len(issuer_rows)
-    state.last_batch_count = len(issuer_rows)
-    state.last_event_count = int(result.get("events", 0))
-    state.last_failure_count = int(result.get("failures", 0))
-    state.last_scanned_at = now
-    state.status = "complete" if cycle_complete else "partial"
-    state.last_error = (
-        "one or more issuer pipeline reads failed" if state.last_failure_count else None
-    )
-    state.provenance = {
-        "algorithm": "edgar_ipo_pipeline_issuer_scan_v1",
-        "issuer_table_scope": "cik_not_null",
-        "last_batch_issuer_ids": [issuer.id for issuer in issuer_rows],
-        "last_batch_ciks": [str(issuer.cik) for issuer in issuer_rows],
-        "window": {
-            "start": start.isoformat() if start else None,
-            "end": end.isoformat() if end else None,
-        },
-        "wrapped": wrapped,
-        "bounded": True,
-    }
-    await db.commit()
+    batch_ids: list[int] = []
+    batch_ciks: list[str] = []
+    batch_results: list[dict[str, Any]] = []
+    batch_failures: list[dict[str, Any]] = []
+    total_events = 0
+    total_persisted = 0
+    total_linked = 0
+    total_unlinked = 0
+    cycle_complete = False
+    result_status = "no_events"
+    scan_superseded = False
+    reconciliation: dict[str, Any] = {}
+
+    for index, issuer in enumerate(issuer_rows):
+        cik = str(issuer.cik)
+        result = await refresh_edgar_ipo_pipeline(
+            db,
+            [cik],
+            start=start,
+            end=end,
+            max_ciks=1,
+            max_events_per_issuer=max_events_per_issuer,
+            commit=False,
+        )
+        issuer_results = result.get("issuers")
+        issuer_result = (
+            issuer_results[0]
+            if isinstance(issuer_results, list)
+            and len(issuer_results) == 1
+            and isinstance(issuer_results[0], dict)
+            and issuer_results[0].get("cik") == cik
+            else None
+        )
+        failed = (
+            int(result.get("failures", 0)) > 0
+            or issuer_result is None
+            or issuer_result.get("status") != "refreshed"
+        )
+        if issuer_result is None:
+            issuer_result = {
+                "cik": cik,
+                "status": "failed",
+                "events": 0,
+                "linked": 0,
+                "unlinked": 0,
+                "error": {
+                    "error_type": "IncompleteIssuerResult",
+                    "error": "SEC issuer scan returned no matching per-CIK outcome",
+                },
+            }
+
+        batch_ids.append(issuer.id)
+        batch_ciks.append(cik)
+        batch_results.append(issuer_result)
+        if isinstance(result.get("reconciliation"), dict):
+            reconciliation = result["reconciliation"]
+        total_events += int(issuer_result.get("events", 0))
+        total_persisted += int(result.get("persisted", 0))
+        total_linked += int(issuer_result.get("linked", 0))
+        total_unlinked += int(issuer_result.get("unlinked", 0))
+        if failed:
+            batch_failures.append(issuer_result)
+
+        # Persist the CIK's event/request-log result and its resume cursor in
+        # one transaction. On a failed CIK, leave the cursor at the preceding
+        # successful issuer and stop; restart therefore retries only that CIK
+        # and does not replay earlier committed work or skip later issuers.
+        last_cik = index == len(issuer_rows) - 1
+        cycle_complete = last_cik and not truncated and not failed
+        if not failed:
+            state.cursor_issuer_id = None if cycle_complete else issuer.id
+            state.scanned_count += 1
+        state.cycle_count += 1 if cycle_complete else 0
+        state.last_batch_count = len(batch_ids)
+        state.last_event_count = total_events
+        state.last_failure_count = len(batch_failures)
+        state.last_scanned_at = datetime.now(UTC)
+        state.status = "complete" if cycle_complete else "partial"
+        state.last_error = "one or more issuer pipeline reads failed" if batch_failures else None
+        state.provenance = {
+            **(state.provenance if isinstance(state.provenance, dict) else {}),
+            "algorithm": "edgar_ipo_pipeline_issuer_scan_v2",
+            "issuer_table_scope": "cik_not_null",
+            "last_batch_issuer_ids": list(batch_ids),
+            "last_batch_ciks": list(batch_ciks),
+            "last_batch_results": list(batch_results),
+            "last_batch_failed_ciks": [item["cik"] for item in batch_failures],
+            "window": {
+                "start": start.isoformat() if start else None,
+                "end": end.isoformat() if end else None,
+            },
+            "wrapped": wrapped,
+            "bounded": True,
+        }
+        await db.commit()
+        if failed:
+            result_status = "failed"
+            break
+        if int(result.get("events", 0)):
+            result_status = "refreshed"
+        if index < len(issuer_rows) - 1:
+            # Each per-CIK commit releases the row lock. Reacquire it before
+            # the next provider call and verify that no other worker advanced
+            # the cursor while this worker was between transactions.
+            state = (
+                await db.execute(
+                    select(MarketEventScanState)
+                    .where(MarketEventScanState.scan_key == _SCAN_KEY)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+            ).scalar_one()
+            if state.cursor_issuer_id != issuer.id:
+                scan_superseded = True
+                result_status = "superseded"
+                break
+
     return {
-        **result,
+        "status": result_status,
+        "provider": _PROVIDER,
+        "requested_ciks": len(batch_ciks),
+        "invalid_ciks": 0,
+        "events": total_events,
+        "persisted": total_persisted,
+        "linked": total_linked,
+        "unlinked": total_unlinked,
+        "failures": len(batch_failures),
+        "issuers": batch_results,
+        "reconciliation": reconciliation,
         "scan_key": _SCAN_KEY,
-        "issuers_considered": len(issuer_rows),
+        "issuers_considered": len(batch_ciks),
         "cursor_issuer_id": state.cursor_issuer_id,
         "cycle_complete": cycle_complete,
         "wrapped": wrapped,
+        "scan_superseded": scan_superseded,
     }
 
 

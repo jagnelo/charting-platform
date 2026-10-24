@@ -384,7 +384,12 @@ def test_sec_directory_candidate_report_is_admin_only_and_paginated(client, admi
                 conformed_name="New Issuer",
                 name_candidates=["New Issuer"],
                 tickers=["NEW"],
-                source_payload={"cik": "0000000041", "name": "New Issuer", "tickers": ["NEW"]},
+                source_payload={
+                    "cik": "0000000041",
+                    "name": "New Issuer",
+                    "name_candidates": ["New Issuer"],
+                    "tickers": ["NEW"],
+                },
                 admission_decision="would_create",
                 decision_reason="No issuer currently matches this CIK.",
                 cycle_status="complete",

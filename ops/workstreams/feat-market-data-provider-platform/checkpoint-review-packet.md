@@ -1,5 +1,29 @@
 # Provider integration checkpoint review packet
 
+## Accepted baseline adoption and current full-roadmap continuation — 2026-10-22
+
+The exact synchronized four-feature staging release
+`0e342512e53ba2268425294d61c50e219eaafa4f` has been adopted on the Provider
+branch by fast-forward and the Provider remote ref is synchronized to that
+SHA. Its canonical release record is
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`;
+exact CI `39827786248` is green. This records acceptance of the initial
+integration checkpoint only. It does not complete the full Provider roadmap,
+live/native provider validation, deployment, paid/trial work, or downstream
+roadmap obligations.
+
+The active branch continuation addresses the existing per-CIK durability
+acceptance requirement (`AC-UNIVERSE-COMPLETE` /
+`AC-SEC-PRELISTING-POLICY`) in
+`backend/app/services/market_event_edgar_scan.py`. SEC issuer-universe scans
+now checkpoint each issuer outcome/request-log and cursor together, stop at a
+failed CIK, and resume without repeating earlier committed CIKs; cursor
+revalidation between CIK commits prevents stale concurrent workers from
+repeating a CIK. The complete scanner unit module passes 24/24 with no
+external HTTP. This source change remains in progress pending full applicable
+validation, exact-source CI, and human review; no provider transport or quota
+operation occurred. All original roadmap criteria and existing holds remain.
+
 ## Current continuation — offline only
 
 Published source is `2e1e63593b1083cfc38be3eba4b2071fe799170c`; root owns exact

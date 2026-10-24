@@ -389,14 +389,27 @@ async def test_nms_absence_requires_same_cycle_cta_and_nasdaq_equity_etf_scopes(
         },
         ("nasdaq", "EQUITY"): {
             "total": 1,
-            "quotes": [{"symbol": "ACTIVE", "name": "Active Equity", "exchange": "XNAS"}],
+            "quotes": [
+                {
+                    "symbol": "ACTIVE",
+                    "name": "Active Equity",
+                    "exchange": "XNAS",
+                    "source_file": "nasdaqlisted",
+                }
+            ],
             "source_files": nasdaq_files,
             "source_file_creation_times": creation_times,
         },
         ("nasdaq", "ETF"): {
             "total": 1,
             "quotes": [
-                {"symbol": "FUNDX", "name": "Fund X", "exchange": "XNAS", "quoteType": "ETF"}
+                {
+                    "symbol": "FUNDX",
+                    "name": "Fund X",
+                    "exchange": "XNAS",
+                    "quoteType": "ETF",
+                    "source_file": "nasdaqlisted",
+                }
             ],
             "source_files": nasdaq_files,
             "source_file_creation_times": creation_times,

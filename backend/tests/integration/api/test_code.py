@@ -877,6 +877,155 @@ def test_column_batch_run_materializes_declared_universe_and_returns_typed_cells
     ]
 
 
+def test_research_batch_coverage_uses_each_mapped_default_before_history_selection(
+    client, auth_headers, db, tmp_path, monkeypatch, instrument, instrument_b
+):
+    """PostgreSQL regression: later alternate-series bars cannot complete a batch window."""
+    from datetime import UTC, datetime
+    from decimal import Decimal
+
+    from sqlalchemy import func, select
+
+    from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
+    from app.models.ohlcv import OHLCVBar, Timeframe
+
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+    )
+    monkeypatch.setattr(
+        "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+    )
+
+    selected_by_id = {}
+    for current, label in ((instrument, "a"), (instrument_b, "b")):
+        selected = MarketSeries(
+            instrument_id=current.id,
+            feed_scope=f"research-selected-{label}",
+            session_code="regular",
+            timeframe="D1",
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="research-batch-regression",
+            is_canonical=False,
+            is_active=True,
+        )
+        alternate = MarketSeries(
+            instrument_id=current.id,
+            feed_scope=f"research-alternate-{label}",
+            session_code="regular",
+            timeframe="D1",
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="research-batch-regression",
+            is_canonical=True,
+            is_active=True,
+        )
+        db.add_all([selected, alternate])
+        db.flush()
+        selected_by_id[current.id] = selected
+        db.add(
+            MarketSeriesDefault(
+                instrument_id=current.id,
+                timeframe="D1",
+                is_adjusted=True,
+                market_series_id=selected.id,
+                selection_reason="research-batch-regression",
+            )
+        )
+        for series, day, close in (
+            (selected, 2, "10"),
+            (alternate, 5, "99"),
+        ):
+            value = Decimal(close)
+            db.add(
+                OHLCVBar(
+                    instrument_id=current.id,
+                    market_series_id=series.id,
+                    timeframe=Timeframe.D1,
+                    ts=datetime(2026, 1, day, tzinfo=UTC),
+                    session="regular",
+                    open=value,
+                    high=value + Decimal("1"),
+                    low=value - Decimal("1"),
+                    close=value,
+                    volume=Decimal("100"),
+                    is_adjusted=True,
+                    adjustment_basis="split_adjusted",
+                    adjustment_version="research-batch-regression",
+                    scope_key=f"series:{series.id}:regular",
+                )
+            )
+    db.flush()
+
+    asset = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "mapped-default-batch-coverage",
+            "name": "Mapped default batch coverage",
+            "kind": "column",
+            "initial_version": {
+                "source": "output.scalar('close', market.close()[-1])",
+                "output_contract": "scalar",
+            },
+        },
+    ).json()
+    response = client.post(
+        "/api/v1/research/runs",
+        headers=auth_headers,
+        json={
+            "code_version_id": asset["versions"][0]["id"],
+            "run_config": {
+                "symbols": [instrument.symbol, instrument_b.symbol],
+                "timeframe": "D1",
+                "adjustment": "split_adjusted",
+                # Exact instants keep this regression about default-series
+                # selection, independent of listing-calendar inference.
+                "start_date": "2026-01-02T00:00:00Z",
+                "end_date": "2026-01-05T00:00:00Z",
+            },
+        },
+    )
+
+    assert response.status_code == 202, response.text
+    manifest = response.json()["dataset_manifest"]
+    assert manifest["datasets"] == []
+    assert [item["symbol"] for item in manifest["exclusions"]] == [
+        instrument.symbol,
+        instrument_b.symbol,
+    ]
+    assert all(item["code"] == "declared_history_incomplete" for item in manifest["exclusions"])
+    items_by_id = {item["instrument_id"]: item for item in manifest["coverage_preflight"]["items"]}
+    assert set(items_by_id) == {instrument.id, instrument_b.id}
+    for current in (instrument, instrument_b):
+        item = items_by_id[current.id]
+        assert item["bar_count"] == 1
+        assert item["covered_start"].startswith("2026-01-02")
+        assert item["covered_end"].startswith("2026-01-02")
+
+    # The query is a read-only materialization; the mapped selection and both
+    # original observations (including the alternate) remain persisted intact.
+    mappings = db.scalars(
+        select(MarketSeriesDefault).where(
+            MarketSeriesDefault.instrument_id.in_([instrument.id, instrument_b.id]),
+            MarketSeriesDefault.timeframe == "D1",
+            MarketSeriesDefault.is_adjusted.is_(True),
+        )
+    ).all()
+    assert {item.instrument_id: item.market_series_id for item in mappings} == {
+        current_id: selected.id for current_id, selected in selected_by_id.items()
+    }
+    assert (
+        db.scalar(
+            select(func.count())
+            .select_from(OHLCVBar)
+            .where(
+                OHLCVBar.instrument_id.in_([instrument.id, instrument_b.id]),
+                OHLCVBar.adjustment_version == "research-batch-regression",
+            )
+        )
+        == 4
+    )
+
+
 def test_prepared_universe_batch_accepts_workstation_scale_and_rejects_only_above_ten_thousand(
     client, auth_headers, tmp_path, monkeypatch
 ):

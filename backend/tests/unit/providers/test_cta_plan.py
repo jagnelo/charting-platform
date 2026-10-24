@@ -3,8 +3,10 @@ from __future__ import annotations
 from datetime import date
 
 import httpx
+import pytest
 
-from app.providers.cta_plan import CTAPlanProvider, _latest_file, _parse_symbol_file
+from app.providers.cta_plan import CTAPlanProvider, _get, _latest_file, _parse_symbol_file
+from app.providers.errors import ProviderResponseError
 
 
 def _source_row(
@@ -111,6 +113,35 @@ def test_parser_holds_unknown_participant_without_silently_normalizing_it():
     assert total_rows == 1
     assert quotes == []
     assert errors == ["row 2: unknown CTA primary-listing participant code '?'"]
+
+
+def test_get_fails_closed_on_redirect_instead_of_sending_unmetered_hop(monkeypatch):
+    original_url = "https://ftp.nyse.com/cta_symbol_files/"
+    calls: list[str] = []
+
+    def transport(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        if len(calls) == 1:
+            return httpx.Response(
+                302,
+                headers={"location": "https://files.example.test/cta/"},
+                request=request,
+            )
+        return httpx.Response(200, text="unexpected redirect follow", request=request)
+
+    def get(url: str, **kwargs):
+        with httpx.Client(
+            transport=httpx.MockTransport(transport),
+            follow_redirects=kwargs["follow_redirects"],
+        ) as client:
+            return client.get(url, timeout=kwargs["timeout"])
+
+    monkeypatch.setattr("app.providers.cta_plan.httpx.get", get)
+
+    with pytest.raises(ProviderResponseError, match="HTTP 302"):
+        _get(original_url)
+
+    assert calls == [original_url]
 
 
 def test_provider_persists_full_index_and_csv_in_its_discovery_page(monkeypatch):

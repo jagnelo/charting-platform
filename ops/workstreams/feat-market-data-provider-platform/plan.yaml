@@ -1,4 +1,127 @@
 schema: 4
+# 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
+# both the cross-page corroborated positive and conflicting-symbol quarantine;
+# the complete prelisting unit module passes 12/12. Source candidate and parent
+# remain the same as the 12:18 note; no provider transport or quota action.
+# 2026-10-23 12:18Z: working-tree prelisting correction is based on
+# 57138049ed4fbb968d1182e989462ae2d015b14c. The bounded materializer now
+# evaluates all already-persisted in-scope observations for consensus groups
+# touched by a page, avoiding single-source quarantine at page boundaries;
+# 11/11 prelisting unit tests and locked Ruff/diff checks pass. Actions
+# 39946328724 is green only for the parent source; exact CI for this candidate
+# remains pending. Full roadmap/profile remain open.
+# 2026-10-23 exact Actions run 39946328724 on 57138049ed4fbb968d1182e989462ae2d015b14c is terminal green: Backend 5206 unit + 498 integration, 84% combined coverage; Frontend Unit and Branch-declared passed; Playwright 191 passed/110 skipped in 17.2m; Exhaustive skipped by feature-branch policy. The SEC fixture correction was test-only. Full roadmap and required local profile remain open; no provider/issuer/SEC HTTP or quota action occurred.
+# 2026-10-23 exact CI 39944289265 on e815b374 was red in one SEC integration
+# positive fixture: normalized name_candidates/tickers were absent from its
+# source_payload, so the unchanged fail-closed guard correctly returned 409.
+# The fixture-only correction passed the isolated PostgreSQL integration test
+# 1/1; exact-source CI is pending. Roadmap/status/holds unchanged.
+# 2026-10-23 exact CI 39941869542 on bd1581f3 was red only in the admin
+# SEC-candidate positive fixture: its would_create normalized name_candidates
+# were absent from source_payload, so the unchanged fail-closed consistency
+# guard correctly blocked it. The fixture-only compatibility correction is
+# covered by 32/32 SEC scan plus affected router tests and locked Ruff/format;
+# exact-source CI for the correction is pending. Roadmap/status/holds unchanged.
+# 2026-10-23 SEC report integrity follow-up (working candidate based on
+# 00fefff7164f745ae27ff201b461a13c801213bd): the no-refetch materializer now
+# fails closed if persisted normalized CIK/name/ticker fields do not match the
+# immutable SEC source_payload. The complete SEC scan unit module passes 31/31
+# with live/provider routing disabled; Ruff, format, and diff checks pass.
+# Exact CI 39938451199 is still running on the unchanged parent source, so this
+# candidate has no exact-source CI result yet. Status/roadmap/holds unchanged.
+# 2026-10-23 coverage default-series alignment: the `/coverage` summary and
+# requested-range queries now reuse `_default_series_bar_condition`, so a
+# later bar from an alternate series cannot make the selected default appear
+# newer or fully covered. Adjustment, visibility, UTC range and legacy/default
+# fallback rules remain intact. Local focused validation is recorded in the
+# append-only journal; exact-source CI is pending for this candidate.
+# 2026-10-23 coverage-selector follow-up: the coordinator's
+# `/tmp/tc_default_series_coverage_repro.py` passes on the current source:
+# `_default_series_bar_condition` selects the mapped default bar, while the
+# coverage summary and requested-range endpoint include the later alternate
+# series bar. Added a deterministic router regression for that distinction;
+# no production selector, range, visibility, or adjustment behavior changed.
+# Focused coverage-router tests pass 7/7 and mapped/canonical/legacy default
+# selector tests pass 4/4. Exact Actions run 39925449735 on
+# 710deebe8427d07c5c53aec83b20408669606b5a is terminal green: Backend 5202
+# unit + 498 integration, 84% coverage; Frontend Unit and Branch-declared
+# passed; Playwright 191 passed/110 skipped; Exhaustive skipped by feature
+# policy. Checkpoint and full roadmap remain in_progress.
+# 2026-10-23 follow-up: exact Actions run 39918492546 on
+# 34c954f7d5dfcfa7c887ef3b5a39d3baea749447 was terminal red in Backend unit
+# tests because the Strategy migration compatibility test hard-coded the old
+# global head `slv2_0011`. The additive Provider successor is now the sole
+# head; the Strategy merge parent/shared ancestry is unchanged. Updated only
+# that compatibility assertion to require one head and evaluate ancestry from
+# the current head. Focused compatibility + historical SQLite migration tests
+# pass 20/20. Follow-up test-only commit
+# `33e62f1c88cb7a51e3b58d7591dcb315358c069c` is pushed and synchronized;
+# exact Actions run `39919722629` is terminal green (Backend, Frontend Unit,
+# Branch-declared, and Playwright; 5,201 unit / 498 integration tests, 84%
+# combined coverage, 191 E2E passed / 110 skipped; Exhaustive is skipped by
+# feature-branch policy). The separate local PostgreSQL regression execution
+# is recorded from the coordinator's isolated repair fixture; no duplicate
+# fixture or target DB patch was made here. No provider/issuer/SEC transport,
+# quota, or retained resource was touched. Checkpoint remains in_progress.
+# 2026-10-23 07:26Z priority deployment-schema repair: the accepted f04 cold
+# chart warm-up exposed that `market_series_default` lacks the two columns
+# required by `TimestampMixin`. Additive successor revision
+# `d4a5b6c7e812` and a PostgreSQL fresh/upgrade preservation regression are in
+# isolated source/test commit `2467a50b6a63fc433bd108413eaf260b1ef50ca6`. Ruff, migration-head resolution,
+# integration-test collection, and the unchanged historical migration unit
+# test pass. The PostgreSQL integration test has NOT yet run; it awaits the
+# coordinator's bounded Docker resource grant. Current branch CI/full-profile
+# evidence is not rebound to this commit. No target DB patch, provider request,
+# quota action, or retained-resource change occurred. Full roadmap and
+# in_progress status remain unchanged.
+# 2026-10-23 06:27Z continuation: exact released staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`
+# is already adopted; Provider HEAD `3d078bc02e0722352cefaf72618c0cf69c765b35`
+# is clean/synchronized and exact Actions `39905248908` is green. The SEC
+# per-CIK result/failure plus resume-cursor durability regression is present
+# and green in that source. This continuation adds deterministic NMS lifecycle
+# coverage for three distinct complete union snapshot sessions; production
+# lifecycle code is unchanged. Full roadmap remains open and the full local
+# profile remains held for Root's separate slot.
+# 2026-10-23 07:21Z: exact synchronized HEAD `759921fbc4625aabd2fe12c60d98df0c7c195a5b`
+# has terminal-green Actions run `39911899935`. Backend, Frontend Unit,
+# Branch-declared, and Playwright passed; E2E logged 191 passed/110 skipped;
+# Exhaustive was skipped by normal feature-branch policy. Full roadmap remains
+# open and the required local full profile remains pending Root's separate slot.
+# 2026-10-23 05:17Z current source reconciliation: exact green staging
+# `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` (Actions `39896524209`, canonical
+# receipt `20261023T051709Z-f04fb2a26c63.json`) is adopted by Provider merge
+# `c9bccae0b4f62404a021c0b2bcb7ddd44201581a`, parents `61e31e7` and exact `f04`.
+# Current Provider exact-source CI is not yet published/known; the required
+# local full functional/104-visual profile remains held for a separate Root
+# slot. Full roadmap, operation holds and checkpoint `in_progress` remain.
+# 2026-10-23 04:03Z conditional BUILD-ONLY phase: exact source `61e31e77467688f98d654aea630ca679a8c26e78`
+# produced backend image `sha256:ff250ff5b794b002514eeb240e1bad31e5f82aa171da7206f094f09a29d2833b`
+# from a committed-source archive; exact Python/uv base digests and cache-hit layers are recorded in handoff.
+# The transferred builder is restored/stopped; no Compose/app/browser phase was authorized or started.
+# Branch remains `in_progress`; the required full profile awaits separate Root UP/browser release and green synchronized staging.
+# 2026-10-23 current checkpoint update: the SEC issuer-universe persistence
+# gap is closed in source `61e31e77467688f98d654aea630ca679a8c26e78` and its
+# exact Actions run `39890778902` is terminal green (Backend, Frontend Unit,
+# Branch-declared and Playwright succeeded; Exhaustive is skipped by normal
+# feature-branch policy). The real-pipeline/file-backed SQLite restart test
+# proves each CIK result/failure and cursor commit together; a fresh worker
+# resumes at the failed CIK without replaying completed CIKs. The broader
+# branch remains `in_progress`: required local full functional/visual profile
+# is prepared at `/tmp/provider-61e31e77-bounded-full-profile-recipe-20261023.md`
+# (SHA-256 6d339a6abac8a6048e688f9a72a964fe34fd615764d95c5aef14778e9998427b).
+# Its corrected BuildKit recipe records exact resource and ownership checks.
+# The released build-only backend image is complete; full profile and app/browser
+# startup remain separately gated. Full roadmap and all holds remain.
+# 2026-10-22 continuation after initial checkpoint acceptance: the exact
+# synchronized four-feature staging baseline 0e342512e53ba2268425294d61c50e219eaafa4f
+# is adopted on this branch; its canonical green release and CI 39827786248
+# are recorded in the coordinator release receipt. This closes only the
+# initial integration checkpoint. The original roadmap below remains open.
+# Current continuation targets AC-UNIVERSE-COMPLETE / AC-SEC-PRELISTING-POLICY:
+# commit each SEC issuer-universe CIK result or failure with its resume cursor,
+# stopping and resuming without replaying already committed CIKs. Focused
+# no-network restart/failure/concurrent-cursor tests pass; full branch gates,
+# exact-source CI, review, and all remaining roadmap work are still pending.
 # Corrected exact-source plan — 2026-10-20 02:00+01:00. Implementation
 # Three-case continuation preparation (2026-10-20): current source is
 # 2e1e63593b1083cfc38be3eba4b2071fe799170c, synchronized with origin. The
@@ -704,8 +827,18 @@ dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved US-first multi-provider market-data platform and the approved corrective plan: complete provider-specific contracts and usage accounting; dynamically use every eligible free provider within its exact entitlement/quota; complete NMS/OTC reconciliation and lifecycle handling; isolate local, staging, master, and production credentials; and require exhaustive provider live validation. Backend/data only; do not modify frontend or ETF constituent provider adapters."
 integration_checkpoint_authorization: "Human direction received 2026-10-15 to incorporate provider-platform-integration-1 from staging commit e4d10ce0d7abc0056befca06831539fb36287043. At 2026-10-15 22:55Z the human answered: Yes—approve that initial scope and handle checkpoint acceptance. The central coordinator owns conditional technical acceptance after required exact-source contracts/tests and may integrate only a proven eligible checkpoint. This does not authorize this feature agent to self-integrate, deploy, activate paid/trial operations, start the operational trial, or clean retained data; preserve the full roadmap."
 planning_state: ready
-human_closure_authorization: delegated_conditional_acceptance_to_central_coordinator
-closure_summary: >-
+human_closure_authorization: >-
+  Under the standing human-authorized four-feature integration authority, the
+  central coordinator explicitly accepted only
+  provider-first-human-coverage-retained-universe-2 for checkpoint closure:
+  “Close ONLY the accepted provider-first-human-coverage-retained-universe-2
+  checkpoint through your existing four owned workstream records.” Exact
+  acceptance and evidence are recorded in
+  /home/m920q/charting-platform/.ai/staging-attempts/provider-b68-checkpoint-source-acceptance-20261024.md.
+  This does not complete the Provider roadmap or authorize this feature owner
+  to integrate, deploy, activate operations, or replay the consumed 119-request
+  validation allowance. Root alone owns guarded staging integration.
+previous_checkpoint_closure_summary: >-
   PROPOSED FINAL CONTRACT — non-authoritative unless the exact remaining proof
   and all required current-source gates pass and the delegated central
   coordinator accepts this checkpoint. provider-platform-integration-1
@@ -728,24 +861,48 @@ local_validation_reason: backend application, database migrations, provider adap
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 roadmap_goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
-goal: "Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized."
-roadmap_scope:
-  - canonical FIGI-domain identity, issuer/legal-entity separation, effective-dated listings and provider symbols, and unresolved-identity quarantine
-  - market-series scoped OHLCV observations and canonical bars with session, feed, adjustment, local aggregation, and coverage provenance
-  - versioned exchange sessions, holidays, early closes, timezone projections, and exchange-aware freshness
-  - provider capability/entitlement descriptors, exact provider-specific quota contracts, durable multi-unit quota reservations, usage accounting, health, routing, workload leases, and shadow telemetry
-  - US universe/lifecycle reconciliation and backend data ingestion for events, SEC facts, earnings, FINRA short interest, options, futures, and crypto providers
-  - QuantLib-backed calculated option Greeks with explicit model/input provenance and existing Black-Scholes fallback
-  - backend-only coverage, provider-admin, identity-quarantine, market-session, and shadow-report APIs; symbol compatibility aliases remain additive
-  - automated shadow-mode reporting and post-deployment activation evidence, with the actual 30-day run postponed to the final separately authorized phase; no frontend or ETF constituent adapter implementation
+closure_summary: >-
+  The central coordinator accepted only the bounded
+  provider-first-human-coverage-retained-universe-2 checkpoint under the
+  standing human authority. Validated implementation source is
+  b68ac81d8591064b172b92e73e701c9c3eed8b68 (tree
+  c8b02b8b64c118153999c9d9a58e8ef79010c565); exact Actions 40070216994 is
+  terminal green on that source. Root28488 separately completed the fresh
+  backend qualification (5,343 unit, 1 skip; 530 integration, 4 skips; 84%
+  combined coverage/XML pass). Root95357 covered isolated runtime/API/worker
+  restart plus the browser profile: 195 functional + 2 declared skips and
+  104 strict visuals, zero retries, clean owned-resource cleanup, private
+  services/Study5/data/holds restored and recovery timer absent. Research reads
+  apply selected-series filtering before per-instrument ranking/history limits
+  with set-based batching, while preserving Strategy date/calendar inference,
+  immutable snapshot copy, digest, and persisted readback semantics. Migration,
+  static/Compose contracts and Research regression evidence are qualified as
+  detailed in the acceptance receipt; unchanged frontend and research-runner
+  evidence is reused only under its recorded input/artifact equivalence, not
+  represented as a new build. All operation holds and the consumed 119-request
+  boundary remain unchanged; no provider request, reservation, quota change,
+  or live-operation success is claimed. The complete Provider roadmap and all
+  deferred/unverified work remain open. The closure-record publication's
+  exact-head CI must be terminal green before Root performs guarded staging
+  integration. integration_capture: exact branch HEAD
+goal: >-
+  Continue the full Provider roadmap after acceptance of
+  provider-platform-integration-1 and the bounded
+  provider-first-human-coverage-retained-universe-2 checkpoint. Keep the
+  accepted implementation source frozen until Root completes terminal-green
+  exact CI for the closure publication and releases synchronized-green
+  staging. Then resume the remaining roadmap while preserving all criteria,
+  prior acceptance, and operation dispositions. Root owns guarded staging
+  integration; do not self-integrate, activate providers, deploy, or close the
+  full roadmap.
 scope:
-  - establish and test stable security, issuer, listing, and provider-symbol contracts with provenance, history, explicit unresolved identities, and legacy compatibility
-  - establish and test shared provider capability, entitlement, quota/usage, health, and routing contracts; unknown or exhausted operations remain non-routable
-  - establish and test canonical series, exchange-session, coverage, refresh, and missing-data contracts usable by the downstream consumers
-  - provide exact-source live evidence for checkpoint-enabled provider operations and tested unavailable/disabled responses for excluded operations
-  - prove additive migrations, application startup, defaults, secret boundaries, current callers, and the normal full validation profile remain compatible
-  - document consumer contract locations, success/unavailable examples, ownership boundaries, and remaining wiring/tests for ETF holdings, TC2000, and Strategy Lab v2
-  - prepare a reviewable checkpoint closure summary and disposition every original criterion without removing the full roadmap
+  - Selected-default coverage summary and requested-range alignment in the coverage API/service, with regressions preserving the selected default-series behavior.
+  - Research single/batch reads apply the selected default-series predicate before per-instrument ranking/history limits, retain set-based batching, and preserve Strategy date/calendar inference, immutable snapshot copying, digests, and persisted GET readback.
+  - SEC issuer scan per-CIK durable result/failure and cursor commits, restart/no-replay behavior, and immutable retained-payload consistency; no live-source completeness claim.
+  - Cross-page prelisting consensus and conflicting-evidence quarantine without materializing ambiguous candidates.
+  - CTA/universe venue and identity reconciliation, preserving official-source completeness rules and preventing incomplete snapshots from becoming absence evidence.
+  - The related Make and Compose test/runtime contracts changed for this source.
+  - Complete the unchanged required local full_integration/full_stack_browser profile, exact-source CI, and Root technical review before checkpoint acceptance or closure.
 owned_paths:
   - Makefile
   - .env.example
@@ -834,21 +991,185 @@ roadmap_acceptance_criteria:
   - id: AC-SHADOW-FINAL-PHASE
     text: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.
 acceptance_criteria:
-  - id: ICP1
-    text: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.
-  - id: ICP2
-    text: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.
-  - id: ICP3
-    text: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.
-  - id: ICP4
-    text: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.
-  - id: ICP5
-    text: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.
-  - id: ICP6
-    text: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.
-  - id: ICP7
-    text: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.
+  - id: P2-COVERAGE
+    text: On validated source b68ac81d8591064b172b92e73e701c9c3eed8b68, selected-default coverage summaries and requested-range alignment are validated; Research single/batch reads apply the same selected-series predicate before ranking/history limits while retaining set-based batching and Strategy date/calendar, immutable snapshot, digest, and persisted-readback behavior.
+  - id: P2-SEC-DURABILITY
+    text: SEC issuer-scan per-CIK success/failure and cursor commits, restart/no-replay behavior, and immutable retained-payload consistency satisfy the scoped contract; this is not a claim of live SEC completeness.
+  - id: P2-PRELISTING
+    text: Cross-page prelisting consensus is validated, and conflicting evidence remains quarantined without materializing ambiguous candidates.
+  - id: P2-CTA-UNIVERSE
+    text: CTA/universe venue and identity reconciliation preserves official-source completeness rules; incomplete or stale snapshots cannot become absence evidence.
+  - id: P2-RUNTIME-AND-RELEASE
+    text: Related Make/Compose test/runtime contracts pass, and the unchanged required local full_integration/full_stack_browser profile plus exact-source CI pass before Root technical review. All provider holds, unavailable dispositions, full-roadmap criteria, and the consumed 119-request boundary remain unchanged; no new operation is enabled, and no current-live/full-universe completeness is inferred from CI or historical evidence.
 integration_checkpoint:
+  id: provider-first-human-coverage-retained-universe-2
+  status: ready_for_integration
+  planning_authorization: >-
+    Coordinator direction on 2026-10-23 authorized preparation of this named
+    checkpoint; subsequent released staging c240037f526caa236ec3af64a0040b5df6d670be
+    was backmerged through normal Provider ownership. The coordinator's
+    2026-10-24 acceptance in
+    /home/m920q/charting-platform/.ai/staging-attempts/provider-b68-checkpoint-source-acceptance-20261024.md
+    accepts this bounded checkpoint only under standing human authority. It
+    does not authorize provider operations, deployment, or full-roadmap
+    closure; guarded staging integration is Root-owned.
+  prior_checkpoint: provider-platform-integration-1
+  deployed_baseline_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+  frozen_source_sha: b68ac81d8591064b172b92e73e701c9c3eed8b68
+  scope:
+    - Selected-default coverage summary and requested-range alignment in the coverage API/service, with regressions preserving the selected default-series behavior.
+    - Research single/batch reads filter to the selected default series before per-instrument ranking/history limits, with set-based batching and Strategy date/calendar, immutable snapshot, digest, and persisted GET readback semantics preserved.
+    - SEC issuer scan per-CIK durable result/failure and cursor commits, restart/no-replay behavior, and immutable retained-payload consistency; no live-source completeness claim.
+    - Cross-page prelisting consensus and conflicting-evidence quarantine without materializing ambiguous candidates.
+    - CTA/universe venue and identity reconciliation, preserving official-source completeness rules and preventing incomplete snapshots from becoming absence evidence.
+    - The related Make and Compose test/runtime contracts changed for this source.
+    - Complete the unchanged required local full_integration/full_stack_browser profile, exact-source CI, and Root technical review before checkpoint acceptance or closure.
+  source_test_map:
+    selected_default_coverage:
+      - backend/app/routers/coverage.py
+      - backend/app/routers/research.py
+      - backend/tests/unit/routers/test_coverage_router.py
+      - backend/tests/unit/routers/test_market_data_admin_router.py
+      - backend/tests/unit/routers/test_research_router.py
+      - backend/tests/integration/api/test_market_data_admin.py
+      - backend/tests/integration/api/test_code.py
+    sec_per_cik_durability:
+      - backend/app/services/market_event_edgar_scan.py
+      - backend/tests/unit/services/test_market_event_edgar_scan.py
+    cross_page_prelisting:
+      - backend/app/services/market_event_prelisting.py
+      - backend/tests/unit/services/test_market_event_prelisting.py
+    cta_universe_identity_venue:
+      - backend/app/providers/cta_plan.py
+      - backend/app/services/market_universe.py
+      - backend/tests/unit/providers/test_cta_plan.py
+      - backend/tests/unit/providers/test_nasdaq.py
+      - backend/tests/unit/services/test_market_universe.py
+      - backend/tests/integration/test_market_universe_reconciliation.py
+    make_compose_runtime_contracts:
+      - Makefile
+      - docker-compose.e2e.yml
+      - backend/tests/unit/test_research_runner_deployment.py
+      - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
+      - tests/workflow/test_staging_workflow.py
+  required_contracts:
+    - Exact tests for selected-default coverage summary/range and Research selected-series-before-ranking behavior, SEC success/failure/cursor/restart and retained-payload consistency, cross-page prelisting consensus/conflict quarantine, and CTA/universe identity/venue reconciliation pass without weakening assertions.
+    - Make/Compose contracts for the changed backend test/runtime paths remain valid; preserve provider-egress denial, seed and routing controls, secret/state isolation, and exact-owned cleanup boundaries.
+    - Keep all unknown, quota-held, unreviewed, paid, trial, unsafe, and otherwise disabled operations non-routable with their existing dispositions. No current-live/full-universe completeness is inferred from CI, module tests, or historical receipts; the consumed 119-request validation authorization is not reusable.
+    - Required repository full_integration/full_stack_browser profile and exact-source evidence remain mandatory; preserve dynamically discovered functional cases, all strict visual cases, original assertions, references, masks, tolerances, and zero retries.
+  acceptance_state: accepted_by_coordinator_for_ready_for_integration
+  acceptance_evidence: >-
+    Root acceptance receipt
+    /home/m920q/charting-platform/.ai/staging-attempts/provider-b68-checkpoint-source-acceptance-20261024.md;
+    validated implementation b68ac81d8591064b172b92e73e701c9c3eed8b68;
+    exact Actions 40070216994 terminal green; Root95357 terminal-zero
+    full isolated runtime/API/worker-restart and current-source browser profile
+    (195 functional + 2 declared skips, 104 strict visuals, zero retries,
+    cleanup diff zero); backend, migration, static and Compose evidence and
+    qualified component-reuse boundaries are recorded in that receipt.
+  closure_summary: >-
+    Accepted bounded checkpoint
+    provider-first-human-coverage-retained-universe-2 on implementation
+    b68ac81d8591064b172b92e73e701c9c3eed8b68. Selected-default coverage and
+    Research selected-series reconciliation, SEC per-CIK durable result/failure
+    and cursor/restart/no-replay behavior, retained-payload consistency,
+    cross-page prelisting conflict quarantine, CTA/universe venue and identity
+    reconciliation, and changed Make/Compose contracts were validated.
+    Exact Actions 40070216994 on b68 is green; Root95357's isolated full
+    runtime/API/worker-restart and browser profile passed 195 functional tests
+    plus 2 existing declared skips and 104 strict visuals, with zero retries
+    and owned cleanup diffs zero. Research selection precedes ranking/history
+    limits with set-based batches; incoming date/calendar, immutable snapshot
+    copy, digest, and persisted GET readback behavior remain preserved.
+    Frontend and research-runner evidence is qualified reuse under the exact
+    recorded input/artifact equivalence; it is not described as a new build.
+    No provider transport, reservation, quota change, live operation success,
+    or reuse of the consumed 119-request authorization is claimed. Preserve
+    every operation hold, unknown/unverified disposition and full-roadmap
+    criterion; unresolved universe, live freshness, downstream/target and
+    deployment work remains open. The final closure-publication head still
+    requires its own terminal-green exact-source branch CI before Root's
+    guarded staging integration. integration_capture: exact branch HEAD
+  merge_authorized: true
+  validation_tier: full_integration
+  local_validation_profile: full_stack_browser
+  exact_source_ci:
+    run_id: 40070216994
+    attempt: 1
+    source_sha: b68ac81d8591064b172b92e73e701c9c3eed8b68
+    result: success
+    jobs: Backend, Frontend Unit, Branch-declared and E2E passed; Exhaustive skipped by normal feature-branch policy.
+    qualification: >-
+      Exact Actions 40070216994 is terminal green on implementation b68 only.
+      It is not the exact CI receipt for the forthcoming records-only closure
+      commit; that final published head must receive its own green CI before
+      guarded staging integration. No live-provider or full-universe claim.
+  current_source_local_evidence:
+    - >-
+      Reconciled the exact released green staging source
+      c240037f526caa236ec3af64a0040b5df6d670be in merge commit
+      db559868ad9c9192e64e4eab051014f591476bee. Research import conflicts were
+      resolved by retaining both Provider selected-series helpers and Strategy
+      calendar/date helpers. The selector remains before row_number/history
+      limits; batch reads remain set-based; incoming date/calendar inference,
+      immutable snapshot-manifest copy, payload digest handling and persisted
+      GET readback remain present. This merge is not PostgreSQL/full-profile
+      qualification.
+    - >-
+      On the reconciled source, the complete focused module
+      backend/tests/unit/routers/test_research_router.py passed 11/11 under a
+      180-second systemd scope capped at 384 MiB RAM, 512 MiB swap, one CPU and
+      96 tasks after fresh >=1 GiB available-memory and PSI checks. Locked Ruff
+      check and format check passed for the two reconciled Research files;
+      git diff checks passed. The exact invocation and scope identities are in
+      the appended handoff/journal receipt. No PostgreSQL or provider transport.
+    - >-
+      backend/tests/unit/services/test_market_event_edgar_scan.py passed 31/31
+      on prior source 5b02caf with mocked transport and temporary SQLite; this is focused
+      deterministic evidence, not a substitute for the full local profile or
+      live SEC completeness.
+    - >-
+      The bounded static qualification on prior source 5b02caf passed uv lock
+      consistency, the canonical locked requirements export comparison, exactly
+      one Alembic head (d4a5b6c7e812), Ruff check, and Ruff format check. It ran
+      offline with no sync under 256 MiB memory, zero swap, one CPU, 64 tasks,
+      and a 120-second wall cap. This does not prove migration/startup behavior
+      or satisfy the local full profile; exact log and hash are in the handoff
+      and validation journal.
+    - >-
+      Accepted current-source evidence for b68 is recorded in
+      /home/m920q/charting-platform/.ai/staging-attempts/provider-b68-checkpoint-source-acceptance-20261024.md:
+      Root28488 full fresh backend coverage (5,343 unit, 1 skip; 530 integration, 4
+      skips; 84%; combined XML passed), exact Actions 40070216994 green,
+      full Ruff/workflow/Compose contracts, Root95357 runtime/API/worker
+      restart and full local browser profile (195 functional, 2 declared
+      skips, 104 strict visuals, zero retries), and exact-owned cleanup with
+      zero inventory diffs. Fresh/upgrade migration head and preservation
+      evidence is recorded without claiming a new dedicated migration fixture.
+      The frontend unit/coverage/type/build and prepared artifact are
+      source-input-equivalent reuse of the explicitly hashed a414/1d32 evidence;
+      research-runner image/probes are likewise prior exact-input/config reuse,
+      not new execution. The new Research selected-default unit regression and
+      deferred PostgreSQL regression are included in the b68 full backend
+      qualification. No provider/issuer/SEC calls, quota changes or allowance
+      replay occurred.
+  required_gates_remaining:
+    - >-
+      Obtain and reconcile terminal-green exact-source branch CI for the
+      published closure-record commit. Until then Root must not perform the
+      guarded staging integration. This receipt does not authorize a new
+      provider/issuer/SEC call, reservation, quota change, hold release, or
+      reuse of the consumed 119-request allowance.
+  next_action: >-
+    Publish this four-record checkpoint closure as one coherent records-only
+    commit/push, verify clean exact local/origin synchronization, and require
+    terminal-green exact-source CI on that final head. Then hand off to Root
+    for coordinator-owned guarded staging integration. Keep the accepted
+    implementation source frozen and do no independent source work until Root
+    releases synchronized-green staging. Do not self-integrate, deploy,
+    activate providers, replay the consumed 119-request authorization, or
+    close the full Provider roadmap. Preserve every hold and historical receipt.
+previously_accepted_integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."
   acceptance_state: effective_on_commit_after_exact_proof_and_delegated_coordinator_acceptance
@@ -878,6 +1199,29 @@ integration_checkpoint:
     disabled; exact required-operation dispositions remain reviewable.
   deferral_rule: "Keep deferred or excluded operations non-routable with tested unavailable behavior. If an operation is required for checkpoint acceptance but excluded, record its exact operation-level reason and obtain a concrete human disposition; do not treat temporary quota holds as accepted permanent deferrals."
   checkpoint_scope_boundary: "ICP1 requires tested stable identity/provenance/history/quarantine and legacy compatibility plus honest mapping-gap reporting, not a fresh complete NMS/OTC/SEC universe. ICP5 requires tested local secret/config boundaries and exact-source branch validation, not GitHub/RPi/deployment secret-store onboarding. ICP6 requires producer success/unavailable evidence and named downstream owners/remainders, not sibling implementation before Provider green staging. The free-only gate denies paid market-data routes regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trials; unreviewed market-data routes stay denied except a provider-declared exact-operation zero-billing account-usage bootstrap with first-party evidence and explicit zero billing-dimension cost. The sole present exception is EODHD /api/user: zero daily API-call credits, while requests_per_minute remains charged. MarketData.app /user/ consumes one credit and is not exempt. Full-universe reconciliation, target secret stores, and downstream adapter/UI wiring remain roadmap or post-integration work. Preserve source-bound provider-live evidence exactly; current retained 20/27 receipt is incomplete and is not rebound to later commits."
+  original_scope:
+    - establish and test stable security, issuer, listing, and provider-symbol contracts with provenance, history, explicit unresolved identities, and legacy compatibility
+    - establish and test shared provider capability, entitlement, quota/usage, health, and routing contracts; unknown or exhausted operations remain non-routable
+    - establish and test canonical series, exchange-session, coverage, refresh, and missing-data contracts usable by the downstream consumers
+    - provide exact-source live evidence for checkpoint-enabled provider operations and tested unavailable/disabled responses for excluded operations
+    - prove additive migrations, application startup, defaults, secret boundaries, current callers, and the normal full validation profile remain compatible
+    - document consumer contract locations, success/unavailable examples, ownership boundaries, and remaining wiring/tests for ETF holdings, TC2000, and Strategy Lab v2
+    - prepare a reviewable checkpoint closure summary and disposition every original criterion without removing the full roadmap
+  original_acceptance_criteria:
+    - id: ICP1
+      text: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.
+    - id: ICP2
+      text: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.
+    - id: ICP3
+      text: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.
+    - id: ICP4
+      text: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.
+    - id: ICP5
+      text: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.
+    - id: ICP6
+      text: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.
+    - id: ICP7
+      text: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.
   merge_authorized: false
   deployment_authorized: false
   provider_activation_authorized: false
@@ -4036,6 +4380,23 @@ remaining_gaps:
 progress:
   history:
     - >-
+      2026-10-22 accepted-baseline adoption and SEC issuer-universe durability
+      continuation: the Provider branch was clean and ancestor-compatible at
+      `74d114aa6a174c723b01da25d83e7a49470bdc93`; it fast-forwarded only to the
+      exact synchronized staging release
+      `0e342512e53ba2268425294d61c50e219eaafa4f` and pushed only
+      `feat/market-data-provider-platform`. `git ls-remote` independently
+      confirmed both this branch and staging at that SHA. Staging CI
+      `39827786248` is the accepted green four-feature baseline; this is the
+      initial checkpoint only, not full roadmap/live/native completion. The
+      next owned gap is AC-UNIVERSE-COMPLETE / AC-SEC-PRELISTING-POLICY:
+      issuer-universe SEC scans must commit each CIK outcome and cursor
+      together, stop on failure, and resume without repeating successful CIKs.
+      The implementation and deterministic unit coverage are in progress;
+      24/24 `test_market_event_edgar_scan.py` tests pass, Ruff and format checks
+      pass, and no provider/issuer/SEC HTTP or quota operation was performed.
+      Full roadmap criteria and all existing provider holds remain unchanged.
+    - >-
       2026-10-16 10:14Z exact CI terminal result: after restoring the prior
       MarketData.app diagnostic wording, candidate
       91164b355bf95da326063ce19caa33ed26003960 passed exact CI38881637606;
@@ -6813,9 +7174,58 @@ progress:
       dispositions remain pending; no frontend file was changed, no provider
       request was made, and the historical live receipt remains source-bound.
   completed: []
-  total: 7
-  current_phase: provider_f8u_reconciliation_and_live_checkpoint
+  total: 5
+  current_phase: exact_source_ci_green_full_profile_pending
   current_blocker: >-
+    CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
+    `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
+    `39952646134` is terminal green for Backend, Frontend Unit,
+    Branch-declared, and Playwright jobs (Exhaustive skipped by feature
+    policy). The complete SEC issuer-scan unit module passes 31/31 on this
+    source, including the focused no-network durability cases. The SEC per-CIK result/failure plus resume-cursor restart gap is
+    closed; full roadmap criteria remain open. Required local `full_stack_browser`
+    /F8m evidence is still pending: retained project `c6e40c66` has images
+    without exact source-revision labels, a host relay bound to all interfaces,
+    and backend/worker mounts of the real quota and FINRA state directories
+    read-write. E2E seed flags are true and the provider network is internally
+    denied, but those protections do not isolate quota state, auth/workspace
+    writes, or the host relay. No browser/profile, provider/issuer/SEC request,
+    quota operation, or retained-resource/data mutation was performed. No safe
+    current-source fixture slot is released; preserve all holds and wait for
+    coordinator release before the unchanged required profile.
+    CURRENT STATUS — 2026-10-23 10:18Z: an uncommitted E2E Compose safety
+    correction is based on synchronized source `ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7`.
+    The read-only retained-stack inventory found only an old `c6e40c66` seeded
+    Provider image without an exact OCI source-revision label; it is not a
+    current-source proof fixture. Source now binds only the E2E relay to
+    loopback and resets inherited app/PostgreSQL/Redis host ports. Focused
+    Compose/worktree tests passed 17/17 and workflow regressions passed 143/143;
+    Ruff and merged Compose contract passed; exact candidate CI is pending.
+    Existing shared quota-ledger
+    coordination is preserved. No stack, queue, data, quota, or provider
+    transport was changed. Required full local profile still needs an exact
+    source-pinned fixture and coordinator slot. The root objective and all
+    roadmap criteria remain open.
+    CURRENT STATUS — 2026-10-23 10:05Z: current Provider HEAD
+    `ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7` matches its configured upstream
+    and exact Actions run `39930261098` is terminal green. Backend passed 5,202
+    unit / 1 skipped and 498 integration / 2 skipped with 84% combined
+    coverage; Frontend Unit, Branch-declared and Playwright passed (191 passed,
+    110 skipped, no test retries/flaky marker); Exhaustive was skipped by
+    feature policy. The complete SEC issuer-scan module passed 28/28 on this
+    exact source with provider execution mocked. The full local functional and
+    strict-visual profile remains pending Root's explicit slot release. This
+    supersedes the older `759921f` current-status entry below; full roadmap and
+    all holds remain open.
+    CURRENT STATUS — 2026-10-23: exact synchronized Provider HEAD
+    `759921fbc4625aabd2fe12c60d98df0c7c195a5b` passed Actions `39911899935`
+    (Backend, Frontend Unit, Branch-declared, and Playwright; Exhaustive skipped
+    by feature-branch policy). E2E logged 191 passed and 110 skipped with no
+    retry/flaky marker in the completed job log. The SEC per-CIK
+    result/failure and resume-cursor transaction remains proven by its original
+    source-bound restart regression; historical receipts are not rebound. The
+    required local full functional/104-visual profile remains pending Root's
+    separate slot. Preserve the complete roadmap and all operation holds.
     CURRENT STATUS — 2026-10-19 18:46Z: the prior evidence context is closed
     in `8d368aae4`, and exact released staging
     `26443f94c5b9fd3741d28db392fecf9aafe9c699` is merged without conflict into
@@ -7050,38 +7460,19 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Commit and push the coherent reconciled Provider evidence based on merge
-    `f7a898e86d9eab0e98b8a5505a670f87a25df509`, verify exact synchronization,
-    and require exact-source Provider CI. After green CI, refresh no-transport admission
-    against the existing durable ledger and run at most one internally admitted
-    verified-free subset. Preserve strict-red Provider run `39254427018`, all
-    five provider holds, zero retries, unchanged visual references/tolerances,
-    retained services/datasets, full roadmap and coordinator-only integration.
-    Exact Actions run `39049956683` on source
-    `f9e27c759da44d6883412f3ebecd60eb6664c016` is terminal green. The exact
-    252-case bounded ICP2/ICP6 no-transport regression also passes on this
-    source. Continue Provider-owned operation-
-    level dispositions and producer-contract evidence without provider calls.
-    Do not start the local
-    focused F8u or full pinned-Noble browser profile until the coordinator
-    releases a safe fixture/resource slot; preserve the required 260-functional
-    and 104-visual gates and every prior red artifact. Current-source provider
-    live evidence remains incomplete. Keep all quota-held, unknown, unreviewed,
-    paid/trial and unsafe routes non-routable. No provider/issuer HTTP, quota
-    spend, activation, reset/cleanup, staging/sibling writes or deployment.
-    Exact pushed Provider source `d5045c70e5cec1ff4ec127527c130f5e29cd1630`
-    passed Actions run `39044151374`: Backend, Frontend Unit, Branch-declared,
-    and Playwright succeeded; Exhaustive was skipped by feature policy. Continue
-    bounded Provider-owned non-browser ICP2/ICP6 and operation-contract work
-    while resource constraints remain. When the coordinator releases a safe
-    browser slot, run unchanged focused F8u and then the full pinned-Noble
-    260-functional/104-visual profile on the exact merged Provider source;
-    preserve every result/artifact. The local focused/full gates remain unrun,
-    and current-source live-provider evidence is incomplete. Do not edit
-    TC/ETF/Strategy sources, start browser/Compose under unsafe memory or active
-    fixtures, call providers/issuers, spend quota, reset/clean retained data,
-    activate held routes, write staging, deploy, or reduce roadmap scope. Stop
-    at `ready_for_human_review` only after all checkpoint gates genuinely pass.
+    Preserve current exact-source evidence at `3283d668b27fd5b714369d79cb9db79db86398a7`
+    / Actions `39952646134` and the focused SEC restart/failure/rollback proof.
+    Continue the full Provider roadmap without changing operation holds. The
+    next required local gate is the unchanged `full_stack_browser` profile,
+    including F8m; do not reuse retained project `c6e40c66` because its relay,
+    shared writable quota/FINRA paths, and unpinned app images are unsuitable.
+    Wait for a coordinator-released safe current-source fixture slot, then
+    recheck ownership and run the approved unchanged profile. Until then, only
+    bounded Provider-owned no-network work is in scope. No provider/issuer/SEC
+    HTTP, quota mutation, retained-service/data cleanup, sibling/staging/master
+    writes, deployment, paid/trial activation, or roadmap reduction. Keep status
+    `in_progress` until all required gates pass; do not claim
+    `ready_for_human_review` early.
   historical_next_action_pre_20261017T1512Z: >-
     Reconcile exact green Actions run `39040380183` and preserve prior red
     `39037691098` in the packet, handoff, session and append-only journal. The
@@ -8862,19 +9253,20 @@ current_gate_checkpoint: >-
       acceptance; the cross-window UI failure remains with its frontend owner,
       and source-bound live evidence/CI status remain to be reconciled.
   next_action: >-
-    Publish the settings-source sentinel correction together with its focused
-    tests and exact red-CI/partial-backend receipts, then require exact-source
-    hosted CI and rerun the complete isolated CPython 3.12.11 backend
-    unit/integration/coverage gate on the corrected frozen candidate. Actions
-    39329199059 is red because backend/worker startup could not parse the
-    `__CODE_DEFAULT__` hold-map sentinel; its backend/frontend/branch jobs
-    passed but E2E never reached a browser assertion. The obsolete local gate
-    was safely interrupted after 10/58 unit shards (500 passes), with all 55
-    retained container IDs unchanged. Keep the heavy slot for this final
-    backend gate only; do not start Compose/browser validation. When central
-    releases the green geometry staging SHA, reconcile it and re-evaluate all
-    source identities before final browser/affected/full gates and CI. Make no
-    provider calls or quota mutations. CTA Plan, EODHD data operations,
-    Dinari, Marketstack, Tiingo, and Bybit xStocks remain held; paid, trial,
-    unknown, unreviewed, unsafe, deployment, and operational-trial scopes stay
-    closed. Central alone accepts and integrates the checkpoint.
+    Exact synchronized source `759921fbc4625aabd2fe12c60d98df0c7c195a5b` is
+    clean on `origin/feat/market-data-provider-platform`, and exact Actions run
+    `39911899935` is terminal green. The NMS lifecycle regression is included:
+    same-date union rereads do not advance absence evidence and retirement
+    occurs only after three distinct complete sessions. The SEC failure/restart
+    persistence regression remains valid on its original source and passed as
+    part of the current SEC module check; it proves a fresh worker retries the
+    failed CIK without replaying the prior committed CIK. Keep the full roadmap
+    and all holds open. Next, continue bounded Provider-owned no-network
+    roadmap work while the required `full_stack_browser` profile awaits Root's
+    explicit slot release; at release, use the
+    source-pinned dynamically discovered functional and visual selections,
+    Noble 1.62.1, read-only DejaVu, one worker, zero retries, unchanged
+    references/masks and 0.005 tolerance, fixture-only resources, and
+    provider/issuer/SEC egress denial. No provider HTTP, quota mutation,
+    staging/sibling/master write, deployment, paid/trial activation, or
+    retained-resource cleanup.
