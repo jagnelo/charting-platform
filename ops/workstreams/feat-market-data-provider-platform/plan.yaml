@@ -828,7 +828,7 @@ human_intent_authorization: "Implement the approved US-first multi-provider mark
 integration_checkpoint_authorization: "Human direction received 2026-10-15 to incorporate provider-platform-integration-1 from staging commit e4d10ce0d7abc0056befca06831539fb36287043. At 2026-10-15 22:55Z the human answered: Yes—approve that initial scope and handle checkpoint acceptance. The central coordinator owns conditional technical acceptance after required exact-source contracts/tests and may integrate only a proven eligible checkpoint. This does not authorize this feature agent to self-integrate, deploy, activate paid/trial operations, start the operational trial, or clean retained data; preserve the full roadmap."
 planning_state: ready
 human_closure_authorization: delegated_conditional_acceptance_to_central_coordinator
-closure_summary: >-
+previous_checkpoint_closure_summary: >-
   PROPOSED FINAL CONTRACT — non-authoritative unless the exact remaining proof
   and all required current-source gates pass and the delegated central
   coordinator accepts this checkpoint. provider-platform-integration-1
@@ -851,7 +851,21 @@ local_validation_reason: backend application, database migrations, provider adap
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 roadmap_goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
-goal: "Continue the full Provider roadmap after acceptance of provider-platform-integration-1 at staging baseline 0e342512e53ba2268425294d61c50e219eaafa4f. First close the SEC issuer-universe durability gap: persist each CIK's retained result/failure and next cursor atomically so worker restart does not replay completed CIKs. Preserve every original market-data requirement, all provider/quota holds, and coordinator-only staging integration; no paid/trial activation, provider HTTP, deployment, or retained-data cleanup. Stop at ready_for_human_review."
+closure_summary: >-
+  Pending Root full-gate and technical review for
+  provider-first-human-coverage-retained-universe-2. This is preparation only,
+  not checkpoint acceptance, merge authorization, or closure. Preserve all
+  operation holds, the consumed 119-request historical boundary, and the full
+  Provider roadmap. The local full_integration/full_stack_browser profile and
+  exact-source gates not yet evidenced remain required.
+goal: >-
+  Continue the full Provider roadmap after the historically accepted
+  provider-platform-integration-1 checkpoint. Prepare
+  provider-first-human-coverage-retained-universe-2 on frozen source
+  5b02caf509107856195ef8cfb2374e2ab6120612 without changing the original
+  roadmap, criteria, prior acceptance, or operation dispositions. Keep the new
+  checkpoint pending Root review and all remaining gates; do not self-accept,
+  integrate, activate providers, deploy, or close the full roadmap.
 roadmap_scope:
   - canonical FIGI-domain identity, issuer/legal-entity separation, effective-dated listings and provider symbols, and unresolved-identity quarantine
   - market-series scoped OHLCV observations and canonical bars with session, feed, adjustment, local aggregation, and coverage provenance
@@ -862,13 +876,12 @@ roadmap_scope:
   - backend-only coverage, provider-admin, identity-quarantine, market-session, and shadow-report APIs; symbol compatibility aliases remain additive
   - automated shadow-mode reporting and post-deployment activation evidence, with the actual 30-day run postponed to the final separately authorized phase; no frontend or ETF constituent adapter implementation
 scope:
-  - establish and test stable security, issuer, listing, and provider-symbol contracts with provenance, history, explicit unresolved identities, and legacy compatibility
-  - establish and test shared provider capability, entitlement, quota/usage, health, and routing contracts; unknown or exhausted operations remain non-routable
-  - establish and test canonical series, exchange-session, coverage, refresh, and missing-data contracts usable by the downstream consumers
-  - provide exact-source live evidence for checkpoint-enabled provider operations and tested unavailable/disabled responses for excluded operations
-  - prove additive migrations, application startup, defaults, secret boundaries, current callers, and the normal full validation profile remain compatible
-  - document consumer contract locations, success/unavailable examples, ownership boundaries, and remaining wiring/tests for ETF holdings, TC2000, and Strategy Lab v2
-  - prepare a reviewable checkpoint closure summary and disposition every original criterion without removing the full roadmap
+  - Selected-default coverage summary and requested-range alignment in the coverage API/service, with regressions preserving the selected default-series behavior.
+  - SEC issuer scan per-CIK durable result/failure and cursor commits, restart/no-replay behavior, and immutable retained-payload consistency; no live-source completeness claim.
+  - Cross-page prelisting consensus and conflicting-evidence quarantine without materializing ambiguous candidates.
+  - CTA/universe venue and identity reconciliation, preserving official-source completeness rules and preventing incomplete snapshots from becoming absence evidence.
+  - The related Make and Compose test/runtime contracts changed for this source.
+  - Complete the unchanged required local full_integration/full_stack_browser profile, exact-source CI, and Root technical review before checkpoint acceptance or closure.
 owned_paths:
   - Makefile
   - .env.example
@@ -957,21 +970,114 @@ roadmap_acceptance_criteria:
   - id: AC-SHADOW-FINAL-PHASE
     text: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.
 acceptance_criteria:
-  - id: ICP1
-    text: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.
-  - id: ICP2
-    text: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.
-  - id: ICP3
-    text: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.
-  - id: ICP4
-    text: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.
-  - id: ICP5
-    text: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.
-  - id: ICP6
-    text: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.
-  - id: ICP7
-    text: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.
+  - id: P2-COVERAGE
+    text: On frozen source 5b02caf509107856195ef8cfb2374e2ab6120612, selected-default coverage summaries and requested-range alignment are validated with regressions preserving selected default-series behavior.
+  - id: P2-SEC-DURABILITY
+    text: SEC issuer-scan per-CIK success/failure and cursor commits, restart/no-replay behavior, and immutable retained-payload consistency satisfy the scoped contract; this is not a claim of live SEC completeness.
+  - id: P2-PRELISTING
+    text: Cross-page prelisting consensus is validated, and conflicting evidence remains quarantined without materializing ambiguous candidates.
+  - id: P2-CTA-UNIVERSE
+    text: CTA/universe venue and identity reconciliation preserves official-source completeness rules; incomplete or stale snapshots cannot become absence evidence.
+  - id: P2-RUNTIME-AND-RELEASE
+    text: Related Make/Compose test/runtime contracts pass, and the unchanged required local full_integration/full_stack_browser profile plus exact-source CI pass before Root technical review. All provider holds, unavailable dispositions, full-roadmap criteria, and the consumed 119-request boundary remain unchanged; no new operation is enabled, and no current-live/full-universe completeness is inferred from CI or historical evidence.
 integration_checkpoint:
+  id: provider-first-human-coverage-retained-universe-2
+  status: in_progress
+  planning_authorization: >-
+    Coordinator direction on 2026-10-23 authorizes preparation of this named
+    next checkpoint on frozen Provider source
+    5b02caf509107856195ef8cfb2374e2ab6120612. This is not acceptance, merge,
+    provider-operation, or full-roadmap authorization.
+  prior_checkpoint: provider-platform-integration-1
+  deployed_baseline_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+  frozen_source_sha: 5b02caf509107856195ef8cfb2374e2ab6120612
+  scope:
+    - Selected-default coverage summary and requested-range alignment in the coverage API/service, with regressions preserving the selected default-series behavior.
+    - SEC issuer scan per-CIK durable result/failure and cursor commits, restart/no-replay behavior, and immutable retained-payload consistency; no live-source completeness claim.
+    - Cross-page prelisting consensus and conflicting-evidence quarantine without materializing ambiguous candidates.
+    - CTA/universe venue and identity reconciliation, preserving official-source completeness rules and preventing incomplete snapshots from becoming absence evidence.
+    - The related Make and Compose test/runtime contracts changed for this source.
+    - Complete the unchanged required local full_integration/full_stack_browser profile, exact-source CI, and Root technical review before checkpoint acceptance or closure.
+  source_test_map:
+    selected_default_coverage:
+      - backend/app/routers/coverage.py
+      - backend/tests/unit/routers/test_coverage_router.py
+      - backend/tests/unit/routers/test_market_data_admin_router.py
+      - backend/tests/integration/api/test_market_data_admin.py
+    sec_per_cik_durability:
+      - backend/app/services/market_event_edgar_scan.py
+      - backend/tests/unit/services/test_market_event_edgar_scan.py
+    cross_page_prelisting:
+      - backend/app/services/market_event_prelisting.py
+      - backend/tests/unit/services/test_market_event_prelisting.py
+    cta_universe_identity_venue:
+      - backend/app/providers/cta_plan.py
+      - backend/app/services/market_universe.py
+      - backend/tests/unit/providers/test_cta_plan.py
+      - backend/tests/unit/providers/test_nasdaq.py
+      - backend/tests/unit/services/test_market_universe.py
+      - backend/tests/integration/test_market_universe_reconciliation.py
+    make_compose_runtime_contracts:
+      - Makefile
+      - docker-compose.e2e.yml
+      - backend/tests/unit/test_research_runner_deployment.py
+      - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
+      - tests/workflow/test_staging_workflow.py
+  required_contracts:
+    - Exact tests for selected-default coverage summary/range behavior, SEC success/failure/cursor/restart and retained-payload consistency, cross-page prelisting consensus/conflict quarantine, and CTA/universe identity/venue reconciliation pass without weakening assertions.
+    - Make/Compose contracts for the changed backend test/runtime paths remain valid; preserve provider-egress denial, seed and routing controls, secret/state isolation, and exact-owned cleanup boundaries.
+    - Keep all unknown, quota-held, unreviewed, paid, trial, unsafe, and otherwise disabled operations non-routable with their existing dispositions. No current-live/full-universe completeness is inferred from CI, module tests, or historical receipts; the consumed 119-request validation authorization is not reusable.
+    - Required repository full_integration/full_stack_browser profile and exact-source evidence remain mandatory; preserve dynamically discovered functional cases, all strict visual cases, original assertions, references, masks, tolerances, and zero retries.
+  acceptance_state: pending
+  acceptance_evidence: pending_root_full_gate_and_technical_review
+  closure_summary: pending
+  merge_authorized: false
+  validation_tier: full_integration
+  local_validation_profile: full_stack_browser
+  exact_source_ci:
+    run_id: 39988953219
+    attempt: 1
+    source_sha: 5b02caf509107856195ef8cfb2374e2ab6120612
+    result: terminal_success
+    jobs: Backend Tests, Frontend Unit Tests, E2E Playwright, and Branch-declared Tests succeeded; Exhaustive skipped by feature-branch policy.
+    qualification: Hosted exact-source CI only; it does not satisfy the local full profile, current live-operation proof, or full-universe completeness.
+  current_source_local_evidence:
+    - >-
+      backend/tests/unit/services/test_market_event_edgar_scan.py passed 31/31
+      on this source with mocked transport and temporary SQLite; this is focused
+      deterministic evidence, not a substitute for the full local profile or
+      live SEC completeness.
+    - >-
+      The bounded static qualification on this exact source passed uv lock
+      consistency, the canonical locked requirements export comparison, exactly
+      one Alembic head (d4a5b6c7e812), Ruff check, and Ruff format check. It ran
+      offline with no sync under 256 MiB memory, zero swap, one CPU, 64 tasks,
+      and a 120-second wall cap. This does not prove migration/startup behavior
+      or satisfy the local full profile; exact log and hash are in the handoff
+      and validation journal.
+  required_gates_remaining:
+    - >-
+      Run the required local full_integration/full_stack_browser phases on this
+      exact source after Root releases the heavy slot: combined backend
+      unit/integration coverage; required frontend coverage/uPlot/visual-policy
+      helpers; migration/startup and Compose/research-runner contracts; and the
+      dynamically discovered functional/performance plus all strict visual
+      selections. Do not start a competing fixture while Strategy owns heavy
+      capacity.
+    - >-
+      Resolve current checkpoint operation dispositions only through the
+      existing reviewed authorization and durable admission process. No new
+      provider/issuer/SEC request, reservation, quota change, or reuse of the
+      consumed 119-request allowance is authorized by this record update.
+    - Root full-gate and technical review; acceptance and closure remain pending.
+  next_action: >-
+    Preserve frozen source 5b02caf509107856195ef8cfb2374e2ab6120612 and exact
+    green Actions run 39988953219. Wait for Root's safe heavy-slot release;
+    then complete the missing local full_integration/full_stack_browser phases
+    listed above on the exact source, without replaying provider operations.
+    Keep this checkpoint in_progress and all provider holds/full-roadmap items
+    open until Root review.
+previously_accepted_integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."
   acceptance_state: effective_on_commit_after_exact_proof_and_delegated_coordinator_acceptance
@@ -1001,6 +1107,29 @@ integration_checkpoint:
     disabled; exact required-operation dispositions remain reviewable.
   deferral_rule: "Keep deferred or excluded operations non-routable with tested unavailable behavior. If an operation is required for checkpoint acceptance but excluded, record its exact operation-level reason and obtain a concrete human disposition; do not treat temporary quota holds as accepted permanent deferrals."
   checkpoint_scope_boundary: "ICP1 requires tested stable identity/provenance/history/quarantine and legacy compatibility plus honest mapping-gap reporting, not a fresh complete NMS/OTC/SEC universe. ICP5 requires tested local secret/config boundaries and exact-source branch validation, not GitHub/RPi/deployment secret-store onboarding. ICP6 requires producer success/unavailable evidence and named downstream owners/remainders, not sibling implementation before Provider green staging. The free-only gate denies paid market-data routes regardless of ALLOW_PAID_PROVIDER_ROUTING and denies trials; unreviewed market-data routes stay denied except a provider-declared exact-operation zero-billing account-usage bootstrap with first-party evidence and explicit zero billing-dimension cost. The sole present exception is EODHD /api/user: zero daily API-call credits, while requests_per_minute remains charged. MarketData.app /user/ consumes one credit and is not exempt. Full-universe reconciliation, target secret stores, and downstream adapter/UI wiring remain roadmap or post-integration work. Preserve source-bound provider-live evidence exactly; current retained 20/27 receipt is incomplete and is not rebound to later commits."
+  original_scope:
+    - establish and test stable security, issuer, listing, and provider-symbol contracts with provenance, history, explicit unresolved identities, and legacy compatibility
+    - establish and test shared provider capability, entitlement, quota/usage, health, and routing contracts; unknown or exhausted operations remain non-routable
+    - establish and test canonical series, exchange-session, coverage, refresh, and missing-data contracts usable by the downstream consumers
+    - provide exact-source live evidence for checkpoint-enabled provider operations and tested unavailable/disabled responses for excluded operations
+    - prove additive migrations, application startup, defaults, secret boundaries, current callers, and the normal full validation profile remain compatible
+    - document consumer contract locations, success/unavailable examples, ownership boundaries, and remaining wiring/tests for ETF holdings, TC2000, and Strategy Lab v2
+    - prepare a reviewable checkpoint closure summary and disposition every original criterion without removing the full roadmap
+  original_acceptance_criteria:
+    - id: ICP1
+      text: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.
+    - id: ICP2
+      text: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.
+    - id: ICP3
+      text: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.
+    - id: ICP4
+      text: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.
+    - id: ICP5
+      text: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.
+    - id: ICP6
+      text: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.
+    - id: ICP7
+      text: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.
   merge_authorized: false
   deployment_authorized: false
   provider_activation_authorized: false
@@ -6953,7 +7082,7 @@ progress:
       dispositions remain pending; no frontend file was changed, no provider
       request was made, and the historical live receipt remains source-bound.
   completed: []
-  total: 7
+  total: 5
   current_phase: exact_source_ci_green_full_profile_pending
   current_blocker: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both

@@ -1,5 +1,197 @@
 # feat/market-data-provider-platform
 
+## 2026-10-24 05:09Z — P2 Research default-series consumer repair (focused only)
+
+- On released Provider base `5b02caf509107856195ef8cfb2374e2ab6120612`,
+  fixed the existing local cached-read contract in the Provider copy. The
+  single-instrument Research loader now applies
+  `app.services.market_data._default_series_bar_condition`; the bounded
+  per-instrument batch loader uses the same predicate as a correlated row
+  expression, and declared-universe batch materialization delegates to that
+  loader. Batch ranking remains set-based in existing 500-ID chunks, so the
+  selector is applied before the history limit without an N+1 query. Reference
+  datasets use the same bounded loader.
+- The shared default predicate now explicitly correlates its nested canonical
+  series lookup to the current OHLCV row. This preserves mapped default,
+  canonical fallback, and nullable-series legacy behavior while preventing
+  same-adjustment bars from another series entering Research rows. Dates,
+  regular-session filtering, row limits, stored bars/mappings and immutable
+  dataset fingerprint inputs are unchanged; this is database-only materialization
+  and enables no acquisition/routing.
+- Added three SQLite-backed offline SQL regressions in
+  `backend/tests/unit/routers/test_research_router.py`: a mapped single-series
+  dataset with a later alternate-series bar and an excluded extended-session
+  row (including limit, values, fingerprint, and persisted-row immutability); a
+  two-instrument set-based read with independent mappings and exactly one query;
+  and canonical fallback plus legacy-null compatibility while noncanonical
+  alternate-only rows remain excluded. No PostgreSQL/Compose profile was run;
+  Root retains that later validation slot.
+- Focused module result: `backend/tests/unit/routers/test_research_router.py`
+  passed 6/6 in 2.72s on the working candidate. The execution was bounded to
+  180s, MemoryMax 384 MiB, MemorySwapMax 512 MiB, CPU 1, TasksMax 96, after
+  fresh checks of >=1 GiB available memory and PSI full avg10/avg60 below the
+  released thresholds. `ENV_FILE=/dev/null`, live tests/routing/availability
+  monitors were disabled, and the managed UV cache was isolated under `/tmp`.
+  Ruff check, Ruff format check, and `git diff --check` passed for the three
+  changed source/test files.
+- Preserve the earlier focused red attempts: the first exposed SQLite's
+  naive-datetime representation against an aware-only test assertion and an
+  over-specified multiple-canonical test fixture; after correcting those test
+  assumptions, the second exposed the actual nested canonical-subquery
+  correlation defect. The explicit correlation fix is included and the final
+  complete focused module passes. The sandboxed scope launcher itself also
+  failed before starting pytest because the user scope bus was inaccessible;
+  coordinator-approved narrow execution review then started the bounded test
+  scopes successfully.
+- Checkpoint stays `in_progress`; this is not the later PostgreSQL regression,
+  full local profile, exact-source hosted CI, Root review, acceptance, or full
+  roadmap completion. Preserve all operation holds and the consumed 119-request
+  boundary. No provider/issuer/SEC HTTP, quota action, Compose/DB service,
+  retained resource/data, staging/sibling ref, or deployment was touched.
+
+## 2026-10-24 05:14Z — Strategy compatibility review and deferred PostgreSQL regression
+
+- Read `/tmp/provider-strategy-series-compatibility-note.md` (SHA-256
+  `4a70b79c886962bf39a332ed41d06ca2df69da99c154eb896c476333903fa71e`). The
+  implementation leaves date parsing/calendars, `_dataset_options`, coverage
+  preflight, fresh `snapshot=false` materialization, `snapshot=true` persisted
+  manifest copying, and GET batch-results persisted readback unchanged. The
+  selected-series predicate is applied before batch ranking/limit; the
+  correlated `instrument_id` SQL expression is exercised by real SQLite SQL,
+  not mocked out.
+- Added `test_research_batch_coverage_uses_each_mapped_default_before_history_selection`
+  to `backend/tests/integration/api/test_code.py` for the later PostgreSQL
+  phase: two independently mapped instruments each have one selected Jan 2 D1
+  bar and a later Jan 5 same-adjustment canonical alternate. The test requires
+  incomplete coverage to report only one selected bar per instrument and
+  verifies mappings and all four observations remain unchanged. This
+  PostgreSQL integration test definition is intentionally **not executed** in
+  this bounded offline turn; it remains an explicit Root-slot gate, not a pass.
+- Final static checks after that addition: locked Ruff check and
+  `ruff format --check` passed for the two application files, SQLite unit test
+  module, and integration test definition; `git diff --check` passed. The
+  earlier final focused module run remains 6/6 (2.72s, invocation
+  `d124c3ebdc5a46509bcf783246e84f40`). Workstream validation, exact-source CI,
+  the PostgreSQL integration regression, and the full local profile remain
+  pending. No service, database, provider, quota, retained resource, or sibling
+  worktree was touched.
+
+## 2026-10-24 05:30Z — Incoming Strategy calendar semantics and closure path
+
+- Read-only diffed synchronized staging `c240037f526caa236ec3af64a0040b5df6d670be`
+  against frozen Provider base `5b02caf509107856195ef8cfb2374e2ab6120612`;
+  did not merge or copy its changes. Incoming Research code uses XNYS for
+  calendar-aware date-only D1 coverage only when each instrument has exactly
+  one active primary listing whose normalized MIC is XNYS. Missing, multiple,
+  inactive, or non-XNYS primary identity remains calendar-unknown. The new PG
+  regression has no listing fixture, so its bounds are now exact UTC instants
+  (`2026-01-02T00:00:00Z` through `2026-01-05T00:00:00Z`), bypassing date-only
+  calendar inference and isolating the selected-series difference. No listing
+  data is fabricated and no coverage assertion is weakened.
+- Lightweight-only post-edit checks passed: locked Ruff check and
+  `ruff format --check` for `backend/tests/integration/api/test_code.py`,
+  `py_compile` of that test definition, and `git diff --check`. PostgreSQL was
+  not executed.
+- The active plan keeps `validation_tier: full_integration` and
+  `local_validation_profile: full_stack_browser`; `docs/agent-orchestration.md`
+  forbids choosing a weaker profile absent an authorized remote-only
+  exception. This local-cache-only change adds no provider operation and does
+  not request live-matrix replay or alter ICP4 dispositions; source-qualified
+  operation evidence and all held/unavailable routes remain unchanged. A
+  substantive focused implementation commit is permissible before final
+  qualification, but it cannot close the checkpoint: exact-source CI and the
+  normal full profile remain required before Root technical review/acceptance.
+- After Root releases the PostgreSQL slot on a green synchronized staging
+  backmerge, the precise focused test command is:
+  `cd backend && ENV_FILE=/dev/null RUN_LIVE_PROVIDER_TESTS=0 PROVIDER_ROUTING_ENABLED=false PROVIDER_AVAILABILITY_MONITOR_ENABLED=false PROVIDER_AVAILABILITY_LIVE_ENABLED=false UV_CACHE_DIR=/tmp/provider-p2-research-uv-cache uv run --no-sync pytest tests/integration/api/test_code.py::test_research_batch_coverage_uses_each_mapped_default_before_history_selection --override-ini addopts= --no-header -q`.
+  This uses the repository's Testcontainers integration fixture and is not
+  authorized before the released slot. The final acceptance profile remains
+  the unchanged `make validate-integration` / `full_stack_browser` contract;
+  do not invoke its stack cleanup path against retained services without Root's
+  established exact-project containment guard.
+
+## 2026-10-24 05:33Z — focused implementation publication checkpoint
+
+- Committed only the four Provider-owned source/test paths in
+  `1bd856810e09a0bfb3f06f016745f9e5942d827a`
+  (`fix research default series materialization`). The implementation uses the
+  shared selector for single, benchmark/reference, and bounded batch Research
+  materialization; its batch selector is applied before row numbering and the
+  history limit. The new PostgreSQL regression remains defined but unrun.
+- The second, separate commit is limited to the four existing Provider
+  workstream records, preserving the prior dirty record history. Exact-source
+  push CI, PostgreSQL regression, and the unchanged `full_integration` /
+  `full_stack_browser` profile remain pending. This is a focused implementation
+  publication only—not checkpoint acceptance, readiness, closure, live-matrix
+  evidence, or full-roadmap completion. No provider transport/quota action or
+  staging/sibling mutation.
+
+## 2026-10-23 22:48Z — next checkpoint lifecycle prepared, pending Root gates
+
+- On frozen synchronized Provider source `5b02caf509107856195ef8cfb2374e2ab6120612`
+  (deployed baseline `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`), the active
+  checkpoint is now named
+  `provider-first-human-coverage-retained-universe-2`. The earlier
+  `provider-platform-integration-1` plan and authorization/history are retained
+  under `previously_accepted_integration_checkpoint`; its former closure text
+  is preserved as `previous_checkpoint_closure_summary`. The new checkpoint
+  remains `in_progress`, acceptance `pending`, and closure `pending`; no merge
+  authority or acceptance is asserted.
+- The exact source delta is bounded to: selected-default coverage summary and
+  range alignment (`backend/app/routers/coverage.py`); per-CIK SEC result/failure,
+  cursor/restart/no-replay and retained-payload consistency
+  (`backend/app/services/market_event_edgar_scan.py`); cross-page prelisting
+  consensus/conflict quarantine (`backend/app/services/market_event_prelisting.py`);
+  CTA and universe venue/identity reconciliation
+  (`backend/app/providers/cta_plan.py`, `backend/app/services/market_universe.py`);
+  and related Make/Compose test/runtime contracts (`Makefile`,
+  `docker-compose.e2e.yml`, with corresponding tests). These are checkpoint
+  contracts derived from the actual `a6b9..5b02` source diff, not added roadmap
+  features.
+- Exact Actions run `39988953219`, attempt 1, is terminal green on `5b02caf`:
+  Backend, Frontend Unit, Playwright E2E, and Branch-declared passed; Exhaustive
+  was skipped by feature-branch policy. The exact-source SEC issuer-scan unit
+  module passed 31/31 with mocked transport and temporary SQLite. Neither CI
+  nor that focused module proves the required local full profile, live
+  operation success, or current complete universe coverage.
+- Required local `full_integration/full_stack_browser` phases remain open:
+  combined backend unit/integration coverage; frontend coverage plus uPlot and
+  visual-policy helpers; migration/startup and Compose/research-runner
+  contracts; dynamically discovered functional/performance cases and all 104
+  strict visuals. Strategy currently owns heavy capacity, so do not launch a
+  competing fixture. The next step is to wait for Root's safe slot release and
+  run only the remaining required local phases on the frozen source with the
+  unchanged oracles, references, masks, tolerance and zero retries.
+- The isolated workstream validator accepted all 46 records, and `git diff
+  --check` passed after the four-record reconciliation. This validates record
+  shape and whitespace only; it is not product test or checkpoint acceptance.
+- The coordinator-released static-only qualification then passed on frozen
+  `5b02caf`: `uv lock --check`; `uv export --locked --format requirements-txt`
+  compared with `backend/requirements.txt` after removing its two generated
+  header lines; exactly one Alembic head (`d4a5b6c7e812`); `ruff check app
+  tests`; and `ruff format --check app tests`. Invocation
+  `provider-static-5b02-20261023.scope` reported MemoryMax=268435456,
+  MemorySwapMax=0, CPUQuotaPerSecUSec=1s, TasksMax=64; outer wall cap was
+  120 seconds. Environment used `ENV_FILE=/dev/null`, `UV_OFFLINE=1`,
+  `UV_NO_SYNC=1`, isolated `/tmp/provider-5b02-uv-cache`, and live/routing/
+  availability switches off. Exit 0; log
+  `/tmp/provider-5b02-static-qualification-20261023-run.log`, SHA-256
+  `1ceae0837cfa64737a0302c8cae2f992c1c3825e49f5d0914d45345115416920`.
+  The first launcher invocation failed before running any gate because
+  `systemd-run` rejects `--wait` with `--scope`; its preserved log is
+  `/tmp/provider-5b02-static-qualification-20261023.log`, SHA-256
+  `823c5ad299835fd190607e796946218decacc9c5db99378227f1be848c4d23b1`.
+  The corrected scope invocation ran the qualification once. No source,
+  product tests, Docker, database, network, provider operation, quota, or
+  retained resource changed. Full migration/startup, Compose/research-runner,
+  backend coverage, and browser gates remain open.
+- Preserve every operation disposition/hold. No held, unknown, unreviewed,
+  paid, trial, unsafe, or otherwise disabled operation becomes routable here;
+  no current-live/full-universe completeness is claimed. The consumed
+  119-request validation authorization is historical and cannot be reused.
+  No provider/issuer/SEC request, quota action, source edit, CI rerun, runtime
+  action, staging/sibling write, or deployment occurred for this record update.
+
 ## 2026-10-23 15:49Z — released a6b9 staging reconciled into Provider
 
 - The exact coordinator-released staging source
@@ -30867,3 +31059,475 @@ This does not prove current external universe completeness: AC-UNIVERSE-COMPLETE
 still needs complete current CTA/Nasdaq/FINRA/SEC source evidence and the held
 local full profile. No source code, database, provider transport, quota, or
 retained resource changed.
+## 2026-10-23 — bounded ETF EDGAR one-fund execution contract review
+
+Read the coordinator's `sec-public-data-contract-review-20261023.md` and
+compared the ETF owner's in-progress SEC implementation with the accepted
+Provider EDGAR contract at `5b02caf509107856195ef8cfb2374e2ab6120612`.
+ETF worktree HEAD was `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`; the reviewed
+dirty files were `etf_holdings_edgar.py`
+(SHA-256 `763ef49d85e9e9fcadb761c8ed27053179f120f40678e82d45df60d6ce69d485`)
+and `etf_holdings_provider_bridge.py`
+(SHA-256 `f43eaae3e9f1c7470b3abab45c577649b4b2ed856279106c6c18f3568f094c73`).
+The Provider config/runtime/quota sources reviewed were unchanged from the
+prior EDGAR interface note. Exact-source Actions `39988953219` was still in
+progress (Backend, Frontend Unit, and Branch-declared succeeded; Playwright
+remained running; Exhaustive skipped by feature-branch policy at review time).
+No tests were rerun, and no SEC/provider request, credential read, database
+write, activation, quota mutation, hold change, fixture, or sibling edit
+occurred.
+
+Code anchors: the ETF operations and per-hop bridge are in
+`backend/app/services/etf_holdings_provider_bridge.py` (`_ETF_SEC_OPERATIONS`,
+`ProviderBackedHTTPXClient.request`, `_review_attempt_context`, and
+`execute_etf_holdings_request_attempt`); the unbounded archive scan is
+`backend/app/services/etf_holdings_edgar.py::discover_holdings_filings`; the
+full-body read is `LoopLocalHTTPXAttempt.execute` in the bridge. Provider
+anchors are `backend/app/config.py` (EDGAR quota seed around lines 665–705,
+operation-cost seed 1908–1919, User-Agent settings 3087–3093),
+`backend/app/services/provider_runtime.py::_usage_cost_for_operation` and
+`_dimension_costs_for_operation`, and
+`backend/app/services/provider_quota_coordinator.py::account_scope_for_provider`.
+
+Reusable admission contract: retain publisher/DataSource `edgar` and the
+shared `ETF_HOLDINGS` policy and entitlement, with committed ETFProfile,
+Instrument, CIK, and provider-symbol identity. The dedicated adapter key is
+`edgar_sec_holdings`; the new bridge binds only
+`fetch_etf_holdings_sec_submissions`,
+`fetch_etf_holdings_sec_submissions_file`, and
+`fetch_etf_holdings_sec_filing`. Preserve the same `edgar:ip` account scope,
+actual `account_scope_for_provider("edgar", "ip")` result, and
+per-physical-attempt reservation/settlement through `execute_provider_call`;
+do not create an adapter- or ETF-specific allowance. The DataSource review
+record must bind exact `https_hosts`, that same resolved `account_scope`, and
+reviewed evidence source/version/date for each of the three operation names.
+Require the enabled `ETF_HOLDINGS` policy, matching entitlement, valid
+`EDGAR_USER_AGENT`, and an active verified zero-cost recurring commitment and
+budget for the same application environment and account-scope digest. The
+request code reads `EDGAR_USER_AGENT`; setting only
+`ETF_HOLDINGS_HTTP_USER_AGENT` would not satisfy this path.
+
+Source-documented/native facts versus application controls:
+
+- SEC public filing access has zero monetary access cost, needs no API key,
+  requires an identifying User-Agent, and publishes a shared egress-IP ceiling
+  of 10 requests/second. The accepted EDGAR seed preserves that
+  `requests_per_second` dimension and a rolling one-second application safety
+  window with `baseline_mode: local_zero` and `application_usage_only: true`.
+  This is the platform's durable measured use, not SEC-reported remaining
+  headroom.
+- SEC does not document a public usage counter or a fixed bucket/reset boundary
+  for this access path. The code therefore retains `reset: provider_defined`
+  and `unknown_dimensions: [requests_per_second_reset_boundary]` while
+  enforcing the rolling application window. That is documented absence from
+  the reviewed SEC contract, not proof of native current use/reset and not a
+  reason to invent a counter. The 10/s rate ceiling is known; current aggregate
+  use by other clients sharing the egress IP remains unobservable. An actual
+  run must not claim native account-wide headroom from the application ledger
+  alone.
+- The generic EDGAR `usage_tracking.operation_costs` seed does not include the
+  three ETF operation names. Add explicit positive cost `1` request for each
+  name in the actual shared DataSource operation-cost map; every redirect hop
+  is another physical call and must receive its own reservation and
+  settlement. Missing costs remain fail-closed, not an implicit zero-cost
+  call.
+- SEC publishes no response-size ceiling for these payloads. The current ETF
+  bridge measures response bytes, but `LoopLocalHTTPXAttempt.execute` invokes
+  `response.aread()` before returning and has no streaming/decoded-byte stop.
+  A reserved byte amount or post-read measurement does not cap actual download
+  size. A real execution contract needs a hard streaming byte limit before
+  body completion plus per-operation byte costs in shared usage-tracking/quota
+  records so reservation is reconciled to measured bytes. Those are explicit
+  application safety bounds, never SEC-native limits.
+
+Finite one-fund proposal for coordinator/ETF-owner review (not configured,
+tested, activated, or authorized for transport): one committed fund profile;
+at most one selected filing; at most one eligible archived-submissions JSON
+page scanned; at most two redirects per logical GET (initial request plus two
+redirect hops); zero retries; the existing 20-second timeout per physical
+attempt and a 210-second whole-fund deadline. The three logical operations are
+submissions JSON, at most one submissions archive JSON, and one filing body.
+At one request-cost unit per physical attempt this is at most 9 actual HTTP
+requests (`3 operations × 3 attempts`), all serialized and paced at no more
+than one physical request per second through the same `edgar:ip` ledger. The
+archive-page bound is distinct from `MAX_FILINGS_PER_ETF`: current
+`discover_holdings_filings` continues through `filings.files` until it finds
+`max_filings`, so that setting does not bound page-fetch count. If the one
+archive page does not yield the required filing, stop as incomplete/failed;
+never report a complete empty result or scan another page silently.
+
+Proposed decoded-body caps are 2 MiB for submissions JSON, 2 MiB for the one
+archive JSON, and 16 MiB for the filing response, with a 20 MiB aggregate
+per-fund body ceiling across every redirect response. The shared operation
+dimension-cost map should reserve the corresponding per-attempt maximum for
+each physical operation; under the 9-attempt ceiling its conservative
+reservation envelope is at most 60 MiB, while the independent application
+whole-fund reader stops at 20 MiB actual decoded bytes. Any page, request,
+redirect, byte, rate, or wall-time bound exhaustion must fail the run as
+incomplete and stop later operations. The 2/2/16/20 MiB, page count, redirect
+count, one-request/second pacing, and 210-second deadline are proposed
+application bounds only; they require explicit owner review and hard
+implementation, not inference from SEC documentation. They do not change the
+SEC 10-requests/second native ceiling, shared ledger, zero-USD commitment, or
+any held route.
+
+Current concrete gaps for the ETF owner: (1) `MAX_FILINGS_PER_ETF` does not
+bound archived submissions-file requests; add a separate finite archive-page
+cap with an incomplete outcome on exhaustion. (2) the bridge defaults to 20
+redirects; bound this route explicitly and keep each hop separately admitted.
+(3) there is no hard response streaming/aggregate byte cap before `aread()`.
+(4) current EDGAR operation costs omit all three new SEC ETF names, and the
+review record validates evidence strings/host but does not itself establish
+numeric transport or byte caps. Provider did not patch or duplicate this ETF
+implementation.
+
+Before any actual one-fund execution, require the ETF owner's tested
+fail-closed page/attempt/redirect/byte/deadline bounds; the three exact positive
+operation costs and byte reservation maps on the shared `edgar` DataSource/
+policy; one consistent explicit `edgar:ip` scope and observed durable-ledger
+state for the platform's own use; evidence that every client using the same
+public egress IP is governed or otherwise accounted for (the reviewed SEC
+contract has no native counter); qualifying committed fund/CIK/instrument
+mapping; configured valid User-Agent; active same-scope verified-zero
+recurring commitment; and coordinator authorization for that specific bounded
+run. This note is an interface/budget review only, not a positive route
+disposition, live-evidence claim, hold release, or new request authorization.
+The Provider full roadmap and `AC-UNIVERSE-COMPLETE` remain open.
+## 2026-10-23 17:25Z — current-source CIK durability scope clarification
+
+Clarification to the 16:18Z note above: its statement that the *entire* SEC
+scan service and test files were byte-identical to commit `61e31e7` was too
+broad. On current synchronized HEAD `5b02caf509107856195ef8cfb2374e2ab6120612`,
+the diff from `61e31e7` in those files is limited to the later SEC directory
+source-payload consistency guard/tests and compatible test fixtures; the
+per-CIK durability implementation and its six restart/atomicity/cursor tests
+remain unchanged. Current file SHA-256 values are service
+`90320b357dd637f794838e3cde539c600744a5839cbf18edd1f6c9ba1259c771` and tests
+`008a2d5655bccd096a474c4eb855508387972b1cd2ad9f9a35acfe8647ac9331`.
+
+The six focused regressions are `test_edgar_issuer_scan_commits_each_cik_and_restart_skips_committed_ciks`,
+`test_edgar_issuer_scan_cursor_survives_worker_session_restart`,
+`test_edgar_issuer_scan_rolls_back_result_when_cursor_commit_fails`,
+`test_edgar_failed_cik_is_durable_across_worker_restart_without_replaying_success`,
+`test_edgar_runtime_failure_result_and_cursor_commit_across_worker_restart`,
+and `test_edgar_issuer_scan_rechecks_cursor_before_next_cik_after_commit` in
+`backend/tests/unit/services/test_market_event_edgar_scan.py`. Their exact
+current component hashes match the 31/31 no-network module receipt at
+`edea60a769a63863f72ef2a19df5df7a9378c277`; no suite was repeated. At that
+observation, the exact-source Actions Backend job for run `39988953219` had
+completed successfully, while Playwright was still running. No
+provider/issuer/SEC request, quota operation, or retained resource change
+occurred.
+
+## 2026-10-23 17:29Z — EDGAR bounded-read boundary reiterated
+
+At Provider HEAD `5b02caf509107856195ef8cfb2374e2ab6120612`, the ETF archive
+finding is confirmed in `backend/app/services/etf_holdings_edgar.py::discover_holdings_filings`:
+`max_filings` limits returned filing rows, and the loop stops only when that
+row count is reached. It does not cap eligible entries in `filings.files` or
+the number of archive submissions requests. The one-archive-page proposal in
+the preceding review is therefore a separate application-level stop; exceeding
+it must produce incomplete/failed discovery, not a complete empty result.
+
+The body-size boundary is also confirmed at
+`backend/app/services/etf_holdings_provider_bridge.py::LoopLocalHTTPXAttempt.execute`:
+the attempt calls `client.request(...)` and then `await response.aread()` before
+returning. There is no streaming byte counter or hard response-size cutoff at
+this transport boundary. Later measured `response_bytes`, quota settlement, or
+a reserved byte amount can reconcile observed usage but cannot prevent the
+response body from being downloaded/buffered in full; absent or misleading
+`Content-Length` and decoded compression also make header-only checks
+insufficient. A real bound requires streaming/counting decoded chunks before
+accepting them, aborting and closing the response at the per-response or
+aggregate ceiling, and recording the outcome as incomplete/failed rather than
+parsing a truncated body as success. These enforcement changes are not present
+or validated in this Provider source and remain ETF-owner work.
+
+For clarity, the finite one-fund values above remain proposed application
+controls, not implemented protections or SEC-native facts: one archive page;
+two redirects maximum after the initial request (three physical attempts per
+logical GET); zero retries; 20 seconds per physical attempt; 210 seconds
+whole-run; at most 9 physical requests for submissions, one archive page, and
+one filing; serialized pacing at no more than one request/second; decoded-body
+ceilings of 2 MiB submissions, 2 MiB archive, 16 MiB filing, and 20 MiB
+aggregate across the fund. Their conservative per-attempt reservation envelope
+is at most 60 MiB only if each redirect response is separately reserved at its
+operation maximum. SEC's documented native bound remains 10 requests/second
+per egress IP; no public native byte ceiling, usage counter, or fixed reset
+boundary was established. No quota/ledger state or routing was changed, and no
+HTTP, tests, fixtures, or sibling files were touched by this review. This
+handoff-only note does not change the published source SHA or imply checkpoint
+acceptance.
+
+## 2026-10-23 17:31Z — exact-source CI terminal receipt
+
+GitHub Actions run `39988953219`, attempt 1, is terminal green on exact source
+`5b02caf509107856195ef8cfb2374e2ab6120612`, matching both local HEAD and
+`origin`. Backend Tests, Frontend Unit Tests, E2E Playwright, and
+Branch-declared Tests succeeded; Exhaustive Integration Gate was skipped under
+feature-branch policy. This corrects the earlier in-progress observation above
+without changing the source-bound EDGAR findings. The local full profile and
+full-roadmap `AC-UNIVERSE-COMPLETE` remain open; this CI result does not imply
+those gates or Provider checkpoint acceptance. No provider/issuer/SEC HTTP,
+quota operation, database/resource mutation, or source change occurred.
+
+Coordinator's terminal receipt additionally identifies E2E job `120545651940`,
+which completed successfully at `2026-10-23T17:27:44Z`; this supplements the
+run/job summary above without changing its source identity. The next bounded
+task is a read-only review of ETF owner's final EDGAR bounds implementation
+and positive/negative test evidence when that evidence is available; Provider
+will not duplicate the implementation or perform live transport.
+
+## 2026-10-23 — SEC issuer-universe durability reverified on current source
+
+On exact synchronized HEAD `5b02caf509107856195ef8cfb2374e2ab6120612`, the
+complete `backend/tests/unit/services/test_market_event_edgar_scan.py` module
+passed 31/31 in 29.57 seconds under the managed Python 3.12.4 environment.
+Provider routing, live tests, and availability monitors were disabled; the
+module uses mocked provider execution and temporary SQLite for its restart and
+atomicity regressions. It proves that each per-CIK result/request-log and
+resume cursor commit together, a fresh worker resumes after the last committed
+CIK without replay, failed CIKs are retried without replaying earlier success,
+and cursor-commit failure rolls back the CIK result. This closes the targeted
+durability gap for review, not the wider issuer-universe completeness or full
+Provider roadmap. No provider/issuer/SEC HTTP, quota operation, Docker,
+retained service/data change, or staging/sibling/deployment mutation occurred.
+The exact-source Actions run `39988953219` remains green; the broader roadmap
+and required local full profile remain open.
+
+## 2026-10-23 — bounded ETF SEC guard source review
+
+Read-only review of the current ETF worktree at HEAD
+`7c8cda46a56ee52bc358a6f6c75e0ef59e168903`; that worktree is still dirty and
+the inspected candidate is not thereby accepted. Source hashes at review:
+
+- `backend/app/services/etf_holdings_edgar.py`:
+  `258df842293667f0446acda4bbd8065ac84855043b176f96aa7dd9aab58f5500`
+- `backend/app/services/etf_holdings_provider_bridge.py`:
+  `bf1568e08543842875538e3d3a25a4dc9413ea9261197ee7913d9712d284fc08`
+- `backend/tests/unit/services/test_etf_holdings_edgar.py`:
+  `7a60ac58e8e028db1b7b5fa2c9063c67b4016996dc0aa64ebfd033bcef44abf2`
+- `backend/tests/unit/services/test_etf_holdings_provider_bridge.py`:
+  `de6fa89dae25fa52adde25d6dd84704b8b08e12195afb13742cc53fe8d61a981`
+- `backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`:
+  `f393aaf7c1c25ed1581e93fce96f3e0f122ff7fdecc414ca7c02a243bbc89c9d`
+
+Within the requested SEC guard boundaries, I found no remaining concrete
+source defect. `ETFSECExecutionBudget` latches terminal failures and checks
+them before logical requests and physical attempts; the HTTPX wrapper separately
+admits every redirect hop and latches 403/429, response-cap markers, redirect
+overflow, and deadline/attempt/page exhaustion. Bounded gzip/deflate decoding
+tracks per-response and aggregate decoded bytes and rejects incomplete streams,
+trailing bytes, and concatenated members. `backfill_sec_nport_holdings` does not
+report an empty/no-qualifying result as completed: zero ingested filings produce
+failed/partial plus `no_qualifying_filing_within_reviewed_budget`. Request
+identity is tied to the committed profile/instrument, normalized CIK and
+reviewed HTTPS host/account scope; filing series/class mismatches remain
+skipped rather than accepted as the target fund.
+
+Focused source-level regressions are present for sticky terminal denial before
+the next shared admission (`test_sec_terminal_response_denies_next_candidate_before_shared_admission`),
+gzip trailing/concatenated data and subsequent denial
+(`test_sec_gzip_rejects_concatenated_members_and_trailing_bytes`), no-match and
+wrong-series incomplete outcomes
+(`test_sec_backfill_without_qualifying_filing_is_not_completed_empty`), and
+per-hop shared ledger admission plus wrong-CIK no-transport denial
+(`test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik`).
+I did not run tests or make changes to ETF source. These are inspected test
+definitions, not current-candidate pass receipts; ETF remains responsible for
+running its focused tests and exact-source gates. No transport, credentials,
+fixture, runtime, sibling, or staging state was touched.
+
+## 2026-10-23 — SEC bounded-response shared-accounting review
+
+Read-only review of the same ETF candidate at HEAD
+`7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. Relevant current file hashes:
+
+- `backend/app/services/etf_holdings_provider_bridge.py`:
+  `bf1568e08543842875538e3d3a25a4dc9413ea9261197ee7913d9712d284fc08`
+- `backend/app/services/provider_runtime.py`:
+  `13fecfa9b0fea70911594e3d041aca3295af3a1f7474672db96f27e74a3575c0`
+- `backend/app/providers/telemetry.py`:
+  `1ef67bdcb7196fcc1a969bd20ee8e94711cc82e4214a2540be33d922608bd8d8`
+- `backend/tests/unit/services/test_etf_holdings_provider_bridge.py`:
+  `de6fa89dae25fa52adde25d6dd84704b8b08e12195afb13742cc53fe8d61a981`
+- `backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`:
+  `f393aaf7c1c25ed1581e93fce96f3e0f122ff7fdecc414ca7c02a243bbc89c9d`
+
+Concrete defect: a capped/invalid SEC body is represented as an HTTP 200
+`Response` with `_ETF_SEC_RESPONSE_LIMIT_MARKER`. In `_sync_provider_invoke`,
+the response is observed and returned (unless its HTTP status is >=400). The
+shared `execute_provider_call` therefore takes its success path before
+`ProviderBackedHTTPXClient.request` checks the marker and raises. That path
+persists the response payload, calls `_record_result(success=True)`, clears the
+failure streak/updates success health, and records provider support. For a
+truncated JSON body that remains parseable (notably a rejected concatenated
+gzip response whose first member was valid JSON), telemetry can retain that
+partial document as an ordinary captured payload. Request and byte/cost
+measurement is accurate, but success/completeness accounting is not.
+
+The narrow correction point is inside the shared invoke callback: after
+`observe_response` has captured the actual request/bytes/payload, detect the
+SEC marker and raise a typed failure before returning the response to
+`execute_provider_call`. This preserves consumed-quota settlement and raw
+measurement while sending the attempt through the shared failure/log/health
+path; the outer marker check can remain defensive. Add a shared-runtime
+regression asserting a marked HTTP-200 body produces a failed request log,
+does not update success/support health, preserves measured transport/cost and
+retained bounded bytes, and still blocks any later candidate. Existing
+`test_sec_terminal_response_denies_next_candidate_before_shared_admission`
+only stubs the shared executor and proves subsequent denial; it does not
+exercise this log/health ordering. No tests were run and no source/runtime,
+network, credential, fixture, sibling, or staging state was changed.
+
+## 2026-10-23 — bounded Strategy Study-reference consumer review
+
+Read-only review of Strategy worktree HEAD
+`f1c453270168260ba7c845bb81627e1c7baca8a0`, with owner edits present in
+`ResearchResultsTool.vue`, its unit test, and Strategy workstream records.
+Hashes below identify the inspected working-tree snapshots:
+
+- `backend/app/strategy_lab_v2/api_router.py`:
+  `4acf976d420d090755ed9abcc810f65af29c28ee33b0264f0201bfbd351fc5ae`
+- `backend/app/strategy_lab_v2/study_artifact_resolver.py`:
+  `e05bf473df3a881d5b5017813099e6d1acfd71777efd4a0ae842edc0c156f31d`
+- `backend/app/strategy_lab_v2/application.py`:
+  `0f6d4d6f52ef1c8ce247fa1168d5b7adb40ac925c85af776e93a9d7aa966a688`
+- `frontend/src/components/workstation/ResearchResultsTool.vue`:
+  `e2e94295d5a718064725a2a995bc248a066787023eb78672f7f634043d03e11b`
+- `frontend/src/views/StrategyLabV2View.vue`:
+  `f85ec9de695d8b1e639c2f21141c6e16b8fe95639bce062935e664a9dffe5b94`
+- `backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`:
+  `26244133014b9cf733b6a852f565c25905ccd95a5492a766a6501e0a73d039e9`
+- `frontend/tests/unit/components/test_research_results_tool.test.ts`:
+  `22edec7e130ff9c77abdc92decc18fa3c2f4ca9d273140cbc69c1d536cedab05`
+
+No concrete owner-isolation, immutable-identity/digest, GET-only/dispatch, or
+stale-route-response defect was found in the requested seams. The registered
+router injects the authenticated `get_current_user`; the factory scopes the
+run query to that principal, checks the code asset owner, and selects the
+artifact by both run and artifact IDs. Its typed reference binds run/code
+version/artifact identity and recomputed run, code, dataset-manifest, and
+artifact-content digests, then passes through the verifier before return.
+The endpoint is `GET` only and calls that resolver; the production resolver
+reads persisted rows and does not dispatch. The integration test exercises a
+foreign-owner 404 and asserts dispatch/provider/HTTP-transport counters remain
+zero. The Research Results link carries the explicit run/artifact IDs to the
+Strategy Lab v2 route. Route hydration clears prior display state, increments
+the request generation on route changes, checks response IDs and digest shapes,
+and only applies a response from the current generation, preventing an older
+route response from replacing the current pin.
+
+This was source/test-definition inspection only; no tests were run and no
+Strategy files, services, network, or other-worktree state were changed. This
+bounded review is not an acceptance claim for the Strategy feature or its
+dirty candidate.
+
+## 2026-10-23 — target EDGAR identity and provisioning readiness
+
+Read-only source/config review on Provider HEAD
+`5b02caf509107856195ef8cfb2374e2ab6120612`. Source hashes:
+
+- `backend/app/config.py`:
+  `f85aaadab393fcc681eb616f0393310a8b2bd24eb8c86df17c541273b7b455a6`
+- `backend/app/services/provider_quota_coordinator.py`:
+  `a773fc13e9a0fb2eec2a293c6ca84261e91956e3ca4ef3f8fc4c74eb03dd475d`
+- `backend/app/services/provider_runtime.py`:
+  `13fecfa9b0fea70911594e3d041aca3295af3a1f7474672db96f27e74a3575c0`
+- `backend/app/routers/providers.py`:
+  `8e6defdcee04863a5c56fe6a35ce1c6da66d80696c6ff47f9d241f5235d5c339`
+- `backend/app/routers/market_data_admin.py`:
+  `fbf41c4eb77f12aa56ab839e96e7bda9f869c5636857950cc6b2051a3005ceea`
+- ETF bridge read-only reference:
+  `../feat-etf-holdings-constituents/backend/app/services/etf_holdings_provider_bridge.py`,
+  `b04285345e45ef7f9ca2ee2de50796a1ddd0f2c62aacfa84f67609869da4478c`
+
+Only configuration presence/consistency was checked; values were not printed.
+The Provider worktree `.env` has an `EDGAR_USER_AGENT` entry (line 22) that
+passes the source's non-placeholder predicate. It has no
+`PROVIDER_QUOTA_ACCOUNT_SCOPES`, `EDGAR_REVIEWED_RESET`, or
+`EDGAR_QUOTA_EVIDENCE` entry; those names are also absent from this process
+environment. `.env.example` leaves the scope map empty and the optional native
+reset evidence blank. These are local development facts, not target facts and
+not values to copy to deployment. The target facts (User-Agent absent, explicit
+scope absent, routing and SEC scheduler off) are coordinator-provided; I did
+not access or execute against the target.
+
+Canonical logical identity: EDGAR's policy scope is `ip`; the coordinator's
+canonical default alias is `edgar:shared-ip`. `account_scope_for_provider`
+uses the namespaced `edgar:ip` entry for IP scopes and otherwise defaults to
+that same alias. The ETF bridge specifically requires an explicit nonempty
+`PROVIDER_QUOTA_ACCOUNT_SCOPES["edgar:ip"]`; a provider-only `"edgar"` entry
+does not satisfy its check and does not override the resolver's IP-scope
+default. Thus an eventual explicit binding should resolve to the one existing
+`edgar:shared-ip` ledger identity, not introduce a second alias. This name
+does not prove the target's actual public egress IP, that every worker shares
+it, or native remaining capacity; those must remain separate target
+preflight facts. The SEC seed is 10 requests/second with a one-second rolling
+application safety envelope, `baseline_mode=local_zero`, and
+`application_usage_only=true`. It tracks this platform's calls in the shared
+durable coordinator; it is not a SEC-reported usage counter or proof of
+provider-native headroom. No reviewed native reset override should be invented.
+
+Provisioning order for a future coordinator-approved release: (1) keep routing,
+ETF backfill, and scheduler disabled; install a target-owned descriptive
+non-placeholder `EDGAR_USER_AGENT` and explicit `edgar:ip` alias resolving to
+`edgar:shared-ip`; verify actual egress and that API/worker use the same
+existing durable quota coordinator without reading/copying ledger contents;
+(2) inspect existing target EDGAR `DataSource`, `ETF_HOLDINGS` policy and
+entitlement before changing anything; (3) attach reviewed host/operation and
+account-scope evidence to the existing source, then establish the public/free
+entitlement and `ip` quota policy while still disabled; (4) confirm the
+existing aggregate recurring-cost budget, then record exactly one active
+zero-cost commitment for the same EDGAR source, environment, and resolved
+`edgar:shared-ip` scope (amount and monthly equivalent zero; no post-trial
+amount); (5) re-read admission, holds, ledger coordinator health and resolved
+policy/entitlement; only the coordinator may later authorize a narrowly
+bounded request. A zero-cost commitment does not prove current use rights,
+native remaining quota, same egress, or permission to enable routing.
+
+Concrete provisioning limitation: normal `seed_provider_runtime` derives
+policy/entitlement rows from generic registry capabilities, while EDGAR's
+registry descriptor does not declare `ETF_HOLDINGS`; `PROVIDER_CHAIN_SEEDS`
+also leaves ETF publishers empty. The existing `/providers/policies/...` and
+`/providers/entitlements/...` admin PATCH routes update existing rows and
+return 404 if absent; there is no inspected supported API that creates these
+EDGAR/ETF_HOLDINGS rows. Therefore the sequence above is conditional on those
+rows already existing or a reviewed deployment provisioning mechanism; do not
+manually insert rows or enable a generic EDGAR chain as a substitute. Recurring
+cost budget/commitment endpoints are available, with the budget checked before
+the zero-cost commitment. No target, ledger, policy, entitlement, or runtime
+state was changed; no tests or network calls were made.
+
+## 2026-10-23 — bounded review of ETF EDGAR provisioning route
+
+- Read-only review of the dirty ETF worktree at HEAD
+  `c45139b45324a5c3333868e63224d2464240034b` (worktree changes were present;
+  this is not a candidate acceptance). Reviewed
+  `backend/app/routers/providers.py` SHA-256
+  `766db38d0f0afccfbf1d80af647caf2a20fdea16443c66cf8759443bb2bb8e28` and
+  `backend/tests/unit/routers/test_providers_router.py` SHA-256
+  `c0d0ce0402aa1fde1613ee9c195225534554de08e8304ebcc70b784e5b09eb31`.
+- No concrete defect found in the requested boundaries. The route is
+  `require_admin` protected; `apply` defaults false and the dry-run path returns
+  before any ORM mutation. It requires all three EDGAR operation reviews, exact
+  SEC hosts, valid configured `edgar:ip` scope/account identity, complete
+  IP-scoped quota dimensions, positive reviewed operation costs, an active
+  existing EDGAR source, and compatible source URL/config before applying.
+- Apply preserves unrelated source config and advertised capabilities; usage
+  tracking is deep-merged, existing mode/unit and matching operation/dimension
+  costs are retained, and conflicting values fail with 409. Only ETF_HOLDINGS
+  policy/entitlement/health rows are added, with policy disabled, neutral health,
+  no request log, recurring-cost budget, or commitment. Existing conflicting
+  policy/entitlement/review rows are rejected. The source row is selected
+  `FOR UPDATE`, serializing concurrent provisioning on the production database;
+  unique source/capability constraints provide a second guard. Repeated exact
+  apply is covered as idempotent, including one immutable entitlement revision
+  and no revision bump on the repeat.
+- The new router cases cover non-admin denial, default dry-run/no writes,
+  preserving generic capabilities/config, disabled/no-budget/no-commitment
+  application, exact-repeat idempotence, missing scope/evidence, and refusal of
+  mismatched existing identity/review/policy/entitlement. Tests were inspected,
+  not run. This is a source/test-definition review only; ETF's dirty candidate
+  and its separate terminal failures remain unaccepted and are not modified by
+  Provider.
