@@ -31531,3 +31531,46 @@ state was changed; no tests or network calls were made.
   not run. This is a source/test-definition review only; ETF's dirty candidate
   and its separate terminal failures remain unaccepted and are not modified by
   Provider.
+
+## 2026-10-24 — released Strategy staging backmerge and bounded Research checks
+
+- Preflight confirmed the assigned Provider worktree was at clean published
+  boundary `50930a5adba253421b8d417f787b23142b2a7a86`, with
+  `origin/feat/market-data-provider-platform` at the same SHA. Verified the
+  coordinator receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261024T061827Z-c240037f526c.json`:
+  staging `c240037f526caa236ec3af64a0040b5df6d670be`, Actions `40064128940`,
+  terminal green including Exhaustive, clean synchronized staging and no
+  interrupted marker. Merged only `origin/staging` into this Provider branch.
+  The merge commit is `db559868ad9c9192e64e4eab051014f591476bee`, with parents
+  `50930a5adba253421b8d417f787b23142b2a7a86` and
+  `c240037f526caa236ec3af64a0040b5df6d670be`; no staging/master/sibling ref or
+  worktree was changed.
+- Resolved only the two import conflicts in
+  `backend/app/routers/research.py` and
+  `backend/tests/unit/routers/test_research_router.py`, retaining Provider's
+  `_default_series_bar_condition` and Strategy's calendar/date helpers. Review
+  confirmed the selected-series filter remains before `row_number()` and the
+  history limit, and the multi-instrument query remains set-based. Incoming
+  date parsing/calendar inference, snapshot-true persisted manifest copying,
+  immutable payload/digest behavior, and persisted GET batch-results readback
+  remain intact. This is a merge reconciliation, not PostgreSQL or full-profile
+  qualification.
+- The complete focused module
+  `backend/tests/unit/routers/test_research_router.py` passed 11/11 in 2.93s on
+  the reconciled source. It ran in systemd scope
+  `provider-p2-research-unit-final-20261024.scope`, invocation
+  `4dd51f99d2924d719bfa68cd8fcb9ea1`, with a 180s wall cap, 384 MiB RAM,
+  512 MiB swap, one CPU, 96 tasks, and verified fresh >=1 GiB available memory
+  and PSI guards. Ruff check and format check passed for the two reconciled
+  Research files in scope `provider-p2-research-lint-final-20261024.scope`,
+  invocation `02a3d004a2d84916bb40138c9dd88193`; `git diff --check` passed.
+  No PostgreSQL, DB/Compose/browser/build, provider/issuer/SEC transport,
+  quota operation, or retained service/data action occurred.
+- The original branch CI `39988953219` remains green evidence for prior source
+  `5b02caf509107856195ef8cfb2374e2ab6120612` only. Exact-source CI for this
+  reconciled publication has not run yet. The PostgreSQL regression defined in
+  `backend/tests/integration/api/test_code.py`, required local full integration
+  and full browser profile, exact-source CI, and Root review remain pending.
+  Checkpoint `provider-first-human-coverage-retained-universe-2` remains
+  `in_progress`, acceptance/closure pending, and all existing holds and the
+  consumed 119-request boundary remain unchanged.

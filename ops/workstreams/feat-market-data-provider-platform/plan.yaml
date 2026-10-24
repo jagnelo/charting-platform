@@ -990,7 +990,7 @@ integration_checkpoint:
     provider-operation, or full-roadmap authorization.
   prior_checkpoint: provider-platform-integration-1
   deployed_baseline_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
-  frozen_source_sha: 5b02caf509107856195ef8cfb2374e2ab6120612
+  frozen_source_sha: db559868ad9c9192e64e4eab051014f591476bee
   scope:
     - Selected-default coverage summary and requested-range alignment in the coverage API/service, with regressions preserving the selected default-series behavior.
     - SEC issuer scan per-CIK durable result/failure and cursor commits, restart/no-replay behavior, and immutable retained-payload consistency; no live-source completeness claim.
@@ -1035,20 +1035,38 @@ integration_checkpoint:
   validation_tier: full_integration
   local_validation_profile: full_stack_browser
   exact_source_ci:
-    run_id: 39988953219
-    attempt: 1
-    source_sha: 5b02caf509107856195ef8cfb2374e2ab6120612
-    result: terminal_success
-    jobs: Backend Tests, Frontend Unit Tests, E2E Playwright, and Branch-declared Tests succeeded; Exhaustive skipped by feature-branch policy.
-    qualification: Hosted exact-source CI only; it does not satisfy the local full profile, current live-operation proof, or full-universe completeness.
+    run_id: pending_after_reconciliation_publication
+    attempt: pending
+    source_sha: db559868ad9c9192e64e4eab051014f591476bee
+    result: pending
+    jobs: Exact-source branch CI has not yet run for the reconciled source.
+    qualification: The prior green run 39988953219 remains historical evidence for 5b02caf only; it does not qualify this merge or satisfy the local full profile, current live-operation proof, or full-universe completeness.
   current_source_local_evidence:
     - >-
+      Reconciled the exact released green staging source
+      c240037f526caa236ec3af64a0040b5df6d670be in merge commit
+      db559868ad9c9192e64e4eab051014f591476bee. Research import conflicts were
+      resolved by retaining both Provider selected-series helpers and Strategy
+      calendar/date helpers. The selector remains before row_number/history
+      limits; batch reads remain set-based; incoming date/calendar inference,
+      immutable snapshot-manifest copy, payload digest handling and persisted
+      GET readback remain present. This merge is not PostgreSQL/full-profile
+      qualification.
+    - >-
+      On the reconciled source, the complete focused module
+      backend/tests/unit/routers/test_research_router.py passed 11/11 under a
+      180-second systemd scope capped at 384 MiB RAM, 512 MiB swap, one CPU and
+      96 tasks after fresh >=1 GiB available-memory and PSI checks. Locked Ruff
+      check and format check passed for the two reconciled Research files;
+      git diff checks passed. The exact invocation and scope identities are in
+      the appended handoff/journal receipt. No PostgreSQL or provider transport.
+    - >-
       backend/tests/unit/services/test_market_event_edgar_scan.py passed 31/31
-      on this source with mocked transport and temporary SQLite; this is focused
+      on prior source 5b02caf with mocked transport and temporary SQLite; this is focused
       deterministic evidence, not a substitute for the full local profile or
       live SEC completeness.
     - >-
-      The bounded static qualification on this exact source passed uv lock
+      The bounded static qualification on prior source 5b02caf passed uv lock
       consistency, the canonical locked requirements export comparison, exactly
       one Alembic head (d4a5b6c7e812), Ruff check, and Ruff format check. It ran
       offline with no sync under 256 MiB memory, zero swap, one CPU, 64 tasks,
@@ -1057,8 +1075,9 @@ integration_checkpoint:
       and validation journal.
   required_gates_remaining:
     - >-
-      Run the required local full_integration/full_stack_browser phases on this
-      exact source after Root releases the heavy slot: combined backend
+      Obtain exact-source CI for the published reconciliation, then run the
+      required local full_integration/full_stack_browser phases on the exact
+      resulting source after Root releases the heavy slot: combined backend
       unit/integration coverage; required frontend coverage/uPlot/visual-policy
       helpers; migration/startup and Compose/research-runner contracts; and the
       dynamically discovered functional/performance plus all strict visual
@@ -1071,12 +1090,7 @@ integration_checkpoint:
       consumed 119-request allowance is authorized by this record update.
     - Root full-gate and technical review; acceptance and closure remain pending.
   next_action: >-
-    Preserve frozen source 5b02caf509107856195ef8cfb2374e2ab6120612 and exact
-    green Actions run 39988953219. Wait for Root's safe heavy-slot release;
-    then complete the missing local full_integration/full_stack_browser phases
-    listed above on the exact source, without replaying provider operations.
-    Keep this checkpoint in_progress and all provider holds/full-roadmap items
-    open until Root review.
+    Preserve the reconciled implementation source db559868ad9c9192e64e4eab051014f591476bee, publish the coherent owned evidence update, and obtain its exact-source branch CI. Then wait for Root's safe heavy-slot release before completing the missing local full_integration/full_stack_browser phases listed above on the exact resulting source, without replaying provider operations. Keep this checkpoint in_progress and all provider holds/full-roadmap items open until Root review.
 previously_accepted_integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."
