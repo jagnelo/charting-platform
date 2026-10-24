@@ -15971,3 +15971,43 @@ transport, unknown account/cost/native-counter facts, paid/trial/unsafe routes,
 and unresolved issuer quarantines remain held. Preserve full AC1-AC14, all
 historical reds/skips/partials, retained data, historical/PIT/raw lineage and
 the 30-day observation; no checkpoint or full-feature acceptance is claimed.
+
+## FHSC3 uvloop timer-cause correction — 2026-10-24
+
+Root released the source freeze for this narrow production cause fix. Exact
+published CI `40114130605` on `39c411b910fcac5c637163cffd13ae68286988f4` is
+terminal RED: Backend unit result `5429 passed / 1 failed / 1 skipped` in
+`676.90s`; Frontend passed and downstream jobs were skipped. The sole failing
+test was `test_sec_worker_cancels_real_httpx_transport_at_remaining_fund_deadline`.
+Its real HTTPX transport was cancelled by asyncio's fund-selected timer under
+uvloop, but a subsequent strict read of the SEC budget clock still returned
+just before the fund deadline. The handler consequently failed to latch the
+fund terminal reason and rethrew a bare `TimeoutError`. This exact CI failure
+is preserved, not retried or called green.
+
+The production correction carries the selected per-attempt timeout and a
+fund-bound flag from one budget-clock read into the actual `asyncio.timeout`
+scope. A caught `TimeoutError` becomes terminal fund expiry only when that
+scope reports `expired()` and the selected timeout came from the fund bound;
+equal fund/attempt bounds deliberately count as fund-bound. Attempt-cap-only
+timeouts and a transport-raised timeout before the timer fires remain
+recoverable and are not mislabeled. The budget uses a module-local monotonic
+clock reference solely so tests can freeze budget time without patching global
+`time.monotonic` or the event loop's clock. Production `210s` fund and `20s`
+attempt limits, shared settlement, the existing finite-admission/worker-entry
+integration fixture, and all holds remain unchanged.
+
+The deterministic bridge unit module passed `42/42` under normal asyncio and
+`42/42` with `uvloop.EventLoopPolicy()` installed before pytest, which also
+covers the worker's in-thread `asyncio.run` path. New/updated cases exercise
+actual HTTPX cancellation while the budget clock remains just before expiry,
+sticky refusal of a later attempt, attempt-cap cancellation without fund
+latching, a transport-originated `TimeoutError` before timer expiry, and equal
+bound precedence. The local run did not use DB/Compose/browser or live
+provider/issuer/SEC requests. Root's local run was: Root88520, fresh539-case
+integration collection, 900-second timeout at97%, exit124; cleanup0/private
+recovery passed, with no assertion failure reported. That result is incomplete,
+not a full-suite pass. Root must run fresh complete units, integration and full app gates for
+this production delta. Preserve full AC1–AC14, `15 Tier-0 and 156 Tier-1`, all
+holds/quarantines, retained data, PIT/raw lineage, and the 30-day observation;
+the checkpoint and full roadmap remain open.

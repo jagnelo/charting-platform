@@ -65,6 +65,7 @@ ETF_SEC_MAX_ARCHIVE_PAGE_BYTES = 2 * 1024 * 1024
 ETF_SEC_MAX_FILING_BYTES = 16 * 1024 * 1024
 ETF_SEC_MAX_AGGREGATE_DECODED_BYTES = 20 * 1024 * 1024
 _ETF_SEC_RESPONSE_LIMIT_MARKER = "etf_sec_response_limit_error"
+_sec_budget_monotonic = time.monotonic
 
 
 def _has_explicit_account_scope_mapping(
@@ -502,8 +503,11 @@ class LoopLocalHTTPXAttempt:
                 # Client/transport construction and request building can be
                 # slow. Recompute immediately before the physical send so a
                 # setup delay cannot extend the fund-wide deadline.
-                attempt_timeout = self.sec_budget.attempt_timeout_seconds()
-                async with asyncio.timeout(attempt_timeout):
+                attempt_timeout, fund_deadline_selected = (
+                    self.sec_budget.attempt_timeout_selection()
+                )
+                timeout_scope = asyncio.timeout(attempt_timeout)
+                async with timeout_scope:
                     response = await client.send(request, follow_redirects=False, stream=True)
                     return await _read_bounded_sec_response(
                         response,
@@ -515,7 +519,8 @@ class LoopLocalHTTPXAttempt:
                 # failure. If the worker timer reached the shared fund
                 # deadline, latch it before Provider settles this failure so
                 # no later candidate/redirect can be admitted.
-                if self.sec_budget.latch_deadline_if_expired():
+                if timeout_scope.expired() and fund_deadline_selected:
+                    self.sec_budget.latch_terminal("SEC one-fund execution deadline exceeded")
                     # Provider persists the invoke exception's type and text.
                     # Keep TimeoutError for classification, but make fund
                     # expiry distinguishable from a generic attempt timeout.
@@ -530,7 +535,7 @@ class ETFSECExecutionBudget:
     """One finite, in-memory application envelope for a single fund lookup."""
 
     def __init__(self) -> None:
-        self.started_at = time.monotonic()
+        self.started_at = _sec_budget_monotonic()
         self.deadline_at = self.started_at + ETF_SEC_FUND_DEADLINE_SECONDS
         self.physical_attempts = 0
         self.archived_submissions_pages = 0
@@ -553,7 +558,7 @@ class ETFSECExecutionBudget:
             )
 
     def _check_deadline(self) -> None:
-        if time.monotonic() >= self.deadline_at:
+        if _sec_budget_monotonic() >= self.deadline_at:
             reason = "SEC one-fund execution deadline exceeded"
             self.latch_terminal(reason)
             raise ETFHoldingsRouteHeldError(reason)
@@ -561,21 +566,23 @@ class ETFSECExecutionBudget:
     def attempt_timeout_seconds(self) -> float:
         """Return the remaining fund budget capped by the reviewed 20s attempt."""
 
+        return self.attempt_timeout_selection()[0]
+
+    def attempt_timeout_selection(self) -> tuple[float, bool]:
+        """Return the chosen timeout and whether the fund deadline selects it.
+
+        A tie is fund-bound: both limits expire together, so the terminal
+        one-fund boundary must win over a recoverable per-attempt timeout.
+        """
+
         self._raise_if_terminal()
-        remaining = self.deadline_at - time.monotonic()
+        remaining = self.deadline_at - _sec_budget_monotonic()
         if remaining <= 0:
             reason = "SEC one-fund execution deadline exceeded"
             self.latch_terminal(reason)
             raise ETFHoldingsRouteHeldError(reason)
-        return min(ETF_SEC_ATTEMPT_TIMEOUT_SECONDS, remaining)
-
-    def latch_deadline_if_expired(self) -> bool:
-        """Make an in-flight deadline timeout terminal before settlement."""
-
-        if time.monotonic() < self.deadline_at:
-            return False
-        self.latch_terminal("SEC one-fund execution deadline exceeded")
-        return True
+        fund_deadline_selected = remaining <= ETF_SEC_ATTEMPT_TIMEOUT_SECONDS
+        return min(ETF_SEC_ATTEMPT_TIMEOUT_SECONDS, remaining), fund_deadline_selected
 
     def begin_logical_request(self, operation: str) -> None:
         self._raise_if_terminal()
@@ -598,11 +605,11 @@ class ETFSECExecutionBudget:
             raise ETFHoldingsRouteHeldError(reason)
         while self.last_attempt_started_at is not None:
             delay = ETF_SEC_MIN_ATTEMPT_INTERVAL_SECONDS - (
-                time.monotonic() - self.last_attempt_started_at
+                _sec_budget_monotonic() - self.last_attempt_started_at
             )
             if delay <= 0:
                 break
-            if time.monotonic() + delay >= self.deadline_at:
+            if _sec_budget_monotonic() + delay >= self.deadline_at:
                 reason = "SEC one-fund execution deadline prevents another attempt"
                 self.latch_terminal(reason)
                 raise ETFHoldingsRouteHeldError(reason)
@@ -619,7 +626,7 @@ class ETFSECExecutionBudget:
                     reason = "SEC one-fund physical request-attempt limit exceeded"
                     self._terminal_failure = reason
                     raise ETFHoldingsRouteHeldError(reason)
-                now = time.monotonic()
+                now = _sec_budget_monotonic()
                 delay = (
                     0.0
                     if self.last_attempt_started_at is None
@@ -629,7 +636,7 @@ class ETFSECExecutionBudget:
                     self.physical_attempts += 1
                     self.last_attempt_started_at = now
                     return
-            if time.monotonic() + delay >= self.deadline_at:
+            if _sec_budget_monotonic() + delay >= self.deadline_at:
                 reason = "SEC one-fund execution deadline prevents another attempt"
                 self.latch_terminal(reason)
                 raise ETFHoldingsRouteHeldError(reason)

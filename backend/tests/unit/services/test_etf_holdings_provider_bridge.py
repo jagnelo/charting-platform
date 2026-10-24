@@ -73,6 +73,19 @@ async def test_sec_execution_budget_enforces_total_attempt_archive_page_and_dead
         await budget.before_attempt()
 
 
+def test_sec_fund_deadline_wins_equal_attempt_timeout_bound(monkeypatch):
+    monkeypatch.setattr(bridge, "ETF_SEC_ATTEMPT_TIMEOUT_SECONDS", 0.25)
+    budget_clock = 123.0
+    monkeypatch.setattr(bridge, "_sec_budget_monotonic", lambda: budget_clock)
+    budget = ETFSECExecutionBudget()
+    budget.deadline_at = budget_clock + 0.25
+
+    timeout_seconds, fund_deadline_selected = budget.attempt_timeout_selection()
+
+    assert timeout_seconds == 0.25
+    assert fund_deadline_selected is True
+
+
 def test_expired_sec_budget_refuses_worker_transport_before_factory_or_send():
     budget = ETFSECExecutionBudget()
     budget.deadline_at = time.monotonic() - 0.01
@@ -142,8 +155,12 @@ def test_sec_worker_cancels_real_httpx_transport_at_remaining_fund_deadline(monk
     # Bound a regression failure too: the old fixed-attempt behavior must not
     # leave a daemon worker alive for the production twenty-second timeout.
     monkeypatch.setattr(bridge, "ETF_SEC_ATTEMPT_TIMEOUT_SECONDS", 0.75)
+    budget_clock = time.monotonic()
+    # The loop's own timer still advances normally; only the SEC budget clock
+    # is held just before expiry to reproduce timer/clock boundary skew.
+    monkeypatch.setattr(bridge, "_sec_budget_monotonic", lambda: budget_clock)
     budget = ETFSECExecutionBudget()
-    budget.deadline_at = time.monotonic() + 0.2
+    budget.deadline_at = budget_clock + 0.2
     transports = []
 
     class WaitingTransport(httpx.AsyncBaseTransport):
@@ -187,6 +204,91 @@ def test_sec_worker_cancels_real_httpx_transport_at_remaining_fund_deadline(monk
     assert transports[0].cancelled.is_set()
     assert elapsed < 0.6
     assert budget._terminal_failure == "SEC one-fund execution deadline exceeded"
+    assert bridge._sec_budget_monotonic() < budget.deadline_at
+
+    # A later physical attempt is refused before another transport is built.
+    with pytest.raises(ETFHoldingsRouteHeldError, match="terminal response"):
+        _run_sync_attempt_in_finite_worker(attempt)
+    assert len(transports) == 1
+
+
+def test_sec_worker_attempt_cap_timeout_does_not_latch_fund_deadline(monkeypatch):
+    monkeypatch.setattr(bridge, "ETF_SEC_ATTEMPT_TIMEOUT_SECONDS", 0.05)
+    budget_clock = time.monotonic()
+    monkeypatch.setattr(bridge, "_sec_budget_monotonic", lambda: budget_clock)
+    budget = ETFSECExecutionBudget()
+    budget.deadline_at = budget_clock + 0.5
+    transports = []
+
+    class WaitingTransport(httpx.AsyncBaseTransport):
+        def __init__(self):
+            self.started = threading.Event()
+            self.cancelled = threading.Event()
+
+        async def handle_async_request(self, request):
+            self.started.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled.set()
+                raise
+
+        async def aclose(self):
+            return None
+
+    def transport_factory():
+        transport = WaitingTransport()
+        transports.append(transport)
+        return transport
+
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://data.sec.gov/submissions/CIK0000000001.json",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=transport_factory,
+        sec_budget=budget,
+        sec_operation="fetch_etf_holdings_sec_submissions",
+    )
+
+    with pytest.raises(TimeoutError) as raised:
+        _run_sync_attempt_in_finite_worker(attempt)
+
+    assert str(raised.value) == ""
+    assert len(transports) == 1
+    assert transports[0].started.is_set()
+    assert transports[0].cancelled.is_set()
+    assert budget._terminal_failure is None
+    assert bridge._sec_budget_monotonic() < budget.deadline_at
+
+
+def test_transport_timeout_before_timer_does_not_latch_fund_deadline(monkeypatch):
+    monkeypatch.setattr(bridge, "ETF_SEC_ATTEMPT_TIMEOUT_SECONDS", 0.5)
+    budget_clock = time.monotonic()
+    monkeypatch.setattr(bridge, "_sec_budget_monotonic", lambda: budget_clock)
+    budget = ETFSECExecutionBudget()
+    budget.deadline_at = budget_clock + 2.0
+    transport_calls = []
+
+    async def transport_handler(request):
+        transport_calls.append(str(request.url))
+        raise TimeoutError("transport timed out before selected timer")
+
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://data.sec.gov/submissions/CIK0000000001.json",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=lambda: httpx.MockTransport(transport_handler),
+        sec_budget=budget,
+        sec_operation="fetch_etf_holdings_sec_submissions",
+    )
+
+    with pytest.raises(TimeoutError, match="transport timed out before selected timer"):
+        _run_sync_attempt_in_finite_worker(attempt)
+
+    assert transport_calls == ["https://data.sec.gov/submissions/CIK0000000001.json"]
+    assert budget._terminal_failure is None
 
 
 @pytest.mark.asyncio
