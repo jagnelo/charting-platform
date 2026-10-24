@@ -1,9 +1,210 @@
 schema: 4
-goal: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap.
-  Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider,
-  ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.
+goal: >-
+  Prepare the next named first-human Strategy Lab v2 source checkpoint: complete the normal-user
+  read-only path from a completed Study output into the owner-scoped immutable V2 inspector, close
+  the branch-local resolver/payload prerequisites, preserve corrected date-bound and authoritative
+  venue/calendar semantics, and verify compatibility with accepted a6b9. Record the delegated source
+  acceptance for integration while keeping deployed proof and full-roadmap completion open; do not
+  claim native execution.
 integration_checkpoint:
+  id: strategy-lab-v2-first-human-study-inspector-2
+  status: ready_for_integration
+  human_direction: >-
+    ROOT-NEXT-CHECKPOINT-CONTRACT (2026-10-23): prepare a next named first-human source checkpoint
+    under the canonical checkpoint rules. Preserve the accepted integration-1 checkpoint and all
+    18 original roadmap criteria/texts. Scope this checkpoint to normal completed Study-output to
+    read-only V2 inspector navigation; owner-scoped immutable-reference GET/factory/payload
+    prerequisites; corrected date-bound/canonical-venue semantics; and accepted a6b9 compatibility.
+    Do not claim native Nautilus execution, full SPA or full roadmap completion, or forward/broker/
+    capital activation. Actual deployed owner-positive/negative UI/API proof remains Root acceptance
+    work after source qualification. Preserve full_integration/full_stack_browser and every existing
+    assertion/tolerance; no focused-only waiver. This checkpoint and closure remain pending Root
+    review; do not reuse the old closure. Keep the existing native goal/history/accounting/model/
+    effort intact, preserve the live exact-source CI, and combine these record changes only at a safe
+    publication boundary.
+  fh5_original_text: >-
+    Preserve full_integration/full_stack_browser, existing tests/assertions/tolerances/retry policy,
+    and exact-source CI. Do not accept this checkpoint until Root reviews deployed owner-positive and
+    owner-negative UI/API proof after source qualification; native, full SPA, full-roadmap,
+    forward/broker/capital activation remain explicitly outside this checkpoint and disabled.
+  downstream_consumers:
+    - Normal users opening an immutable Study output from Research results in the V2 inspector.
+    - Root's accepted/deployed first-human target, after source qualification, for owner-positive and
+      owner-negative read-only API/UI acceptance.
+    - Existing Strategy Lab v2 API, immutable reference resolver, and accepted Provider/ETF/TC
+      contracts; no execution dispatch consumer is enabled by this checkpoint.
+  required_contracts:
+    - >-
+      A completed/evaluated Study output exposes its persisted ResearchRun and ResearchArtifact IDs
+      through a visible normal-user link; V2 accepts only those IDs and calls the authenticated
+      owner-scoped immutable-reference GET. No DevTools-only manual artifact-ID path, latest alias,
+      POST, dispatch, or hidden execution side effect.
+    - >-
+      The GET/factory/payload binds exact owner, terminal/evaluated run, supported artifact type,
+      immutable CodeVersion/Study lineage and the resolver's exact persisted digest contract:
+      run_reproducibility_hash, code_version_digest, dataset_manifest_digest, and
+      artifact_content_digest. This read-only reference does not authenticate a separate native
+      strategy/package/parameter/seed execution graph. Foreign, nonterminal, ambiguous, missing,
+      malformed, deleted, wrong-type, unverified, or drifted records fail closed.
+    - >-
+      Date-only bounds use calendar semantics only when authoritative canonical listing venue and
+      supported calendar are known. Unknown venue remains unavailable; mixed date/exact bounds
+      preserve the exact side. No coverage/PIT weakening, fallback to USD-as-XNYS, acquisition, or
+      hidden transport. SPY/RSP date-only acceptance remains pending authoritative canonical
+      InstrumentListing venue review; the observed EquityDetail.exchange_mic is NULL and is not
+      sufficient listing proof. Do not claim their date-only path is fixed by code tests alone.
+    - >-
+      Accepted a6b9 remains the synchronized compatibility baseline, but does not itself contain the
+      branch-local Study-reference API, V2 view, or App navigation. Require the backend/UI source
+      prerequisites together; never deploy frontend-only or attribute branch code to a6b9.
+    - >-
+      Full local full_integration/full_stack_browser and exact-source branch CI remain mandatory;
+      preserve the existing live CI without rerun/cancellation. Root performs actual deployed
+      positive/negative acceptance only after source qualification.
+  prerequisite_source_commits:
+    - sha: 344f87f835f392bd103c20db2044aa0de72148df
+      scope: Persisted Study payload and immutable-reference validation shape.
+      qualification: Branch prerequisite; not present in deployed a6b9 by itself.
+    - sha: 068d03f1ff55f5b1701d071980b4405d83e65cc6
+      scope: Typed owner-scoped resolver, adapter, and authenticated read-only GET.
+      qualification: Branch prerequisite; must be qualified with dependent UI and exact-source gates.
+    - sha: 1451b9d0f2f4a468961319eda337f5dcc1e06aa7
+      scope: V2 inspector view, route, and App navigation.
+      qualification: Branch prerequisite; not present in deployed a6b9.
+    - sha: 4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5
+      scope: Typed read-only pin preview.
+      qualification: Branch prerequisite; not a native-execution or deployment proof.
+  contract_evidence: >-
+    See the dated Strategy handoff for source-qualified UI/API and date-bound evidence. Historical
+    integration-1 evidence remains under accepted_integration_1_history and is not reused as
+    acceptance of this checkpoint. Exact-source branch CI run 40041392901 completed successfully
+    on 83e93958921b479ccd122494571d0b9dbb1acc5d: Backend Tests, Frontend Unit Tests,
+    Branch-declared Tests, and E2E Playwright succeeded; Exhaustive Integration Gate was skipped
+    under feature-branch policy. Root accepted this exact tested source for source integration
+    under the delegated checkpoint decision. The isolated local profile passed; deployed
+    genuine-data owner-positive/negative acceptance remains a separate mandatory target gate after
+    staging/master release gates and separately authorized deployment.
+  original_criterion_dispositions:
+    - id: AC-DOMAIN
+      disposition: partially_delivered
+      delivered: Existing immutable domain plus typed selected-Study reference shape/readback.
+      remainder: Complete and revalidate all Strategy resource/version/attempt domain contracts.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: Full domain contract tests and required local full integration profile.
+    - id: AC-SDK
+      disposition: deferred
+      reason: Engine-neutral SDK completeness is outside this read-only inspector checkpoint.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: SDK dependency/input isolation and intent-contract tests from the preserved roadmap.
+    - id: AC-DATA
+      disposition: partially_delivered
+      delivered: Read-only inspection pins existing immutable Study lineage and corrected date-bound semantics.
+      remainder: >-
+        Full capability, coverage, adjustment, and frozen-data execution contracts remain open;
+        unknown venue stays denied. An additional unverified roadmap risk is whether a currently
+        active primary InstrumentListing is authoritative for the Research decision time when its
+        effective_at, known_at, or delisted_at lifecycle fields are populated; current source review
+        found no target-row evidence establishing that temporal relationship. This is not a
+        reproduced defect in the frozen inspector checkpoint.
+      owner: Strategy Lab v2 owner consuming Provider/ETF contracts.
+      continuation_acceptance_test: >-
+        Review accepted Provider producer semantics and actual listing evidence read-only; test
+        before/after effective_at, known_at and delisted_at against Research decision time, and
+        retain an unavailable calendar whenever listing authority at that time is unproven. Also
+        retain canonical venue/date-bound, ETF PIT, coverage and stale/unavailable rejection tests
+        plus the full profile.
+    - id: AC-REPRODUCIBILITY
+      disposition: partially_delivered
+      delivered: Inspector reference binds immutable run/artifact/code/dataset/content identity.
+      remainder: Full reproducible execution manifest, snapshot freezing, seed and replay proof remain open.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: Positive exact-pin reconstruction and mutation/restart drift rejection on accepted consumer source.
+    - id: AC-SEARCH
+      disposition: deferred
+      reason: Search and walk-forward execution are not part of the read-only first-use checkpoint.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: Deterministic resumable/cancellable search and leakage-safe OOS suite from the preserved roadmap.
+    - id: AC-PORTFOLIO
+      disposition: deferred
+      reason: Portfolio simulation, allocation and capital behavior are excluded and remain disabled.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: Multi-component shared-account allocation/risk tests after separately authorized execution scope.
+    - id: AC-METRICS
+      disposition: deferred
+      reason: Inspector linkage does not establish native simulator metrics or profitability evidence.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: Versioned metric definitions and native order/fill/account reconciliation tests.
+    - id: AC-ARTIFACTS
+      disposition: partially_delivered
+      delivered: Read-only selection resolves one persisted immutable Study artifact by owner/run/artifact identity.
+      remainder: Full Strategy content-addressed artifact lifecycle, retention, and atomic manifests remain open.
+      owner: Strategy Lab v2 owner with TC producer contracts.
+      continuation_acceptance_test: Persisted artifact integrity, owner isolation, restart readback, and deletion/drift denials.
+    - id: AC-WORKERS
+      disposition: deferred
+      reason: The checkpoint performs no dispatch and adds no worker capability.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: Full worker lease, idempotency, recovery, cancellation, and artifact-atomicity tests.
+    - id: AC-NAUTILUS
+      disposition: deferred
+      reason: No Nautilus execution is claimed or activated; generic Study output is not native-v2 proof.
+      owner: Strategy Lab v2 owner after exact-pin, scope-specific conformance.
+      continuation_acceptance_test: Applicable four backtest checks, or all five shadow checks, against exact build/scope and full profile.
+    - id: AC-FORWARD
+      disposition: deferred
+      reason: Forward execution remains disabled and is outside read-only inspection.
+      owner: Strategy Lab v2 owner after all forward prerequisites and separate authorization.
+      continuation_acceptance_test: Immutable plan, flat/carry-in, event-tape, restart and no-broker-order tests.
+    - id: AC-API
+      disposition: partially_delivered
+      delivered: Authenticated owner-scoped immutable-reference GET and normal-user route handoff only.
+      remainder: Full Strategy REST resource, submission, stream, pagination and retry APIs remain open.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: API positive/foreign-owner/nonterminal/malformed/drift denials plus full API profile.
+    - id: AC-LEGACY
+      disposition: deferred
+      reason: Legacy definition import/conversion is not part of the selected Study inspector.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: Explicit import compatibility report preserving source records and avoiding replay-equivalence claims.
+    - id: AC-SECURITY
+      disposition: partially_delivered
+      delivered: Authenticated owner scope and fail-closed immutable-reference validation for this read-only path.
+      remainder: Adversarial strategy-code sandbox and complete resource/security isolation remain open.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: Owner isolation and malformed/drift denial tests plus the full adversarial sandbox suite.
+    - id: AC-COMPOSE
+      disposition: deferred
+      reason: This checkpoint makes no Compose topology or service-activation claim.
+      owner: Strategy Lab v2 owner.
+      continuation_acceptance_test: Full Compose database/Redis/worker/artifact profile with exact-owned cleanup and preserved retained services.
+    - id: AC-UPSTREAM
+      disposition: partially_delivered
+      delivered: Accepted a6b9 compatibility is reconciled; Provider, ETF and TC immutable contracts are consumed read-only.
+      remainder: Revalidate all shared-path semantics against every later accepted baseline without sibling mutation.
+      owner: Strategy Lab v2 owner after coordinator releases each green baseline.
+      continuation_acceptance_test: Exact-source combined canonical identity/series/coverage/PIT/Study consumer matrix.
+    - id: AC-UI-BOUNDARY
+      disposition: partially_delivered
+      delivered: Normal Research output link opens a read-only V2 inspector using persisted run/artifact IDs.
+      remainder: Root must verify deployed owner-positive/negative UI/API path; full dockable SPA remains open.
+      owner: Root for deployed acceptance; Strategy owner for source and full roadmap.
+      continuation_acceptance_test: Root target owner-positive and foreign-owner/nonterminal denial procedure after source gates; no dispatch/native claim.
+    - id: AC-VALIDATION
+      disposition: partially_delivered
+      delivered: Existing focused and historical accepted-checkpoint evidence is retained as qualified input.
+      remainder: New exact-source CI and unchanged full local full_stack_browser/full_integration gates must qualify this source.
+      owner: Strategy Lab v2 owner; Root assigns serialized heavy validation slot.
+      continuation_acceptance_test: Full required local profile and terminal green exact-source branch CI with no waiver.
+  acceptance_state: pending
+  acceptance_evidence: pending_root_review_after_exact_source_qualification
+accepted_integration_1_history:
   id: strategy-lab-v2-integration-1
+  prior_full_roadmap_workstream_goal: >-
+    Continue the original full 18-criterion Strategy Lab v2 roadmap in the existing branch and
+    worktree. The accepted strategy-lab-v2-integration-1 checkpoint is historical evidence, not
+    full-topic or native-v2 SPA/execution completion. Continue bounded work against the integrated
+    Provider, ETF, and TC2000 contracts while preserving every original criterion and all
+    disabled-scope boundaries.
   completed_changesets:
     - name: strategy-v2-selected-study-artifact-reference-preparation
       status: complete
@@ -23,7 +224,7 @@ integration_checkpoint:
     base_source_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
     released_staging_sha: 77af863902ac6f48fbefd7a0d332f6f39c5f829d
     strategy_merge_commit: b469a9fdf74247dfb3b8160e318e3516bd7d9b58
-    phase: checkpoint_accepted_ready_for_integration
+    phase: checkpoint_accepted_and_green_four_feature_baseline_adopted
     reconciled_alembic_head: slv2_0011
     integration_capture: exact branch HEAD
     intent: >-
@@ -671,7 +872,7 @@ integration_checkpoint:
     owner: Strategy consumer owner after central staged dependencies
     continuation_acceptance_test: Original criterion plus actual combined consumer success/rejection
       tests and full required application validation.
-acceptance_criteria:
+accepted_integration_1_acceptance_criteria:
 - id: SLICP1
   text: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending
     human acceptance; reconcile stale session progress with later evidence.
@@ -692,35 +893,118 @@ acceptance_criteria:
 - id: SLICP5
   text: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding
     roadmap; stop at ready_for_human_review, closure pending human acceptance.
-progress:
+accepted_integration_1_progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
-  current_phase: strategy-lab-v2-integration-1-accepted-ready-for-integration
+  status_at_acceptance: ready_for_integration
+acceptance_criteria:
+- id: FH1
+  text: >-
+    Preserve the accepted strategy-lab-v2-integration-1 source/closure and full original 18
+    roadmap criterion IDs/texts/dispositions as history; record this bounded checkpoint's
+    delegated source acceptance separately and leave the full roadmap open.
+- id: FH2
+  text: >-
+    From normal Research results UI, a completed/evaluated supported immutable Study output visibly
+    links to the V2 inspector carrying its persisted run/artifact IDs; route hydration performs only
+    the authenticated owner-scoped read-only GET, with no manual DevTools ID entry, POST, dispatch,
+    or native-execution implication.
+- id: FH3
+  text: >-
+    Qualify the typed immutable-reference factory/payload/API prerequisites together with the UI;
+    positive owner readback and foreign-owner, nonterminal, malformed, ambiguous, missing, wrong-type,
+    unverified, deleted, and digest/version/dataset drift denials remain fail-closed. State that these
+    prerequisites are branch-only and absent from deployed a6b9; do not claim frontend-only deployability.
+- id: FH4
+  text: >-
+    Correct date-only bounds only for an authoritative canonical listing venue and supported calendar;
+    preserve exact boundaries for mixed date/exact input and deny unknown venues without weakening
+    coverage/PIT or performing acquisition. Keep SPY/RSP date-only acceptance pending authoritative
+    canonical InstrumentListing venue review; observed EquityDetail.exchange_mic is NULL and is not
+    sufficient listing proof.
+- id: FH5
+  text: >-
+    Preserve full_integration/full_stack_browser, existing tests/assertions/tolerances/retry policy,
+    and exact-source CI. Source acceptance for integration requires the complete unchanged local
+    profile, owner-positive/negative UI/API contract qualification, exact-source branch CI, immutable
+    source capture and ordinary closure under the existing checkpoint lifecycle. Root must explicitly
+    accept that exact tested source before guarded staging integration. After synchronized staging
+    and independent master release gates, target deployment remains a separate authorized phase;
+    genuine-data owner-positive and owner-negative UI/API proof must be verified on that deployed
+    target before final target acceptance or coordinator-goal completion. This separates ordering
+    only: no proof is waived or passed early. Native, full SPA, full-roadmap, forward/broker/capital
+    activation remain outside this checkpoint and disabled.
+progress:
+  completed: [FH1, FH2, FH3, FH4, FH5]
+  total: 5
+  current_phase: strategy-lab-v2-first-human-study-inspector-2
+  active_changeset:
+    id: strategy-lab-v2-first-human-study-inspector-2
+    scope: >-
+      Qualify the assembled first-human source boundary: normal-user read-only Study-output navigation;
+      typed owner-scoped immutable-reference payload/factory/GET; corrected date-only versus mixed
+      exact-bound semantics with canonical venue/calendar only; and a6b9 compatibility. Preserve
+      the source-qualified prerequisite chain, positive/negative behavior and existing full gates.
+      Branch APIs/UI are absent from deployed a6b9, so no frontend-only deployment or native claim.
+    owned_paths:
+      - frontend/src/components/workstation/ResearchResultsTool.vue
+      - frontend/src/views/StrategyLabV2View.vue
+      - frontend/tests/unit/components/test_research_results_tool.test.ts
+      - frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts
+      - backend/app/strategy_lab_v2/study_artifact_resolver.py
+      - backend/app/strategy_lab_v2/api_router.py
+      - backend/app/strategy_lab_v2/application.py
+      - backend/app/routers/research.py
+      - backend/tests/unit/routers/test_research_router.py
+      - ops/workstreams/feat-strategy-lab-v2/handoff.md
+      - ops/workstreams/feat-strategy-lab-v2/plan.yaml
+      - ops/workstreams/feat-strategy-lab-v2/session.json
+      - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+    status: ready_for_integration
   current_blocker: >-
-    Root accepted this exact bounded checkpoint at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91
-    under the human-delegated decision. The exact-source hosted CI 39779005214 passed Backend,
-    Frontend Unit, Branch-declared and E2E Playwright; the feature-branch Exhaustive Integration Gate
-    was skipped by policy and is not staging evidence. The final local application profile passed:
-    real registered API and default DB/Redis worker readiness/restart; functional browser 195 passed
-    with two existing live-opt-in skips in 20.8 minutes; strict visual 104/104 in 13.4 minutes;
-    both used zero retries and unchanged assertions/references/tolerances/masks. The full local
-    backend collector evidence remains input-qualified to earlier source; its integration wrapper
-    did not capture a separate pytest exit, so a clean full-backend pass on P is not claimed. The
-    fresh/previous-release migration gate passed at B b96d456 and the reviewed B-to-P migration/model
-    input diff is empty; migration was not separately rerun on P. Exact owned profile cleanup passed,
-    all three global inventory diffs are zero bytes, and own project/browser resources are absent.
-    Two browser-start preflight failures (missing pinned image, then missing nested mountpoint) are
-    retained as no-test failures; the corrected attempt ran the full suite once without retries.
-    The checkpoint is accepted and ready for the coordinator's canonical staging integration;
-    the original 18-criterion roadmap remains open and the owner must not self-integrate. No live
-    provider/quota, job dispatch, native execution, broker, real-capital, paid/trial or deployment
-    operation occurred. Nautilus authority remains exact-build/scope qualified; generic Study output
-    is not native execution proof. The current native goal remains active and unbudgeted.
+    Branch-local immutable-reference API/payload and V2 navigation prerequisites are present in this
+    feature history but are absent from deployed a6b9 and cannot be attributed to that release.
+    Source qualification is accepted for integration; Root's actual deployed owner-positive/negative
+    UI/API acceptance remains pending after release gates and authorized deployment. Target SPY/RSP
+    date-only acceptance remains pending authoritative canonical
+    InstrumentListing venue review (observed EquityDetail.exchange_mic is NULL, which is not listing
+    proof); exact-bound run4 succeeded while date-only run3 was deferred.
+    Exact source CI 40041392901 is green on 83e93958921b479ccd122494571d0b9dbb1acc5d. On
+    frozen source 83e93958921b479ccd122494571d0b9dbb1acc5d, Root completed an explicitly resumed
+    same-source backend continuation: the previously verified 213 unit shards (5,320 passed, 1
+    skipped) plus a fresh all-533 integration collection/run (529 passed, 4 skipped, 57 warnings),
+    then the combined coverage report/XML (84%, 153,315 statements, 23,959 missed). Fresh collection
+    was 5,854 tests and integration took 863.13s under the unchanged 900s integration bound. This is
+    qualified split-phase evidence, NOT a literal successful `make test-backend-coverage` or
+    `backend_coverage.py` main invocation; earlier complete backend attempts remain red and
+    preserved. Exact logs and cleanup are recorded in the 2026-10-24 handoff and validation receipt.
+    The canonical migration helper exited 0 with no-change SKIP from base a6b9: models, Alembic,
+    pyproject, uv.lock, and helper input paths are unchanged. No fresh or previous-release schema
+    upgrade, PostgreSQL fixture, or previous-app smoke ran on 83. This is input-equivalence only,
+    not runtime migration proof. Root completed the four source-pinned image builds on 83 with zero
+    exits and restored the assigned builder/private app. Frontend dist and accepted Research runner
+    are reused only under their recorded exact-manifest/input-equivalence guards. Root subsequently
+    ran the unchanged Research sandbox/resource probes successfully (receipt in handoff); caller
+    OOM/PID counters and all global inventory diffs were zero, exact project was removed, and private
+    app/Study 5 was restored. First measured config invocation `4af898ad9b2a445a9b82bced16c3611d`
+    exited 2 below its startup admission before creating a fixture or tests; this is not a product
+    failure. Root's adjusted measured profile completed successfully under invocation
+    `42f31a564d3f43c5837451a46b266fc8`. Root reports the same isolated fixture passed config/up,
+    API smoke, and empty-queue worker DB/Redis before/after-restart checks. The same-fixture
+    functional suite passed 195 with 2 declared live-opt-in skips in 21.3 minutes, and strict visual
+    passed 104/104 in 14.5 minutes, zero failures/retries. Exact cleanup/global diffs and private
+    app/Study/data/holds/request count were independently verified. This is isolated-fixture
+    evidence, not deployed-target proof. The full 18-criterion roadmap remains open.
+    deployed owner-positive/negative acceptance, authoritative SPY/RSP
+    listing-venue review, and the full roadmap remain open.
+  updated_at: "2026-10-24T04:13:05Z"
   next_action: >-
-    Hand off the clean closure-record commit to Root for guarded canonical staging integration.
-    After Root releases the exact synchronized green staging result, continue the full original
-    18-criterion roadmap in this same worktree without changing its criteria or enabling unsupported
-    scopes.
+    Root owns guarded integration of exact source 83e93958921b479ccd122494571d0b9dbb1acc5d after
+    this closure is published and final exact-head CI is green. Continue the full 18-criterion
+    roadmap in this branch after coordinator release. Do not claim target acceptance: staging/master
+    gates, separately authorized deployment, and genuine-data owner-positive/negative V2 inspector
+    UI/API proof remain. Keep SPY/RSP date-only venue review and native execution, forward,
+    broker/capital, provider/quota, paid/trial, unknown and unsafe operations open or disabled.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging
@@ -728,7 +1012,7 @@ parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved Strategy Lab v2 plan; honor the repository AI-driven workflow rules and active branch boundaries."
 planning_state: ready
-human_closure_authorization: >-
+accepted_integration_1_human_closure_authorization: >-
   Human delegated conditional checkpoint acceptance with the exact answer “Yes—approve that initial
   scope and handle checkpoint acceptance.” Root exercised that authority and accepted
   strategy-lab-v2-integration-1 at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91 on
@@ -737,7 +1021,7 @@ human_closure_authorization: >-
   This covers only the bounded checkpoint and authorizes the coordinator's guarded staging workflow;
   it does not complete the 18-criterion roadmap or authorize owner self-integration, deployment,
   live/native/paid/trial operation, or unsafe scope activation.
-closure_summary: >-
+accepted_integration_1_closure_summary: >-
   Accepted checkpoint strategy-lab-v2-integration-1 at tested source
   197ea15a9a90fbc76089a38fe67013c00a722d91 after the exact hosted run 39779005214 passed all required
   feature jobs and the local final app profile passed API/worker DB+Redis restart, functional
@@ -754,6 +1038,50 @@ closure_summary: >-
   disabled; Help parity with official V25 remains open. The full 18-criterion roadmap and all
   historical failures remain intact and uncompleted. The required capture is integration_capture:
   exact branch HEAD.
+human_closure_authorization: >-
+  Under the human's recorded conditional checkpoint-acceptance delegation, the Central coordinator
+  decision in /home/m920q/charting-platform/.ai/staging-attempts/strategy-83e93959-checkpoint-source-acceptance-20261024.md
+  states: "Root accepts the tested implementation 83 FOR SOURCE INTEGRATION under that receipt,
+  not targetdeployment acceptance." This delegated decision accepts only
+  strategy-lab-v2-first-human-study-inspector-2 for source integration at exact tested source
+  83e93958921b479ccd122494571d0b9dbb1acc5d. It does not accept deployment, final target proof, or
+  completion of the full roadmap.
+closure_summary: >-
+  Accepted checkpoint strategy-lab-v2-first-human-study-inspector-2 for source integration at tested
+  implementation 83e93958921b479ccd122494571d0b9dbb1acc5d under the delegated coordinator decision
+  recorded in /home/m920q/charting-platform/.ai/staging-attempts/strategy-83e93959-checkpoint-source-acceptance-20261024.md.
+  Delivered scope is the normal-user Research Study-output link to the read-only V2 inspector, typed
+  owner-scoped immutable Study reference factory/payload/GET, and corrected date-only versus mixed
+  exact bounds with canonical known-venue/calendar fail-closed behavior, compatible with accepted
+  a6b9. Exact-source CI 40041392901 passed Backend Tests, Frontend Unit Tests, Branch-declared Tests
+  and E2E Playwright; Exhaustive Integration Gate was skipped under feature-branch policy. Same-source
+  local backend qualification is explicitly split-phase: 5,320 unit passes/1 existing skip from the
+  verified checkpoint, all 533 integration cases freshly collected with 529 passes/4 existing skips,
+  then combined coverage/XML passed at 84% (75% required). This is not represented as one successful
+  monolithic backend collector run; prior OOM, tmpfs, wrapper and other red attempts remain historical
+  red evidence. The canonical migration helper returned a no-change input-equivalence SKIP from a6b9;
+  no fresh/previous-release upgrade on 83 is claimed. Four pinned image builds, frontend dist manifest
+  reuse, immutable Research image input equivalence and sandbox/resource probes are qualified in the
+  handoff. On the same isolated fixture, runtime configuration/API smoke and empty-queue worker
+  DB/Redis readiness/restart passed; functional browser passed 195 with 2 declared live-opt-in skips
+  in 21.3 minutes, and strict visual passed 104/104 in 14.5 minutes; both had zero failures/retries
+  with unchanged assertions, references, masks and tolerances. Functional log
+  `/tmp/strategy-full-83e93959-20261024/artifacts/functional.log` SHA-256
+  `b05258bf68137d18244d77ab9ead00d3c1d595f96d25c7397d48b1f6b8526cf9`; strict visual log
+  `/tmp/strategy-full-83e93959-20261024/artifacts/visual.log` SHA-256
+  `bceef07aeb2375f7cda4341ff5f1606e88b46f91ca644cc41041f68a35e6a8dc`; both phase exits were 0
+  and browser states were `0 false exited`. Exact owned cleanup and all three
+  global inventory diffs were zero; private app/Study 5, data, holds and request count were
+  independently verified restored. No product migration or deployment occurred. The 197-case
+  functional suite did not explicitly exercise new inspector navigation; focused component/route
+  hydration plus backend owner-positive/negative source contracts do not substitute for the genuine-
+  data deployed Results-to-inspector UI/API proof. Deployed a6b9 lacks the branch-local reference API
+  and V2 view/navigation, so frontend-only deployment is unsupported. Remaining: genuine-data deployed
+  owner-positive/negative UI/API proof after staging/master gates and separately authorized deploy;
+  authoritative SPY/RSP canonical listing-venue review for date-only acceptance; and all unfinished
+  original roadmap criteria, including native qualification and disabled forward/broker/capital
+  scopes. Do not mark the roadmap complete or imply target acceptance. The required capture is
+  integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
@@ -1603,59 +1931,55 @@ roadmap_progress_history:
     - strategy-lab-v2-nautilus-forward-runtime-operation-handler-v1
     - strategy-lab-v2-durable-search-cancellation-v1
     - strategy-lab-v2-postgres-backed-curve-download-v1
+    - strategy-lab-v2-frozen-study-payload-typing-v1
   total: 18
-  current_phase: oos-native-terminal-receipt-first-recovery-v1
+  current_phase: strategy-v2-study-output-inspector-link-v2
   active_changeset:
-    id: strategy-lab-v2-oos-native-terminal-receipt-first-recovery-v1
+    id: strategy-v2-study-output-inspector-link-v2
     scope: >-
-      Close the recovered walk-forward OOS dispatch through exact-pinned native
-      Nautilus execution, PostgreSQL terminal result settlement, and Redis
-      consumer acknowledgement/reclaim. Authenticate and idempotently bootstrap
-      owner-scoped initial execution/runtime state before process launch. On
-      redelivery, replay a matching durable completion/settlement/release before
-      starting Nautilus again. Preserve training-only selection, attempt and
-      payload identity, outbox ordering, and owner isolation. Do not modify
-      provider or frontend paths.
+      Complete the normal-user read-only path from a completed immutable Study output in Research
+      results to the Strategy Lab v2 inspector using persisted run/artifact IDs. Keep the route
+      query validated, invoke only the authenticated owner-scoped resolver GET, and preserve
+      fail-closed behavior for absent, malformed, foreign, nonterminal, ambiguous, or drifted
+      records. Offer the link only for the exact TC-supported 11 Study artifact types with matching
+      payload type discriminators. This local UI depends on Strategy-owned backend prerequisites not
+      present in deployed a6b9; never deploy the frontend alone or infer native execution from
+      generic Study output.
     owned_paths:
-      - backend/app/strategy_lab_v2/worker_initial_state.py
-      - backend/app/strategy_lab_v2/worker_callbacks.py
-      - backend/app/strategy_lab_v2/worker_service.py
-      - backend/app/strategy_lab_v2/worker_recovery_application.py
-      - backend/app/strategy_lab_v2/worker_entrypoint.py
-      - backend/app/strategy_lab_v2/redis_application.py
-      - backend/app/strategy_lab_v2/tests/test_worker_initial_state.py
-      - backend/app/strategy_lab_v2/tests/test_worker_callbacks.py
-      - backend/app/strategy_lab_v2/tests/test_worker_service.py
-      - backend/app/strategy_lab_v2/tests/test_worker_entrypoint.py
-      - backend/app/strategy_lab_v2/tests/test_nautilus_worker_terminal.py
-      - backend/app/strategy_lab_v2/tests/test_search_dispatch_preparation.py
-      - backend/tests/integration/strategy_lab_v2/test_oos_terminal_postgres_redis.py
-      - backend/tests/integration/strategy_lab_v2/test_worker_recovery_postgres.py
-      - backend/tests/integration/strategy_lab_v2/test_walk_forward_phase_recovery_postgres.py
+      - frontend/src/components/workstation/ResearchResultsTool.vue
+      - frontend/src/views/StrategyLabV2View.vue
+      - frontend/tests/unit/components/test_research_results_tool.test.ts
+      - frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts
+      - ops/workstreams/feat-strategy-lab-v2/handoff.md
+      - ops/workstreams/feat-strategy-lab-v2/plan.yaml
+      - ops/workstreams/feat-strategy-lab-v2/session.json
+      - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+    source_commit: f1c453270 (base for this focused follow-up; current source change remains local)
+    validation: >-
+      ResearchResultsTool and StrategyLabV2View pass 72/72 in 3.54s with one worker. The Study
+      link requires one of the accepted 11 output types and a matching payload discriminator; tests
+      include unsupported and mismatched negative cases. Parent exact CI 39992653172 is green only
+      for published 64d3b12e; this local follow-up is not covered. No full frontend typecheck,
+      backend, DB, browser, native, provider, target, or fixture gate is claimed.
     status: in_progress
   current_blocker: >-
-    No Nautilus release or implementation dependency blocks the local backend:
-    exact-pinned Nautilus 2.0.0rc6 passed the required conformance scopes, and
-    the native OOS request now crosses PostgreSQL terminal settlement and Redis
-    crash-reclaim ACK with no second engine launch. Forward event/terminal
-    recovery, worker-fleet leases, and branch-owned security/isolation/scaling
-    slices are also green, and the authenticated live Compose curve transfer is
-    now proven against the real FastAPI/PostgreSQL stack and shared artifact
-    volume. Exact Strategy source c9723d2b3718b9d598e0d8d307c9fbbd1d943187
-    also passed hosted CI run 38907993948 (standard jobs including E2E passed;
-    Exhaustive was skipped). Remaining work is branch acceptance rather than an
-    engine-version wait: exact-tip local full-browser acceptance and
-    cross-workstream reconciliation. Provider-platform, ETF, and TC2000
-    contracts remain owned by their branches; shared router, migration, and
-    provider-decoder reconciliation must wait for their staged contracts.
-    Existing browser failures are in the parallel TC2000-owned surfaces, not
-    this backend package.
+    Accepted/deployed a6b9 lacks the Study-reference API and V2 view/App navigation. Exact
+    Strategy-branch prerequisites are 344f87f835f392bd103c20db2044aa0de72148df (persisted Study
+    payload validation), 068d03f1ff55f5b1701d071980b4405d83e65cc6 (typed resolver, API adapter,
+    authenticated GET), 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 (view, route and App navigation),
+    and 4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5 (typed pin preview). None is in a6b9. Parent
+    run 39992653172 is terminal green on 64d3b12e only; it does not validate later local changes.
+    Root's source-83 backend result is qualified split-phase evidence: 213 passing unit shards were
+    retained from a clean unit-only checkpoint, all 533 integration cases were freshly collected
+    and run, and combined coverage/XML passed at 84%. It is not a literal successful invocation of
+    the Makefile's authoritative `test-backend-coverage` target. The prepared migration wrapper is
+    pinned to exact source 83e93958921b479ccd122494571d0b9dbb1acc5d and accepted base
+    a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e, but refuses any dirty worktree; this owned receipt is
+    dirty, and committing it would change the pinned HEAD. Resolve that boundary before migration
+    launch. Accepted-target SPY/RSP listing and full local/combined/browser gates remain open.
   next_action: >-
-    Backend package, coverage, Compose API, and migration gates are green.
-    Continue with the exact-tip full-browser acceptance profile when the
-    parallel frontend workstream is ready, then perform line-level shared-path
-    reconciliation. Preserve engine-neutral
-    SDK boundaries, owner isolation, durable receipt-before-ACK semantics, and
-    fail-closed unsupported products. Reconcile shared router/migration,
-    provider-decoder, ETF, and TC2000 paths only after their approved branches
-    reach staging; do not duplicate those contracts here.
+    Keep source frozen at 83e93958921b479ccd122494571d0b9dbb1acc5d. Resolve the migration wrapper's
+    exact clean-worktree/source-pin conflict with Root before its separately assigned PostgreSQL
+    slot; then continue runtime/worker restart and functional/strict-visual qualification under their
+    assigned slots. Do not infer full checkpoint acceptance from the split backend result. Keep
+    provider, quota, paid/trial, broker/capital, unknown, and unsafe operation boundaries disabled.

@@ -95,7 +95,12 @@
       <div v-if="selectedRun.artifacts.length" class="research-results-tool__artifacts">
         <article v-for="artifact in selectedRun.artifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`" :aria-describedby="artifactSummaryId(artifact.id)">
           <span :id="artifactSummaryId(artifact.id)" class="sr-only">{{ describeStudyArtifact(artifact) }}</span>
-          <div class="research-results-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :title="`Export ${artifact.name}`" @click="exportArtifact(selectedRun!, artifact)">Export</button></div>
+          <div class="research-results-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><router-link
+            v-if="canInspectStudyArtifact(selectedRun, artifact)"
+            class="research-results-tool__inspect-study"
+            :to="studyArtifactInspectorLocation(selectedRun, artifact)"
+            :aria-label="`Inspect ${artifact.name} immutable Study lineage in Strategy Lab v2`"
+          >Inspect in Strategy Lab v2</router-link><button type="button" :title="`Export ${artifact.name}`" @click="exportArtifact(selectedRun!, artifact)">Export</button></div>
           <div v-if="canPromoteStructuredArtifact(selectedRun, artifact)" class="research-results-tool__artifact-promotions" role="group" :aria-label="`${artifact.name} promotions`">
             <button v-if="artifact.artifact_type === 'scalar'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save column: ${artifact.name}` }}</button>
             <template v-if="artifact.artifact_type === 'scalar' && hasFiniteScalarValue(artifact)">
@@ -222,6 +227,9 @@ interface ResearchRunSummary {
   artifacts: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }>
 }
 type ResearchArtifact = ResearchRunSummary['artifacts'][number]
+const SUPPORTED_STUDY_ARTIFACT_TYPES = new Set([
+  'scalar', 'series', 'boolean', 'table', 'bar', 'histogram', 'range', 'scatter', 'heatmap', 'dashboard', 'events',
+])
 interface ComparisonArtifactPair {
   key: string
   name: string
@@ -449,6 +457,22 @@ function artifactText(payload: Record<string, unknown>) { return JSON.stringify(
 function statusLabel(status: string) {
   const labels: Record<string, string> = { queued: 'Queued', running: 'Running', completed: 'Completed', failed: 'Failed', canceled: 'Canceled' }
   return labels[status] ?? status.replace(/_/g, ' ')
+}
+function canInspectStudyArtifact(run: ResearchRunSummary | null, artifact: ResearchArtifact): boolean {
+  return run?.status === 'completed'
+    && run.output_contract === 'study'
+    && Number.isSafeInteger(run.id)
+    && run.id > 0
+    && Number.isSafeInteger(artifact.id)
+    && artifact.id > 0
+    && SUPPORTED_STUDY_ARTIFACT_TYPES.has(artifact.artifact_type)
+    && artifact.payload?.type === artifact.artifact_type
+}
+function studyArtifactInspectorLocation(run: ResearchRunSummary, artifact: ResearchArtifact) {
+  return {
+    path: '/legacy/strategy-lab-v2',
+    query: { researchRunId: String(run.id), artifactId: String(artifact.id) },
+  }
 }
 function statusGuidance(status: string) {
   switch (status) {

@@ -16,6 +16,7 @@ from app.strategy_lab_v2.contracts import (
     ArtifactRetention,
     EventGranularity,
     ProductClass,
+    SelectedStudyArtifactReference,
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
@@ -43,12 +44,14 @@ def _fixture(
     source: str = SOURCE,
     lock: bytes | None = None,
     extra_members: dict[str, bytes] | None = None,
+    selected_study_artifact: SelectedStudyArtifactReference | None = None,
 ):
     strategy = StrategyVersion(
         "strategy-1",
         "v1",
         "2.0.0",
         content_digest(source),
+        selected_study_artifact=selected_study_artifact,
     )
     requirement = CapabilityRequirement(
         instrument_id="US.AAPL",

@@ -382,6 +382,27 @@ def test_forward_event_tape_rejects_correction_dispatch_from_live_input() -> Non
         )
 
 
+def test_forward_event_tape_rejects_correction_with_inconsistent_enqueue_binding() -> None:
+    market_event = _event("bar-correction", sequence=2)
+    canonical_event = CanonicalForwardEvent(
+        market_event.event_id,
+        market_event.sequence,
+        market_event.event_time,
+        market_event.event_time + timedelta(seconds=1),
+        content_digest("correction-source"),
+        correction_of="bar-original",
+    )
+
+    with pytest.raises(ValueError, match="canonical corrections cannot enter the live tape"):
+        materialize_nautilus_forward_tape(
+            "forward-instance-1",
+            (canonical_event,),
+            (market_event,),
+            event_type_by_dependency={"daily-bars": "ohlcv"},
+            delivery_bindings=(_delivery_binding(canonical_event),),
+        )
+
+
 def test_forward_correction_replay_input_binds_plan_checkpoint_and_target() -> None:
     market_event = _event("bar-correction", sequence=2)
     canonical_event = CanonicalForwardEvent(

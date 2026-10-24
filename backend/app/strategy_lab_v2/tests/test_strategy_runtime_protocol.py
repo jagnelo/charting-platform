@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from io import BytesIO
+from typing import Any, cast
 
 import pytest
 
@@ -14,6 +16,8 @@ from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
     EventGranularity,
     ProductClass,
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
     StrategyDependency,
     StrategyVersion,
 )
@@ -29,6 +33,8 @@ from app.strategy_lab_v2.sdk import (
     TargetPositionIntent,
     TimeInForce,
 )
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
+from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from strategy_runtime import (
     BATCH_WIRE_PROTOCOL_VERSION,
     COMPONENT_CONTEXT_STREAM_PROTOCOL_VERSION,
@@ -143,6 +149,272 @@ def test_invocation_wire_round_trip_is_canonical_and_typed() -> None:
         entrypoint=entrypoint,
         max_intents_per_event=limit,
     )
+
+
+def _frozen_study_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _frozen_study_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return tuple(_frozen_study_value(item) for item in value)
+    return value
+
+
+@pytest.mark.parametrize(
+    ("study_artifact_type", "study_value"),
+    STUDY_ARTIFACT_OUTPUT_CASES,
+)
+def test_strategy_runtime_can_consume_each_pinned_study_output_type(
+    study_artifact_type: str, study_value: Any
+) -> None:
+    expected_study_value = repr(_frozen_study_value(study_value))
+    source = (
+        "class Strategy:\n"
+        "    def on_event(self, context):\n"
+        "        output = context.study_artifacts['study.output']\n"
+        f"        if output.reference.artifact_type != {study_artifact_type!r}:\n"
+        "            return []\n"
+        f"        if output.value != {expected_study_value}:\n"
+        "            return []\n"
+        "        return [TargetPositionIntent('US.AAPL', Decimal('0.25'))]\n"
+    )
+    payload = {"type": study_artifact_type, "value": study_value}
+    reference = SelectedStudyArtifactReference(
+        research_run_id=41,
+        code_version_id=12,
+        artifact_id=87,
+        artifact_name="study.output",
+        artifact_type=study_artifact_type,
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest=content_digest("runtime-study-code-version"),
+        dataset_manifest_digest=content_digest("runtime-study-dataset"),
+        artifact_content_digest=content_digest(payload),
+    )
+    base_manifest = _manifest(source)
+    manifest = replace(
+        base_manifest,
+        strategy=replace(base_manifest.strategy, selected_study_artifact=reference),
+    )
+    context = replace(
+        _context(),
+        study_artifacts={reference.artifact_name: ResolvedStudyArtifactOutput(reference, payload)},
+    )
+    wire = serialize_invocation(
+        source=source,
+        manifest=manifest,
+        context=context,
+        entrypoint="strategy.main:Strategy",
+    )
+    decoded_source, decoded_manifest, decoded_context, entrypoint, _intent_limit = (
+        deserialize_invocation(wire)
+    )
+
+    result = run_strategy_event(
+        decoded_source,
+        manifest=decoded_manifest,
+        context=decoded_context,
+        entrypoint=entrypoint,
+    )
+
+    assert result.status is InvocationStatus.SUCCEEDED
+    assert len(result.intents) == 1
+    assert isinstance(result.intents[0], TargetPositionIntent)
+    assert result.intents[0].target_fraction == Decimal("0.25")
+
+
+def test_invocation_wire_round_trips_pinned_study_output_and_rejects_drift(tmp_path) -> None:
+    source = (
+        "class Strategy:\n"
+        "    def on_event(self, context):\n"
+        "        return [TargetPositionIntent('US.AAPL', Decimal('0.25'))] "
+        "if context.study_artifacts['study.close'].value[0] > 0 else []\n"
+    )
+    base_manifest = _manifest(source)
+    output_payload = {"type": "series", "value": [1.25, 2.5]}
+    reference = SelectedStudyArtifactReference(
+        research_run_id=11,
+        code_version_id=12,
+        artifact_id=13,
+        artifact_name="study.close",
+        artifact_type="series",
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest=content_digest("study-code"),
+        dataset_manifest_digest=content_digest("study-dataset"),
+        artifact_content_digest=content_digest(output_payload),
+    )
+    manifest = replace(
+        base_manifest,
+        strategy=replace(base_manifest.strategy, selected_study_artifact=reference),
+    )
+    output = ResolvedStudyArtifactOutput(
+        reference, cast(FrozenStudyArtifactPayload, output_payload)
+    )
+    context = replace(_context(), study_artifacts={reference.artifact_name: output})
+    encoded = serialize_invocation(
+        source=source,
+        manifest=manifest,
+        context=context,
+        entrypoint="strategy.main:Strategy",
+    )
+    _, decoded_manifest, decoded_context, _, _ = deserialize_invocation(encoded)
+    assert decoded_manifest == manifest
+    assert decoded_context == context
+    assert decoded_context.study_artifacts is not None
+    assert decoded_context.study_artifacts[reference.artifact_name].value == (1.25, 2.5)
+    result = run_strategy_event(
+        source,
+        manifest=decoded_manifest,
+        context=decoded_context,
+        entrypoint="strategy.main:Strategy",
+    )
+    assert result.status is InvocationStatus.SUCCEEDED
+    assert len(result.intents) == 1
+    assert isinstance(result.intents[0], TargetPositionIntent)
+    assert result.intents[0].target_fraction == Decimal("0.25")
+
+    study_stream = BytesIO()
+    assert (
+        serialize_invocation_context_stream(
+            study_stream,
+            source=source,
+            manifest=manifest,
+            contexts=(context,),
+            entrypoint="strategy.main:Strategy",
+        )
+        == 1
+    )
+    request_path = tmp_path / "study-context-stream.jsonl"
+    result_path = tmp_path / "study-result-stream.jsonl"
+    request_path.write_bytes(study_stream.getvalue())
+    assert main(["--request", str(request_path), "--result", str(result_path)]) == 0
+    with result_path.open("rb") as result_stream:
+        streamed_result = tuple(
+            deserialize_invocation_result_stream(result_stream, expected_result_count=1)
+        )
+    assert len(streamed_result) == 1
+    assert streamed_result[0].status is InvocationStatus.SUCCEEDED
+    assert len(streamed_result[0].intents) == 1
+    assert streamed_result[0].intents[0].target_fraction == Decimal("0.25")
+
+    component_stream = BytesIO()
+    serialize_component_invocation_context_stream(
+        component_stream,
+        components=(
+            InvocationContextStreamSource(
+                component_id="component-1",
+                source=source,
+                manifest=manifest,
+                contexts=(context,),
+                entrypoint="strategy.main:Strategy",
+            ),
+        ),
+    )
+    component_wire = component_stream.getvalue()
+    assert component_wire.count(b'"study_artifacts"') == 1
+    bindings, replayed_contexts = deserialize_component_invocation_context_stream(
+        BytesIO(component_wire), expected_component_counts={"component-1": 1}
+    )
+    assert bindings["component-1"].study_artifacts == context.study_artifacts
+    component_id, replayed_context = next(replayed_contexts)
+    assert component_id == "component-1"
+    assert replayed_context.study_artifacts == context.study_artifacts
+
+    tampered_wire = json.loads(encoded)
+    tampered_payload = tampered_wire["context"]["study_artifacts"][reference.artifact_name][
+        "payload"
+    ]
+    tampered_payload["value"]["value"]["value"][0]["value"] = (9.25).hex()
+    tampered_request = json.dumps(tampered_wire, sort_keys=True, separators=(",", ":"))
+    with pytest.raises(ValueError, match="immutable reference"):
+        deserialize_invocation(tampered_request)
+    tampered_request_path = tmp_path / "tampered-study-request.json"
+    tampered_result_path = tmp_path / "tampered-study-result.json"
+    tampered_request_path.write_text(tampered_request, encoding="utf-8")
+    assert (
+        main(["--request", str(tampered_request_path), "--result", str(tampered_result_path)]) == 1
+    )
+    assert not tampered_result_path.exists()
+
+    mismatched = replace(
+        context,
+        study_artifacts={
+            reference.artifact_name: ResolvedStudyArtifactOutput(
+                replace(reference, artifact_id=reference.artifact_id + 1),
+                cast(FrozenStudyArtifactPayload, output_payload),
+            )
+        },
+    )
+    with pytest.raises(ValueError, match="immutable manifest reference"):
+        serialize_invocation(
+            source=source,
+            manifest=manifest,
+            context=mismatched,
+            entrypoint="strategy.main:Strategy",
+        )
+
+
+@pytest.mark.parametrize(
+    ("artifact_type", "value"),
+    STUDY_ARTIFACT_OUTPUT_CASES,
+)
+def test_invocation_wire_preserves_typed_study_payload_shapes(artifact_type, value) -> None:
+    source = "class Strategy:\n    def on_event(self, context):\n        return []\n"
+    payload = {"type": artifact_type, "value": value}
+    reference = SelectedStudyArtifactReference(
+        research_run_id=21,
+        code_version_id=22,
+        artifact_id=23,
+        artifact_name=f"study.{artifact_type}",
+        artifact_type=artifact_type,
+        output_contract="study",
+        run_reproducibility_hash="b" * 64,
+        code_version_digest=content_digest("typed-study-code"),
+        dataset_manifest_digest=content_digest("typed-study-dataset"),
+        artifact_content_digest=content_digest(payload),
+    )
+    base_manifest = _manifest(source)
+    manifest = replace(
+        base_manifest,
+        strategy=replace(base_manifest.strategy, selected_study_artifact=reference),
+    )
+    output = ResolvedStudyArtifactOutput(reference, payload)
+    context = replace(_context(), study_artifacts={reference.artifact_name: output})
+
+    encoded = serialize_invocation(
+        source=source,
+        manifest=manifest,
+        context=context,
+        entrypoint="strategy.main:Strategy",
+    )
+    _, decoded_manifest, decoded_context, _, _ = deserialize_invocation(encoded)
+
+    assert decoded_manifest.strategy.selected_study_artifact == reference
+    assert decoded_context.study_artifacts == {reference.artifact_name: output}
+    assert decoded_context.study_artifacts[reference.artifact_name].value == output.value
+    assert decoded_context.study_artifacts[reference.artifact_name].reference == reference
+
+    component_stream = BytesIO()
+    serialize_component_invocation_context_stream(
+        component_stream,
+        components=(
+            InvocationContextStreamSource(
+                component_id="component-1",
+                source=source,
+                manifest=manifest,
+                contexts=(context,),
+                entrypoint="strategy.main:Strategy",
+            ),
+        ),
+    )
+    bindings, contexts = deserialize_component_invocation_context_stream(
+        BytesIO(component_stream.getvalue()),
+        expected_component_counts={"component-1": 1},
+    )
+    component_id, component_context = next(contexts)
+    assert component_id == "component-1"
+    assert bindings[component_id].study_artifacts == {reference.artifact_name: output}
+    assert component_context.study_artifacts == {reference.artifact_name: output}
 
 
 def test_result_wire_round_trip_preserves_intents_and_fingerprint() -> None:

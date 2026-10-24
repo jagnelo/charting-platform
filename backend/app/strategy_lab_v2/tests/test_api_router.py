@@ -68,6 +68,7 @@ from app.strategy_lab_v2.contracts import (
     ForwardState,
     MetricBasis,
     MetricValue,
+    SelectedStudyArtifactReference,
 )
 from app.strategy_lab_v2.dispatch import DispatchRequest, SearchDispatchIntent
 from app.strategy_lab_v2.experiments import WalkForwardMode, WalkForwardSpec
@@ -497,6 +498,9 @@ class FakeAdapter:
         self.walk_forward_bulk_dispatch_requests: list[dict[str, Any]] = []
         self.walk_forward_phase_requests: list[dict[str, Any]] = []
         self.walk_forward_result_requests: list[dict[str, Any]] = []
+        self.study_reference_requests: list[tuple[str, int, int]] = []
+        self.study_reference: SelectedStudyArtifactReference | None = None
+        self.study_reference_error: Exception | None = None
         self.document = _document()
 
     async def list_resources(self, **kwargs: Any) -> ResourceCollection:
@@ -526,6 +530,18 @@ class FakeAdapter:
         if kwargs["resource_id"] == document.id:
             return document
         return None
+
+    async def resolve_study_artifact_reference(
+        self,
+        *,
+        principal: Any,
+        research_run_id: int,
+        artifact_id: int,
+    ) -> SelectedStudyArtifactReference | None:
+        self.study_reference_requests.append((str(principal), research_run_id, artifact_id))
+        if self.study_reference_error is not None:
+            raise self.study_reference_error
+        return self.study_reference
 
     async def submit(self, **kwargs: Any) -> SubmissionServiceResult:
         request = kwargs["request"]
@@ -908,6 +924,49 @@ def _asgi_app(adapter: Any) -> FastAPI:
         prefix="/api/v1",
     )
     return app
+
+
+def test_explicit_study_reference_route_returns_owner_scoped_pin_or_rejects() -> None:
+    adapter = FakeAdapter()
+    reference = SelectedStudyArtifactReference(
+        research_run_id=4101,
+        code_version_id=5202,
+        artifact_id=6303,
+        artifact_name="answer",
+        artifact_type="scalar",
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest="sha256:" + "b" * 64,
+        dataset_manifest_digest="sha256:" + "c" * 64,
+        artifact_content_digest="sha256:" + "d" * 64,
+    )
+    adapter.study_reference = reference
+    client = _client(adapter)
+
+    response = client.get("/api/v1/strategy-lab/v2/study-artifact-references/4101/6303")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["data"]["attributes"] == {
+        "research_run_id": 4101,
+        "code_version_id": 5202,
+        "artifact_id": 6303,
+        "artifact_name": "answer",
+        "artifact_type": "scalar",
+        "output_contract": "study",
+        "run_reproducibility_hash": "a" * 64,
+        "code_version_digest": "sha256:" + "b" * 64,
+        "dataset_manifest_digest": "sha256:" + "c" * 64,
+        "artifact_content_digest": "sha256:" + "d" * 64,
+    }
+    assert adapter.study_reference_requests == [("user-1", 4101, 6303)]
+
+    adapter.study_reference = None
+    missing = client.get("/api/v1/strategy-lab/v2/study-artifact-references/4101/9999")
+    assert missing.status_code == 404
+
+    adapter.study_reference_error = ValueError("Study run is not fully completed")
+    incomplete = client.get("/api/v1/strategy-lab/v2/study-artifact-references/4101/6303")
+    assert incomplete.status_code == 422
 
 
 async def _invoke_curve_download_endpoint(adapter: Any, experiment: str):
