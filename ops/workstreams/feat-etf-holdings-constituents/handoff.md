@@ -15723,3 +15723,75 @@ not replay the unchanged UI tests or start local full-profile/DB work: the
 corrected DB slot remains unused and requires a future Root-coordinated window.
 This does not accept the new checkpoint; DB/full-stack/live/deployed sample
 gates and the complete AC1–AC14 roadmap remain open.
+
+## Resource-corrected offline SEC DB selection — 2026-10-23, window 2129
+
+The exact source remained `45c6a5f69029aa3b873ad68d717202f308845dd5`, clean
+and synchronized with `origin/feat/etf-holdings-constituents`; no source, test,
+or configuration file changed for this validation. Root verified the
+source/backend-tree identity before the attempt. The explicit one-run resource
+correction changed only the PostgreSQL-growth guard from 128 MiB to 192 MiB.
+Pytest remained capped at 512 MiB/no swap, with the same PostgreSQL and Redis
+services, isolated new database, loopback-only 48 MiB Redis, CPU/task limits,
+1536 MiB host floor, PSI/reserve/deadline checks, and exact owned-resource
+cleanup rules.
+
+The full selected 12-case offline DB invocation completed: **12 passed, 5
+warnings in 66.84 seconds; pytest exit 0**. It covered the five `known_at` API
+regressions; curated IWM identity hydration; ambient discovery/SEC binding
+denial; shared per-hop SEC admission and wrong-CIK rejection; held optional
+SEC enrichment; measured failed accounting for invalid HTTP 200 before sticky
+denial; and idempotent N-PORT and legacy backfills. Exact node IDs:
+
+- `test_sec_nport_ingestion_reconstructs_filing_holdings`
+- `test_sec_legacy_ingestion_reconstructs_table_like_filing_holdings`
+- `test_sec_legacy_ingestion_reconstructs_html_table_filing_holdings`
+- `test_sec_legacy_ingestion_reconstructs_split_identity_html_rows`
+- `test_sec_legacy_ingestion_handles_month_name_dates_and_value_thousands`
+- `test_sec_backfill_route_hydrates_curated_iwm_identity_without_network`
+- `test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_binding`
+- `test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik`
+- `test_bootstrap_treats_held_optional_sec_enrichment_separately_from_issuer_route`
+- `test_sec_invalid_http_200_is_failed_and_measured_before_sticky_denial`
+- `test_sec_nport_backfill_discovers_and_ingests_edgar_filings`
+- `test_sec_legacy_backfill_discovers_and_ingests_edgar_filings`
+
+The run used systemd scope `etf-offline-sec-20261023-2129.scope`, invocation
+`cb70f8a99a744655812e9fd95fb79d39`, log
+`/tmp/etf-offline-sec-20261023-2129.scope.log` (SHA256
+`d0dad0e3f53120f3cd6c964199ccf3cf3fe735e9762fb8263b978aa6a407687a`). The
+worker verified a 536870912-byte memory maximum, zero swap, one CPU and 64
+tasks. Root recorded 29.234 seconds CPU, 69.807 seconds wall time, rounded
+512 MiB peak, and OOM counters 0/0. No external HTTP, provider/issuer/SEC
+request, live allowance, or quota was used.
+
+Cleanup was independently verified: the exact Redis container and disposable
+database `etf_offline_20261023_2129` are absent; the attempt UV cache is absent;
+the six original databases remain (`chartingdb`,
+`etf_bridge_integration_20261020`, `etf_etf_dated_retention_20261021`,
+`postgres`, `template0`, `template1`). Root restored and checked all six
+application services healthy with seeds disabled, auth boundary intact, the
+479 SPY/RSP bars and Run 4 artifacts unchanged, and the restore guard removed
+after health proof.
+
+Preserve window 2119 separately: it emitted eight progress markers before its
+PostgreSQL-growth guard observed 138399744 bytes above the then-128 MiB limit;
+the exact process received SIGINT/SIGKILL and exited 137 without a pytest
+summary. Those markers are historical partial output, not a complete result;
+do not say no cases ran, and do not convert the attempt into either a test
+failure or pass. The earlier 384 MiB OOM attempt also remains
+partial/inconclusive. Window 2129 is the explicit resource-corrected full
+selection result, not an automatic replay.
+
+This evidence closes only the named offline DB/API/shared-runtime selection.
+It does not establish native SEC limits, live access, a real IWM acquisition,
+deployed positive behavior, or checkpoint acceptance. The `etf-first-human-sec-source-1`
+checkpoint remains pending Root review. Broader local full-profile/full
+functional/strict-visual gates, applicable live-acquisition and deployment
+proof remain open. Exact green CI 40006029802 covers prior source
+`d42e5ff07490af8f0fb894e7ab924e4f62cc4379`, not current source 45c6; this
+receipt does not refresh current-source CI. Root will assign the next specific
+profile phase. Until then, do not start another test, preflight, fixture,
+browser matrix, CI run, or source investigation. Preserve full AC1–AC14,
+`15 Tier-0 and 156 Tier-1`, all route holds and quarantines, retained data,
+current/PIT and raw-lineage semantics, and the 30-day observation gate.

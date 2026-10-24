@@ -381,40 +381,37 @@ previously_accepted_integration_checkpoint:
   active_changeset:
     name: SEC bounded transport, held provisioning and red-failure corrections
     state: >-
-      Local candidate includes published source c45139b45324a5c3333868e63224d2464240034b,
-      whose exact CI40001975210 is preserved terminal RED. The exact accepted
-      green staging baseline a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e has now
-      been merged into this branch at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2
-      after local SEC correction commit cf97bc64a75969dd7e0fb300b4f05b3ebabc914c;
-      merge was conflict-free and did not edit sibling/staging worktrees. The dedicated SEC path binds
-      committed CIK/series/class, shares Provider admission per physical
-      request/redirect, preserves observed known_at and rejected raw lineage,
-      and keeps publication unknown. The application budget latches body,
-      aggregate, access, attempt, redirect, page and deadline limits before a
-      later candidate can reserve or send; compressed trailing/member data is
-      rejected; no-qualified-filing outcomes cannot become completed-empty.
-      A marked HTTP 200 now raises inside the synchronous Provider invoke after
-      response telemetry and before shared success settlement. Its actual
-      shared-runtime regression is added but remains DB-unrun. The prior
-      384MiB nine-case DB run is partial/inconclusive (OOM, no summary). The
-      repeat-import outcomes now distinguish a prior persisted snapshot from
-      zero qualifying filings, and the 302 MockTransport response is an unread
-      ByteStream matching production stream=True semantics. An admin-only,
-      dry-run-first EDGAR ETF provisioning endpoint was added with explicit
-      reviewed inputs and disabled policy defaults; Provider read-only review
-      found no concrete defect in its auth/dry-run/shared-cost-preservation/
-      idempotency/held-row source contracts. Exact c451 CI40001975210 is
-      terminal RED (498 integration passed, 3 failed, 2 skipped; Frontend green):
-      the two repeat-import cases and the eager redirect fixture. The 61-test
-      SEC/bridge/provisioning unit selection passes. The prior384MiB DB attempt
-      is partial/inconclusive (OOM, no summary). This turn's immediate host
-      preflight measured1425592KiB available, below the one-shot512MiB grant's
-      1536MiB floor; no DB or Redis test resource was created. The coherent
-      candidate is not yet pushed; DB/shared-runtime, full-profile,
-      and applicable live evidence remain open. SEC transport remains held.
-      Preserve all AC1-AC14, `15 Tier-0 and 156 Tier-1`, IWM candidate-only
-      status, historical/PIT lineage, quarantines, retained data and the 30-day
-      observation.
+      The tested candidate is exact branch tip 45c6a5f69029aa3b873ad68d717202f308845dd5,
+      clean and synchronized with origin; this DB validation made no source
+      changes. The previously recorded CI40006029802 is green only for
+      d42e5ff07490af8f0fb894e7ab924e4f62cc4379, not evidence for 45c6. The
+      accepted green staging baseline a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+      remains merged conflict-free at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2.
+      The dedicated SEC path binds committed CIK/series/class, uses shared
+      Provider admission per physical request/redirect, preserves observed
+      known_at and rejected raw lineage, and leaves publication unknown.
+      Application limits latch before later reservation/transport; compressed
+      trailing/member data is rejected and no-qualifying-filing outcomes cannot
+      become completed-empty. Marked HTTP 200 fails inside the synchronous
+      Provider invoke after telemetry and before shared success settlement.
+      Admin-only EDGAR provisioning remains dry-run-first and disabled by
+      default. The 384MiB OOM attempt and interrupted window 2119 are preserved
+      as partial/inconclusive, not test failures: 2119 emitted eight progress
+      markers, then its PG-growth guard measured 138399744 bytes above the
+      then-128MiB ceiling and the exact process exited 137 without a pytest
+      summary. The single explicitly resource-corrected window 2129 changed
+      only that guard to 192MiB and passed all twelve selected offline DB cases
+      on source 45c6: 12 passed, five warnings, 66.84s. The log SHA256 is
+      d0dad0e3f53120f3cd6c964199ccf3cf3fe735e9762fb8263b978aa6a407687a,
+      systemd invocation cb70f8a99a744655812e9fd95fb79d39, measured CPU/wall
+      time 29.234s/69.807s, rounded peak 512MiB, and OOM counters 0/0. Exact
+      disposable DB/Redis/cache cleanup was independently verified; all six
+      original DBs and retained services/data remain intact. This proves only
+      the selected offline DB/API/shared-runtime cases, not full integration,
+      full_stack_browser, live acquisition, deployed positive behavior or
+      checkpoint acceptance. Keep SEC held and preserve all AC1-AC14,
+      `15 Tier-0 and 156 Tier-1`, IWM candidate-only status, PIT lineage,
+      quarantines, retained data and the 30-day observation.
     baseline: c45139b45324a5c3333868e63224d2464240034b
     intent: >-
       Finish the reviewed bounded SEC one-fund application envelope and ensure
@@ -521,7 +518,7 @@ integration_checkpoint:
       continuation_acceptance: Code-derived counts and all runtime, tests, manifests, docs and audit rows satisfy the exhaustive matrix.
     - id: AC7
       disposition: partially_delivered
-      remainder: Current exact-source CI is running; full local DB/shared-runtime and full_stack_browser evidence and applicable live evidence are not complete.
+      remainder: The selected 12-case offline DB/API/shared-runtime selection passed on source 45c6; exact-source CI for 45c6 was not refreshed in this receipt, and full local-profile, applicable live and deployed positive-sample evidence remain open.
       owner: ETF; Root assigns local full-profile resources and live/deployment acceptance
       continuation_acceptance: Required deterministic suites, default offline contracts, changed-file lint, full_stack_browser, source-exact CI and any explicitly authorized source-specific live checks have honest passing/held dispositions.
     - id: AC8
@@ -750,7 +747,7 @@ status: in_progress
 progress:
   completed: []
   total: 7
-current_phase: selected_snapshot_lineage_ui_contract_2026_10_23
+current_phase: offline_sec_api_shared_runtime_db_selection_2129_2026_10_23
 historical_execution_context: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2011,61 +2008,61 @@ latest_sec_first_use_candidate:
     evidence. Bootstrap is not an offline substitute because it can attempt an
     issuer fetch.
   validation: >-
-    The IWM local metadata hydration unit passed. One prior authorized,
-    resource-capped DB invocation collected five known_at API regressions, IWM
-    route hydration, and three shared-runtime SEC MockTransport tests, then
-    OOM-killed at384MiB after43.63s without a final summary. Treat it as
-    partial/inconclusive. Exact generated DB/Redis/anonymous volume were cleaned
-    after process/connection checks; retained originals were verified
-    unchanged. The subsequently reviewed resource correction permits one
-    512MiB/no-swap attempt only after fresh host MemAvailable>=1536MiB plus all
-    other guards. Two fresh host readings were below that floor and no new
-    resources or tests were started. After the marked-HTTP200 accounting fix,
-    the bridge/EDGAR unit subset passed44/44; its new shared-runtime regression
-    remains DB-unrun. Earlier bounded SEC unit suites passed697/697. These are
-    not DB/runtime or live proof.
+    At source45c6a5f69029aa3b873ad68d717202f308845dd5, the single explicitly
+    resource-corrected window2129 ran the exact 12-case offline PostgreSQL/
+    Redis selection once:12 passed,5 warnings,66.84s,pytest exit0. It includes
+    the five known_at API cases, IWM identity hydration, shared-runtime SEC
+    admission/denial/marked-HTTP200 cases, and both duplicate-backfill cases.
+    The exact log is /tmp/etf-offline-sec-20261023-2129.scope.log, SHA256
+    d0dad0e3f53120f3cd6c964199ccf3cf3fe735e9762fb8263b978aa6a407687a;
+    systemd invocation cb70f8a99a744655812e9fd95fb79d39. Measured CPU/wall
+    time was29.234s/69.807s, rounded peak512MiB, OOM counters0/0. Cleanup was
+    independently verified: exact Redis and test DB absent, temporary UV cache
+    absent, and all six original databases unchanged. Preserve the earlier
+    384MiB OOM as partial/inconclusive. Window2119 also remains partial, not a
+    failure or pass: eight progress markers were emitted before SIGINT/SIGKILL
+    and exit137 when PostgreSQL growth138399744 bytes exceeded the then-128MiB
+    guard; it produced no final pytest summary, so do not say all cases never
+    ran. The 2129 correction changed only that guard to192MiB; pytest512MiB/no
+    swap, Redis48MiB, CPU/task caps, source, DSN, cases and cleanup rules were
+    unchanged. No live HTTP/provider/issuer/SEC request occurred. This proves
+    only these selected offline DB/API/shared-runtime cases, not the full local
+    profile, live acquisition, deployed positive behavior, or checkpoint
+    acceptance.
   source_gate: >-
-    Exact published c451 CI40001975210 is terminal RED (498 integration passed,
-    3 failed, 2 skipped; Frontend passed); preserve its original failure. Its
-    three diagnosed cases are fixed locally but still need validation on the
-    combined source. Local SEC/bridge/provisioning unit modules passed61/61,
-    changed-file Ruff/format passed, migration-compatibility unit tests passed
-    19/19, and workflow-session tests passed56/56. Exact accepted green staging
-    a6b9 was merged conflict-free into this branch at c2c57 after local SEC
-    commit cf97. No CI yet covers c2c57 or its final publication commit. DB and
-    full_stack_browser remain open; the external_service_path stays held pending
-    reviewed policy and mandatory applicable live evidence. Do not claim DB or
-    live validation.
+    Preserve exact c451 CI40001975210 as terminal RED (498 integration passed,
+    3 failed, 2 skipped; Frontend passed) and its historical failure diagnosis.
+    Exact published CI40006029802 is green only for prior source
+    d42e5ff07490af8f0fb894e7ab924e4f62cc4379 and does not validate current tip
+    45c6a5f69029aa3b873ad68d717202f308845dd5. This workstream update does not
+    query or claim current-source CI. The accepted green staging baseline a6b9
+    remains merged conflict-free at c2c57. The 2129 offline DB/API/shared-
+    runtime selection passed12/12 as detailed above. Full_stack_browser,
+    broader full-profile validation, applicable live evidence and deployed
+    positive-sample acceptance remain open; SEC transport stays held.
   unresolved: >-
-    Application request/decoded-byte/time/page/redirect bounds are implemented
-    offline, but DB/runtime proof, deployed SEC operation policy and positive
+    The selected 12-case offline DB/API/shared-runtime proof passed, but broader
+    full-profile validation, deployed SEC operation policy and positive
     per-request cost, exact edgar:ip mapping, entitlement, active shared
     zero-USD commitment, native headroom/counter/reset, actual qualifying
     filing and series/class match, mandatory live validation, full_stack_browser,
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Record exact CI40006029802 on published d42 as terminal green for Frontend,
-  Backend, Branch-declared, and E2E; Exhaustive was skipped by feature-branch
-  policy. It does not cover the local selected-snapshot UI change, whose focused
-  view suite passed6/6 and `vue-tsc --noEmit` passed in the existing receipt.
-  Do not rerun unchanged UI tests. Publish the current UI implementation and its
-  checkpoint record together after lightweight workstream/count/diff checks;
-  then track the automatically triggered exact-source CI for the new SHA
-  without a metadata-only follow-up commit. The authorized one-shot512MiB/no-swap
-  DB grant remains unused. Root's
-  19:21 resource attempt was refused at1223MiB available with PSI full
-  avg10=4.33/avg60=3.64; WINDOWOPEN was never sent. Root reports all six
-  target services are now healthy and unchanged, with request-log count4,
-  original seeds and real SPY/RSP data/run artifacts preserved; its restore
-  timer completed after independent health proof. Keep the corrected DB slot
-  unused and do not automatically replay maintenance/preflight or launch tests,
-  services, or fixtures. Root will coordinate any future window. Preserve the
-  earlier1536MiB-floor refusals and384MiB OOM partial without relabeling them as
-  test failures. SEC transport remains held pending reviewed policy,
-  account/operation/cost/entitlement/aggregate commitment, native headroom/reset,
-  qualifying filing identity and applicable live evidence. Preserve observed
-  known_at, unknown publication, raw lineage, current/PIT distinctions, full
-  AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data,
-  full_stack_browser, and the30-day observation. The checkpoint remains pending
-  Root review and is not ready for integration.
+  Root owns assignment of the next specific local validation phase. Do not
+  launch another test, database preflight, fixture, browser matrix, CI run, or
+  source investigation until that direction arrives. Preserve the exact 2129
+  12/12 offline DB/API/shared-runtime result and independently verified cleanup;
+  keep the 2119 eight-marker interruption and prior384MiB OOM as partial/
+  inconclusive history, not failures or passes. Source remains frozen at
+  45c6a5f69029aa3b873ad68d717202f308845dd5 and origin-synchronized. The known
+  green CI40006029802 is for prior d42, not current source45c6; no current-source
+  CI result is claimed here. SEC transport remains held pending reviewed
+  policy/account/operation/cost/entitlement/aggregate commitment, native
+  headroom/reset, qualifying filing identity and applicable live evidence.
+  Broader full local validation, full_stack_browser, live acquisition, deployed
+  positive-sample acceptance and Root checkpoint review remain open. Preserve
+  observed known_at, unknown publication, raw lineage, current/PIT distinctions,
+  full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data and the
+  30-day observation. The checkpoint remains pending and is not ready for
+  integration.
