@@ -1272,12 +1272,14 @@ async def test_sec_fund_deadline_cancels_worker_transport_before_durable_settlem
         provider_db.url.render_as_string(hide_password=False),
     )
     operation = "fetch_etf_holdings_sec_submissions"
-    deadline_seconds = 2.0
+    admission_allowance_seconds = 30.0
+    in_flight_budget_seconds = 2.0
     worker_attempt_cap = 5.0
-    monkeypatch.setattr(edgar, "ETF_SEC_FUND_DEADLINE_SECONDS", deadline_seconds)
-    monkeypatch.setattr(bridge, "ETF_SEC_FUND_DEADLINE_SECONDS", deadline_seconds)
-    # Keep this offline regression quick while preserving the ordering under
-    # test: the whole-fund deadline is shorter than the independent attempt cap.
+    monkeypatch.setattr(edgar, "ETF_SEC_FUND_DEADLINE_SECONDS", admission_allowance_seconds)
+    monkeypatch.setattr(bridge, "ETF_SEC_FUND_DEADLINE_SECONDS", admission_allowance_seconds)
+    # Admission gets a finite test-only allowance; the actual worker boundary
+    # below clamps the shared budget to two seconds without extending an
+    # earlier deadline. The attempt cap remains five seconds.
     monkeypatch.setattr(bridge, "ETF_SEC_ATTEMPT_TIMEOUT_SECONDS", worker_attempt_cap)
     budgets = []
     budget_type = bridge.ETFSECExecutionBudget
@@ -1288,6 +1290,19 @@ async def test_sec_fund_deadline_cancels_worker_transport_before_durable_settlem
         return budget
 
     monkeypatch.setattr(edgar, "ETFSECExecutionBudget", new_budget)
+    deadline_clamps = []
+    original_execute = bridge.LoopLocalHTTPXAttempt.execute
+
+    async def execute_with_in_flight_deadline(attempt):
+        budget = attempt.sec_budget
+        if budget is not None:
+            prior_deadline = budget.deadline_at
+            requested_deadline = time.monotonic() + in_flight_budget_seconds
+            budget.deadline_at = min(prior_deadline, requested_deadline)
+            deadline_clamps.append((prior_deadline, requested_deadline, budget.deadline_at))
+        return await original_execute(attempt)
+
+    monkeypatch.setattr(bridge.LoopLocalHTTPXAttempt, "execute", execute_with_in_flight_deadline)
     async with provider_db() as setup:
         async with setup.begin():
             case = await _seed_reviewed_fixture(
@@ -1368,6 +1383,11 @@ async def test_sec_fund_deadline_cancels_worker_transport_before_durable_settlem
 
     assert len(budgets) == 1
     budget = budgets[0]
+    assert len(deadline_clamps) == 1
+    prior_deadline, requested_deadline, effective_deadline = deadline_clamps[0]
+    assert effective_deadline == min(prior_deadline, requested_deadline)
+    assert effective_deadline <= prior_deadline
+    assert effective_deadline - time.monotonic() <= in_flight_budget_seconds
     assert len(transports) == 1
     transport = transports[0]
     assert transport.started.wait(1)
@@ -1375,6 +1395,7 @@ async def test_sec_fund_deadline_cancels_worker_transport_before_durable_settlem
     assert transport.calls == [request_url]
     assert transport.started_at is not None
     assert transport.cancelled_at is not None
+    assert transport.started_at < effective_deadline
     assert transport.cancelled_at <= budget.deadline_at + 0.5
     assert budget._terminal_failure == "SEC one-fund execution deadline exceeded"
     with pytest.raises(ETFHoldingsRouteHeldError, match="terminal response"):

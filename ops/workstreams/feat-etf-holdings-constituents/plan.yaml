@@ -797,7 +797,7 @@ status: in_progress
 progress:
   completed: []
   total: 7
-current_phase: FHSC3_deadline_fix_published_root_qualification_in_progress_2026_10_24
+current_phase: FHSC3_deterministic_inflight_deadline_test_repair_root_validation_pending_2026_10_24
 historical_execution_context: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -992,34 +992,27 @@ historical_execution_context: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  The FHSC3 deadline repair is published at exact source
-  `81470b2a1cce2e38e0410aad6aeb7e985b394965`. Exact push CI `40109273092` is
-  currently in progress (latest GitHub jobs check: Frontend Unit Tests passed;
-  Backend Tests in progress). Root's earlier `Root40491` attempt failed before
-  test collection in its adapter and is not test evidence. The corrected
-  isolated run `Root15711` passed the DB-backed cancellation/settlement test
-  1/1 in9.64s; cleanup_failed=0 and final container/volume/network inventory
-  differences were empty, as documented in the Root receipt. This is focused
-  regression proof, not the complete backend or full local profile.
-  The prior `e429b55807b559cc90e268dc177649a1d85ecb50` profile and CI do not
-  qualify this delta. Root then found
-  that the worker started its relative attempt timeout only after potentially
-  slow loop-local transport/client/request setup; an offline probe showed a
-  physical send beginning after the whole-fund deadline. The current repair
-  retains the early guard and recomputes remaining time immediately before
-  send, with a zero-send slow-setup regression. Focused bridge unit tests pass
-  39/39; deadline-triggered worker timeout keeps its `TimeoutError` type while
-  persisting an explicit non-secret deadline message. Ruff/format/diff checks
-  pass. The DB-backed cancellation and durable
-  settlement regression is present but awaits an assigned fixture slot. The
-  A focused worker-boundary test for the durable deadline reason passed 1/1.
-  The exact CI remains in progress; Root's new complete backend qualification
-  is pending a clean record publication. The full local profile is not yet
-  qualified for this delta. The first-human SEC
-  checkpoint remains pending Root review, transport remains held, and all
-  original gates remain open. Preserve `15 Tier-0 and 156 Tier-1`, AC1-AC14,
-  all holds/quarantines, retained data, truthful current/PIT lineage, live and
-  deployed-sample gates, and the 30-day observation.
+  Exact CI `40110202709` on source `d179d8772b8c9c37feacbfe2b3f6f51f24240365`
+  is terminal RED. Backend integration reported 536 passed, 1 failed, and 2
+  existing skips; its sole failure was
+  `test_sec_fund_deadline_cancels_worker_transport_before_durable_settlement`,
+  where no transport started because the 2-second whole-fund budget expired
+  during real Provider admission. Frontend passed; downstream jobs were
+  skipped. Root's separate unit-boundary run completed all 218 unit shards
+  (5430 passed, 1 declared skip) before deliberate SIGINT; the overall command
+  ended 124 and is not a full backend pass. Preserve both results as-is.
+  A test-only repair is now applied to the existing integration case: a finite
+  30-second test admission allowance is followed at actual admitted worker
+  entry by clamping the shared deadline to `min(existing deadline, now + 2s)`;
+  the 5-second worker attempt cap, real HTTPX cancellation, durable uncertain
+  settlement, and all prior caller-cancellation/shield cases remain. This
+  arrangement is not yet run. Root `Root15711`'s prior 1/1 DB pass covered the
+  earlier test setup, not this adjusted version. Narrative sentinel, Ruff,
+  format, AST syntax, and diff checks pass for the current bounded change.
+  Root must assign the focused DB and fresh complete integration/coverage gates
+  before this source is review-ready. Preserve the full AC1-AC14 roadmap,
+  `15 Tier-0 and 156 Tier-1`, all holds/quarantines, retained data, PIT/raw
+  lineage, live/deployed-sample gates, and the 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2102,14 +2095,13 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Complete the single coherent owner-record sync with Root's terminal
-  `Root15711` DB regression result and preserve exact CI `40109273092` as
-  in-progress at source `81470b2a1cce2e38e0410aad6aeb7e985b394965`. Then push
-  the clean record update and freeze source/records for Root's fresh full
-  backend qualification. Do not rerun the focused DB case or start a local
-  fixture/full profile. After Root releases the freeze, reconcile only a
-  concrete failure or the next Root-assigned validation phase.
-  Keep SEC transport, unknown account/cost/native-headroom facts, paid/trial/
-  unsafe routes and issuer quarantines held. Preserve AC1-AC14, retained data,
-  current/PIT/raw lineage, `15 Tier-0 and 156 Tier-1`, and the 30-day
-  observation. Do not claim checkpoint acceptance or full-roadmap completion.
+  Preserve terminal red CI `40110202709` and the partial unit-boundary result
+  from Root92627. Obtain Root's assigned focused DB validation for the adjusted
+  test, then the fresh complete integration/coverage gates; do not launch
+  fixtures or broad tests locally. Publish this single coherent source and
+  owner-record changeset once those records and lightweight checks are clean,
+  then freeze for Root qualification. Keep SEC transport, unknown
+  account/cost/native-headroom facts, paid/trial/unsafe routes and issuer
+  quarantines held. Preserve AC1-AC14, retained data, current/PIT/raw lineage,
+  `15 Tier-0 and 156 Tier-1`, and the 30-day observation. Do not claim
+  checkpoint acceptance or full-roadmap completion.

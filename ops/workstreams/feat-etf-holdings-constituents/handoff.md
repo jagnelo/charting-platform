@@ -15917,6 +15917,43 @@ symbol investigations, derived from the runtime audit
 sets and YAML symbol ledgers; the existing audit records and tests are not
 changed. This is a records-only correction, not a product or test repair.
 
+## FHSC3 in-flight deadline test repair — 2026-10-24
+
+Source freeze was released by Root for this narrow test-only repair. Exact CI
+`40110202709` on `d179d8772b8c9c37feacbfe2b3f6f51f24240365` is terminal RED:
+backend integration `536 passed / 1 failed / 2 existing skips`; the only
+failure was `test_sec_fund_deadline_cancels_worker_transport_before_durable_settlement`.
+The request correctly reported the deadline, but the observed transport count
+was zero because its two-second whole-fund budget expired during real Provider
+admission. Frontend passed and downstream jobs were skipped. Root92627's
+separate unit-boundary run completed all218 unit shards (`5430 passed / 1
+declared skip`) before deliberate SIGINT and ended124; this is not a complete
+backend pass. Preserve these exact outcomes.
+
+The sole product-tree edit is to the existing integration test. It gives
+admission a finite test-only 30-second allowance, retains the five-second
+worker attempt cap, then at actual admitted worker `execute` entry clamps the
+same test budget to `min(existing deadline, monotonic_now + 2 seconds)` before
+calling the original method. It asserts that the real HTTPX transport starts
+before the effective deadline and is cancelled within it. Existing held caller
+result, terminal/no-later-attempt checks and durable failed `TimeoutError`,
+zero-byte, uncertain-reservation assertions remain unchanged. Production
+210-second/20-second limits and separate caller-cancellation/shield cases are
+untouched. This test targets admitted worker-send cancellation and durable
+settlement; it does not independently prove cancellation initiated by the
+outer caller scope.
+
+Stack-free evidence after the edit: the exact narrative-count sentinel passed
+`1/1`; Ruff check passed; Ruff format check passed; Python AST parse passed;
+`git diff --check` passed. Root15711's earlier isolated DB result (`1/1`) was
+for the prior version of this test setup and does not validate the adjusted
+arrangement. No DB/Compose/browser/full suite, provider/issuer/SEC request,
+quota, or service action occurred. The adjusted integration case awaits Root's
+assigned focused DB slot and fresh complete integration/coverage qualification.
+Keep SEC transport held, all AC1–AC14, `15 Tier-0 and 156 Tier-1`, unresolved
+issuer quarantines, disabled routes, retained data, PIT/raw lineage, and the
+30-day observation gate. No checkpoint or roadmap acceptance is claimed.
+
 Root's fresh frontend qualification passed 1,353 tests across 140 files with
 85.69% statement, 73.68% branch, and 75.51% function coverage; canonical uPlot
 checks for 55 files and visual-policy checks for 26 assertions passed. The
