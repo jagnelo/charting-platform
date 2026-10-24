@@ -94,7 +94,7 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-24T15:53:38Z: Root review identified that loop-local transport/client/request setup could consume the remaining SEC one-fund time while the worker still started a stale relative attempt timeout afterward. The code now retains its early expiry guard and recomputes remaining time immediately before send; a delayed-setup MockTransport regression proves zero physical sends after expiry. Deadline-triggered timeout now preserves TimeoutError classification and carries a non-secret deadline reason for durable Provider logging; unrelated attempt timeouts remain unchanged. The final focused bridge unit run passes39/39, the narrative sentinel passes1/1, and Ruff/format/diff checks pass. The DB-backed durable-settlement regression has not been run locally because no fixture slot was assigned. Exact CI and full local full_stack_browser evidence for this changed source remain pending; the prior e429 profile/CI do not cover the delta. SEC remains held and the first-human checkpoint remains pending Root review. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, all holds/quarantines, retained data, PIT/raw lineage and 30-day observation.",
+  "current_blocker_latest": "2026-10-24T16:07:20Z: FHSC3 deadline fix is published at exact source81470b2a1cce2e38e0410aad6aeb7e985b394965. Exact CI40109273092 remains in progress as last observed. Root15711 passed the actual DB-backed cancellation/settlement regression 1/1 in9.64s; cleanup_failed=0 and final container/volume/network inventory differences were empty, per etf-81470-deadline-qualification-20261024.md. Earlier Root40491 failed before test collection in its adapter and is not test evidence. Focused bridge units passed39/39; the worker deadline-reason test passed1/1; narrative sentinel, Ruff/format/diff checks passed. Prior e429 full profile/CI does not qualify this delta. After one final owner-record sync/push, freeze source and records for Root's fresh full backend qualification; full_stack_browser, applicable live/deployed sample and checkpoint acceptance remain open. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, all holds/quarantines, retained data, PIT/raw lineage and 30-day observation.",
   "current_local_delta": "FHSC3 rechecks the one-fund deadline after transport/client/request setup and immediately before every physical HTTPX send. The timeout remains min(existing attempt cap, remaining fund time); expiry is latched terminal before any send. When the fund deadline triggers cancellation, the worker raises TimeoutError with a non-secret deadline message so shared Provider persistence is truthful; independent attempt timeouts keep their prior messages and type. Unit coverage proves real HTTPX transport cancellation and the slow-setup zero-send case. The existing DB-backed regression covers shared durable settlement but remains unrun here. No issuer/SEC HTTP, credentials, quota, DB, service, browser, or full-profile action occurred.",
   "dirty_paths": [],
   "docker": {
@@ -121,26 +121,26 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "e429b55807b559cc90e268dc177649a1d85ecb50",
-  "implementation_sha": "e429b55807b559cc90e268dc177649a1d85ecb50",
+  "head": "81470b2a1cce2e38e0410aad6aeb7e985b394965",
+  "implementation_sha": "81470b2a1cce2e38e0410aad6aeb7e985b394965",
   "integration_checkpoint": {
     "acceptance_authorization": "pending",
     "current_exact_ci": {
-      "backend": "passed",
-      "branch_declared": "passed",
-      "checked_at": "2026-10-24T15:54:36Z",
-      "conclusion": "success",
-      "e2e": "passed",
+      "backend": "in_progress",
+      "branch_declared": "not_started",
+      "checked_at": "2026-10-24T16:01:02Z",
+      "conclusion": null,
+      "e2e": "not_started",
       "exhaustive": "skipped by feature-branch policy",
       "frontend": "passed",
-      "run_id": 40090963944,
-      "source_sha": "e429b55807b559cc90e268dc177649a1d85ecb50",
-      "covers_current_source": false,
-      "status": "completed"
+      "run_id": 40109273092,
+      "source_sha": "81470b2a1cce2e38e0410aad6aeb7e985b394965",
+      "covers_current_source": true,
+      "status": "in_progress"
     },
-    "current_source_sha": "e429b55807b559cc90e268dc177649a1d85ecb50",
+    "current_source_sha": "81470b2a1cce2e38e0410aad6aeb7e985b394965",
     "full_original_roadmap": "AC1-AC14 remain unchanged in goal_objective and roadmap_acceptance_criteria; the checkpoint dispositions are in plan.yaml.",
-    "full_stack_browser": "The exact e429 source has a completed full local profile; this FHSC3 delta is outside that source evidence and must be requalified in the next Root-assigned full profile.",
+    "full_stack_browser": "The e429 source has a completed full local profile, but it predates this FHSC3 delta. Requalification of exact source81470b2a1cce2e38e0410aad6aeb7e985b394965 remains pending Root's assigned full profile.",
     "id": "etf-first-human-sec-source-1",
     "planning_authorization": "Human direction received 2026-10-23; the exact scope and full-roadmap dispositions are in plan.yaml.integration_checkpoint.",
     "root_deployment_acceptance": "pending; not represented as passed",
@@ -179,15 +179,15 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-24T15:54:36Z",
+  "last_checkpoint": "2026-10-24T16:07:20Z",
   "last_human_progress_update": "2026-10-20T23:04:23.190835+00:00",
-  "latest_checkpoint": "At2026-10-24T15:54:36Z: FHSC3 worker recomputes remaining fund time after transport/client/request setup immediately before physical send. Final focused bridge units passed39/39 in5.64s, narrative count sentinel1/1 in2.68s, Ruff check/format-check and diff-check passed. The deadline-triggered timeout preserves TimeoutError type and carries the non-secret deadline reason for durable Provider logging; generic attempt timeouts remain unchanged. Unit coverage confirms real HTTPX transport cancellation and zero sends after slow setup crosses expiry. The DB-backed durable-settlement regression remains unrun pending Root's fixture slot. The prior e429 full-profile and exact CI receipts apply to their tested source only and do not cover this delta. The automatic preflight's blocked-runtime receipt remains in validation.jsonl; no resources were created. SEC remains held, and exact CI/full local profile on the changed source plus first-human checkpoint acceptance remain open. Preserve all historical full-profile, partial, failure, staging-adoption, and offline-window evidence; AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, and the 30-day gate.",
+  "latest_checkpoint": "At2026-10-24T16:07:20Z: FHSC3 deadline correction is published cleanly at exact source81470b2a1cce2e38e0410aad6aeb7e985b394965. Exact CI40109273092 remains in progress as last observed. Root15711 passed the isolated DB-backed cancellation/settlement regression 1/1 in9.64s; cleanup_failed=0 and container/volume/network inventory differences were empty. Root40491 was a pre-collection adapter failure, not a test result. The focused worker deadline-reason test passed1/1; the bridge unit module passed39/39; sentinel, Ruff/format/diff checks passed. The e429 local profile/CI does not cover this delta; full_stack_browser remains pending. SEC is held, and the first-human checkpoint and full AC1-AC14 roadmap remain open. Preserve historical full-profile, partial, failure, staging-adoption and offline-window evidence; 15 Tier-0 and 156 Tier-1, quarantines, retained data and the 30-day gate.",
   "latest_published_ci": {
-    "covers_current_local_changes": false,
-    "recorded_at": "2026-10-24T15:51:10Z",
-    "result": "Exact CI40090963944 is terminal green on published source e429b55807b559cc90e268dc177649a1d85ecb50, before the current FHSC3 send-boundary delta. It does not cover the changed working tree; new exact-source CI remains pending publication.",
-    "run_id": 40090963944,
-    "sha": "e429b55807b559cc90e268dc177649a1d85ecb50"
+    "covers_current_local_changes": true,
+    "recorded_at": "2026-10-24T16:07:20Z",
+    "result": "Exact CI40109273092 was last observed in progress on published source81470b2a1cce2e38e0410aad6aeb7e985b394965 (last job check: Frontend Unit Tests passed; Backend Tests in progress). Root15711's isolated DB cancellation/settlement regression is terminal passed 1/1 in9.64s, cleanup_failed=0 and container/volume/network inventory differences empty. Root40491 failed before collection in its adapter and is not test evidence. No full qualification or source acceptance is claimed.",
+    "run_id": 40109273092,
+    "sha": "81470b2a1cce2e38e0410aad6aeb7e985b394965"
   },
   "latest_staging_baseline_adoption": {
     "conflicts": [],
@@ -265,8 +265,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Repair only the current owner-record narrative omitted from the published 57f898af source: restore the runtime/YAML-derived 15 Tier-0 and 156 Tier-1 phrase in plan.current_blocker, session.progress.current_blocker, and the latest handoff, without changing tests or product source. Run the exact narrative sentinel under a bounded lightweight scope, canonical workstream/record/plan-hash and diff checks, then commit/push the coherent records and report exact source/CI. Root will qualify the new frozen head and resolve its separately capped type-check; the local full backend profile was intentionally not started. Preserve exact CI40089689933 as red for one narrative unit failure (5426 passed, 1 failed, 1 declared skip), Root frontend1353/140 files and coverage, uPlot/visual-policy successes, type-check exit134 at the Node512MiB cap, and build-not-run. SEC remains held; full local integration/browser, applicable live/deployed sample, AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, PIT/raw lineage and 30-day observation remain open. No checkpoint acceptance is claimed.",
-  "plan_hash": "e9f5b7aa0fe7f887d64af9e253917bb11241ededc063f059b7e74bdb9041b990",
+  "next_action": "Complete and publish this single coherent owner-record sync with Root15711's terminal 1/1 DB result, retaining Root40491 as pre-collection failure and CI40109273092 as in progress as last observed. Then freeze all source and records for Root's fresh full backend qualification; make no further edits until Root releases the freeze. Full roadmap, holds, quarantines and observation remain open.",
+  "plan_hash": "32717bb4b3ba11036dbd853940aa810922a038ff3b3f344ae3989ce50d02f9e8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -446,10 +446,10 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The published source e429b55807b559cc90e268dc177649a1d85ecb50 had a complete local profile and exact CI40090963944 before the current FHSC3 delta. Root identified and the current changes correct a setup-delay bug that could start SEC transport after the one-fund deadline. The worker now rechecks immediately before send, refuses zero-send on expiry, and gives a deadline-triggered TimeoutError a durable non-secret message while preserving its type; other timeout messages remain unchanged. Focused bridge units pass39/39, the narrative sentinel passes1/1, and Ruff/format/diff checks pass. The DB-backed settlement regression and requalification of the changed source remain pending Root-assigned gates. SEC transport remains held; the first-human checkpoint and all AC1-AC14 work remain open. Preserve 15 Tier-0 and 156 Tier-1, all holds/quarantines, retained data, PIT/raw lineage and the30-day observation.",
-    "current_phase": "FHSC3_worker_send_boundary_deadline_correction_2026_10_24",
-    "next_action": "Run the exact 15 Tier-0 and 156 Tier-1 narrative sentinel, canonical workstream validator, JSON/JSONL parse, plan-hash parity and diff checks for the FHSC3 send-boundary correction. Commit and push the focused source plus evidence on this ETF branch, then report its exact tip for Root's qualification. Do not run the DB-backed settlement regression or full_stack_browser locally without Root's assigned fixture slot. Prior e429 profile/CI do not cover this delta. Preserve the runtime-preflight refusal receipt, all historical reds/skips/partials, held SEC operations, AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, PIT/raw lineage and the 30-day observation; do not claim checkpoint acceptance.",
-    "updated_at": "2026-10-24T15:54:36Z"
+    "current_blocker": "FHSC3 deadline fix is published at exact source81470b2a1cce2e38e0410aad6aeb7e985b394965. Exact CI40109273092 remains in progress as last observed. Root15711 passed the actual DB-backed cancellation/settlement regression 1/1 in9.64s; cleanup_failed=0 and final container/volume/network inventory differences were empty, per the Root receipt. Root40491 failed before collection in its adapter and is not test evidence. The source preserves the early expiry guard, recomputes remaining time after setup immediately before send, prevents post-expiry sends and persists a non-secret deadline-specific TimeoutError while preserving its type. Focused bridge units passed39/39; the worker deadline-reason test passed1/1; sentinel, Ruff/format/diff checks passed. Prior e429 profile/CI does not qualify this delta. After the one final record publication, freeze for Root's fresh full backend qualification; full_stack_browser, applicable live/deployed sample and checkpoint acceptance remain open. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, all holds/quarantines, retained data, PIT/raw lineage and 30-day observation.",
+    "current_phase": "FHSC3_deadline_fix_published_root_qualification_in_progress_2026_10_24",
+    "next_action": "Complete and publish this single coherent owner-record sync with Root15711's terminal 1/1 DB result, retaining Root40491 as pre-collection failure and CI40109273092 as in progress as last observed. Then freeze all source and records for Root's fresh full backend qualification; make no further edits until Root releases the freeze. Full roadmap, holds, quarantines and observation remain open.",
+    "updated_at": "2026-10-24T16:07:20Z"
   },
   "provider_release_2026_10_20": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",

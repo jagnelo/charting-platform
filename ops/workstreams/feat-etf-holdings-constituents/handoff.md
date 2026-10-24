@@ -1,6 +1,6 @@
 # feat/etf-holdings-constituents
 
-## FHSC3 send-boundary deadline correction — 2026-10-24T15:48Z
+## FHSC3 send-boundary deadline correction — 2026-10-24T16:01Z
 
 Root's review of the in-progress FHSC3 repair found that the worker computed
 the SEC attempt timeout before constructing the loop-local transport/client,
@@ -46,9 +46,23 @@ this runtime; its exact blocked-local-runtime receipt remains in
 stopped. The preflight also could not prepare the external private quota config
 under this sandbox; no permission workaround or service action was attempted.
 
-Next: finish the exact narrative-count sentinel and owner-workstream checks,
-commit/push this source-plus-receipt change on the ETF branch, and report the
-new exact tip. Root assigns any DB/full-profile gates; do not launch them here.
+This source and its coherent evidence are now published cleanly at
+`81470b2a1cce2e38e0410aad6aeb7e985b394965`, equal to the ETF origin branch.
+Exact push CI `40109273092` remains in progress; the latest GitHub jobs check
+reported Frontend Unit Tests passed and Backend Tests in progress. Root's
+earlier `Root40491` attempt failed before test collection in its adapter and is
+not test evidence. The corrected isolated run `Root15711` then passed the new
+DB-backed cancellation/settlement regression 1/1 in 9.64s; its receipt records
+cleanup_failed=0 and empty container/volume/network inventory differences:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-81470-deadline-qualification-20261024.md`.
+This proves that one shared Provider admission, real MockTransport
+cancellation, durable failed request log, and uncertain reservation settlement
+path only. The narrow worker-boundary deadline-message test also passed 1/1
+locally. Do not rerun or start another fixture. Freeze source and records after
+this final owner-record publication for Root's fresh complete backend
+qualification; the complete local `full_stack_browser`, applicable
+live/deployed sample, and checkpoint acceptance remain open. SEC transport
+remains held.
 
 ## Proposed first-human SEC source checkpoint — 2026-10-23T19:00Z
 
