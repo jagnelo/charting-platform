@@ -31574,3 +31574,58 @@ state was changed; no tests or network calls were made.
   Checkpoint `provider-first-human-coverage-retained-universe-2` remains
   `in_progress`, acceptance/closure pending, and all existing holds and the
   consumed 119-request boundary remain unchanged.
+
+## 2026-10-24 — Root acceptance and closure of Provider checkpoint P2
+
+- The central coordinator's acceptance receipt is
+  `/home/m920q/charting-platform/.ai/staging-attempts/provider-b68-checkpoint-source-acceptance-20261024.md`.
+  Under the standing human-authorized four-feature integration authority,
+  Root explicitly directed: “Close ONLY the accepted
+  provider-first-human-coverage-retained-universe-2 checkpoint through your
+  existing four owned workstream records.” This closes only that bounded
+  checkpoint; it does not complete the full Provider roadmap or authorize this
+  feature owner to integrate, deploy, activate any route, or replay the
+  consumed 119-request validation allowance. Root alone owns guarded staging
+  integration.
+- Accepted implementation source is exactly
+  `b68ac81d8591064b172b92e73e701c9c3eed8b68`, tree
+  `c8b02b8b64c118153999c9d9a58e8ef79010c565`. Exact Actions run `40070216994`
+  is terminal green on b68: Backend, Frontend Unit, Branch-declared and E2E
+  succeeded; Exhaustive was skipped under normal feature-branch policy.
+- Root's exact isolated runtime/profile receipt `Root95357` is terminal exit 0:
+  app/API/owner-denial/readback/default-unavailable checks and worker
+  DB/Redis readiness/restart/PID-change/stop passed; dynamically selected
+  functional profile passed 195 with 2 existing declared skips and strict
+  visuals passed 104/104 at unchanged references/masks/0.005 tolerance. Zero
+  retries or reserve breaches; owned cleanup inventory differences were zero,
+  private services/Study5/data/holds were restored, and the recovery timer is
+  absent. Receipt records the exact commands, logs and hashes.
+- The full fresh backend qualification passed 5,343 unit tests with 1 skip and
+  530 integration tests with 4 skips at 84% combined coverage/XML pass. Full
+  Ruff, workflow and Compose contract checks passed. Migration evidence is
+  qualified as recorded: normal fresh/upgrade migration head and preservation
+  audit passed; no separate migration fixture is claimed where the receipt
+  says the helper skipped unchanged migrations. The Research selected-default
+  regression and the newly defined PostgreSQL cross-series regression are
+  included in this full backend run. Research single/batch reads use the
+  selected default-series predicate before per-instrument ranking/history
+  limits, remain set-based, and preserve Strategy date/calendar inference,
+  immutable snapshot copy, payload digest, and persisted GET readback.
+- Frontend unit/coverage/type/build results and the 120-file prepared frontend
+  artifact are reused only under the receipt's exact input and artifact
+  equivalence to the qualified a414/1d32 evidence; this is not represented as a
+  new compile. The research-runner image and standalone sandbox/resource probes
+  are also prior exact-input/config qualified reuse, not new execution. Four
+  b68-pinned local images and Root95357 runtime evidence remain exactly as
+  source-qualified in the receipt. Historical red/partial receipts are
+  preserved and never relabeled.
+- All quota/operation holds, unavailable and unknown dispositions, the full
+  24-criterion Provider roadmap and the consumed 119-request boundary remain
+  unchanged. No provider/issuer/SEC request, reservation, spend, quota reset,
+  or current-live/full-universe claim is added by this closure.
+- Closure publication is records-only. The implementation evidence above is
+  bound to b68; the final four-record commit must receive its own terminal-green
+  exact-head branch CI before Root's guarded staging integration. The required
+  capture remains `integration_capture: exact branch HEAD` to avoid a
+  self-referential hash. No source, helper, tests, staging, sibling or runtime
+  state was changed for this closure.
