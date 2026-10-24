@@ -18968,3 +18968,209 @@ remains `in_progress`, not accepted. Preserve full backend/PG/migration/worker/f
 deployed owner-positive/negative, exact new-source CI, canonical SPY/RSP venue review, and all
 18-roadmap criteria as open where applicable. No provider/target call, live/paid/trial operation,
 native execution, or retained-resource action was performed.
+
+### Source-83 backend continuation and next migration gate (2026-10-24)
+
+Root verified completion of an explicitly resumed, same-source backend continuation at
+`83e93958921b479ccd122494571d0b9dbb1acc5d` (Root handle `64648`, invocation
+`62563a07e03940d0bb80bc0defec6660`). It reused the separately preserved clean unit-only
+checkpoint and did not rerun or synthesize unit coverage: all 213 unit shards remain 5,320 passed / 1
+existing skip; the prior full-run log SHA is
+`ca933ba5f6cfe019653d764c2b8491850250eb92953abd6aad69c11de777f0c3` and clean unit coverage DB
+SHA is `84eb87e1c48c6759d8dd7040d2a9d77369a037b07187feb33a7f3de8706dbcde` (323,584 bytes,
+integrity-checked). The source-specific collection was fresh and unchanged at 5,854 total cases:
+3,438 unit, 1,883 v2 package, and 533 integration. All 533 integration cases ran: 529 passed, 4
+existing skips, 57 warnings, 863.13s within the existing 900s integration bound. Combined coverage
+report and XML passed: 153,315 statements, 23,959 missed, 84% overall (above 75%).
+
+Exact integration log `/tmp/strategy-backend-83e93959-pg512disk.M3yBHpoM/backend-integration-continuation.log`
+SHA-256 `5fe89fbe4e4071fbe16825a57b7f5bd51010c0a4cf095382f781070c6ef66ba8`; private combined
+coverage DB SHA-256 `1570456683fd26db8c12b11cb01075fdc01be73ef72fba5bf6929a80aa132f3a`; XML
+`coverage-combined.xml` SHA-256
+`5a7cad6067a902cd03e602d96a96765853180e9eed1663f2f1aa40666f539f00`. Root verified frozen source,
+lock, test/helper hashes, all collection counts, clean checkpoint provenance and coverage outputs.
+The disk-backed isolated PostgreSQL volume remained under its guard; reserve and volume guards were
+clear, cleanup reported 0 failures, container/volume/network identity-state diffs were empty, and
+the exact owned PostgreSQL/Redis/volume IDs, scope and timer were absent after cleanup. Root
+restored the six private app services and verified health/data/auth state, including Study 5's 479
+bars and outputs; no provider request or live operation was made. The same harness allocation kept
+512 MiB RAM and 1 GiB swap; Root increased its CPU allocation from 1 to 2 after host-capacity review.
+Test inventory, timeouts, assertions, skip policy and coverage threshold were unchanged.
+
+Qualification limit: these are explicit resumed same-source phases, not a literal successful
+`make test-backend-coverage` / `scripts/backend_coverage.py` main invocation. The earlier complete
+backend runs remain red and preserved, including the PG384 OOM/container-loss attempt and the
+PG512 tmpfs `No space left on device` attempt. Do not relabel either attempt or this continuation as
+a single-command green canonical run. The Makefile still names `test-backend-coverage` as the
+authoritative combined gate and invokes the canonical collector with `--shard-size 50`.
+
+Root subsequently ran the canonical migration-compatibility gate offline from base
+`a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e` and it exited 0 with the helper's no-change `SKIP`.
+The source comparison found zero changed paths across models, Alembic, `pyproject.toml`,
+`uv.lock`, and the migration-compatibility helper. This is an input-equivalence disposition only:
+no fresh-schema upgrade, previous-release upgrade, previous-app health smoke, or PostgreSQL
+fixture ran on source 83. It resolves the migration component for this unchanged input set without
+claiming those runtime checks passed on 83.
+
+Prepared app artifacts remain under `/tmp/strategy-x-app-runner-83e93959-20261024.sh` and
+`/tmp/strategy-full-83e93959-20261024/`, with packaging Dockerfile
+`/tmp/strategy-x-frontend-package-83e93959-20261024.Dockerfile`. They are preparation only. The
+frontend dist is guarded against the independently verified manifest
+`5eeecdc22a425fdd4addd91392d335263c51e480b79192f743285462aacbe793`; the build must also check the
+real `a6b9..83` identity for the research-runner input paths before reusing the accepted immutable
+runner image `sha256:bf78988e9708cffdd760203fbecf381ccd46ad5f2efc0d9b85185d64fc5234a0`. The packaging
+image must use the exact cached Nginx base digest
+`sha256:060849a174666c53439dc7cecbf8f67e225c7cbfb1a44ca97915d9a172a81e6d`, subject to Root's
+current slot/cache verification. The browser image remains pinned to
+`sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`.
+
+The remaining ordered local profile is a Root-assigned, capacity-qualified build/package phase,
+then isolated Compose up and real API/readiness smoke, default worker DB/Redis restart proof, full
+functional browser and all 104 strict visual cases with existing zero-retry/oracle/tolerance policy,
+followed by exact-owned cleanup and inventory equality. No phase is authorized by this preparation.
+Current builder/capacity observations are Root-owned and must be refreshed at admission; do not
+start a builder, fixture, browser, migration or probe independently. Checkpoint remains
+`in_progress`; deployed owner-positive/negative acceptance, canonical SPY/RSP venue review, full
+local application profile and every remaining 18-roadmap criterion stay open. Preserve all old red
+backend receipts and the explicit split-phase backend qualification above.
+
+Read-only review of `docker-compose.yml` and `docker-compose.e2e.yml` found one sequencing correction
+for the private runtime proposal: the E2E override makes both `backend` and `worker` depend on the
+healthy `provider-egress-deny` service. The proposal now starts PostgreSQL/Redis, then the deny proxy,
+then backend/worker, and frontend/relay last. This is a proposal correction only; no Compose render,
+service startup, or runtime phase was run by this owner. The revised plan is
+`/tmp/strategy-full-83e93959-runtime-admission-plan.md` (SHA-256 recorded in the latest validation
+row); Root review and a fresh capacity-qualified slot are still required.
+
+### Source-83 image build component and research-probe wrapper review (2026-10-24)
+
+Root completed four serial image builds from frozen source
+`83e93958921b479ccd122494571d0b9dbb1acc5d`; every `.exit` file contains `0`, each log records
+image export, and `/tmp/strategy-full-83e93959-20261024/build.complete` contains that exact SHA.
+Root reports joined invocation `75906` exited 0, the assigned builder was restored to its
+stopped/original limits, and the private application was restored with health and saved Study 5
+readback verified. No new Compose fixture, app startup, probe, worker restart, or browser test ran
+as part of these builds.
+
+The build reuses the previously qualified frontend dist, not a fresh frontend build: source and
+packaged manifests both report 120 files / 9,829,807 bytes / digest
+`5eeecdc22a425fdd4addd91392d335263c51e480b79192f743285462aacbe793`. The source-pinned provenance
+record identifies packaging-only Nginx with the pinned base digest and accepted immutable Research
+runner image reuse; the `a6b9..83` diff for its three declared input paths is empty. This records
+component-input equivalence, not a new frontend compilation or Research image build. Build-log
+SHA-256 values: backend `fa9ee6dfae79d94f2376c153d38dcdd980dbd03e2755daf733c02ef34c4cf5f9`, worker
+`00f8ae6d9778ec44e4eb94a759629a2b114e0e89c433e3a9059bd3a1aa6df985`, V2 worker
+`883753fedc1e7e0c34734734c7905eb2c32ff30a8ee431c17e5d2cfde7c67165`, frontend packaging
+`9103a2c37cc3b4188d36cf9082b3078b121c772e66be4e5eacd9ef1f6368a61e`.
+
+The initial review identified cleanup hazards in the private probe controller. Root fixed those in
+the current wrapper (`task_paused` guards restore; cleanup preserves the original status and
+propagates down/snapshot/diff/recovery failures) and then ran the unchanged probes: Root handle
+`11889`, scope invocation `4cbda3ef7b2644fca2a44f00fffc4636`, terminal exit 0. The eight sandbox
+denials passed. Resource checks produced the expected memory-cgroup exit 137 and tmpfs ENOSPC, and
+contained three concurrent memory processes with restart count 0. Caller `oom_kill=0` and `pids
+max=0`; all three global inventory diffs were empty and the exact project was removed. Root
+restored the private app and verified Study 5/data/holds/request count 4; the restore timer was
+removed. Probe log hashes: sandbox `7de0f4f689b6a668b12ff7e420260fd6d94d67d717cd1460c2a858696aa6cef1`,
+resources `cdd7a58d6351da9c9bbbd55f17bd7cb0dba12c278ca865523ab9d6208a506554`; current wrapper
+SHA-256 `e3469c3ab9561854e135c700228f9f2ec6ef4a69dc59bfec9cee08741c3b7689`. The unchanged probe
+scripts were not edited. No active cleanup defect was observed after the correction.
+
+Next, the filesystem-only resource proposal is `/tmp/strategy-full-83e93959-runtime-admission-plan.md`
+(Root review required; no phase launched). It retains all eight default services and test/browser
+assertions, timeouts and retries. The full runtime/browser profile remains open pending Root's
+capacity-qualified slot and review of bounded container swap plus live reserve admission. Preserve
+prior red backend attempts, split-phase backend qualification, migration no-change SKIP limitation,
+all disabled live/native/forward/broker scopes, and the full roadmap. No commit/publication was made
+for this receipt.
+
+Read-only review of `docker-compose.yml` and `docker-compose.e2e.yml` found one ordering correction
+for the proposal: the E2E override makes both `backend` and `worker` depend on healthy
+`provider-egress-deny`. The private plan now places that service after PostgreSQL/Redis but before
+backend/worker. No Compose render, service startup or runtime phase occurred in that review.
+
+### Root-owned measured full-profile attempt (2026-10-24)
+
+Root has started the exact-source measured profile; this owner did not launch it. Config phase is
+active under invocation `4af898ad9b2a445a9b82bced16c3611d`, Root handle `49913`, using
+`/tmp/strategy-full-measured-83e93959-once.sh` (SHA-256
+`0fa6ff20e59fb24529e57cc39ac3dd6ff901549ff9774559a53797d63a6b8cdd`) and
+`/tmp/strategy-x-app-runner-83e93959-measured-20261024.sh` (SHA-256
+`6754a76da16748fb58504fd3337fb228ee7ff499cbefda018201b1ccd09b7bc3`). Root reports a fresh idle
+backup and a 105-minute exact-private recovery timer. Its measured policy keeps the eight default
+service limits and all profile assertions/timeouts/retries unchanged; startup admission is
+1,664 MiB available plus 6 GiB free swap, with a 2-second 512 MiB host-reserve guardian. The
+caller is limited to 256 MiB RAM + 512 MiB swap, 1 CPU and 128 tasks. Browser allocation is
+512 MiB RAM + 2 GiB total memory/swap, 2 CPUs and 256 PIDs, admitted at fresh 1 GiB headroom.
+API smoke, worker DB/Redis empty-queue restart, functional and all 104 strict visuals remain
+sequential on the same fixture; no test assertion, timeout, retry, reference or tolerance is relaxed.
+The earlier private swap-override proposal is superseded by this measured run and must not be used
+to start a competing fixture. A read-only pass over the measured controller and app runner found no
+concrete ownership, cleanup or resource-control defect. This run has not yet completed; all local
+profile acceptance and downstream checkpoint gates remain open.
+
+Root corrected the initial measured-profile admission without changing service limits or test policy.
+Invocation `4af898ad9b2a445a9b82bced16c3611d` exited 2 because its 1,664 MiB threshold exceeded
+the observed 1,645,144 KiB; no fixture or tests were created, and this is not a product failure.
+Root's current run is handle `2628`, UP invocation `42f31a564d3f43c5837451a46b266fc8`, using the
+same frozen source and current wrappers recorded in the updated `/tmp` plan. Root reports startup
+admission 1,742,344 KiB, live headroom 1,211,232 KiB above the 512 MiB reserve, and the adjusted
+1,536 MiB startup floor (512 reserve + 256 caller + 768 startup buffer). The 2-second 512 MiB
+reserve guardian, six-GiB free-swap requirement, all eight default-service caps, same-fixture order,
+and unchanged tests/timeouts/retries remain in force. Targeted read-only review found no concrete
+ownership, cleanup, or resource-control defect in the current wrapper. This run is active, not yet a
+full-profile result; no Strategy-owned resource command was run.
+
+### FH5 ordering reconciliation and current isolated-profile evidence (2026-10-24)
+
+The original FH5 wording is retained verbatim as `integration_checkpoint.fh5_original_text` in
+`plan.yaml`. Its active wording now distinguishes two gates without changing the lifecycle or
+creating a status: source acceptance for integration requires the complete unchanged local
+`full_integration`/`full_stack_browser` profile, owner-positive/negative UI/API contract
+qualification, exact-source branch CI, immutable source capture and ordinary closure. Root must
+explicitly accept that exact tested source before guarded staging integration. Only after
+synchronized staging and independent master gates may separately authorized deployment occur;
+genuine-data owner-positive and owner-negative UI/API proof on the deployed target remains mandatory
+before final target acceptance or coordinator-goal completion. No proof is waived or pre-passed.
+At this earlier receipt snapshot, `human_closure_authorization` and `closure_summary` were pending
+and checkpoint status was `in_progress`; FH1-FH4 and all 18 roadmap criteria were preserved. The
+subsequent delegated source acceptance is recorded below.
+
+Root reports the active source-83 isolated fixture passed config/up, API smoke, and the empty-queue
+worker DB/Redis before/after-restart checks. This is fixture-qualified runtime evidence, not
+deployed-target proof. Functional browser progress is 71/197 with no reported failure; all 104 strict
+visual cases remain pending. Root owns the same run and its exact cleanup. Do not relaunch or alter
+source/helpers. The first 1,664 MiB admission refusal remains recorded as pre-fixture/non-product;
+the adjusted run uses the reviewed 1,536 MiB floor and 512 MiB reserve guardian.
+
+### Source checkpoint acceptance and closure (2026-10-24)
+
+Per `/home/m920q/charting-platform/.ai/staging-attempts/strategy-83e93959-checkpoint-source-acceptance-20261024.md`,
+Root accepted only tested source `83e93958921b479ccd122494571d0b9dbb1acc5d` for source integration
+under the existing human-delegated checkpoint authority. The four-record closure records that
+decision and sets this checkpoint to `ready_for_integration`; it does not accept target deployment
+or complete the full roadmap. `plan.yaml` retains the original FH5 wording and all original 18
+criterion IDs/texts/dispositions, with FH1-FH5 complete for this bounded checkpoint only.
+
+Exact-source CI `40041392901` is terminal green on 83 (Backend, Frontend Unit, Branch-declared and
+E2E succeeded; feature-policy Exhaustive gate skipped). Local backend evidence remains an explicit
+same-source split-phase qualification: 5,320 unit passes/1 existing skip plus a fresh 529/533
+integration result with 4 existing skips and combined 84% coverage/XML. This is not relabeled as one
+successful canonical monolithic collector invocation; all prior OOM/tmpfs/wrapper reds remain.
+Migration validation was no-change input-equivalence SKIP, not a fresh/previous-release upgrade.
+Frontend coverage/build and immutable Research image reuse, four source-pinned image builds, and
+Research sandbox/resource probes are separately qualified in the validation history. On the same
+isolated fixture, app/API and empty-queue worker DB/Redis restart checks passed, functional passed
+195 with 2 declared live skips, strict visual passed 104/104, all with zero failures/retries and
+unchanged assertions/references/masks/tolerances. Exact owned cleanup/global inventory diffs were
+zero; private app, Study 5, data, holds and request count were verified preserved.
+
+The functional suite did not explicitly exercise the new V2 inspector navigation. Component/route
+hydration tests and backend owner-positive/negative resolver/API/real-PostgreSQL contracts qualify
+source behavior only. Genuine-data Results-to-inspector UI/API positive and negative proof on the
+deployed target remains mandatory after staging/master gates and separately authorized deployment.
+SPY/RSP date-only acceptance remains pending authoritative canonical InstrumentListing venue review;
+exact-bound run4 and deferred date-only run3 remain distinct. Native execution, forward, broker,
+capital, paid/trial, unknown/unsafe operations and all unfinished original roadmap criteria remain
+open or disabled. No deployment or target acceptance is claimed. Closure uses the literal
+`integration_capture: exact branch HEAD` to avoid a self-referential hash.
