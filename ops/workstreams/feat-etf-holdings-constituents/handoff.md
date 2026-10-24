@@ -15838,3 +15838,35 @@ run during this adoption. Root will assign the next bounded local validation
 slot after publication. Preserve the historical CI reds, skips and partials,
 the full roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
 quarantines, PIT/raw lineage, all holds and the 30-day observation gate.
+
+## Narrative-count correction on frozen source — 2026-10-24T11:38:19Z
+
+The published ETF source is frozen at `57f898af1e020c007b226e20d9b61bd57b02c896`,
+clean and origin-synchronized. Exact Actions run `40089689933` is terminal RED
+in the backend unit job: `5,426 passed, 1 failed, 1 declared skip`. The only
+failure is `test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`;
+the exact source/test log and coordinator receipt are
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-57-ci-narrative-failure-20261024.md`.
+The current `plan.current_blocker` and `session.progress.current_blocker`
+summaries omitted the invariant `15 Tier-0 and 156 Tier-1`. Both now contain 15 Tier-0 and 156 Tier-1
+symbol investigations, derived from the runtime audit
+sets and YAML symbol ledgers; the existing audit records and tests are not
+changed. This is a records-only correction, not a product or test repair.
+
+Root's fresh frontend qualification passed 1,353 tests across 140 files with
+85.69% statement, 73.68% branch, and 75.51% function coverage; canonical uPlot
+checks for 55 files and visual-policy checks for 26 assertions passed. The
+frontend type-check exited 134 at Root's Node 512 MiB heap cap; this is a
+resource-limited result, not a diagnosed source error. Build was not run. Root
+did not start the local full backend profile. Preserve those outcomes as
+reported; do not rerun frontend or broad backend work as part of this repair.
+
+Next, run only the exact narrative sentinel in a bounded lightweight scope,
+canonical workstream/record/plan-hash/diff checks, and publish the coherent
+owner-record correction. Root will qualify the resulting frozen source and
+address the separately capped type-check. Full local integration/browser,
+applicable live SEC and deployed one-fund sample gates remain open; SEC
+transport, unknown account/cost/native-counter facts, paid/trial/unsafe routes,
+and unresolved issuer quarantines remain held. Preserve full AC1-AC14, all
+historical reds/skips/partials, retained data, historical/PIT/raw lineage and
+the 30-day observation; no checkpoint or full-feature acceptance is claimed.

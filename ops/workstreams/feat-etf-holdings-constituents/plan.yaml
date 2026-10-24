@@ -992,31 +992,22 @@ historical_execution_context: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  Source checkpoint `etf-first-human-sec-source-1` is prepared but not accepted.
-  Published branch `d42e5ff07490af8f0fb894e7ab924e4f62cc4379` is origin-
-  synchronized. Exact CI `40006029802` is terminal GREEN on d42: Frontend Unit,
-  Backend, Branch-declared, and E2E passed; Exhaustive was skipped by
-  feature-branch policy. This CI does not include the current uncommitted UI
-  lineage change. The focused UI suite6/6 and type-check passed on that local
-  change; do not rerun unchanged UI tests.
-  The focused ETF holdings view unit file passes6/6 and frontend type-check
-  exits0. The authorized one-shot SEC DB suite remains unrun: fresh host
-  MemAvailable was1510824KiB at19:05:20Z, below the1536MiB floor; no fixture
-  was created. Root's later19:21 guarded private-backend maintenance attempt
-  also failed unchanged resource guards at1223MiB available and PSI full
-  avg10=4.33/avg60=3.64; `WINDOWOPEN` was never sent. Root is restoring that
-  backend under its independent timer. Root now reports restoration completed:
-  all six target services are healthy, and schema/seeds/routing/request log and
-  real SPY/RSP data/run artifacts are unchanged. The restore timer completed
-  after independent health proof. WINDOWOPEN was never sent; the corrected
-  512MiB DB slot remains unused. This was a refused resource window, not a test
-  failure; our branch created or changed no service or fixture. The
-  earlier384MiB run remains OOM partial. No actual IWM acquisition/UI sample or
-  SEC current/native support is proven. SEC remains held; Root owns later review
-  of a qualifying source and exact deployment invocation. Full local
-  `full_stack_browser`, DB/runtime proof, applicable live evidence, Root review
-  and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and 156 Tier-1,
-  quarantines, disabled routes, retained data and the30-day gate.
+  Current frozen source is `57f898af1e020c007b226e20d9b61bd57b02c896`, clean
+  and synchronized with origin. Exact CI `40089689933` is terminal RED: its
+  backend unit job had 5,426 passed, 1 failed, and 1 declared skip. The sole
+  failure is the unchanged narrative-count sentinel because this field and the
+  corresponding session summary omitted the runtime/YAML-derived phrase
+  `15 Tier-0 and 156 Tier-1`; restore the accurate counts in the current
+  summaries without changing tests or product code. Root's fresh frontend
+  qualification passed 1,353 tests across 140 files (85.69% statements,
+  73.68% branches, 75.51% functions); canonical uPlot and visual-policy checks
+  passed. Type-check exited 134 at Root's Node 512 MiB heap cap, so that is not
+  a diagnosed source failure; frontend build was not run. Root did not start
+  the local full backend profile. The failed CI and resource-limited frontend
+  result do not accept the SEC checkpoint or close the full roadmap. Keep
+  `15 Tier-0 and 156 Tier-1`, AC1-AC14, all holds/quarantines, retained data,
+  truthful current/PIT lineage, live/deployed sample gates, full local profile,
+  and the 30-day observation explicit and open.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2099,17 +2090,14 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Complete the own-record reconciliation of the exact cdc33442 release in this
-  assigned ETF worktree, validate the four owner records and source/merge
-  provenance, then push the combined clean feature source once. Verify the
-  final local/origin SHA and preserve the automatically triggered exact-source
-  CI result. Do not run local tests, builds, browser, Docker, fixtures, services,
-  provider/issuer/SEC HTTP, or quota operations in this adoption window; Root
-  assigns the next bounded validation slot after publication. Keep the exact
-  2129 12/12 DB result tied to source45c6, 2119 and 384MiB OOM evidence partial,
-  and prior CIs source-qualified. SEC transport, all live/account/cost/headroom
-  uncertainties, real IWM acquisition and deployed positive-sample proof remain
-  held/open. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and
-  Militia/GOOG quarantines, retained data, historical/PIT lineage, disabled
-  routes and the 30-day observation. This adoption does not accept or close the
-  current SEC checkpoint or full ETF roadmap.
+  Restore the runtime/YAML-derived `15 Tier-0 and 156 Tier-1` invariant in the
+  current plan/session summaries and latest handoff, preserving the exact
+  57f898af source, released-staging adoption, full AC1-AC14 roadmap and all
+  historical evidence. Validate the unchanged count sentinel, workstream
+  records, plan hash and diff under a bounded lightweight scope; commit and push
+  only the coherent branch-owned record correction. Root will qualify the new
+  frozen head. Keep full local integration/browser, applicable live SEC and
+  deployed positive-sample gates open; SEC transport, unknown account/cost/
+  native-headroom facts, paid/trial/unsafe routes and issuer quarantines remain
+  held. Preserve retained data, current/PIT/raw lineage and the 30-day
+  observation. Do not change product/test source or claim checkpoint acceptance.
