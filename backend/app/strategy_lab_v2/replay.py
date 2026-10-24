@@ -18,7 +18,7 @@ from enum import StrEnum
 from typing import Any
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
-from app.strategy_lab_v2.contracts import DataSnapshot
+from app.strategy_lab_v2.contracts import DataSnapshot, ResolvedStudyArtifactOutput
 from app.strategy_lab_v2.event_tape import FrozenEventTape, bind_event_tape
 from app.strategy_lab_v2.sdk import (
     MarketEvent,
@@ -134,6 +134,7 @@ def iter_event_tape_contexts(
     random_seed: int,
     parameters: Mapping[str, Any],
     positions_by_batch: Mapping[int, Mapping[str, PositionSnapshot]] | None = None,
+    study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None,
     max_events_per_batch: int = 100_000,
 ) -> Iterator[StrategyContext]:
     """Yield SDK contexts from canonical events with bounded rolling history.
@@ -213,6 +214,7 @@ def iter_event_tape_contexts(
             parameters=parameters,
             market_events=market_events,
             positions=positions,
+            study_artifacts=study_artifacts,
         )
 
     for event in events:

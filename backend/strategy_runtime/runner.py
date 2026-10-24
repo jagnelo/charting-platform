@@ -227,6 +227,16 @@ def _context_matches_manifest(
     allowed_instruments = {item.requirement.instrument_id for item in declared.values()}
     if not set(context.positions).issubset(allowed_instruments):
         return False
+    selected_study = manifest.strategy.selected_study_artifact
+    if selected_study is None:
+        if context.study_artifacts:
+            return False
+    elif (
+        context.study_artifacts is None
+        or set(context.study_artifacts) != {selected_study.artifact_name}
+        or context.study_artifacts[selected_study.artifact_name].reference != selected_study
+    ):
+        return False
     for dependency_id, events in context.market_events.items():
         dependency = declared[dependency_id]
         if not isinstance(events, Sequence) or isinstance(events, str | bytes):

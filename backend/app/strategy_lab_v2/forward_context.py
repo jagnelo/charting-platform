@@ -16,6 +16,7 @@ from types import MappingProxyType
 from typing import Any
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json, require_sha256_digest
+from app.strategy_lab_v2.contracts import ResolvedStudyArtifactOutput
 from app.strategy_lab_v2.nautilus_event_adapter import NautilusForwardDeliveryBinding
 from app.strategy_lab_v2.nautilus_forward_input import (
     NautilusForwardDeliveryInput,
@@ -215,6 +216,7 @@ class ForwardStrategyContextWindow:
         *,
         parameters: Mapping[str, Any],
         random_seed: int,
+        study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None,
     ) -> None:
         if not isinstance(instance_id, str) or not instance_id.strip():
             raise ValueError("instance_id must not be empty")
@@ -234,6 +236,7 @@ class ForwardStrategyContextWindow:
         self._parameters = frozen_parameters
         self._parameters_digest = content_digest(self._parameters)
         self._random_seed = random_seed
+        self._study_artifacts = normalize_study_artifact_outputs(manifest, study_artifacts)
         self._dependencies = {item.dependency_id: item for item in manifest.data_dependencies}
         self._events: dict[str, deque[MarketEvent]] = {
             dependency_id: deque(maxlen=dependency.lookback_periods + 1)
@@ -265,19 +268,32 @@ class ForwardStrategyContextWindow:
     def window_fingerprint(self) -> str:
         """Fingerprint only the retained context window, not strategy state."""
 
-        return content_digest(
-            {
-                "instance_id": self._instance_id,
-                "manifest_fingerprint": self._manifest.fingerprint,
-                "parameters_digest": self._parameters_digest,
-                "random_seed": self._random_seed,
-                "last_event_key": self._last_event_key,
-                "events": {
-                    dependency_id: tuple(events)
-                    for dependency_id, events in sorted(self._events.items())
-                },
-            }
+        return self._fingerprint_for_state(
+            last_event_key=self._last_event_key,
+            events=self._events,
         )
+
+    def _fingerprint_for_state(
+        self,
+        *,
+        last_event_key: tuple[datetime, int] | None,
+        events: Mapping[str, Iterable[MarketEvent]],
+    ) -> str:
+        state: dict[str, Any] = {
+            "instance_id": self._instance_id,
+            "manifest_fingerprint": self._manifest.fingerprint,
+            "parameters_digest": self._parameters_digest,
+            "random_seed": self._random_seed,
+            "last_event_key": last_event_key,
+            "events": {
+                dependency_id: tuple(dependency_events)
+                for dependency_id, dependency_events in sorted(events.items())
+            },
+        }
+        # Keep historical no-Study window fingerprints byte-for-byte stable.
+        if self._study_artifacts is not None:
+            state["study_artifacts"] = self._study_artifacts
+        return content_digest(state)
 
     def prepare(
         self,
@@ -360,6 +376,7 @@ class ForwardStrategyContextWindow:
             parameters=self._parameters,
             market_events=market_events,
             positions=positions,
+            study_artifacts=self._study_artifacts,
         )
         # Guard against accidental mutation through an unconventional input
         # mapping; callers and every later context share the original params.
@@ -369,18 +386,9 @@ class ForwardStrategyContextWindow:
             instance_id=self._instance_id,
             payload_fingerprint=payload_fingerprint,
             base_window_fingerprint=self.window_fingerprint,
-            next_window_fingerprint=content_digest(
-                {
-                    "instance_id": self._instance_id,
-                    "manifest_fingerprint": self._manifest.fingerprint,
-                    "parameters_digest": self._parameters_digest,
-                    "random_seed": self._random_seed,
-                    "last_event_key": event_key,
-                    "events": {
-                        dependency_id: tuple(events)
-                        for dependency_id, events in sorted(candidate_events.items())
-                    },
-                }
+            next_window_fingerprint=self._fingerprint_for_state(
+                last_event_key=event_key,
+                events=candidate_events,
             ),
             context=context,
             delivery_binding_fingerprint=(
@@ -419,6 +427,11 @@ class ForwardStrategyContextWindow:
             context_stream_fingerprint,
             field_name="context_stream_fingerprint",
         )
+        if (
+            self._manifest.strategy.selected_study_artifact is not None
+            and self._study_artifacts is None
+        ):
+            raise ValueError("authenticated context stream lacks its pinned Study output")
         if self._pending is not None or self._last_committed is not None or self._last_event_key:
             raise ValueError("forward context seed can only initialize an empty window")
         candidate_events: dict[str, deque[MarketEvent]] = {
@@ -484,6 +497,17 @@ class ForwardStrategyContextWindow:
             raise ValueError("authenticated context seed parameters differ from the recipe")
         if context.random_seed != self._random_seed:
             raise ValueError("authenticated context seed random seed differs from the recipe")
+        context_study_artifacts = normalize_study_artifact_outputs(
+            self._manifest,
+            context.study_artifacts,
+        )
+        if (
+            self._manifest.strategy.selected_study_artifact is not None
+            and context_study_artifacts is None
+        ):
+            raise ValueError("authenticated context seed lacks its pinned Study output")
+        if self._study_artifacts is not None and context_study_artifacts != self._study_artifacts:
+            raise ValueError("authenticated context seed changes its immutable Study output")
         if set(context.market_events) - set(self._dependencies):
             raise ValueError("authenticated context seed contains an undeclared dependency")
         context_key = (context.event_time, context.event_sequence)
@@ -518,6 +542,8 @@ class ForwardStrategyContextWindow:
                 window.append(event)
                 self._seed_last_seen_keys[dependency_id] = event_key
         self._last_event_key = context_key
+        if self._study_artifacts is None:
+            self._study_artifacts = context_study_artifacts
         return self.window_fingerprint
 
     def seed_from_authenticated_contexts(
@@ -571,18 +597,9 @@ class ForwardStrategyContextWindow:
         if preparation.base_window_fingerprint != self.window_fingerprint:
             raise ValueError("forward context preparation was built from a stale history window")
         _pending, candidate_events, event_key = self._pending
-        next_fingerprint = content_digest(
-            {
-                "instance_id": self._instance_id,
-                "manifest_fingerprint": self._manifest.fingerprint,
-                "parameters_digest": self._parameters_digest,
-                "random_seed": self._random_seed,
-                "last_event_key": event_key,
-                "events": {
-                    dependency_id: tuple(events)
-                    for dependency_id, events in sorted(candidate_events.items())
-                },
-            }
+        next_fingerprint = self._fingerprint_for_state(
+            last_event_key=event_key,
+            events=candidate_events,
         )
         if next_fingerprint != preparation.next_window_fingerprint:
             raise ValueError("prepared forward context history changed before commit")
@@ -628,6 +645,7 @@ class ForwardStrategyContextWindow:
         random_seed: int,
         expected_pre_event_checkpoint_fingerprint: str,
         expected_warmup_receipt_fingerprint: str,
+        study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None,
     ) -> ForwardStrategyContextWindow:
         """Rebuild bounded SDK history from the exact durable event prefix."""
 
@@ -655,6 +673,7 @@ class ForwardStrategyContextWindow:
             manifest,
             parameters=parameters,
             random_seed=random_seed,
+            study_artifacts=study_artifacts,
         )
         counts: dict[str, int] = {}
         for payload in history.events:
@@ -666,6 +685,28 @@ class ForwardStrategyContextWindow:
                 raise ValueError("forward context history exceeds a dependency lookback window")
             window.append(payload, instance_id=history.instance_id)
         return window
+
+
+def normalize_study_artifact_outputs(
+    manifest: StrategySdkManifest,
+    study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None,
+) -> Mapping[str, ResolvedStudyArtifactOutput] | None:
+    selected = manifest.strategy.selected_study_artifact
+    if selected is None:
+        if study_artifacts:
+            raise ValueError("strategy context cannot contain unpinned Study artifacts")
+        return None
+    if (
+        not isinstance(study_artifacts, Mapping)
+        or set(study_artifacts) != {selected.artifact_name}
+        or not isinstance(
+            study_artifacts.get(selected.artifact_name),
+            ResolvedStudyArtifactOutput,
+        )
+        or study_artifacts[selected.artifact_name].reference != selected
+    ):
+        raise ValueError("strategy context Study output differs from its immutable reference")
+    return MappingProxyType({selected.artifact_name: study_artifacts[selected.artifact_name]})
 
 
 def _same_delivery_binding(

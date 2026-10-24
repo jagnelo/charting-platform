@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from app.strategy_lab_v2.canonical import (
     canonical_json,
@@ -19,6 +19,11 @@ from app.strategy_lab_v2.conformance import NautilusResultProvenance
 from app.strategy_lab_v2.decimal_math import deterministic_decimal_math
 from app.strategy_lab_v2.observations import UNALLOCATED_COMPONENT_ID, ObservationPoint
 from app.strategy_lab_v2.rebalance import CalendarRebalancePolicy
+from app.strategy_lab_v2.study_artifact_payloads import (
+    FrozenStudyArtifactPayload,
+    FrozenStudyArtifactValue,
+    validate_study_artifact_payload,
+)
 
 if TYPE_CHECKING:
     from app.strategy_lab_v2.capabilities import PreflightReport
@@ -186,6 +191,59 @@ class SelectedStudyArtifactReference:
             "artifact_content_digest",
         ):
             require_sha256_digest(getattr(self, name), field_name=name)
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedStudyArtifactOutput:
+    """Owner-authenticated immutable producer output for one selected reference.
+
+    A reference alone is only a claim. This value is constructed by the local
+    resolver after verifying the persisted owner/run/version/artifact rows and
+    the canonical payload digest. It does not represent native execution.
+    """
+
+    reference: SelectedStudyArtifactReference
+    payload: FrozenStudyArtifactPayload
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.reference, SelectedStudyArtifactReference):
+            raise TypeError("reference must use SelectedStudyArtifactReference")
+        if not isinstance(self.payload, Mapping):
+            raise TypeError("Study artifact payload must be a mapping")
+        frozen_payload = freeze_json(self.payload)
+        if not isinstance(frozen_payload, Mapping):
+            raise TypeError("Study artifact payload must be a mapping")
+        if (
+            frozen_payload.get("type") != self.reference.artifact_type
+            or "value" not in frozen_payload
+            or content_digest(_thaw_json_arrays(frozen_payload))
+            != self.reference.artifact_content_digest
+        ):
+            raise ValueError("Study artifact payload differs from its immutable reference")
+        try:
+            validate_study_artifact_payload(
+                frozen_payload,
+                expected_type=self.reference.artifact_type,
+            )
+        except ValueError as error:
+            raise ValueError("Study artifact payload violates its producer contract") from error
+        object.__setattr__(self, "payload", frozen_payload)
+
+    @property
+    def value(self) -> FrozenStudyArtifactValue:
+        """The producer's generic typed value; no execution semantics are inferred."""
+
+        return cast(FrozenStudyArtifactValue, self.payload["value"])
+
+
+def _thaw_json_arrays(value: Any) -> Any:
+    """Restore JSON arrays for digest checks after immutable tuple freezing."""
+
+    if isinstance(value, Mapping):
+        return {key: _thaw_json_arrays(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_thaw_json_arrays(item) for item in value]
+    return value
 
 
 @dataclass(frozen=True, slots=True)

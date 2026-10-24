@@ -210,6 +210,35 @@ authorization, and execution-summary timestamps. Retries and persisted
 read-model projections therefore retain one identity for equivalent instants
 through the full local execution handoff.
 
+## Explicit immutable Study inputs
+
+An authenticated owner can resolve one exact completed Study output through
+`GET /api/v1/strategy-lab/v2/study-artifact-references/{research_run_id}/{artifact_id}`.
+Both IDs are required; the route has no latest-run or latest-artifact alias. It
+returns a `SelectedStudyArtifactReference` only when the run and evaluation are
+completed, the run/code version/asset belong to the caller, the version still
+declares the Study contract, and exactly one supported artifact payload matches
+its persisted content. Unknown or foreign IDs return not-found; incomplete,
+ambiguous, malformed, or inconsistent producer state fails closed without
+persisting a strategy.
+
+The returned object can be copied unchanged into a V2 strategy's
+`attributes.selected_study_artifact` on `POST /api/v1/strategy-lab/v2/strategies`.
+The application adapter independently revalidates every pinned digest before
+the mutation is accepted. A successful `202` is a mutation receipt; clients
+must read the strategy back and compare the exact selected reference and
+revision digest to prove persistence. Rejected references create no strategy
+resource. The existing backtest and forward worker hydrators re-resolve this
+same immutable reference from PostgreSQL when rebuilding runtime context and
+validate the TC Study payload before use. Current reconstructed-context tests
+are not by themselves proof of an actual worker OS-process restart.
+
+A generic `POST /api/v1/research/runs` Study with an empty dataset manifest may
+produce deterministic non-capital results without OHLCV, but that is isolated
+Study execution, not a Strategy Lab v2 Nautilus backtest. The reference itself
+proves immutable producer lineage only; it does not establish native execution,
+market-data availability, or broker authority.
+
 Attempt records and worker leases apply the same normalization to acquisition,
 heartbeat, expiry, release, creation, and transition timestamps, keeping
 capacity reservations and retry lineage stable across offset-changing storage
@@ -459,13 +488,32 @@ The current parallel-safe slice is in `backend/app/strategy_lab_v2/`:
   and duplicate-trial results by default; an explicit exploratory opt-in can
   include non-authoritative engine output while retaining the exclusion label.
   It makes no profitability or statistical inference claim.
-- `metrics.py` v17 computes Decimal account P&L/return, drawdown duration, Ulcer,
-  annualized return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
+- `metrics.py` retains v17 for existing cadence metric identities and computes
+  Decimal account P&L/return, drawdown duration, Ulcer, annualized
+  return/volatility, Sharpe/Sortino/Calmar, recovery factor, empirical
   historical VaR/expected shortfall, and trade outcome/streak summaries from
   authoritative engine equity and trade-P&L series. The equity input contains
   equally spaced post-start marks only (not the opening balance), and
-  `periods_per_year` must match that cadence; timestamped/irregular observations
-  are not yet modeled for annualized time-series metrics. Currency is explicit;
+  `periods_per_year` must match that cadence; the existing cadence estimator is
+  unchanged. Native event-aligned OOS equity marks use the separately identified
+  `elapsed_utc_residual_log_variance.v1` method and a separate elapsed-time
+  estimator only when every timestamp is strictly increasing and every equity
+  mark is positive. It computes log-return increments, annualized drift from
+  their exact total UTC duration, and residual increment variance
+  `sum((r_i - mu * dt_i)^2) / T`; the square root is annualized volatility.
+  Sharpe and Sortino subtract the continuously compounded target
+  `ln(1 + risk_free_return_annualized)`; downside deviation uses negative
+  interval excess-log increments and the same elapsed-time denominator.
+  Annualization days, risk-free target, timestamp basis and interval count are
+  recorded with those metrics. Both official Nautilus OOS metric-set builders
+  accept `event_risk_free_return_annualized` independently from the per-period
+  session rate. Non-zero event-time targets are included in metric-set identity;
+  the default zero target preserves existing metric-set IDs. Fewer than two
+  return intervals, repeated event times, nonpositive equity, or
+  unrepresentable Decimal arithmetic withholds the risk family with an explicit
+  reason. Historical VaR and expected
+  shortfall remain withheld because irregular event intervals do not share one
+  return horizon. Currency is explicit;
   calculation/annualization basis, gross/net basis, samples, and null reasons
   travel with each metric. Tail calculations use an explicitly versioned
   nearest-rank empirical convention. Native OOS exposure metrics are equally

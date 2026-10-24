@@ -31,6 +31,7 @@ from app.strategy_lab_v2.contracts import (
     ForwardState,
     PortfolioComponent,
     PortfolioComposition,
+    SelectedStudyArtifactReference,
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
@@ -574,6 +575,56 @@ def test_application_adapter_composes_all_durable_api_adapters() -> None:
     assert adapter._search_dispatch_store is adapter._persistence.search_dispatch
     assert isinstance(adapter._execution_state, PostgresExecutionStateAdapter)
     assert isinstance(adapter._commands, PostgresCommandAdapter)
+
+
+@pytest.mark.asyncio
+async def test_application_adapter_binds_explicit_study_reference_factory(monkeypatch) -> None:
+    reference = SelectedStudyArtifactReference(
+        research_run_id=4101,
+        code_version_id=5202,
+        artifact_id=6303,
+        artifact_name="answer",
+        artifact_type="scalar",
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest="sha256:" + "b" * 64,
+        dataset_manifest_digest="sha256:" + "c" * 64,
+        artifact_content_digest="sha256:" + "d" * 64,
+    )
+    observed: dict[str, Any] = {}
+
+    def session_factory() -> object:
+        return object()
+
+    def build_factory(supplied_session_factory: Any):
+        observed["session_factory"] = supplied_session_factory
+
+        async def resolve(**kwargs: Any) -> SelectedStudyArtifactReference:
+            observed["request"] = kwargs
+            return reference
+
+        return resolve
+
+    monkeypatch.setattr(
+        application_module,
+        "create_selected_study_artifact_reference_factory",
+        build_factory,
+    )
+    adapter = PostgresStrategyLabV2Adapter(session_factory)
+
+    resolved = await adapter.resolve_study_artifact_reference(
+        principal=_User(73),
+        research_run_id=4101,
+        artifact_id=6303,
+    )
+
+    assert observed["session_factory"] is session_factory
+    assert observed["request"] == {
+        "principal": _User(73),
+        "research_run_id": 4101,
+        "artifact_id": 6303,
+    }
+    assert resolved == reference
 
 
 def test_application_adapter_reuses_injected_persistence_bundle() -> None:

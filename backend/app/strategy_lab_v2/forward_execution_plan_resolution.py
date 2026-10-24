@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -12,6 +13,7 @@ from app.strategy_lab_v2.canonical import content_digest
 from app.strategy_lab_v2.contracts import (
     ForwardInstance,
     PortfolioComposition,
+    ResolvedStudyArtifactOutput,
     StrategyPackage,
     StrategyVersion,
 )
@@ -23,6 +25,7 @@ from app.strategy_lab_v2.strategy_package_resolution import (
     ResolvedStrategyPackage,
     StrategyPackageArtifactResolver,
 )
+from app.strategy_lab_v2.study_artifact_resolver import ResolvedStudyArtifactOutputResolver
 
 
 class ForwardExecutionPlanReader(Protocol):
@@ -53,6 +56,7 @@ class ResolvedForwardExecutionComponent:
     strategy: StrategyVersion
     package: StrategyPackage
     resolved_package: ResolvedStrategyPackage
+    study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.binding, ForwardComponentExecutionPlan):
@@ -75,6 +79,28 @@ class ResolvedForwardExecutionComponent:
             raise ValueError("resolved forward archive differs from its pinned strategy")
         if self.resolved_package.manifest.strategy.fingerprint != self.strategy.fingerprint:
             raise ValueError("resolved forward manifest differs from its pinned strategy")
+        selected_study = self.strategy.selected_study_artifact
+        if selected_study is None:
+            if self.study_artifacts:
+                raise ValueError("forward component cannot contain an unpinned Study output")
+            if self.study_artifacts is not None:
+                object.__setattr__(self, "study_artifacts", None)
+        else:
+            if (
+                not isinstance(self.study_artifacts, Mapping)
+                or set(self.study_artifacts) != {selected_study.artifact_name}
+                or not isinstance(
+                    self.study_artifacts[selected_study.artifact_name],
+                    ResolvedStudyArtifactOutput,
+                )
+                or self.study_artifacts[selected_study.artifact_name].reference != selected_study
+            ):
+                raise ValueError(
+                    "forward component Study output differs from its immutable reference"
+                )
+            object.__setattr__(
+                self, "study_artifacts", MappingProxyType(dict(self.study_artifacts))
+            )
 
     @property
     def fingerprint(self) -> str:
@@ -149,6 +175,7 @@ class AuthenticatedForwardExecutionPlanResolver:
         package_resolver: StrategyPackageArtifactResolver,
         *,
         principal: Any,
+        selected_study_artifact_resolver: ResolvedStudyArtifactOutputResolver | None = None,
     ) -> None:
         if not callable(getattr(reader, "get_domain_contract", None)) or not callable(
             getattr(reader, "get_domain_contracts_by_fingerprint", None)
@@ -156,9 +183,21 @@ class AuthenticatedForwardExecutionPlanResolver:
             raise TypeError("reader must provide owner-scoped typed domain reads")
         if not isinstance(package_resolver, StrategyPackageArtifactResolver):
             raise TypeError("package_resolver must use StrategyPackageArtifactResolver")
+        if selected_study_artifact_resolver is not None and not callable(
+            selected_study_artifact_resolver
+        ):
+            raise TypeError("selected_study_artifact_resolver must be callable")
+        if selected_study_artifact_resolver is not None and not (
+            inspect.iscoroutinefunction(selected_study_artifact_resolver)
+            or inspect.iscoroutinefunction(
+                getattr(selected_study_artifact_resolver, "__call__", None)
+            )
+        ):
+            raise TypeError("selected Study artifact resolver must be asynchronous")
         self._reader = reader
         self._package_resolver = package_resolver
         self._principal = principal
+        self._selected_study_artifact_resolver = selected_study_artifact_resolver
 
     async def resolve(self, instance: ForwardInstance) -> ResolvedForwardExecutionPlan:
         """Load and verify one exact plan and all packages in the instance portfolio."""
@@ -201,16 +240,37 @@ class AuthenticatedForwardExecutionPlanResolver:
         for binding in plan.components:
             strategy = strategies[binding.strategy_fingerprint]
             package = packages[binding.package_fingerprint]
+            selected_study = strategy.selected_study_artifact
+            if selected_study is not None and self._selected_study_artifact_resolver is None:
+                raise ValueError(
+                    "selected Study artifact cannot be revalidated on this forward worker"
+                )
             if package.strategy_fingerprint != strategy.fingerprint:
                 raise ValueError("pinned forward package does not match its strategy")
             if package.sdk_version != strategy.sdk_version:
                 raise ValueError("pinned forward package SDK differs from its strategy")
             resolved_package = self._package_resolver.resolve(package, strategy)
+            study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None
+            if selected_study is not None:
+                assert self._selected_study_artifact_resolver is not None
+                resolved_study = await self._selected_study_artifact_resolver(
+                    principal=self._principal,
+                    reference=selected_study,
+                )
+                if (
+                    not isinstance(resolved_study, ResolvedStudyArtifactOutput)
+                    or resolved_study.reference != selected_study
+                ):
+                    raise ValueError(
+                        "forward worker Study resolver returned a mismatched immutable output"
+                    )
+                study_artifacts = {selected_study.artifact_name: resolved_study}
             resolved[binding.component_id] = ResolvedForwardExecutionComponent(
                 binding=binding,
                 strategy=strategy,
                 package=package,
                 resolved_package=resolved_package,
+                study_artifacts=study_artifacts,
             )
         return ResolvedForwardExecutionPlan(instance, portfolio, plan, resolved)
 

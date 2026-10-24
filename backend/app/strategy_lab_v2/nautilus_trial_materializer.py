@@ -357,6 +357,18 @@ class NautilusTrialRuntimeInputMaterializer:
                     strategy_manifest=resolved_package.manifest,
                     strategy_source=resolved_package.source,
                     max_intents_per_event=self._max_intents_per_event,
+                    study_artifacts=(
+                        {
+                            graph.study_artifacts[
+                                component.strategy_fingerprint
+                            ].reference.artifact_name: graph.study_artifacts[
+                                component.strategy_fingerprint
+                            ]
+                        }
+                        if graph.study_artifacts is not None
+                        and component.strategy_fingerprint in graph.study_artifacts
+                        else None
+                    ),
                 )
             )
             resolved_manifests.append(resolved_package.manifest)

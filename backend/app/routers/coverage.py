@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import case, func, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -18,6 +18,7 @@ from app.schemas.coverage import (
     LocalCoverageRangeOut,
     OhlcvCoverageOut,
 )
+from app.services.market_data import _default_series_bar_condition
 from app.services.ohlcv_coverage import (
     _as_utc,
     assess_observed_ohlcv_cadence,
@@ -69,6 +70,7 @@ async def instrument_ohlcv_coverage(
                     OHLCVBar.is_adjusted.is_(adjusted),
                     OHLCVBar.ts >= start,
                     OHLCVBar.ts <= end,
+                    _default_series_bar_condition(instrument.id, timeframe, adjusted),
                     bar_visible_through_clause(visibility_cutoff),
                 )
                 .order_by(OHLCVBar.ts)
@@ -239,7 +241,19 @@ async def instrument_coverage(
                 func.max(OHLCVBar.ts).label("newest"),
                 func.count().label("bar_count"),
             )
-            .where(OHLCVBar.instrument_id == instrument.id, OHLCVBar.is_adjusted.is_(True))
+            .where(
+                OHLCVBar.instrument_id == instrument.id,
+                OHLCVBar.is_adjusted.is_(True),
+                or_(
+                    *[
+                        and_(
+                            OHLCVBar.timeframe == timeframe,
+                            _default_series_bar_condition(instrument.id, timeframe, True),
+                        )
+                        for timeframe in Timeframe
+                    ]
+                ),
+            )
             .group_by(OHLCVBar.timeframe)
         )
     ).all()

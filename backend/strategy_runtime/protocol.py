@@ -13,9 +13,10 @@ import hashlib
 import heapq
 import json
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from itertools import chain
 from typing import Any, BinaryIO
 
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -24,6 +25,8 @@ from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
     EventGranularity,
     ProductClass,
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
     StrategyDependency,
     StrategyVersion,
 )
@@ -298,23 +301,28 @@ def _encode_manifest(manifest: StrategySdkManifest) -> dict[str, Any]:
     if not isinstance(manifest, StrategySdkManifest):
         raise TypeError("manifest must use StrategySdkManifest")
     strategy = manifest.strategy
+    strategy_wire: dict[str, Any] = {
+        "strategy_id": strategy.strategy_id,
+        "version_id": strategy.version_id,
+        "sdk_version": strategy.sdk_version,
+        "source_digest": strategy.source_digest,
+        "dependencies": [
+            {
+                "distribution": item.distribution,
+                "version": item.version,
+                "artifact_digest": item.artifact_digest,
+            }
+            for item in strategy.dependencies
+        ],
+        "parameter_schema": _encode_value(strategy.parameter_schema),
+        "default_parameters": _encode_value(strategy.default_parameters),
+    }
+    if strategy.selected_study_artifact is not None:
+        strategy_wire["selected_study_artifact"] = _encode_study_reference(
+            strategy.selected_study_artifact
+        )
     return {
-        "strategy": {
-            "strategy_id": strategy.strategy_id,
-            "version_id": strategy.version_id,
-            "sdk_version": strategy.sdk_version,
-            "source_digest": strategy.source_digest,
-            "dependencies": [
-                {
-                    "distribution": item.distribution,
-                    "version": item.version,
-                    "artifact_digest": item.artifact_digest,
-                }
-                for item in strategy.dependencies
-            ],
-            "parameter_schema": _encode_value(strategy.parameter_schema),
-            "default_parameters": _encode_value(strategy.default_parameters),
-        },
+        "strategy": strategy_wire,
         "data_dependencies": [
             {
                 "dependency_id": item.dependency_id,
@@ -333,6 +341,95 @@ def _encode_manifest(manifest: StrategySdkManifest) -> dict[str, Any]:
             for item in manifest.model_dependencies
         ],
     }
+
+
+def _encode_study_reference(reference: SelectedStudyArtifactReference) -> dict[str, Any]:
+    return {
+        "research_run_id": reference.research_run_id,
+        "code_version_id": reference.code_version_id,
+        "artifact_id": reference.artifact_id,
+        "artifact_name": reference.artifact_name,
+        "artifact_type": reference.artifact_type,
+        "output_contract": reference.output_contract,
+        "run_reproducibility_hash": reference.run_reproducibility_hash,
+        "code_version_digest": reference.code_version_digest,
+        "dataset_manifest_digest": reference.dataset_manifest_digest,
+        "artifact_content_digest": reference.artifact_content_digest,
+    }
+
+
+def _decode_study_reference(value: Any) -> SelectedStudyArtifactReference:
+    item = _mapping(value, "selected Study artifact reference")
+    expected = {
+        "research_run_id",
+        "code_version_id",
+        "artifact_id",
+        "artifact_name",
+        "artifact_type",
+        "output_contract",
+        "run_reproducibility_hash",
+        "code_version_digest",
+        "dataset_manifest_digest",
+        "artifact_content_digest",
+    }
+    if set(item) != expected:
+        raise ValueError("selected Study artifact reference fields are invalid")
+    return SelectedStudyArtifactReference(**item)
+
+
+def _encode_study_output(output: ResolvedStudyArtifactOutput) -> dict[str, Any]:
+    if not isinstance(output, ResolvedStudyArtifactOutput):
+        raise TypeError("Study context values must use ResolvedStudyArtifactOutput")
+    return {
+        "reference": _encode_study_reference(output.reference),
+        "payload": _encode_value(output.payload),
+    }
+
+
+def _decode_study_output(value: Any) -> ResolvedStudyArtifactOutput:
+    item = _mapping(value, "resolved Study artifact output")
+    if set(item) != {"reference", "payload"}:
+        raise ValueError("resolved Study artifact output fields are invalid")
+    payload = _mapping(_decode_value(item["payload"]), "Study artifact payload")
+    return ResolvedStudyArtifactOutput(_decode_study_reference(item["reference"]), payload)
+
+
+def _encode_study_artifacts(
+    outputs: Mapping[str, ResolvedStudyArtifactOutput] | None,
+) -> dict[str, Any] | None:
+    if outputs is None:
+        return None
+    return {name: _encode_study_output(output) for name, output in sorted(outputs.items())}
+
+
+def _decode_study_artifacts(value: Any) -> Mapping[str, ResolvedStudyArtifactOutput]:
+    root = _mapping(value, "study_artifacts")
+    if not root:
+        raise ValueError("study_artifacts must not be empty when present")
+    return {name: _decode_study_output(output) for name, output in root.items()}
+
+
+def _validate_study_outputs_binding(
+    manifest: StrategySdkManifest,
+    outputs: Mapping[str, ResolvedStudyArtifactOutput] | None,
+) -> None:
+    selected = manifest.strategy.selected_study_artifact
+    if selected is None:
+        if outputs:
+            raise ValueError("context contains unpinned Study artifacts")
+        return
+    if (
+        outputs is None
+        or set(outputs) != {selected.artifact_name}
+        or outputs[selected.artifact_name].reference != selected
+    ):
+        raise ValueError("context Study output differs from its immutable manifest reference")
+
+
+def _validate_study_context_binding(
+    manifest: StrategySdkManifest, context: StrategyContext
+) -> None:
+    _validate_study_outputs_binding(manifest, context.study_artifacts)
 
 
 def _validate_source_manifest_binding(source: str, manifest: StrategySdkManifest) -> None:
@@ -358,7 +455,7 @@ def _decode_manifest(value: Any) -> StrategySdkManifest:
     if set(root) != {"strategy", "data_dependencies", "model_dependencies"}:
         raise ValueError("manifest fields are invalid")
     strategy_data = _mapping(root["strategy"], "strategy")
-    if set(strategy_data) != {
+    base_strategy_fields = {
         "strategy_id",
         "version_id",
         "sdk_version",
@@ -366,7 +463,11 @@ def _decode_manifest(value: Any) -> StrategySdkManifest:
         "dependencies",
         "parameter_schema",
         "default_parameters",
-    }:
+    }
+    if set(strategy_data) not in (
+        base_strategy_fields,
+        base_strategy_fields | {"selected_study_artifact"},
+    ):
         raise ValueError("strategy fields are invalid")
     strategy = StrategyVersion(
         strategy_id=strategy_data["strategy_id"],
@@ -382,6 +483,11 @@ def _decode_manifest(value: Any) -> StrategySdkManifest:
         ),
         default_parameters=_mapping(
             _decode_value(strategy_data["default_parameters"]), "default_parameters"
+        ),
+        selected_study_artifact=(
+            _decode_study_reference(strategy_data["selected_study_artifact"])
+            if "selected_study_artifact" in strategy_data
+            else None
         ),
     )
     data_dependencies: list[StrategyDataDependency] = []
@@ -434,10 +540,12 @@ def deserialize_strategy_manifest(payload: str) -> StrategySdkManifest:
     return manifest
 
 
-def _encode_context(context: StrategyContext) -> dict[str, Any]:
+def _encode_context(
+    context: StrategyContext, *, include_study_artifacts: bool = True
+) -> dict[str, Any]:
     if not isinstance(context, StrategyContext):
         raise TypeError("context must use StrategyContext")
-    return {
+    value = {
         "event_time": _iso_datetime(context.event_time),
         "event_sequence": context.event_sequence,
         "random_seed": context.random_seed,
@@ -466,18 +574,22 @@ def _encode_context(context: StrategyContext) -> dict[str, Any]:
             for instrument_id, position in sorted(context.positions.items())
         },
     }
+    if include_study_artifacts and context.study_artifacts is not None:
+        value["study_artifacts"] = _encode_study_artifacts(context.study_artifacts)
+    return value
 
 
 def _decode_context(value: Any) -> StrategyContext:
     root = _mapping(value, "context")
-    if set(root) != {
+    base_context_fields = {
         "event_time",
         "event_sequence",
         "random_seed",
         "parameters",
         "market_events",
         "positions",
-    }:
+    }
+    if set(root) not in (base_context_fields, base_context_fields | {"study_artifacts"}):
         raise ValueError("context fields are invalid")
     event_root = _mapping(root["market_events"], "market_events")
     market_events: dict[str, tuple[MarketEvent, ...]] = {}
@@ -518,6 +630,9 @@ def _decode_context(value: Any) -> StrategyContext:
             average_price=_decode_value(item["average_price"]),
             market_value=_decode_value(item["market_value"]),
         )
+    study_artifacts = None
+    if "study_artifacts" in root:
+        study_artifacts = _decode_study_artifacts(root["study_artifacts"])
     return StrategyContext(
         event_time=_decode_datetime(root["event_time"], "context.event_time"),
         event_sequence=root["event_sequence"],
@@ -525,6 +640,7 @@ def _decode_context(value: Any) -> StrategyContext:
         parameters=_mapping(_decode_value(root["parameters"]), "parameters"),
         market_events=market_events,
         positions=positions,
+        study_artifacts=study_artifacts,
     )
 
 
@@ -541,6 +657,7 @@ def serialize_invocation(
     if not isinstance(source, str):
         raise TypeError("source must be a string")
     _validate_source_manifest_binding(source, manifest)
+    _validate_study_context_binding(manifest, context)
     if not isinstance(entrypoint, str) or not entrypoint.strip():
         raise ValueError("entrypoint must not be empty")
     if (
@@ -591,7 +708,9 @@ def deserialize_invocation(
         raise ValueError("invocation max_intents_per_event must be positive")
     manifest = _decode_manifest(item["manifest"])
     _validate_source_manifest_binding(source, manifest)
-    return source, manifest, _decode_context(item["context"]), entrypoint, max_intents
+    context = _decode_context(item["context"])
+    _validate_study_context_binding(manifest, context)
+    return source, manifest, context, entrypoint, max_intents
 
 
 def serialize_invocation_batch(
@@ -614,6 +733,8 @@ def serialize_invocation_batch(
         raise ValueError("batch invocation contexts must not be empty")
     if any(not isinstance(context, StrategyContext) for context in contexts_tuple):
         raise TypeError("batch invocation contexts must use StrategyContext values")
+    for context in contexts_tuple:
+        _validate_study_context_binding(manifest, context)
     _validate_context_order(contexts_tuple, "batch invocation contexts")
     if not isinstance(entrypoint, str) or not entrypoint.strip():
         raise ValueError("batch invocation entrypoint must not be empty")
@@ -670,6 +791,8 @@ def deserialize_invocation_batch(
     _validate_context_order(contexts, "batch invocation contexts")
     manifest = _decode_manifest(item["manifest"])
     _validate_source_manifest_binding(source, manifest)
+    for context in contexts:
+        _validate_study_context_binding(manifest, context)
     return source, manifest, contexts, entrypoint, max_intents
 
 
@@ -732,6 +855,13 @@ def serialize_invocation_context_stream(
     ):
         raise ValueError("invocation stream byte bound must be a positive integer")
 
+    context_iterator = iter(contexts)
+    first_context = next(context_iterator, None)
+    if first_context is None:
+        raise ValueError("invocation context stream must not be empty")
+    if not isinstance(first_context, StrategyContext):
+        raise TypeError("invocation stream contexts must use StrategyContext values")
+    _validate_study_context_binding(manifest, first_context)
     header = {
         "protocol_version": INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION,
         "source": source,
@@ -739,6 +869,9 @@ def serialize_invocation_context_stream(
         "entrypoint": entrypoint,
         "max_intents_per_event": max_intents_per_event,
     }
+    study_artifacts_wire = _encode_study_artifacts(first_context.study_artifacts)
+    if study_artifacts_wire is not None:
+        header["study_artifacts"] = study_artifacts_wire
     header_wire = (_dump_json(header, "invocation context stream header") + "\n").encode("utf-8")
     observed_bytes = len(header_wire)
     if observed_bytes > max_stream_bytes:
@@ -747,16 +880,20 @@ def serialize_invocation_context_stream(
     previous_key: tuple[datetime, int] | None = None
     count = 0
     digest = hashlib.sha256()
-    for context in contexts:
+    for context in chain((first_context,), context_iterator):
         if not isinstance(context, StrategyContext):
             raise TypeError("invocation stream contexts must use StrategyContext values")
+        _validate_study_context_binding(manifest, context)
         context_key = (context.event_time, context.event_sequence)
         if previous_key is not None and context_key <= previous_key:
             raise ValueError(
                 "invocation stream contexts must be strictly chronological by event_time and event_sequence"
             )
         previous_key = context_key
-        record = {"index": count, "context": _encode_context(context)}
+        record = {
+            "index": count,
+            "context": _encode_context(context, include_study_artifacts=False),
+        }
         record_wire = (_dump_json(record, "invocation context stream record") + "\n").encode(
             "utf-8"
         )
@@ -813,13 +950,14 @@ def deserialize_invocation_context_stream(
     if observed_bytes > max_stream_bytes:
         raise ValueError("invocation context stream exceeds its configured byte bound")
     header = _mapping(header, "header")
-    if set(header) != {
+    base_header_fields = {
         "protocol_version",
         "source",
         "manifest",
         "entrypoint",
         "max_intents_per_event",
-    }:
+    }
+    if set(header) not in (base_header_fields, base_header_fields | {"study_artifacts"}):
         raise ValueError("invocation context stream header fields are invalid")
     if header["protocol_version"] != INVOCATION_CONTEXT_STREAM_PROTOCOL_VERSION:
         raise ValueError("unsupported invocation context stream protocol version")
@@ -834,6 +972,10 @@ def deserialize_invocation_context_stream(
         raise ValueError("invocation context stream max_intents_per_event must be positive")
     manifest = _decode_manifest(header["manifest"])
     _validate_source_manifest_binding(source, manifest)
+    study_artifacts = (
+        _decode_study_artifacts(header["study_artifacts"]) if "study_artifacts" in header else None
+    )
+    _validate_study_outputs_binding(manifest, study_artifacts)
 
     def decoded_contexts() -> Iterator[StrategyContext]:
         nonlocal observed_bytes
@@ -880,6 +1022,11 @@ def deserialize_invocation_context_stream(
             ):
                 raise ValueError("invocation context stream record index is not contiguous")
             context = _decode_context(record["context"])
+            if context.study_artifacts is not None:
+                raise ValueError("stream records cannot repeat header-bound Study outputs")
+            if study_artifacts is not None:
+                context = replace(context, study_artifacts=study_artifacts)
+            _validate_study_context_binding(manifest, context)
             context_key = (context.event_time, context.event_sequence)
             if previous_key is not None and context_key <= previous_key:
                 raise ValueError(
@@ -915,6 +1062,7 @@ class InvocationContextStreamBinding:
     manifest: StrategySdkManifest
     entrypoint: str
     max_intents_per_event: int
+    study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None
 
 
 def serialize_component_invocation_context_stream(
@@ -954,6 +1102,7 @@ def serialize_component_invocation_context_stream(
     if len(ids) != len(set(ids)):
         raise ValueError("component invocation stream ids must be unique")
     ordered_components = tuple(sorted(component_sources, key=lambda item: item.component_id))
+    ordered_components_by_id = {item.component_id: item for item in ordered_components}
 
     header_components: list[dict[str, Any]] = []
     iterators: dict[str, Iterator[StrategyContext]] = {}
@@ -975,15 +1124,6 @@ def serialize_component_invocation_context_stream(
         ):
             raise ValueError("component max_intents_per_event must be positive")
         component_id = item.component_id
-        header_components.append(
-            {
-                "component_id": component_id,
-                "source": item.source,
-                "manifest": _encode_manifest(item.manifest),
-                "entrypoint": item.entrypoint,
-                "max_intents_per_event": item.max_intents_per_event,
-            }
-        )
         iterator = iter(item.contexts)
         iterators[component_id] = iterator
         first = next(iterator, None)
@@ -991,6 +1131,18 @@ def serialize_component_invocation_context_stream(
             raise ValueError("component invocation context streams must not be empty")
         if not isinstance(first, StrategyContext):
             raise TypeError("component invocation contexts must use StrategyContext values")
+        _validate_study_context_binding(item.manifest, first)
+        component_wire = {
+            "component_id": component_id,
+            "source": item.source,
+            "manifest": _encode_manifest(item.manifest),
+            "entrypoint": item.entrypoint,
+            "max_intents_per_event": item.max_intents_per_event,
+        }
+        study_artifacts_wire = _encode_study_artifacts(first.study_artifacts)
+        if study_artifacts_wire is not None:
+            component_wire["study_artifacts"] = study_artifacts_wire
+        header_components.append(component_wire)
         first_key = (first.event_time, first.event_sequence)
         previous_by_component[component_id] = first_key
         heapq.heappush(heap, (*first_key, component_id, first))
@@ -1023,7 +1175,7 @@ def serialize_component_invocation_context_stream(
                     "index": total_count,
                     "component_id": component_id,
                     "component_index": component_index,
-                    "context": _encode_context(context),
+                    "context": _encode_context(context, include_study_artifacts=False),
                 },
                 "component invocation context stream record",
             )
@@ -1043,6 +1195,9 @@ def serialize_component_invocation_context_stream(
         if following is not None:
             if not isinstance(following, StrategyContext):
                 raise TypeError("component invocation contexts must use StrategyContext values")
+            _validate_study_context_binding(
+                ordered_components_by_id[component_id].manifest, following
+            )
             following_key = (following.event_time, following.event_sequence)
             if following_key <= previous_by_component[component_id]:
                 raise ValueError(
@@ -1111,13 +1266,17 @@ def deserialize_component_invocation_context_stream(
     previous_component_id: str | None = None
     for raw_component in raw_components:
         component = _mapping(raw_component, "component invocation binding")
-        if set(component) != {
+        base_component_fields = {
             "component_id",
             "source",
             "manifest",
             "entrypoint",
             "max_intents_per_event",
-        }:
+        }
+        if set(component) not in (
+            base_component_fields,
+            base_component_fields | {"study_artifacts"},
+        ):
             raise ValueError("component invocation binding fields are invalid")
         component_id = component["component_id"]
         source = component["source"]
@@ -1138,12 +1297,19 @@ def deserialize_component_invocation_context_stream(
             raise ValueError("component max_intents_per_event must be positive")
         manifest = _decode_manifest(component["manifest"])
         _validate_source_manifest_binding(source, manifest)
+        study_artifacts = (
+            _decode_study_artifacts(component["study_artifacts"])
+            if "study_artifacts" in component
+            else None
+        )
+        _validate_study_outputs_binding(manifest, study_artifacts)
         bindings[component_id] = InvocationContextStreamBinding(
             component_id,
             source,
             manifest,
             entrypoint,
             max_intents,
+            study_artifacts,
         )
 
     if expected_component_counts is not None:
@@ -1223,6 +1389,12 @@ def deserialize_component_invocation_context_stream(
             ):
                 raise ValueError("component invocation context index is not contiguous")
             context = _decode_context(record["context"])
+            if context.study_artifacts is not None:
+                raise ValueError("component records cannot repeat header-bound Study outputs")
+            binding = bindings[component_id]
+            if binding.study_artifacts is not None:
+                context = replace(context, study_artifacts=binding.study_artifacts)
+            _validate_study_context_binding(bindings[component_id].manifest, context)
             component_key = (context.event_time, context.event_sequence)
             if (
                 component_id in previous_by_component
