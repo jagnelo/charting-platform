@@ -3,8 +3,8 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
-latest_staging_merge_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
-latest_staging_parent_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+latest_staging_merge_sha: cdc33442c19f5c387b9ada759607d961365993c0
+latest_staging_parent_sha: c240037f526caa236ec3af64a0040b5df6d670be
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: >-
   Continue the existing ETF holdings provider coverage goal from current green
@@ -149,7 +149,7 @@ previously_accepted_integration_checkpoint:
     provider_and_issuer_http_or_quota: none; live flags remain disabled
     quarantines: MSMR/QQQ and Militia/GOOG remain unresolved/quarantined
     roadmap: all fourteen criteria, issuer onboarding and 30-day observation remain open
-  latest_provider_release:
+  provider_release_2026_10_20:
     recorded_at: "2026-10-20T20:58:03Z"
     status: accepted_and_released_in_synchronized_green_staging
     staging_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -167,6 +167,30 @@ previously_accepted_integration_checkpoint:
       ETF source checkpoint remains in_progress/not accepted. Implement and
       validate the ETF-owned bridge in this branch; no live issuer replay, paid
       or trial operation, staging write, deployment, or whole-roadmap acceptance.
+  latest_provider_release:
+    recorded_at: "2026-10-24T11:13:37Z"
+    status: accepted_and_released_in_synchronized_green_staging
+    staging_sha: cdc33442c19f5c387b9ada759607d961365993c0
+    release_record: /home/m920q/charting-platform/.ai/staging-attempts/provider-cdc334-green-release-20261024.md
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261024T111337Z-cdc33442c19f.json
+    exact_ci_run: 40083128955
+    exhaustive_gate_job: 120844769370
+    evidence: >-
+      Root's exact synchronized staging receipt is terminal green: ordinary CI
+      and Exhaustive Integration Gate passed; the release contains the accepted
+      Provider and Strategy sources. It releases this exact shared baseline for
+      ETF reconciliation only, not ETF checkpoint acceptance. The ETF branch
+      merged it at dc7d5687e5f932fcec9009d17abb1f802e3bbfbc with no conflicts;
+      source-level inspection confirms the shared runtime retains its
+      synchronous non-awaitable invoke contract and the ETF wrapper uses that
+      boundary. No runtime test was run in this adoption window.
+    prior_release: 9b230ba4c97126a2937667138c6eb2a0aa297baf
+    remaining_boundary: >-
+      ETF remains in_progress and its SEC checkpoint is pending Root review.
+      Exact combined-source hosted CI and the Root-assigned local validation
+      slot remain pending. Keep SEC transport, native account/cost/headroom
+      unknowns, paid/trial and unsafe routes held; no live acquisition, quota
+      replay, deployment, or full-roadmap acceptance is claimed.
   latest_green_staging_adoption_2026_10_23:
     recorded_at: "2026-10-23T05:17:09Z"
     status: released_green_baseline_adopted_in_existing_etf_branch
@@ -197,6 +221,40 @@ previously_accepted_integration_checkpoint:
       No staging, sibling, or master ref was written.
     branch_publication: published_and_synchronized_at_9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b; exact_postmerge_ci_39907317600_terminal_green
     full_roadmap_status: open; no later ETF checkpoint acceptance inferred
+    provider_http_quota_activation_cleanup: none
+  latest_green_staging_adoption_2026_10_24:
+    recorded_at: "2026-10-24T11:13:37Z"
+    status: exact_released_staging_merged_into_existing_etf_branch
+    released_staging_sha: cdc33442c19f5c387b9ada759607d961365993c0
+    release_record: /home/m920q/charting-platform/.ai/staging-attempts/provider-cdc334-green-release-20261024.md
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261024T111337Z-cdc33442c19f.json
+    exact_staging_ci_run: 40083128955
+    exhaustive_gate_job: 120844769370
+    source_before_merge: d648557f0e4b87618797554f72630aacbea6b04f
+    merge_base: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+    merge_commit: dc7d5687e5f932fcec9009d17abb1f802e3bbfbc
+    merge_parents:
+      - d648557f0e4b87618797554f72630aacbea6b04f
+      - cdc33442c19f5c387b9ada759607d961365993c0
+    fetched_staging_ref_verified: true
+    merge_result: >-
+      Only the exact released cdc33442 staging commit was merged in the assigned
+      ETF worktree; Git reported no conflicts. The merge retains the ETF-owned
+      SEC implementation and all fourteen roadmap criteria while adding the
+      released Provider/Strategy source and their branch-owned evidence. The
+      workstream files on this branch were not replaced by staging copies.
+    shared_contract_reconciliation: >-
+      Static inspection of the merged provider_runtime.py confirms
+      execute_provider_call remains async while its invoke callback must be
+      synchronous and non-awaitable; the ETF bridge's _sync_provider_invoke
+      supplies that contract, and calls still request ETF_HOLDINGS through the
+      shared execution path. This is source inspection only, not runtime proof.
+    branch_publication: >-
+      Pending one push of the completed combined source. The merge commit is
+      the implementation anchor; the later own-record publication commit is
+      intentionally not self-referenced. Exact final SHA and remote parity
+      will be reported externally after push.
+    full_roadmap_status: open; SEC checkpoint remains in_progress/not accepted
     provider_http_quota_activation_cleanup: none
   checkpoint_acceptance_delegation:
     recorded_at: "2026-10-15T22:55:31Z"
@@ -381,37 +439,29 @@ previously_accepted_integration_checkpoint:
   active_changeset:
     name: SEC bounded transport, held provisioning and red-failure corrections
     state: >-
-      The tested candidate is exact branch tip 45c6a5f69029aa3b873ad68d717202f308845dd5,
-      clean and synchronized with origin; this DB validation made no source
-      changes. The previously recorded CI40006029802 is green only for
-      d42e5ff07490af8f0fb894e7ab924e4f62cc4379, not evidence for 45c6. The
-      accepted green staging baseline a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
-      remains merged conflict-free at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2.
-      The dedicated SEC path binds committed CIK/series/class, uses shared
-      Provider admission per physical request/redirect, preserves observed
-      known_at and rejected raw lineage, and leaves publication unknown.
-      Application limits latch before later reservation/transport; compressed
-      trailing/member data is rejected and no-qualifying-filing outcomes cannot
-      become completed-empty. Marked HTTP 200 fails inside the synchronous
-      Provider invoke after telemetry and before shared success settlement.
-      Admin-only EDGAR provisioning remains dry-run-first and disabled by
-      default. The 384MiB OOM attempt and interrupted window 2119 are preserved
-      as partial/inconclusive, not test failures: 2119 emitted eight progress
-      markers, then its PG-growth guard measured 138399744 bytes above the
-      then-128MiB ceiling and the exact process exited 137 without a pytest
-      summary. The single explicitly resource-corrected window 2129 changed
-      only that guard to 192MiB and passed all twelve selected offline DB cases
-      on source 45c6: 12 passed, five warnings, 66.84s. The log SHA256 is
-      d0dad0e3f53120f3cd6c964199ccf3cf3fe735e9762fb8263b978aa6a407687a,
-      systemd invocation cb70f8a99a744655812e9fd95fb79d39, measured CPU/wall
-      time 29.234s/69.807s, rounded peak 512MiB, and OOM counters 0/0. Exact
-      disposable DB/Redis/cache cleanup was independently verified; all six
-      original DBs and retained services/data remain intact. This proves only
-      the selected offline DB/API/shared-runtime cases, not full integration,
-      full_stack_browser, live acquisition, deployed positive behavior or
-      checkpoint acceptance. Keep SEC held and preserve all AC1-AC14,
-      `15 Tier-0 and 156 Tier-1`, IWM candidate-only status, PIT lineage,
-      quarantines, retained data and the 30-day observation.
+      Exact synchronized-green staging release cdc33442c19f5c387b9ada759607d961365993c0
+      has been merged into the existing ETF branch at dc7d5687e5f932fcec9009d17abb1f802e3bbfbc;
+      merge base was a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e and Git reported
+      no conflicts. The source tree now includes the released Provider and
+      Strategy changes while retaining the ETF SEC implementation and full
+      roadmap. The four pre-existing dirty ETF owner records were first
+      validated and committed at d648557f0e4b87618797554f72630aacbea6b04f.
+      The current 2129 offline DB result remains qualified only for its
+      original source45c6, with exact cleanup and historical 2119/OOM partials
+      preserved; it is not validation of the merged source. Static inspection
+      found the merged Provider execute_provider_call contract remains an async
+      shared path with synchronous, non-awaitable invoke; the ETF bridge uses
+      its synchronous _sync_provider_invoke wrapper and ETF_HOLDINGS capability.
+      This is source inspection, not runtime proof. Exact combined-source CI
+      will be triggered by the one planned own-branch push; no local tests,
+      browser, build, Docker, service, provider/issuer/SEC HTTP or quota action
+      was performed during this adoption. The worktree metadata update is being
+      prepared before that push; the exact final branch SHA and origin parity
+      will be reported after publication without a self-hash loop. SEC remains
+      held; no real IWM acquisition/native-current result or checkpoint
+      acceptance is claimed. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`,
+      all source quarantines/holds, retained data, PIT lineage and the 30-day
+      observation gate.
     baseline: c45139b45324a5c3333868e63224d2464240034b
     intent: >-
       Finish the reviewed bounded SEC one-fund application envelope and ensure
@@ -747,7 +797,7 @@ status: in_progress
 progress:
   completed: []
   total: 7
-current_phase: offline_sec_api_shared_runtime_db_selection_2129_2026_10_23
+current_phase: cdc33442_green_staging_adoption_2026_10_24
 historical_execution_context: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2049,20 +2099,17 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Root owns assignment of the next specific local validation phase. Do not
-  launch another test, database preflight, fixture, browser matrix, CI run, or
-  source investigation until that direction arrives. Preserve the exact 2129
-  12/12 offline DB/API/shared-runtime result and independently verified cleanup;
-  keep the 2119 eight-marker interruption and prior384MiB OOM as partial/
-  inconclusive history, not failures or passes. Source remains frozen at
-  45c6a5f69029aa3b873ad68d717202f308845dd5 and origin-synchronized. The known
-  green CI40006029802 is for prior d42, not current source45c6; no current-source
-  CI result is claimed here. SEC transport remains held pending reviewed
-  policy/account/operation/cost/entitlement/aggregate commitment, native
-  headroom/reset, qualifying filing identity and applicable live evidence.
-  Broader full local validation, full_stack_browser, live acquisition, deployed
-  positive-sample acceptance and Root checkpoint review remain open. Preserve
-  observed known_at, unknown publication, raw lineage, current/PIT distinctions,
-  full AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data and the
-  30-day observation. The checkpoint remains pending and is not ready for
-  integration.
+  Complete the own-record reconciliation of the exact cdc33442 release in this
+  assigned ETF worktree, validate the four owner records and source/merge
+  provenance, then push the combined clean feature source once. Verify the
+  final local/origin SHA and preserve the automatically triggered exact-source
+  CI result. Do not run local tests, builds, browser, Docker, fixtures, services,
+  provider/issuer/SEC HTTP, or quota operations in this adoption window; Root
+  assigns the next bounded validation slot after publication. Keep the exact
+  2129 12/12 DB result tied to source45c6, 2119 and 384MiB OOM evidence partial,
+  and prior CIs source-qualified. SEC transport, all live/account/cost/headroom
+  uncertainties, real IWM acquisition and deployed positive-sample proof remain
+  held/open. Preserve full AC1-AC14, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and
+  Militia/GOOG quarantines, retained data, historical/PIT lineage, disabled
+  routes and the 30-day observation. This adoption does not accept or close the
+  current SEC checkpoint or full ETF roadmap.

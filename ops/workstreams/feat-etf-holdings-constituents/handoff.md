@@ -15795,3 +15795,46 @@ profile phase. Until then, do not start another test, preflight, fixture,
 browser matrix, CI run, or source investigation. Preserve full AC1–AC14,
 `15 Tier-0 and 156 Tier-1`, all route holds and quarantines, retained data,
 current/PIT and raw-lineage semantics, and the 30-day observation gate.
+
+## Released Provider/Strategy staging adoption — 2026-10-24
+
+The prior “Root will assign the next phase” boundary above is superseded for
+this exact staging synchronization only. Root released synchronized-green
+staging `cdc33442c19f5c387b9ada759607d961365993c0`; release record
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-cdc334-green-release-20261024.md`
+and canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261024T111337Z-cdc33442c19f.json`
+record terminal-green Actions run `40083128955` and Exhaustive Integration
+Gate job `120844769370`. A direct `git ls-remote` confirmed `origin/staging`
+was exactly that SHA and `origin/feat/etf-holdings-constituents` was still
+`45c6a5f69029aa3b873ad68d717202f308845dd5` before this adoption.
+
+The four pre-existing dirty ETF-owned records were preserved and first closed
+in commit `d648557f0e4b87618797554f72630aacbea6b04f` after the canonical
+workstream validator, JSON/JSONL parsing, plan-hash comparison and diff check
+passed. The exact staging SHA was then merged into this worktree. Git found no
+conflicts; merge base was `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`, and merge
+commit `dc7d5687e5f932fcec9009d17abb1f802e3bbfbc` has parents `d648557f` and
+the exact released `cdc33442`.
+
+The merge preserves the later ETF SEC implementation, tests, workstream history
+and all fourteen roadmap criteria; it also brings in the released Provider and
+Strategy source and their own staging evidence. No sibling worktree or staging
+ref was written. Static contract inspection confirms the merged shared
+`execute_provider_call` still requires its invoke callback to be synchronous
+and non-awaitable, and the ETF bridge adapts requests through
+`_sync_provider_invoke` while calling the shared `ETF_HOLDINGS` execution
+path. This is not runtime validation. The existing window-2129 12/12 result
+remains tied to source `45c6`, not the merged source.
+
+This adoption does not accept or close `etf-first-human-sec-source-1`, establish
+a live or native-current IWM result, or complete AC1–AC14. SEC transport and
+unknown native account/cost/headroom evidence remain held; no live request,
+quota replay, paid/trial activation, deployment or data cleanup occurred. The
+branch-owned reconciliation records are being committed with the merged
+source, followed by one push of the combined clean ETF tip. That push will
+trigger exact-source CI; no tests, build, browser, Docker or service action was
+run during this adoption. Root will assign the next bounded local validation
+slot after publication. Preserve the historical CI reds, skips and partials,
+the full roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
+quarantines, PIT/raw lineage, all holds and the 30-day observation gate.

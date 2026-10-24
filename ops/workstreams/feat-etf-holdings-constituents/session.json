@@ -102,7 +102,7 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "2026-10-23T19:51:41Z: Exact CI40006029802 on published d42e5ff07490af8f0fb894e7ab924e4f62cc4379 is terminal success: Frontend, Backend, Branch-declared and E2E passed; Exhaustive skipped by feature-branch policy. Root independently confirmed exact CI green. This run does not cover the local selected-snapshot UI change, which has existing focused6/6 and type-check pass receipts. Root reports the refused19:21 resource window and subsequent independently verified recovery: all six target services healthy; schema/seeds/routing/request-log count4, real479 SPY/RSP bars and Run4 artifacts unchanged. The corrected512MiB DB grant remains unused; do not run a preflight loop or test/fixture/service action. No DB/runtime proof, real IWM sample, full_stack_browser, applicable live evidence, or first-human checkpoint acceptance is claimed. SEC remains held. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data, disabled routes and the30-day observation.",
+  "current_blocker_latest": "2026-10-24T11:22:03Z: Exact synchronized-green staging cdc33442c19f5c387b9ada759607d961365993c0 was verified against origin/staging and merged into this ETF branch at dc7d5687e5f932fcec9009d17abb1f802e3bbfbc with no conflicts; merge base a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e. The four previously dirty ETF workstream records were preserved and committed at d648557f0e4b87618797554f72630aacbea6b04f before merge. Static inspection finds the ETF bridge still uses the shared ETF_HOLDINGS execution path with synchronous invoke adaptation; no runtime proof was run. The final own-record commit and one combined-source push are pending; exact-source CI will follow publication. The exact window2129 12/12 offline DB result remains tied to source45c6, not this merged source; prior reds/partials/skips remain historical. SEC transport is held, no real IWM acquisition/native-current support or new checkpoint acceptance is claimed. Root's next bounded local validation slot is pending. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds/quarantines, retained data, PIT/raw lineage and the30-day observation.",
   "current_local_delta": "The dedicated EDGAR SEC path binds committed CIK/series/class, shares Provider admission per physical attempt/redirect, retains rejected raw evidence, records observed known_at and keeps publication unknown. The bounded reader latches response/aggregate/access/page/redirect/attempt/deadline limits, rejects compressed tails/members and prevents completed-empty backfills. The marked HTTP200 fix raises inside synchronous shared Provider invoke after telemetry and before success settlement. Repeat imports now distinguish a persisted verified snapshot from no qualifying filing; the SEC per-hop runtime mock uses an unread ByteStream. An admin-only, dry-run-first EDGAR ETF provisioning endpoint requires explicit reviewed evidence and preserves disabled defaults; Provider read-only review found no concrete source-contract defect. The 61-test SEC/bridge/provisioning unit selection and targeted Ruff/format checks pass. The prior nine-case DB attempt remains partial after384MiB OOM; this fresh512MiB slot preflight refused at1425592KiB below1536MiB and created no resources. No live transport/quota/activation occurred. Full AC1-AC14 and all mandatory DB/full-profile/live gates remain open.",
   "dirty_paths": [],
   "docker": {
@@ -274,7 +274,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Root owns assignment of the next specific local validation phase. Do not launch another test, DB preflight, fixture, browser matrix, CI run, or source investigation until directed. Preserve the exact window2129 12/12 offline DB/API/shared-runtime result and cleanup, plus window2119's eight markers and SIGINT/SIGKILL/exit137 as partial/inconclusive without summary and the earlier384MiB OOM. Source remains frozen at45c6a5f69029aa3b873ad68d717202f308845dd5 and origin-synchronized. The known green CI40006029802 is for prior d42, not current45c6; no current-source CI result is claimed here. SEC remains held; broader full local validation/full_stack_browser, live acquisition, deployed positive-sample acceptance, exact current-source CI and Root checkpoint review remain open. Preserve observed known_at, unknown publication, raw lineage, current/PIT distinctions, full AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, retained data and the30-day observation. The checkpoint remains pending and is not ready for integration.",
-  "plan_hash": "2308b99de50afbb2b2ebacc52fddf4dff45489c1768335461afa20c3632ea2f7",
+  "plan_hash": "00431a7faad0d94b97cdd553f905be72d707b8783389fa898a288bd6f37b5191",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -454,12 +454,12 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The selected 12-case offline SEC DB/API/shared-runtime scope passed on current source45c6a5f69029aa3b873ad68d717202f308845dd5 and exact cleanup was verified. Window2119's eight progress markers and exit137 after exceeding its then-128MiB PG-growth guard remain partial/inconclusive without a pytest summary; the earlier384MiB OOM remains partial. Exact green CI40006029802 is for prior d42, not current source45c6. No real IWM acquisition/native-current SEC support or checkpoint acceptance is proven. Broader full local/full_stack_browser, live/deployed sample proof and current-source CI remain open. SEC transport stays held. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds/quarantines, retained data and the30-day observation.",
-    "current_phase": "offline_sec_api_shared_runtime_db_selection_2129_2026_10_23",
-    "next_action": "Root will assign the next specific local validation phase. Until then do not run additional tests, DB preflights, fixtures, browser matrices, CI, or source investigations. Preserve exact source45c6 and origin parity, the complete window2129 12/12 receipt and cleanup, and all older partial/red evidence. Full local/full_stack_browser, applicable live/deployed positive-sample proof, current-source CI, and Root checkpoint review remain open; no new checkpoint acceptance or full-roadmap completion is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, current/PIT/raw lineage, quarantines, retained data, disabled routes and 30-day observation.",
-    "updated_at": "2026-10-23T21:40:13Z"
+    "current_blocker": "Exact synchronized-green staging cdc33442c19f5c387b9ada759607d961365993c0 has been merged locally at dc7d5687e5f932fcec9009d17abb1f802e3bbfbc. This combined ETF source has not yet been pushed; exact-source branch CI and Root-assigned full local validation remain pending. Window2129's 12/12 result is source-qualified to 45c6 only, while window2119 and the prior384MiB OOM remain partial/inconclusive. No live IWM acquisition/native-current SEC support or new ETF checkpoint acceptance is claimed. SEC transport and unknown account/cost/headroom, paid/trial and unsafe routes remain held. Preserve the full roadmap, current/PIT lineage, quarantines, retained data and the30-day observation.",
+    "current_phase": "cdc33442_green_staging_adoption_2026_10_24",
+    "next_action": "Complete the own-record reconciliation of the exact cdc33442 release and merged source dc7d5687e5f932fcec9009d17abb1f802e3bbfbc; then publish the combined clean ETF branch once and verify remote parity plus the automatically triggered exact-source CI. No local tests/build/browser/Docker/service/provider/issuer/SEC/HTTP/quota action is authorized in this adoption window. Root assigns the next bounded local validation slot after publication. Keep all full local, live/deployed positive-sample and checkpoint-review gates open; preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, holds, quarantines, retained data, PIT/raw lineage and the30-day observation.",
+    "updated_at": "2026-10-24T11:22:03Z"
   },
-  "provider_release": {
+  "provider_release_2026_10_20": {
     "boundary": "Provider release only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261020T205101Z-9b230ba4c971.json",
     "exact_ci_run": 39484176087,
@@ -469,9 +469,30 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
+  "provider_release": {
+    "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261024T111337Z-cdc33442c19f.json",
+    "exact_ci_run": 40083128955,
+    "exhaustive_gate_job": 120844769370,
+    "recorded_at": "2026-10-24T11:13:37Z",
+    "release_record": "/home/m920q/charting-platform/.ai/staging-attempts/provider-cdc334-green-release-20261024.md",
+    "staging_sha": "cdc33442c19f5c387b9ada759607d961365993c0",
+    "status": "accepted_and_released_in_synchronized_green_staging"
+  },
+  "staging_adoption_2026_10_24": {
+    "branch_merge_commit": "dc7d5687e5f932fcec9009d17abb1f802e3bbfbc",
+    "branch_merge_parents": ["d648557f0e4b87618797554f72630aacbea6b04f", "cdc33442c19f5c387b9ada759607d961365993c0"],
+    "merge_base": "a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e",
+    "origin_staging_verified": "cdc33442c19f5c387b9ada759607d961365993c0",
+    "recorded_at": "2026-10-24T11:20:26Z",
+    "status": "merged_locally_no_conflicts_final_owner_record_commit_and_single_push_pending",
+    "static_contract_review": "The merged shared execute_provider_call is async with a synchronous non-awaitable invoke callback; ETF uses _sync_provider_invoke and the shared ETF_HOLDINGS capability. Source inspection only; runtime validation remains open.",
+    "preserved": "ETF-owned SEC source, all AC1-AC14, prior receipts/partials/reds/skips, Provider and Strategy staging source/evidence, and all holds/quarantines"
+  },
   "remote": "45c6a5f69029aa3b873ad68d717202f308845dd5",
   "remote_sha": "45c6a5f69029aa3b873ad68d717202f308845dd5",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
+  "remote_observation": "origin ETF tip 45c6a5f69029aa3b873ad68d717202f308845dd5 was confirmed by direct ls-remote before merging; final combined-source push/parity is still pending at this record snapshot.",
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
