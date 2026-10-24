@@ -20,6 +20,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.config import settings
 from app.models.data_source import DataSource
@@ -170,7 +171,7 @@ def _e2e_fixture_bar_condition():
 
 
 def _default_series_bar_condition(
-    instrument_id: int,
+    instrument_id: int | ColumnElement[int],
     timeframe: Timeframe,
     adjusted: bool,
 ):
@@ -179,7 +180,9 @@ def _default_series_bar_condition(
     New provider writes create an explicit default mapping.  The canonical
     series fallback handles rows created before that mapping existed, while
     the legacy branch keeps old symbol-based rows readable when no series has
-    ever been recorded for the scope.
+    ever been recorded for the scope. ``instrument_id`` may be the outer
+    ``OHLCVBar.instrument_id`` expression, which applies this same per-row
+    contract to a set-based multi-instrument query without an N+1 lookup.
     """
 
     mapping = select(MarketSeriesDefault.market_series_id).where(
@@ -220,6 +223,7 @@ def _default_series_bar_condition(
         )
         .order_by(MarketSeries.id)
         .limit(1)
+        .correlate(OHLCVBar)
     )
     canonical_id = canonical.scalar_subquery()
     canonical_bar = aliased(OHLCVBar)

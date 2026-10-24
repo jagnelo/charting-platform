@@ -23,6 +23,7 @@ from app.schemas.code import ResearchBatchResultOut, ResearchRunCreate, Research
 from app.schemas.strategy import StrategyDefinitionDetailOut
 from app.services.breadth import build_equal_reference_series
 from app.services.evaluator_preflight import EvaluatorPreflight, preflight_ohlcv
+from app.services.market_data import _default_series_bar_condition
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
     cancel_research_run,
@@ -294,6 +295,9 @@ async def _load_instrument_bars(
         OHLCVBar.instrument_id == instrument.id,
         OHLCVBar.timeframe == options["timeframe"],
         OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
+        _default_series_bar_condition(
+            OHLCVBar.instrument_id, options["timeframe"], options["is_adjusted"]
+        ),
     ]
     if options["session"] == "regular":
         conditions.append(OHLCVBar.session == "regular")
@@ -379,44 +383,49 @@ async def _materialize_benchmark_dataset(
 async def _load_bars_for_ids(
     db: AsyncSession, instrument_ids: list[int], options: dict, *, limit: int
 ) -> dict[int, list[OHLCVBar]]:
-    """Load a bounded, per-instrument bar window for derived reference targets."""
+    """Load bounded default-series windows in set-based instrument batches."""
     if not instrument_ids:
         return {}
-    conditions = [
-        OHLCVBar.instrument_id.in_(instrument_ids),
-        OHLCVBar.timeframe == options["timeframe"],
-        OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
-    ]
-    if options["session"] == "regular":
-        conditions.append(OHLCVBar.session == "regular")
-    if options["start"]:
-        conditions.append(OHLCVBar.ts >= options["start"])
-    if options["end"]:
-        conditions.append(OHLCVBar.ts <= options["end"])
-    ranked_bars = (
-        select(
-            OHLCVBar.id.label("bar_id"),
-            func.row_number()
-            .over(
-                partition_by=OHLCVBar.instrument_id,
-                order_by=OHLCVBar.ts.desc(),
-            )
-            .label("bar_rank"),
-        )
-        .where(*conditions)
-        .subquery()
-    )
-    bars = (
-        await db.execute(
-            select(OHLCVBar)
-            .join(ranked_bars, OHLCVBar.id == ranked_bars.c.bar_id)
-            .where(ranked_bars.c.bar_rank <= limit)
-            .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
-        )
-    ).scalars()
     result: dict[int, list[OHLCVBar]] = {}
-    for bar in bars:
-        result.setdefault(bar.instrument_id, []).append(bar)
+    for offset in range(0, len(instrument_ids), BATCH_QUERY_SIZE):
+        ids = instrument_ids[offset : offset + BATCH_QUERY_SIZE]
+        conditions = [
+            OHLCVBar.instrument_id.in_(ids),
+            OHLCVBar.timeframe == options["timeframe"],
+            OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
+            _default_series_bar_condition(
+                OHLCVBar.instrument_id, options["timeframe"], options["is_adjusted"]
+            ),
+        ]
+        if options["session"] == "regular":
+            conditions.append(OHLCVBar.session == "regular")
+        if options["start"]:
+            conditions.append(OHLCVBar.ts >= options["start"])
+        if options["end"]:
+            conditions.append(OHLCVBar.ts <= options["end"])
+        ranked_bars = (
+            select(
+                OHLCVBar.id.label("bar_id"),
+                func.row_number()
+                .over(
+                    partition_by=OHLCVBar.instrument_id,
+                    order_by=OHLCVBar.ts.desc(),
+                )
+                .label("bar_rank"),
+            )
+            .where(*conditions)
+            .subquery()
+        )
+        bars = (
+            await db.execute(
+                select(OHLCVBar)
+                .join(ranked_bars, OHLCVBar.id == ranked_bars.c.bar_id)
+                .where(ranked_bars.c.bar_rank <= limit)
+                .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+            )
+        ).scalars()
+        for bar in bars:
+            result.setdefault(bar.instrument_id, []).append(bar)
     return result
 
 
@@ -649,44 +658,9 @@ async def _materialize_declared_dataset(
         instrument_ids = [instrument.id for instrument in instruments]
         for offset in range(0, len(instrument_ids), BATCH_QUERY_SIZE):
             ids = instrument_ids[offset : offset + BATCH_QUERY_SIZE]
-            bar_conditions = [
-                OHLCVBar.instrument_id.in_(ids),
-                OHLCVBar.timeframe == options["timeframe"],
-                OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
-            ]
-            if options["session"] == "regular":
-                bar_conditions.append(OHLCVBar.session == "regular")
-            if options["start"]:
-                bar_conditions.append(OHLCVBar.ts >= options["start"])
-            if options["end"]:
-                bar_conditions.append(OHLCVBar.ts <= options["end"])
-            ranked_bars = (
-                select(
-                    OHLCVBar.id.label("bar_id"),
-                    func.row_number()
-                    .over(
-                        partition_by=OHLCVBar.instrument_id,
-                        order_by=OHLCVBar.ts.desc(),
-                    )
-                    .label("bar_rank"),
-                )
-                .where(*bar_conditions)
-                .subquery()
+            bars_by_instrument.update(
+                await _load_bars_for_ids(db, ids, options, limit=history_limit)
             )
-            bars = (
-                (
-                    await db.execute(
-                        select(OHLCVBar)
-                        .join(ranked_bars, OHLCVBar.id == ranked_bars.c.bar_id)
-                        .where(ranked_bars.c.bar_rank <= history_limit)
-                        .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
-                    )
-                )
-                .scalars()
-                .all()
-            )
-            for bar in bars:
-                bars_by_instrument.setdefault(bar.instrument_id, []).append(bar)
         coverage_preflight = await _research_coverage_preflight(
             db,
             options=options,
