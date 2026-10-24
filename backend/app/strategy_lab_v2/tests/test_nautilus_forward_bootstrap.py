@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
-from typing import TypedDict
+from typing import TypedDict, cast
 
 import pytest
 
@@ -24,9 +24,14 @@ from app.strategy_lab_v2.contracts import (
     CarryInMode,
     ForwardInstance,
     ForwardState,
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
 )
 from app.strategy_lab_v2.event_tape import bind_event_tape
-from app.strategy_lab_v2.event_tape_artifacts import FrozenEventTapeArtifactResolution
+from app.strategy_lab_v2.event_tape_artifacts import (
+    FrozenEventTapeArtifactResolution,
+    materialize_frozen_event_tape_stream,
+)
 from app.strategy_lab_v2.forward_execution_plan import (
     ForwardComponentExecutionPlan,
     ForwardExecutionPlan,
@@ -37,14 +42,17 @@ from app.strategy_lab_v2.forward_execution_plan_resolution import (
 )
 from app.strategy_lab_v2.forward_processed_prefix import ForwardProcessedEventPrefix
 from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
+from app.strategy_lab_v2.forward_warmup_stream import materialize_forward_warmup_stream
 from app.strategy_lab_v2.forward_worker_composition import (
     materialize_authenticated_forward_runtime_bundle,
+    materialize_authenticated_forward_runtime_bundle_from_stream,
     materialize_authenticated_forward_sandbox_plan,
 )
 from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_engine_input import (
     NautilusComponentStrategyBinding,
     NautilusEngineInput,
+    NautilusEventTape,
 )
 from app.strategy_lab_v2.nautilus_event_adapter import materialize_nautilus_event_tape
 from app.strategy_lab_v2.nautilus_forward_bootstrap import (
@@ -79,7 +87,9 @@ from app.strategy_lab_v2.strategy_package_resolution import (
     ResolvedStrategyPackage,
 )
 from app.strategy_lab_v2.strategy_validation import validate_strategy_source
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _engine_inputs
+from strategy_runtime import deserialize_component_invocation_context_stream
 
 NOW = datetime(2026, 10, 5, 14, 30, tzinfo=UTC)
 
@@ -519,7 +529,23 @@ def test_forward_bootstrap_event_rejects_source_and_correction_mismatch() -> Non
 def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(
     tmp_path, monkeypatch
 ) -> None:
-    fixture = _engine_inputs()
+    study_payload = {"type": "series", "value": [0.9, 1.1]}
+    study_reference = SelectedStudyArtifactReference(
+        research_run_id=41,
+        code_version_id=43,
+        artifact_id=47,
+        artifact_name="study.close",
+        artifact_type="series",
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest=_digest("study-code-version"),
+        dataset_manifest_digest=_digest("study-dataset"),
+        artifact_content_digest=content_digest(study_payload),
+    )
+    study_output = ResolvedStudyArtifactOutput(
+        study_reference, cast(FrozenStudyArtifactPayload, study_payload)
+    )
+    fixture = _engine_inputs(selected_study_artifact=study_reference)
     snapshot = fixture["snapshot"]
     portfolio = fixture["portfolio"]
     strategy = fixture["strategy_manifest"].strategy
@@ -573,6 +599,7 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(
         strategy,
         package,
         resolved_package,
+        {study_reference.artifact_name: study_output},
     )
     resolved_plan = ResolvedForwardExecutionPlan(
         instance,
@@ -637,6 +664,22 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(
         warmup_payloads=warmup_payloads,
         engine_input=engine_input,
     )
+    component_bindings, decoded_component_contexts = (
+        deserialize_component_invocation_context_stream(
+            BytesIO(store.read(runtime_artifacts.context_stream.artifact.storage_key)),
+            expected_component_counts=dict(runtime_artifacts.context_stream.component_counts),
+        )
+    )
+    assert component_bindings["component-1"].manifest.strategy.fingerprint == strategy.fingerprint
+    assert component_bindings["component-1"].study_artifacts == {
+        study_reference.artifact_name: study_output
+    }
+    decoded_contexts = tuple(context for _component_id, context in decoded_component_contexts)
+    assert decoded_contexts
+    assert all(
+        context.study_artifacts == {study_reference.artifact_name: study_output}
+        for context in decoded_contexts
+    )
     native_reference = runtime_artifacts.native_event_stream
     native_records = tuple(
         deserialize_nautilus_native_event_stream(
@@ -689,6 +732,48 @@ def test_build_binds_owner_plan_warmup_snapshot_prefix_and_native_inputs(
                 processed_canonical.source_digest,
             ),
         ),
+    )
+
+    complete_tape_stream = materialize_frozen_event_tape_stream(
+        store,
+        snapshot=snapshot,
+        manifest=manifest,
+        events=frozen_tape.events,
+        source_artifact_digests=tuple(sorted({item.content_digest for item in snapshot.series})),
+    )
+    warmup_stream = materialize_forward_warmup_stream(
+        store,
+        snapshot=snapshot,
+        manifest=manifest,
+        complete_tape=complete_tape_stream,
+        payloads=warmup_payloads,
+        receipt=receipt,
+        before_event=processed_canonical,
+    )
+    streamed_runtime_artifacts = materialize_authenticated_forward_runtime_bundle_from_stream(
+        store,
+        execution_plan=resolved_plan,
+        snapshot=snapshot,
+        tape_manifest=manifest,
+        warmup_stream=warmup_stream,
+        engine_input=replace(
+            engine_input,
+            event_tape=NautilusEventTape(frozen_tape.fingerprint, ()),
+        ),
+    )
+    streamed_bindings, streamed_contexts = deserialize_component_invocation_context_stream(
+        BytesIO(store.read(streamed_runtime_artifacts.context_stream.artifact.storage_key)),
+        expected_component_counts=dict(streamed_runtime_artifacts.context_stream.component_counts),
+    )
+    assert streamed_bindings["component-1"].manifest.strategy.fingerprint == strategy.fingerprint
+    assert streamed_bindings["component-1"].study_artifacts == {
+        study_reference.artifact_name: study_output
+    }
+    streamed_context_values = tuple(context for _component_id, context in streamed_contexts)
+    assert streamed_context_values
+    assert all(
+        context.study_artifacts == {study_reference.artifact_name: study_output}
+        for context in streamed_context_values
     )
 
     bootstrap = NautilusForwardRuntimeBootstrap.build(

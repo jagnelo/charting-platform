@@ -633,6 +633,7 @@ def _seed_context_windows(
                 binding.manifest,
                 parameters=context.parameters,
                 random_seed=component.random_seed,
+                study_artifacts=context.study_artifacts,
             )
             windows[component_id] = window
             for dependency in binding.manifest.data_dependencies:

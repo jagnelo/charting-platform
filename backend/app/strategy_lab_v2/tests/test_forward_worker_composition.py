@@ -5,6 +5,7 @@ import os
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -15,6 +16,10 @@ from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.authenticated_event_tape import AuthenticatedFrozenEventTapeResolver
 from app.strategy_lab_v2.canonical import content_digest
+from app.strategy_lab_v2.contracts import (
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
+)
 from app.strategy_lab_v2.event_tape import bind_event_tape
 from app.strategy_lab_v2.event_tape_artifacts import (
     FrozenEventTapeArtifactResolution,
@@ -53,11 +58,13 @@ from app.strategy_lab_v2.nautilus_event_adapter import (
     NautilusForwardDeliveryBinding,
     materialize_nautilus_forward_tape,
 )
+from app.strategy_lab_v2.nautilus_forward_bootstrap import NautilusForwardRuntimeBootstrap
 from app.strategy_lab_v2.nautilus_forward_delivery import (
     VerifiedForwardMarketPayload,
     create_nautilus_forward_delivery_callback_factory,
 )
 from app.strategy_lab_v2.nautilus_forward_input import NautilusForwardDeliveryInput
+from app.strategy_lab_v2.nautilus_forward_native_runtime import _seed_context_windows
 from app.strategy_lab_v2.nautilus_forward_process import (
     HardenedNautilusForwardSessionProcessFactory,
     NautilusRuntimeIpcSubprocess,
@@ -81,8 +88,10 @@ from app.strategy_lab_v2.sandbox import (
 from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.tests.forward_replay_ledger import DurableReplayLedger
+from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from app.strategy_lab_v2.tests.test_nautilus_trial_assembly import _inputs as _trial_inputs
 from app.strategy_lab_v2.workers import WorkerKind, WorkerProfile
+from strategy_runtime import deserialize_component_invocation_context_stream
 
 
 class _Runtime:
@@ -415,13 +424,35 @@ def test_forward_sandbox_input_resolver_requires_one_authenticated_owner() -> No
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("study_artifact_type", "study_value"),
+    STUDY_ARTIFACT_OUTPUT_CASES,
+)
 async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape(
     tmp_path: Any,
     monkeypatch: Any,
+    study_artifact_type: str,
+    study_value: Any,
 ) -> None:
     values = _trial_inputs()
     snapshot = values["snapshot"]
     manifest = values["strategy_manifest"]
+    study_payload = {"type": study_artifact_type, "value": study_value}
+    study_reference = SelectedStudyArtifactReference(
+        research_run_id=41,
+        code_version_id=12,
+        artifact_id=87,
+        artifact_name="study.close",
+        artifact_type=study_artifact_type,
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest=content_digest("forward-worker-study-code-version"),
+        dataset_manifest_digest=content_digest("forward-worker-study-dataset"),
+        artifact_content_digest=content_digest(study_payload),
+    )
+    strategy = replace(manifest.strategy, selected_study_artifact=study_reference)
+    manifest = replace(manifest, strategy=strategy)
+    study_output = ResolvedStudyArtifactOutput(study_reference, study_payload)
     source_tape = values["event_tape"]
     source_resolution = FrozenEventTapeArtifactResolution(
         snapshot.fingerprint,
@@ -430,13 +461,22 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         bind_event_tape(source_tape, snapshot, manifest),
         tuple(sorted(item.content_digest for item in snapshot.series)),
     )
-    strategy = values["strategy_manifest"].strategy
-    package = values["strategy_package"]
+    package = replace(
+        values["strategy_package"],
+        strategy_fingerprint=strategy.fingerprint,
+        manifest_digest=manifest.fingerprint,
+    )
     instance = SimpleNamespace(
         instance_id="forward-1",
         warmup_snapshot_fingerprint=snapshot.fingerprint,
     )
-    portfolio = values["portfolio"]
+    portfolio = replace(
+        values["portfolio"],
+        components=tuple(
+            replace(component, strategy_fingerprint=strategy.fingerprint)
+            for component in values["portfolio"].components
+        ),
+    )
     component_binding = ForwardComponentExecutionPlan(
         "component-1",
         strategy.fingerprint,
@@ -449,6 +489,7 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         binding=component_binding,
         strategy=strategy,
         package=package,
+        study_artifacts={study_reference.artifact_name: study_output},
         resolved_package=SimpleNamespace(
             fingerprint=content_digest("resolved-package"),
             archive_manifest=SimpleNamespace(content_digest=content_digest("package-archive")),
@@ -538,6 +579,7 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         manifest,
         parameters=component_binding.parameters,
         random_seed=component_binding.random_seed,
+        study_artifacts={study_reference.artifact_name: study_output},
     )
     for payload in full_payloads:
         if payload.canonical_event.sequence > cursor.sequence:
@@ -659,6 +701,9 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
         == result.warmup_stream.tape.tape_fingerprint
     )
     assert result.engine_input.event_tape.events == ()
+    assert result.execution_plan.components["component-1"].study_artifacts == {
+        study_reference.artifact_name: study_output
+    }
 
     output_directory = tmp_path / "forward-output"
     output_directory.mkdir(mode=0o700)
@@ -695,6 +740,62 @@ async def test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape
     assert sandbox_context_stream_digest(sandbox_plan)
     context_stream_path = sandbox_context_stream_path(sandbox_plan)
     assert context_stream_path is not None and context_stream_path.is_file()
+    context_bindings, serialized_contexts = deserialize_component_invocation_context_stream(
+        BytesIO(context_stream_path.read_bytes())
+    )
+    expected_study_outputs = {study_reference.artifact_name: study_output}
+    assert context_bindings["component-1"].study_artifacts == expected_study_outputs
+    decoded_contexts = tuple(context for _component_id, context in serialized_contexts)
+    assert decoded_contexts
+    assert all(context.study_artifacts == expected_study_outputs for context in decoded_contexts)
+
+    bootstrap = NautilusForwardRuntimeBootstrap.from_json_bytes(
+        bootstrap_path.read_bytes(),
+        expected_fingerprint=sandbox_forward_bootstrap_digest(sandbox_plan),
+    )
+    context_fingerprint = sandbox_context_stream_digest(sandbox_plan)
+    assert context_fingerprint is not None
+    seeded_windows, _event_types = _seed_context_windows(
+        BytesIO(context_stream_path.read_bytes()),
+        bootstrap=bootstrap,
+        engine_input={
+            "strategy_bindings": [
+                {
+                    "component_id": "component-1",
+                    "entrypoint": context_bindings["component-1"].entrypoint,
+                    "strategy_manifest_fingerprint": manifest.fingerprint,
+                }
+            ]
+        },
+        context_stream_fingerprint=context_fingerprint,
+        expected_component_counts={"component-1": len(decoded_contexts)},
+    )
+    last_context = decoded_contexts[-1]
+    next_time = last_context.event_time + timedelta(seconds=1)
+    next_sequence = last_context.event_sequence + 1
+    next_market_event = replace(
+        source_tape.events[0],
+        event_id="native-seeded-study-next",
+        event_time=next_time,
+        sequence=next_sequence,
+    )
+    next_source_digest = content_digest(next_market_event.values)
+    next_payload = VerifiedForwardMarketPayload(
+        CanonicalForwardEvent(
+            next_market_event.event_id,
+            next_sequence,
+            next_time,
+            next_time,
+            next_source_digest,
+        ),
+        next_market_event,
+        next_source_digest,
+    )
+    native_seed_preparation = seeded_windows["component-1"].prepare(
+        next_payload,
+        instance_id=bootstrap.instance_id,
+    )
+    assert native_seed_preparation.context.study_artifacts == expected_study_outputs
     assert sandbox_plan.request_fingerprint
     validate_sandbox_command_plan(sandbox_plan)
 

@@ -28,6 +28,7 @@ describe('application route contract', () => {
       '/legacy/alerts',
       '/legacy/radar',
       '/legacy/strategy-lab',
+      '/legacy/strategy-lab-v2',
       '/legacy/baskets',
       '/legacy/etf-holdings',
       '/legacy/screener',
@@ -36,6 +37,7 @@ describe('application route contract', () => {
     ]))
     expect(legacyPaths.every(path => path.startsWith('/legacy/'))).toBe(true)
     expect(route('/legacy/chart/:symbol(.*)')?.component).not.toBe(route('/chart/:symbol(.*)')?.component)
+    expect(route('/legacy/strategy-lab-v2')?.meta?.public).not.toBe(true)
   })
 
   it('redirects pre-workstation top-level feature paths into legacy routes', () => {
@@ -46,6 +48,7 @@ describe('application route contract', () => {
       '/alerts': '/legacy/alerts',
       '/radar': '/legacy/radar',
       '/strategy-lab': '/legacy/strategy-lab',
+      '/strategy-lab-v2': '/legacy/strategy-lab-v2',
       '/baskets': '/legacy/baskets',
       '/etf-holdings': '/legacy/etf-holdings',
       '/screener': '/legacy/screener',

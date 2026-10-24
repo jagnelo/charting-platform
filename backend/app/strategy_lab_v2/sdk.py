@@ -16,7 +16,11 @@ from typing import Any, Protocol, TypeAlias
 
 from app.strategy_lab_v2.canonical import content_digest, freeze_json
 from app.strategy_lab_v2.capabilities import CapabilityRequirement
-from app.strategy_lab_v2.contracts import StrategyDependency, StrategyVersion
+from app.strategy_lab_v2.contracts import (
+    ResolvedStudyArtifactOutput,
+    StrategyDependency,
+    StrategyVersion,
+)
 
 
 class OrderSide(StrEnum):
@@ -175,6 +179,9 @@ class StrategyContext:
     parameters: Mapping[str, Any]
     market_events: Mapping[str, tuple[MarketEvent, ...]]
     positions: Mapping[str, PositionSnapshot] = field(default_factory=dict)
+    study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = field(
+        default=None, metadata={"canonical_omit_none": True}
+    )
 
     def __post_init__(self) -> None:
         if not isinstance(self.event_time, datetime):
@@ -196,6 +203,8 @@ class StrategyContext:
             raise TypeError("market_events must be a mapping")
         if not isinstance(self.positions, Mapping):
             raise TypeError("positions must be a mapping")
+        if self.study_artifacts is not None and not isinstance(self.study_artifacts, Mapping):
+            raise TypeError("strategy Study artifacts must be a mapping or None")
         frozen_parameters = freeze_json(self.parameters)
         if not isinstance(frozen_parameters, Mapping):
             raise TypeError("strategy parameters must be a mapping")
@@ -231,6 +240,24 @@ class StrategyContext:
         object.__setattr__(self, "parameters", frozen_parameters)
         object.__setattr__(self, "market_events", MappingProxyType(event_map))
         object.__setattr__(self, "positions", MappingProxyType(position_map))
+        if self.study_artifacts is not None:
+            study_artifacts = dict(self.study_artifacts)
+            if any(
+                not isinstance(name, str)
+                or not name.strip()
+                or not isinstance(output, ResolvedStudyArtifactOutput)
+                for name, output in study_artifacts.items()
+            ):
+                raise TypeError("strategy Study artifacts must map names to resolved outputs")
+            if any(
+                name != output.reference.artifact_name for name, output in study_artifacts.items()
+            ):
+                raise ValueError("strategy Study artifact keys must match immutable artifact names")
+            object.__setattr__(
+                self,
+                "study_artifacts",
+                MappingProxyType(study_artifacts) if study_artifacts else None,
+            )
 
 
 def build_strategy_context(
@@ -242,6 +269,7 @@ def build_strategy_context(
     parameters: Mapping[str, Any],
     market_events: Mapping[str, tuple[MarketEvent, ...]],
     positions: Mapping[str, PositionSnapshot] | None = None,
+    study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None,
 ) -> StrategyContext:
     """Build context only from manifest-declared series, fields, and lookbacks."""
 
@@ -253,6 +281,20 @@ def build_strategy_context(
         raise TypeError("market_events must be a mapping")
     if positions is not None and not isinstance(positions, Mapping):
         raise TypeError("positions must be a mapping")
+    selected_study = manifest.strategy.selected_study_artifact
+    if selected_study is None:
+        if study_artifacts:
+            raise ValueError("strategy context cannot contain unpinned Study artifacts")
+        study_artifacts = None
+    elif (
+        not isinstance(study_artifacts, Mapping)
+        or set(study_artifacts) != {selected_study.artifact_name}
+        or not isinstance(
+            study_artifacts[selected_study.artifact_name], ResolvedStudyArtifactOutput
+        )
+        or study_artifacts[selected_study.artifact_name].reference != selected_study
+    ):
+        raise ValueError("strategy context Study output differs from its immutable reference")
     declared = {item.dependency_id: item for item in manifest.data_dependencies}
     provided = set(market_events)
     if provided != set(declared):
@@ -300,6 +342,7 @@ def build_strategy_context(
         parameters=parameters,
         market_events=market_events,
         positions=position_snapshot,
+        study_artifacts=study_artifacts,
     )
 
 

@@ -11,6 +11,7 @@ const ScreenerView = () => import('@/views/ScreenerView.vue')
 const WatchlistView = () => import('@/views/WatchlistView.vue')
 const RadarView = () => import('@/views/RadarView.vue')
 const StrategyLabView = () => import('@/views/StrategyLabView.vue')
+const StrategyLabV2View = () => import('@/views/StrategyLabV2View.vue')
 const BasketsView = () => import('@/views/BasketsView.vue')
 const ETFHoldingsView = () => import('@/views/ETFHoldingsView.vue')
 
@@ -35,6 +36,7 @@ export const applicationRoutes = [
   { path: '/legacy/alerts', component: AlertsView },
   { path: '/legacy/radar', component: RadarView },
   { path: '/legacy/strategy-lab', component: StrategyLabView },
+  { path: '/legacy/strategy-lab-v2', component: StrategyLabV2View },
   { path: '/legacy/baskets', component: BasketsView },
   { path: '/legacy/etf-holdings', component: ETFHoldingsView },
   { path: '/legacy/screener', component: ScreenerView },
@@ -44,6 +46,7 @@ export const applicationRoutes = [
   { path: '/alerts', redirect: '/legacy/alerts' },
   { path: '/radar', redirect: '/legacy/radar' },
   { path: '/strategy-lab', redirect: '/legacy/strategy-lab' },
+  { path: '/strategy-lab-v2', redirect: '/legacy/strategy-lab-v2' },
   { path: '/baskets', redirect: '/legacy/baskets' },
   { path: '/etf-holdings', redirect: '/legacy/etf-holdings' },
   { path: '/screener', redirect: '/legacy/screener' },

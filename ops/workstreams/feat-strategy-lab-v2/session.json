@@ -50,8 +50,8 @@
     "wait_seconds": 0
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: Reconcile dependency-ordered accepted green staging incrementally: Provider canonical identity/local series/coverage/freshness/provenance now; ETF known-at point-in-time membership and TC2000 immutable CodeVersion/Study outputs only after their releases; then prove the full combined consumer contract without completing this criterion early.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-10-20T21:20:08.900149+00:00",
+  "goal_objective": "Advance feat/strategy-lab-v2: Continue the original full 18-criterion Strategy Lab v2 roadmap in the existing branch and worktree. The accepted strategy-lab-v2-integration-1 checkpoint is historical evidence, not full-topic or native-v2 SPA/execution completion. Continue bounded work against the integrated Provider, ETF, and TC2000 contracts while preserving every original criterion and all disabled-scope boundaries.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: Reconcile dependency-ordered accepted green staging incrementally: Provider canonical identity/local series/coverage/freshness/provenance now; ETF known-at point-in-time membership and TC2000 immutable CodeVersion/Study outputs only after their releases; then prove the full combined consumer contract without completing this criterion early.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-10-22T19:55:30Z",
   "goal_request": {
     "objective": "Advance feat/strategy-lab-v2: Prepare strategy-lab-v2-integration-1 for human review, preserving the complete original roadmap. Prepare independent consumer evidence now, then reconcile synchronized green staging after Provider, ETF and TC2000 integration and validate the combined application. Stop at ready_for_human_review.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: After Provider, ETF and TC2000 reach synchronized green staging and this source is unfrozen, merge staging here and reconcile canonical identity/series/coverage, known-at ETF membership and immutable CodeVersion/Study outputs.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
@@ -63,17 +63,23 @@
       "observed_at": "2026-10-22T04:23:00Z",
       "source": "Root live snapshot for existing thread 01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b; no goal recreation or accounting reset.",
       "status": "active"
+    },
+    {
+      "budget": "unbounded",
+      "observed_at": "2026-10-22T19:55:36Z",
+      "source": "The prior integration-checkpoint objective was accepted and completed. Created the authorized next full-roadmap goal in the same original thread 01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b; no replacement of an unfinished objective or accounting reset.",
+      "status": "active"
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "197ea15a9a90fbc76089a38fe67013c00a722d91",
-  "implementation_sha": "197ea15a9a90fbc76089a38fe67013c00a722d91",
-  "last_checkpoint": "2026-10-22T13:42:38Z",
-  "last_human_progress_update": "2026-10-20T21:20:08.693731+00:00",
+  "head": "83e93958921b479ccd122494571d0b9dbb1acc5d",
+  "implementation_sha": "83e93958921b479ccd122494571d0b9dbb1acc5d",
+  "last_checkpoint": "2026-10-24T04:13:05Z",
+  "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Checkpoint strategy-lab-v2-integration-1 is accepted at tested source 197ea15a9a90fbc76089a38fe67013c00a722d91 and ready for integration; this four-record closure push is the owner handoff. Root owns canonical staging integration and Exhaustive staging validation; do not self-integrate. After the exact synchronized green staging release, resume this same owner/worktree and continue the unchanged full 18-criterion roadmap.",
+  "next_action": "Root owns guarded staging integration of exact tested source 83e93958921b479ccd122494571d0b9dbb1acc5d after this ordinary closure is published and final exact-head CI is green. Continue the full 18-criterion roadmap in this same branch after coordinator release. This source checkpoint is not target acceptance: staging/master gates, separately authorized deployment, and genuine-data owner-positive/negative V2 inspector UI/API proof remain. Preserve SPY/RSP date-only venue review, prior red evidence, and all disabled live/native/forward/broker/capital boundaries.",
   "parent_branch": "staging",
-  "plan_hash": "6608dfb3b34881467ee1786fabbfa6dd7536b2a0db131a30b13a3fc2989579a1",
+  "plan_hash": "2ec5f1d126d4dc9dde614065c09189a2b0da837155afcc60de786feabe0dd681",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -96,21 +102,15 @@
     "7319d459-2838-40e4-bee4-fded78f58e16"
   ],
   "progress": {
-    "completed": [
-      "SLICP1",
-      "SLICP2",
-      "SLICP3",
-      "SLICP4",
-      "SLICP5"
-    ],
-    "current_blocker": "Root accepted the exact tested checkpoint at 197ea15a9a90fbc76089a38fe67013c00a722d91 under delegated acceptance. Exact-source CI 39779005214 is green for all required feature jobs; Exhaustive was skipped by feature policy. The final local API/worker DB+Redis restart, functional browser (195 pass/2 existing opt-in skips), strict visual (104 pass), and exact owned cleanup/global diffs all passed. Local full-backend and migration evidence remains input-qualified as recorded; no full-backend run on P or separate P migration replay is claimed. The four-record closure commit is the owner handoff; Root alone performs coordinator staging integration and Exhaustive validation. The full 18-criterion roadmap remains open and the goal active/unbudgeted.",
-    "current_phase": "strategy-lab-v2-integration-1-accepted-ready-for-integration",
-    "next_action": "Hand off the clean closure-record commit to Root for guarded canonical staging integration. After Root releases the exact synchronized green staging result, continue the full original 18-criterion roadmap in this same worktree.",
+    "completed": ["FH1", "FH2", "FH3", "FH4", "FH5"],
+    "current_blocker": "The bounded checkpoint is accepted for source integration at 83e93958921b479ccd122494571d0b9dbb1acc5d. The full backend result is explicitly split-phase, migration validation was no-change input-equivalence SKIP, and prior OOM/tmpfs/wrapper reds remain preserved. The full isolated app profile passed, including 195 functional passes/2 declared live skips and strict visual 104/104 with zero retries; this is not deployed-target proof. Remaining gates include staging/master release, separately authorized deployment, genuine-data owner-positive/negative Results-to-inspector UI/API proof, authoritative SPY/RSP canonical listing venue review for date-only semantics, and the full 18-criterion roadmap. Disabled native/forward/broker/capital/paid/trial/unknown/unsafe scopes remain unchanged.",
+    "current_phase": "strategy-lab-v2-first-human-study-inspector-2",
+    "next_action": "Publish this coherent four-record closure once using the existing ready_for_integration lifecycle, then Root owns guarded integration after terminal green CI for the final closure head. Retain integration_capture: exact branch HEAD rather than self-hashing. Continue the full 18-criterion roadmap after coordinator release; genuine-data deployed Results-to-inspector owner-positive/negative proof and SPY/RSP venue review remain open. No target acceptance, deployment, native execution, forward/broker/capital activation, or roadmap completion is claimed.",
     "total": 5,
-    "updated_at": "2026-10-22T13:42:38+00:00"
+    "updated_at": "2026-10-24T04:13:05Z"
   },
-  "remote": "197ea15a9a90fbc76089a38fe67013c00a722d91",
-  "remote_sha": "197ea15a9a90fbc76089a38fe67013c00a722d91",
+  "remote": "64d3b12e11118593535b02e8e8a06dd1f263ffdf",
+  "remote_sha": "83e93958921b479ccd122494571d0b9dbb1acc5d",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,

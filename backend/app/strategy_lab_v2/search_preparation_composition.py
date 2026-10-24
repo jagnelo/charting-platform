@@ -32,7 +32,7 @@ from app.strategy_lab_v2.search_dispatch_preparation import (
 )
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
 from app.strategy_lab_v2.study_artifact_resolver import (
-    create_selected_study_artifact_resolver,
+    create_resolved_study_artifact_output_resolver,
 )
 from app.strategy_lab_v2.trial_hydration import NautilusTrialDomainHydrator
 
@@ -152,7 +152,7 @@ def create_search_preparation_evidence_resolver(
         domain_hydrator=NautilusTrialDomainHydrator(
             persistence.resources,
             etf_membership_reader=LocalETFMembershipReader(persistence.session_factory),
-            selected_study_artifact_resolver=create_selected_study_artifact_resolver(
+            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
                 persistence.session_factory
             ),
         ),

@@ -16794,3 +16794,2383 @@ the coordinator's integration receipt captures the exact final branch HEAD.
 After this one closure-record push, resume the full original roadmap in this
 same owner/worktree only when Root releases the integrated source; do not
 self-integrate.
+
+## Released common staging baseline — 2026-10-22
+
+The coordinator has now released synchronized green staging at
+`0e342512e53ba2268425294d61c50e219eaafa4f`, after all four feature checkpoints
+and the shared quality repair passed the canonical Exhaustive Integration
+Gate. The authoritative release is
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`
+and receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`.
+This release authorizes only adopting that exact baseline into this Strategy
+branch; it does not close the original 18-criterion roadmap or authorize
+promotion, deployment, provider/live activity, or unsupported execution scopes.
+
+The resumed managed preflight confirmed the existing claim
+`02d5ffaa-53b5-4dec-b39c-0f36612b5436`, correct worktree, and synchronized
+Strategy source `079cab275f2b3250971a3a240022f689eddf080c`; local
+`origin/staging` is the released SHA and the Strategy source is its ancestor.
+The preflight refreshed the previously stale `session.json` HEAD/remote fields
+and cleared its old dirty-path list. That owned metadata change is preserved as
+a pre-merge operational boundary so the exact fast-forward can proceed without
+discarding or bypassing dirty state. The incoming staging commit does not alter
+this workstream file. The exact M2 fast-forward remains pending; do not describe
+the release as adopted until the local ref and own-branch remote are verified.
+
+After adoption, continue the full original roadmap from the integrated
+Provider/ETF/TC contracts. Keep the checkpoint's accepted status distinct from
+full-topic completion; all original criteria, native-v2 proof, and explicit
+forward/broker/capital safety boundaries remain in force. No new Compose,
+browser, database, or native-execution matrix is authorized without a separately
+assigned safe slot.
+
+## Green four-feature baseline adopted; full roadmap resumed — 2026-10-22
+
+The pre-merge note above is preserved as the exact state at that earlier boundary;
+its “fast-forward pending” sentence was superseded by the actions below. The
+released baseline is exactly
+`0e342512e53ba2268425294d61c50e219eaafa4f` (M2), with canonical green receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`
+and exact CI `39827786248`, including Exhaustive Integration Gate
+`120006510572`. I verified the release document and receipt, then reconciled
+both histories in this worktree: current Strategy tip
+`05acff1aa624b2f6ba9e1085a796e17b664ed87a` has first parent
+`f197a6ada55f51aa57fdd786c84ac0d5c398d45e` (the preserved owner preflight
+receipt) and second parent the exact M2 release. No reset, rebase, sibling write,
+or staging write occurred. The feature remote was independently verified at
+the same `05acff1...` SHA; local `origin/staging` is the exact M2 SHA. The
+earlier local-refusal/DNS notes remain historical and do not describe the
+verified current state.
+
+The accepted `strategy-lab-v2-integration-1` checkpoint remains accepted at
+tested source `197ea15...`; it is not full-topic completion and does not establish
+a native-v2 SPA/execution milestone. The original 18 roadmap criterion IDs and
+texts remain unchanged. The same original owner claim and worktree continue.
+The native goal API returned no active goal after the accepted checkpoint
+objective ended, so the authorized next unbudgeted full-roadmap goal was created
+in the same original thread `01a0a4ae-c3eb-7bf0-b3f3-ecc833f2c00b`; it is active.
+No unfinished objective was replaced, no accounting was reset, and no new
+claim/thread was created. No provider/issuer/SEC request, quota replay,
+paid/trial/unknown/unsafe activation, broker/capital action, dataset reset,
+service cleanup, sibling/staging/master/deployment write, or new heavy profile
+occurred.
+
+### Active bounded changeset: selected Study runtime-input boundary
+
+The integrated API/worker path authenticates immutable owner-scoped TC Study
+references, but `assemble_nautilus_trial_runtime_input` currently does not
+materialize the referenced Study payload into native runtime inputs. Silently
+continuing would risk reporting a run that ignored a pinned input. The current
+two-file source slice therefore fails closed before writing artifacts when a
+component selects a Study reference, while preserving the no-reference path.
+Regression coverage asserts the error and that no artifact output is written.
+The focused assembly module passed `14` tests in `0.65s` on the final source;
+the new negative case also passed alone earlier (`1` test in `0.35s`). Ruff
+passed on the two touched files.
+These are bounded offline tests, not PostgreSQL/worker/native proof and not
+full-roadmap acceptance. Implementation commit
+`c1237e9baf83e2d5872e9f886eb2ea4054660fd1` contains only the two source/test
+files and has been pushed; actual remote comparison is identical/ahead 0/behind
+0. Exact-source push CI `39844035289` was pending at 19:53 UTC; its later
+terminal result is recorded below.
+
+Next, derive a typed immutable Study-output payload representation from the
+accepted TC producer schema and bind it into the frozen runtime bundle only
+after re-verifying owner, artifact identity, lineage, content digest and version.
+Add tamper, missing/deleted source, restart/reconstruction and no-second-dispatch
+tests. Until then, selected Study references remain deliberately unavailable to
+runtime assembly. Preserve exact-pinned Nautilus scope qualification and all
+provider, live, quota, paid/trial, broker, capital, and unsafe-operation holds.
+Full local backend/combined DB, migration, worker, native, and full-stack
+browser/strict-visual gates, plus the remainder of the unchanged 18-criterion
+roadmap, stay open. Hosted exact-source CI for this bounded source change is
+green as detailed below.
+
+### Exact-source CI terminal receipt — 2026-10-22
+
+Run `39844035289` completed successfully for the exact pushed source
+`c1237e9baf83e2d5872e9f886eb2ea4054660fd1` (attempt 1). Backend Tests passed:
+5,192 unit tests passed with one existing skip; 497 integration tests passed
+with two existing skips; combined backend coverage enforcement passed. Frontend
+Unit Tests passed (1,330 tests). Branch-declared checks passed (1,760 passed,
+one existing skip, plus the declared focused checks). Playwright passed with 191
+passed and 110 existing skips. Exhaustive Integration Gate was skipped under
+feature-branch CI policy; this run is not the exhaustive gate and does not close
+the full roadmap or authorize native execution. The exact run is the current
+terminal source receipt; no rerun occurred. The earlier local validation and
+all historical red/flaky evidence remain preserved with their original scope.
+
+The assembly guard context is now closed. The next active branch-owned context
+is `strategy-lab-v2-typed-study-payload-runtime-binding-v1`: the existing
+resolver currently authenticates and returns the pinned reference but does not
+carry the artifact payload into frozen runtime inputs. Continue through that
+existing resolver/hydration/bundle path, retain fail-closed behavior until
+materialization is verified, and obtain assigned heavy gates before any real
+PostgreSQL/combined runtime/native qualification.
+
+## Active full-roadmap Study payload/runtime binding — 2026-10-22
+
+The current branch already includes and pushes the exact accepted M2 baseline:
+merge `05acff1aa624b2f6ba9e1085a796e17b664ed87a` has the released
+`0e342512e53ba2268425294d61c50e219eaafa4f` as its second parent, and M2 is an
+ancestor of current source `c45c1e0663cb57aba0481e5b66f0bcf556de5351`. The
+current worktree is the original claimed `feat/strategy-lab-v2` owner checkout;
+the native goal API reports the same original thread's unbudgeted full
+18-criterion goal as active. No duplicate goal or accounting reset was made.
+
+The active typed Study payload slice now uses the existing TC-backed resolver
+and owner-scoped SQL rows to return an immutable `ResolvedStudyArtifactOutput`
+only after rechecking the exact reference, completed run/evaluation, asset and
+CodeVersion lineage, artifact identity/type, dataset/run hashes, and canonical
+payload digest. V2 trial hydration stores outputs against the exact strategy
+fingerprint; the existing materializer binds them into SDK contexts and the
+runtime worker protocol. Single-strategy and multiplexed component context
+streams carry the potentially large output once in their authenticated header,
+not once per event; decoders bind it to every event and the manifest's exact
+selected reference. Missing/unpinned/mismatched output remains rejected. No-ref
+SDK canonical fingerprints and context wire remain unchanged. Generic Study
+output remains opaque producer data and is not native Nautilus execution proof.
+
+Latest source working-tree delta from base c45 has SHA-256
+`26a62724cafd2f18ac303e9d66c7853d12b4d020e825d87e8a8da1d27c337275` (binary
+Git diff of only `backend/app/strategy_lab_v2` and `backend/strategy_runtime`).
+The four focused resolver/hydration/protocol/assembly modules passed 75 tests in
+3.70s after adding header-bound stream transport. A later strict malformed
+`NautilusComponentTrialInput.study_artifacts` type check has its own regression
+pass (1 test in 0.36s); it does not admit any output. Ruff check and format
+passed across all 16 changed Python files, `git diff --check` passed, and
+focused MyPy passed for the 15 changed production/test source files. A
+test-boundary MyPy error from deliberately passing a runtime-invalid list was
+fixed with a narrow `cast(Any, [])`; the runtime rejection assertion is intact.
+Earlier UV cache permission and mistyped-path attempts did not run a checker and
+are not test failures.
+
+The real PostgreSQL module now uses the output resolver for its reconstructed
+worker hydrator and asserts the exact payload value after a fresh session-factory
+restart. It also retains changed-dataset and deleted-artifact rejection cases.
+That module was not executed in this source-only slot; it still needs the
+coordinator-assigned constrained PostgreSQL gate before restart/data claims are
+closed. No full backend/database/Compose/browser/native gate was launched.
+Collection-only verification then imported this exact module and enumerated its
+20 cases in 1.55s without running fixtures or tests. This confirms collection
+shape only; all SQL/API persistence and reconstructed-worker behavior remain
+unexecuted locally.
+
+At the last live read, exact current-base CI `39850802077` on c45 had Backend,
+Frontend and Branch-declared jobs successful; Playwright remained in progress,
+and the feature-policy EIG was skipped. Do not push the new source while that
+run is active, to avoid cancelling its browser job. After it is terminal,
+publish this coherent product changeset and capture its exact-source CI. Then
+request the real PostgreSQL test slot and retain all full local, combined,
+browser, visual and native roadmap gates. The full 18 criteria and all safety
+holds remain unchanged.
+
+### Reference-only API path avoids payload materialization
+
+Source review found that the API admission callback reused the new runtime-output
+resolver and consequently froze a complete Study payload even though it returned
+only the authenticated reference. The shared owner/run/version/artifact/hash
+checks are unchanged, but the reference-only resolver now selects the typed
+reference result before immutable runtime-output construction. Worker hydration
+still uses the output resolver and retains payload freezing/digest validation.
+The resolver module and test module pass 28 focused fake-session cases, two-file
+MyPy, Ruff check/format, and diff checks. The new regression makes output-object
+construction fail if the reference-only API resolver attempts it. This narrows
+API memory cost without changing the selected-input contract. This two-file
+follow-up is a separate local source commit from the preceding payload/runtime
+commit; the real PostgreSQL slot and push remain pending the live c45 Playwright
+run's terminal result.
+
+### Prove selected output reaches worker-executed strategy code
+
+Strengthened the runtime-protocol regression because its original positive
+strategy returned an empty result regardless of Study value. It now returns a
+specific target-position intent only when the header-bound `study.close` value
+is positive, and asserts that intent both after invocation decoding and through
+the bounded worker context-stream CLI/result-stream path. This proves the local
+runtime protocol exposes the authenticated generic output to strategy code; it
+does not prove Nautilus execution. The exact node passes after adding its temp
+directory fixture; the first attempted run failed only with `NameError` because
+the test signature omitted that fixture, and the unchanged behavior passed on
+the corrected run. Ruff, format and diff checks are green. Exact current-base CI
+39850802077 remains live, so the test strengthening and pending durable records
+are not pushed yet.
+
+### Current four-module focused regression on the complete local source
+
+At this validation point, the resolver, hydration, runtime protocol and assembly modules passed together
+with the latest API reference-only optimization and worker-stream intent
+regression present (`76 passed` in 3.11s). Focused MyPy passed again on all 15
+changed production/test files; Ruff check and format passed across the 16
+changed Python files. Pre-launch available memory was 2.2 GiB. This remains
+bounded offline unit evidence; the exact PostgreSQL module was only collected,
+and no DB/Compose/browser/native test was run. Exact run39850802077 has since
+completed green on c45 (backend, frontend, branch-declared and Playwright; the
+feature-policy EIG was skipped); it did not cover the four local commits. Those
+commits were subsequently published in 485bea63f314cdffcd6d4cf571d6158a215ef2c5;
+exact-source CI39856591934 is live for that tip.
+
+### Expand persisted worker-restart drift proof
+
+Review of the prepared PostgreSQL test found that restart-time mutation coverage
+initially exercised only dataset drift and artifact deletion. Extended the same
+real mapped-schema reconstructed-worker test to mutate completed-run status and
+reproducibility hash, CodeVersion lineage/content, CodeAsset owner, and artifact
+payload/identity/type, plus dataset drift and deletion. Each case first proves
+valid persisted hydration, then reconstructs the reader and requires restart
+hydration to reject the modified input. The module first collected 28 cases;
+two more restart cases now separately mutate evaluation status and introduce a
+duplicate same-name artifact after the first valid hydration, requiring
+revalidation to reject both. It now collects 30 cases. Focused MyPy, Ruff and
+formatting checks pass; MyPy's initial six test-only
+typing diagnostics were resolved with a narrow table cast and explicit fixture
+input/hash narrowing. A root-relative collection command found no tests; the
+correct backend-relative collect-only command collected all 30 in 1.36s.
+Collection does not run fixture setup or prove PostgreSQL behavior. The assigned
+real-PostgreSQL gate, full backend/runtime/browser/native gates and all safety
+holds remain open.
+
+### Verify resolved Study payload immutability directly
+
+Added an I/O-free resolver regression that mutates a nested source payload after
+constructing `ResolvedStudyArtifactOutput`; the bound value remains unchanged,
+and both nested-value and top-level payload writes raise `TypeError`. The resolver
+test module passes all 29 cases. Focused MyPy passes for that module after narrow
+test-only casts at the deliberate mutation sites; Ruff and format checks pass.
+This proves in-process defensive freezing only, not persisted PostgreSQL restart
+behavior. Exact CI39856591934 is still running on published 485bea63f314cdffcd6d4cf571d6158a215ef2c5;
+the unpushed restart-matrix commit and this new unit test are not included.
+
+### Direct immutable payload digest guard — 2026-10-22
+
+Added an I/O-free regression proving `ResolvedStudyArtifactOutput` rejects a payload whose
+canonical content digest does not match its pinned `SelectedStudyArtifactReference`. The full
+resolver test module passed 30/30 in 1.56s; focused MyPy passed for that module, Ruff check and
+format passed, and `git diff --check` passed. The new test file SHA-256 is
+`b123e71a7528c5bbf312d75eeaea2c5a9498e351e20dad3be1aeb37ca68fa6d4`.
+
+The exact published-source run `39856591934` on `485bea63f314cdffcd6d4cf571d6158a215ef2c5` is
+still in progress (Frontend Unit Tests green; Backend integration step active). This local test
+and the latest restart-denial tests are not covered by that run and will not be pushed until it is
+terminal. No database, network, Docker, browser, native, or external provider work ran. The real
+PostgreSQL reconstructed-worker cases and all remaining full-roadmap runtime/browser/native gates
+remain open; generic Study data remains distinct from native execution evidence.
+
+### Reject tampered Study payload at runtime wire decode — 2026-10-22
+
+Extended the existing canonical invocation round-trip regression to alter one serialized Study
+series value while retaining the pinned artifact reference/digest. `deserialize_invocation` rejects
+the tampered envelope through the immutable-reference check, covering the actual decode boundary
+rather than only an in-memory mismatch. The exact protocol node passed (1/1 in 0.35s); focused
+MyPy and Ruff check/format passed for the test file, and `git diff --check` passed. The test file
+SHA-256 is `a992bee95dd6ceae183d727fefaf77fbba2dcdfd15e0f54966b322d5df2e231b`.
+
+This is deterministic local protocol evidence only. It does not prove PostgreSQL restart, the
+complete runtime/container, or native execution. The published-source CI39856591934 remains live
+on `485bea63f314cdffcd6d4cf571d6158a215ef2c5`; this test and the three local source commits are
+not covered by that run and remain unpublished until it is terminal.
+
+### Verify tampered Study output is rejected before runtime result publication — 2026-10-22
+
+Strengthened the serialized Study payload tampering case to pass the altered, digest-mismatched
+invocation through the actual runtime CLI entrypoint. The CLI returns its malformed-request status
+and does not create a result file, proving the untrusted worker request fails before strategy
+execution/result publication. The exact focused invocation-wire node passed 1/1 in 0.32s; focused
+MyPy, Ruff check/format, and `git diff --check` passed. Current test file SHA-256 is
+`d419ed8c8bec63a8bf06a7ac4adb932c591d01013e3cf017eb47bc29f175d073`.
+
+This remains an I/O-free local runner-contract test, not containerized worker, PostgreSQL restart,
+or native-engine evidence. Exact published CI39856591934 remains in progress on
+`485bea63f314cdffcd6d4cf571d6158a215ef2c5`; the current edit and the local commits are not in that
+run. Preserve the full roadmap and do not publish until the existing run is terminal.
+
+### Complete runtime protocol regression slice — 2026-10-22
+
+The full `test_strategy_runtime_protocol.py` module passed 24/24 in 0.85s on source
+`236cff642f0f8c8ae8d0aa30f3872d8b5dee8e6e`. This includes canonical invocation, batch, and context
+stream behavior plus the serialized Study payload tampering case, which verifies decoder rejection
+and that the worker CLI creates no result file. Focused MyPy and Ruff/format checks for the touched
+protocol test file passed; no database, Docker, browser, native, network, or provider work ran. Exact
+CI39856591934 remains in progress on `485bea63f314cdffcd6d4cf571d6158a215ef2c5`; it does not cover
+this local branch tip.
+
+### Persisted Study restart fixture and foreign-owner denial — 2026-10-22 21:44 UTC
+
+The exact hosted run `39856591934` on published source `485bea63f314cdffcd6d4cf571d6158a215ef2c5`
+has now terminated red: Frontend Unit Tests passed; Backend integration reported 495 passed, 10
+failed, and 2 skipped; later branch-declared, E2E, and exhaustive jobs were skipped. All 10 failures
+occurred before restart assertions because `_strategy_graph_with_reference` attached a selected
+Study reference without the corresponding `ResolvedStudyArtifactOutput`, violating the hydrated
+graph invariant. The helper now resolves that output from the real seeded Study rows and binds it to
+the strategy fingerprint before persistence. This is a test-fixture repair, not a production change;
+no full suite or database test was replayed locally.
+
+Added a `foreign_restart_owner` case to the existing persisted restart matrix: after an owner-valid
+hydration, the reconstructed hydrator must refuse the same persisted attempt when requested as
+principal `2`, with the existing owner-scoped unavailable error. After the helper repair, the
+integration module collected 31 cases in 1.54s; collection does not execute its PostgreSQL fixture or
+test bodies. Ruff check, Ruff format check, and `git diff --check` pass for the changed test file. A
+first chained validation stopped after collection because a later Ruff invocation used the shared
+read-only uv cache; Ruff/format passed on retry with the private offline cache. The workstream
+validator passed for 45 records with its existing private quota-directory and sed-path warnings. A
+database-backed run remains subject to coordinator slot assignment. Preserve the hosted red, keep the
+full roadmap/open runtime gates, and do not infer native execution from generic Study output.
+
+The existing pure hydrator tests `test_hydrator_fails_closed_when_attempt_is_not_owner_visible`
+and `test_hydrator_injects_owner_scoped_study_resolver_and_checks_exact_reference` passed 2/2 in
+0.42s after correcting the repository-relative invocation. These exercise the existing owner-denial
+and principal-forwarding contract without database I/O; they do not prove the new persisted
+PostgreSQL restart case.
+
+## Full-roadmap forward Study output binding — 2026-10-22 22:48 UTC
+
+Source review found a remaining consumer gap after the backtest Study binding: forward plan
+resolution authenticated the immutable strategy/package fingerprints, but did not resolve a
+selected TC Study output, and the forward runtime context builders did not pass Study artifacts to
+`iter_event_tape_contexts` (which already supports them). The accepted TC contract is consumed
+through existing owner-scoped StrategyVersion and ResearchArtifact rows; no producer source or
+schema was changed.
+
+`AuthenticatedForwardExecutionPlanResolver` now accepts the existing typed asynchronous output
+resolver. When a strategy has no selected Study reference, behavior remains unchanged and no
+Study query is made. When a reference exists, absence of the resolver or a mismatched typed result
+rejects the forward plan. Each `ResolvedForwardExecutionComponent` freezes only the exact output
+matching its strategy reference. The production PostgreSQL worker factory supplies the resolver
+using the same persistence session factory. Both materialized and disk-streamed forward warm-up
+context paths pass the exact resolved mapping into `iter_event_tape_contexts`; restart resolution
+therefore re-reads the pinned producer rows before constructing a new worker input.
+
+Validation on source parent `4dd82b25fb911ed8ea1abb615a71d7e45764dc70`: the complete focused
+forward-plan, forward-bootstrap, and strategy-package modules passed 23 tests in 2.40s. The new
+resolver regression proves exact owner/reference binding, default denial without a resolver, and
+rejects a changed output identity when the same plan is reconstructed again. The forward bundle
+regression decodes the generated component context stream and checks that every context contains
+the exact frozen Study output; it covers both materialized and streaming warm-up paths. Ruff and
+Ruff format pass for all five touched files, and MyPy passes for the two changed production
+modules. `git diff --check` is clean. One initial test run exposed only an incorrect test assertion
+against a nonexistent decoded-binding field; it was corrected to assert the fingerprint through
+the decoded manifest, and the focused modules then passed. No DB, Docker, browser, native engine,
+provider, issuer, or other network operation ran. The new exact-source CI is pending publication;
+the parent-source green CI does not cover this change.
+
+This is authenticated generic Study input propagation, not native execution evidence. PostgreSQL
+forward resolver/restart behavior, full DB/Redis/runtime validation, full browser/strict-visual
+gates, and exact-pinned Nautilus qualification remain open under the full 18-criterion roadmap.
+The accepted SLICP1-SLICP5 checkpoint remains historical evidence only. Root's unreleased shared
+repair has not been adopted. Provider/live/quota, paid/trial, unknown/unsafe, broker/capital,
+promotion, deployment, and retained-data operations remain disabled or unauthorized.
+
+## Forward Study CI compatibility correction — 2026-10-22 23:03 UTC
+
+The exact push run 39867853423 for source `02bfcbc734dd5f9f552c3e5ba0fe83e5ca2b2720` finished
+with Backend Tests red and Frontend Unit Tests green; E2E, Branch-declared, and Exhaustive
+Integration jobs were skipped by feature-branch policy. The backend summary was 5,197 passed,
+1 skipped, and one failure in
+`test_authenticated_sandbox_input_resolver_composes_exact_plan_and_tape`: its `SimpleNamespace`
+test double represented a no-Study forward component but lacked the newly optional
+`study_artifacts` field. No production failure was reported.
+
+The narrow repair explicitly sets `study_artifacts=None` on that existing no-reference test double;
+it preserves the assertion and production no-reference behavior. The exact previously failing node
+passes 1/1 in 2.53s locally (offline, no DB/Docker/network). This does not repair every gate by
+itself; a new exact-source push CI is required. The earlier CI red remains preserved without replay.
+
+## Real forward Study restart evidence preparation — 2026-10-22 23:23 UTC
+
+Read-only audit found that the existing real PostgreSQL Study matrix proves backtest
+`NautilusTrialDomainHydrator` reconstruction and persisted Study-row drift, but did not exercise the
+new forward execution-plan resolver through the production worker-resolver factory. Added one
+ordinary integration case to `backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`:
+it persists owner-scoped strategy/package/portfolio plus ForwardInstance and ForwardExecutionPlan,
+rebuilds a fresh SQLAlchemy engine/session and aggregate reader, obtains the worker resolver from
+`create_authenticated_forward_worker_runtime_input_resolver`, and checks exact Study payload
+binding, foreign-owner denial, and persisted artifact-payload drift rejection on a subsequent
+resolution. It uses the existing mapped Study FK fixture and ordinary CI database fixture; there
+is no opt-in skip or synthetic producer contract.
+
+This new PostgreSQL test has not run locally because no local database slot is assigned. Ruff and
+Ruff format pass on the touched test files, and pytest collection selects the new node
+alone (1 collected in 1.56s) without fixture setup; no database, Docker, or network operation ran.
+At last check exact source CI39869340272 on dff6afadc had Frontend green and Backend integration
+running. Do not push the prepared integration-test changes until that exact hosted run is terminal,
+to avoid cancelling it. The real forward restart test remains pending its first actual execution.
+
+## Forward PostgreSQL regression typing correction — 2026-10-22 23:44 UTC
+
+Focused MyPy on the new forward restart integration test initially found four test-only diagnostics:
+the persisted domain-resource union needed an explicit `ForwardInstance` narrowing, and the expected
+`ResolvedStudyArtifactOutput` needed the producer's canonical `{type, value}` mapping rather than a
+bare tuple. The test now narrows the actual persisted resource and compares against the canonical
+series mapping. The same one-file MyPy invocation passes; Ruff check, Ruff format check and
+`git diff --check` pass. No production code changed and no test body/database fixture was executed.
+
+The exact published source run `39869340272` still targets `dff6afadc5039f2d033e650ddc9bfbe6364bfcd2`:
+Backend (5,198 unit passed/1 existing skip; 508 integration passed/2 existing skips; 84% combined
+coverage), Frontend and Branch-declared jobs are green; E2E Playwright remains in progress and EIG
+is skipped by feature-branch policy. This run does not include the local forward PostgreSQL case.
+Keep the four-file changeset unpublished until this exact run is terminal. The persisted restart
+assertions remain pending their first database execution through the next exact-source hosted run
+or an assigned local PostgreSQL slot; no local fixture, HTTP, browser, or native execution occurred.
+Full 18-criterion, combined database/runtime/browser/strict-visual/native gates and all safety holds
+remain open.
+
+## Terminal exact-source CI for forward Study compatibility correction — 2026-10-22 23:49 UTC
+
+GitHub run `39869340272`, attempt 1, completed successfully for exact published source
+`dff6afadc5039f2d033e650ddc9bfbe6364bfcd2`. Backend Tests passed 5,198 unit tests with one existing
+skip and 508 integration tests with two existing skips, with 84% combined coverage. Frontend Unit,
+Branch-declared, and E2E Playwright jobs succeeded; E2E job `120147539428` is terminal success. The
+Exhaustive Integration Gate was skipped under feature-branch policy. No retry was requested or run.
+This receipt is for the published source only; it does not include the four-file unpublished
+forward-Study PostgreSQL regression. That test has passed collection, focused MyPy, Ruff and format
+checks, but its PostgreSQL body has not yet executed. The next publication will trigger exact-source
+integration coverage; full local/combined DB, application/runtime, strict-visual and native gates
+remain open.
+
+At 2026-10-22 23:35 UTC, exact dff6afadc CI39869340272 had Backend Tests green (5,198 unit passed,
+1 existing skip; 508 integration passed, 2 existing skips; combined coverage 84%), Frontend Unit
+Tests green, and Branch-declared Tests green. E2E Playwright remained in progress; the Exhaustive
+Integration Gate was skipped by feature-branch policy. This evidence covers dff6afadc, not the
+uncommitted forward PostgreSQL regression; wait for E2E terminal status before pushing that test.
+
+## Exact-source CI repair: deterministic quota fixture clock — 2026-10-23 00:05 UTC
+
+Published source `b620ed10dcfadf50c7368c96f018188f3506b69e` exact run `39874448939` is terminal red:
+Backend Tests failed one existing unit test after 5,197 passes and one skip; Frontend passed, while
+Branch-declared, E2E and Exhaustive were skipped after the backend failure. The failing node is
+`tests/unit/test_provider_live_usage.py::test_eodhd_live_usage_reconciliation_uses_exact_native_daily_counter`.
+At 00:04 UTC the isolated node reproduced the failure: its wall-clock `now` was shortly after UTC
+midnight, while the baseline's `observed_at = now - 5 minutes` belonged to the prior
+`calendar_day_gmt` reset window. The strict quota guard correctly rejected it; no production quota
+logic or provider request was involved.
+
+The test now uses one fixed midday UTC instant and injects that same instant into both baseline
+reconciliations. The first focused correction attempt still failed because a live midnight `now`
+straddled the window; after fixing the fixture instant, the exact node passed once (1.51s). Ruff,
+format, workstream validation and `git diff --check` pass. No full suite or fixture ran. The new
+forward Study PostgreSQL restart test in `test_study_artifact_resolution_postgres.py` was not reached
+by the red backend job and remains unexecuted locally; the next exact-source CI must cover it.
+
+The staging repair `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` remains pending its own Exhaustive gate;
+no staging marker or ref was edited or adopted here. The Strategy full roadmap, full application,
+database, browser, strict-visual and native gates remain open.
+
+## Accepted common staging repair adopted — 2026-10-23
+
+The coordinator released synchronized staging `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` as fully
+accepted green. Canonical receipt: `/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json`; exact staging CI `39866387942` attempt 1 passed its 104 backend shards, 497 integration cases (2 existing skips), 84% coverage, 1,331 frontend tests, 194 functional cases (107 existing skips), 104 strict visuals, and ordinary E2E 191 passed/110 existing skips, without failures or flakiness. The Exhaustive gate was included and green. Earlier pending/degraded observer entries above are historical and superseded by this terminal release.
+
+After confirming this worktree was clean at `caf776bce5cf9dd7fc623e16f7ea8e4839c59ec0`, exact origin/staging was fetched and reviewed. I merged only the released SHA into this feature branch as `85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db`, preserving both merge parents and the accepted feature histories. The reviewed shared changes are confined to the Market Map initialization-generation guard, its unit tests, and workflow cleanup validation for narrowly owned image references; received staging-owned quality-repair records remain untouched. No staging, master, sibling, product-data or runtime state was changed. Root's promotion and live master CI remain coordinator-owned and do not change this feature-branch scope.
+
+Focused post-merge checks on exact source `85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db` passed: `tests/workflow/test_agent_session.py` 38/38 and `frontend/tests/unit/components/test_market_map_tool.test.ts` 61/61. `git diff --check` passed. No Docker, database, full backend/frontend profile, browser, provider/issuer HTTP, native engine, or live operation ran. The standard context classifier identified this as the assigned implementation worktree. Session-start was not repeated/taken over: the recorded owner claim already belongs to this thread, and bootstrap reports an existing dirty/interrupted boundary; no claim or goal was created or replaced. Its automatic Docker-readiness denial is preserved in the journal and no service was started.
+
+At this checkpoint the merge is local and the Strategy branch still needs its normal push and exact-source CI; the pre-merge remote remains `caf776bce5cf9dd7fc623e16f7ea8e4839c59ec0`. No status-only follow-up or self-SHA loop is planned. After publication, continue the existing full-roadmap typed Study payload/runtime and forward-worker restart work. The forward Study PostgreSQL regression has only been collected, not executed locally. Heavy local/full-stack/browser/native gates require Root's one-at-a-time slot; the full 18-criterion roadmap and remaining worker, persistence, migration, API, native qualification and disabled-scope guarantees remain open.
+
+## Accepted staging adoption and forward-worker restart continuation — 2026-10-23
+
+The prior paragraph's pending-publication statement is superseded by current evidence. The exact
+green staging release `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is already integrated in this branch
+at merge commit `85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db`; branch HEAD
+`ee333e450f6883bc45cb90d0a222c1748859370e` preserves that merge ancestry and is independently
+confirmed as the current GitHub `feat/strategy-lab-v2` ref. GitHub also confirms remote `staging` is
+still exactly `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`. The normal `git fetch` attempt could not
+update shared worktree metadata because `.git/worktrees/feat-strategy-lab-v2/FETCH_HEAD` is read-only;
+no ref was changed. The existing branch merge is already complete, so no duplicate merge is needed.
+
+The owner preflight classified this exact worktree as the implementation role and confirmed existing
+claim `02d5ffaa-53b5-4dec-b39c-0f36612b5436`, active unbudgeted full-roadmap goal, current origin/HEAD
+parity at `ee333`, and the existing `full_stack_browser` profile. The managed status refresh records
+the current source/remote and the owned dirty files; no claim or goal was created or replaced.
+
+Exact-source GitHub CI `39876950653` targets `ee333`. Frontend Unit Tests and Backend Tests' unit
+stage are green; the Backend integration/Testcontainers stage is still running, with coverage and
+later jobs pending. Preserve this run; do not push a new SHA while it is active. A further source-only
+improvement is being prepared in
+`backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`: the forward
+Study restart regression now seeds the production forward lifecycle into an active checkpoint,
+creates the actual `PostgresForwardStateSchema` and `PostgresForwardAccountSchema` DDL in its unique
+test schema, reconstructs the production outer authenticated worker runtime-input resolver with a
+fresh engine/session factory, and checks selected output success, foreign-owner denial and persisted
+Study payload-drift rejection. Static Ruff/format/diff checks and collect-only for exactly this node
+pass; its body has not run locally, and CI39876950653 does not include this uncommitted source. No
+database, Docker, browser, provider, quota, native or full-profile action was launched.
+
+After CI39876950653 is terminal, publish the new coherent source and workstream checkpoint once and
+inspect its exact-source CI. The next local profile is source-pinned to that final published SHA and
+uses the repository's unchanged complete backend coverage collector (`scripts/backend_coverage.py`,
+all unit/package/integration cases, combined 75% threshold), frontend unit/build, the registered API
+plus actual PostgreSQL/Redis worker DB-readiness and process-restart smoke, functional browser tests,
+and the existing 104 strict visuals with zero retries and unchanged references/tolerances/masks.
+Use the pinned Playwright `v1.62.1-noble` image/digest and one worker. Keep the profile one-at-a-time
+under a Root-assigned host/resource cap and a unique Strategy worktree Compose project with its own
+ephemeral DB/Redis state; preserve all retained services and datasets, do not reuse or reset their
+volumes, keep provider egress denied/live flags zero, and leave preparation/forward/broker/trial/job
+execution disabled. Capture baseline inventories and clean only exact resources created by that
+future authorized run. No new heavy fixture/profile is currently authorized. The full 18-criterion
+roadmap, combined application/runtime, final migration, full-stack/browser, and native qualification
+remain open; the accepted SLICP1-SLICP5 checkpoint is not full-topic completion.
+
+CI progress update: a fresh read of exact run `39876950653` confirms Frontend Unit Tests, backend
+unit tests, and backend integration/Testcontainers have completed successfully; combined backend
+coverage enforcement is now in progress. The run remains live and still does not cover the pending
+uncommitted outer-worker restart-test edits. Preserve it through terminal status before publication.
+
+Later CI progress: Backend Tests now completed successfully, including combined coverage. The
+Branch-declared and E2E Playwright jobs are active; the Exhaustive Integration Gate is skipped under
+the feature-branch policy. The run remains nonterminal, so publication still waits for its completion.
+
+Latest exact-run observation: `39876950653` now has Branch-declared green as well; Playwright E2E is
+the only active job, and EIG remains skipped by branch policy. No new source was pushed.
+
+Bounded Study-contract follow-up on 2026-10-23: the stack-free package tests
+`backend/app/strategy_lab_v2/tests/test_trial_hydration.py` and
+`test_forward_execution_plan.py` passed 15/15 in 1.69s under one offline UV/pytest process. The
+first invocation used backend-relative paths from the repository root and collected no tests
+(exit 4); the corrected repository-root paths ran the intended 15 tests. This adds typed
+hydration/plan regression evidence only; it does not execute the pending PostgreSQL forward-worker
+restart test. Exact branch CI `39876950653` remains active at Playwright test execution on published
+source `ee333e450f6883bc45cb90d0a222c1748859370e`; preserve it through terminal status before
+publishing the current coherent test/workstream changeset. The accepted staging SHA
+`4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is already an ancestor of that branch, so no second
+merge is needed. No local database, Docker, full-stack, browser, provider/quota or native run was
+started.
+
+The pending integration-test module also passes focused offline MyPy: one file, no issues, under a
+120-second/1-GiB address-space bound. This is static type evidence only; the PostgreSQL test body
+still requires hosted exact-source execution and the broader local DB slot.
+
+The same pending regression now also rejects a validly shaped but stale forward checkpoint digest
+through the production outer resolver before accepting worker runtime inputs. The added denial passes
+collection, Ruff/format/diff checks, and the same bounded one-file MyPy check; no database fixture was
+started. Exact CI `39876950653` remains active on the earlier source, with Playwright in progress.
+
+## Forward Study output through restartable context windows — 2026-10-23 01:02 UTC
+
+The exact accepted staging release `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is already merged
+into this feature branch at `85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db`; GitHub currently reports
+that staging ref at the same SHA. This branch's published `ee333e450f6883bc45cb90d0a222c1748859370e`
+is synchronized with origin. The original owner claim and active unbudgeted full-roadmap goal were
+verified in the existing worktree; no duplicate claim or goal was created.
+
+Review of the authenticated forward path found that the selected TC Study output reached the
+resolved execution plan but was lost when `ForwardStrategyContextWindow` rebuilt StrategyContext
+from verified history, including both materialized and streamed warm-up paths. The owned changeset
+now carries the exact typed output in `ForwardStrategyContextRecipe`, passes it through authenticated
+history replay and native worker context-window seeding, and supplies it to `build_strategy_context`.
+It rejects absent, unpinned, mismatched, or changed output at the context boundary. The rolling
+window fingerprint includes the pinned resolved output only for Study-bearing strategies; the
+existing no-Study fingerprint projection is unchanged.
+
+Offline stack-free validation passed 14 focused forward-context/plan/composition tests in 2.58s,
+including the existing no-Study context fingerprint regressions, authenticated history resolution,
+and decoding the generated worker context stream to assert the exact selected output in each
+serialized context. Focused MyPy passed on all seven touched Python files under the existing
+1-GiB/120-second bound; Ruff and Ruff format checks pass. The enhanced persisted PostgreSQL restart
+node collects alone, but its test body has not run locally because the Root-assigned database/full
+profile slot is not released. No Docker, database, Compose, browser, native engine, provider/issuer
+HTTP, quota, or live operation ran.
+
+The first bounded 14-test attempt produced 13 passes and one failure in the modified fixture: its
+new Study-bearing manifest no longer matched the old test package's strategy fingerprint. The test
+fixture now derives the package's strategy and manifest digests from the same immutable manifest;
+the same 14 tests then passed. This was test-setup inconsistency, not a production failure, and the
+initial result is retained here.
+
+Exact branch run `39876950653` targets published parent `ee333e450f6883bc45cb90d0a222c1748859370e`;
+GitHub currently reports Frontend, Backend including combined coverage, and Branch-declared green,
+E2E Playwright still running, and Exhaustive skipped under feature-branch policy. It does not cover
+the unpublished Study context and PostgreSQL restart edits. Preserve that run to terminal before
+publishing the coherent current changeset. The exact PostgreSQL test body, full local backend and
+combined database/application profile, browser/strict visuals, and scope-qualified native execution
+remain open; this is continued full-roadmap work, not another checkpoint closure. Provider HTTP/quota,
+paid/trial/unknown/unsafe/broker/capital operations, retained data/services, and deployment remain
+disabled or unauthorized.
+
+## Study context replay and seed revalidation — 2026-10-23 01:06 UTC
+
+The previously active exact-source run `39876950653`, attempt 1 on published source
+`ee333e450f6883bc45cb90d0a222c1748859370e`, is terminal success. Frontend, complete Backend
+(unit, integration/Testcontainers and combined coverage), Branch-declared, and E2E Playwright jobs
+all succeeded; Exhaustive Integration Gate was skipped under feature-branch policy. This receipt
+does not include the current unpublished Study-context or PostgreSQL restart changes.
+
+Added a pure regression proving a Study-bearing forward window retains its exact output and
+fingerprint through verified-history replay and authenticated context seeding, and rejects a
+same-name output with a different content digest before it seeds the window. The combined context,
+authenticated history, plan-recipe and worker-composition group now passes `15/15` in `2.71s`;
+focused MyPy passes across all eight touched Python files with a 1-GiB/120-second bound; Ruff,
+format, `git diff --check`, and workstream validation pass. The PostgreSQL reconstructed-worker
+restart test still only collects and has not run its test body locally. No database, Docker, Compose,
+browser, native runtime, provider/issuer HTTP, quota, or live operation ran.
+
+The current validated source and workstream changes are coherent for publication. Next publish once
+and inspect that exact-source CI. The PG test body and assigned full backend/application, browser,
+strict-visual and native gates remain open under the full 18-criterion roadmap; no second checkpoint
+closure is implied. Preserve the exact TC/ETF/Provider boundaries, exact-scope Nautilus evidence, and
+all disabled live, paid/trial, unknown/unsafe, broker/capital, retained-data and deployment scopes.
+
+## Native worker context seeder receives selected Study output — 2026-10-23 01:10 UTC
+
+After publishing `dd0a704b988ffbfb2ea7143e42abbf41105336f0`, added one bounded offline regression
+to the existing forward worker-composition test. It decodes the actual generated bootstrap and
+context-stream artifacts, calls the native runtime's `_seed_context_windows` assembly helper with
+the matching engine component binding, prepares a subsequent event, and verifies the exact pinned
+Study output is present in the seeded StrategyContext. This tests the native worker's context
+assembly boundary without launching a Nautilus process or implying native execution evidence.
+The exact node passed `1/1` in `2.53s`; focused MyPy for the changed test file, Ruff, Ruff format,
+and `git diff --check` pass. The test-only follow-up is uncommitted.
+
+Exact-source CI `39882200073`, attempt 1, is in progress on published source
+`dd0a704b988ffbfb2ea7143e42abbf41105336f0`; it cannot cover the uncommitted seeder regression.
+Preserve the run to terminal before publishing the test addition. The persisted PostgreSQL restart
+test body, coordinator-assigned full local backend/application and strict browser/visual profile,
+and scope-qualified native execution remain open. No database, Docker, Compose, browser, native
+process, provider/issuer HTTP, quota, or live operation ran.
+
+## Preserve typed TC Study payload variants through the invocation wire — 2026-10-23 01:17 UTC
+
+Added a stack-free protocol regression for selected TC Study outputs of type `scalar`, `range`,
+`table`, and `events`. Each case builds the existing immutable `SelectedStudyArtifactReference` /
+`ResolvedStudyArtifactOutput` pair, serializes a strategy context, and verifies that the exact typed
+reference and nested value survive invocation decoding without interpretation or digest drift. The
+four parameter cases passed in one offline process (`4 passed`, `0.33s`); focused MyPy for the
+changed protocol test file, Ruff, Ruff format, and `git diff --check` pass. An initial process-limit
+invocation was malformed and exited127 before pytest started; the corrected bounded command ran the
+four intended cases. No external input, database, Docker, native worker process or provider/quota
+operation was used. This extends the same typed Study payload/runtime-binding changeset and is not
+evidence of native execution.
+
+The native context-seeder regression is committed locally as `72a4c605b010e608446a6d5d0a6433fd4cceae26`
+but remains unpublished. Exact parent CI `39882200073` on `dd0a704b988ffbfb2ea7143e42abbf41105336f0`
+is still running Backend unit tests (Frontend Unit Tests passed); neither local follow-up is included.
+Publish the coherent accumulated follow-up after that parent run reaches terminal. The real PostgreSQL
+restart body and coordinator-assigned full backend/combined DB/application/browser/strict-visual/native
+gates remain open. Full 18-criterion roadmap and all operational safety holds are unchanged.
+
+## Exercise typed Study variants through the worker component stream — 2026-10-23 01:18 UTC
+
+Extended the four typed payload-shape cases to also encode/decode the `InvocationContextStreamSource`
+component stream used to seed native worker context windows. Each case asserts that the exact pinned
+reference and immutable output survive both the invocation envelope and the component binding plus
+context stream. The four cases pass (`4 passed`, `0.41s`); focused MyPy on the touched test file,
+Ruff, Ruff format and `git diff --check` pass. A MyPy command with a mistyped path exited2 without
+running MyPy; the corrected command passed with no issues. This remains serialization/seeding-input
+evidence only, not native execution evidence. The exact parent CI and all real PostgreSQL and full
+runtime gates remain open as recorded above.
+
+## Cover every admitted TC Study artifact type in worker-wire binding — 2026-10-23 01:21 UTC
+
+Expanded the invocation/component-stream round-trip matrix to all 11 artifact types currently
+admitted by the Study resolver: scalar, series, boolean, table, bar, histogram, range, scatter,
+heatmap, dashboard, and events. The payload values are test-only JSON examples; the boundary preserves
+their exact type, pinned reference, nested payload, and digest without assigning new producer or
+execution semantics. All 11 cases passed in one offline process (`11 passed`, `0.36s`). Focused MyPy
+for the touched test file, Ruff, Ruff format, and `git diff --check` pass. No DB, network, Docker,
+native process, provider/quota or live operation ran. The active parent CI remains the only hosted run
+and does not include any of the three local follow-up commits or this uncommitted expansion.
+
+## Cover every admitted Study type through forward worker seeding — 2026-10-23 01:29 UTC
+
+Extended the existing authenticated forward-worker composition regression across all 11 Study
+artifact types admitted by the resolver. Each case carries the typed payload through the production
+forward preparation path, serialized worker context stream, `_seed_context_windows`, and a
+subsequent event, asserting that the exact Study value reaches the seeded strategy context. The
+focused offline node passed all 11 cases in 5.30s using one pytest process with a 1-GiB address-space
+limit and 180-second timeout. Ruff, Ruff format, focused MyPy for the changed test file (1-GiB /
+120-second bound), and `git diff --check` pass. An initial invocation accidentally set
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=0`; pytest interpreted that nonempty value as disabling plugins and
+skipped all 11 async cases. That invocation ran no test bodies; the corrected normal-plugin run is
+the passing receipt. No database, Docker, Compose, browser, native process, provider/quota, or live
+operation ran.
+
+This is an uncommitted test-only follow-up based on local source commit
+`461a59a64ce50c1713aae151e9cdd95d3cfec64b`; it is not covered by the active exact-source CI
+`39882200073` on published parent `dd0a704b988ffbfb2ea7143e42abbf41105336f0`. Preserve that run
+to terminal before publishing the accumulated local commits. The persisted PostgreSQL restart body,
+assigned full local backend/application/browser/strict-visual profile, native qualification, and
+remaining full-roadmap criteria remain open.
+
+## Preserve all admitted Study types in the backtest runtime bundle — 2026-10-23 01:32 UTC
+
+Expanded the existing backtest assembly regression across all 11 resolver-admitted Study output
+types. Each typed reference and digest-bound payload now passes `NautilusComponentTrialInput`,
+runtime-bundle materialization/loading, and invocation-context stream decoding; each decoded context
+must equal the original immutable `ResolvedStudyArtifactOutput`. The focused offline node passed
+11/11 in 0.95s. Ruff check/format, focused MyPy for the changed test file (1-GiB/120-second bound),
+and `git diff --check` pass. Together with the forward seeder matrix above, this covers all admitted
+types in both backtest and forward worker-context assembly; neither matrix proves native execution.
+No DB, Docker, Compose, browser, native process, provider/quota, or live operation ran. The exact
+parent CI39882200073 was last observed `in_progress` on published `dd0a704b`; this local test and
+the prior local commits are not covered. Preserve that run to terminal before pushing. The real
+PostgreSQL fresh-session restart body and assigned full backend/application/browser/strict-visual/
+native gates remain open.
+
+## Parameterize persisted Study worker restart over every admitted type — 2026-10-23 01:34 UTC
+
+Extended the existing real-PostgreSQL fresh-session forward-worker reconstruction regression to
+seed and pin each of the 11 resolver-admitted Study artifact types. The worker must restore the
+exact typed `ResolvedStudyArtifactOutput` after reopening persistence, reject a stale checkpoint,
+deny a foreign owner, and reject persisted payload-content drift for every type. The fixture remains
+the existing mapped-schema integration fixture with its current constraints; no schema or
+production code changed. Stack-free `--collect-only` discovered all 11 parameter cases in 1.45s;
+the test bodies were not executed because no local DB slot is assigned. Focused MyPy for the module,
+Ruff, format and `git diff --check` pass. No DB, Docker, Compose, browser, native process, provider/
+quota, or live operation ran. The parent exact CI39882200073 was last observed in progress and does
+not include this change; its completion is still required before publishing. The persisted restart
+contract therefore remains unproven until actual PostgreSQL execution and the assigned full gates.
+
+## Exercise typed Study values in the strategy runtime consumer — 2026-10-23 01:36 UTC
+
+Added an offline protocol/runtime regression over all 11 resolver-admitted Study artifact types.
+Each case serializes and decodes the immutable selected reference/output, then executes a simple
+strategy that reads `context.study_artifacts[name].reference.artifact_type`, compares `.value` with
+the exact recursively frozen expected payload, and emits a deterministic intent only on equality.
+The exact focused node passed 11/11 in
+0.37s (single process, 1-GiB address-space limit, 180-second timeout). Ruff, Ruff format and focused
+MyPy for the changed file (1-GiB/120-second bound), plus `git diff --check`, pass. The initial Ruff
+check found the missing test-only `Any` import and the first format check requested formatting; both
+were corrected, with no production changes. This is a generic Python strategy-runtime test, not
+Nautilus/native execution or order routing. No DB, Docker, Compose, browser, native process,
+provider/quota, or live operation ran. Exact parent CI39882200073 was last verified in progress on
+published `dd0a704b`; accumulated local commits remain unpublished until that run is terminal.
+
+The runtime consumer assertion was then tightened so strategy code compares the full decoded
+immutable value (nested JSON arrays as tuples), not only a non-null sentinel. The same 11 cases pass
+again (`11 passed`, 0.37s); focused Ruff, format and MyPy also pass. This exact-value assertion is
+covered by the next coherent local commit and remains outside parent CI39882200073.
+
+## Align the hydration matrix with the released TC Study contract — 2026-10-23 01:44 UTC
+
+Corrected the existing hydration fixture, which had used a `strategy_parameters`/`strategy-parameters.v1`
+shape and a noncanonical run digest despite exercising the authenticated TC Study resolver. It now
+uses the released `study.output` artifact name, `output_contract: study`, a canonical SHA-256 run
+reproducibility digest, and a type-matched payload. Parameterized the existing production hydrator
+resolver test across all 11 admitted Study output types and asserted equality of the complete
+`ResolvedStudyArtifactOutput`; the missing-trusted-resolver rejection remains covered. The focused
+hydration denial/type matrix passed 12/12 in 0.44s. Focused MyPy for this test file, Ruff, Ruff format,
+`git diff --check`, and branch workstream validation pass. No product code, database, Docker, browser,
+native process, provider/quota or live operation changed or ran.
+
+The accepted staging release 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is already an ancestor through
+Strategy merge commit 85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db; no second merge was needed. Preserve
+the existing exact parent CI39882200073 on published dd0a704b988ffbfb2ea7143e42abbf41105336f0 until
+terminal; it remains in progress and excludes this local change and the accumulated nine local
+commits. The real PostgreSQL restart body, full local backend/application/combined DB, browser/visual,
+native qualification and all remaining 18-criterion roadmap work remain open. No heavy slot was
+started; preserve all provider/live/quota/paid/trial/unknown/unsafe/broker/capital holds.
+
+## Extend persisted backtest-worker Study restart coverage — 2026-10-23 02:25 UTC
+
+Extended the existing real-PostgreSQL worker reconstruction test so each of the 11 TC-admitted Study
+output types is read back through a newly created engine/session and the production
+`NautilusTrialDomainHydrator`. The existing forward-worker restart test now shares the same type/value
+matrix. Assertions pin the exact immutable selected reference and decoded `ResolvedStudyArtifactOutput`;
+this adds no schema, production, routing, provider, or execution behavior. Stack-free collection found
+22 cases across both integration matrices (31 deselected) in 1.40s; no test body or database fixture
+ran. Focused MyPy on the integration module passed with no issues under a 1-GiB address-space/
+120-second bound. Ruff, Ruff format, byte-compilation via the UV-managed interpreter, and
+`git diff --check` pass.
+One bare `python` command was unavailable before the corrected managed-interpreter compile; it ran no
+code. The original accepted staging `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is already an ancestor
+through merge `85a7f3e8a7481f2f0a4fc85b6fbc51aea03343db`.
+
+At published source `9236eecbd545ccc1d9216bfe95a36a7d13bba027`, exact run `39886544570` has
+Frontend Unit, Backend, and Branch-declared jobs green; E2E Playwright remains in progress and the
+Exhaustive gate is skipped under feature-branch policy. This dirty test-only diff is outside that run.
+Preserve it to terminal before pushing, since the branch workflow cancels prior runs on a new push.
+The added PostgreSQL test body still needs the Root-assigned DB/full-profile slot; collect-only is not
+database evidence. For that future full local gate, retain the unchanged `scripts/backend_coverage.py
+--shard-size 25` collector, all test roots, existing 75% combined coverage threshold, zero retries,
+private coverage/quota/FINRA state and coordinator-pinned PostgreSQL/Redis fixtures. Then use the
+source-pinned, branch-owned full-stack/browser flow in sequence on one Root-assigned slot, retaining
+functional and strict-visual assertions and cleaning only exact owned resources after terminal results.
+No local DB, Docker, Compose, build, browser, provider/issuer HTTP, quota, native or live operation ran.
+All 18 roadmap criteria, persisted restart proof, full local backend/application/browser/strict-visual
+gates and native qualification remain open; forward, broker/capital, paid/trial, unknown/unsafe and
+provider/live scopes remain disabled.
+
+## Reject backtest Study payload drift after persisted worker restart — 2026-10-23 02:45 UTC
+
+Strengthened the existing real-PostgreSQL backtest restart matrix: after each of the 11 admitted
+Study output types hydrates its exact pinned payload through a fresh engine/session, the test now
+mutates only the persisted artifact payload and requires the production hydrator to reject the
+restarted attempt. This closes the asymmetry with the forward restart matrix, which already checks
+post-pin payload drift, without changing production code or adding a database fixture.
+
+The focused UV-managed `--collect-only` node discovered all 11 cases in 1.30s; no database fixture
+or test body ran. Ruff check, Ruff format check, and `git diff --check` pass. One initial collect-only
+attempt stopped before pytest because the shared UV cache was read-only; the corrected run used a
+private `/tmp` cache and completed collection. Current branch/origin baseline is synchronized at
+`1f5d982d56eae1f6b3946eebf1b2c1b5ad1c4eb3`; this source change is still local and has no exact-source
+CI receipt. The earlier `39886544570` result is for `9236eec...` and does not cover `1f5d982...` or
+this change. The integration body still requires the assigned PostgreSQL/full-profile slot; preserve
+all 18 roadmap criteria and full backend/application/browser/strict-visual/native gates. Provider or
+issuer HTTP, quota/live, paid/trial, unknown/unsafe, broker/capital and deployment remain disabled.
+Focused MyPy for the integration module also passes with no issues under the existing 1-GiB/120-second
+bound; branch workstream validation reports all 45 records valid.
+
+## Verify selected Study context at the Nautilus bridge invocation boundary — 2026-10-23 03:40 UTC
+
+The accepted M2 staging SHA `0e342512e53ba2268425294d61c50e219eaafa4f` is already an ancestor of
+this branch through its earlier accepted staging merge; `git merge-base --is-ancestor` confirmed
+the relationship, so no second merge was performed. The current published branch parent is
+`6a60a9817fe3f71dcdaf91b1f8f9242ad0e4901f`, clean and equal to origin. Exact-source run
+`39891877125` is terminal green: backend5251 unit passes/1 existing skip,530 integration passes/2
+existing skips and84% combined coverage; Frontend Unit, Branch-declared and E2E succeeded. Exhaustive
+Integration Gate was skipped under feature-branch policy. This CI covers the prior published source,
+not this new local test change.
+
+Extended the existing multi-component bridge regression so `alpha` has a selected immutable Study
+reference/output and `beta` has none. The test captures the context passed by the actual
+`nautilus_strategy_bridge` callback into `StrategyInvocationSession.invoke`, after the bridge's
+position replacement, and checks the selected output remains with alpha and is absent for beta. The
+two initial focused attempts failed on test assumptions/setup: one expected two selected contexts;
+the next exposed that the test's staged live alpha context had been rebuilt from its no-Study base.
+The fixture now stages from alpha's pinned context. The final two parameter cases pass in0.37s;
+focused Ruff, format, one-file MyPy, and diff checks pass. This uses fake Nautilus engine classes and
+proves the Python bridge handoff only, not exact RC execution, result publication or settlement.
+
+No production behavior, migration, database, Compose, browser, native process, provider HTTP/quota,
+live, paid/trial, broker/capital, dataset or service state changed. The full 18-criterion roadmap
+remains `in_progress`; the accepted SLICP checkpoint remains historical. Next: publish this coherent
+test/workstream changeset, inspect its one exact-source branch CI, then continue the immutable Study
+through the exact-pinned RC process and production result/settlement path only on a Root-assigned
+runtime slot. Keep full local backend/combined DB/application/browser/strict-visual and native gates
+open and preserve all scope holds.
+
+## Carry every admitted Study output type through the bridge context — 2026-10-23 03:47 UTC
+
+Extended the same bridge handoff regression from its initial scalar case to all11 artifact types
+admitted by the trusted Study resolver, in both invocation-result-retention modes (22 cases). Each
+case verifies the exact immutable `ResolvedStudyArtifactOutput` reaches the selected alpha component's
+`StrategyInvocationSession.invoke` context and does not leak to beta. The bounded offline test passes
+22/22 in0.69s; Ruff check/format and focused one-file MyPy pass. No production code changed. Fake
+Nautilus classes remain a test seam: this does not establish actual Nautilus RC process execution or
+native strategy behavior.
+
+This extension is local and uncommitted against published parent
+`4f547f0d9ba89e121d153907853b12886a7db63f`; its exact CI `39896546865` is still running and does not
+include this matrix. Preserve that run to terminal before pushing the follow-up. The earlier exact
+CI for `6a60a9817fe3f71dcdaf91b1f8f9242ad0e4901f` remains green. Full local backend/combined DB,
+application/browser/strict-visual and exact pinned native execution/result settlement gates remain
+open; the complete 18-criterion roadmap and all operation holds remain unchanged.
+
+## Exact-source bridge-context CI closed — 2026-10-23 04:29 UTC
+
+The exact push run `39896546865` for published source
+`4f547f0d9ba89e121d153907853b12886a7db63f` is terminal green (attempt1): Backend Tests,
+Frontend Unit Tests, Branch-declared Tests, and E2E Playwright succeeded; Exhaustive Integration
+Gate was skipped by feature-branch policy. The E2E job completed at `2026-10-23T04:28:36Z`.
+This closes hosted validation for the earlier two-case bridge-handoff change only; it does not
+validate the current uncommitted 22-case extension. That extension remains bounded offline
+test-only evidence pending its own exact-source CI. Full local backend/combined DB,
+application/browser/strict-visual and exact-pinned native execution/result settlement remain open.
+The full 18-criterion roadmap and all operation holds remain unchanged.
+
+## Persisted Study restart through runtime assembly — 2026-10-23 05:21 UTC
+
+The exact CI run `39900753635` for published `94ff90b9d59d4f32dbd368b69ccafeed291950d8`
+is terminal failure, not green: Backend Tests, Frontend Unit Tests, and Branch-declared Tests
+succeeded; Exhaustive Integration Gate was skipped by feature policy; E2E ended with 190 passed,
+110 existing skips, and one flaky F8l case. Its first attempt failed in the browser observation
+helper because `Request.startTime` was unavailable for
+`/api/v1/analysis/benchmark-families/readiness` (`hidden_request_observation.ts:19`); the retry
+passed, but Playwright reported the flaky case and exited1. Artifact `12480675829` retains the report.
+This is a shared F8l observer failure, not evidence of a Study regression or a proven application
+visibility defect. No F8l source was changed here, no retry was requested, and the failure remains
+historical evidence. Root separately held a bounded proof on source `331d99b7`; this Strategy
+workstream does not assume that proof repairs this hosted occurrence until the released source is
+verified.
+
+The new owned integration-test context extends the actual persisted backtest-worker Study restart
+matrix: after a fresh PostgreSQL-backed hydrator reconstructs each admitted output type from
+owner-scoped rows, the production `NautilusTrialRuntimeInputMaterializer` now writes the typed output
+into the runtime component-context stream. The test decodes the content-addressed bundle and checks
+the exact immutable reference/output in the binding and every event context for all11 admitted types,
+then retains the existing persisted-drift denial. Collection found11 cases; only collection, Ruff,
+format and focused MyPy were run locally. The real PostgreSQL test was not launched locally; its
+ordinary integration execution remains required. This proves neither native RC execution nor
+authoritative result publication. The full 18-criterion roadmap and all local/full-stack/native gates
+remain open.
+
+## Materializer integration case and released f04 baseline — 2026-10-23 05:25 UTC
+
+The current Strategy-owned integration-test changeset was closed and pushed first
+as `a32950e282ab92ecfc695b68493cc7afa7e6b4b7`. Its PostgreSQL-backed
+`test_reconstructed_backtest_worker_hydrates_each_persisted_study_type` now
+retains the real package artifact store/materializer, persists the selected
+immutable reference in the worker package, reconstructs after restart, invokes
+`NautilusTrialRuntimeInputMaterializer`, loads the content-addressed bundle,
+decodes the component context stream, and verifies exact Study reference/output
+in the strategy binding and every event context for all11 types. Existing
+persisted-drift denial remains. Collection found11 cases; Ruff, format and
+focused MyPy passed. The PostgreSQL test body was not run locally, so this is
+not DB acceptance or proof of native Nautilus execution. The publication was
+followed immediately by the coordinator-released common baseline adoption.
+
+Exact released staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` was verified
+from `origin/staging` and merged into this clean Strategy branch as second
+parent of `8944f442dff4e3a80bcbdcab91e44e10958d0351`. Release receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`;
+CI `39896524209` is fully green including Exhaustive. This is a common repair
+baseline, not product-checkpoint acceptance. It brings the shared browser-clock
+hidden-request observer repair and tests; focused Vitest passed9/9. The first
+attempt with a 1-GiB address-space cap stopped V8 before test collection, so the
+same focused file was run successfully with `NODE_OPTIONS=--max-old-space-size=512`
+and one worker. No browser/profile was launched.
+
+The prior exact CI `39900753635` on `94ff90b9d59d4f32dbd368b69ccafeed291950d8`
+remains historical red due to one flaky F8l observer case (190 passed,110
+existing skips); it is not erased by the new local unit result. The merged
+Strategy tip needs its own exact-source CI after publication. Full local backend,
+PostgreSQL/application, browser/strict-visual, and exact-pinned native execution
+and settlement remain open. All18 roadmap criteria and the operation holds
+remain intact. Do not mutate another worktree, staging or master; do not launch
+an unassigned fixture/profile or enable provider/live/quota/paid/trial/broker/
+capital operations.
+
+## Materializer stream decoder correction — 2026-10-23 05:53 UTC
+
+The exact-source push run `39905794221` for published source
+`061e94c620acd7c6e8f561e61e728d9064450243` is terminal red. Backend failed in
+11 parameterizations of the new PostgreSQL-backed Study restart/materializer
+test; Frontend Unit passed. Branch-declared and E2E did not run, and Exhaustive
+was skipped by feature policy. The repeated failure was
+`ValueError: component invocation context stream header fields are invalid` at
+`protocol.py:1259`, raised because the test chose the multi-component decoder
+for output emitted by the production single-component materializer. Production
+uses `materialize_nautilus_context_stream()` for a single component, whose
+artifact is the standard invocation-context stream. This was a test decoder
+mismatch; persisted hydration and materialization had already completed. The
+failed run is preserved and was not replayed.
+
+The current dirty correction uses `deserialize_invocation_context_stream`,
+asserts the single-component bundle has no component-count map, supplies its
+recorded expected context count, verifies the decoded manifest pins the exact
+selected Study reference, and checks the exact typed output in every decoded
+event context across all11 admitted artifact types. Evidence on this correction:
+the focused assembly module passed11/11; the integration module collected53
+cases without executing test bodies; focused MyPy passed; Ruff check, Ruff
+format, and `git diff --check` passed. No local PostgreSQL body was run and no
+fixture was started. Preserve all prior CI failures and full gates; the corrected
+source still needs its own exact-source CI and assigned PostgreSQL validation.
+The released `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` remains only a common
+repair baseline, not product acceptance. All18 roadmap criteria, the exact
+native-execution/settlement requirement, disabled provider/quota/paid/trial/
+unsafe/broker/capital scopes, and full local/combined DB/application/browser/
+strict-visual gates remain open.
+
+## Forward Study restart-to-context seam — 2026-10-23 06:45 UTC
+
+The decoder correction and the preceding backtest materializer integration case are already
+published at `45b946658b91477493c0172e3a7a71cf3bb7180c`. I independently checked exact push CI
+`39908472662`: Backend, Frontend Unit, Branch-declared Tests and E2E Playwright are green; Exhaustive
+Integration Gate is skipped under feature-branch policy. Hosted backend ran `5,271` unit cases with
+one existing skip and `530` integration cases with two existing skips at `84%` combined coverage;
+E2E passed `191` with `110` existing skips and no retries/flakes. This run exercised the published
+backtest worker materializer matrix and forward resolver/restart cases. It does not cover the new
+unpublished assertion below.
+
+The current bounded test-only change connects the freshly PostgreSQL-reconstructed forward plan to
+`ResolvedForwardExecutionPlanRecipeResolver`, constructs the production `ForwardStrategyContextWindow`
+from that recipe, and confirms the exact owner-resolved immutable Study output survives into a
+forward event context. It adds no production behavior and does not infer native Nautilus execution.
+Local evidence on the work-in-progress: the existing pure Study context regression passed `1/1`;
+the PostgreSQL module collected `53` cases without running their bodies; Ruff check, Ruff format and
+`git diff --check` pass. No local database/Compose/browser/native/provider operation ran. The
+changed PostgreSQL body awaits exact hosted CI or a coordinator-assigned local DB slot.
+
+The old CI `39905794221` red decoder failure remains preserved above and in the append-only
+validation journal; it is superseded only by the green corrected source, not erased. Exact staging
+f04 adoption is already in this branch history and remains common-repair baseline only. The full
+18-criterion roadmap, exact-pinned native execution/settlement, Exhaustive and assigned full local
+backend/combined DB/application/browser/strict-visual gates remain open. Provider/live/quota/
+paid/trial/unknown/unsafe/broker/capital and deployment holds remain unchanged.
+
+## Forward Study materializer/context closure and released-f04 confirmation — 2026-10-23 07:30 UTC
+
+The production Study materializer integration case and the forward restart-to-context assertion
+are published at `2190711b79fb97cd0aafb3227a4bba48c582086a`. Exact-source Actions run `39913683591`
+is terminal green for Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E Playwright;
+the Exhaustive Integration Gate is skipped by feature-branch policy. The published tests exercise
+the real single-component Study context materializer and the restored immutable forward output
+through `ResolvedForwardExecutionPlanRecipeResolver` into `ForwardStrategyContextWindow`. The
+focused local database test body was not run; no local fixture was started.
+
+The exact coordinator-released common repair baseline `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`
+is already an ancestor of this branch through merge commit `8944f442dff4e3a80bcbdcab91e44e10958d0351`.
+Its canonical full-green receipt remains
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`; no
+second merge was performed. This baseline is common repair only and does not accept later feature
+work.
+
+The only currently dirty source paths are the separate forward event-tape correction guard and its
+regression in `nautilus_event_adapter.py` / `test_nautilus_event_adapter.py`. A canonical event with
+`correction_of` could previously enter the live tape if its delivery binding falsely claimed
+`enqueue`. The guard now rejects that inconsistent pair while preserving the existing rejection
+ordering for a correctly labeled correction binding. Focused validation: the adapter test module
+passed `21/21`; Ruff check and format check passed; focused MyPy passed for both changed files; and
+`git diff --check` passed. These files are deliberately excluded from the completed Study
+materializer changeset and remain an in-progress separate source change pending its own publication
+and exact CI. Preserve all earlier red/flaky receipts. All18 roadmap criteria, full local/combined
+database/application/browser/strict-visual and native-execution/settlement gates, and every
+provider/quota/paid/trial/broker/capital hold remain open.
+
+## Forward event-tape correction rejection — 2026-10-23 07:34 UTC
+
+The current separate Strategy source fix closes a fail-open inconsistency in
+`NautilusForwardEventTape`: a canonical event with `correction_of` was accepted if a mismatched
+delivery binding claimed `enqueue`, even though corrections are counterfactual-replay inputs only.
+The new guard rejects the canonical correction after the existing identity/admission checks, so a
+correctly labeled `correction_enqueue` still receives the established rejection first. The
+regression was observed failing before the guard (construction did not raise); after the guard, the
+complete `test_nautilus_event_adapter.py` module passes `21/21`.
+
+Ruff check and format check pass, focused MyPy reports no issues in the two touched files, and
+`git diff --check` passes. The binary working-tree diff at base `64c6013da08456b3188f4d58ecd6a67ea85588f1`
+is `a3e2e057001341568b12212ca190020b49c38a93ab87d5c1b0790fbe21ae25d2`. No local database,
+Compose/browser/native process, or external provider operation ran. The source and regression are
+being published as this distinct scoped implementation changeset; their exact-source hosted CI
+remains the next check. The exact-source run `39918429781` on the predecessor workstream-only
+commit was still active at 07:34 UTC and is not treated as a result for this source change.
+Continue to preserve the complete
+18-criterion roadmap, all historical reds/flaky evidence, exact-pinned Nautilus scope, and all
+provider/live/quota/paid/trial/unknown/unsafe/broker/capital/deployment holds.
+
+## Forward tape source closure and f04 baseline confirmation — 2026-10-23 08:23 UTC
+
+The separate forward-event-tape correction guard and its regression are published together at
+`f5f3519a15261bddfa1ee7d5bf87474b250de7a7`. Exact Actions run `39918971415` is terminal green
+for Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E Playwright; the Exhaustive
+Integration Gate is skipped by feature-branch policy. The adapter test module passed 21/21; Ruff,
+focused MyPy on both changed files, formatting and `git diff --check` passed before publication.
+The regression was observed failing before the guard because the mismatched canonical
+correction/enqueue pair did not raise; no assertion or runtime guard was weakened. The worktree was
+clean and origin matched the tested source before this record update.
+
+The coordinator release `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` is already an ancestor through
+merge `8944f442dff4e3a80bcbdcab91e44e10958d0351`; this exact release was not merged a second time.
+The production Study materializer/restart integration slice remains separately closed at
+`2190711b79fb97cd0aafb3227a4bba48c582086a` / CI `39913683591`. The f5 correction is a distinct
+scoped change; there is no remaining dirty test file. This closes only the current source context,
+not the full roadmap: full local/combined PostgreSQL/application/browser/strict-visual and native
+execution/settlement gates remain open, and all provider/quota/paid/trial/broker/capital holds stay
+disabled. No database, Compose/browser/native profile, or external provider operation ran here.
+
+## Validate persisted TC Study payloads against producer contracts — 2026-10-23 08:50 UTC
+
+The published forward-tape correction context above is historical. A new single, unpublished
+changeset now validates persisted `ResolvedStudyArtifactOutput` payloads against the actual
+accepted `backend/research_runner/runner.py::_Output` adapter shapes. The consumer keeps generic
+scalar/series/table values intact, validates the typed bar/histogram/range/scatter/heatmap/
+dashboard/events/boolean forms, rejects unknown envelope fields and malformed finite/alignment
+data, and preserves the immutable reference/digest check before runtime admission. Events retain
+producer-defined event fields and require the producer-normalized non-empty timestamp/symbol.
+This is not native Nautilus execution proof and does not activate any provider, live or broker path.
+
+The shared producer-shaped fixtures now drive existing resolver, invocation-wire, trial-hydration,
+backtest and forward worker-context tests, including the PostgreSQL reconstruction module. The
+first focused selection found8 failures because the initial validator routed list-shaped `events`
+through the object-only branch; that genuine validation-order defect was fixed, and the expanded
+final selection passes102/102 in7.63s under one pytest process with a1-GiB address-space cap. An
+earlier focused MyPy attempt exposed the repository-pinned MyPy1.10 incompatibility with PEP695
+aliases plus untyped fixture ingress; it was resolved using a compatible recursive TypeAlias and
+typed frozen-value accessor while retaining runtime freezing/validation. Final focused MyPy passes
+all11 touched Python files. Ruff check, format, and `git diff --check` pass. The PostgreSQL module
+collects53 tests without executing a fixture/body; no SQL, Docker, provider HTTP, native process,
+browser, or full-profile gate ran.
+
+Exact predecessor push CI `39924763989` on published `27120a006c5e368b2b86fde364a787059ff2e0c4`
+was still `in_progress` at08:50 UTC: Frontend Unit was green and Backend integration remained
+active. That run does not cover this worktree diff, and it must reach terminal before pushing this
+changeset. Released staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` is already in this branch's
+ancestry via `8944f442dff4e3a80bcbdcab91e44e10958d0351`; no duplicate merge is needed. Keep the
+18-criterion roadmap and full local/combined PostgreSQL/application/browser/strict-visual and
+scope-qualified native execution/settlement gates open; all provider/quota/paid/trial/unsafe/
+broker/capital/deployment holds remain intact.
+
+## Persisted TC Study payload contract — exact-source CI closure, 2026-10-23 10:05 UTC
+
+The source slice described above is now published at `344f87f835f392bd103c20db2044aa0de72148df`;
+local HEAD and `origin/feat/strategy-lab-v2` match. Exact push run `39930681310` completed
+successfully on that SHA: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E
+Playwright are green. Exhaustive Integration Gate was skipped by feature-branch policy. The
+102-case focused payload/runtime selection, focused MyPy on 11 touched files, Ruff/format and
+diff checks passed; the PostgreSQL module was collect-only (53 discovered), not executed locally.
+This closes only the payload-contract source changeset. The complete 18-criterion roadmap,
+combined PostgreSQL/application/browser/strict-visual and exact-pinned native execution/settlement
+gates remain open. No provider/issuer/SEC request, quota operation, capability activation, broker,
+capital or deployment action occurred; all holds remain intact. Continue from the next incomplete
+Strategy-owned roadmap item without repeating the already-green hosted run or launching an
+unassigned heavy profile.
+
+## Explicit Study-reference resolution API — in progress, 2026-10-23
+
+The prior `strategy-lab-v2-tc-study-payload-contract-v1` source slice is closed at published
+`344f87f835f392bd103c20db2044aa0de72148df` with exact CI `39930681310` green for Backend,
+Frontend Unit, Branch-declared and E2E; Exhaustive was skipped by feature-branch policy. Its
+accepted-TC payload shapes and typed immutable runtime values remain the source of truth. The
+current branch-owned gap is caller construction of those references: existing authenticated API
+readbacks expose owner-scoped CodeAsset/CodeVersion and ResearchRun/ResearchArtifact fields, but
+there is no V2 operation to derive the full reference/digests from an explicitly selected completed
+run and artifact. The current changeset adds that read-only explicit-ID resolver to the registered
+V2 API, preserving fail-closed runtime revalidation and adding success/readback and rejection/no-
+persistence evidence. It must not add a latest alias, dispatch jobs, loosen exact owner/terminal/
+payload checks, or claim native execution.
+
+The f04 first-human recipe has been delivered separately: a constant generic Study result can run
+without OHLCV, but it is not native V2 execution. This changeset does not activate native,
+forward, broker, capital, provider or quota scopes. Full local PostgreSQL/combined app/browser/
+strict-visual and exact-pinned native execution/settlement gates remain open and coordinator-
+assigned; no fixture or external provider request is authorized by this work.
+
+## Explicit Study-reference API — current validation checkpoint, 2026-10-23 10:29 UTC
+
+The registered route is `GET /api/v1/strategy-lab/v2/study-artifact-references/{research_run_id}/{artifact_id}`.
+It accepts only explicit positive IDs and an authenticated owner; the adapter derives the typed
+pin from a fully completed/evaluated Study run and its persisted artifact, verifies the code
+version/asset and content digests, and returns 404 for absent or foreign selections. Incomplete or
+drifted evidence fails closed. It does not select “latest,” create/dispatch a run, or claim native
+execution. The PostgreSQL integration module now exercises route derivation/readback and rejection
+against persisted rows, but its body has not run locally.
+
+The bounded stack-free resolver/router/application selection completed with 63 passing tests in
+5.15s. Preserve the earlier 59-pass/1-fail diagnostic, which identified a missing rejection for an
+unavailable/zero owner and was corrected. Focused MyPy and Ruff/format checks had passed on the
+touched boundary before this handoff; final scoped style/workstream/diff checks remain to be closed.
+The PostgreSQL test module was collect-only; no SQL, Compose, browser, provider, quota or native
+operation ran. This source slice remains in progress until those final static checks and coherent
+publication. Exact-source CI for the new source, real PostgreSQL execution, full application/
+browser/strict-visual, and exact-pinned native execution/settlement remain open. The full
+18-criterion roadmap remains active; all external/provider, quota, paid/trial, broker/capital and
+deployment holds remain in force.
+
+## API-derived Study pin consumed by V2 Strategy creation — 2026-10-23 10:46 UTC
+
+The published API-reference source is `068d03f1ff55f5b1701d071980b4405d83e65cc6`; local HEAD and
+origin are synchronized at that parent. Its exact-source run `39939914641` has frontend and backend
+unit green while backend integration remains in progress. Preserve and do not cancel that run.
+The one-file follow-up changes the existing persisted PostgreSQL API test to submit the exact
+`selected_study_artifact` object returned by the authenticated reference GET route, then verify
+Strategy create/readback and persisted revision identity. Previously the test supplied a separately
+assembled equivalent reference, leaving the public producer-to-consumer boundary disconnected.
+Single-file Ruff check/format, diff check, and bounded collect-only of the changed test node pass;
+the body/SQL fixture was not executed locally. The current run does not include this worktree-only
+delta; after it terminates, publish the coherent test and owned-record changes and obtain exact-source
+CI. Do not launch a local database/application/browser/native gate without an assigned slot. The
+full roadmap, runtime acceptance, and disabled provider/quota/paid/trial/broker/capital/deployment
+boundaries remain unchanged.
+
+## API-derived Study reference consumer regression and f04 read-only target recipe — 2026-10-23 11:13 UTC
+
+The latest coherent source is published at `1e643917e2896ba41ad9842f13a4b42c0c1160d1`, with
+local `HEAD` and `origin/feat/strategy-lab-v2` synchronized and the worktree clean at inspection.
+Exact-source Actions run `39942258194` for that SHA is terminal successful: Backend Tests passed,
+including the full `pytest tests/integration` Testcontainers step and combined coverage; Frontend
+Unit Tests, Branch-declared Tests, and E2E Playwright also passed. Exhaustive Integration Gate was
+skipped by feature-branch policy. The integration step includes
+`backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`, whose
+current regression passes the reference GET response verbatim into Strategy creation and readback.
+The predecessor run `39939914641` on `068d03f` was cancelled by the newer push; it is not a
+product/test failure. Run `39942258194` was observed terminal successful at 11:39:36Z. No local
+fixture was launched while Root held the F8m slot; no replay occurred.
+
+The earlier statement that an f04 first-human recipe was delivered separately did not identify a
+durable path. This paragraph is the f04-only, read-only target recipe. On exact accepted release
+`f04fb2a26c6363c6090e76c2658cfcfe7adabf61`, authenticate as existing owner 1 and read
+`GET /api/v1/code/assets` plus `GET /api/v1/research/runs/1`. Confirm Study CodeAsset 1, its pinned
+CodeVersion 1 (value 6), and run 1 is pinned to version 1, `status=completed`,
+`evaluation_status=completed`, with persisted scalar ResearchArtifact 1 (value 6). Use the
+artifact's persisted `name`, `artifact_type`, and full `payload`, not inferred values.
+
+f04 has no public selected-reference construction endpoint. Its actual read-only resolver is
+`create_selected_study_artifact_resolver(AsyncSessionLocal)` in
+`backend/app/strategy_lab_v2/study_artifact_resolver.py`. Construct
+`SelectedStudyArtifactReference` from explicit IDs run=1/version=1/artifact=1, the persisted
+artifact name/type, `output_contract="study"`, and the run's `reproducibility_hash`. Compute
+`code_version_digest` with f04's `_code_version_digest(version, asset)` (asset identity plus all
+immutable CodeVersion fields); compute `dataset_manifest_digest=content_digest(run.dataset_manifest)`
+and `artifact_content_digest=content_digest(artifact.payload)`. Pass that typed reference to the
+resolver with `principal=1`; success must return the identical reference. For tamper rejection, use
+a new valid digest, e.g. `content_digest({"type":"scalar","value":7})`, only as the claimed
+artifact digest and confirm resolution rejects. For owner isolation, call the same resolver with
+`principal=2` and the run-1 reference; it must fail closed because the run query is owner-scoped.
+Run 1 is completed, so it cannot prove nonterminal rejection; only check an already-existing
+nonterminal row if one is present. Do not alter run state or create another run to manufacture that
+case.
+
+The f04 V2 consumer route is `POST /api/v1/strategy-lab/v2/strategies` with
+`attributes.selected_study_artifact`; it invokes the resolver before persistence. A successful call
+creates a Strategy resource, so it is outside this read-only target recipe and requires separately
+authorized target mutation. Direct resolver success/denial proves owner-scoped immutable Study
+provenance only—not a full Strategy API write/readback, backtest, or native Nautilus execution.
+No target request or database operation was run by this branch session. Provider/issuer/SEC HTTP,
+quota work, native/forward/broker/capital activation, local fixture launches and all full-profile
+gates remain governed by their existing holds.
+
+For the remaining accepted-f04 consumer check, the registered owner-authenticated API boundary is
+`POST /api/v1/strategy-lab/v2/strategies` (requires `Idempotency-Key`) with the complete typed pin
+under `attributes.selected_study_artifact`; its adapter invokes the same resolver before persisting
+the Strategy resource. A successful POST followed by owner-authenticated
+`GET /api/v1/strategy-lab/v2/strategies/{resource_id}` proves consumer admission/readback, not
+execution, and does write one Strategy resource. If the target check must remain read-only, invoke
+the accepted `create_selected_study_artifact_resolver(AsyncSessionLocal)` directly and stop before
+POST. There is no public f04 endpoint that constructs the reference from IDs; do not use the later
+branch-only `GET /study-artifact-references/...` route for this accepted-release check. To prove a
+real mutated-pin rejection, change only the claimed content digest to
+`content_digest({"type":"scalar","value":7})`; use a distinct idempotency key if exercising the
+API and verify no resource was stored. A foreign-owner denial can be checked without another
+account by calling the read-only resolver with a nonmatching principal ID (for example `999`).
+Run 1 is already completed, so it cannot prove nonterminal denial; use an already-existing
+nonterminal row only if one is present, otherwise retain the f04 fixture-based queued/running
+regressions as the evidence and do not mutate run 1 or create another run.
+
+This closes the API-derived selected-Study reference consumer source changeset only. The complete
+18-criterion roadmap and full local/combined runtime, strict-visual, and native gates remain open.
+An explicit documented AC-METRICS gap is that cadence-based annualized time-series metrics do not
+accept irregular timestamped equity observations; the next source context should derive a
+versioned elapsed-time formula and fail-closed input contract without changing existing cadence
+metric identities.
+
+## Elapsed-time event-risk metrics — active source context, 2026-10-23 11:53 UTC
+
+The AC-METRICS slice is implemented and bounded-test validated locally, but not yet published.
+`metrics.py` preserves the shared v17 definition version for cadence metric identities and adds
+event-aligned annualized volatility, Sharpe and Sortino from
+strictly increasing UTC event marks with positive equity. The estimator uses log-return increments,
+exact elapsed years `T`, annualized drift `mu=sum(r_i)/T`, and residual variance
+`sum((r_i - mu*dt_i)^2)/T`; the annual risk-free simple return is converted to continuous
+`ln(1+rf)` and recorded in calculation parameters. The estimator is separately identified as
+`elapsed_utc_residual_log_variance.v1`, preserving cadence calculation fingerprints. Repeated timestamps, nonpositive equity, missing
+timestamps, insufficient intervals, and numeric-range failures yield explicit null reasons. VaR and
+expected shortfall remain withheld for unequal horizons. The existing cadence calculator path is
+unchanged; documentation now distinguishes the two estimators.
+
+Tests add independent equal- and unequal-interval expectations, risk-free excess, zero variance and
+downside, insufficient-interval handling, timestamp/equity/risk-free/numeric-range rejection, and
+preserved VaR/ES withholding. The focused 15-case event-risk selection passed (`15 passed`); the
+complete touched metrics module passed (`31 passed`). Focused MyPy on `metrics.py` and
+`test_metrics.py` passed. Ruff check/format, diff checks, and workstream structure checks also pass.
+These are bounded pure-unit and touched-boundary checks only. No broad coverage, database, Compose,
+browser, native, provider, quota, target or external request ran; Root's short F8m slot remains
+reserved for Root. Finish the coherent source/evidence publication and follow its exact-source CI;
+full local/combined runtime/browser/strict-visual/native gates remain open and Root-assigned. The
+complete 18-criterion roadmap and all provider/live/quota/paid/trial/unsafe/broker/capital holds
+remain unchanged.
+
+Versioning review at 11:56 UTC corrected the initial local draft's global v18 bump. Metric-set
+definition version remains v17 so existing cadence-based metric calculation fingerprints do not
+change. The new event-time risk estimator is distinguished by the explicit
+`elapsed_utc_residual_log_variance.v1` calculation parameter. Earlier uncommitted validation notes
+record the intermediate v18 draft; no pytest or typecheck ran against that draft or this correction.
+
+Further source review moved Sharpe and Sortino divisions inside the same Decimal-exception guard as
+variance estimation, so an unrepresentable ratio withholds the whole risk family instead of escaping
+as an unhandled arithmetic error. Targeted Ruff and diff checks pass; pytest remains held by Root's
+F8m slot and low host headroom.
+
+## Elapsed-time event-risk metrics — source closure, 2026-10-23 12:56 UTC
+
+This bounded source context is published at `fc388467024e74cdaa343cc472a6659b0391fae4`.
+Exact-source GitHub Actions run `39951384776` completed successfully on that SHA: Backend Tests,
+Frontend Unit Tests, Branch-declared Tests, and E2E Playwright passed; the Exhaustive Integration
+Gate was skipped under feature-branch policy. Previously recorded focused evidence remains 15
+event-risk tests and 31 total `test_metrics.py` tests passing, focused MyPy for both touched Python
+files passing, and Ruff/format/diff/workstream validation passing. The attempted local
+`make agent-docker-ready` preflight was blocked by Docker API permission denied; it is not product
+test evidence. Full local and combined PostgreSQL/application/browser/strict-visual/native gates
+remain open. The next bounded code-review candidate is passing an explicit event-time annualized
+risk-free assumption through the official Nautilus OOS metric-set builders and including it in
+their identities; preserve the v17 cadence identities and event estimator v1 contract. All 18
+roadmap criteria and operation holds remain unchanged.
+
+## Event-risk-free assumption through official OOS builders — active, 2026-10-23 13:04 UTC
+
+Source review found that `calculate_event_aligned_equity_metrics` already accepts and records
+`risk_free_return_annualized`, but `_build_oos_equity_metric_values` did not pass a caller value and
+both official Nautilus OOS metric-set builders silently used zero. The current bounded source slice
+adds `event_risk_free_return_annualized` to both builder APIs, forwards it only to event-time
+Sharpe/Sortino calculation, and includes non-zero values in both MetricSet identity formulas. The
+identity input omits a zero value to preserve historical default-zero IDs. The separate
+`session_risk_free_return_per_period` remains unchanged. Added focused builder regressions cover
+forwarding, non-zero identity separation, and explicit-zero/default identity equivalence; updated
+the metrics docs. Both new builder regressions passed in a single stack-free process (`2 passed` in
+1.31s; 1-GiB address-space cap, 90s timeout, offline UV/private cache). Touched Ruff check/format and
+`git diff --check` pass; the full touched module and MyPy have not run.
+The zero-default regressions reconstruct the pre-change identity dictionaries directly, asserting
+compatibility against the prior formula rather than only comparing two new defaults.
+
+Exact-source CI `39951384776` covers parent source `fc388467024e74cdaa343cc472a6659b0391fae4`, not
+this delta. Root's short F8m slot remains reserved; the narrow two-node selection above was kept
+within a 1-GiB cap. Wait for slot release before the full touched-module tests or MyPy; do not launch
+a broad suite or any database/application/browser/native/provider operation. Preserve the full
+roadmap and all operation holds.
+
+## Frozen Study payload typing — active bounded changeset, 2026-10-23 14:21 UTC
+
+Source review confirmed that owner-scoped immutable Study output resolution, schema validation,
+recursive freezing, search/backtest hydration, forward worker reconstruction, and restart drift
+rejection already exist on this branch and are exercised by the persisted Study integration module.
+The remaining typed-boundary gap was that `ResolvedStudyArtifactOutput.payload` still declared
+`Mapping[str, Any]`, even though `FrozenStudyArtifactValue` already described the recursive JSON
+values and the resolver validates and freezes the envelope. This changes the payload field to the
+new `FrozenStudyArtifactPayload` mapping alias over that recursive type; runtime serialization,
+wire shape, digest inputs, resolver behavior and native authority are unchanged. Test-only casts are
+limited to generic/untrusted fixture inputs at the typed constructor boundary.
+
+Current parent source is `1a407d6c8664259b709730a2c25d7cb055cdb0ee`, clean and synchronized before
+this changeset. Exact-source CI `39967811561` on that parent was verified still in progress at
+14:20 UTC; preserve it through terminal before publishing. The initial four-file focused MyPy pass
+identified four generic-fixture argument typing mismatches, and the wider caller-boundary check
+identified one additional call site. Explicit test-only casts resolved those diagnostics without
+weakening production types. Final focused MyPy passed all 14 selected production/test files; Ruff
+passed on all seven source/test paths; the pure resolver module passed 61 tests in 1.98s under a
+1-GiB address-space and 120-second bound. `git diff --check` passed. These checks used the offline
+UV-managed environment; no database, network, Compose, browser, provider, quota, native or live
+operation ran.
+
+This is still an in-progress source changeset pending preservation of the existing parent CI and
+publication of its exact source. The accepted f04 first-human read-only recipe remains at this
+handoff's earlier section; f04 has no public reference-construction endpoint. The later branch
+output resolver/restart checks do not prove native execution. Keep the 18-criterion roadmap and all
+provider/live/quota/paid/trial/unsafe/broker/capital holds open.
+
+Static compatibility review on 2026-10-23 confirmed both public OOS metric-set builders expose the
+new annualized event risk-free parameter as keyword-only, and the sole production caller in
+`nautilus_result_materialization.py` uses keyword arguments. The value reaches the existing event
+metric calculator, whose finite and greater-than-minus-one validation remains authoritative; the
+builder identities include every non-zero assumption while omitting zero to retain the literal
+pre-change identity formula. This is source review only, not additional test or MyPy evidence. The
+full touched module and scoped MyPy remain held for Root's local slot.
+
+The full touched `test_nautilus_result_metrics.py` module then passed all 19 tests in 1.29s with
+coverage disabled, a single process, UV offline/private cache and a 768-MiB address-space cap. This
+is module-level unit evidence only. Scoped MyPy remains pending Root's local-slot release; no
+database, Compose, browser, native or external operation ran.
+
+Given the bounded module and style evidence, this source changeset was published as `a7b9324e` for
+exact-source hosted CI. Run `39960802652` completed successfully on that exact source on
+2026-10-23: Backend, Frontend, Branch-declared, and E2E all succeeded. Branch-declared included the
+complete Strategy Lab package (`1,882 passed, 1 skipped`), six additional checks, Ruff, and
+`mypy app/strategy_lab_v2 strategy_runtime` (`447` source files, no issues). E2E reported `191
+passed, 110 skipped` in 20.1 minutes; Exhaustive Integration Gate was skipped by feature-branch
+policy. This closes only the bounded event-risk-free builder changeset. Full local/combined runtime
+gates and all 18 roadmap criteria remain open; the next roadmap item is the existing irregular
+timestamped-equity elapsed-time metric contract, preserving v17 cadence semantics.
+
+## Frozen Study payload typing CI caller correction — 2026-10-23 15:02 UTC
+
+Published source `3ac7b0ed73d169746c536f3f861c6a4561ca9d27` has exact push run `39970578484`.
+Backend and Frontend passed; Branch-declared failed only on three MyPy fixture-boundary errors:
+`test_strategy_runtime_protocol.py` at the selected-output constructors and
+`test_nautilus_strategy_bridge.py` at its selected-output constructor. The payload field is now
+the recursive `FrozenStudyArtifactPayload`; these generic fixture dictionaries needed explicit
+test-only casts. Added those casts using the existing payload alias, without changing production
+types, runtime data, assertions, or resolver behavior. Focused MyPy over both affected files now
+passes; Ruff and `git diff --check` pass. No pytest, database, application, browser, native,
+provider or quota operation ran for this correction.
+
+At the last exact run check, E2E Playwright was still in progress and the feature-branch Exhaustive
+Integration Gate was skipped by policy. Preserve run `39970578484` through its terminal E2E result
+before publishing the correction so the in-flight job is not canceled. The f04-only first-human
+read-only recipe is already durable earlier in this handoff at
+`ops/workstreams/feat-strategy-lab-v2/handoff.md:17966`; it reads owner 1's persisted asset/run,
+constructs the reference only in-process from persisted immutable IDs and digests, and invokes
+f04's read-only resolver. There is no public f04 reference-construction endpoint; the later
+branch-only API must not be used as accepted-release evidence. The target recipe is not an API
+write, a new Study run, or native execution proof. Full local/combined gates and all 18 roadmap
+criteria remain open.
+
+### Exact-push correction — 2026-10-23 15:31 UTC
+
+The narrow fix was published as `a5aa2d7d1ba2f369b2c03ff61faf069bbbc595c3` before the preceding
+run's E2E completed. Preserve the facts above as the earlier observation, but correct the terminal
+interpretation: exact run `39970578484` is now cancelled by the newer push, so its E2E has no
+terminal test result and must not be described as either passed or failed. The older
+Branch-declared MyPy failure remains valid historical evidence. New exact push run `39976028981`
+is active: Frontend passed, Backend unit tests passed, Backend integration is in progress, and
+coverage is pending. The job list currently contains only Backend and Frontend; it does not yet
+show Branch-declared, E2E, or EIG results. The branch remains clean and synchronized at `a5aa2d7d`.
+No new local fixture or suite was started. After this exact run terminates, reconcile its exact job
+scope and result with the next substantive source context instead of a receipt-only commit.
+
+### Same-run progress update — 2026-10-23 15:34 UTC
+
+Run `39976028981` has advanced: Backend unit, integration, and combined coverage steps are all
+successful; Frontend is successful. Branch-declared Tests and E2E Playwright are now in progress;
+EIG is skipped by feature-branch policy. This supersedes the preceding 15:31 observation that
+integration was still running and that only Backend/Frontend jobs were listed. No local profile,
+test rerun, or source edit was started. Preserve this run through its terminal results.
+
+### Branch-declared transition — 2026-10-23 15:37 UTC
+
+Exact run `39976028981` has now completed Backend Tests (unit, integration, and combined coverage),
+Frontend Unit Tests, and Branch-declared Tests successfully. E2E Playwright remains in progress;
+EIG is skipped by feature-branch policy. This is the exact-source validation for the test-only
+payload typing correction; do not call the overall run terminal until E2E ends. All local full
+application/database/native gates and the complete roadmap remain open.
+
+### Exact-source CI closure — 2026-10-23 15:59 UTC
+
+Exact push run `39976028981` completed successfully on source
+`a5aa2d7d1ba2f369b2c03ff61faf069bbbc595c3` at 15:59:01 UTC. Backend Tests passed: unit
+`5314 passed, 1 skipped`, integration `530 passed, 2 skipped`, and the combined coverage gate
+reported `84%` against the unchanged threshold. Frontend Unit Tests passed. Branch-declared Tests
+passed, including the Strategy Lab v2 package (`1882 passed, 1 skipped`), six additional tests,
+Ruff, and MyPy over 447 source files with no issues. E2E Playwright passed `191` with `110` existing
+skips in `21.8m`; the final summary reported no failed cases. Exhaustive Integration Gate was
+skipped by feature-branch policy. The older `39970578484` Branch-declared typing failure remains
+historical; its E2E was cancelled by the corrective push and has no terminal result.
+
+This closes only the frozen Study payload typing/caller-cast changeset. It does not complete the
+18-criterion roadmap or prove native Nautilus execution. The next independently available product
+surface is the Strategy Lab v2 frontend boundary: current frontend search finds no v2 API client
+usage, while legacy Strategy Lab remains under `/legacy/strategy-lab`. A bounded next slice should
+start with an authenticated read-only v2 resource inspector for owner-scoped strategies, trials,
+artifacts, and selected Study lineage, using existing API responses; do not submit jobs or enable
+native, forward, broker, capital, provider or quota operations. Full local/combined runtime,
+database, browser/strict-visual and native qualification gates remain open and coordinator-assigned.
+
+## Authenticated read-only Strategy Lab v2 resource inspector — active bounded context, 2026-10-23 16:11 UTC
+
+The accepted-f04 first-human recipe remains durable above at
+`ops/workstreams/feat-strategy-lab-v2/handoff.md:17980`; it distinguishes f04's internal read-only
+resolver from the mutating Strategy POST and does not use a later branch-only reference route. The
+f04 release receipt is `20261023T051709Z-f04fb2a26c63.json`.
+
+This next full-roadmap UI slice adds a lazy `/legacy/strategy-lab-v2` view and top-level redirect,
+while preserving `/legacy/strategy-lab`. `StrategyLabV2View.vue` uses the normal authenticated
+`api.get` client only for the existing JSON:API `strategies`, `trials`, and `artifacts`
+collection/detail reads. It provides explicit cursor pagination, detail readback, selected immutable
+Study reference display, and an explicit read-only/no-native-execution boundary. There are no
+mutation, dispatch, forward, broker, capital, provider, quota, or native-execution calls. The global
+router auth guard continues to protect this route because it is not marked public.
+
+Focused single-process Vitest passed the view and route-contract modules: 8/8 in 1.86s. Coverage
+includes collection/detail GET paths and pinned lineage display, cursor append, Trials/Artifacts tab
+reads, read failure/retry, and non-public route status. An initial run exposed a fixture-label
+expectation mismatch; the UI correctly rendered that fixture's `strategy_id`, and the test
+expectation was corrected without weakening the check. `git diff --check` passed. Exact CI
+`39976028981` is green only for parent `a5aa2d7d1ba2f369b2c03ff61faf069bbbc595c3`, so it does not
+validate this dirty UI diff. No full Vue typecheck/build, browser/strict-visual, database, Compose,
+provider, native, or target operation ran; the local full-stack/browser gate remains Root-assigned.
+This context is still in progress pending scoped review, workstream validation, publication, and
+exact-source CI.
+
+## Read-only persisted Study pin preview in the v2 inspector — active continuation, 2026-10-23 16:41 UTC
+
+Extended the same bounded frontend context with a GET-only Study pin preview using the current
+branch's registered `/api/v1/strategy-lab/v2/study-artifact-references/{research_run_id}/{artifact_id}`
+route. The UI validates positive safe-integer IDs and checks the response type, composite ID, run ID,
+artifact ID, and `output_contract="study"` before displaying the immutable fields. The form never
+creates a Strategy, dispatches a job, or implies native execution. This route is current branch
+behavior and must not be confused with accepted f04, which has no public reference-construction GET.
+
+Focused single-process Vitest on the view and route modules passed 11/11 in 2.25s with Node heap
+capped at512MiB. Regressions cover exact owner-scoped GET path, displayed immutable digest fields,
+mismatched response identity rejection, positive-integer validation, and no POST. The first bounded
+attempt exited before tests because an address-space cap prevented V8 CodeRange reservation; the
+next attempt also exited before collection with a transient Rollup optional-module resolution error.
+The native binding then resolved and loaded directly, and the corrected focused run passed. A
+Prettier check was unavailable because no repository-local Prettier executable exists. `git diff
+--check` remains required before publication. The published `1451b9d0f2f4a468961319eda337f5dcc1e06aa7`
+CI run `39985325009` has Backend, Frontend, and Branch-declared green, with E2E still running and
+Exhaustive skipped by feature-branch policy; it does not cover this uncommitted continuation. Do not
+push/cancel that exact run. The next step is its terminal result, then one coherent publication of
+the inspector plus pin preview for new exact-source CI. Root's full local app/browser and strict
+visual gates, the complete 18-criterion roadmap, and native/unsafe scope holds remain open.
+
+### Typed response guard refinement — 2026-10-23 16:50 UTC
+
+The same read-only preview now requires the complete immutable reference shape before rendering:
+positive matching IDs, nonempty artifact identity, `output_contract="study"`, a lowercase 64-hex
+run reproducibility hash, and all three `sha256:`-prefixed content digests. The input IDs must be
+positive decimal strings and safe integers; no GET is issued for malformed input. This is UI-side
+response validation only; the accepted f04 limitation above remains unchanged, and no runtime,
+resolver, API, or persistence behavior was changed.
+
+The first focused run exposed the existing test's invalid reference fixture (bare content digests
+and a non-hex `r` run hash); a second run after partial fixture correction exposed the remaining
+non-hex run hash. The fixture was corrected to match the actual immutable contract. The latest
+single-process view test run passed 8/8 in 1.14s with a 512MiB Node heap cap. Exact run
+`39985325009` remains on published parent `1451b9d0` with E2E still running; it does not cover this
+dirty refinement. No target, database, provider, native, or full-stack operation ran. Preserve both
+failed local attempts in the validation journal. Continue to wait for that exact hosted run before
+publishing this single inspector changeset; all full-roadmap and coordinator-assigned gates remain
+open.
+
+After that source correction, the combined view plus route-contract unit command passed 12/12 in
+2.42s, one process, 512MiB Node heap. The same exact parent CI remains live in E2E; this focused
+result is still not browser/strict-visual or full-stack evidence.
+
+## Research date-only range semantics — active bounded backend correction, 2026-10-23 16:59 UTC
+
+Root reported that accepted-target Study run3 used date-only bounds `2024-11-22` through
+`2026-10-22`, completed but was correctly deferred with zero artifacts. Its canonical manifest
+contained 478 bars through Oct21 because Python's `datetime.fromisoformat` accepts a date-only
+value as midnight before the prior end-of-day fallback could run. Root's separate run4, using the
+same immutable Strategy version and already-acquired exact timestamps, evaluated successfully with
+479 bars and four matching artifacts; this is Root-run target evidence, not validation of this
+branch change or a request performed here.
+
+The branch correction now parses true date-only values first: start is UTC midnight and end is the
+inclusive UTC final microsecond. Explicit timestamps retain their exact instant and UTC-offset
+normalization. For date-granular D1 coverage only, the existing evaluator preflight accepts a
+per-instrument calendar; Research applies the existing XNYS session-date policy only when both
+bounds are date-only and loaded equity detail names the exact supported `XNYS` MIC. This avoids
+treating the first close-timestamped daily bar as a gap from midnight for that known venue, while
+retaining internal missing-session detection, minimum-history gates, mixed/exact-timestamp coverage
+behavior, and the conservative no-calendar path for other or unknown venues. No
+coverage threshold, PIT rule, artifact eligibility, adjustment behavior, provider fetch, or target
+data was changed.
+
+Focused Research-router and evaluator-preflight unit modules passed 12/12 in 2.91s. Ruff check,
+Ruff format check, and `git diff --check` passed. A two-module MyPy invocation expanded into the
+large imported application graph and emitted unrelated dependency diagnostics; it was stopped
+before completion (exit130), so no MyPy pass is claimed. No DB, provider, target, fixture, full
+suite, browser, or native operation ran. Exact-source run `39985325009` remains tied to published
+parent `1451b9d0` with E2E live; do not push or cancel it. Keep this Research correction distinct
+from the read-only inspector, then close/publish after that existing run is terminal. Full local
+profile, exact-new-source CI, and all 18 roadmap criteria remain open.
+
+### Venue and mixed-boundary review correction — 2026-10-23 17:02 UTC
+
+Root review correctly rejected `equity_detail + USD` as proof of XNYS. The selection now requires
+the authoritative loaded `EquityDetail.exchange_mic` to equal the only calendar currently supported
+by the coverage engine, `XNYS`; ARCX and missing/unknown MICs keep the conservative no-calendar
+path. Session-calendar coverage is enabled only when both start and end are date-only. If one side
+is an exact timestamp and the other is date-only, the exact side remains unchanged and no
+session-date substitution is applied. New assertions cover XNYS versus another/unknown venue and
+each mixed-boundary direction. No new calendar mapping or coverage relaxation was introduced.
+
+### Prior exact-source CI terminal update — 2026-10-23 17:04 UTC
+
+The previously live `39985325009` run is now terminal success on published parent
+`1451b9d0f2f4a468961319eda337f5dcc1e06aa7`: Backend, Frontend, Branch-declared, and E2E all
+succeeded; Exhaustive Integration Gate was skipped by feature-branch policy. This does not cover
+the current dirty frontend refinement or Research date-bound correction. Publication can proceed
+without cancelling that run; the new exact-source CI remains required. Root-assigned local
+full-stack/browser and strict-visual gates, plus the full roadmap, remain open.
+
+After that terminal receipt, the final venue/mixed-boundary-reviewed Research test set was rerun:
+12/12 passed in 2.94s. The final Ruff check, Ruff format check, and `git diff --check` also pass.
+The interrupted focused MyPy attempt was not repeated.
+
+### Separate source commit boundaries — 2026-10-23 17:07 UTC
+
+The Research date-range correction is committed separately as `85a821795` (`fix(research): honor
+inclusive date-only bounds`); its four production/test files remain independent from the UI.
+The inspector and typed pin preview are committed as `4a2c6058d` (`feat(strategy-lab): add
+read-only v2 study pin preview`) with only the two frontend view/test paths. Both commits are local
+on top of published parent `1451b9d0`; the four owned workstream records still need their coherent
+closure update, and no exact CI has run on these two source commits yet. The old run `39985325009`
+is green only for its parent. Next: validate/commit the current owner records, push the branch once,
+and preserve the resulting exact-tip CI. The coordinator still owns the full local app/browser and
+strict-visual resource slot; no such fixture ran here.
+
+### Canonical listing and exact mixed-boundary correction — 2026-10-23 17:15 UTC
+
+Root review rejected the prior `EquityDetail.exchange_mic` assumption: equity-detail venue alone
+does not establish the canonical listing venue. Follow-up commit
+`184caeefe102b30f70c86c02ada9a3bebbc88c02` now derives the optional supported XNYS calendar only
+from exactly one active primary `InstrumentListing` whose related canonical `Exchange.mic`
+normalizes to `XNYS`. The Research instrument queries eagerly load that relationship. Missing,
+inactive, non-primary, duplicate-primary, unknown, or other-venue listings remain fail-closed on
+the no-calendar path; equity-detail metadata is deliberately ignored for this decision.
+
+Mixed exact/date ranges are regression-tested in both directions: the date side keeps its
+inclusive UTC date extent, while the timestamp side remains its exact instant and no session-date
+calendar is supplied. An exact `as_of` that truncates a date-only end also disables the day-granular
+calendar inference; a date-only `as_of` can retain date semantics. The existing coverage
+thresholds, partial/missing-session checks, PIT rules, and no-fetch behavior are unchanged. This
+separate Research correction passed the two focused backend modules (12/12 in 2.72s), Ruff check,
+Ruff format check, and diff check. It has no database/provider/target/browser/native validation.
+
+The earlier Research and inspector source commits remain separate. Exact run `39992653172` is
+still running on prior tip `64d3b12e11118593535b02e8e8a06dd1f263ffdf`; do not cancel or replay it.
+The new Research commit is local and awaits publication with its workstream receipt after that run
+terminates. Its own exact-source CI, Root-assigned full-stack/browser/strict-visual validation,
+remaining full backend/migration qualification, and all full-roadmap criteria remain open. The
+previous focused MyPy attempt is still recorded as interrupted and is not a pass.
+
+### Accepted-target venue metadata limitation — 2026-10-23 17:17 UTC
+
+Root's read-only target observation reports `EquityDetail.exchange_mic` is NULL for both SPY and
+RSP. The canonical `InstrumentListing.exchange -> Exchange.mic` selector above is the supported
+source-backed venue seam, and a new unit case proves it can select XNYS when detail MIC is NULL;
+the existing target's listing rows were not queried, so no claim is made that this will resolve
+those particular date-only requests. In particular, the 2024-11-22 through 2026-10-22 date-only
+run3 remains completed but `DEFERRED` with zero artifacts. Root's run4 using exact acquired bounds
+`2024-11-22T05:00:00Z..2026-10-22T04:00:00Z` remains the verified successful workaround (479
+canonical bars and four matching artifacts); it does not validate date-only calendar selection.
+
+Do not label commits `85a821795`, `184caeefe`, or `9860c84f` as a completed SPY first-human fix.
+To resolve run3's UX, a separately scoped source-backed venue/calendar hydration or explicit
+date-granularity coverage contract must be established, while retaining unknown-venue fail-closed
+behavior and unchanged PIT/coverage/no-fetch safeguards. No target reads or writes, provider
+requests, fixture, or additional run were made here. The current canonical-listing/mixed-boundary
+source commits are locally validated only. Exact CI `39992653172` is still active on prior published
+tip `64d3b12e11118593535b02e8e8a06dd1f263ffdf`; preserve it, then publish the coherent Research
+source and workstream receipt once and capture exact-tip CI.
+
+### Massive-to-Research venue flow regression — 2026-10-23 17:30 UTC
+
+The accepted target still has no confirmed SPY/RSP canonical listing venue; the only target fact
+provided is NULL `EquityDetail.exchange_mic`. Source review found the existing local evidence path:
+`MassiveProvider._result` extracts `primary_exchange`, and `_reconcile_rows` passes that provider
+value through `ensure_exchange` and `upsert_instrument_listing`. Research then accepts only an
+unambiguous active primary listing whose canonical exchange is supported by its calendar policy.
+
+Added a two-case offline regression to `backend/tests/unit/routers/test_research_router.py` that
+exercises those actual functions together using a local discovery row: XNYS is persisted and
+selected; an unknown venue creates no canonical exchange and remains denied. The test makes no
+provider transport/quota call and does not inspect or mutate target data. Research/evaluator
+preflight modules pass 14/14 in 2.60s; Ruff check/format and `git diff --check` pass. This proves
+the code path, not that the accepted target already has provider-binding evidence or that run3 is
+fixed. The target listing/provider-binding/provenance check remains outstanding; no default venue
+or USD inference is permitted.
+
+Root also directed that after the current exact-source CI reaches terminal, the next product
+checkpoint be scoped to the smallest complete read-only V2 inspector for a normal user: inspect a
+genuine immutable Study linkage and show truthful held-native state. The accepted a6b9 UI currently
+has no `StrategyLabV2View.vue`; the branch's separate local inspector/pin-preview commits are
+relevant but are not yet exact-CI-qualified. After the in-flight parent CI finishes, close/publish
+the current coherent source+receipt, inspect its exact-tip CI, then document the inspector's exact
+existing API/schema dependencies and unchanged full local/hosted gates before any additional
+implementation. No fixture, target, provider, deployment, native, or money-moving operation is
+authorized by this follow-up.
+
+### Minimal read-only V2 inspector checkpoint definition — 2026-10-23 17:38 UTC
+
+The smallest useful first-user checkpoint is the existing read-only `StrategyLabV2View.vue` at
+`/legacy/strategy-lab-v2` (also reached through `/strategy-lab-v2`), behind the ordinary
+authenticated router guard. It lists and opens owner-scoped Strategy Lab v2 strategies, trials,
+and artifacts; it must not add create, dispatch, forward, broker, capital, or provider actions. A
+normal user can inspect a persisted Study pin either on a Strategy detail that already carries
+`selected_study_artifact`, or by entering explicit existing Research run/artifact IDs in the
+read-only pin preview. The view validates the returned identity and all typed digest fields before
+displaying the linkage. It reports the immutable Study provenance only; generic Study output is
+not a backtest result or native-engine proof.
+
+The prerequisite contract is **not** present in accepted/deployed `a6b9`. In this Strategy branch,
+`344f87f835f392bd103c20db2044aa0de72148df` validates persisted Study payload shapes, and its
+dependent `068d03f1ff55f5b1701d071980b4405d83e65cc6` adds the authenticated immutable-reference GET,
+adapter method, and `create_selected_study_artifact_reference_factory` / resolver checks for owner,
+terminal run, identity, and digests. Only with those branch-local backend commits does the resolver
+bind an explicitly selected artifact to the authenticated owner's completed-and-evaluated
+`ResearchRun`, owner-scoped `CodeAsset` and immutable `CodeVersion`, one unambiguous supported
+`ResearchArtifact`, and the run, code, dataset, and artifact digests. Missing, foreign-owner,
+nonterminal, ambiguous, malformed, or drifted rows remain denied/not found. No `latest` alias or
+UI-supplied digest is authority. These commits are not in `a6b9` and their recorded focused/SQL
+evidence is not a substitute for exact-tip CI and the complete local application profile.
+
+The branch-only normal-user prerequisites are `1451b9d0f2f4a468961319eda337f5dcc1e06aa7`
+(`StrategyLabV2View.vue`, router registration, and App navigation) and its pin-preview follow-up
+`4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5` (explicit immutable pin preview and typed response
+validation). They depend on the backend commits above; none is in accepted/deployed `a6b9`. Their
+focused component tests cover owner-scoped list/detail GETs, immutable Study-pin GET validation,
+malformed/mismatched IDs, and absence of POST calls. The current source is still awaiting
+publication and exact-tip CI; parent run `39992653172` remains in progress on
+`64d3b12e11118593535b02e8e8a06dd1f263ffdf` and does not validate it. The required full local profile remains `full_stack_browser`, with normal
+backend/API/migration and frontend/browser/strict-visual gates, exact-source CI, unchanged visual
+references/masks/tolerances and zero retries. No gate is waived by the prior accepted checkpoint.
+
+The truthful held-native boundary for this read-only UI is deliberately narrow: display that this
+page has no execution controls, that no native execution is represented by the shown Study
+artifact, and that broker/capital actions are not offered here. Do not infer a current account or
+engine capability from a persisted capability summary, label generic Study evaluation as native,
+or claim native execution has run. A live, account-specific capability indicator would require a
+separate current read-only contract; it is not needed to complete this inspector checkpoint.
+
+### First-use entry path and backend prerequisite correction — 2026-10-23 17:46 UTC
+
+Root's deployed-source audit corrects the prior paragraph's qualification: accepted/deployed
+`a6b9` does **not** contain the Study-reference GET or resolver. Do not describe the immutable-pin
+API as deployed or propose a frontend-only deployment. The exact Strategy-owned prerequisites in
+this branch are `344f87f83` (`validate persisted Study payload shapes`) followed by `068d03f1f`
+(`expose immutable Study reference resolution`), which adds the typed resolver, API adapter method,
+authenticated GET route, owner/terminal/identity/digest checks and backend tests. These source
+commits are present only in this Strategy branch and are not in `a6b9`; the current in-flight CI
+`39992653172` is on `64d3b12e11118593535b02e8e8a06dd1f263ffdf` and covers neither. Their prior
+focused and SQL evidence remains scoped to the exact recorded test sources; full exact-tip CI and
+the complete local application profile are still required before this API can be treated as
+released/deployed.
+
+The normal-user frontend prerequisites are `1451b9d0f` (adds the StrategyLabV2 view, route and App
+navigation) and `4a2c6058d` (adds explicit immutable pin preview and typed response validation).
+These are also branch-local, not part of deployed `a6b9`, and not covered by the current run.
+Read-only component tests prove the existing view uses owner-scoped GETs and no POST, but its
+manual artifact-ID input is not a complete normal-user route. In `ResearchResultsTool.vue`, a user
+can select a persisted run and see its run ID plus each output's name/type and Export action; the
+artifact ID is only used internally for keys/ARIA identifiers. There is no ordinary visible link
+from that output to the v2 inspector. DevTools/DOM inspection is not an acceptable first-use path.
+
+The remaining minimal UI completion is a per-output read-only link/selection in the Study results
+card that carries the existing selected run ID and that artifact ID to the v2 inspector route. The
+inspector should validate route-query IDs, populate its fields and call only the already-described
+owner-scoped GET resolver; it must not create a reference or dispatch work. Add focused tests for
+the output-to-inspector link, query handoff and malformed/missing IDs, retaining server-side denial
+for foreign owners, nonterminal runs and digest/identity drift. The page should state that no native
+execution was performed/initiated by this inspector and that generic Study output is not native
+proof. It must not claim current per-account engine eligibility from stale persisted summaries.
+No new backend endpoint, target operation, provider request, fixture, or native capability is
+required for this link. After the current parent CI terminates, publish the coherent local source
+and records without cancelling it, inspect the exact-tip CI, then obtain the unchanged Root-assigned
+full validation gates before calling the read-only UI checkpoint complete.
+
+### Normal-user Study output link implementation — 2026-10-23 17:51 UTC
+
+The missing first-use navigation is now implemented in the local Strategy branch. A completed
+Research run whose declared `output_contract` is `study` exposes a visible per-output
+“Inspect in Strategy Lab v2” router link. It carries the persisted `researchRunId` and
+`artifactId`; the V2 view hydrates its fields from those query values, validates positive integer
+IDs, and calls only the authenticated owner-scoped Study-reference GET. Partial, repeated, or
+malformed query values fail before that resolver request. Running runs and non-Study contracts do
+not receive the link. This does not create or dispatch a run and does not claim generic Study output
+is native execution evidence.
+
+Focused offline Vitest validation of the two affected modules passed `71/71` tests in `3.28s` with
+one worker. New assertions cover link IDs/route, completed-Study-only visibility, valid query
+hydration, missing/malformed/repeated query rejection, and GET-only/no-dispatch behavior. These
+tests exercise the branch-local route and API contract, not deployed `a6b9`: the exact backend
+prerequisites remain `344f87f83` and `068d03f1f`; the normal-user view/navigation is from
+`1451b9d0f`, and pin-preview validation from `4a2c6058d`. None of those later source changes is
+present in the accepted `a6b9` deployment, and the current parent run `39992653172` is still
+in-progress on `64d3b12e`; it covers neither this link nor the local Research changes. Do not
+publish an independently deployed frontend against that missing backend. Source remains local
+until the existing run is terminal; exact-tip CI and the assigned full local application,
+PostgreSQL/combined-worker, browser/strict-visual, and native scope gates remain open.
+
+The view also watches in-place route-query changes so selecting another Study result while the
+router reuses the same component invalidates any pending resolver response and clears stale pin
+state before loading the new IDs. The final run of both affected modules passed `72/72` in `3.33s`
+with one worker. One intermediate new route-reuse assertion initially failed because its test flush
+helper did not await the watcher-plus-GET sequence; the unchanged application assertions then passed
+with the test waiting for the complete async turn, and the final whole-module run passed. No
+resolver denial, product guard, or acceptance assertion was weakened.
+
+### Study-link producer-contract gate — 2026-10-23 18:03 UTC
+
+The visible Research-result link now appears only for a completed `study`-contract run with positive
+persisted IDs, one of the 11 exact artifact types accepted by the current TC Study payload contract,
+and a payload `type` discriminator equal to the artifact's declared type. This avoids presenting
+unsupported or internally inconsistent legacy rows as inspectable immutable inputs; the backend
+resolver remains authoritative for owner, run state, lineage and digest checks. A focused regression
+includes a valid scalar, an unsupported type and a mismatched discriminator, and confirms only the
+valid item links. The two affected Vitest modules pass `72/72` in `3.54s` with one worker. This is
+frontend-only evidence, not a replacement for the branch-local backend prerequisite commits
+`344f87f835f392bd103c20db2044aa0de72148df` and `068d03f1ff55f5b1701d071980b4405d83e65cc6`,
+view/router/App navigation commit `1451b9d0f2f4a468961319eda337f5dcc1e06aa7`, typed preview
+commit `4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5`, exact-tip CI or full local application profile.
+None of those prerequisites is in accepted/deployed `a6b9`; do not deploy the frontend separately.
+No target, provider, database, fixture, browser, native, forward, broker or capital operation ran.
+
+### Parent exact-CI terminal correction — 2026-10-23 18:05 UTC
+
+Root's authenticated Actions read confirms exact run `39992653172` is terminal green on the prior
+published source `64d3b12e11118593535b02e8e8a06dd1f263ffdf`: Backend `120548052606`, Frontend
+`120548052883`, Branch-declared `120558991743`, and E2E `120558991873` all succeeded; the
+feature-branch Exhaustive Integration Gate was skipped by policy. This supersedes earlier
+observations that the run was in progress or unverified; those observations remain historical and
+are not test failures. The green parent does not cover the later local Research date-bound/canonical
+venue commits, inspector/pin-preview commits, Research-result navigation, or the current 11-type
+link gate. Publish the coherent accumulated branch source once and inspect its exact-tip CI; do not
+rerun or cancel the parent run. Full local `full_stack_browser`, combined PostgreSQL/worker recovery,
+strict-visual, exact-pinned native qualification, and the original 18-criterion roadmap remain open.
+
+### First-human inspector checkpoint: exact gates and acceptance route — 2026-10-23 18:15 UTC
+
+The exact published Strategy tip is `8cd6440dec803364d34f982c8bb69878e818c87b`, clean and
+synchronized with `origin/feat/strategy-lab-v2` at this observation. Its push CI is run
+`40000884411` on that exact SHA. Frontend Unit Tests are green; Backend Tests remain in progress
+and the run has no terminal conclusion yet. The preceding parent run `39992653172` is terminal
+green only for `64d3b12e11118593535b02e8e8a06dd1f263ffdf`; it is not evidence for this tip. Do not
+cancel, rerun or replace either run. No unchanged 72-test focused Vitest replay or local fixture is
+needed while exact CI is active.
+
+Root's next local qualification for this first-user checkpoint is the canonical
+`make validate-integration INTEGRATION_BRANCH=feat/strategy-lab-v2` profile from this exact clean
+tip, once the one-at-a-time host slot is assigned. This repository gate runs workstream/dependency
+and migration checks, backend coverage, frontend tests/build, Compose contract, then the branch-
+scoped application stack, worker probes, functional Playwright, strict visual Playwright and
+declared branch tests. Preserve the existing full test inventory, source-specific database and
+worker assertions, pinned Playwright `v1.62.1-noble`, visual references/masks/tolerances, and zero
+browser retries. Use Root's bounded private runner/resource caps and exact owned project/fixture
+cleanup; serialize the profile (do not overlap another heavy backend/browser/build run), keep
+provider HTTP and quota work disabled, and preserve retained services/datasets. This handoff does
+not authorize launching it or establish a numeric host-capacity threshold; Root must release the
+slot and its exact fixture recipe. The backend's exact-source CI is still running, so no local
+replay is requested now.
+
+Normal-user positive path, on a branch build containing all four prerequisites (not deployed
+`a6b9`): sign in as a non-admin owner, open Research results, select an already completed/evaluated
+run with `output_contract=study`, and use the visible “Inspect in Strategy Lab v2” link on a
+supported output. The route is `/legacy/strategy-lab-v2?researchRunId=<run>&artifactId=<artifact>`;
+it calls only authenticated `GET /api/v1/strategy-lab/v2/study-artifact-references/{run_id}/{artifact_id}`.
+The inspector displays the exact owner-scoped run, CodeAsset/CodeVersion, output identity and
+immutable digests, with no create/dispatch control; it states that generic Study output is not
+native execution evidence. Automated acceptance must retain the positive persisted-row readback
+and reject malformed/repeated route IDs before GET, plus foreign-owner, nonterminal/unevaluated,
+missing/ambiguous/unsupported output, identity mismatch and run/code/dataset/artifact digest drift
+through the registered API and PostgreSQL test. All denials remain read-only (no POST, dispatch,
+provider call or quota change). The existing UI/API prerequisite SHAs and accepted-target boundary
+are listed above; do not treat a6b9 as having this route or mutate the target for this check.
+
+After run `40000884411` reaches terminal, record its exact result and then hand Root this exact
+command/profile and acceptance procedure for slot scheduling. Keep the full 18-criterion roadmap,
+combined PostgreSQL/restart/runtime, full-stack/browser/strict-visual and native qualification
+gates open; this is a bounded first-human inspector qualification, not topic completion.
+
+#### Exact-run progress — 2026-10-23 18:23 UTC
+
+The same run remains active on `8cd6440dec803364d34f982c8bb69878e818c87b`. Backend Tests completed
+successfully; Branch-declared Tests and E2E Playwright are running. Exhaustive Integration Gate is
+skipped under feature-branch policy. This is an interim observation only; retain the final exact-run
+receipt when terminal. No source or test changes, local profile, fixture, or rerun was started.
+
+At 18:27 UTC the same run remains active. Frontend Unit Tests, Backend Tests, and Branch-declared
+Tests are all successful; E2E Playwright is executing its Playwright test step. The feature-branch
+Exhaustive Integration Gate remains skipped by policy. This advances the prior 18:23 observation;
+no rerun or local fixture was started.
+
+Workflow inspection confirms the E2E job has a 45-minute job timeout; its Playwright step began at
+18:22:57 UTC and was still active at 18:37 UTC. This is a bounded live CI wait, not a test failure
+or a reason to rerun. Local full-profile slot requirements and the acceptance procedure above are
+unchanged.
+
+### Exact-source CI terminal receipt — 2026-10-23 18:46 UTC
+
+Run `40000884411` is terminal green for exact source
+`8cd6440dec803364d34f982c8bb69878e818c87b` (attempt 1). Backend Tests, Frontend Unit Tests,
+Branch-declared Tests and E2E Playwright succeeded; the Exhaustive Integration Gate was skipped by
+feature-branch policy. The preceding in-progress observations above are preserved as historical
+state, not failures. No local fixture or rerun was started. The remote `staging` and `master` refs
+were independently verified at the accepted green release
+`a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`; this branch does not yet contain that release. The
+next action is to reconcile that exact baseline into this branch, preserve the read-only inspector
+work and full roadmap, then validate the resulting merged source on its own exact CI. This receipt
+does not close the full Strategy Lab v2 roadmap or authorize a heavy local profile.
+
+### Accepted a6b9 staging baseline reconciled — 2026-10-23 18:49 UTC
+
+After run `40000884411` reached terminal success, the remote `staging` and `master` refs were
+rechecked through the approved Git network boundary; both still equal the accepted green SHA
+`a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`. That exact commit was merged into this feature branch
+as `ccb2847f703858cd1951eaaacb7d82b303970135`. The merge base was
+`f04fb2a26c6363c6090e76c2658cfcfe7adabf61` (66 Strategy-side and 16 staging-side commits); the
+merge completed without a textual conflict, and path comparison showed no same-path source edits
+on the two sides since that base.
+
+The material migration effect is additive: staging contributes revision `d4a5b6c7e812`, whose
+parent is Strategy/TC merge revision `slv2_0011`. The merged graph reports exactly one Alembic
+head, `d4a5b6c7e812`; the updated migration-compatibility test asserts that head and retained
+ancestry. Static head discovery and the focused migration-compatibility module pass (19 tests).
+Staging also contributes the real PostgreSQL migration regression module
+`backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py`; it was
+not run locally because no database fixture slot was assigned. The accepted release's own green
+CI remains evidence for `a6b9`, not for this merged Strategy source. Publish this coherent merge
+receipt and inspect the new exact-tip branch CI. Full local combined migration/PostgreSQL,
+application/worker restart, full-stack browser/strict-visual, and native qualification remain
+open; preserve all 18 original roadmap criteria and every disabled provider/quota/paid/trial/
+broker/capital/native boundary.
+
+## Next named first-human checkpoint — prepared, not accepted
+
+The current checkpoint is `strategy-lab-v2-first-human-study-inspector-2`, prepared under the
+canonical checkpoint contract in `docs/agent-orchestration.md`. It does not replace the active
+full-roadmap native goal, reset goal accounting, or close the original 18 criteria. The prior
+`strategy-lab-v2-integration-1` acceptance, closure summary, SLICP1-SLICP5 criteria, validation, and
+criterion dispositions are retained under the plan's `accepted_integration_1_*` history keys.
+Current checkpoint `human_closure_authorization` and `closure_summary` are both `pending`; status
+remains `in_progress`, with no acceptance or integration claim.
+
+Scope is the ordinary user path from a supported completed/evaluated Research Study output to the
+read-only Strategy Lab v2 inspector. The visible result link carries the persisted Research run and
+artifact IDs; route hydration calls only the authenticated owner-scoped immutable-reference GET.
+The accepted UI contract is read-only: no POST, dispatch, new Research run, or native execution
+assertion. The resolver authenticates the exact owner/run/CodeVersion/artifact identity and persisted
+`run_reproducibility_hash`, `code_version_digest`, `dataset_manifest_digest`, and
+`artifact_content_digest`. This selected-Study reference does not independently authenticate a
+native strategy/package/parameter/seed execution graph; that remains a broader roadmap contract.
+Foreign, nonterminal, missing, malformed, ambiguous, wrong-type, unverified, deleted, or drifted
+records remain denied.
+
+The branch prerequisite chain is `344f87f835f392bd103c20db2044aa0de72148df` (Study payload shape),
+`068d03f1ff55f5b1701d071980b4405d83e65cc6` (typed resolver and authenticated GET),
+`1451b9d0f2f4a468961319eda337f5dcc1e06aa7` (inspector, route, and App navigation), and
+`4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5` (typed pin preview). These are Strategy-branch
+prerequisites, not content of deployed `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`; that accepted
+baseline is compatible but does not expose the reference API or V2 navigation. Never ship the
+frontend alone or claim Root's deployed owner-positive/negative UI/API proof before Root performs
+it after exact source qualification.
+
+Date-only bounds are calendar-day bounds only when canonical listing venue and supported calendar
+are authoritative. Mixed date/exact bounds must keep the exact side unchanged. Unknown venue is
+unavailable; USD alone is not XNYS evidence, and coverage/PIT requirements are not relaxed. SPY/RSP
+date-only acceptance remains pending authoritative canonical `InstrumentListing` venue review; the
+observed `EquityDetail.exchange_mic = NULL` is not listing proof. Do not claim the UX is fixed for
+those target rows. Run3's date-only
+Study remains honestly deferred with zero artifacts; run4 using exact acquired bounds completed with
+479 canonical bars and four matching artifacts. No provider request or target write was made for
+this checkpoint.
+
+Plan dispositions enumerate every original `AC-*` criterion. The inspector/API, upstream lineage,
+data semantics, artifact inspection, security boundary and validation criteria are only partially
+delivered; SDK, search, portfolio, metrics, workers, Nautilus, forward, legacy import, and Compose
+remain deferred with owners and continuation tests. No criterion or full roadmap is marked complete.
+Full `full_integration`/`full_stack_browser`, all existing assertions/tolerances/retry policy, and
+terminal exact-source CI remain required; focused results are not a waiver. No native Nautilus
+execution is claimed. Forward, broker, capital, paid/trial, provider/quota, unknown, and unsafe
+operations remain disabled. Root owns deployed acceptance and the heavy local validation slot.
+
+Current branch source is `a414153f6416414cb71f31f5a36fd4db80f152f2`; run `40006811902` was last recorded
+in progress on that exact source and must not be cancelled or replayed. These checkpoint record edits
+are local preparation only and are to be combined at the next safe publication boundary; no
+status-only push is intended.
+
+### Unverified listing-lifecycle roadmap risk — 2026-10-23 19:05 UTC
+
+The frozen checkpoint selector in `backend/app/routers/research.py` uses an unambiguous canonical
+primary listing only when `is_primary` and `is_active` are true; it does not compare
+`effective_at`, `known_at`, or `delisted_at` with the Research decision time. The listing model and
+Provider ingestion expose those lifecycle fields, but this source review did not establish the
+producer semantics or inspect accepted-target `InstrumentListing` rows. Whether current venue
+evidence is valid for a historical decision time is therefore an unresolved broader AC-DATA risk,
+not a reproduced defect in the frozen read-only inspector checkpoint. Do not infer target venue,
+change calendar selection, or weaken coverage from this observation. The continuation test is to
+verify the accepted Provider lifecycle contract, then test before/after `effective_at`, `known_at`,
+and `delisted_at` against the Research decision time; if listing authority cannot be proven at that
+time, retain the fail-closed unavailable-calendar behavior. No source, target, provider, fixture, or
+test operation was performed for this note; exact CI `40006811902` remains in progress on
+`a414153f6416414cb71f31f5a36fd4db80f152f2`.
+
+### Frozen-source full-profile procedure — prepared, not launched — 2026-10-23 19:06 UTC
+
+After the same exact CI `40006811902` is terminal, first verify local HEAD and `origin/feat/strategy-lab-v2`
+still equal `a414153f6416414cb71f31f5a36fd4db80f152f2`. Root must assign the serialized local slot
+and its exact resource-bounded fixture/project before any Docker-backed gate. The repository's
+existing full acceptance target is `RUN_LIVE_PROVIDER_TESTS=0 make validate-integration
+INTEGRATION_BRANCH=feat/strategy-lab-v2`; it runs the locked dependencies/migration checks, complete
+backend coverage collector, frontend checks/build, Compose contract, Research-runner probes,
+seeded-stack functional E2E with `--retries=0`, strict visual E2E with `--retries=0`, and the
+branch-declared Strategy package/migration/type/workstream checks. `make test-platform` alone is
+not equivalent because it omits several of those integration stages. The provider-probe script
+explicitly exits disabled unless `RUN_LIVE_PROVIDER_TESTS=1`; keep it `0` and all ETF/live flags
+disabled so this validation cannot issue provider/issuer/SEC requests or spend quota. Do not run
+until the exact slot release supplies safe project/resource bounds and cleanup ownership. After a
+green result, Root still performs the deployed owner-positive and owner-negative read-only UI/API
+acceptance; neither that proof nor checkpoint closure is inferred from local validation. Preserve
+all visual baselines, assertions, tolerance masks, zero-retry policy, retained services/data and the
+full 18-criterion roadmap.
+
+### Exact-source CI terminal receipt — 2026-10-23 19:37 UTC
+
+GitHub Actions run `40006811902`, attempt 1, completed successfully on exact source
+`a414153f6416414cb71f31f5a36fd4db80f152f2` (`feat/strategy-lab-v2`). This qualifies that source
+only; no cancellation, replay, or later-source claim is implied. The source and local/origin branch
+remain unchanged and synchronized. The `strategy-lab-v2-first-human-study-inspector-2` checkpoint
+is still `in_progress`, with closure/acceptance pending. Root's serialized full local
+`full_integration`/`full_stack_browser` profile and deployed owner-positive/negative read-only
+acceptance remain required; do not start a fixture before Root assigns its bounded slot. Preserve
+the unverified canonical-listing lifecycle risk and full 18-criterion roadmap. After the checkpoint
+is qualified and dispositioned, continue the active roadmap with typed immutable Study payload
+binding and worker reconstruction/restart verification against the accepted TC producer contract.
+All provider/quota, paid/trial, forward, broker/capital, unknown, unsafe, and native execution
+boundaries remain unchanged and disabled. This terminal receipt supersedes the earlier in-progress
+observation; no later source is qualified by this run.
+
+### Released frontend coverage inventory — resource failure, 2026-10-23 19:52 UTC
+
+Root released one complete frontend Vitest coverage inventory on unchanged source
+`a414153f6416414cb71f31f5a36fd4db80f152f2`. The normal sandbox refused before Vitest startup;
+the explicitly authorized elevated retry launched exactly one test group as
+`strategy-lab-v2-vitest-coverage-20261023.scope` (invocation
+`99e2ccab40fe490bb16b0c60ad55654a`). Vitest 1.6.1 supported the unique reports-directory option.
+The scope enforced `MemoryMax=536870912`, `MemorySwapMax=0`, `CPUQuota=100%`, `TasksMax=64`,
+one worker, Node heap 384 MiB, and a 10-minute timeout. Systemd reports terminal `Result=oom-kill`,
+`MemoryPeak=536875008` bytes, and zero swap; the command wrapper surfaced signal-15 termination.
+Inputs were pinned to source commit `a414153f6416414cb71f31f5a36fd4db80f152f2`; SHA-256 values were
+`frontend/package.json` 40736daa56c8d10df72223d5006e4de14d2b99fd13eb2816d87d1be138516a4e,
+`frontend/package-lock.json` 713fbed8808ef73b326d94e17ccee2dad878a22a2bcbb088a05443b00463dd54,
+and `frontend/vitest.config.ts` 6118e39547238b49b5707c3e1af694104cbca4cee9976503454453aa34af7839.
+Before termination, five modules reported 336 passing tests (61+48+80+59+88). This is partial
+progress only: the complete Vitest inventory, total test count, aggregate coverage, and coverage
+threshold result were not produced. The unique output path
+`/tmp/strategy-lab-v2-coverage-04jzc2/reports` contains only an incomplete `.tmp` directory and is
+preserved; no fixture or service existed to clean. Host memory recovered above the reserve after
+the scope ended. No automatic replay, optional validator, source/test edit, browser run, or CI run
+was started. Await Root review for any revised bounded resource scope; keep the checkpoint source
+frozen and all broader gates open.
+
+### Revised frontend coverage inventory — complete, 2026-10-23 20:22 UTC
+
+Root opened the corrected frontend-only resource window. On unchanged source
+`a414153f6416414cb71f31f5a36fd4db80f152f2`, one complete, non-sharded Vitest/V8 inventory ran:
+`npm run test:coverage -- --maxWorkers=1 --minWorkers=1
+--coverage.reportsDirectory=/tmp/strategy-lab-v2-coverage-20261023-revised/reports`.
+Vitest 1.6.1 completed 140/140 files and 1,352/1,352 tests in 258.86 seconds; exit 0 and the
+existing configured coverage thresholds passed. Aggregate coverage was 85.02% statements/lines,
+73.67% branches, and 75.32% functions. No sharding, retries, inventory, threshold, reporter,
+source, or config changes were made.
+
+Exact user scope `strategy-lab-v2-vitest-coverage-revised-20261023.scope`, invocation
+`679f5e2928b64893b9e3ebd297ebc2f5`, read back before Vitest startup: MemoryHigh 536,870,912,
+MemoryMax 805,306,368, MemorySwapMax 536,870,912 bytes; CPU quota 100000/100000 (one CPU),
+TasksMax 64; `NODE_OPTIONS=--max-old-space-size=512`; one worker; hard timeout 600 seconds; npm
+offline with the existing lock-matched install. The live systemd sample reported MemoryPeak
+537,755,648 bytes and the highest sampled MemorySwapCurrent was 190,062,592 bytes. These are
+observed samples, not a retained final peak: after termination systemd reported the exact scope
+inactive/dead with `Result=success`, but no final MemoryPeak/MemorySwapPeak property. The test
+scope exited successfully and left no child workload or fixture; report artifacts and logs are
+intentionally retained under `/tmp/strategy-lab-v2-coverage-20261023-revised/`. Earlier
+512-MiB/zero-swap OOM evidence above remains unchanged and distinct.
+
+Pinned frontend source SHA-256 values remain `package.json`
+`40736daa56c8d10df72223d5006e4de14d2b99fd13eb2816d87d1be138516a4e`, `package-lock.json`
+`713fbed8808ef73b326d94e17ccee2dad878a22a2bcbb088a05443b00463dd54`, and `vitest.config.ts`
+`6118e39547238b49b5707c3e1af694104cbca4cee9976503454453aa34af7839`. Coverage log SHA-256 is
+`d2a12652e41755f4a90b9212e8530763b4ed1ba9012c6e8d7da33f033a55b27b`; report-tree manifest
+SHA-256 is `c8dcc39837b6d6e00da5973929905018c9e8dcfdd744c00be7de47e7b9b55c8f`, with `lcov.info`
+`22451fb86d36a20584ef441ef3a67007f132a5745ccd38a239f5bd6a5a60af7b` and `index.html`
+`f3aa265d76be154f09cf6c2417c381326262a7c31a926d6d4c56d0d44135141f`.
+
+The separately permitted uPlot and visual-policy checks were not source-qualified by the older
+receipts, so they were run once under a distinct offline micro-scope after Root's grant:
+`make test-uplot-contract test-visual-policy`, scope
+`strategy-lab-v2-static-contracts-20261023` (invocation
+`68459001d2b0431284ed20c438365b65`), 128-MiB MemoryHigh/MemoryMax, zero swap, 50% CPU, 16 tasks,
+60-second bound. Exit 0: 55 primary source files audited; 26 screenshot assertions preserved the
+0.5% / 1px / ΔE2000 2 policy. Static log SHA-256 is
+`e4c11b67951c1eabd418417efdce389003d116fd5a770b8e554c3c0a1c99dcd4`; scope ended inactive/dead
+with `Result=success`. A prior optional-check admission attempt refused at 1,398,360 KiB before
+starting either test; the later microgrant's fresh 1,419,420-KiB check passed. No full suite was
+repeated.
+
+Only the four already-dirty Strategy workstream records are changed; frontend/backend product,
+test, dependency, and configuration paths remain unchanged. This component result does not close
+the full `full_integration`/`full_stack_browser` profile, deployed owner-positive/negative UI/API
+acceptance, canonical SPY/RSP listing venue review, or the 18-criterion roadmap. Keep the
+checkpoint `in_progress`; Root owns the remaining serialized gates. Native execution, forward,
+broker/capital, provider/quota, paid/trial, unknown, and unsafe operations remain disabled. No
+status-only commit or new CI run was created.
+
+### Frontend qualification closed; remaining local profile prepared only — 2026-10-23 22:19 UTC
+
+On unchanged source `a414153f6416414cb71f31f5a36fd4db80f152f2` (local and origin were equal before
+this record update), the frontend component qualification is now complete as a coherent receipt:
+
+- Full Vitest/V8 inventory: 140 files and 1,352 tests passed; configured thresholds passed at
+  85.02% statements/lines, 73.67% branches, 75.32% functions. The exact command, scope,
+  invocation, coverage report hashes, and earlier OOM are retained in the prior section above.
+- Source-contract checks: `make test-uplot-contract test-visual-policy` passed, auditing 55 primary
+  uPlot sources and preserving all 26 visual-policy assertions (0.5% / 1px / ΔE2000 2); the
+  separately bounded scope/log are recorded above.
+- Canonical build: the reviewed launcher
+  `/home/m920q/charting-platform/.ai/staging-attempts/strategy-frontend-build-revised-20261023.sh`
+  (SHA-256 `95e934e7752bbd15257b7f2de26e2bb0afff76bf04cfeb88cc946e57ca83ad58`) ran `npm run build`
+  (`vue-tsc && vite build`) once. Frontend source diff was clean at `a414153f6416414cb71f31f5a36fd4db80f152f2`.
+  Scope `strategy-lab-v2-build-pressure-reviewed-20261023.scope`, invocation
+  `ce8fca726bd54cbdb6727266711d9462`, applied 512 MiB resident, 1 GiB swap, 1 CPU and 64 tasks;
+  the launcher verified fresh host/PSI admission. `vue-tsc` passed, Vite transformed 527 modules,
+  rendered production chunks and exited 0; build exit was 0. Vite emitted its existing >500 kB
+  chunk advisory. Build log SHA-256 is
+  `aa0fcb2496ce02ea83f369eec67eb6870ff09c42e142f8e160e0c63b40aa0cbd`. The generated `frontend/dist`
+  contains 120 files / 9,829,807 bytes. Sorted-file-hash manifest:
+  `713755ae6f51919780a445a4979eee7e6365a9f13298eb7c40c6c1eae8281b05`; Root's JSON(path, bytes,
+  sha) manifest: `5eeecdc22a425fdd4addd91392d335263c51e480b79192f743285462aacbe793` (different
+  encoding, same output tree). Root's independent journal measured 147.229 CPU / 156.685 wall
+  seconds, rounded 512 MiB resident and 645 MiB swap peaks. The exact-scope guardian exited 0
+  bound to invocation `ce8fca726bd54cbdb6727266711d9462`; it did not abort or report an error. The
+  scope is terminal; no final systemd peak property was retained. Earlier 512 MiB V8 heap OOM,
+  launcher admission refusal, and pressure-guarded SIGINT attempt remain separate historical
+  evidence and are not compiler failures or kernel OOMs.
+
+The next required work is the remaining exact-source local backend / PostgreSQL migration / worker
+and full-stack browser profile, not another frontend-only run. The canonical all-in-one command in
+`Makefile` is:
+
+```sh
+RUN_LIVE_PROVIDER_TESTS=0 RUN_LIVE_ETF_HOLDINGS_TESTS=0 UV_OFFLINE=1 npm_config_offline=true \
+INTEGRATION_BASE_SHA=a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e \
+E2E_SEED_INSTRUMENTS=true E2E_SEED_MARKET_DATA=true PLAYWRIGHT_WORKERS=1 \
+make validate-integration INTEGRATION_BRANCH=feat/strategy-lab-v2
+```
+
+The base pin is the previously recorded deployed a6b9 source; Root must verify it is still the
+correct previous-release baseline before launch. Do not let the migration helper's implicit
+`HEAD^1` default choose the compatibility baseline. The target validates locked backend and
+frontend dependencies, one Alembic head and previous-release upgrade, the complete backend
+coverage collector (all unit plus PostgreSQL/Redis integration cases and combined 75% threshold),
+frontend tests/build, Compose contract, disabled live-provider probes, stack readiness and
+research-runner sandbox/resource probes, functional E2E with zero retries, strict visual E2E with
+zero retries, and declared branch tests. This all-in-one target repeats frontend tests/build; do not
+run it merely to replay standalone green evidence. If Root chooses a remaining-only composition,
+retain the same canonical commands/assertions and combined coverage threshold rather than claiming
+the skipped frontend stages as an all-in-one run.
+
+The Makefile's backend target currently uses `scripts/backend_coverage.py --shard-size 50` and
+`RESEARCH_MAX_MEMORY_BYTES=1073741824`; prior local shard-53 timeout evidence is retained. The same
+authoritative collector accepts `--shard-size 25` without changing inventory, retries, tests, or
+threshold and is the resource-bounded candidate for Root review, not an automatic override. The
+migration helper accepts `INTEGRATION_BASE_SHA` and otherwise defaults to `HEAD^1`; preserve the
+actual previous-app smoke, fresh and upgraded schemas, data sentinels, and real constraints.
+Required image selectors are `postgres:16-alpine`, `redis:7-alpine`, and
+`mcr.microsoft.com/playwright:v1.62.1-noble`; the last previously verified PostgreSQL image ID was
+`sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea` and browser image digest
+was `sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`. Redis's current
+image digest/cache, installed runtime versions, and builder cache were deliberately not probed in
+this turn and must be verified at Root's slot admission. The checked-in Playwright runner applies
+1,536 MiB / 2 CPU to its browser container. Use one unique owner-scoped Compose project only; the
+target's cleanup runs `docker compose ... down -v`, so its project volumes must be newly owned test
+data, never retained user datasets. Backend/PG/Redis/Buildx caps and phase-specific host floors must
+come from Root's fresh exact-slot release; the generic target alone does not set those host cgroups.
+Sequence backend/migration before app/browser, then verify the actual registered API, worker's
+default async DB factory against the same migrated PostgreSQL, Redis consumer/restart identity,
+empty queue/no dispatched job, functional E2E and strict 104-case visual policy. Keep provider
+routing and all provider/ETF live flags off; issue no provider HTTP and activate no native,
+forward, broker/capital, paid/trial, or unknown scope; do not touch retained services/data.
+
+This is a preparation record only: no backend, database, Docker, Compose, browser, probe, or
+additional build/test ran. Hosted CI `40006811902` remains tied to exact source `a414153f...` and
+green; it supplies no local-profile or deployed inspector proof. Keep the first-human checkpoint
+`in_progress`, every 18 roadmap criteria intact, deployed owner-positive/negative acceptance and
+canonical SPY/RSP venue review pending, and all execution/paid/live boundaries disabled.
+
+### Worker fake contract repair — focused qualification, full profile still open (2026-10-23)
+
+The complete local backend attempt on frozen source `a414153f6416414cb71f31f5a36fd4db80f152f2`
+is preserved as red: 5,319 passed, 1 failed, and 1 existing skip. It stopped in the unit phase;
+integration and aggregate coverage were not reached. The failing terminal-context case used
+synchronous test doubles while production invokes `run_async`; the correction is limited to the
+two owned test files and does not change production behavior or relax assertions.
+
+In `test_worker_service.py`, the two positive async fakes now return a valid typed COMPLETED
+resolution computed through `execute_worker_handoff` using the test's exact controlled fake-docker
+script (`#!/bin/sh\nprintf 'ok'`). They do not delegate to `super().run_async`, spawn a child, or invoke
+Docker/native execution. The existing child-failure path remains a negative case and now asserts
+that completion and terminal writers were not called; heartbeat, ordering, receipt, entry, request,
+and fingerprint assertions remain. `test_forward_context.py` received only the locked Ruff format
+proposal; the tracked AST was unchanged.
+
+Attempt history is retained in `validation.jsonl`: initial 35-case run 33 passed/2 failed; the next
+42-case run passed but Ruff reported I001/F841; the isolated locked Ruff repair passed; final bounded
+run passed all 42 cases in 5.09s, and Ruff check, format check (887 files), and `git diff --check`
+passed. Final log: `/tmp/strategy-worker-focused-a414-final-20261024/phase.log`, SHA-256
+`e2cb19a927fd96d38220ad4802b4dfc2a9597063c19d92574445556360f80cf7`. Scope
+`strategy-worker-focused-a414-final-20261024`, invocation `c67f8e78d896401cb522f264e950f38b`,
+limits 384 MiB memory / no swap / 1 CPU / 64 tasks, admission 1,333,792 KiB. PID and peak RSS
+were not captured. This is focused evidence, not the missing full backend/integration/coverage gate.
+
+The six-file repair plus these owned records is ready for one coherent publication. Checkpoint
+remains `in_progress`, not accepted. Preserve full backend/PG/migration/worker/full_stack_browser,
+deployed owner-positive/negative, exact new-source CI, canonical SPY/RSP venue review, and all
+18-roadmap criteria as open where applicable. No provider/target call, live/paid/trial operation,
+native execution, or retained-resource action was performed.
+
+### Source-83 backend continuation and next migration gate (2026-10-24)
+
+Root verified completion of an explicitly resumed, same-source backend continuation at
+`83e93958921b479ccd122494571d0b9dbb1acc5d` (Root handle `64648`, invocation
+`62563a07e03940d0bb80bc0defec6660`). It reused the separately preserved clean unit-only
+checkpoint and did not rerun or synthesize unit coverage: all 213 unit shards remain 5,320 passed / 1
+existing skip; the prior full-run log SHA is
+`ca933ba5f6cfe019653d764c2b8491850250eb92953abd6aad69c11de777f0c3` and clean unit coverage DB
+SHA is `84eb87e1c48c6759d8dd7040d2a9d77369a037b07187feb33a7f3de8706dbcde` (323,584 bytes,
+integrity-checked). The source-specific collection was fresh and unchanged at 5,854 total cases:
+3,438 unit, 1,883 v2 package, and 533 integration. All 533 integration cases ran: 529 passed, 4
+existing skips, 57 warnings, 863.13s within the existing 900s integration bound. Combined coverage
+report and XML passed: 153,315 statements, 23,959 missed, 84% overall (above 75%).
+
+Exact integration log `/tmp/strategy-backend-83e93959-pg512disk.M3yBHpoM/backend-integration-continuation.log`
+SHA-256 `5fe89fbe4e4071fbe16825a57b7f5bd51010c0a4cf095382f781070c6ef66ba8`; private combined
+coverage DB SHA-256 `1570456683fd26db8c12b11cb01075fdc01be73ef72fba5bf6929a80aa132f3a`; XML
+`coverage-combined.xml` SHA-256
+`5a7cad6067a902cd03e602d96a96765853180e9eed1663f2f1aa40666f539f00`. Root verified frozen source,
+lock, test/helper hashes, all collection counts, clean checkpoint provenance and coverage outputs.
+The disk-backed isolated PostgreSQL volume remained under its guard; reserve and volume guards were
+clear, cleanup reported 0 failures, container/volume/network identity-state diffs were empty, and
+the exact owned PostgreSQL/Redis/volume IDs, scope and timer were absent after cleanup. Root
+restored the six private app services and verified health/data/auth state, including Study 5's 479
+bars and outputs; no provider request or live operation was made. The same harness allocation kept
+512 MiB RAM and 1 GiB swap; Root increased its CPU allocation from 1 to 2 after host-capacity review.
+Test inventory, timeouts, assertions, skip policy and coverage threshold were unchanged.
+
+Qualification limit: these are explicit resumed same-source phases, not a literal successful
+`make test-backend-coverage` / `scripts/backend_coverage.py` main invocation. The earlier complete
+backend runs remain red and preserved, including the PG384 OOM/container-loss attempt and the
+PG512 tmpfs `No space left on device` attempt. Do not relabel either attempt or this continuation as
+a single-command green canonical run. The Makefile still names `test-backend-coverage` as the
+authoritative combined gate and invokes the canonical collector with `--shard-size 50`.
+
+Root subsequently ran the canonical migration-compatibility gate offline from base
+`a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e` and it exited 0 with the helper's no-change `SKIP`.
+The source comparison found zero changed paths across models, Alembic, `pyproject.toml`,
+`uv.lock`, and the migration-compatibility helper. This is an input-equivalence disposition only:
+no fresh-schema upgrade, previous-release upgrade, previous-app health smoke, or PostgreSQL
+fixture ran on source 83. It resolves the migration component for this unchanged input set without
+claiming those runtime checks passed on 83.
+
+Prepared app artifacts remain under `/tmp/strategy-x-app-runner-83e93959-20261024.sh` and
+`/tmp/strategy-full-83e93959-20261024/`, with packaging Dockerfile
+`/tmp/strategy-x-frontend-package-83e93959-20261024.Dockerfile`. They are preparation only. The
+frontend dist is guarded against the independently verified manifest
+`5eeecdc22a425fdd4addd91392d335263c51e480b79192f743285462aacbe793`; the build must also check the
+real `a6b9..83` identity for the research-runner input paths before reusing the accepted immutable
+runner image `sha256:bf78988e9708cffdd760203fbecf381ccd46ad5f2efc0d9b85185d64fc5234a0`. The packaging
+image must use the exact cached Nginx base digest
+`sha256:060849a174666c53439dc7cecbf8f67e225c7cbfb1a44ca97915d9a172a81e6d`, subject to Root's
+current slot/cache verification. The browser image remains pinned to
+`sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`.
+
+The remaining ordered local profile is a Root-assigned, capacity-qualified build/package phase,
+then isolated Compose up and real API/readiness smoke, default worker DB/Redis restart proof, full
+functional browser and all 104 strict visual cases with existing zero-retry/oracle/tolerance policy,
+followed by exact-owned cleanup and inventory equality. No phase is authorized by this preparation.
+Current builder/capacity observations are Root-owned and must be refreshed at admission; do not
+start a builder, fixture, browser, migration or probe independently. Checkpoint remains
+`in_progress`; deployed owner-positive/negative acceptance, canonical SPY/RSP venue review, full
+local application profile and every remaining 18-roadmap criterion stay open. Preserve all old red
+backend receipts and the explicit split-phase backend qualification above.
+
+Read-only review of `docker-compose.yml` and `docker-compose.e2e.yml` found one sequencing correction
+for the private runtime proposal: the E2E override makes both `backend` and `worker` depend on the
+healthy `provider-egress-deny` service. The proposal now starts PostgreSQL/Redis, then the deny proxy,
+then backend/worker, and frontend/relay last. This is a proposal correction only; no Compose render,
+service startup, or runtime phase was run by this owner. The revised plan is
+`/tmp/strategy-full-83e93959-runtime-admission-plan.md` (SHA-256 recorded in the latest validation
+row); Root review and a fresh capacity-qualified slot are still required.
+
+### Source-83 image build component and research-probe wrapper review (2026-10-24)
+
+Root completed four serial image builds from frozen source
+`83e93958921b479ccd122494571d0b9dbb1acc5d`; every `.exit` file contains `0`, each log records
+image export, and `/tmp/strategy-full-83e93959-20261024/build.complete` contains that exact SHA.
+Root reports joined invocation `75906` exited 0, the assigned builder was restored to its
+stopped/original limits, and the private application was restored with health and saved Study 5
+readback verified. No new Compose fixture, app startup, probe, worker restart, or browser test ran
+as part of these builds.
+
+The build reuses the previously qualified frontend dist, not a fresh frontend build: source and
+packaged manifests both report 120 files / 9,829,807 bytes / digest
+`5eeecdc22a425fdd4addd91392d335263c51e480b79192f743285462aacbe793`. The source-pinned provenance
+record identifies packaging-only Nginx with the pinned base digest and accepted immutable Research
+runner image reuse; the `a6b9..83` diff for its three declared input paths is empty. This records
+component-input equivalence, not a new frontend compilation or Research image build. Build-log
+SHA-256 values: backend `fa9ee6dfae79d94f2376c153d38dcdd980dbd03e2755daf733c02ef34c4cf5f9`, worker
+`00f8ae6d9778ec44e4eb94a759629a2b114e0e89c433e3a9059bd3a1aa6df985`, V2 worker
+`883753fedc1e7e0c34734734c7905eb2c32ff30a8ee431c17e5d2cfde7c67165`, frontend packaging
+`9103a2c37cc3b4188d36cf9082b3078b121c772e66be4e5eacd9ef1f6368a61e`.
+
+The initial review identified cleanup hazards in the private probe controller. Root fixed those in
+the current wrapper (`task_paused` guards restore; cleanup preserves the original status and
+propagates down/snapshot/diff/recovery failures) and then ran the unchanged probes: Root handle
+`11889`, scope invocation `4cbda3ef7b2644fca2a44f00fffc4636`, terminal exit 0. The eight sandbox
+denials passed. Resource checks produced the expected memory-cgroup exit 137 and tmpfs ENOSPC, and
+contained three concurrent memory processes with restart count 0. Caller `oom_kill=0` and `pids
+max=0`; all three global inventory diffs were empty and the exact project was removed. Root
+restored the private app and verified Study 5/data/holds/request count 4; the restore timer was
+removed. Probe log hashes: sandbox `7de0f4f689b6a668b12ff7e420260fd6d94d67d717cd1460c2a858696aa6cef1`,
+resources `cdd7a58d6351da9c9bbbd55f17bd7cb0dba12c278ca865523ab9d6208a506554`; current wrapper
+SHA-256 `e3469c3ab9561854e135c700228f9f2ec6ef4a69dc59bfec9cee08741c3b7689`. The unchanged probe
+scripts were not edited. No active cleanup defect was observed after the correction.
+
+Next, the filesystem-only resource proposal is `/tmp/strategy-full-83e93959-runtime-admission-plan.md`
+(Root review required; no phase launched). It retains all eight default services and test/browser
+assertions, timeouts and retries. The full runtime/browser profile remains open pending Root's
+capacity-qualified slot and review of bounded container swap plus live reserve admission. Preserve
+prior red backend attempts, split-phase backend qualification, migration no-change SKIP limitation,
+all disabled live/native/forward/broker scopes, and the full roadmap. No commit/publication was made
+for this receipt.
+
+Read-only review of `docker-compose.yml` and `docker-compose.e2e.yml` found one ordering correction
+for the proposal: the E2E override makes both `backend` and `worker` depend on healthy
+`provider-egress-deny`. The private plan now places that service after PostgreSQL/Redis but before
+backend/worker. No Compose render, service startup or runtime phase occurred in that review.
+
+### Root-owned measured full-profile attempt (2026-10-24)
+
+Root has started the exact-source measured profile; this owner did not launch it. Config phase is
+active under invocation `4af898ad9b2a445a9b82bced16c3611d`, Root handle `49913`, using
+`/tmp/strategy-full-measured-83e93959-once.sh` (SHA-256
+`0fa6ff20e59fb24529e57cc39ac3dd6ff901549ff9774559a53797d63a6b8cdd`) and
+`/tmp/strategy-x-app-runner-83e93959-measured-20261024.sh` (SHA-256
+`6754a76da16748fb58504fd3337fb228ee7ff499cbefda018201b1ccd09b7bc3`). Root reports a fresh idle
+backup and a 105-minute exact-private recovery timer. Its measured policy keeps the eight default
+service limits and all profile assertions/timeouts/retries unchanged; startup admission is
+1,664 MiB available plus 6 GiB free swap, with a 2-second 512 MiB host-reserve guardian. The
+caller is limited to 256 MiB RAM + 512 MiB swap, 1 CPU and 128 tasks. Browser allocation is
+512 MiB RAM + 2 GiB total memory/swap, 2 CPUs and 256 PIDs, admitted at fresh 1 GiB headroom.
+API smoke, worker DB/Redis empty-queue restart, functional and all 104 strict visuals remain
+sequential on the same fixture; no test assertion, timeout, retry, reference or tolerance is relaxed.
+The earlier private swap-override proposal is superseded by this measured run and must not be used
+to start a competing fixture. A read-only pass over the measured controller and app runner found no
+concrete ownership, cleanup or resource-control defect. This run has not yet completed; all local
+profile acceptance and downstream checkpoint gates remain open.
+
+Root corrected the initial measured-profile admission without changing service limits or test policy.
+Invocation `4af898ad9b2a445a9b82bced16c3611d` exited 2 because its 1,664 MiB threshold exceeded
+the observed 1,645,144 KiB; no fixture or tests were created, and this is not a product failure.
+Root's current run is handle `2628`, UP invocation `42f31a564d3f43c5837451a46b266fc8`, using the
+same frozen source and current wrappers recorded in the updated `/tmp` plan. Root reports startup
+admission 1,742,344 KiB, live headroom 1,211,232 KiB above the 512 MiB reserve, and the adjusted
+1,536 MiB startup floor (512 reserve + 256 caller + 768 startup buffer). The 2-second 512 MiB
+reserve guardian, six-GiB free-swap requirement, all eight default-service caps, same-fixture order,
+and unchanged tests/timeouts/retries remain in force. Targeted read-only review found no concrete
+ownership, cleanup, or resource-control defect in the current wrapper. This run is active, not yet a
+full-profile result; no Strategy-owned resource command was run.
+
+### FH5 ordering reconciliation and current isolated-profile evidence (2026-10-24)
+
+The original FH5 wording is retained verbatim as `integration_checkpoint.fh5_original_text` in
+`plan.yaml`. Its active wording now distinguishes two gates without changing the lifecycle or
+creating a status: source acceptance for integration requires the complete unchanged local
+`full_integration`/`full_stack_browser` profile, owner-positive/negative UI/API contract
+qualification, exact-source branch CI, immutable source capture and ordinary closure. Root must
+explicitly accept that exact tested source before guarded staging integration. Only after
+synchronized staging and independent master gates may separately authorized deployment occur;
+genuine-data owner-positive and owner-negative UI/API proof on the deployed target remains mandatory
+before final target acceptance or coordinator-goal completion. No proof is waived or pre-passed.
+At this earlier receipt snapshot, `human_closure_authorization` and `closure_summary` were pending
+and checkpoint status was `in_progress`; FH1-FH4 and all 18 roadmap criteria were preserved. The
+subsequent delegated source acceptance is recorded below.
+
+Root reports the active source-83 isolated fixture passed config/up, API smoke, and the empty-queue
+worker DB/Redis before/after-restart checks. This is fixture-qualified runtime evidence, not
+deployed-target proof. Functional browser progress is 71/197 with no reported failure; all 104 strict
+visual cases remain pending. Root owns the same run and its exact cleanup. Do not relaunch or alter
+source/helpers. The first 1,664 MiB admission refusal remains recorded as pre-fixture/non-product;
+the adjusted run uses the reviewed 1,536 MiB floor and 512 MiB reserve guardian.
+
+### Source checkpoint acceptance and closure (2026-10-24)
+
+Per `/home/m920q/charting-platform/.ai/staging-attempts/strategy-83e93959-checkpoint-source-acceptance-20261024.md`,
+Root accepted only tested source `83e93958921b479ccd122494571d0b9dbb1acc5d` for source integration
+under the existing human-delegated checkpoint authority. The four-record closure records that
+decision and sets this checkpoint to `ready_for_integration`; it does not accept target deployment
+or complete the full roadmap. `plan.yaml` retains the original FH5 wording and all original 18
+criterion IDs/texts/dispositions, with FH1-FH5 complete for this bounded checkpoint only.
+
+Exact-source CI `40041392901` is terminal green on 83 (Backend, Frontend Unit, Branch-declared and
+E2E succeeded; feature-policy Exhaustive gate skipped). Local backend evidence remains an explicit
+same-source split-phase qualification: 5,320 unit passes/1 existing skip plus a fresh 529/533
+integration result with 4 existing skips and combined 84% coverage/XML. This is not relabeled as one
+successful canonical monolithic collector invocation; all prior OOM/tmpfs/wrapper reds remain.
+Migration validation was no-change input-equivalence SKIP, not a fresh/previous-release upgrade.
+Frontend coverage/build and immutable Research image reuse, four source-pinned image builds, and
+Research sandbox/resource probes are separately qualified in the validation history. On the same
+isolated fixture, app/API and empty-queue worker DB/Redis restart checks passed, functional passed
+195 with 2 declared live skips, strict visual passed 104/104, all with zero failures/retries and
+unchanged assertions/references/masks/tolerances. Exact owned cleanup/global inventory diffs were
+zero; private app, Study 5, data, holds and request count were verified preserved.
+
+The functional suite did not explicitly exercise the new V2 inspector navigation. Component/route
+hydration tests and backend owner-positive/negative resolver/API/real-PostgreSQL contracts qualify
+source behavior only. Genuine-data Results-to-inspector UI/API positive and negative proof on the
+deployed target remains mandatory after staging/master gates and separately authorized deployment.
+SPY/RSP date-only acceptance remains pending authoritative canonical InstrumentListing venue review;
+exact-bound run4 and deferred date-only run3 remain distinct. Native execution, forward, broker,
+capital, paid/trial, unknown/unsafe operations and all unfinished original roadmap criteria remain
+open or disabled. No deployment or target acceptance is claimed. Closure uses the literal
+`integration_capture: exact branch HEAD` to avoid a self-referential hash.

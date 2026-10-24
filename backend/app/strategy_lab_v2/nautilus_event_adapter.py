@@ -393,6 +393,8 @@ class NautilusForwardEventTape:
                 raise ValueError(
                     "only accepted non-correction dispatches may enter the live forward tape"
                 )
+            if envelope.canonical_event.correction_of is not None:
+                raise ValueError("canonical corrections cannot enter the live tape")
             ordered_bindings.append(binding)
         object.__setattr__(self, "envelopes", ordered_envelopes)
         object.__setattr__(self, "delivery_bindings", tuple(ordered_bindings))

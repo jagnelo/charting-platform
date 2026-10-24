@@ -120,6 +120,9 @@ from app.strategy_lab_v2.sandbox import (
 )
 from app.strategy_lab_v2.sdk import StrategySdkManifest
 from app.strategy_lab_v2.strategy_package_resolution import StrategyPackageArtifactResolver
+from app.strategy_lab_v2.study_artifact_resolver import (
+    create_resolved_study_artifact_output_resolver,
+)
 from app.strategy_lab_v2.worker_consumer import WorkerHandleResult
 from app.strategy_lab_v2.workers import (
     WorkerKind,
@@ -926,6 +929,7 @@ def materialize_authenticated_forward_runtime_bundle(
                     manifest,
                     random_seed=resolved.binding.random_seed,
                     parameters=resolved.binding.parameters,
+                    study_artifacts=resolved.study_artifacts,
                 ),
                 entrypoint=resolved.package.entrypoint,
                 max_intents_per_event=binding.max_intents_per_event,
@@ -1023,6 +1027,7 @@ def materialize_authenticated_forward_runtime_bundle_from_stream(
                     manifest,
                     random_seed=resolved.binding.random_seed,
                     parameters=resolved.binding.parameters,
+                    study_artifacts=resolved.study_artifacts,
                 ),
                 entrypoint=resolved.package.entrypoint,
                 max_intents_per_event=binding.max_intents_per_event,
@@ -1340,6 +1345,9 @@ def create_authenticated_forward_worker_runtime_input_resolver(
             persistence.resources,
             package_resolver,
             principal=principal,
+            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
+                persistence.session_factory
+            ),
         ),
         AuthenticatedNautilusForwardCheckpointResolver(
             persistence.forward_state,

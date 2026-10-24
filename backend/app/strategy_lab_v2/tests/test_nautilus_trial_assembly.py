@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
-from typing import BinaryIO
+from typing import Any, BinaryIO, cast
 
 import pytest
 
@@ -30,8 +30,10 @@ from app.strategy_lab_v2.contracts import (
     PortfolioComponent,
     PortfolioComposition,
     ProductClass,
+    ResolvedStudyArtifactOutput,
     RunAttempt,
     ScientificTrial,
+    SelectedStudyArtifactReference,
     StrategyPackage,
     StrategyPackageFormat,
     StrategyVersion,
@@ -71,6 +73,7 @@ from app.strategy_lab_v2.rebalance import (
     TradingSession,
 )
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
+from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from strategy_runtime import (
     deserialize_component_invocation_context_stream,
     deserialize_invocation_context_stream,
@@ -99,7 +102,7 @@ class JsonFrozenSeriesDecoder:
             )
 
 
-def _inputs(*, scenario=None, evaluation_window=None):
+def _inputs(*, scenario=None, evaluation_window=None, selected_study_artifact=None):
     requirement = CapabilityRequirement(
         instrument_id="AAPL.SIM",
         product_class=ProductClass.EQUITY,
@@ -162,6 +165,7 @@ def _inputs(*, scenario=None, evaluation_window=None):
         content_digest(SOURCE),
         parameter_schema={"window": {"type": "integer", "minimum": 1}},
         default_parameters={"window": 20},
+        selected_study_artifact=selected_study_artifact,
     )
     manifest = StrategySdkManifest(
         strategy,
@@ -631,6 +635,97 @@ def test_trial_assembly_rejects_unapplied_scenario_transforms(tmp_path) -> None:
             **values,
             artifact_store=LocalArtifactStore(tmp_path / "artifacts"),
         )
+
+
+def test_trial_assembly_fails_closed_for_selected_study_without_runtime_payload(tmp_path) -> None:
+    reference = SelectedStudyArtifactReference(
+        research_run_id=1,
+        code_version_id=2,
+        artifact_id=3,
+        artifact_name="screener.output",
+        artifact_type="series",
+        output_contract="study",
+        run_reproducibility_hash=content_digest("study-run"),
+        code_version_digest=content_digest("study-code-version"),
+        dataset_manifest_digest=content_digest("study-dataset"),
+        artifact_content_digest=content_digest("study-artifact"),
+    )
+    values = _inputs(selected_study_artifact=reference)
+    store = LocalArtifactStore(tmp_path / "artifacts")
+
+    with pytest.raises(NautilusTrialAssemblyError, match="not bound"):
+        assemble_nautilus_trial_runtime_input(**values, artifact_store=store)
+
+    assert not tuple((tmp_path / "artifacts").rglob("*"))
+
+
+def test_component_trial_input_rejects_non_mapping_study_outputs() -> None:
+    values = _inputs()
+    with pytest.raises(TypeError, match="must be a mapping or None"):
+        NautilusComponentTrialInput(
+            "component-1",
+            values["strategy_package"],
+            values["strategy_manifest"],
+            values["strategy_source"],
+            study_artifacts=cast(Any, []),
+        )
+
+
+@pytest.mark.parametrize(
+    ("study_artifact_type", "study_value"),
+    STUDY_ARTIFACT_OUTPUT_CASES,
+)
+def test_trial_assembly_binds_authenticated_study_output_into_worker_context(
+    tmp_path, study_artifact_type, study_value
+) -> None:
+    payload = {"type": study_artifact_type, "value": study_value}
+    reference = SelectedStudyArtifactReference(
+        research_run_id=1,
+        code_version_id=2,
+        artifact_id=3,
+        artifact_name="screener.output",
+        artifact_type=study_artifact_type,
+        output_contract="study",
+        run_reproducibility_hash=content_digest("study-run"),
+        code_version_digest=content_digest("study-code-version"),
+        dataset_manifest_digest=content_digest("study-dataset"),
+        artifact_content_digest=content_digest(payload),
+    )
+    values = _inputs(selected_study_artifact=reference)
+    output = ResolvedStudyArtifactOutput(reference, payload)
+    component_input = NautilusComponentTrialInput(
+        "component-1",
+        values["strategy_package"],
+        values["strategy_manifest"],
+        values["strategy_source"],
+        study_artifacts={reference.artifact_name: output},
+    )
+    values["strategy_package"] = None
+    values["strategy_source"] = None
+    store = LocalArtifactStore(tmp_path / "artifacts")
+    assembly = assemble_nautilus_trial_runtime_input(
+        **values,
+        component_inputs=(component_input,),
+        artifact_store=store,
+    )
+    bundle = load_materialized_nautilus_runtime_bundle(
+        assembly.runtime_input_artifact,
+        store=store,
+        max_input_bytes=1_000_000,
+    )
+    assert bundle.context_stream is not None
+    context_stream_bytes = store.read(bundle.context_stream.artifact.storage_key)
+    assert context_stream_bytes.count(b'"study_artifacts"') == 1
+    _, manifest, contexts, _, _ = deserialize_invocation_context_stream(
+        BytesIO(context_stream_bytes),
+        expected_context_count=bundle.context_stream.context_count,
+    )
+    decoded_contexts = tuple(contexts)
+    assert manifest.strategy.selected_study_artifact == reference
+    assert len(decoded_contexts) == bundle.context_stream.context_count
+    for context in decoded_contexts:
+        assert context.study_artifacts is not None
+        assert context.study_artifacts[reference.artifact_name] == output
 
 
 def test_trial_assembly_replays_warmup_but_binds_only_the_evaluation_window(tmp_path) -> None:

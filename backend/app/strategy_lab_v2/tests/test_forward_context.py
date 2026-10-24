@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import cast
 
 import pytest
 
@@ -11,6 +13,8 @@ from app.strategy_lab_v2.contracts import (
     AdjustmentMode,
     EventGranularity,
     ProductClass,
+    ResolvedStudyArtifactOutput,
+    SelectedStudyArtifactReference,
     StrategyVersion,
 )
 from app.strategy_lab_v2.forward_context import (
@@ -21,6 +25,7 @@ from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
 from app.strategy_lab_v2.nautilus_forward_delivery import VerifiedForwardMarketPayload
 from app.strategy_lab_v2.postgres_result_materialization import decode_canonical_contract
 from app.strategy_lab_v2.sdk import MarketEvent, StrategyDataDependency, StrategySdkManifest
+from app.strategy_lab_v2.study_artifact_payloads import FrozenStudyArtifactPayload
 
 NOW = datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
 SOURCE = "class Strategy:\n    def on_event(self, context):\n        return []\n"
@@ -220,6 +225,104 @@ def test_verified_history_replay_rebuilds_the_same_bounded_context_window() -> N
         "aapl-4",
     )
     assert preparation.context.market_events["benchmark-bars"] == (payloads[1].market_event,)
+
+
+def test_study_output_is_bound_across_context_replay_and_authenticated_seed() -> None:
+    base_manifest = _manifest()
+    study_payload = {"type": "series", "value": [1.25, 2.5]}
+    reference = SelectedStudyArtifactReference(
+        research_run_id=41,
+        code_version_id=12,
+        artifact_id=87,
+        artifact_name="study.close",
+        artifact_type="series",
+        output_contract="study",
+        run_reproducibility_hash="a" * 64,
+        code_version_digest=content_digest("forward-context-code-version"),
+        dataset_manifest_digest=content_digest("forward-context-dataset"),
+        artifact_content_digest=content_digest(study_payload),
+    )
+    manifest = replace(
+        base_manifest,
+        strategy=replace(base_manifest.strategy, selected_study_artifact=reference),
+    )
+    output = ResolvedStudyArtifactOutput(reference, cast(FrozenStudyArtifactPayload, study_payload))
+    outputs = {reference.artifact_name: output}
+    payloads = (
+        _payload(event_id="aapl-study-1", sequence=1, event_time=NOW),
+        _payload(event_id="aapl-study-2", sequence=2, event_time=NOW + timedelta(minutes=1)),
+    )
+    original = ForwardStrategyContextWindow(
+        "forward-1",
+        manifest,
+        parameters={"threshold": Decimal("1.5")},
+        random_seed=17,
+        study_artifacts=outputs,
+    )
+    contexts = tuple(original.append(item, instance_id="forward-1") for item in payloads)
+    history = ForwardStrategyContextHistory(
+        "forward-1",
+        manifest.fingerprint,
+        content_digest("study-context-checkpoint"),
+        content_digest("study-context-warmup"),
+        payloads,
+    )
+
+    replayed = ForwardStrategyContextWindow.replay_verified_history(
+        history,
+        manifest,
+        parameters={"threshold": Decimal("1.5")},
+        random_seed=17,
+        expected_pre_event_checkpoint_fingerprint=history.pre_event_checkpoint_fingerprint,
+        expected_warmup_receipt_fingerprint=history.warmup_receipt_fingerprint,
+        study_artifacts=outputs,
+    )
+    assert replayed.window_fingerprint == original.window_fingerprint
+    assert (
+        replayed.prepare(
+            _payload(
+                event_id="aapl-study-3",
+                sequence=3,
+                event_time=NOW + timedelta(minutes=2),
+            ),
+            instance_id="forward-1",
+        ).context.study_artifacts
+        == outputs
+    )
+
+    seeded = ForwardStrategyContextWindow(
+        "forward-1",
+        manifest,
+        parameters={"threshold": Decimal("1.5")},
+        random_seed=17,
+        study_artifacts=outputs,
+    )
+    seeded.seed_from_authenticated_contexts(
+        contexts,
+        context_stream_fingerprint=content_digest("authenticated-study-context-stream"),
+    )
+    assert seeded.window_fingerprint == original.window_fingerprint
+
+    drifted_payload = {"type": "series", "value": [9.0, 9.0]}
+    drifted_reference = replace(
+        reference,
+        artifact_content_digest=content_digest(drifted_payload),
+    )
+    drifted_output = ResolvedStudyArtifactOutput(
+        drifted_reference, cast(FrozenStudyArtifactPayload, drifted_payload)
+    )
+    rejected_seed = ForwardStrategyContextWindow(
+        "forward-1",
+        manifest,
+        parameters={"threshold": Decimal("1.5")},
+        random_seed=17,
+        study_artifacts=outputs,
+    )
+    with pytest.raises(ValueError, match="Study output differs from its immutable reference"):
+        rejected_seed.seed_from_authenticated_context(
+            replace(contexts[0], study_artifacts={reference.artifact_name: drifted_output}),
+            context_stream_fingerprint=content_digest("authenticated-study-context-stream"),
+        )
 
 
 def test_authenticated_context_stream_seed_rebuilds_bounded_window_without_fabricating_events() -> (

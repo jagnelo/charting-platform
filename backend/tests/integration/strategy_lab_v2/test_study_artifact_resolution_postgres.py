@@ -4,9 +4,11 @@ import os
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import httpx
 import pytest
@@ -22,22 +24,52 @@ from app.models.user import User
 from app.strategy_lab_v2.api_resources import ApiResourceType
 from app.strategy_lab_v2.api_router import create_strategy_lab_router
 from app.strategy_lab_v2.application import PostgresStrategyLabV2Adapter
+from app.strategy_lab_v2.artifacts import artifact_content_digest
 from app.strategy_lab_v2.canonical import content_digest, freeze_json
 from app.strategy_lab_v2.contracts import (
+    ArtifactManifest,
+    ArtifactRetention,
+    CarryInMode,
     ExperimentDefinition,
+    ForwardInstance,
+    ForwardState,
     PortfolioComposition,
+    ResolvedStudyArtifactOutput,
     RunAttempt,
     ScientificTrial,
     SelectedStudyArtifactReference,
     StrategyPackage,
     StrategyVersion,
 )
+from app.strategy_lab_v2.forward_account import ForwardAccountState
+from app.strategy_lab_v2.forward_context import ForwardStrategyContextWindow
+from app.strategy_lab_v2.forward_execution_plan import (
+    ForwardComponentExecutionPlan,
+    ForwardExecutionPlan,
+)
+from app.strategy_lab_v2.forward_warmup import ForwardWarmupReceipt
+from app.strategy_lab_v2.forward_worker_composition import (
+    create_authenticated_forward_worker_runtime_input_resolver,
+)
+from app.strategy_lab_v2.lifecycle import CanonicalForwardEvent
+from app.strategy_lab_v2.nautilus_forward_input import VerifiedForwardMarketPayload
+from app.strategy_lab_v2.nautilus_forward_session import ResolvedForwardExecutionPlanRecipeResolver
+from app.strategy_lab_v2.nautilus_runtime_bundle import load_materialized_nautilus_runtime_bundle
 from app.strategy_lab_v2.persistence import PostgresStrategyLabV2Persistence
+from app.strategy_lab_v2.postgres_forward_account import (
+    PostgresForwardAccountAdapter,
+    PostgresForwardAccountSchema,
+)
+from app.strategy_lab_v2.postgres_forward_state import (
+    PostgresForwardStateAdapter,
+    PostgresForwardStateSchema,
+)
 from app.strategy_lab_v2.postgres_resources import PostgresResourceReader
 from app.strategy_lab_v2.postgres_storage import PostgresAggregateStore, PostgresStorageSchema
 from app.strategy_lab_v2.provider_capability_host import CAPABILITY_SCOPE_CONFIG_ENV
 from app.strategy_lab_v2.provider_preflight import ProviderLocalCapabilityEvidenceReader
 from app.strategy_lab_v2.resource_mutations import ResourceMutationRequest
+from app.strategy_lab_v2.sdk import MarketEvent
 from app.strategy_lab_v2.search_dispatch_rpc import (
     STRATEGY_LAB_V2_ARTIFACT_ROOT_ENV,
     WALK_FORWARD_CALENDAR_FACTORY_ENV,
@@ -45,18 +77,32 @@ from app.strategy_lab_v2.search_dispatch_rpc import (
     build_api_bindings,
 )
 from app.strategy_lab_v2.storage import AggregateKey
+from app.strategy_lab_v2.strategy_package_resolution import (
+    STRATEGY_PACKAGE_LOCK_MEMBER,
+    STRATEGY_PACKAGE_MANIFEST_MEMBER,
+    STRATEGY_SOURCE_ARCHIVE_MEDIA_TYPE,
+    STRATEGY_SOURCE_ARCHIVE_SCHEMA,
+)
 from app.strategy_lab_v2.study_artifact_resolver import (
     SelectedStudyArtifactResolutionError,
+    create_resolved_study_artifact_output_resolver,
     create_selected_study_artifact_resolver,
 )
+from app.strategy_lab_v2.tests.study_artifact_fixtures import STUDY_ARTIFACT_OUTPUT_CASES
 from app.strategy_lab_v2.tests.test_search_dispatch_preparation import _setup
 from app.strategy_lab_v2.trial_hydration import (
     NautilusTrialDomainHydrator,
     TrialDomainHydrationError,
 )
+from strategy_runtime import (
+    deserialize_invocation_context_stream,
+    deserialize_strategy_manifest,
+    serialize_strategy_manifest,
+)
 
 _NOW = datetime(2026, 10, 22, 4, 0, tzinfo=UTC)
-_STUDY_TABLES = (ResearchArtifact.__table__,)
+_STUDY_TABLES: tuple[Table, ...] = (cast(Table, ResearchArtifact.__table__),)
+_STUDY_OUTPUT_CASES = STUDY_ARTIFACT_OUTPUT_CASES
 _EXPECTED_STUDY_FK_CLOSURE = {
     "code_asset",
     "code_version",
@@ -92,7 +138,7 @@ def _mapped_study_fk_closure() -> tuple[Table, ...]:
         if table.key in tables_by_key:
             continue
         tables_by_key[table.key] = table
-        pending.extend(foreign_key.column.table for foreign_key in table.foreign_keys)
+        pending.extend(cast(Table, foreign_key.column.table) for foreign_key in table.foreign_keys)
     return tuple(tables_by_key.values())
 
 
@@ -123,6 +169,8 @@ async def study_database(
     if not database_url:
         pg_container = request.getfixturevalue("pg_container")
         database_url = pg_container.get_connection_url()
+    if not database_url:
+        raise RuntimeError("Study integration requires the assigned PostgreSQL URL")
 
     schema_name = f"strategy_study_{uuid.uuid4().hex[:12]}"
     engine = create_async_engine(
@@ -261,6 +309,7 @@ async def _reference(
         assert (
             asset is not None and version is not None and run is not None and artifact is not None
         )
+        assert isinstance(run.reproducibility_hash, str)
         expected_code_version_digest = content_digest(
             {
                 "code_asset": {
@@ -396,19 +445,33 @@ async def test_strategy_api_authenticates_exact_study_reference_before_persisten
         ),
         prefix="/api/v1",
     )
-    body = {
-        "attributes": {
-            "resource_id": "strategy-with-study-input",
-            "strategy_id": "study-consumer",
-            "version_id": "v1",
-            "sdk_version": "strategy-sdk.v2",
-            "source_digest": content_digest("strategy-source"),
-            "selected_study_artifact": dict(freeze_json(reference)),
-        }
-    }
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://strategy-lab.test"
     ) as client:
+        derived = await client.get(
+            "/api/v1/strategy-lab/v2/study-artifact-references/30/40",
+            headers={"X-Test-Owner": "1"},
+        )
+        assert derived.status_code == 200, derived.text
+        assert derived.json()["data"]["attributes"] == freeze_json(reference)
+        # Exercise the public consumer path with the pin returned by the API,
+        # rather than a separately assembled equivalent reference.
+        body = {
+            "attributes": {
+                "resource_id": "strategy-with-study-input",
+                "strategy_id": "study-consumer",
+                "version_id": "v1",
+                "sdk_version": "strategy-sdk.v2",
+                "source_digest": content_digest("strategy-source"),
+                "selected_study_artifact": derived.json()["data"]["attributes"],
+            }
+        }
+        foreign_selection = await client.get(
+            "/api/v1/strategy-lab/v2/study-artifact-references/30/40",
+            headers={"X-Test-Owner": "2"},
+        )
+        assert foreign_selection.status_code == 404
+
         accepted = await client.post(
             "/api/v1/strategy-lab/v2/strategies",
             headers={"Idempotency-Key": "study-valid", "X-Test-Owner": "1"},
@@ -468,6 +531,11 @@ async def test_strategy_api_authenticates_exact_study_reference_before_persisten
             },
         )
         assert drift.status_code == 422
+        drifted_readback = await client.get(
+            "/api/v1/strategy-lab/v2/strategies/drifted-study",
+            headers={"X-Test-Owner": "1"},
+        )
+        assert drifted_readback.status_code == 404
 
         async with sessions.begin() as session:
             await session.execute(
@@ -498,6 +566,14 @@ async def test_strategy_api_authenticates_exact_study_reference_before_persisten
     assert (
         await adapter.get_resource(
             principal="2", resource_type=ApiResourceType.STRATEGY, resource_id="foreign-study"
+        )
+        is None
+    )
+    assert (
+        await adapter.get_resource(
+            principal="1",
+            resource_type=ApiResourceType.STRATEGY,
+            resource_id="drifted-study",
         )
         is None
     )
@@ -639,11 +715,54 @@ async def test_study_resolver_rejects_persisted_run_version_and_output_drift(
         await resolver(principal="1", reference=reference)
 
 
-def _strategy_graph_with_reference(graph: Any, reference: SelectedStudyArtifactReference) -> Any:
+async def _strategy_graph_with_reference(
+    graph: Any,
+    reference: SelectedStudyArtifactReference,
+    sessions: async_sessionmaker[AsyncSession],
+    *,
+    artifact_store: Any | None = None,
+) -> Any:
+    resolved_output = await create_resolved_study_artifact_output_resolver(sessions)(
+        principal="1", reference=reference
+    )
     old_strategy: StrategyVersion = graph.strategies[0]
     strategy = replace(old_strategy, selected_study_artifact=reference)
     old_package: StrategyPackage = graph.packages[old_strategy.fingerprint]
     package = replace(old_package, strategy_fingerprint=strategy.fingerprint)
+    if artifact_store is not None:
+        original_archive = artifact_store.read(old_package.archive_digest)
+        with ZipFile(BytesIO(original_archive)) as archive:
+            members = {name: archive.read(name) for name in archive.namelist()}
+        sdk_manifest = deserialize_strategy_manifest(
+            members[STRATEGY_PACKAGE_MANIFEST_MEMBER].decode("utf-8")
+        )
+        manifest_bytes = serialize_strategy_manifest(
+            replace(sdk_manifest, strategy=strategy)
+        ).encode("utf-8")
+        members[STRATEGY_PACKAGE_MANIFEST_MEMBER] = manifest_bytes
+        archive_stream = BytesIO()
+        with ZipFile(archive_stream, mode="w", compression=ZIP_DEFLATED) as archive:
+            for name, payload in members.items():
+                archive.writestr(name, payload)
+        archive_bytes = archive_stream.getvalue()
+        package = replace(
+            package,
+            archive_digest=artifact_content_digest(archive_bytes),
+            manifest_digest=artifact_content_digest(manifest_bytes),
+            dependency_lock_digest=artifact_content_digest(members[STRATEGY_PACKAGE_LOCK_MEMBER]),
+            archive_byte_length=len(archive_bytes),
+        )
+        artifact_store.publish(
+            ArtifactManifest(
+                package.archive_digest,
+                len(archive_bytes),
+                STRATEGY_SOURCE_ARCHIVE_MEDIA_TYPE,
+                STRATEGY_SOURCE_ARCHIVE_SCHEMA,
+                package.archive_digest,
+                ArtifactRetention.PINNED_INPUT,
+            ),
+            archive_bytes,
+        )
     portfolio: PortfolioComposition = replace(
         graph.portfolio,
         components=tuple(
@@ -679,6 +798,7 @@ def _strategy_graph_with_reference(graph: Any, reference: SelectedStudyArtifactR
         snapshot=graph.snapshot,
         strategies=(strategy,),
         packages={strategy.fingerprint: package},
+        study_artifacts={strategy.fingerprint: resolved_output},
     )
 
 
@@ -711,8 +831,25 @@ async def _persist_graph(adapter: PostgresStrategyLabV2Adapter, graph: Any, suff
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-@pytest.mark.parametrize("post_dispatch_drift", ("changed_dataset", "deleted_artifact"))
-async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
+@pytest.mark.parametrize(
+    "post_dispatch_drift",
+    (
+        "changed_dataset",
+        "failed_run",
+        "failed_evaluation",
+        "changed_run_hash",
+        "changed_code_version",
+        "changed_asset_owner",
+        "changed_code_source",
+        "changed_artifact_payload",
+        "changed_artifact_identity",
+        "changed_artifact_type",
+        "ambiguous_artifact_name",
+        "deleted_artifact",
+        "foreign_restart_owner",
+    ),
+)
+async def test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drift(
     tmp_path: Path,
     study_database: StudyDatabase,
     post_dispatch_drift: str,
@@ -723,7 +860,7 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
     graph, _artifacts, _package_resolver, _materializer, _context, _worker_state = _setup(
         tmp_path / "study-worker"
     )
-    graph = _strategy_graph_with_reference(graph, reference)
+    graph = await _strategy_graph_with_reference(graph, reference, sessions)
     adapter, store = _adapter(sessions, storage_schema)
     await _persist_graph(adapter, graph, uuid.uuid4().hex)
 
@@ -735,7 +872,7 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
         assert restarted_store.schema == store.schema
         hydrator = NautilusTrialDomainHydrator(
             PostgresResourceReader(restarted_store),
-            selected_study_artifact_resolver=create_selected_study_artifact_resolver(
+            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
                 fresh_sessions
             ),
         )
@@ -743,6 +880,8 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
             principal="1", attempt_resource_id=graph.attempt.attempt_id
         )
         assert hydrated.strategies[0].selected_study_artifact == reference
+        assert hydrated.study_artifacts is not None
+        assert hydrated.study_artifacts[hydrated.strategies[0].fingerprint].value == (1.0, 2.0)
 
         async with fresh_sessions.begin() as session:
             if post_dispatch_drift == "changed_dataset":
@@ -756,14 +895,80 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
                         }
                     )
                 )
-            else:
+            elif post_dispatch_drift == "failed_run":
+                await session.execute(
+                    update(ResearchRun).where(ResearchRun.id == 30).values(status="failed")
+                )
+            elif post_dispatch_drift == "failed_evaluation":
+                await session.execute(
+                    update(ResearchRun)
+                    .where(ResearchRun.id == 30)
+                    .values(resource_usage={"evaluation": {"status": "failed"}})
+                )
+            elif post_dispatch_drift == "changed_run_hash":
+                await session.execute(
+                    update(ResearchRun)
+                    .where(ResearchRun.id == 30)
+                    .values(reproducibility_hash="c" * 64)
+                )
+            elif post_dispatch_drift == "changed_code_version":
+                await session.execute(
+                    update(ResearchRun).where(ResearchRun.id == 30).values(code_version_id=21)
+                )
+            elif post_dispatch_drift == "changed_asset_owner":
+                await session.execute(update(CodeAsset).where(CodeAsset.id == 10).values(user_id=2))
+            elif post_dispatch_drift == "changed_code_source":
+                await session.execute(
+                    update(CodeVersion)
+                    .where(CodeVersion.id == 20)
+                    .values(source="changed-after-dispatch")
+                )
+            elif post_dispatch_drift == "changed_artifact_payload":
+                await session.execute(
+                    update(ResearchArtifact)
+                    .where(ResearchArtifact.id == 40)
+                    .values(payload={"type": "series", "value": [99.0]})
+                )
+            elif post_dispatch_drift == "changed_artifact_identity":
+                await session.execute(
+                    update(ResearchArtifact)
+                    .where(ResearchArtifact.id == 40)
+                    .values(name="renamed-after-dispatch")
+                )
+            elif post_dispatch_drift == "changed_artifact_type":
+                await session.execute(
+                    update(ResearchArtifact)
+                    .where(ResearchArtifact.id == 40)
+                    .values(artifact_type="table")
+                )
+            elif post_dispatch_drift == "ambiguous_artifact_name":
+                session.add(
+                    ResearchArtifact(
+                        id=41,
+                        research_run_id=30,
+                        artifact_type="series",
+                        name="signal",
+                        payload={"type": "series", "value": [3.0]},
+                    )
+                )
+            elif post_dispatch_drift == "deleted_artifact":
                 await session.execute(delete(ResearchArtifact).where(ResearchArtifact.id == 40))
         restarted_hydrator = NautilusTrialDomainHydrator(
             PostgresResourceReader(restarted_store),
-            selected_study_artifact_resolver=create_selected_study_artifact_resolver(
+            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
                 fresh_sessions
             ),
         )
+        if post_dispatch_drift == "foreign_restart_owner":
+            with pytest.raises(
+                TrialDomainHydrationError,
+                match="run attempt is missing or unavailable to this owner",
+            ):
+                await restarted_hydrator.hydrate_attempt(
+                    principal="2", attempt_resource_id=graph.attempt.attempt_id
+                )
+            return
+
         with pytest.raises(TrialDomainHydrationError, match="unavailable for restart validation"):
             await restarted_hydrator.hydrate_attempt(
                 principal="1", attempt_resource_id=graph.attempt.attempt_id
@@ -771,6 +976,343 @@ async def test_reconstructed_worker_hydrator_rechecks_study_after_dataset_drift(
         with pytest.raises(TrialDomainHydrationError, match="unavailable for restart validation"):
             await restarted_hydrator.hydrate_attempt(
                 principal="1", attempt_resource_id=graph.attempt.attempt_id
+            )
+    finally:
+        await fresh_engine.dispose()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("study_artifact_type", "study_value"), _STUDY_OUTPUT_CASES)
+async def test_reconstructed_backtest_worker_hydrates_each_persisted_study_type(
+    tmp_path: Path,
+    study_database: StudyDatabase,
+    study_artifact_type: str,
+    study_value: Any,
+) -> None:
+    sessions = study_database.sessions
+    study_payload = {"type": study_artifact_type, "value": study_value}
+    async with sessions.begin() as session:
+        await session.execute(
+            update(ResearchArtifact)
+            .where(ResearchArtifact.id == 40)
+            .values(artifact_type=study_artifact_type, payload=study_payload)
+        )
+    reference = await _reference(sessions)
+    graph, artifact_store, _package_resolver, materializer, preparation_context, _worker_state = (
+        _setup(tmp_path / "backtest-study-worker")
+    )
+    graph = await _strategy_graph_with_reference(
+        graph, reference, sessions, artifact_store=artifact_store
+    )
+    adapter, _store = _adapter(sessions, study_database.storage_schema)
+    await _persist_graph(adapter, graph, uuid.uuid4().hex)
+
+    fresh_engine, fresh_sessions = study_database.new_engine_and_sessions()
+    try:
+        restarted_store = PostgresAggregateStore(
+            fresh_sessions,
+            schema=study_database.storage_schema,
+        )
+        hydrator = NautilusTrialDomainHydrator(
+            PostgresResourceReader(restarted_store),
+            selected_study_artifact_resolver=create_resolved_study_artifact_output_resolver(
+                fresh_sessions
+            ),
+        )
+        hydrated = await hydrator.hydrate_attempt(
+            principal="1",
+            attempt_resource_id=graph.attempt.attempt_id,
+        )
+        strategy = graph.strategies[0]
+        assert hydrated.strategies[0].selected_study_artifact == reference
+        assert hydrated.study_artifacts == {
+            strategy.fingerprint: ResolvedStudyArtifactOutput(reference, study_payload)
+        }
+
+        # Reconstruct the worker graph after process restart, then exercise the
+        # real materializer that writes typed Study outputs into the runtime
+        # component-context stream consumed by the isolated bridge.
+        materialized = materializer.materialize(
+            graph=hydrated,
+            market_context=preparation_context.market_context,
+        )
+        bundle = load_materialized_nautilus_runtime_bundle(
+            materialized.assembly.runtime_input_artifact,
+            artifact_store,
+            max_input_bytes=1_000_000,
+        )
+        assert bundle.context_stream is not None
+        context_stream_bytes = artifact_store.read(bundle.context_stream.artifact.storage_key)
+        assert not bundle.context_stream.component_counts
+        _source, decoded_manifest, contexts, _entrypoint, _max_intents = (
+            deserialize_invocation_context_stream(
+                BytesIO(context_stream_bytes),
+                expected_context_count=bundle.context_stream.context_count,
+            )
+        )
+        expected_output = ResolvedStudyArtifactOutput(reference, study_payload)
+        assert decoded_manifest.strategy.selected_study_artifact == reference
+        decoded_contexts = tuple(contexts)
+        assert len(decoded_contexts) == bundle.context_stream.context_count
+        assert all(
+            decoded_context.study_artifacts == {reference.artifact_name: expected_output}
+            for decoded_context in decoded_contexts
+        )
+
+        drifted_payload = {**study_payload, "drift_marker": "changed-after-pin"}
+        async with fresh_sessions.begin() as session:
+            await session.execute(
+                update(ResearchArtifact)
+                .where(ResearchArtifact.id == reference.artifact_id)
+                .values(payload=drifted_payload)
+            )
+        with pytest.raises(TrialDomainHydrationError, match="unavailable for restart validation"):
+            await hydrator.hydrate_attempt(
+                principal="1",
+                attempt_resource_id=graph.attempt.attempt_id,
+            )
+    finally:
+        await fresh_engine.dispose()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("study_artifact_type", "study_value"), _STUDY_OUTPUT_CASES)
+async def test_reconstructed_forward_worker_revalidates_persisted_study_output(
+    tmp_path: Path,
+    study_database: StudyDatabase,
+    study_artifact_type: str,
+    study_value: Any,
+) -> None:
+    sessions = study_database.sessions
+    study_payload = {"type": study_artifact_type, "value": study_value}
+    async with sessions.begin() as session:
+        await session.execute(
+            update(ResearchArtifact)
+            .where(ResearchArtifact.id == 40)
+            .values(artifact_type=study_artifact_type, payload=study_payload)
+        )
+    reference = await _reference(sessions)
+    graph, _artifact_store, package_resolver, _materializer, _context, _worker_state = _setup(
+        tmp_path / "forward-study-worker"
+    )
+    graph = await _strategy_graph_with_reference(
+        graph,
+        reference,
+        sessions,
+        artifact_store=_artifact_store,
+    )
+    adapter, store = _adapter(sessions, study_database.storage_schema)
+    suffix = uuid.uuid4().hex
+    await _persist_graph(adapter, graph, suffix)
+
+    instance = ForwardInstance(
+        instance_id=f"forward-study-{suffix}",
+        portfolio_fingerprint=graph.portfolio.fingerprint,
+        warmup_snapshot_fingerprint=graph.snapshot.fingerprint,
+        carry_in_mode=CarryInMode.FLAT,
+        state=ForwardState.CREATED,
+        last_event_id=None,
+        last_event_sequence=0,
+        correction_count=0,
+        created_at=_NOW,
+        updated_at=_NOW,
+    )
+    forward_state_schema = PostgresForwardStateSchema()
+    forward_account_schema = PostgresForwardAccountSchema()
+    schema_engine, _schema_sessions = study_database.new_engine_and_sessions()
+    try:
+        async with schema_engine.begin() as connection:
+            for statement in (*forward_state_schema.statements, *forward_account_schema.statements):
+                await connection.execute(text(statement))
+    finally:
+        await schema_engine.dispose()
+    state_persistence = replace(
+        PostgresStrategyLabV2Persistence.build(sessions),
+        forward_state=PostgresForwardStateAdapter(sessions, schema=forward_state_schema),
+        forward_account=PostgresForwardAccountAdapter(sessions, schema=forward_account_schema),
+    )
+    await state_persistence.forward_state.ensure_instance(principal="1", instance=instance)
+    warming = await state_persistence.forward_state.transition(
+        principal="1",
+        instance_id=instance.instance_id,
+        target=ForwardState.WARMING_UP,
+        now=_NOW + timedelta(seconds=1),
+        idempotency_key=f"study-forward-warmup-{suffix}",
+    )
+    assert warming.instance is not None
+    receipt = ForwardWarmupReceipt(
+        instance_id=instance.instance_id,
+        warmup_snapshot_fingerprint=graph.snapshot.fingerprint,
+        carry_in_mode=CarryInMode.FLAT,
+        warmup_result_fingerprint=content_digest({"forward-study-warmup": suffix}),
+        completed_at=_NOW + timedelta(seconds=2),
+    )
+    completed = await state_persistence.forward_state.complete_warmup(
+        principal="1",
+        receipt=receipt,
+    )
+    assert completed.decision.value == "complete"
+    instance = completed.instance
+    checkpoint = await state_persistence.forward_state.load_state(
+        principal="1",
+        instance_id=instance.instance_id,
+    )
+    assert checkpoint is not None
+    account = await state_persistence.forward_account.initialize(
+        principal="1",
+        state=ForwardAccountState(instance_id=instance.instance_id, base_currency="USD"),
+        admission_state=checkpoint,
+    )
+    assert account.state is not None
+    strategy = graph.strategies[0]
+    package = graph.packages[strategy.fingerprint]
+    plan = ForwardExecutionPlan(
+        instance_id=instance.instance_id,
+        portfolio_fingerprint=graph.portfolio.fingerprint,
+        components=(
+            ForwardComponentExecutionPlan(
+                component_id=graph.portfolio.components[0].component_id,
+                strategy_fingerprint=strategy.fingerprint,
+                package_fingerprint=package.fingerprint,
+                parameters={},
+                random_seed=7,
+            ),
+        ),
+    )
+    for resource_type, contract in (
+        (ApiResourceType.FORWARD_INSTANCE, instance),
+        (ApiResourceType.FORWARD_EXECUTION_PLAN, plan),
+    ):
+        result = await adapter.create_resource(
+            principal="1",
+            request_id=f"forward-study-{suffix}-{resource_type.value}",
+            request=ResourceMutationRequest(
+                resource_type,
+                f"forward-study-{suffix}-{resource_type.value}",
+                {"attributes": dict(freeze_json(contract))},
+                _NOW,
+            ),
+        )
+        assert result.receipt is not None, result.resolution.rejection_reason
+        assert result.resolution.decision.value == "accept"
+
+    # Construct a fresh aggregate reader and worker resolver as after a process
+    # restart; both the execution plan and Study payload must come from persisted rows.
+    fresh_engine, fresh_sessions = study_database.new_engine_and_sessions()
+    try:
+        fresh_store = PostgresAggregateStore(
+            fresh_sessions,
+            schema=study_database.storage_schema,
+        )
+        persistence = replace(
+            PostgresStrategyLabV2Persistence.build(fresh_sessions),
+            aggregate_store=fresh_store,
+            resources=PostgresResourceReader(fresh_store),
+            forward_state=PostgresForwardStateAdapter(
+                fresh_sessions,
+                schema=forward_state_schema,
+            ),
+            forward_account=PostgresForwardAccountAdapter(
+                fresh_sessions,
+                schema=forward_account_schema,
+            ),
+        )
+        worker_resolver = create_authenticated_forward_worker_runtime_input_resolver(
+            persistence,
+            package_resolver,
+            principal="1",
+        )
+        persisted_instance = await persistence.resources.get_domain_contract(
+            principal="1",
+            resource_type=ApiResourceType.FORWARD_INSTANCE,
+            resource_id=instance.instance_id,
+        )
+        assert isinstance(persisted_instance, ForwardInstance)
+        assert persisted_instance == instance
+        resolved = await worker_resolver.resolve(
+            instance_id=instance.instance_id,
+            checkpoint_fingerprint=checkpoint.checkpoint.fingerprint,
+        )
+        component = resolved.execution_plan.components[graph.portfolio.components[0].component_id]
+        assert component.study_artifacts == {
+            reference.artifact_name: ResolvedStudyArtifactOutput(
+                reference,
+                study_payload,
+            )
+        }
+
+        recipe_resolver = ResolvedForwardExecutionPlanRecipeResolver(
+            resolved.execution_plan,
+            component_id=graph.portfolio.components[0].component_id,
+            principal="1",
+        )
+        recipe = recipe_resolver(principal="1", instance=instance)
+        assert recipe.study_artifacts == component.study_artifacts
+        forward_window = ForwardStrategyContextWindow(
+            instance.instance_id,
+            recipe.manifest,
+            parameters=recipe.parameters,
+            random_seed=recipe.random_seed,
+            study_artifacts=recipe.study_artifacts,
+        )
+        dependency = recipe.manifest.data_dependencies[0]
+        event_time = dependency.requirement.start + timedelta(seconds=1)
+        event_id = f"forward-study-after-restart-{suffix}"
+        source_digest = content_digest({"forward-study-source": suffix})
+        canonical_event = CanonicalForwardEvent(
+            event_id,
+            1,
+            event_time,
+            event_time + timedelta(milliseconds=1),
+            source_digest,
+        )
+        market_event = MarketEvent(
+            dependency.dependency_id,
+            event_id,
+            dependency.requirement.instrument_id,
+            event_time,
+            1,
+            {field: 1 for field in dependency.fields},
+        )
+        forward_context = forward_window.append(
+            VerifiedForwardMarketPayload(canonical_event, market_event, source_digest),
+            instance_id=instance.instance_id,
+        )
+        assert forward_context.study_artifacts == component.study_artifacts
+
+        with pytest.raises(
+            ValueError,
+            match="durable forward admission checkpoint is unavailable",
+        ):
+            await worker_resolver.resolve(
+                instance_id=instance.instance_id,
+                checkpoint_fingerprint=content_digest("stale-forward-study-checkpoint"),
+            )
+
+        foreign_resolver = create_authenticated_forward_worker_runtime_input_resolver(
+            persistence,
+            package_resolver,
+            principal="2",
+        )
+        with pytest.raises(ValueError, match="forward instance is unavailable"):
+            await foreign_resolver.resolve(
+                instance_id=instance.instance_id,
+                checkpoint_fingerprint=checkpoint.checkpoint.fingerprint,
+            )
+
+        drifted_payload = {**study_payload, "drift_marker": "changed-after-pin"}
+        async with fresh_sessions.begin() as session:
+            await session.execute(
+                update(ResearchArtifact)
+                .where(ResearchArtifact.id == reference.artifact_id)
+                .values(payload=drifted_payload)
+            )
+        with pytest.raises(SelectedStudyArtifactResolutionError):
+            await worker_resolver.resolve(
+                instance_id=instance.instance_id,
+                checkpoint_fingerprint=checkpoint.checkpoint.fingerprint,
             )
     finally:
         await fresh_engine.dispose()
