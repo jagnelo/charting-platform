@@ -34,9 +34,9 @@
     }
   ],
   "active_changeset": {
-    "baseline": "54081f43892f80c43efcc46f40a8a55b94ec1c92",
+    "baseline": "a7d0f25064e98f8c3015e9866804f7a68fcaa263",
     "contract": "/home/m920q/charting-platform/.ai/staging-attempts/etf-fqc-committed-filing-reference-38d-r5-20261025.patch",
-    "current_delta": "Applied Root-reviewed audit-link fix: refresh child-session request IDs before not-qualified finalization merges outcome JSON, and refresh/assert the tamper test's parent JSON before/after selection mutation. Preserved raw-artifact/job audit equality, tamper rejection, production validation order, bounds, quotas and holds. Focused qualification/EDGAR SQLite unit modules passed 44 tests; Ruff check/format, AST parse and exact narrative-count sentinel passed. Hosted CI40187575496 on baseline54081 remains historically RED with543 integration passed,2failed,2skipped; Root-owned PostgreSQL regression, complete new-source profiles and exact-tip CI remain pending. No Docker/database/live request or target action by this owner.",
+    "current_delta": "Root accepted FQ1-FQ8 source readiness at 2026-10-25T13:33:51Z under existing human delegation. Validated implementation a7d0f25064e98f8c3015e9866804f7a68fcaa263 has green exact CI40191164658 and complete local evidence in the handoff. This four-record closure keeps the original launcher refusal and all earlier red/partial receipts. Closure-head CI and staging integration remain pending; no actual SEC acquisition, positive qualification, route enablement, deployed UI acceptance or roadmap completion is claimed.",
     "intent": "Resolve the not_run first-request cycle through one admin-only, exact-scope qualification context while preserving every shared Provider admission/accounting guard and leaving ordinary policy disabled.",
     "name": "etf-sec-first-qualification-1 admin-only initial SEC qualification",
     "owned_paths": [
@@ -52,7 +52,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Implementation in progress and not accepted. Root-reviewed audit-link correction is applied and focused SQLite/static checks pass. Preserve original CI/red/partial history and all FHSC/FQ/roadmap contracts. Real PostgreSQL, complete new-source local profiles and exact-tip CI remain Root-owned and pending; no live SEC request, quota use, target mutation or checkpoint acceptance is claimed."
+    "state": "FQ1-FQ8 source readiness accepted by Root at 2026-10-25T13:33:51Z under existing human-delegated authority (/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-checkpoint-source-acceptance-20261025.md); four own closure records are being published. Exact closure-head CI and staging integration remain pending. No actual SEC acquisition, positive qualification, route enabling, deployed UI proof or roadmap completion is claimed."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -74,7 +74,7 @@
     "conditions": "Exact-source technical review; required cross-feature contracts; full local and exact-source CI tests; verified free operations only; quota-held, unreviewed, paid/trial and unsafe operations remain disabled.",
     "coordinator_owns_conditional_acceptance": true,
     "etf_checkpoint": "accepted_and_integrated_in_exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f; full_fourteen_criterion_roadmap_remains_open",
-    "human_answer": "Yes\u2014approve that initial scope and handle checkpoint acceptance",
+    "human_answer": "Yes—approve that initial scope and handle checkpoint acceptance",
     "not_authorized": "The accepted initial ETF checkpoint does not close the full roadmap or authorize deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup.",
     "provider_product_checkpoint": "accepted_and_released_in_green_staging_9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "recorded_at": "2026-10-15T22:55:31Z"
@@ -103,12 +103,11 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "Hosted CI40187575496 on baseline54081 is preserved RED (543 integration passed,2 failed,2 skipped); the reviewed child-session audit-link correction now passes focused SQLite/static checks. Root-owned PostgreSQL regression and complete new-source profiles/exact-tip CI remain pending. FQ checkpoint stays in_progress/not accepted; SEC/live and route-policy holds remain. Preserve 15 Tier-0 and 156 Tier-1.",
-  "current_checkpoint_objective": "Implement etf-sec-first-qualification-1 under Root-accepted Producer contract: add one separate administrator-only one-fund SEC qualification operation and narrowly scoped shared-runtime hook without bypassing normal admission, identity, account, hold, budget, settlement, provenance or bounded-transport controls. Keep ordinary routes denied and policy disabled until Root accepts real qualifying evidence; preserve FHSC1-FHSC7 acceptance and the complete AC1-AC14 roadmap.",
-  "current_local_delta": "Applied Root-reviewed audit-link fix: refresh child-session request IDs before not-qualified finalization merges outcome JSON, and refresh/assert the tamper test's parent JSON before/after selection mutation. Preserved raw-artifact/job audit equality, tamper rejection, production validation order, bounds, quotas and holds. Focused qualification/EDGAR SQLite unit modules passed 44 tests; Ruff check/format, AST parse and exact narrative-count sentinel passed. Hosted CI40187575496 on baseline54081 remains historically RED with543 integration passed,2failed,2skipped; Root-owned PostgreSQL regression, complete new-source profiles and exact-tip CI remain pending. No Docker/database/live request or target action by this owner.",
+  "current_blocker_latest": "Root accepted FQ1-FQ8 source readiness at 2026-10-25T13:33:51Z under existing human delegation (/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-checkpoint-source-acceptance-20261025.md). Final records-only closure-head CI and central staging integration remain Root-owned and pending. This is not actual SEC acquisition, positive qualification, route enablement, deployed UI proof or AC1-AC14 completion. Preserve 15 Tier-0 and 156 Tier-1, quarantines, 119-request history, raw/PIT lineage and 30-day observation.",
+  "current_checkpoint_objective": "FQ1-FQ8 source readiness for etf-sec-first-qualification-1 was accepted by Root under existing delegated authority; publish the four-record closure, then Root owns exact closure-head CI/staging integration. Continue the full AC1-AC14 roadmap without changing live, quota, rights, identity, route or 30-day observation holds.",
+  "current_local_delta": "Accepted validated implementation a7d0f25064e98f8c3015e9866804f7a68fcaa263; exact CI40191164658 green and local full profile terminal0. Final profile receipt /tmp/etf-app-a7d0f250-fqc-20261025/artifacts/root-full-profile-resume-result.json; acceptance/audit /home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-checkpoint-source-acceptance-20261025.md and /home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-final-local-audit-20261025.json. This closes FQ1-FQ8 source readiness only. Actual SEC acquisition, positive first-fund qualification, route enablement, deployed UI acceptance and the full roadmap remain open; preserve historical reds/partials and all holds.",
   "dirty_paths": [
-    "backend/app/services/etf_holdings_edgar.py",
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
@@ -137,10 +136,10 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "54081f43892f80c43efcc46f40a8a55b94ec1c92",
-  "implementation_sha": "5b29620741fd82d27db45987afb927bf91396712",
+  "head": "a7d0f25064e98f8c3015e9866804f7a68fcaa263",
+  "implementation_sha": "a7d0f25064e98f8c3015e9866804f7a68fcaa263",
   "integration_checkpoint": {
-    "acceptance_authorization": "pending_root_review_and_future_checkpoint_acceptance",
+    "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
     "acceptance_criteria": [
       {
         "id": "FQ1",
@@ -308,7 +307,7 @@
       "Only a completed, usable, exact CIK/series/class-matched snapshot with retained real raw provenance and successful shared request audit may record positive qualification. HTTP success alone, partial/parser failure, mismatch, timeout, cancellation, uncertain settlement, or empty/no-candidate outcome never does.",
       "A successful qualification does not enable normal route policy. Keep it disabled until Root reviews and accepts real evidence; historical/PIT, current-versus-unavailable, raw lineage, and all prior FHSC contracts remain intact."
     ],
-    "status": "in_progress"
+    "status": "accepted_by_coordinator_under_human_delegation"
   },
   "interrupted_local_profile_execution": {
     "environment": {
@@ -429,8 +428,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root runs the corrected PostgreSQL regression and complete new-source profiles/exact-tip CI; keep FQ in_progress/not accepted and preserve all live, quota, target and roadmap holds.",
-  "plan_hash": "f304ab81370a866868b11623c228f6bccb3f5fdb97728484fffec2b62bf35ed2",
+  "next_action": "Root owns exact closure-head CI and supported persistent-staging integration. After those gates, Root owns the actual first-fund SEC invocation and target/UI acceptance after separately reviewed live prerequisites. Continue AC1-AC14 and the 30-day observation without relaxing holds.",
+  "plan_hash": "14498bea0634e399eb0db864da388140d91366cac9a9eba5359ce4f74bdba2cf",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -588,7 +587,7 @@
       "full_local_matrix": ".ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md",
       "full_roadmap": "all fourteen original criteria, issuer onboarding and post-integration 30-day observation remain open",
       "hosted_CI": "pending; mandatory on the exact final published HEAD (D)",
-      "human_acceptance_delegation": "Yes\u2014approve that initial scope and handle checkpoint acceptance.",
+      "human_acceptance_delegation": "Yes—approve that initial scope and handle checkpoint acceptance.",
       "provider_release": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
       "validated_implementation_sha": "79e0604c0a4b398a0fd92bdd4b099c308eee43eb"
     },
@@ -653,12 +652,21 @@
     }
   },
   "progress": {
-    "completed": [],
-    "current_blocker": "Hosted CI40187575496 on baseline54081 remains historically RED (543 integration passed,2 failed,2 skipped); Root-owned corrected PostgreSQL MockTransport validation, complete new-source profiles and exact-tip CI remain pending. FQ stays in_progress/not accepted; preserve SEC/live holds and 15 Tier-0 and 156 Tier-1.",
-    "current_phase": "audit_link_correction_focused_sqlite_checks_passed_pending_root_postgresql_and_full_validation",
-    "next_action": "Root runs the corrected PostgreSQL case and complete source gates on the published exact tip. Keep checkpoint in_progress and all live holds.",
+    "completed": [
+      "FQ1",
+      "FQ2",
+      "FQ3",
+      "FQ4",
+      "FQ5",
+      "FQ6",
+      "FQ7",
+      "FQ8"
+    ],
+    "current_blocker": "Root accepted FQ1-FQ8 source readiness at 2026-10-25T13:33:51Z; exact closure-head CI and staging integration remain pending. Actual SEC acquisition, positive qualification, route enablement, deployed UI acceptance and full AC1-AC14 remain open. Preserve disabled routes, 15 Tier-0 and 156 Tier-1, quarantines, 119-request history, raw/PIT lineage and the 30-day observation.",
+    "current_phase": "fqc_source_readiness_accepted_pending_exact_closure_head_ci_and_staging",
+    "next_action": "Root owns exact closure-head CI and supported staging integration, then separately reviewed actual one-fund invocation/UI acceptance; continue full AC1-AC14 roadmap and 30-day observation with holds unchanged.",
     "total": 8,
-    "updated_at": "2026-10-25T11:52:16Z"
+    "updated_at": "2026-10-25T13:43:31Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -680,9 +688,9 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "54081f43892f80c43efcc46f40a8a55b94ec1c92",
-  "remote_observation": "Prepublication boundary check for the audit-link correction: local HEAD and origin/feat/etf-holdings-constituents both resolved to 54081f43892f80c43efcc46f40a8a55b94ec1c92. This remains the exact baseline for the current coherent source-and-record correction; the final published tip is reported in the owner response.",
-  "remote_sha": "54081f43892f80c43efcc46f40a8a55b94ec1c92",
+  "remote": "a7d0f25064e98f8c3015e9866804f7a68fcaa263",
+  "remote_observation": "Pre-closure observation: local HEAD and origin/feat/etf-holdings-constituents both resolved to validated implementation a7d0f25064e98f8c3015e9866804f7a68fcaa263. The four-record closure commit is intentionally not self-recorded; integration_capture: exact branch HEAD instructs the coordinator to capture the final pushed HEAD.",
+  "remote_sha": "a7d0f25064e98f8c3015e9866804f7a68fcaa263",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
@@ -768,7 +776,7 @@
     "static_contract_review": "The merged shared execute_provider_call is async with a synchronous non-awaitable invoke callback; ETF uses _sync_provider_invoke and the shared ETF_HOLDINGS capability. Source inspection only; runtime validation remains open.",
     "status": "merged_locally_no_conflicts_final_owner_record_commit_and_single_push_pending"
   },
-  "state": "in_progress",
+  "state": "ready_for_integration",
   "structural_skip_diagnostics": {
     "DFTT": "1 unverified skip;issuer403/503;SEC mismatched-series rejected;no current/native guarantee",
     "DFTT_responses": ".ai/validation/structural-donoghue-native-replay-20261015.log",
@@ -838,5 +846,6 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
-  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a",
+  "updated_at": "2026-10-25T13:43:31Z"
 }

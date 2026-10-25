@@ -1,5 +1,19 @@
 # feat/etf-holdings-constituents
 
+## Current accepted checkpoint — FQC source readiness
+
+Root accepted FQ1–FQ8 source readiness at `a7d0f25064e98f8c3015e9866804f7a68fcaa263`
+on 2026-10-25T13:33:51Z under the existing delegated checkpoint authority.
+Exact-source CI40191164658 is green. The complete local profile passed
+195 functional cases with 2 existing live-held skips and all 104 strict visuals;
+zero retries, cleanup and global inventory checks passed, and private Study 5
+readback verified 479 bars. Acceptance and audit:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-checkpoint-source-acceptance-20261025.md`
+and `/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-final-local-audit-20261025.json`.
+The exact final closure-head CI and Root-owned staging integration remain next.
+No real SEC acquisition, target/UI acceptance, live route enablement, or full
+AC1–AC14 roadmap completion is claimed; preserve disabled policy and all holds.
+
 ## Audit-link correction — 2026-10-25
 
 At frozen baseline `54081f43892f80c43efcc46f40a8a55b94ec1c92`, Root-reviewed
@@ -16379,3 +16393,44 @@ amendment. Preserve every earlier red/partial receipt, `15 Tier-0 and 156
 Tier-1`, the 119-use history, holds/quarantines, raw/PIT lineage and 30-day
 observation. No actual acquisition, current holdings, native-current support,
 route enablement or deployed acceptance is claimed.
+
+
+## FQ1–FQ8 source-readiness checkpoint accepted — 2026-10-25
+
+Root accepted `etf-sec-first-qualification-1` source readiness at
+2026-10-25T13:33:51Z under the human's existing delegated checkpoint-acceptance
+authority. This is the coordinator's technical decision; no new human quote is
+asserted. Acceptance record:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-checkpoint-source-acceptance-20261025.md`
+(SHA256 `9b598fcbdecd3faf5d4044a4d0526eb8c6ba6a4a6c4030c20fbdb783b11b8e75`).
+Final audit:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-final-local-audit-20261025.json`
+(SHA256 `ba27c25af69bf29dff97414d051d07bc1b05e8ef5e18b8903713068f876548c7`).
+
+Validated implementation is exact source `a7d0f25064e98f8c3015e9866804f7a68fcaa263`.
+Exact-source CI40191164658 is terminal green. Backend: 5471 unit passed/1
+declared skip; 545 integration passed/2 held-native skips; 84% combined
+coverage. Frontend: 1353 tests/140 files and normal build passed. Selected
+offline PostgreSQL qualification cases and isolated canonical migration tests
+passed. The final local full app resumption receipt
+`/tmp/etf-app-a7d0f250-fqc-20261025/artifacts/root-full-profile-resume-result.json`
+(SHA256 `49d142df3141a11cbc9d445872ab647b1ade9c157c95ab0ed63c34c541550f83`)
+finished exit0 at 2026-10-25T13:29:53.618791Z: 195 functional passed/2 existing
+live-held skips, 104/104 strict visuals, zero retries, cleanup_error 0 and
+restore_proved 1. Both browser states exited with code 0; all five global
+inventory diffs were empty and live inventories matched the final snapshots.
+Genuine private Study 5 readback verified 479 bars and the expected result,
+with no business writes or provider requests. The initial pre-effect launcher
+refusal (exit 1) and every earlier red/partial result remain preserved.
+
+Both now contain 15 Tier-0 and 156 Tier-1. The checkpoint closes FQ1–FQ8
+source readiness only. It does not claim actual SEC acquisition, positive first-fund qualification, live route enablement,
+native-current holdings, deployed inspector acceptance, or completion of
+AC1–AC14. The route policy remains disabled. Preserve previous FHSC acceptance,
+every AC1–AC14 text/disposition, `15 Tier-0 and 156 Tier-1`, the 119-request
+history, quarantines, raw/PIT lineage, held operations and 30-day observation.
+No new migration paths were added relative to accepted staging5b; the
+`backend/alembic` diff is empty and the target remains at head `d4a5b6c7e812`
+(124 revisions). Root owns actual one-fund invocation/UI acceptance after
+separate live prerequisites. Final closure-head CI and persistent-staging
+integration remain pending. integration_capture: exact branch HEAD.
