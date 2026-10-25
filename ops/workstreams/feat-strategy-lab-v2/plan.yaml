@@ -83,7 +83,17 @@ integration_checkpoint:
     under feature-branch policy. Root accepted this exact tested source for source integration
     under the delegated checkpoint decision. The isolated local profile passed; deployed
     genuine-data owner-positive/negative acceptance remains a separate mandatory target gate after
-    staging/master release gates and separately authorized deployment.
+    staging/master release gates and separately authorized deployment. On 2026-10-25 the owner
+    fast-forwarded this branch from 1d32b1ee8d174c4f43432d6729846c5dbcd3347c to the exact canonical
+    green combined staging source 5b29620741fd82d27db45987afb927bf91396712, receipt
+    /home/m920q/charting-platform/.ai/staging-attempts/20261025T055427Z-5b29620741fd.json,
+    exact staging CI 40161945123. This is baseline adoption, not target deployment or roadmap
+    completion. The accepted Provider P2 reconciliation also updates Strategy Research's direct
+    single-symbol and set-based batch materialization to apply the shared default-series predicate
+    before limits/ranking, with canonical and null-series legacy fallbacks; the staging source
+    contains focused single/batch regressions. No Strategy-specific production adaptation was
+    needed. ETF PIT/admission/quota/identity and TC immutable Study contracts are preserved as
+    imported; their bytes/workstreams were not edited by this owner.
   original_criterion_dispositions:
     - id: AC-DOMAIN
       disposition: partially_delivered
@@ -962,49 +972,29 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: ready_for_integration
   current_blocker: >-
-    Branch-local immutable-reference API/payload and V2 navigation prerequisites are present in this
-    feature history but are absent from deployed a6b9 and cannot be attributed to that release.
-    Source qualification is accepted for integration; Root's actual deployed owner-positive/negative
-    UI/API acceptance remains pending after release gates and authorized deployment. Target SPY/RSP
-    date-only acceptance remains pending authoritative canonical
-    InstrumentListing venue review (observed EquityDetail.exchange_mic is NULL, which is not listing
-    proof); exact-bound run4 succeeded while date-only run3 was deferred.
-    Exact source CI 40041392901 is green on 83e93958921b479ccd122494571d0b9dbb1acc5d. On
-    frozen source 83e93958921b479ccd122494571d0b9dbb1acc5d, Root completed an explicitly resumed
-    same-source backend continuation: the previously verified 213 unit shards (5,320 passed, 1
-    skipped) plus a fresh all-533 integration collection/run (529 passed, 4 skipped, 57 warnings),
-    then the combined coverage report/XML (84%, 153,315 statements, 23,959 missed). Fresh collection
-    was 5,854 tests and integration took 863.13s under the unchanged 900s integration bound. This is
-    qualified split-phase evidence, NOT a literal successful `make test-backend-coverage` or
-    `backend_coverage.py` main invocation; earlier complete backend attempts remain red and
-    preserved. Exact logs and cleanup are recorded in the 2026-10-24 handoff and validation receipt.
-    The canonical migration helper exited 0 with no-change SKIP from base a6b9: models, Alembic,
-    pyproject, uv.lock, and helper input paths are unchanged. No fresh or previous-release schema
-    upgrade, PostgreSQL fixture, or previous-app smoke ran on 83. This is input-equivalence only,
-    not runtime migration proof. Root completed the four source-pinned image builds on 83 with zero
-    exits and restored the assigned builder/private app. Frontend dist and accepted Research runner
-    are reused only under their recorded exact-manifest/input-equivalence guards. Root subsequently
-    ran the unchanged Research sandbox/resource probes successfully (receipt in handoff); caller
-    OOM/PID counters and all global inventory diffs were zero, exact project was removed, and private
-    app/Study 5 was restored. First measured config invocation `4af898ad9b2a445a9b82bced16c3611d`
-    exited 2 below its startup admission before creating a fixture or tests; this is not a product
-    failure. Root's adjusted measured profile completed successfully under invocation
-    `42f31a564d3f43c5837451a46b266fc8`. Root reports the same isolated fixture passed config/up,
-    API smoke, and empty-queue worker DB/Redis before/after-restart checks. The same-fixture
-    functional suite passed 195 with 2 declared live-opt-in skips in 21.3 minutes, and strict visual
-    passed 104/104 in 14.5 minutes, zero failures/retries. Exact cleanup/global diffs and private
-    app/Study/data/holds/request count were independently verified. This is isolated-fixture
-    evidence, not deployed-target proof. The full 18-criterion roadmap remains open.
-    deployed owner-positive/negative acceptance, authoritative SPY/RSP
-    listing-venue review, and the full roadmap remain open.
-  updated_at: "2026-10-24T04:13:05Z"
+    Combined green staging 5b29620741fd82d27db45987afb927bf91396712 is now adopted by exact
+    fast-forward; this branch contains the Provider P2 selected/default-series Research consumer
+    correction for both single and bounded batch materialization. Root's independent master run
+    40167616374 is still validating, and the private target remains on a6b9; no deployment or target
+    acceptance is implied. Branch-local immutable-reference API/payload and V2 navigation
+    prerequisites remain absent from deployed a6b9. Target owner-positive/negative UI/API proof and
+    SPY/RSP date-only acceptance remain pending; listing venue must come from authoritative canonical
+    InstrumentListing data (observed EquityDetail.exchange_mic NULL is not proof), with exact-bound
+    run4 distinct from deferred date-only run3. The full 18-criterion roadmap remains open. Preserve
+    the recorded split-phase backend qualification, migration no-change SKIP, frontend/Research
+    artifact reuse, isolated app/API/worker/functional/visual evidence and all historical red attempts
+    as qualified evidence for source 83, not as newly rerun tests on 5b. Native, forward, broker,
+    capital, provider/quota, paid/trial, unknown and unsafe operations remain disabled or held.
+  updated_at: "2026-10-25T06:12:01Z"
   next_action: >-
-    Root owns guarded integration of exact source 83e93958921b479ccd122494571d0b9dbb1acc5d after
-    this closure is published and final exact-head CI is green. Continue the full 18-criterion
-    roadmap in this branch after coordinator release. Do not claim target acceptance: staging/master
-    gates, separately authorized deployment, and genuine-data owner-positive/negative V2 inspector
-    UI/API proof remain. Keep SPY/RSP date-only venue review and native execution, forward,
-    broker/capital, provider/quota, paid/trial, unknown and unsafe operations open or disabled.
+    Continue the original full roadmap with AC-UPSTREAM's combined-consumer revalidation: Provider
+    local-series/default selection is now present in both Research read paths; preserve and qualify
+    ETF PIT/admission/quota/identity and TC immutable Study-output behavior on the exact adopted
+    source. Wait for Root's master/release coordination and any assigned heavy-validation slot before
+    resource work. Do not claim target acceptance or deployment: the target remains a6b9, genuine-data
+    owner-positive/negative inspector proof and SPY/RSP authoritative venue review are still open.
+    Keep native/RC6, forward, broker/capital, provider/quota, paid/trial, unknown and unsafe scopes
+    held or disabled; preserve all 18 criteria and their existing dispositions.
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

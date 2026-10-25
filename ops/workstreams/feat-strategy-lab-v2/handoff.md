@@ -19174,3 +19174,11 @@ exact-bound run4 and deferred date-only run3 remain distinct. Native execution, 
 capital, paid/trial, unknown/unsafe operations and all unfinished original roadmap criteria remain
 open or disabled. No deployment or target acceptance is claimed. Closure uses the literal
 `integration_capture: exact branch HEAD` to avoid a self-referential hash.
+
+### Accepted combined staging adoption 5b (2026-10-25)
+
+The owner preflight resumed the existing claim `02d5ffaa-53b5-4dec-b39c-0f36612b5436` in worktree `feat-strategy-lab-v2-7794d9e53d`; it did not create a new claim or goal. Exact green staging source `5b29620741fd82d27db45987afb927bf91396712` was verified from canonical receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261025T055427Z-5b29620741fd.json` and CI `40161945123`, then fast-forwarded from prior branch source `1d32b1ee8d174c4f43432d6729846c5dbcd3347c`. This is the exact accepted staging object; no cherry-pick or sibling worktree was used.
+
+The combined Provider P2 change applies the shared selected/default-series predicate in both direct single-symbol Research loading and bounded set-based batch materialization before ranking/limits, retaining canonical and legacy null-series fallback behavior. The staging source includes focused single-read and batch regressions. No additional Strategy production adaptation was needed. Provider and ETF imported workstream records remain untouched; accepted ETF PIT/admission/quota/identity and TC immutable Study contracts remain in scope for continued combined-consumer qualification.
+
+No tests, builds, services, databases, provider requests, or heavy resources were run for this pure fast-forward. Existing source-83 backend/profile and exact CI receipts remain qualified to source 83 only; their historical red attempts are preserved and were not replayed. Master validation `40167616374` is owned by Root and remains in progress. The private target is still on `a6b9`; no target/deployment acceptance is claimed. Genuine deployed Results-to-inspector owner-positive/negative proof, authoritative SPY/RSP canonical listing venue review, and all unfinished original 18 roadmap criteria remain open. Native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe operations remain held or disabled.

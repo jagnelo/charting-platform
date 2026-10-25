@@ -1,24 +1,24 @@
 {
   "acceptance_criteria": [
     {
-      "id": "SLICP1",
-      "text": "Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence."
+      "id": "FH1",
+      "text": "Preserve the accepted strategy-lab-v2-integration-1 source/closure and full original 18 roadmap criterion IDs/texts/dispositions as history; record this bounded checkpoint's delegated source acceptance separately and leave the full roadmap open."
     },
     {
-      "id": "SLICP2",
-      "text": "Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations."
+      "id": "FH2",
+      "text": "From normal Research results UI, a completed/evaluated supported immutable Study output visibly links to the V2 inspector carrying its persisted run/artifact IDs; route hydration performs only the authenticated owner-scoped read-only GET, with no manual DevTools ID entry, POST, dispatch, or native-execution implication."
     },
     {
-      "id": "SLICP3",
-      "text": "Reconcile dependency-ordered accepted green staging incrementally: Provider canonical identity/local series/coverage/freshness/provenance now; ETF known-at point-in-time membership and TC2000 immutable CodeVersion/Study outputs only after their releases; then prove the full combined consumer contract without completing this criterion early."
+      "id": "FH3",
+      "text": "Qualify the typed immutable-reference factory/payload/API prerequisites together with the UI; positive owner readback and foreign-owner, nonterminal, malformed, ambiguous, missing, wrong-type, unverified, deleted, and digest/version/dataset drift denials remain fail-closed. State that these prerequisites are branch-only and absent from deployed a6b9; do not claim frontend-only deployability."
     },
     {
-      "id": "SLICP4",
-      "text": "Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope."
+      "id": "FH4",
+      "text": "Correct date-only bounds only for an authoritative canonical listing venue and supported calendar; preserve exact boundaries for mixed date/exact input and deny unknown venues without weakening coverage/PIT or performing acquisition. Keep SPY/RSP date-only acceptance pending authoritative canonical InstrumentListing venue review; observed EquityDetail.exchange_mic is NULL and is not sufficient listing proof."
     },
     {
-      "id": "SLICP5",
-      "text": "Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance."
+      "id": "FH5",
+      "text": "Preserve full_integration/full_stack_browser, existing tests/assertions/tolerances/retry policy, and exact-source CI. Source acceptance for integration requires the complete unchanged local profile, owner-positive/negative UI/API contract qualification, exact-source branch CI, immutable source capture and ordinary closure under the existing checkpoint lifecycle. Root must explicitly accept that exact tested source before guarded staging integration. After synchronized staging and independent master release gates, target deployment remains a separate authorized phase; genuine-data owner-positive and owner-negative UI/API proof must be verified on that deployed target before final target acceptance or coordinator-goal completion. This separates ordering only: no proof is waived or passed early. Native, full SPA, full-roadmap, forward/broker/capital activation remain outside this checkpoint and disabled."
     }
   ],
   "active_session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
@@ -41,8 +41,25 @@
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-strategy-lab-v2-7794d9e5",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
     "ready": true,
@@ -72,14 +89,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "83e93958921b479ccd122494571d0b9dbb1acc5d",
-  "implementation_sha": "83e93958921b479ccd122494571d0b9dbb1acc5d",
-  "last_checkpoint": "2026-10-24T04:13:05Z",
+  "head": "5b29620741fd82d27db45987afb927bf91396712",
+  "implementation_sha": "5b29620741fd82d27db45987afb927bf91396712",
+  "last_checkpoint": "2026-10-25T06:12:01Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Root owns guarded staging integration of exact tested source 83e93958921b479ccd122494571d0b9dbb1acc5d after this ordinary closure is published and final exact-head CI is green. Continue the full 18-criterion roadmap in this same branch after coordinator release. This source checkpoint is not target acceptance: staging/master gates, separately authorized deployment, and genuine-data owner-positive/negative V2 inspector UI/API proof remain. Preserve SPY/RSP date-only venue review, prior red evidence, and all disabled live/native/forward/broker/capital boundaries.",
   "parent_branch": "staging",
-  "plan_hash": "2ec5f1d126d4dc9dde614065c09189a2b0da837155afcc60de786feabe0dd681",
+  "plan_hash": "e1a88acc180013e40449e5d5bdb8a28f06447c92caebe0829fc82672fed49a11",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -102,16 +119,22 @@
     "7319d459-2838-40e4-bee4-fded78f58e16"
   ],
   "progress": {
-    "completed": ["FH1", "FH2", "FH3", "FH4", "FH5"],
-    "current_blocker": "The bounded checkpoint is accepted for source integration at 83e93958921b479ccd122494571d0b9dbb1acc5d. The full backend result is explicitly split-phase, migration validation was no-change input-equivalence SKIP, and prior OOM/tmpfs/wrapper reds remain preserved. The full isolated app profile passed, including 195 functional passes/2 declared live skips and strict visual 104/104 with zero retries; this is not deployed-target proof. Remaining gates include staging/master release, separately authorized deployment, genuine-data owner-positive/negative Results-to-inspector UI/API proof, authoritative SPY/RSP canonical listing venue review for date-only semantics, and the full 18-criterion roadmap. Disabled native/forward/broker/capital/paid/trial/unknown/unsafe scopes remain unchanged.",
+    "completed": [
+      "FH1",
+      "FH2",
+      "FH3",
+      "FH4",
+      "FH5"
+    ],
+    "current_blocker": "Exact canonical green combined staging 5b29620741fd82d27db45987afb927bf91396712 is adopted by fast-forward from 1d32b1ee8d174c4f43432d6729846c5dbcd3347c. The accepted Provider P2 Research change applies the shared selected/default-series predicate in direct single-symbol and bounded set-based batch materialization before ranking/limits, with canonical and legacy fallbacks; no Strategy-specific source patch was necessary. No tests or runtime work were repeated for this source-only fast-forward. Master validation 40167616374 remains in progress and the private target remains a6b9; neither is deployment or target acceptance. Preserve source-83 qualification and historical failures as evidence on 83, not as newly rerun on 5b. Genuine deployed Results-to-inspector owner-positive/negative proof, authoritative SPY/RSP canonical listing venue review, and the complete 18-criterion roadmap remain open. Native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe operations remain held or disabled.",
     "current_phase": "strategy-lab-v2-first-human-study-inspector-2",
-    "next_action": "Publish this coherent four-record closure once using the existing ready_for_integration lifecycle, then Root owns guarded integration after terminal green CI for the final closure head. Retain integration_capture: exact branch HEAD rather than self-hashing. Continue the full 18-criterion roadmap after coordinator release; genuine-data deployed Results-to-inspector owner-positive/negative proof and SPY/RSP venue review remain open. No target acceptance, deployment, native execution, forward/broker/capital activation, or roadmap completion is claimed.",
+    "next_action": "Continue the original full Strategy Lab v2 roadmap with AC-UPSTREAM combined-consumer qualification on the adopted source: preserve Provider local-series/coverage/freshness/provenance behavior, qualify ETF PIT membership and admission/quota/identity, and qualify TC immutable CodeVersion/Study outputs. Root owns master/release coordination and any heavy-validation slot. Do not claim deployed target acceptance or deployment; the target remains a6b9 and genuine-data inspector UI/API proof plus SPY/RSP authoritative venue review remain open. Keep all 18 criterion IDs/texts/dispositions and disabled-scope boundaries intact; no unrelated feature implementation in this bounded adoption turn.",
     "total": 5,
-    "updated_at": "2026-10-24T04:13:05Z"
+    "updated_at": "2026-10-25T06:12:01Z"
   },
-  "remote": "64d3b12e11118593535b02e8e8a06dd1f263ffdf",
-  "remote_sha": "83e93958921b479ccd122494571d0b9dbb1acc5d",
-  "remote_synchronized": true,
+  "remote": "1d32b1ee8d174c4f43432d6729846c5dbcd3347c",
+  "remote_sha": "1d32b1ee8d174c4f43432d6729846c5dbcd3347c",
+  "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",
