@@ -1,5 +1,90 @@
 # feat/market-data-provider-platform
 
+## 2026-10-25 — accepted staging consumption and SEC first-qualification review
+
+- Preflight identified the assigned implementation worktree and existing
+  claim `f093caba-0194-4527-b22b-0bfa26344c34`; no new claim or goal was
+  created. Provider source `2178808746b3d850f33a76a064ab170f04989b91` was
+  clean and synchronized with its feature remote. Verified the canonical
+  accepted staging receipt
+  `/home/m920q/charting-platform/.ai/staging-attempts/20261025T055427Z-5b29620741fd.json`:
+  staging `5b29620741fd82d27db45987afb927bf91396712`, Actions `40161945123`,
+  terminal green. The source was an ancestor of that exact commit; this
+  worktree fast-forwarded only to `5b29620741fd82d27db45987afb927bf91396712`.
+  No staging, master, sibling, target, or deployment ref was changed.
+- Read-only first-qualification review of the accepted candidate found a
+  two-gate cycle. `provision_edgar_etf_holdings` in
+  `backend/app/routers/providers.py` creates the ETF entitlement with
+  `live_probe_status="not_run"` and the policy disabled. The candidate selector
+  in `backend/app/services/provider_runtime.py` admits only
+  `passed`, `not_required`, or `credentialed_live_verified`; the dedicated
+  bridge in `backend/app/services/etf_holdings_provider_bridge.py` also refuses
+  a disabled `ETF_HOLDINGS` policy. Therefore policy enablement alone cannot
+  admit the first bounded operation.
+- No existing legitimate qualification updater resolves this. The normal
+  availability route records availability observations, not entitlement probe
+  status; its ETF representative operation is the generic
+  `fetch_etf_holdings_latest`, and `default_probe` has no ETF method mapping.
+  Candidate live-test/receipt validation records test evidence, not a database
+  entitlement status. The admin entitlement PATCH accepts a caller-supplied
+  `live_probe_status` and records an `api_patch` revision, but does not verify
+  a probe; it must not be used to pre-mark this operation. `not_required` is
+  unsupported for this new capability: the accepted provider docs require
+  passed or genuinely not-required evidence, and no SEC ETF exemption is
+  documented. Generic `configured_plan`/`is_free` labels are not proof of
+  operation-specific entitlement or exact invocation.
+- Producer contract review: an ETF-owned, admin-only, one-fund qualification
+  context is the right boundary if it is task-local/unforgeable and bound to
+  the exact `edgar` DataSource, `ETF_HOLDINGS` capability, SEC operation set,
+  committed IWM profile/instrument/CIK/series/class identity, resolved shared
+  account-scope digest, and one durable invocation/job latch. It must be created
+  only after the ordinary reviewed source, operation-cost, entitlement,
+  account, quota, budget/commitment, and free-only checks pass. It may bypass
+  only the missing prior live-probe marker; every other runtime hold, operation
+  cost, per-physical-attempt reservation/settlement, native-unknown treatment,
+  and the 9-attempt/one-archive/two-redirect/1-second/20-second/210-second/
+  2/2/16/20-MiB/one-snapshot limits remain in force. No normal user or generic
+  routing path receives the context; concurrent or repeated qualification is
+  serialized and latched, with no automatic replay.
+- Necessary policy-gate correction: because the bridge also requires the
+  policy to be enabled, the design must specify a tightly serialized temporary
+  enable for the dedicated qualification only. With entitlement still
+  `not_run`, ordinary candidate selection must continue to reject all normal
+  ETF_HOLDINGS traffic. On a complete, identity-matched accepted snapshot,
+  persist the actual `passed` evidence and disable the policy atomically before
+  releasing the invocation latch; Root’s review of the retained sample is
+  separate, and the policy stays disabled until Root separately accepts and
+  authorizes ongoing use. On mismatch, empty/incomplete result, failure, or
+  cancellation, retain audit/reservation evidence, leave status non-positive,
+  and restore the policy disabled. Do not pre-set status or convert a failed
+  result to success.
+- The route must keep all SEC bounds unchanged. `max_filings` counts candidate
+  filing records, not archive pages: `1` can inspect one body and stop
+  incomplete on identity mismatch; proposed `3` can inspect up to three bodies
+  to find the matching series/class, but the loop accepts at most one snapshot
+  and the global nine-physical-attempt cap can stop earlier. The one-page cap is
+  separate. `max_filings=3` remains unexecuted and unapproved; a future exact
+  request must state the reviewed date window and explicit value rather than
+  inheriting the route default of 20. IWM identity remains a candidate, not a
+  verified filing.
+- Remaining operator/source facts are unchanged: the target is still old
+  `a6b9`. Root's read-only target check records no ETF-specific policy or
+  operation review, no aggregate cost budget or EDGAR commitment, no configured
+  User-Agent or explicit `edgar:ip` mapping, all generic EDGAR routes disabled,
+  four total request logs and zero EDGAR requests. Root also reports that the
+  intended User-Agent exists in protected operator configuration; its value was
+  not inspected, printed, or sent here, and the target runtime binding still
+  needs coordinator-managed verification after release. The explicit mapping
+  must resolve to the existing `edgar:shared-ip`; actual shared egress, current
+  budget/commitment, reviewed operation/terms evidence, and current durable
+  admission must be verified by Root. No native remaining/reset counter is
+  claimed. Original 119-request authorization remains consumed. No
+  provider/issuer/SEC HTTP, quota reservation/spend/reset, DB access/write,
+  source implementation, target mutation, or sibling/staging change occurred.
+- Next action: Root accepts or revises this interface; ETF owns the single
+  implementation and will request exact-code peer review. Provider retains the
+  full roadmap and does not duplicate the repair.
+
 ## 2026-10-24 05:09Z — P2 Research default-series consumer repair (focused only)
 
 - On released Provider base `5b02caf509107856195ef8cfb2374e2ab6120612`,

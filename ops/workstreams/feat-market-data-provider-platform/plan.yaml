@@ -1087,9 +1087,14 @@ integration_checkpoint:
     or reuse of the consumed 119-request authorization is claimed. Preserve
     every operation hold, unknown/unverified disposition and full-roadmap
     criterion; unresolved universe, live freshness, downstream/target and
-    deployment work remains open. The final closure-publication head still
-    requires its own terminal-green exact-source branch CI before Root's
-    guarded staging integration. integration_capture: exact branch HEAD
+    deployment work remains open. The accepted checkpoint closure source
+    2178808746b3d850f33a76a064ab170f04989b91 is an ancestor of synchronized
+    green staging 5b29620741fd82d27db45987afb927bf91396712. Root's canonical
+    receipt /home/m920q/charting-platform/.ai/staging-attempts/20261025T055427Z-5b29620741fd.json
+    records exact Actions 40161945123 terminal green. This Provider branch
+    consumed that exact staging commit by fast-forward; this records source
+    integration only, not target deployment, first-human data acceptance, or
+    full-roadmap completion. integration_capture: exact branch HEAD
   merge_authorized: true
   validation_tier: full_integration
   local_validation_profile: full_stack_browser
@@ -1155,20 +1160,23 @@ integration_checkpoint:
       replay occurred.
   required_gates_remaining:
     - >-
-      Obtain and reconcile terminal-green exact-source branch CI for the
-      published closure-record commit. Until then Root must not perform the
-      guarded staging integration. This receipt does not authorize a new
-      provider/issuer/SEC call, reservation, quota change, hold release, or
-      reuse of the consumed 119-request allowance.
+      The accepted P2 checkpoint is present in green staging 5b29620741fd82d27db45987afb927bf91396712.
+      The Provider roadmap remains open. The first SEC ETF qualification still
+      has no legitimate existing first-request route: the dedicated entitlement
+      begins not_run, runtime candidate selection requires positive probe
+      evidence, and the ordinary bridge also requires an enabled policy. Keep
+      this operation held until Root accepts an ETF-owned bounded qualification
+      design and actual exact-invocation review; do not fabricate passed or
+      not_required, reuse the consumed 119-request allowance, or change any
+      other provider/issuer/SEC hold.
   next_action: >-
-    Publish this four-record checkpoint closure as one coherent records-only
-    commit/push, verify clean exact local/origin synchronization, and require
-    terminal-green exact-source CI on that final head. Then hand off to Root
-    for coordinator-owned guarded staging integration. Keep the accepted
-    implementation source frozen and do no independent source work until Root
-    releases synchronized-green staging. Do not self-integrate, deploy,
-    activate providers, replay the consumed 119-request authorization, or
-    close the full Provider roadmap. Preserve every hold and historical receipt.
+    Root to accept or revise the first-qualification contract recorded in the
+    Provider handoff; ETF owns the single implementation and will request
+    exact-code peer review. Provider must not duplicate the implementation or
+    set a positive live-probe marker before actual matched, bounded evidence.
+    Preserve the full Provider roadmap and every hold; no provider/issuer/SEC
+    request, quota reservation, allowance replay, target activation, or
+    deployment is authorized by this review.
 previously_accepted_integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."
