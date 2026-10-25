@@ -862,12 +862,152 @@ integration_checkpoint:
     - No migration was added by this correction; the accepted staging migration/model/dependency inputs remain unchanged.
     - The actual private target remains under Root ownership; this source closure is not target application, deployment, current holdings acceptance, or normal-route enablement.
   planned_acceptance_cases:
-    - Retained real IWM filing parses 1946 rows with source-correct percentages, preserves gross fractional total 1.14096388613052, maps EC/EP through equity identity rules, and keeps all seven OTHER/Right holdings non-equity with original conditional provenance.
-    - The exact real accession 0002071691-26-012507 accepts the padded profile CIK and non-padded SEC URL CIK while independently validating archive accession directory and XML basename.
-    - A successful reparse appends one correction-time snapshot, preserves raw and original snapshot timestamps and lineage, remains idempotent, and returns the expected version on pre- and post-correction PIT queries.
-    - Invalid identity, URL, basename, authority, or replay is rejected without provider HTTP or overwriting the prior raw artifact, snapshot, job, or profile context.
-    - Full source gates and exact-source CI pass; target repair/UI and complete AC1-AC14 remain separately owned/open as stated.
-  original_criterion_dispositions: *etf_fhsc_original_criterion_dispositions
+    - Retained real IWM filing parses 1946 rows with source-correct percentages, preserves
+      gross fractional total 1.14096388613052, maps EC/EP through equity identity rules,
+      and keeps all seven OTHER/Right holdings non-equity with original conditional provenance.
+    - The exact real accession 0002071691-26-012507 accepts the padded profile CIK and
+      non-padded SEC URL CIK while independently validating archive accession directory
+      and XML basename.
+    - A successful reparse appends one correction-time snapshot, preserves raw and original
+      snapshot timestamps and lineage, remains idempotent, and returns the expected version
+      on pre- and post-correction PIT queries.
+    - Invalid identity, URL, basename, or authority is rejected without provider HTTP
+      or overwriting prior evidence; repeating the same valid retained-artifact correction
+      is idempotent, returns the existing corrected version, creates no additional snapshot,
+      and makes no external request.
+    - Full source gates and exact-source CI pass; target repair/UI and complete AC1-AC14
+      remain separately owned/open as stated.
+  original_criterion_dispositions:
+    - id: AC1
+      disposition: partially_delivered
+      remainder: Keep workstream, audit, registry counts and next action aligned at each
+        later checkpoint.
+      owner: ETF
+      continuation_acceptance: Current plan/session/handoff/source ledgers agree and pass
+        the narrative-count and workstream validators at the exact source.
+    - id: AC2
+      disposition: deferred
+      reason: Exhaustive issuer-by-issuer fallback ledger maintenance is outside this
+        one-fund SEC source checkpoint.
+      owner: ETF
+      continuation_acceptance: Every current fallback key has exactly one ranked, dated
+        evidence/disposition/next-action row.
+    - id: AC3
+      disposition: deferred
+      reason: This checkpoint does not add or validate every provider counted as native
+        and does not run the opt-in 537-source live matrix.
+      owner: ETF
+      continuation_acceptance: Each claimed native provider has provider-owned fetch,
+        strict mapping, provenance/freshness, deterministic tests and qualifying opt-in
+        live evidence.
+    - id: AC4
+      disposition: partially_delivered
+      remainder: Keep SEC clearly classified as historical regulatory/fallback evidence
+        and continue current issuer-specific audits for all other fallback providers.
+      owner: ETF
+      continuation_acceptance: Each remaining fallback provider has dated issuer evidence
+        and an explicit current/degraded/stale/unavailable/non-publisher outcome without
+        SEC promotion.
+    - id: AC5
+      disposition: deferred
+      reason: Processing all 140 providers in the starting fallback population exceeds
+        the bounded one-fund checkpoint.
+      owner: ETF
+      continuation_acceptance: All 140 starting identities are accounted for exactly once
+        as verified native promotion or defensible dated terminal/blocked disposition.
+    - id: AC6
+      disposition: partially_delivered
+      remainder: Recompute exhaustive native/fallback, adapter ownership, test, documentation
+        and audit-ledger invariants after each source change.
+      owner: ETF
+      continuation_acceptance: Code-derived counts and all runtime, tests, manifests,
+        docs and audit rows satisfy the exhaustive matrix.
+    - id: AC7
+      disposition: partially_delivered
+      remainder: For accepted correction implementation b640ca47f74c2251cdebadd87c32dd87a751f64c,
+        the complete local backend/frontend/functional/visual gates and exact implementation
+        CI are green per Root acceptance. Only final records HEAD CI40236961385, protected
+        staging/master gates, and Root-owned actual target correction/API/UI proof remain
+        pending. The broader opt-in provider matrix remains held under existing live/quota
+        safeguards.
+      owner: Root for final-head CI, protected staging/master gates, and target/API/UI
+        proof; ETF for remaining roadmap work.
+      continuation_acceptance: The final records HEAD CI and protected integration/promotion
+        gates pass; Root applies the correction and verifies actual target/API/UI behavior.
+        Future source changes receive their own required gates; no held live matrix is
+        represented as passed.
+    - id: AC8
+      disposition: partially_delivered
+      remainder: Root has accepted source checkpoint b640ca47f74c2251cdebadd87c32dd87a751f64c
+        under the recorded delegated authority. Final records HEAD CI and coordinator-owned
+        integration/promotion remain pending; target correction/API/UI acceptance remains
+        Root-owned.
+      owner: Root for final CI, integration/promotion and target acceptance; ETF for the
+        remaining full roadmap.
+      continuation_acceptance: Final records HEAD CI is green, then Root completes its
+        guarded integration/promotion workflow and records exact source/target boundaries
+        without feature-agent staging mutation.
+    - id: AC9
+      disposition: partially_delivered
+      remainder: 'A real historical IWM N-PORT sample was acquired on accepted source
+        3ff: job 1, raw artifact 1, snapshot 1, accession 0002071691-26-012507, report/composition
+        date 2026-03-31, 1,946 rows. It exposed the percentage/category defects corrected
+        in b640. Deployment of the accepted correction, Root-owned no-network append-only
+        reparse, and corrected API/UI acceptance remain pending; current/native holdings
+        remain unverified.'
+      owner: Root for deployment of the accepted correction, retained-artifact reparse
+        and API/UI acceptance; ETF for continued truthful consumer behavior and roadmap
+        work.
+      continuation_acceptance: Root applies the accepted parser correction to the retained
+        artifact without external acquisition, verifies append-only correction-time known_at
+        and source lineage in API/UI, and keeps historical/PIT data distinct from current/native
+        eligibility.
+    - id: AC10
+      disposition: partially_delivered
+      remainder: The bounded one-fund shared-governance path and corresponding source/shared-runtime
+        tests were accepted, and the first historical acquisition completed under Root
+        on accepted source 3ff. Ordinary route policy remains disabled and all holds remain
+        intact; broader provider/account coverage and operational qualification continue
+        as full-roadmap work.
+      owner: ETF for broader shared-consumer coverage; Provider for shared governance;
+        Root for any later exact target/account qualification.
+      continuation_acceptance: Continue broader provider/account and operational qualification
+        without enabling held ordinary routes; preserve shared admission, request lineage,
+        settlement and no-second-ledger behavior for every added consumer.
+    - id: AC11
+      disposition: deferred
+      reason: The one-fund IWM candidate does not replace symbol-level reassessment of
+        all 74 current fallback identities or the preserved 15 Tier-0 and 156 Tier-1 investigations.
+      owner: ETF
+      continuation_acceptance: Every current fallback identity receives a relevance-ranked
+        evidence-backed availability outcome and free-first reassessment where warranted.
+    - id: AC12
+      disposition: partially_delivered
+      remainder: SEC transport remains held; no live canary, route recovery or shadow
+        observation is claimed by this source checkpoint.
+      owner: ETF; Root/authorized operational coordinator for deployment observation
+      continuation_acceptance: Shared-runtime canaries persist bounded source/transport/schema/completeness/freshness/latency/circuit/recovery
+        evidence and meet the separate shadow gate.
+    - id: AC13
+      disposition: partially_delivered
+      remainder: A genuine historical IWM sample and historical display exist on the private
+        3ff target. The corrected b640 weights/categories have not yet been applied there;
+        Root-owned deployment/reparse and final API/UI acceptance remain pending. Preserve
+        historical/current, freshness and PIT distinctions; current-analysis/native support
+        remains unverified.
+      owner: Root for target correction/reparse and final API/UI acceptance; ETF for continued
+        current-versus-historical consumer contracts.
+      continuation_acceptance: After Root applies the correction, verify displayed corrected
+        weights/categories, provenance and correction-time known_at while historical as-of
+        behavior remains stable and non-current data stays ineligible for current analysis.
+    - id: AC14
+      disposition: deferred
+      reason: The 30-day operational shadow period starts only after separately authorized
+        deployment; it is not source-checkpoint evidence.
+      owner: ETF and authorized operational coordinator
+      continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive
+        missed freshness deadlines, and zero silent identity/schema/completeness violations
+        over 30 days.
   full_roadmap_status: AC1-AC14 remain unchanged and open; this accepted source checkpoint does not accept target repair, normal-route enablement, native-current support, the 30-day observation, or full feature completion.
   live_and_deployment_boundary: >-
     Root accepted source readiness only. Root owns the later target parser

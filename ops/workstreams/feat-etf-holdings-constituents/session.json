@@ -95,9 +95,9 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "Root accepted source readiness at b640ca47f74c2251cdebadd87c32dd87a751f64c. Exact source CI40224026620 and complete local backend/frontend/app gates passed under the audit qualifications. The final records-only HEAD CI is pending; Root owns that watch and subsequent integration. Actual target reparse/API/UI acceptance, ordinary-route enablement, native-current evidence, all remaining AC1-AC14 work, and the 30-day observation remain open. Preserve 15 Tier-0 and 156 Tier-1, all holds/quarantines, raw/PIT lineage, 119 spent requests and retained evidence.",
+  "current_blocker_latest": "Root accepted source readiness at b640ca47f74c2251cdebadd87c32dd87a751f64c. Exact source CI40224026620 and complete local backend/frontend/app gates passed under the audit qualifications. The final records-only HEAD CI is pending; Root owns that watch and subsequent integration. The historical IWM sample was acquired on 3ff; actual b640 target correction/reparse and corrected API/UI acceptance, ordinary-route enablement, native-current evidence, all remaining AC1-AC14 work, and the 30-day observation remain open. Preserve 15 Tier-0 and 156 Tier-1, all holds/quarantines, raw/PIT lineage, 119 spent requests and retained evidence.",
   "current_checkpoint_objective": "Close the Root-accepted retained-IWM N-PORT normalization and append-only correction source-readiness checkpoint; keep accepted FQ/FHSC history and the complete AC1-AC14 roadmap open, with Root owning target reparse and API/UI acceptance.",
-  "current_local_delta": "Accepted retained-IWM correction source b640ca47f74c2251cdebadd87c32dd87a751f64c. Root audit: source-correct SEC percentage fractions (no forced normalization), EC/EP equity handling, OTHER/Right retained as non-equity, strict actual IWM filing identity, append-only correction-time snapshot with original raw/snapshot times preserved. Exact source CI40224026620 and full local gates passed; 5,503 backend unit passes/1 existing skip, 544 integrations/4 existing skips, 84.45%; 1,353 frontend tests/build; 195 functional/2 existing skips; 104 strict visuals, retries0. Actual target correction/reparse and API/UI acceptance remain Root-owned and pending. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, holds/history.",
+  "current_local_delta": "Accepted retained-IWM correction source b640ca47f74c2251cdebadd87c32dd87a751f64c. Root audit: source-correct SEC percentage fractions (no forced normalization), EC/EP equity handling, OTHER/Right retained as non-equity, strict actual IWM filing identity, append-only correction-time snapshot with original raw/snapshot times preserved. Exact source CI40224026620 and full local gates passed; 5,503 backend unit passes/1 existing skip, 544 integrations/4 existing skips, 84.45%; 1,353 frontend tests/build; 195 functional/2 existing skips; 104 strict visuals, retries0. The historical source acquisition already occurred on accepted 3ff (job 1/raw 1/snapshot 1, accession 0002071691-26-012507, report/composition 2026-03-31, 1,946 rows); b640 fixes its parser semantics. Root-owned target correction/reparse and corrected API/UI acceptance remain pending. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, holds/history.",
   "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
@@ -194,7 +194,7 @@
       "Retained real IWM filing parses 1946 rows with source-correct percentages, preserves gross fractional total 1.14096388613052, maps EC/EP through equity identity rules, and keeps all seven OTHER/Right holdings non-equity with original conditional provenance.",
       "The exact real accession 0002071691-26-012507 accepts the padded profile CIK and non-padded SEC URL CIK while independently validating archive accession directory and XML basename.",
       "A successful reparse appends one correction-time snapshot, preserves raw and original snapshot timestamps and lineage, remains idempotent, and returns the expected version on pre- and post-correction PIT queries.",
-      "Invalid identity, URL, basename, authority, or replay is rejected without provider HTTP or overwriting the prior raw artifact, snapshot, job, or profile context.",
+      "Invalid identity, URL, basename, or authority is rejected without provider HTTP or overwriting prior evidence; repeating the same valid retained-artifact correction is idempotent, returns the existing corrected version, creates no additional snapshot, and makes no external request.",
       "Full source gates and exact-source CI pass; target repair/UI and complete AC1-AC14 remain separately owned/open as stated."
     ],
     "original_criterion_dispositions": [
@@ -243,30 +243,30 @@
       {
         "id": "AC7",
         "disposition": "partially_delivered",
-        "remainder": "The selected 12-case offline DB/API/shared-runtime selection passed on source 45c6; exact-source CI for 45c6 was not refreshed in this receipt, and full local-profile, applicable live and deployed positive-sample evidence remain open.",
-        "owner": "ETF; Root assigns local full-profile resources and live/deployment acceptance",
-        "continuation_acceptance": "Required deterministic suites, default offline contracts, changed-file lint, full_stack_browser, source-exact CI and any explicitly authorized source-specific live checks have honest passing/held dispositions."
+        "remainder": "For accepted correction implementation b640ca47f74c2251cdebadd87c32dd87a751f64c, the complete local backend/frontend/functional/visual gates and exact implementation CI are green per Root acceptance. Only final records HEAD CI40236961385, protected staging/master gates, and Root-owned actual target correction/API/UI proof remain pending. The broader opt-in provider matrix remains held under existing live/quota safeguards.",
+        "owner": "Root for final-head CI, protected staging/master gates, and target/API/UI proof; ETF for remaining roadmap work.",
+        "continuation_acceptance": "The final records HEAD CI and protected integration/promotion gates pass; Root applies the correction and verifies actual target/API/UI behavior. Future source changes receive their own required gates; no held live matrix is represented as passed."
       },
       {
         "id": "AC8",
         "disposition": "partially_delivered",
-        "remainder": "The next source checkpoint remains pending Root review; its later review receipt and any central integration are not complete.",
-        "owner": "ETF for source preparation; central coordinator for checkpoint acceptance and staging integration",
-        "continuation_acceptance": "Clean exact source, full required validation, complete review packet and explicit coordinator decision; no feature agent staging mutation."
+        "remainder": "Root has accepted source checkpoint b640ca47f74c2251cdebadd87c32dd87a751f64c under the recorded delegated authority. Final records HEAD CI and coordinator-owned integration/promotion remain pending; target correction/API/UI acceptance remains Root-owned.",
+        "owner": "Root for final CI, integration/promotion and target acceptance; ETF for the remaining full roadmap.",
+        "continuation_acceptance": "Final records HEAD CI is green, then Root completes its guarded integration/promotion workflow and records exact source/target boundaries without feature-agent staging mutation."
       },
       {
         "id": "AC9",
         "disposition": "partially_delivered",
-        "remainder": "A qualifying real one-fund sample and Root's actual acquisition/UI proof have not occurred; SEC remains unavailable/non-current until all gates pass.",
-        "owner": "ETF for truthful API/UI contracts; Root for deployment acceptance of the reviewed invocation",
-        "continuation_acceptance": "Identity-verified acquired evidence passes provenance/completeness/freshness checks, appears truthfully in API/UI, and non-current data remains rejected from current analysis."
+        "remainder": "A real historical IWM N-PORT sample was acquired on accepted source 3ff: job 1, raw artifact 1, snapshot 1, accession 0002071691-26-012507, report/composition date 2026-03-31, 1,946 rows. It exposed the percentage/category defects corrected in b640. Deployment of the accepted correction, Root-owned no-network append-only reparse, and corrected API/UI acceptance remain pending; current/native holdings remain unverified.",
+        "owner": "Root for deployment of the accepted correction, retained-artifact reparse and API/UI acceptance; ETF for continued truthful consumer behavior and roadmap work.",
+        "continuation_acceptance": "Root applies the accepted parser correction to the retained artifact without external acquisition, verifies append-only correction-time known_at and source lineage in API/UI, and keeps historical/PIT data distinct from current/native eligibility."
       },
       {
         "id": "AC10",
         "disposition": "partially_delivered",
-        "remainder": "Source implementation exists, but this checkpoint has not demonstrated all new SEC database-backed settlement/concurrency cases or established live target policy/account headroom.",
-        "owner": "ETF for consumer contract/tests; Provider for shared governance; Root for source/account and deployment review",
-        "continuation_acceptance": "Actual shared-runtime tests cover entitlement, account/operation binding, quota/budget denials, measured settlement, restart/concurrency and zero-transport rejection without a second ledger."
+        "remainder": "The bounded one-fund shared-governance path and corresponding source/shared-runtime tests were accepted, and the first historical acquisition completed under Root on accepted source 3ff. Ordinary route policy remains disabled and all holds remain intact; broader provider/account coverage and operational qualification continue as full-roadmap work.",
+        "owner": "ETF for broader shared-consumer coverage; Provider for shared governance; Root for any later exact target/account qualification.",
+        "continuation_acceptance": "Continue broader provider/account and operational qualification without enabling held ordinary routes; preserve shared admission, request lineage, settlement and no-second-ledger behavior for every added consumer."
       },
       {
         "id": "AC11",
@@ -285,9 +285,9 @@
       {
         "id": "AC13",
         "disposition": "partially_delivered",
-        "remainder": "Historical and unavailable states are implemented, but no real one-fund acquisition/UI proof has been performed.",
-        "owner": "ETF for API/UI semantics; Root for the later exact-invocation deployment acceptance proof",
-        "continuation_acceptance": "A qualifying real sample is displayed with source/as-of/known-at/raw lineage while stale, partial, held and unavailable outcomes remain explicit and current analysis rejects them."
+        "remainder": "A genuine historical IWM sample and historical display exist on the private 3ff target. The corrected b640 weights/categories have not yet been applied there; Root-owned deployment/reparse and final API/UI acceptance remain pending. Preserve historical/current, freshness and PIT distinctions; current-analysis/native support remains unverified.",
+        "owner": "Root for target correction/reparse and final API/UI acceptance; ETF for continued current-versus-historical consumer contracts.",
+        "continuation_acceptance": "After Root applies the correction, verify displayed corrected weights/categories, provenance and correction-time known_at while historical as-of behavior remains stable and non-current data stays ineligible for current analysis."
       },
       {
         "id": "AC14",
@@ -420,7 +420,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Publish this coherent source/record change for Root review; Root owns complete exact-source integration/full_stack_browser gates and the separately approved retained-target correction.",
-  "plan_hash": "230d2c4ebe4d5ad355fe984507f143ba926ffc8917f9ff2368c4f8f08e6637dd",
+  "plan_hash": "567b69f96355494e526748a604fdc7de04d947f087697b32a9924c109cf15b77",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -653,7 +653,7 @@
     "current_phase": "retained_iwm_source_checkpoint_accepted_final_head_ci_pending",
     "current_blocker": "Root accepted retained-IWM correction source b640ca47f74c2251cdebadd87c32dd87a751f64c with exact source CI40224026620 and complete local gates. Final records-head CI is pending; actual target reparse/API/UI acceptance and the complete AC1-AC14 roadmap remain Root-owned/open. Preserve 15 Tier-0 and 156 Tier-1, holds, raw/PIT lineage and 119 spent requests.",
     "next_action": "Root watches final exact-head CI and owns central integration. Root separately owns applying the correction to the retained target and verifying API/UI behavior; then continue the full roadmap.",
-    "updated_at": "2026-10-25T21:44:17Z"
+    "updated_at": "2026-10-25T21:50:23Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -824,7 +824,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-10-25T21:44:17Z",
+  "updated_at": "2026-10-25T21:50:23Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents",
   "workstream_files": [

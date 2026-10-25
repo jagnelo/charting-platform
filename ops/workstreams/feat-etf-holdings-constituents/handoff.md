@@ -19,7 +19,7 @@ and uses only independently green checkpoints plus corrected short-path cases;
 consult the audit for component provenance. Research component reuse is not
 fresh standalone probe evidence. Cleanup_error0/restore_proved1, all five
 inventory diffs empty, no owned app resources remaining, and genuine private
-Study5/479 bars preserved; no provider request or target-service pause occurred.
+Study5/479 bars preserved; this b640 local qualification made no provider request or target-service pause.
 The source correction handles SEC percentages without forced renormalization,
 keeps OTHER/Right as non-equity evidence, and appends an idempotent correction-
 time snapshot while retaining original raw and snapshot observation lineage.
@@ -40,6 +40,19 @@ Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. The final
 records-only closure HEAD will receive its own exact-source CI; no post-push
 metadata refresh is planned. Root owns the target reparse/API/UI gate and
 subsequent integration.
+
+### Closure-review clarification — retained IWM sample and idempotent correction
+
+The real historical IWM N-PORT sample was acquired earlier on accepted source
+`3ff96af855a49d42b1dee10cecb43bc6690f4502`: job 1, raw artifact 1, snapshot 1,
+accession `0002071691-26-012507`, report/composition date `2026-03-31`, and
+1,946 rows. It exposed the weight/category defect corrected by b640. The accepted
+correction has not yet been applied to the target; Root owns deployment, the
+no-network append-only reparse, and corrected API/UI acceptance. Current/native
+holdings remain unverified and ordinary routes stay disabled. A repeated
+identical valid retained-artifact correction returns the existing corrected
+version without another snapshot or external request; invalid identity, URL,
+basename, or authority remains rejected.
 
 ## Previously accepted checkpoint — FQ1-FQ8 source readiness (historical)
 
