@@ -16302,3 +16302,38 @@ provider/SEC request, quota, target or service action. Preserve the full
 AC1–AC14 roadmap, FHSC history, `15 Tier-0 and 156 Tier-1`, disabled routes,
 holds/quarantines, retained data, raw/PIT lineage, 119 allowance history and
 the 30-day observation; checkpoint acceptance remains pending.
+
+## FQ8 committed-filing-reference correction — 2026-10-25
+
+Root reviewed and authorized the inert r5 patch against frozen source
+`38d96e1e2f77c54feba21c7fdc3ceaccaf297c65`, SHA256
+`632ec78b487768662ae12b48bb622c49ef9a96f3c921efa07bb8be629fcdbb76`.
+The exact approved patch is preserved at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-fqc-committed-filing-reference-38d-r5-20261025.patch`.
+The source delta adds strict committed filing-reference validation and
+selection only to the dedicated qualification path; no-reference discovery,
+ordinary routing, shared Provider admission/accounting, and all physical/body/
+time limits remain unchanged. The qualification success check revalidates the
+current profile reference against the durable job selection and actual
+ingested filing/accession/URL, while preserving the original default discovery
+submissions-plus-filing subset contract. The committed path requires the
+filing-operation audit and cannot qualify from a method flag alone.
+
+The new FQ8 criterion preserves FQ1-FQ7, FHSC1-FHSC7 history and the full
+AC1-AC14 roadmap. New regressions cover malformed/future/ambiguous metadata,
+attempt use outside the active qualification job, metadata preservation on
+successful ingestion, unchanged profile metadata after a wrong-identity body,
+durable rejected-body and shared-request lineage, and tampered selection audit
+rejection. A wrong-body HTTP 200 remains a successful transport measurement but
+is not a successful qualification: it creates no snapshot or positive marker,
+and the policy remains disabled. The operator's existing admin PATCH still
+requires full read/merge/write/readback of `legal_metadata`.
+
+This is an implementation correction, not FQC acceptance. Focused offline tests,
+real-PostgreSQL MockTransport cases, complete new-source local profiles and
+exact-tip CI remain required. No SEC/provider request, quota operation, target
+mutation, database fixture or browser/full-stack gate was performed for this
+amendment. Preserve every earlier red/partial receipt, `15 Tier-0 and 156
+Tier-1`, the 119-use history, holds/quarantines, raw/PIT lineage and 30-day
+observation. No actual acquisition, current holdings, native-current support,
+route enablement or deployed acceptance is claimed.

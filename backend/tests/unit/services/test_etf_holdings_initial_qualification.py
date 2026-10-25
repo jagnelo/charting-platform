@@ -6,7 +6,11 @@ import pytest
 from app.config import settings
 from app.models.provider_runtime import ProviderCapability
 from app.routers import etf_holdings
-from app.services.etf_holdings_edgar import _is_identified_non_target_fund
+from app.services.etf_holdings_edgar import (
+    _backfill_sec_holdings,
+    _is_identified_non_target_fund,
+    _validated_initial_qualification_filing_reference,
+)
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     bind_etf_holdings_sec_request_context,
@@ -47,6 +51,150 @@ def _matches(**overrides):
     }
     values.update(overrides)
     return _etf_initial_qualification_matches(**values)
+
+
+def _committed_reference():
+    return {
+        "cik": "0001100663",
+        "series_id": "S000004344",
+        "class_id": "C000012074",
+        "form": "NPORT-P",
+        "accession_number": "0001234567-26-000001",
+        "primary_document": "nport_primary.xml",
+        "filing_date": "2026-10-20",
+        "report_date": "2026-09-30",
+        "acceptance_datetime": None,
+        "review_provenance": "offline reviewed index fixture",
+        "reviewed_at": datetime.now(UTC).isoformat(),
+    }
+
+
+def test_committed_filing_reference_constructs_fixed_archive_url_and_audit():
+    profile = SimpleNamespace(
+        sec_cik="0001100663",
+        sec_series_id="S000004344",
+        sec_class_id="C000012074",
+        legal_metadata={
+            "existing_provenance": {"owner": "preserved"},
+            "sec_initial_qualification": {"filing_reference": _committed_reference()},
+        },
+    )
+
+    filing, audit = _validated_initial_qualification_filing_reference(profile)
+
+    assert filing is not None and audit is not None
+    assert filing.filing_url == (
+        "https://www.sec.gov/Archives/edgar/data/1100663/" "000123456726000001/nport_primary.xml"
+    )
+    assert filing.form == "NPORT-P"
+    assert audit["selection_method"] == "committed_profile_reference"
+    assert audit["reference"]["accession_number"] == filing.accession_number
+    assert audit["reference"]["review_provenance"] == "offline reviewed index fixture"
+
+
+def test_missing_committed_filing_reference_preserves_default_discovery():
+    profile = SimpleNamespace(
+        sec_cik="0001100663",
+        sec_series_id="S000004344",
+        sec_class_id="C000012074",
+        legal_metadata={"existing_provenance": {"x": 1}},
+    )
+
+    assert _validated_initial_qualification_filing_reference(profile) == (None, None)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("cik", "0000000001"),
+        ("series_id", "S000009999"),
+        ("class_id", "C000099999"),
+        ("form", "N-CSR"),
+        ("accession_number", "../000123456726000001"),
+        ("accession_number", "٠00123456726000001"),
+        ("series_id", "S0000043٤4"),
+        ("series_id", "*"),
+        ("class_id", "C00001207*"),
+        ("primary_document", "filing.htm"),
+        ("primary_document", "*.xml"),
+        ("primary_document", "nport_K.xml"),
+        ("primary_document", "https://evil.invalid/filing.xml"),
+        ("primary_document", "filing.xml?next=evil"),
+        ("primary_document", "filing.xml#fragment"),
+        ("primary_document", "filing%2f.xml"),
+        ("primary_document", "../filing.xml"),
+        ("filing_url", "https://evil.invalid/filing.xml"),
+        ("review_provenance", "   "),
+        ("reviewed_at", "2026-10-20T12:00:00"),
+    ],
+)
+def test_committed_filing_reference_rejects_untrusted_or_cross_fund_values(field, value):
+    reference = _committed_reference()
+    reference[field] = value
+    profile = SimpleNamespace(
+        sec_cik="0001100663",
+        sec_series_id="S000004344",
+        sec_class_id="C000012074",
+        legal_metadata={"sec_initial_qualification": {"filing_reference": reference}},
+    )
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="committed SEC filing reference"):
+        _validated_initial_qualification_filing_reference(profile)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("filing_date", lambda: (datetime.now(UTC) + timedelta(days=1)).date().isoformat()),
+        ("report_date", lambda: (datetime.now(UTC) + timedelta(days=1)).date().isoformat()),
+        ("acceptance_datetime", lambda: (datetime.now(UTC) + timedelta(days=1)).isoformat()),
+        ("acceptance_datetime", lambda: datetime.now(UTC).replace(tzinfo=None).isoformat()),
+        ("reviewed_at", lambda: (datetime.now(UTC) + timedelta(days=1)).isoformat()),
+    ],
+)
+def test_committed_filing_reference_rejects_future_or_timezone_ambiguous_dates(field, value):
+    reference = _committed_reference()
+    reference[field] = value()
+    profile = SimpleNamespace(
+        sec_cik="0001100663",
+        sec_series_id="S000004344",
+        sec_class_id="C000012074",
+        legal_metadata={"sec_initial_qualification": {"filing_reference": reference}},
+    )
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="committed SEC filing reference"):
+        _validated_initial_qualification_filing_reference(profile)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("qualification_job", [None, SimpleNamespace(job_type="ordinary")])
+async def test_committed_filing_reference_is_restricted_before_backfill_effects(
+    monkeypatch, qualification_job
+):
+    async def unexpected_scope(*args, **kwargs):
+        raise AssertionError("invalid committed-reference call entered the SEC execution scope")
+
+    monkeypatch.setattr("app.services.etf_holdings_edgar._run_in_sec_fund_scope", unexpected_scope)
+    with pytest.raises(ETFHoldingsRouteHeldError, match="active initial qualification job"):
+        await _backfill_sec_holdings(
+            object(),
+            profile=SimpleNamespace(id=17),
+            start_date=None,
+            end_date=None,
+            max_filings=1,
+            requested_by_user_id=None,
+            job_type="ordinary",
+            discover_filings=unexpected_scope,
+            parse_xml=unexpected_scope,
+            provenance="test",
+            parser_version="test",
+            source_format="test",
+            missing_date_reason="missing date",
+            no_rows_reason="no rows",
+            notes="test",
+            qualification_job=qualification_job,
+            committed_filing_reference=object(),
+        )
 
 
 def test_initial_qualification_authority_is_task_local_and_exactly_scoped(monkeypatch):

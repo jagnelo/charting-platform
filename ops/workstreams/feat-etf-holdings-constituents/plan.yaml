@@ -667,7 +667,14 @@ integration_checkpoint:
     administrator-only first-SEC-qualification path in this existing ETF
     branch. Preserve accepted FHSC1-FHSC7 and all AC1-AC14. This authorizes
     source implementation and offline tests only, not an actual SEC request,
-    quota use, target mutation, or live qualification.
+    quota use, target mutation, or live qualification. Root subsequently
+    reviewed and authorized the exact inert r5 committed-filing-reference
+    patch SHA256
+    632ec78b487768662ae12b48bb622c49ef9a96f3c921efa07bb8be629fcdbb76 at
+    `/home/m920q/charting-platform/.ai/staging-attempts/etf-fqc-committed-filing-reference-38d-r5-20261025.patch`.
+    This authorizes only the narrow optional committed-reference selection,
+    exact audit binding, and related regressions in this checkpoint; all shared
+    admission and live holds remain.
   acceptance_authorization: pending_root_review_and_future_checkpoint_acceptance
   status: in_progress
   prior_accepted_checkpoint:
@@ -684,6 +691,10 @@ integration_checkpoint:
     - Root-owned review and later actual one-fund qualification acceptance
   required_contracts:
     - The reviewed operation is POST /api/v1/etf-holdings/{symbol}/sec-initial-qualification; its opaque task-local authority bypasses only the prior-positive-probe prerequisite for the reviewed EDGAR ETF_HOLDINGS SEC operation set.
+    - An optional admin-committed N-PORT filing reference selects one strictly validated filing only for the dedicated qualification operation; malformed, cross-fund, future-dated, or timezone-ambiguous metadata denies before the one-shot latch, shared reservation, or transport.
+    - A committed reference constructs its SEC archive URL from canonical profile identity and safe accession/XML basename, remains subject to actual fetched-body series/class identity checks and existing Provider admission, and does not alter the no-reference discovery path.
+    - Qualification success revalidates the current profile reference against the full durable job selection audit and actual ingested filing form/accession/constructed URL and raw snapshot identity. The committed-reference path requires its shared filing-operation audit; default discovery retains the existing submissions-plus-filing subset requirement, including archived submissions.
+    - A wrong-identity response for a committed reference is retained as rejected evidence, does not mutate profile metadata, create a snapshot, or set positive qualification; successful ingestion preserves previous profile metadata and gives actual accepted filing facts precedence over stale conflicting hints.
     - Any exception to prior positive live-probe evidence is finite, one-use, and bound to the exact provider, capability, operation, committed instrument, profile, account scope, and task; it bypasses only that prior-positive-probe prerequisite for that operation.
     - Normal routes remain denied while prior positive qualification is absent; no generic bypass, credentialed status, not-required status, or fabricated positive evidence is allowed.
     - Existing reviewed identity, host, entitlement, operation, account, quota, recurring-cost, budget, shared reservation, transport, telemetry, settlement, and health checks remain mandatory. Unknown native limits/headroom, costs, or policy remain held and non-routable.
@@ -706,6 +717,8 @@ integration_checkpoint:
       text: Deterministic offline tests cover authorization, normal-route denial, exact-scope mismatches, every admission hold, concurrency, replay and expiry, durable cancellation/failure settlement, no false positive state, and genuine success semantics through the shared runtime and MockTransport.
     - id: FQ7
       text: The implementation passes required full_integration/full_stack_browser and exact-source CI without weakening existing assertions, retries, limits, or live holds; Root separately reviews any actual first-fund live qualification, and route policy remains disabled until that review accepts evidence.
+    - id: FQ8
+      text: An optional admin-committed N-PORT filing reference in ETF profile legal_metadata is strictly bound to canonical ASCII CIK/series/class identifiers, an allowed form, safe XML primary-document basename, accession and chronologically reviewed filing metadata before the one-shot latch; the service constructs the SEC archive URL and fetches only through the existing shared runtime. The attempt durably audits the reference and selection method, verifies the fetched body's actual fund identity, retains rejected evidence, denies malformed/cross-fund references without latch/reservation/transport, and leaves default no-reference discovery unchanged.
   planned_acceptance_cases:
     - Unauthorized/non-admin attempt denied before reservation and transport; authorized request is still subject to every existing shared admission gate.
     - Ordinary backfill, refresh, capability, and discovery paths remain denied for not_run without a qualification context and make zero transport calls.
@@ -717,6 +730,8 @@ integration_checkpoint:
     - Task authority expiry caps the monotonic whole-call and attempt deadlines; slow loop-local transport setup that crosses expiry performs no send, while expiry during a sent HTTPX attempt cancels it and preserves shared durable settlement. The 20s attempt and 210s fund ceilings remain unchanged.
     - The dedicated qualification operation commits its own pending job/filing state before awaiting the separate shared-runtime transaction that durably links request-log IDs; a real PostgreSQL MockTransport regression exercises this cross-session boundary without changing ordinary backfill transaction ownership.
     - HTTP error, transport timeout, fund deadline, cancellation, partial/truncated/decompression-limit response, parser error, identity mismatch, no candidate, and failed/uncertain settlement remain truthful, durably audited where applicable, and never set positive qualification.
+    - Committed-reference metadata rejects non-XML extensions, Unicode digits, wildcards, future filing/report/acceptance/review times, and naive supplied timestamps; a real shared-runtime wrong-body-identity case proves exactly one filing fetch, no submissions search, durable rejected audit, unchanged profile metadata, zero snapshots, and no positive qualification.
+    - A real shared-runtime tampered-selection case proves that a bare committed-reference method flag or altered durable reference cannot qualify an otherwise ingested snapshot; successful committed selection must match the current strict profile reference and actual filing, while ordinary discovery continues to accept its existing archived-submissions operation.
   original_criterion_dispositions: *etf_fhsc_original_criterion_dispositions
   full_roadmap_status: AC1-AC14 retained verbatim and remain open; no other publisher onboarding, native-current evidence, or 30-day observation is accepted by this checkpoint.
   live_and_deployment_boundary: >-
@@ -906,8 +921,8 @@ deployment_impact: "New disabled-by-default ETF canary configuration, shared pro
 status: in_progress
 progress:
   completed: []
-  total: 7
-current_phase: first_qualification_plan_ready_pending_producer_contract_2026_10_25
+  total: 8
+  current_phase: committed_filing_reference_r5_applied_pending_focused_validation
 historical_execution_context: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The

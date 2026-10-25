@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextvars
 import hashlib
+import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -300,6 +301,170 @@ def _acceptance_datetime(value: Any) -> datetime | None:
         except ValueError:
             continue
     return None
+
+
+def _validated_initial_qualification_filing_reference(
+    profile: ETFProfile,
+) -> tuple[EdgarNportFiling | None, dict[str, Any] | None]:
+    """Validate the optional admin-committed N-PORT reference before the latch."""
+
+    metadata = profile.legal_metadata
+    if metadata is None:
+        metadata = {}
+    if not isinstance(metadata, dict):
+        raise ETFHoldingsRouteHeldError("committed SEC filing reference metadata is invalid")
+    if "sec_initial_qualification" not in metadata:
+        return None, None
+    namespace = metadata["sec_initial_qualification"]
+    if not isinstance(namespace, dict) or set(namespace) != {"filing_reference"}:
+        raise ETFHoldingsRouteHeldError("committed SEC filing reference namespace is invalid")
+    raw = namespace.get("filing_reference")
+    required = {
+        "cik",
+        "series_id",
+        "class_id",
+        "form",
+        "accession_number",
+        "primary_document",
+        "filing_date",
+        "report_date",
+        "acceptance_datetime",
+        "review_provenance",
+        "reviewed_at",
+    }
+    if not isinstance(raw, dict) or set(raw) != required:
+        raise ETFHoldingsRouteHeldError("committed SEC filing reference is incomplete or malformed")
+
+    cik = raw["cik"]
+    series_id = raw["series_id"]
+    class_id = raw["class_id"]
+    if not isinstance(cik, str) or not re.fullmatch(r"[0-9]{1,10}", cik):
+        raise ETFHoldingsRouteHeldError("committed SEC filing reference CIK is invalid")
+    try:
+        cik_matches = normalize_cik(cik) == normalize_cik(profile.sec_cik or "")
+    except ValueError:
+        cik_matches = False
+    if (
+        not cik_matches
+        or not isinstance(series_id, str)
+        or re.fullmatch(r"S[0-9]{9}", series_id) is None
+        or series_id != str(profile.sec_series_id or "")
+        or not isinstance(class_id, str)
+        or re.fullmatch(r"C[0-9]{9}", class_id) is None
+        or class_id != str(profile.sec_class_id or "")
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "committed SEC filing reference does not match this ETF profile"
+        )
+
+    form = raw["form"]
+    accession = raw["accession_number"]
+    document = raw["primary_document"]
+    if not isinstance(form, str) or form not in {"NPORT-P", "NPORT-P/A"}:
+        raise ETFHoldingsRouteHeldError("committed SEC filing reference form is not N-PORT")
+    if not isinstance(accession, str) or not re.fullmatch(
+        r"(?:[0-9]{18}|[0-9]{10}-[0-9]{2}-[0-9]{6})", accession
+    ):
+        raise ETFHoldingsRouteHeldError("committed SEC filing reference accession is invalid")
+    if (
+        not isinstance(document, str)
+        or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9_.-]{0,250}\.xml",
+            document,
+            re.IGNORECASE | re.ASCII,
+        )
+        or ".." in document
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "committed SEC filing reference document must be a basename"
+        )
+
+    try:
+        filing_date = date.fromisoformat(raw["filing_date"])
+        report_date = date.fromisoformat(raw["report_date"])
+    except (TypeError, ValueError):
+        raise ETFHoldingsRouteHeldError(
+            "committed SEC filing reference dates are invalid"
+        ) from None
+    now = datetime.now(UTC)
+    reviewed_at_raw = raw["reviewed_at"]
+    if not isinstance(reviewed_at_raw, str):
+        raise ETFHoldingsRouteHeldError("committed SEC filing reference review evidence is missing")
+    try:
+        reviewed_at = datetime.fromisoformat(reviewed_at_raw.replace("Z", "+00:00"))
+    except ValueError:
+        raise ETFHoldingsRouteHeldError(
+            "committed SEC filing reference review time is invalid"
+        ) from None
+    if reviewed_at.tzinfo is None or reviewed_at.utcoffset() is None:
+        raise ETFHoldingsRouteHeldError(
+            "committed SEC filing reference review time is not timezone-aware"
+        )
+    reviewed_at = reviewed_at.astimezone(UTC)
+    if reviewed_at > now:
+        raise ETFHoldingsRouteHeldError(
+            "committed SEC filing reference review time is in the future"
+        )
+    if (
+        raw["filing_date"] != filing_date.isoformat()
+        or raw["report_date"] != report_date.isoformat()
+        or report_date > filing_date
+        or filing_date > reviewed_at.date()
+        or report_date > reviewed_at.date()
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "committed SEC filing reference dates are not chronological"
+        )
+    acceptance_raw = raw["acceptance_datetime"]
+    acceptance_datetime = None
+    if acceptance_raw is not None:
+        if not isinstance(acceptance_raw, str):
+            raise ETFHoldingsRouteHeldError(
+                "committed SEC filing reference acceptance time is invalid"
+            )
+        try:
+            acceptance_datetime = datetime.fromisoformat(acceptance_raw.replace("Z", "+00:00"))
+        except ValueError:
+            raise ETFHoldingsRouteHeldError(
+                "committed SEC filing reference acceptance time is invalid"
+            ) from None
+        if acceptance_datetime.tzinfo is None or acceptance_datetime.utcoffset() is None:
+            raise ETFHoldingsRouteHeldError(
+                "committed SEC filing reference acceptance time must include a timezone"
+            )
+        acceptance_datetime = acceptance_datetime.astimezone(UTC)
+        if (
+            acceptance_datetime > reviewed_at
+            or acceptance_datetime > now
+            or acceptance_datetime.date() < filing_date
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "committed SEC filing reference acceptance time is not chronological"
+            )
+    provenance = raw["review_provenance"]
+    if not isinstance(provenance, str) or not provenance.strip() or len(provenance) > 500:
+        raise ETFHoldingsRouteHeldError("committed SEC filing reference review evidence is missing")
+
+    cik_value = normalize_cik(cik)
+    filing_url = SEC_ARCHIVES_BASE_URL.format(
+        cik=_archive_cik(cik_value),
+        accession=_accession_path(accession),
+        document=document,
+    )
+    filing = EdgarNportFiling(
+        accession_number=accession,
+        form=form,
+        filing_date=filing_date,
+        report_date=report_date,
+        acceptance_datetime=acceptance_datetime,
+        primary_document=document,
+        filing_url=filing_url,
+    )
+    audit = {
+        "selection_method": "committed_profile_reference",
+        "reference": {**raw, "filing_url": filing_url},
+    }
+    return filing, audit
 
 
 def _known_at(
@@ -768,7 +933,17 @@ async def _backfill_sec_holdings(
     no_rows_reason: str,
     notes: str,
     qualification_job: ETFHoldingsBackfillJob | None = None,
+    committed_filing_reference: EdgarHoldingsFiling | None = None,
 ) -> dict[str, Any]:
+    if committed_filing_reference is not None and (
+        not isinstance(qualification_job, ETFHoldingsBackfillJob)
+        or qualification_job.etf_profile_id != profile.id
+        or qualification_job.job_type != SEC_INITIAL_QUALIFICATION_JOB_TYPE
+        or qualification_job.status != "running"
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "committed SEC filing references are limited to an active initial qualification job"
+        )
     if _SEC_FUND_BUDGET.get() is None:
         return await _run_in_sec_fund_scope(
             lambda: _backfill_sec_holdings(
@@ -788,9 +963,15 @@ async def _backfill_sec_holdings(
                 no_rows_reason=no_rows_reason,
                 notes=notes,
                 qualification_job=qualification_job,
+                committed_filing_reference=committed_filing_reference,
             )
         )
     require_unbound_etf_holdings_context("SEC holdings backfill")
+    qualification_profile_metadata = (
+        dict(profile.legal_metadata or {})
+        if qualification_job is not None and committed_filing_reference is not None
+        else None
+    )
     if qualification_job is None:
         job = ETFHoldingsBackfillJob(
             etf_profile_id=profile.id,
@@ -847,15 +1028,18 @@ async def _backfill_sec_holdings(
 
     try:
         request_identity = await _resolve_request_identity(db=db, profile=profile)
-        filings = await discover_filings(
-            cik=profile.sec_cik,
-            db=db,
-            profile=profile,
-            request_identity=request_identity,
-            start_date=start_date,
-            end_date=end_date,
-            max_filings=max_filings,
-        )
+        if committed_filing_reference is not None:
+            filings = [committed_filing_reference]
+        else:
+            filings = await discover_filings(
+                cik=profile.sec_cik,
+                db=db,
+                profile=profile,
+                request_identity=request_identity,
+                start_date=start_date,
+                end_date=end_date,
+                max_filings=max_filings,
+            )
     except Exception as exc:  # noqa: BLE001 - user-facing job state should preserve discovery failure.
         failures.append({"reason": str(exc)})
         job.status = "failed"
@@ -940,6 +1124,7 @@ async def _backfill_sec_holdings(
                         "qualification_disposition": (
                             "expected_non_target_fund_candidate"
                             if qualification_job is not None
+                            and committed_filing_reference is None
                             and _is_identified_non_target_fund(
                                 identity_status=identity_status,
                                 filing_identity=filing_identity,
@@ -949,10 +1134,14 @@ async def _backfill_sec_holdings(
                         ),
                     },
                 }
-                if qualification_job is not None and _is_identified_non_target_fund(
-                    identity_status=identity_status,
-                    filing_identity=filing_identity,
-                    profile=profile,
+                if (
+                    qualification_job is not None
+                    and committed_filing_reference is None
+                    and _is_identified_non_target_fund(
+                        identity_status=identity_status,
+                        filing_identity=filing_identity,
+                        profile=profile,
+                    )
                 ):
                     expected_non_target_fund_discards.append(
                         {
@@ -989,6 +1178,19 @@ async def _backfill_sec_holdings(
                 failures.append({"accession_number": filing.accession_number, "reason": reason})
                 continue
             observed_at = _now()
+            filing_legal_metadata = {
+                "source_access": "sec_filing",
+                "source_format": source_format,
+                "accession_number": filing.accession_number,
+                "form": filing.form,
+                "filing_acceptance_at": (
+                    filing.acceptance_datetime.isoformat()
+                    if filing.acceptance_datetime is not None
+                    else None
+                ),
+                "public_availability_time": "unverified",
+                "fund_identity": filing_identity,
+            }
             snapshot = await ingest_holdings_snapshot(
                 db,
                 etf_instrument=profile.instrument,
@@ -1005,25 +1207,21 @@ async def _backfill_sec_holdings(
                 completeness_status="filing_reconstructed",
                 parser_version=parser_version,
                 raw_payload_text=response.text,
-                legal_metadata={
-                    "source_access": "sec_filing",
-                    "source_format": source_format,
-                    "accession_number": filing.accession_number,
-                    "form": filing.form,
-                    "filing_acceptance_at": (
-                        filing.acceptance_datetime.isoformat()
-                        if filing.acceptance_datetime is not None
-                        else None
-                    ),
-                    "public_availability_time": "unverified",
-                    "fund_identity": filing_identity,
-                },
+                legal_metadata=filing_legal_metadata,
                 notes=notes,
                 # SEC reconstruction already has a dated, filing-scoped
                 # identity. Keep each filing transaction bounded and
                 # leave optional identifier enrichment to a separate job.
                 allow_provider_enrichment=False,
             )
+            if qualification_profile_metadata is not None:
+                # Ingestion replaces profile legal_metadata. Preserve the
+                # committed operator context while giving observed filing
+                # facts precedence over stale hints with the same keys.
+                profile.legal_metadata = {
+                    **qualification_profile_metadata,
+                    **filing_legal_metadata,
+                }
             state.snapshot_id = snapshot.id
             state.status = "ingested"
             state.failure_reason = None
@@ -1321,6 +1519,32 @@ async def _qualification_success_evidence(
     filing = filing_rows[0]
     if filing.status != "ingested" or not filing.accession_number or not filing.filing_url:
         return False, "qualification_filing_lineage_is_incomplete"
+    selection = extra_data.get("qualification_filing_selection")
+    try:
+        committed_filing, validated_selection = _validated_initial_qualification_filing_reference(
+            profile
+        )
+    except (ETFHoldingsRouteHeldError, TypeError, ValueError):
+        return False, "qualification_committed_filing_reference_is_no_longer_valid"
+    if committed_filing is None:
+        if selection != {"selection_method": "submissions_discovery"}:
+            return False, "qualification_discovery_selection_audit_is_missing_or_tampered"
+        committed_reference_selected = False
+        expected_operations = {
+            "fetch_etf_holdings_sec_submissions",
+            "fetch_etf_holdings_sec_filing",
+        }
+    else:
+        if selection != validated_selection:
+            return False, "qualification_committed_filing_selection_audit_is_missing_or_tampered"
+        if (
+            filing.accession_number != committed_filing.accession_number
+            or filing.filing_url != committed_filing.filing_url
+            or filing.form != committed_filing.form
+        ):
+            return False, "qualification_ingested_filing_does_not_match_committed_reference"
+        committed_reference_selected = True
+        expected_operations = {"fetch_etf_holdings_sec_filing"}
     snapshot = await db.get(ETFHoldingsSnapshot, filing.snapshot_id)
     if (
         snapshot is None
@@ -1391,10 +1615,10 @@ async def _qualification_success_evidence(
         ):
             return False, "qualification_shared_request_audit_is_not_successfully_settled"
         observed_operations.add(log.operation)
-    if not {
-        "fetch_etf_holdings_sec_submissions",
-        "fetch_etf_holdings_sec_filing",
-    }.issubset(observed_operations):
+    if committed_reference_selected:
+        if observed_operations != expected_operations:
+            return False, "qualification_shared_request_audit_does_not_match_filing_selection"
+    elif not expected_operations.issubset(observed_operations):
         return False, "qualification_shared_request_audit_does_not_cover_discovery_and_filing"
     extra_data["qualification_snapshot_id"] = snapshot.id
     extra_data["qualification_raw_artifact_id"] = raw_artifact.id
@@ -1429,6 +1653,9 @@ async def qualify_sec_nport_fund(
             )
         identity = await _resolve_request_identity(db=operation_db, profile=profile)
         account_scope = await _preflight_initial_qualification(operation_db, profile)
+        committed_filing_reference, filing_selection_audit = (
+            _validated_initial_qualification_filing_reference(profile)
+        )
 
         if lock_db.get_bind().dialect.name != "postgresql":
             raise ETFHoldingsRouteHeldError(
@@ -1534,6 +1761,8 @@ async def qualify_sec_nport_fund(
                     "account_scope": account_scope,
                 },
                 "qualification_outcome": {"status": "in_progress"},
+                "qualification_filing_selection": filing_selection_audit
+                or {"selection_method": "submissions_discovery"},
             },
         )
         operation_db.add(attempt)
@@ -1570,6 +1799,7 @@ async def qualify_sec_nport_fund(
                 no_rows_reason="N-PORT XML did not contain parseable holdings rows.",
                 notes="Reconstructed from SEC EDGAR N-PORT filing under one-fund qualification.",
                 qualification_job=attempt,
+                committed_filing_reference=committed_filing_reference,
             ),
             initial_qualification_authority=authority,
         )
