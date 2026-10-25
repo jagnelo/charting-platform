@@ -4,15 +4,22 @@
 
 Root accepted FQ1–FQ8 source readiness at `a7d0f25064e98f8c3015e9866804f7a68fcaa263`
 on 2026-10-25T13:33:51Z under the existing delegated checkpoint authority.
-Exact-source CI40191164658 is green. The complete local profile passed
+Exact-source CI40191164658 is green. The accepted source tree is now in
+synchronized green staging `3ff96af855a49d42b1dee10cecb43bc6690f4502`,
+CI40202604218 (receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json`).
+The fast-forward tree matched the pre-adoption ETF tip exactly. Independent
+master CI40210522503 is live; this owner holds push of the local records-only
+reconciliation until Root releases it. The complete local profile passed
 195 functional cases with 2 existing live-held skips and all 104 strict visuals;
 zero retries, cleanup and global inventory checks passed, and private Study 5
 readback verified 479 bars. Acceptance and audit:
 `/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-checkpoint-source-acceptance-20261025.md`
 and `/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-final-local-audit-20261025.json`.
-The exact final closure-head CI and Root-owned staging integration remain next.
-No real SEC acquisition, target/UI acceptance, live route enablement, or full
-AC1–AC14 roadmap completion is claimed; preserve disabled policy and all holds.
+Root remains responsible for publication release after the master gate and for
+the actual SEC acquisition/target acceptance. No real SEC acquisition, target/UI
+acceptance, live route enablement, or full AC1–AC14 roadmap completion is
+claimed; preserve disabled policy and all holds.
 
 ## Audit-link correction — 2026-10-25
 
@@ -16431,6 +16438,8 @@ every AC1–AC14 text/disposition, `15 Tier-0 and 156 Tier-1`, the 119-request
 history, quarantines, raw/PIT lineage, held operations and 30-day observation.
 No new migration paths were added relative to accepted staging5b; the
 `backend/alembic` diff is empty and the target remains at head `d4a5b6c7e812`
-(124 revisions). Root owns actual one-fund invocation/UI acceptance after
-separate live prerequisites. Final closure-head CI and persistent-staging
-integration remain pending. integration_capture: exact branch HEAD.
+(124 revisions). The accepted FQ source is integrated in green staging
+`3ff96af855a49d42b1dee10cecb43bc6690f4502`; master CI40210522503 is live. This
+local record reconciliation remains unpushed pending Root's release. Root owns
+actual one-fund invocation/UI acceptance after separate live prerequisites.
+The full roadmap remains active. integration_capture: exact branch HEAD.
