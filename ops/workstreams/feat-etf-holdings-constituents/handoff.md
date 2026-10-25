@@ -16,10 +16,19 @@ assertion are unchanged.
 
 Focused offline qualification/EDGAR SQLite unit modules: 44 passed. Ruff check,
 Ruff format check, AST parse, and the exact narrative-count sentinel passed.
-The earlier complete local unit run timed out in shard56 after 47 tests. Root's
-separate diagnostic-only rerun used a noncanonical `routing=false` environment
-and crashed with signal11/exit2; it is not product evidence and was not rerun
-here. The required diagnostic artifact exists. No
+Preserved shard56 records (distinct attempts): (1) complete local unit run
+30077 timed out after 47 tests in shard56 with exit124; cleanup passed. (2) the
+first debug run 36975 at
+`/tmp/etf-fqc-54081f43-shard56-diagnostic-20261025` used noncanonical
+`routing=false`, had multiple assertion failures, and exited -11 (signal11).
+(3) the required-before-edit run 11138 at
+`/tmp/etf-fqc-54081f43-shard56-canonical-diagnostic-20261025` used canonical
+`routing=true`, paid/live flags off, the same 50 cases and original 300-second
+cap: 46 passed with no assertion failures, then SIGINT at 300 seconds, exit2,
+elapsed301.568s. Timings59.92s/31.02s/25.58s and98% CPU support cumulative
+batch cost; they do not prove a hang. Root will subdivide expensive groups to
+at most25 without raising the timeout or dropping cases. None of these runs was
+replayed here. No
 PostgreSQL fixture, Docker/browser/full suite, provider/SEC request, quota or
 target action was run by this owner. Root owns corrected PostgreSQL validation,
 complete new-source profiles and exact-tip CI. FQ remains in_progress/not
