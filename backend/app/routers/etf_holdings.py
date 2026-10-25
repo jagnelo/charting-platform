@@ -114,6 +114,7 @@ from app.services.etf_holdings_edgar import (
 )
 from app.services.etf_holdings_refresh import (
     ETFHoldingsRouteNotReadyError,
+    _apply_known_route_metadata,
     bootstrap_etf_holdings_profile,
     discover_etf_profiles_from_issuer_feed,
     discover_etf_profiles_from_sec_fund_tickers,
@@ -1036,6 +1037,8 @@ async def ingest_holdings_rows(
         raw_payload_json=body.raw_payload_json,
         legal_metadata=body.legal_metadata,
         notes=body.notes,
+        allow_provider_enrichment=False,
+        manual_import=True,
     )
     loaded = await get_latest_snapshot(db, etf.id)
     if loaded is None:
@@ -1051,7 +1054,9 @@ async def ingest_holdings_csv(
     current_user: User = Depends(require_admin),
 ):
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    rows = parse_holdings_csv(body.raw_csv)
+    # Manual files without a type column are retained as unknown, not silently
+    # treated as equities. Callers needing typed non-equity rows can use /ingest.
+    rows = parse_holdings_csv(body.raw_csv, untyped_holding_type="unknown")
     await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,
@@ -1070,6 +1075,8 @@ async def ingest_holdings_csv(
         raw_payload_text=body.raw_csv,
         legal_metadata=body.legal_metadata,
         notes=body.notes,
+        allow_provider_enrichment=False,
+        manual_import=True,
     )
     loaded = await get_latest_snapshot(db, etf.id)
     if loaded is None:
@@ -1101,7 +1108,7 @@ async def ingest_sec_nport_holdings(
         rows=rows,
         composition_date=composition_date,
         as_of_date=body.as_of_date or composition_date,
-        known_at=body.known_at or body.published_at,
+        known_at=body.known_at,
         published_at=body.published_at,
         provenance="sec_nport_reconstructed_holdings",
         source_provider=body.source_provider,
@@ -1117,6 +1124,8 @@ async def ingest_sec_nport_holdings(
             "accession_number": body.accession_number,
         },
         notes=body.notes or "Reconstructed from SEC N-PORT/N-PORT-P XML.",
+        allow_provider_enrichment=False,
+        manual_import=True,
     )
     loaded = await get_latest_snapshot(db, etf.id)
     if loaded is None:
@@ -1148,7 +1157,7 @@ async def ingest_sec_legacy_holdings(
         rows=rows,
         composition_date=composition_date,
         as_of_date=body.as_of_date or composition_date,
-        known_at=body.known_at or body.published_at,
+        known_at=body.known_at,
         published_at=body.published_at,
         provenance="sec_legacy_reconstructed_holdings",
         source_provider=body.source_provider,
@@ -1165,6 +1174,8 @@ async def ingest_sec_legacy_holdings(
             "accession_number": body.accession_number,
         },
         notes=body.notes or "Reconstructed from legacy SEC N-Q/N-CSR-style XML.",
+        allow_provider_enrichment=False,
+        manual_import=True,
     )
     loaded = await get_latest_snapshot(db, etf.id)
     if loaded is None:
@@ -1183,6 +1194,10 @@ async def backfill_sec_nport_holdings_for_etf(
     profile = await get_etf_profile_for_instrument(db, etf.id)
     if profile is None:
         profile = await ensure_etf_profile(db, etf)
+    # Backfill may use only the existing curated identity for this exact
+    # symbol. This is local metadata reconciliation (no catalog request) and
+    # lets the SEC path validate the filing's series/class before ingest.
+    _apply_known_route_metadata(profile)
     summary = await backfill_sec_nport_holdings(
         db,
         profile=profile,
@@ -1206,6 +1221,7 @@ async def backfill_sec_legacy_holdings_for_etf(
     profile = await get_etf_profile_for_instrument(db, etf.id)
     if profile is None:
         profile = await ensure_etf_profile(db, etf)
+    _apply_known_route_metadata(profile)
     summary = await backfill_sec_legacy_holdings(
         db,
         profile=profile,

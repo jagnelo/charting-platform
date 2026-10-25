@@ -1,0 +1,15 @@
+{
+  "state": "green",
+  "created_at": "2026-10-25T05:54:27.342875+00:00",
+  "starting_staging_sha": "cdc33442c19f5c387b9ada759607d961365993c0",
+  "staging_sha": "5b29620741fd82d27db45987afb927bf91396712",
+  "sources": [
+    {
+      "branch": "feat/etf-holdings-constituents",
+      "sha": "d203212f4841f9fa21e68525ea4bc608a86ff798"
+    }
+  ],
+  "github_run": "https://github.com/jagnelo/charting-platform/actions/runs/40161945123",
+  "reconciled_interrupted_watch": true,
+  "previous_watch_failure": "GitHub read-only API rate limit exhausted; reset epoch 1792906785; CI evidence is unavailable, not a test failure or success"
+}

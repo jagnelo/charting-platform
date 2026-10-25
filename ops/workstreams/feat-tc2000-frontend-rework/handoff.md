@@ -1,6 +1,29 @@
 # feat/tc2000-frontend-rework
 
-## Current continuation — cdc334 merged, focused checks green — 2026-10-25T04:05Z
+## Current continuation — accepted 5b staging adopted without TC consumer conflicts — 2026-10-25T06:08Z
+
+The exact accepted synchronized release `5b29620741fd82d27db45987afb927bf91396712`
+(receipt `20261025T055427Z-5b29620741fd.json`, staging CI `40161945123`) is
+merged into this TC branch from `7ff559cd77ec67e83699903a3fcbe2593e60a620`.
+The exact prior TC branch CI `40160877143` passed its required jobs; Exhaustive
+Integration Gate was policy-skipped. The merge had no conflicts and brought in
+the accepted ETF implementation and ETF-owned records. Git preserved TC's
+Watchlist, Tag Columns, custom-date sort, favorites, chart, Study, and consumer
+tests unchanged. The workstream manifest now pins the exact 5b tree and awaits
+final scope/workstream validation;
+the earlier cdc334 receipt and manifest remain retained as history.
+
+This adoption does not establish new exact-source CI or full local acceptance.
+F8y remains unproven on the combined branch: preserve its 60-second timeout,
+ordinary Source/Target/Control and parent-host actions, locked Remove/zero-DELETE
+assertions, and zero retries. Do not add client-guessed selected-series
+filtering or weaken ETF historical/PIT/current-unavailable, lineage, freshness,
+or unknown-state checks. Preserve immutable Study/CodeVersion identity and the
+Strategy inspector/navigation. AC1-AC9, TCP3-TCP5, SX/IX, local-only Help
+disposition, official REF-HELP-V25, full local profile, and all provider/data/
+service holds remain open; Root controls full validation and integration.
+
+## Historical continuation — cdc334 merge and focused checks — 2026-10-25T04:05Z
 
 Accepted synchronized staging `cdc33442c19f5c387b9ada759607d961365993c0`
 was merged into this branch with no conflicts. The TC frozen-import manifest

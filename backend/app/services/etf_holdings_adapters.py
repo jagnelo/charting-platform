@@ -28,6 +28,7 @@ from app.config import settings
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     ProviderBackedHTTPXClient,
+    require_bound_etf_holdings_adapter,
 )
 
 
@@ -554,6 +555,7 @@ def parse_holdings_table(
     table_rows: list[list[Any]],
     *,
     preserve_named_zero_rows: bool = False,
+    untyped_holding_type: str = "equity",
 ) -> list[CanonicalHoldingRow]:
     """Parse a generic holdings table into canonical rows."""
 
@@ -620,7 +622,7 @@ def parse_holdings_table(
             _clean(
                 _first(raw, ["asset class", "asset_class", "holding type", "security type", "type"])
             )
-            or "equity"
+            or untyped_holding_type
         ).lower()
         row_type = (
             "cash"
@@ -763,11 +765,15 @@ def parse_holdings_table(
     return rows
 
 
-def parse_holdings_csv(raw_csv: str) -> list[CanonicalHoldingRow]:
+def parse_holdings_csv(
+    raw_csv: str,
+    *,
+    untyped_holding_type: str = "equity",
+) -> list[CanonicalHoldingRow]:
     """Parse common issuer holdings CSV exports into canonical rows."""
 
     table_rows = list(csv.reader(StringIO(raw_csv.strip())))
-    return parse_holdings_table(table_rows)
+    return parse_holdings_table(table_rows, untyped_holding_type=untyped_holding_type)
 
 
 class _HTMLTableByIdParser(HTMLParser):
@@ -2536,19 +2542,6 @@ class PublicCsvHoldingsAdapter:
                     headers=self.source_request_headers(source_url=source_url),
                     follow_redirects=True,
                 )
-            # Some issuer WAFs reject httpx's transport while allowing the same
-            # public, unauthenticated URL through a browser-compatible requests
-            # transport.  Retry only that explicit status and keep the same
-            # issuer URL/headers; this is transport resilience, not provider
-            # substitution or a fallback-order change.
-            if getattr(response, "status_code", 200) == 403:
-                response = await asyncio.to_thread(
-                    requests.get,
-                    source_url,
-                    headers=self.source_request_headers(source_url=source_url),
-                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-                    allow_redirects=True,
-                )
             response.raise_for_status()
             raw_content = getattr(response, "content", None)
             response_text = response.text
@@ -2995,20 +2988,12 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
             # the independent EDGAR reconstruction path rather than treating the
             # issuer outage as a permanent capability failure. Preserve the route
             # error so the caller can expose the degraded provenance state.
-            if self.config.supports_sec_filing_fallback:
-                sec_result = await self._fetch_latest_sec_filing_holdings(
-                    symbol=symbol,
-                    issuer_product_id=issuer_product_id,
-                    identifiers=identifiers or {},
-                )
-                if sec_result is not None:
-                    sec_result.legal_metadata = {
-                        **(sec_result.legal_metadata or {}),
-                        "issuer_route_failure": str(route_error),
-                        "issuer_route_fallback": "sec_edgar_filing",
-                    }
-                    return sec_result
-            raise
+            return await self._sec_fallback_after_route_error(
+                route_error,
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+            )
         result.legal_metadata = {
             **(result.legal_metadata or {}),
             "source_access": self.config.source_access,
@@ -3091,14 +3076,46 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         end_date: date | None = None,
         max_filings: int = 5,
     ) -> HoldingsFetchResult | None:
+        from app.services.etf_holdings_edgar import (  # noqa: PLC0415
+            sec_fund_execution_scope,
+        )
+
+        async with sec_fund_execution_scope():
+            return await self._fetch_latest_sec_filing_holdings_in_scope(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
+                end_date=end_date,
+                max_filings=max_filings,
+            )
+
+    async def _fetch_latest_sec_filing_holdings_in_scope(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        identifiers: dict[str, str],
+        end_date: date | None = None,
+        max_filings: int = 5,
+    ) -> HoldingsFetchResult | None:
         sec_cik = _identifier(identifiers, "sec_cik")
         if not sec_cik:
             return None
+        if not _identifier(identifiers, "sec_series_id", "series_id") or not _identifier(
+            identifiers, "sec_class_id", "class_id"
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "SEC fallback requires committed fund series and class identity"
+            )
 
         from app.services.etf_holdings_edgar import (  # noqa: PLC0415
             LEGACY_HOLDINGS_FORMS,
             NPORT_FORMS,
+            _sec_get,
             discover_holdings_filings,
+        )
+        from app.services.etf_holdings_provider_bridge import (  # noqa: PLC0415
+            current_etf_holdings_request_identity,
         )
         from app.services.etf_holdings_sec import (  # noqa: PLC0415
             parse_sec_legacy_holdings_xml,
@@ -3116,11 +3133,17 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
             ),
         ]
         failures: list[str] = []
+        request_identity = current_etf_holdings_request_identity()
+        if request_identity is None:
+            raise ETFHoldingsRouteHeldError(
+                "SEC fallback requires a separate committed ETF request identity"
+            )
         for label, forms, parser, parser_version, source_format in attempts:
             try:
                 filings = await discover_holdings_filings(
                     cik=sec_cik,
                     forms=forms,
+                    request_identity=request_identity,
                     end_date=end_date,
                     max_filings=max_filings,
                 )
@@ -3128,78 +3151,72 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                 failures.append(f"{label} discovery failed: {exc}")
                 continue
 
-            async with httpx.AsyncClient(
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-            ) as client:
-                for filing in filings:
-                    try:
-                        response = await client.get(
-                            filing.filing_url,
-                            headers={"User-Agent": settings.EDGAR_USER_AGENT},
-                            follow_redirects=True,
-                        )
-                        response.raise_for_status()
-                        filing_identity: dict[str, str] = {}
-                        identity_status = "not_applicable"
-                        if source_format == "nport_xml":
-                            identity_matches, filing_identity, identity_status = (
-                                _sec_nport_identity_match(
-                                    response.text,
-                                    identifiers=identifiers,
-                                )
-                            )
-                            if not identity_matches:
-                                failures.append(
-                                    f"{label} {filing.accession_number} identity rejected: "
-                                    f"{identity_status} ({filing_identity})"
-                                )
-                                continue
-                        composition_date, rows = parser(response.text)
-                    except Exception as exc:  # noqa: BLE001 - try the next filing.
-                        failures.append(f"{label} {filing.accession_number} failed: {exc}")
-                        continue
-                    composition_date = composition_date or filing.report_date
-                    if not composition_date or not rows:
-                        failures.append(
-                            f"{label} {filing.accession_number} had no parseable holdings rows."
-                        )
-                        continue
-                    return HoldingsFetchResult(
-                        rows=rows,
-                        raw_text=response.text,
-                        source_url=filing.filing_url,
-                        source_identifier=filing.accession_number,
-                        legal_metadata={
-                            "source_access": "sec_filing",
-                            "source_provider": "sec",
-                            "adapter_key": self.adapter_key,
-                            "source_format": source_format,
-                            "route_resolution": "sec_edgar_filing_fallback",
-                            "composition_date": composition_date.isoformat(),
-                            "as_of_date": (
-                                filing.report_date.isoformat()
-                                if filing.report_date
-                                else composition_date.isoformat()
-                            ),
-                            "form": filing.form,
-                            "accession_number": filing.accession_number,
-                            "parser_version": parser_version,
-                            "snapshot_provenance": (
-                                "sec_nport_reconstructed_holdings"
-                                if parser_version == "sec-nport-v1"
-                                else "sec_legacy_reconstructed_holdings"
-                            ),
-                            "source_quality": "filing_reconstructed_holdings",
-                            "completeness_status": "filing_reconstructed",
-                            "filing_identity": filing_identity,
-                            "filing_identity_status": identity_status,
-                            "terms_note": "Reconstructed from SEC EDGAR public holdings filings.",
-                        },
+            for filing in filings:
+                try:
+                    response = await _sec_get(
+                        request_identity,
+                        operation="fetch_etf_holdings_sec_filing",
+                        url=filing.filing_url,
                     )
+                    response.raise_for_status()
+                    filing_identity: dict[str, str] = {}
+                    identity_status = "not_applicable"
+                    identity_matches, filing_identity, identity_status = _sec_nport_identity_match(
+                        response.text,
+                        identifiers=identifiers,
+                    )
+                    if not identity_matches:
+                        failures.append(
+                            f"{label} {filing.accession_number} identity rejected: "
+                            f"{identity_status} ({filing_identity})"
+                        )
+                        continue
+                    composition_date, rows = parser(response.text)
+                except Exception as exc:  # noqa: BLE001 - try the next filing.
+                    failures.append(f"{label} {filing.accession_number} failed: {exc}")
+                    continue
+                composition_date = composition_date or filing.report_date
+                if not composition_date or not rows:
+                    failures.append(
+                        f"{label} {filing.accession_number} had no parseable holdings rows."
+                    )
+                    continue
+                return HoldingsFetchResult(
+                    rows=rows,
+                    raw_text=response.text,
+                    source_url=filing.filing_url,
+                    source_identifier=filing.accession_number,
+                    legal_metadata={
+                        "source_access": "sec_filing",
+                        "source_provider": "sec",
+                        "adapter_key": self.adapter_key,
+                        "source_format": source_format,
+                        "route_resolution": "sec_edgar_filing_fallback",
+                        "composition_date": composition_date.isoformat(),
+                        "as_of_date": (
+                            filing.report_date.isoformat()
+                            if filing.report_date
+                            else composition_date.isoformat()
+                        ),
+                        "form": filing.form,
+                        "accession_number": filing.accession_number,
+                        "parser_version": parser_version,
+                        "snapshot_provenance": (
+                            "sec_nport_reconstructed_holdings"
+                            if parser_version == "sec-nport-v1"
+                            else "sec_legacy_reconstructed_holdings"
+                        ),
+                        "source_quality": "filing_reconstructed_holdings",
+                        "completeness_status": "filing_reconstructed",
+                        "filing_identity": filing_identity,
+                        "filing_identity_status": identity_status,
+                        "terms_note": "Reconstructed from SEC EDGAR public holdings filings.",
+                    },
+                )
 
-        if failures:
-            raise ValueError("; ".join(failures))
-        return None
+        if not failures:
+            failures.append("SEC bounded discovery found no qualifying identity-matched filing.")
+        raise ValueError("; ".join(failures))
 
     async def fetch_for_date(
         self,
@@ -3603,7 +3620,10 @@ for _spdr_symbol in (
         _spdr_symbol,
         {
             "issuer": "State Street Global Advisors",
-            "provider_aliases": {"holdings_adapter": "spdr"},
+            "provider_aliases": {
+                "holdings_adapter": "spdr",
+                "holdings_source_provider": "spdr",
+            },
         },
     )
 
@@ -5882,13 +5902,14 @@ class VoyaHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not resolved_url:
             raise ValueError(f"Voya holdings route not found for {normalized_symbol}.")
-        response = await asyncio.to_thread(
-            requests.get,
-            resolved_url,
-            headers=self.source_request_headers(source_url=resolved_url),
+        async with httpx.AsyncClient(
             timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+            follow_redirects=True,
+        ) as client:
+            response = await client.get(
+                resolved_url,
+                headers=self.source_request_headers(source_url=resolved_url),
+            )
         response.raise_for_status()
 
         rows, composition_date = self._parse_csv(response.text, symbol=normalized_symbol)
@@ -6308,16 +6329,15 @@ class RexHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not normalized_symbol:
             raise ValueError("REX holdings require an ETF symbol.")
         product_page_url = source_url or self._product_page_url(normalized_symbol)
-        # REX's WordPress form serves its CSV reliably through requests, while
-        # the same public endpoint rejects the async client's TLS fingerprint.
-        response = await asyncio.to_thread(
-            requests.post,
-            product_page_url,
-            data={"CSV": "Download CSV", "symbol": normalized_symbol},
-            headers=self._request_headers(product_page_url),
+        async with httpx.AsyncClient(
             timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+            follow_redirects=True,
+        ) as client:
+            response = await client.post(
+                product_page_url,
+                data={"CSV": "Download CSV", "symbol": normalized_symbol},
+                headers=self._request_headers(product_page_url),
+            )
         response.raise_for_status()
         rows = self._parse_csv(response.text, symbol=normalized_symbol)
         if not rows:
@@ -6718,8 +6738,6 @@ class KensingtonHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
     async def _fetch_holdings_csv(self, symbol: str) -> tuple[str, str]:
-        # Kensington's Cloudflare edge accepts its public CSV through the same
-        # browser-compatible requests transport used by the issuer's own site.
         headers = _issuer_page_request_headers(accept="text/csv,*/*")
         headers.update(
             {
@@ -6733,27 +6751,13 @@ class KensingtonHoldingsAdapter(IssuerCsvHoldingsAdapter):
             }
         )
 
-        def _request() -> requests.Response:
-            return requests.get(
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
                 self.HOLDINGS_URL,
                 headers=headers,
-                allow_redirects=True,
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                follow_redirects=True,
             )
-
-        response = await asyncio.to_thread(_request)
-        if response.status_code >= 400:
-            request = httpx.Request("GET", self.HOLDINGS_URL)
-            httpx_response = httpx.Response(
-                response.status_code,
-                request=request,
-                text=response.text,
-            )
-            raise httpx.HTTPStatusError(
-                f"Client error '{response.status_code}' for url '{self.HOLDINGS_URL}'",
-                request=request,
-                response=httpx_response,
-            )
+        response.raise_for_status()
         return response.text, str(response.url)
 
     @classmethod
@@ -6944,26 +6948,8 @@ class RayliantHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     async def _fetch_text(url: str, *, accept: str) -> str:
         headers = _issuer_page_request_headers(accept=accept)
-        try:
-            async with httpx.AsyncClient(
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.get(url, headers=headers, follow_redirects=True)
-            response.raise_for_status()
-            return response.text
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 403:
-                raise
-        # Rayliant's CDN permits the same public request through requests but
-        # currently rejects httpx's TLS fingerprint. Keep this as a narrow
-        # issuer-local transport fallback, not a generic provider fallback.
-        response = await asyncio.to_thread(
-            requests.get,
-            url,
-            headers=headers,
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(url, headers=headers, follow_redirects=True)
         response.raise_for_status()
         return response.text
 
@@ -8378,34 +8364,15 @@ class GabelliHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         headers = _issuer_page_request_headers(accept="text/csv,text/plain,*/*")
         headers["Referer"] = f"https://gabelli.com/ticker/{normalized_symbol.lower()}/"
-        try:
-            async with httpx.AsyncClient(
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.get(
-                    resolved_source_url,
-                    headers=headers,
-                    follow_redirects=True,
-                )
-            response.raise_for_status()
-            raw_csv = response.text
-            fetched_url = str(response.url)
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 403:
-                raise
-            # Gabelli's CDN permits the same public CSV through requests but
-            # rejects httpx's TLS fingerprint. Keep this transport fallback
-            # limited to this issuer-native route.
-            fallback_response = await asyncio.to_thread(
-                requests.get,
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
                 resolved_source_url,
                 headers=headers,
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-                allow_redirects=True,
+                follow_redirects=True,
             )
-            fallback_response.raise_for_status()
-            raw_csv = fallback_response.text
-            fetched_url = str(fallback_response.url)
+        response.raise_for_status()
+        raw_csv = response.text
+        fetched_url = str(response.url)
         rows, composition_date = self._parse_daily_holdings_csv(raw_csv, symbol=normalized_symbol)
         if not rows:
             raise ValueError(
@@ -9131,34 +9098,10 @@ class ArtemisHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     async def _fetch_product_page(url: str) -> httpx.Response | requests.Response:
         headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
-        try:
-            async with httpx.AsyncClient(
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.get(url, headers=headers, follow_redirects=True)
-            response.raise_for_status()
-            return response
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 403:
-                raise
-        # ARS uses a Cloudflare edge that intermittently rejects httpx while
-        # accepting the same public page through a browser-compatible client.
-        for attempt in range(3):
-            try:
-                response = await asyncio.to_thread(
-                    requests.get,
-                    url,
-                    headers=headers,
-                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-                    allow_redirects=True,
-                )
-                response.raise_for_status()
-                return response
-            except requests.exceptions.Timeout:
-                if attempt == 2:
-                    raise
-                await asyncio.sleep(0.25 * (attempt + 1))
-        raise AssertionError("unreachable")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(url, headers=headers, follow_redirects=True)
+        response.raise_for_status()
+        return response
 
     @classmethod
     def _parse_holdings_html(
@@ -17615,15 +17558,30 @@ class NationalSecurityIndexHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 f"NSI Holdings has no configured native holdings route for {normalized_symbol}."
             )
 
-        holdings_url = self._resolve_holdings_url(product_url, symbol=normalized_symbol)
-        response = requests.get(
-            holdings_url,
-            headers={
-                **_issuer_page_request_headers(accept="text/csv,*/*"),
-                "Referer": product_url,
-            },
+        async with httpx.AsyncClient(
             timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-        )
+            follow_redirects=True,
+        ) as client:
+            product_response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            final_product_url = str(getattr(product_response, "url", product_url))
+            holdings_url = self._resolve_holdings_url(
+                product_response.text,
+                product_page_url=final_product_url,
+                symbol=normalized_symbol,
+            )
+            response = await client.get(
+                holdings_url,
+                headers={
+                    **_issuer_page_request_headers(accept="text/csv,*/*"),
+                    "Referer": final_product_url,
+                },
+                follow_redirects=True,
+            )
         response.raise_for_status()
         raw_csv = response.text
         rows, composition_date = self._parse_holdings_csv(raw_csv, symbol=normalized_symbol)
@@ -17653,21 +17611,14 @@ class NationalSecurityIndexHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
     @classmethod
-    def _resolve_holdings_url(cls, product_url: str, *, symbol: str) -> str:
-        response = requests.get(
-            product_url,
-            headers=_issuer_page_request_headers(),
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-        )
-        response.raise_for_status()
-        text = response.text
-        if cls._EXPECTED_TITLE not in text or not re.search(r"\bNSI\b", text):
+    def _resolve_holdings_url(cls, product_page: str, *, product_page_url: str, symbol: str) -> str:
+        if cls._EXPECTED_TITLE not in product_page or not re.search(r"\bNSI\b", product_page):
             raise ValueError("NSI Holdings product page identity did not match NSI.")
-        if cls._HOLDINGS_PATH not in text:
+        if cls._HOLDINGS_PATH not in product_page:
             raise ValueError("NSI Holdings product page did not declare its holdings CSV.")
         if symbol != "NSI":
             raise ValueError(f"NSI Holdings product page route does not support {symbol}.")
-        return urljoin(str(response.url), cls._HOLDINGS_PATH)
+        return urljoin(product_page_url, cls._HOLDINGS_PATH)
 
     @classmethod
     def _parse_holdings_csv(
@@ -29102,66 +29053,79 @@ class CohenSteersHoldingsAdapter(IssuerCsvHoldingsAdapter):
         normalized_symbol = symbol.strip().upper()
         if not normalized_symbol:
             raise ValueError("Cohen & Steers holdings require an ETF symbol.")
+        require_bound_etf_holdings_adapter(self)
         headers = _issuer_page_request_headers(accept="application/json,*/*")
         fund_id = issuer_product_id or _identifier(
             identifiers or {}, "issuer_product_id", "fund_id"
         )
-        if not fund_id:
-            fund_id = await self._resolve_fund_id(symbol=normalized_symbol, headers=headers)
-        response = await asyncio.to_thread(
-            requests.get,
-            self.fund_url,
-            params={"action": "load_fund", "id": fund_id},
-            headers=headers,
+        async with httpx.AsyncClient(
             timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        rows, composition_date = self._parse_fund_payload(payload, symbol=normalized_symbol)
-        if not rows:
-            raise ValueError(
-                f"Cohen & Steers fund API returned no complete holdings for {normalized_symbol}."
+            follow_redirects=True,
+        ) as client:
+            if not fund_id:
+                fund_id = await self._resolve_fund_id(
+                    client=client,
+                    symbol=normalized_symbol,
+                    headers=headers,
+                )
+            response = await client.get(
+                self.fund_url,
+                params={"action": "load_fund", "id": fund_id},
+                headers=headers,
+                follow_redirects=True,
             )
-        return HoldingsFetchResult(
-            rows=rows,
-            raw_text=response.text,
-            raw_json=payload,
-            source_url=f"{self.fund_url}?action=load_fund&id={fund_id}",
-            source_identifier=str(fund_id),
-            legal_metadata={
-                "source_access": self.config.source_access,
-                "source_provider": self.source_provider,
-                "adapter_key": self.adapter_key,
-                "source_format": "json",
-                "route_resolution": "cohen_steers_public_fund_api",
-                "composition_date": composition_date.isoformat() if composition_date else None,
-                "as_of_date": composition_date.isoformat() if composition_date else None,
-                "terms_note": self.config.terms_note,
-            },
-        )
+            response.raise_for_status()
+            payload = response.json()
+            rows, composition_date = self._parse_fund_payload(payload, symbol=normalized_symbol)
+            if not rows:
+                raise ValueError(
+                    f"Cohen & Steers fund API returned no complete holdings for {normalized_symbol}."
+                )
+            return HoldingsFetchResult(
+                rows=rows,
+                raw_text=response.text,
+                raw_json=payload,
+                source_url=f"{self.fund_url}?action=load_fund&id={fund_id}",
+                source_identifier=str(fund_id),
+                legal_metadata={
+                    "source_access": self.config.source_access,
+                    "source_provider": self.source_provider,
+                    "adapter_key": self.adapter_key,
+                    "source_format": "json",
+                    "route_resolution": "cohen_steers_public_fund_api",
+                    "composition_date": composition_date.isoformat() if composition_date else None,
+                    "as_of_date": composition_date.isoformat() if composition_date else None,
+                    "terms_note": self.config.terms_note,
+                },
+            )
 
-    async def _resolve_fund_id(self, *, symbol: str, headers: dict[str, str]) -> str:
-        sitemap_response = await asyncio.to_thread(
-            requests.get,
+    async def _resolve_fund_id(
+        self,
+        *,
+        client: httpx.AsyncClient,
+        symbol: str,
+        headers: dict[str, str],
+    ) -> str:
+        sitemap_response = await client.get(
             self.fund_sitemap_url,
             headers=headers,
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            follow_redirects=True,
         )
         sitemap_response.raise_for_status()
         page_urls = re.findall(r"<loc>(?P<url>.*?)</loc>", sitemap_response.text, re.IGNORECASE)
         if not page_urls:
             raise ValueError("Cohen & Steers fund sitemap did not expose fund pages.")
 
-        def _fetch_page(url: str) -> tuple[str, str]:
-            response = requests.get(
+        async def _fetch_page(url: str) -> tuple[str, str]:
+            response = await client.get(
                 html.unescape(url),
                 headers=headers,
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                follow_redirects=True,
             )
             response.raise_for_status()
             return str(response.url), response.text
 
-        pages = await asyncio.gather(*(asyncio.to_thread(_fetch_page, url) for url in page_urls))
+        pages = await asyncio.gather(*(_fetch_page(url) for url in page_urls))
         for page_url, page_text in pages:
             fund_id = self._extract_fund_id(page_text, symbol=symbol)
             if fund_id:
@@ -38431,10 +38395,9 @@ class ETFArchitectHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     @staticmethod
     async def _fetch_product_page(product_page_url: str) -> tuple[str, str]:
-        """Fetch the issuer page with its narrowly required public transport fallback."""
+        """Fetch the issuer page using only separately governed HTTPX attempts."""
 
         headers = _issuer_page_request_headers(accept="text/html,*/*")
-        httpx_access_refusal = False
         for attempt in range(3):
             try:
                 async with httpx.AsyncClient(
@@ -38446,52 +38409,10 @@ class ETFArchitectHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 response.raise_for_status()
                 return str(getattr(response, "url", product_page_url)), response.text
             except httpx.HTTPStatusError as exc:
-                if exc.response.status_code not in {403, 500, 502, 503, 504}:
+                if exc.response.status_code not in {500, 502, 503, 504} or attempt == 2:
                     raise
-                httpx_access_refusal = exc.response.status_code == 403
-                break
-            except httpx.TimeoutException:
-                if attempt == 2:
-                    break
                 await asyncio.sleep(0.25 * (attempt + 1))
-
-        # Alpha Architect accepts the same public issuer-page request through
-        # requests but rejects httpx's TLS fingerprint. This stays local to the
-        # provider instead of becoming a generic fallback for all issuers.
-        for attempt in range(3):
-            try:
-                response = await asyncio.to_thread(
-                    requests.get,
-                    product_page_url,
-                    headers=headers,
-                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-                    allow_redirects=True,
-                )
-                if response.status_code in {429, 500, 502, 503, 504}:
-                    if attempt == 2:
-                        response.raise_for_status()
-                    await asyncio.sleep(0.25 * (attempt + 1))
-                    continue
-                response.raise_for_status()
-                response_text = response.text
-                is_empty = not response_text.strip()
-                is_challenge = _looks_like_issuer_access_challenge(response_text)
-                if is_empty or is_challenge:
-                    if attempt < 2:
-                        await asyncio.sleep(0.25 * (attempt + 1))
-                        continue
-                    if is_challenge or httpx_access_refusal:
-                        raise ValueError(
-                            "ETF Architect issuer access challenge persisted after the "
-                            "httpx request was denied and requests returned no usable "
-                            "product-page HTML."
-                        )
-                    raise ValueError(
-                        "ETF Architect product page returned an empty HTTP 200 body "
-                        "after three requests."
-                    )
-                return str(getattr(response, "url", product_page_url)), response_text
-            except requests.Timeout:
+            except httpx.TimeoutException:
                 if attempt == 2:
                     raise
                 await asyncio.sleep(0.25 * (attempt + 1))
@@ -45818,14 +45739,6 @@ class InnovatorHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 resolved_source_url,
                 headers=self.source_request_headers(source_url=resolved_source_url),
                 follow_redirects=True,
-            )
-        if getattr(response, "status_code", 200) == 403:
-            response = await asyncio.to_thread(
-                requests.get,
-                resolved_source_url,
-                headers=self.source_request_headers(source_url=resolved_source_url),
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-                allow_redirects=True,
             )
         response.raise_for_status()
         rows, composition_date = self._parse_innovator_csv(
@@ -53336,17 +53249,8 @@ class SaracenHoldingsAdapter(IssuerCsvHoldingsAdapter):
         url: str,
         *,
         headers: dict[str, str],
-    ) -> httpx.Response | requests.Response:
-        response = await client.get(url, headers=headers, follow_redirects=True)
-        if getattr(response, "status_code", None) != 403:
-            return response
-        return await asyncio.to_thread(
-            requests.get,
-            url,
-            headers=headers,
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+    ) -> httpx.Response:
+        return await client.get(url, headers=headers, follow_redirects=True)
 
     @staticmethod
     async def _browser_compatible_post(
@@ -53355,18 +53259,8 @@ class SaracenHoldingsAdapter(IssuerCsvHoldingsAdapter):
         *,
         headers: dict[str, str],
         data: dict[str, str],
-    ) -> httpx.Response | requests.Response:
-        response = await client.post(url, headers=headers, data=data, follow_redirects=True)
-        if getattr(response, "status_code", None) != 403:
-            return response
-        return await asyncio.to_thread(
-            requests.post,
-            url,
-            headers=headers,
-            data=data,
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            allow_redirects=True,
-        )
+    ) -> httpx.Response:
+        return await client.post(url, headers=headers, data=data, follow_redirects=True)
 
     @staticmethod
     def _resolve_feed_ajax_params(page_text: str) -> tuple[str, str]:
@@ -57880,27 +57774,11 @@ class FMInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         *,
         headers: dict[str, str],
     ) -> tuple[str, str]:
-        try:
-            response = await client.get(
-                source_url,
-                headers=headers,
-                follow_redirects=True,
-            )
-            response.raise_for_status()
-            return str(getattr(response, "url", source_url)), response.text
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 403:
-                raise
-
-        def _request() -> requests.Response:
-            return requests.get(
-                source_url,
-                headers=headers,
-                allow_redirects=True,
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            )
-
-        response = await asyncio.to_thread(_request)
+        response = await client.get(
+            source_url,
+            headers=headers,
+            follow_redirects=True,
+        )
         response.raise_for_status()
         return str(getattr(response, "url", source_url)), response.text
 
@@ -60102,29 +59980,13 @@ class BondBloxxHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str,
     ) -> tuple[str, str]:
         headers = self.source_request_headers(source_url=source_url)
-        try:
-            response = await client.get(
-                source_url,
-                headers=headers,
-                follow_redirects=True,
-            )
-            response.raise_for_status()
-            return str(response.url), response.text
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 403:
-                raise
-
-        def _request() -> requests.Response:
-            return requests.get(
-                source_url,
-                headers=headers,
-                allow_redirects=True,
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            )
-
-        response = await asyncio.to_thread(_request)
+        response = await client.get(
+            source_url,
+            headers=headers,
+            follow_redirects=True,
+        )
         response.raise_for_status()
-        return str(getattr(response, "url", source_url)), response.text
+        return str(response.url), response.text
 
     async def _discover_product_page_urls(self, client: httpx.AsyncClient) -> list[str]:
         _, raw_xml = await self._fetch_html(client, self.sitemap_url)
@@ -61039,30 +60901,40 @@ class KranesharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
         if source_url:
-            return await self._fetch_csv_source(
-                symbol=symbol,
-                issuer_product_id=issuer_product_id,
-                source_url=source_url,
-            )
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                follow_redirects=True,
+            ) as client:
+                return await self._fetch_csv_source(
+                    client=client,
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    source_url=source_url,
+                )
 
         if not source_url:
             normalized_symbol = symbol.strip().lower()
-            for days_back in range(self.latest_lookback_days + 1):
-                source_date = date.today() - timedelta(days=days_back)
-                candidate_url = (
-                    "https://kraneshares.com/csv/"
-                    f"{source_date.strftime('%m_%d_%Y')}_{normalized_symbol}_holdings.csv"
-                )
-                try:
-                    return await self._fetch_csv_source(
-                        symbol=symbol,
-                        issuer_product_id=issuer_product_id,
-                        source_url=candidate_url,
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                follow_redirects=True,
+            ) as client:
+                for days_back in range(self.latest_lookback_days + 1):
+                    source_date = date.today() - timedelta(days=days_back)
+                    candidate_url = (
+                        "https://kraneshares.com/csv/"
+                        f"{source_date.strftime('%m_%d_%Y')}_{normalized_symbol}_holdings.csv"
                     )
-                except httpx.HTTPStatusError as exc:
-                    if exc.response.status_code in {403, 404}:
-                        continue
-                    raise
+                    try:
+                        return await self._fetch_csv_source(
+                            client=client,
+                            symbol=symbol,
+                            issuer_product_id=issuer_product_id,
+                            source_url=candidate_url,
+                        )
+                    except httpx.HTTPStatusError as exc:
+                        if exc.response.status_code in {403, 404}:
+                            continue
+                        raise
         result = await super().fetch_latest(
             symbol=symbol,
             issuer_product_id=issuer_product_id,
@@ -61081,40 +60953,25 @@ class KranesharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     async def _fetch_csv_source(
         self,
         *,
+        client: httpx.AsyncClient,
         symbol: str,
         issuer_product_id: str | None,
         source_url: str,
     ) -> HoldingsFetchResult:
         headers = self.source_request_headers(source_url=source_url)
-
-        def _request() -> requests.Response:
-            return requests.get(
-                source_url,
-                headers=headers,
-                allow_redirects=True,
-                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
-            )
-
-        response = await asyncio.to_thread(_request)
-        if response.status_code >= 400:
-            request = httpx.Request("GET", source_url)
-            httpx_response = httpx.Response(
-                response.status_code,
-                request=request,
-                text=response.text,
-            )
-            raise httpx.HTTPStatusError(
-                f"Client error '{response.status_code}' for url '{source_url}'",
-                request=request,
-                response=httpx_response,
-            )
+        response = await client.get(
+            source_url,
+            headers=headers,
+            follow_redirects=True,
+        )
+        response.raise_for_status()
         rows = parse_holdings_csv(response.text)
         as_of_date = self._extract_as_of_date(response.text)
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
             raw_json=None,
-            source_url=str(response.url),
+            source_url=str(getattr(response, "url", source_url)),
             source_identifier=issuer_product_id or symbol.strip().upper(),
             legal_metadata={
                 "source_access": self.config.source_access,
@@ -61207,30 +61064,35 @@ class CiccHoldingsAdapter(KranesharesHoldingsAdapter):
         if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
             raise ValueError("CICC issuer product identity must match the requested ETF symbol.")
 
-        for days_back in range(self.latest_lookback_days + 1):
-            source_date = date.today() - timedelta(days=days_back)
-            candidate_url = (
-                "https://kraneshares.com/csv/"
-                f"{source_date.strftime('%m_%d_%Y')}_{normalized_symbol.lower()}_holdings.csv"
-            )
-            try:
-                result = await self._fetch_csv_source(
-                    symbol=normalized_symbol,
-                    issuer_product_id=normalized_symbol,
-                    source_url=candidate_url,
+        async with httpx.AsyncClient(
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            follow_redirects=True,
+        ) as client:
+            for days_back in range(self.latest_lookback_days + 1):
+                source_date = date.today() - timedelta(days=days_back)
+                candidate_url = (
+                    "https://kraneshares.com/csv/"
+                    f"{source_date.strftime('%m_%d_%Y')}_{normalized_symbol.lower()}_holdings.csv"
                 )
-            except httpx.HTTPStatusError as exc:
-                if exc.response.status_code in {403, 404}:
-                    continue
-                raise
-            result.legal_metadata = {
-                **(result.legal_metadata or {}),
-                "adapter_key": self.adapter_key,
-                "source_provider": self.source_provider,
-                "publisher": "kraneshares",
-                "route_resolution": "cicc_kraneshares_dated_csv_lookback",
-            }
-            return result
+                try:
+                    result = await self._fetch_csv_source(
+                        client=client,
+                        symbol=normalized_symbol,
+                        issuer_product_id=normalized_symbol,
+                        source_url=candidate_url,
+                    )
+                except httpx.HTTPStatusError as exc:
+                    if exc.response.status_code in {403, 404}:
+                        continue
+                    raise
+                result.legal_metadata = {
+                    **(result.legal_metadata or {}),
+                    "adapter_key": self.adapter_key,
+                    "source_provider": self.source_provider,
+                    "publisher": "kraneshares",
+                    "route_resolution": "cicc_kraneshares_dated_csv_lookback",
+                }
+                return result
 
         raise ValueError(
             f"CICC's KraneShares publisher did not return current {normalized_symbol} holdings."
@@ -61265,30 +61127,35 @@ class ManGroupHoldingsAdapter(KranesharesHoldingsAdapter):
                 "Man Group issuer product identity must match the requested ETF symbol."
             )
 
-        for days_back in range(self.latest_lookback_days + 1):
-            source_date = date.today() - timedelta(days=days_back)
-            candidate_url = (
-                "https://kraneshares.com/csv/"
-                f"{source_date.strftime('%m_%d_%Y')}_{normalized_symbol.lower()}_holdings.csv"
-            )
-            try:
-                result = await self._fetch_csv_source(
-                    symbol=normalized_symbol,
-                    issuer_product_id=normalized_symbol,
-                    source_url=candidate_url,
+        async with httpx.AsyncClient(
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            follow_redirects=True,
+        ) as client:
+            for days_back in range(self.latest_lookback_days + 1):
+                source_date = date.today() - timedelta(days=days_back)
+                candidate_url = (
+                    "https://kraneshares.com/csv/"
+                    f"{source_date.strftime('%m_%d_%Y')}_{normalized_symbol.lower()}_holdings.csv"
                 )
-            except httpx.HTTPStatusError as exc:
-                if exc.response.status_code in {403, 404}:
-                    continue
-                raise
-            result.legal_metadata = {
-                **(result.legal_metadata or {}),
-                "adapter_key": self.adapter_key,
-                "source_provider": self.source_provider,
-                "publisher": "kraneshares",
-                "route_resolution": "man_group_kraneshares_dated_csv_lookback",
-            }
-            return result
+                try:
+                    result = await self._fetch_csv_source(
+                        client=client,
+                        symbol=normalized_symbol,
+                        issuer_product_id=normalized_symbol,
+                        source_url=candidate_url,
+                    )
+                except httpx.HTTPStatusError as exc:
+                    if exc.response.status_code in {403, 404}:
+                        continue
+                    raise
+                result.legal_metadata = {
+                    **(result.legal_metadata or {}),
+                    "adapter_key": self.adapter_key,
+                    "source_provider": self.source_provider,
+                    "publisher": "kraneshares",
+                    "route_resolution": "man_group_kraneshares_dated_csv_lookback",
+                }
+                return result
 
         raise ValueError(
             f"Man Group's KraneShares publisher did not return current {normalized_symbol} holdings."
@@ -62755,15 +62622,14 @@ class PeakSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         fund_id: str,
         referer: str,
     ) -> httpx.Response:
-        # FilePoint can intermittently stall through httpx while the same
-        # verified issuer route remains available through a browser-like
-        # requests transport. Keep the fallback scoped to PeakShares fund ids.
+        # Each retry stays on the Provider-backed client so every physical
+        # request receives its own admission and settlement. Never escape to
+        # the intentionally fail-closed requests namespace after timeouts.
         headers = {
             **_holdings_request_headers(accept="application/json,text/plain,*/*"),
             "Origin": "https://www.peaksharesfunds.com",
             "Referer": referer,
         }
-        timeout = settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
         for attempt in range(3):
             try:
                 return await client.post(
@@ -62773,23 +62639,10 @@ class PeakSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     follow_redirects=True,
                 )
             except httpx.TimeoutException:
-                if attempt != 2:
-                    await asyncio.sleep(0.25 * (attempt + 1))
-        response = await asyncio.to_thread(
-            requests.post,
-            self.HOLDINGS_URL,
-            data={"fundID": fund_id},
-            headers=headers,
-            timeout=timeout,
-            allow_redirects=True,
-        )
-        request = httpx.Request("POST", str(response.url))
-        return httpx.Response(
-            status_code=response.status_code,
-            request=request,
-            headers=response.headers,
-            content=response.content,
-        )
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(0.25 * (attempt + 1))
+        raise AssertionError("PeakShares retry loop exited without a response or timeout.")
 
     @staticmethod
     def _validate_product_page(raw_html: str, *, symbol: str, fund_id: str) -> None:
@@ -71862,7 +71715,98 @@ for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
     )
 
 
-_FALLBACK_AUDIT_DATE = date(2026, 7, 26)
+# The runtime summary date must match the current durable provider-audit record
+# for each still-fallback identity. It records when that identity's evidence was
+# last investigated; it does not imply an executable route or current holdings.
+_FALLBACK_AUDIT_LAST_CHECKED_BY_KEY: dict[str, date] = {
+    adapter_key: date.fromisoformat(last_checked)
+    for last_checked, adapter_keys in {
+        "2026-09-02": (
+            "ea_series_trust",
+            "elements",
+            "emirate_abu_dhabi",
+            "fcf_advisors",
+            "formula_folio",
+            "fpa",
+        ),
+        "2026-09-03": (
+            "epiris",
+            "eurazeo",
+            "gc_ferry_parent",
+            "genter_capital",
+            "granite_group_advisors",
+            "horizons",
+            "hoya",
+            "m2_financial",
+            "madison_avenue",
+            "marathon",
+            "merchant_investment_management",
+            "merk",
+            "merlyn_ai",
+            "msc_group",
+            "new_age_alpha",
+            "orix",
+            "panagram",
+            "riverfront",
+            "roc",
+            "rock_point",
+        ),
+        "2026-09-04": ("swedish_export_credit",),
+        "2026-09-25": (
+            "alphamark_advisors",
+            "amg_national",
+            "azimut",
+            "credit_suisse",
+            "desjardins",
+            "dvx_ventures",
+        ),
+        "2026-10-02": (
+            "alphaclone",
+            "anfield",
+            "avos",
+            "discipline_funds",
+            "etf_managers_group",
+            "epwa",
+            "first_manhattan",
+            "highland_capital",
+            "matrix",
+            "nicholas_wealth",
+            "pabrai",
+            "parnassus_investments",
+            "performance_trust",
+            "planrock",
+            "premise_capital",
+            "putnam",
+            "pzena",
+            "rareview_funds",
+            "ridgeline",
+            "saturna",
+            "segall_bryant_hamill",
+            "siren",
+            "sophus",
+            "strategy_shares",
+            "subversive",
+            "suncoast",
+            "towle",
+            "tweedy_browne",
+            "us_benchmark_series",
+            "vega_financial",
+            "wellesley_asset_management",
+            "worth_charting",
+            "yoke",
+        ),
+        "2026-10-04": ("north_square", "pacific_investments"),
+        "2026-10-05": (
+            "advisors_asset_management",
+            "aegon",
+            "guinness_atkinson",
+            "manulife",
+            "q3",
+            "westwood",
+        ),
+    }.items()
+    for adapter_key in adapter_keys
+}
 
 # These identities remain registered because ETF discovery can identify them,
 # but they are not native provider integrations. The manifest is deliberately
@@ -71957,7 +71901,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
 }
 
 
-def _fallback_audit(status: str) -> IssuerFallbackAudit:
+def _fallback_audit(status: str, adapter_key: str) -> IssuerFallbackAudit:
     details = {
         "not_verified_us_etf_publisher": (
             "The discovered identity is not yet verified as an independent U.S. ETF "
@@ -72000,12 +71944,12 @@ def _fallback_audit(status: str) -> IssuerFallbackAudit:
         status=status,
         reason=reason,
         next_action=next_action,
-        last_checked=_FALLBACK_AUDIT_DATE,
+        last_checked=_FALLBACK_AUDIT_LAST_CHECKED_BY_KEY[adapter_key],
     )
 
 
 FALLBACK_ISSUER_AUDITS: dict[str, IssuerFallbackAudit] = {
-    adapter_key: _fallback_audit(status)
+    adapter_key: _fallback_audit(status, adapter_key)
     for status, adapter_keys in _FALLBACK_AUDITS_BY_STATUS.items()
     for adapter_key in adapter_keys
 }

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
 
-from app.models.etf_holdings import ETFHolding
+from app.models.etf_holdings import ETFHolding, ETFHoldingsAdapterState
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
@@ -18,10 +18,12 @@ from app.services.etf_holdings import (
     _snapshot_hash,
     ensure_etf_profile,
     ensure_lightweight_etf_instrument,
+    get_holdings_page,
     ingest_holdings_snapshot,
     reconcile_snapshot_constituents,
 )
 from app.services.etf_holdings_adapters import CanonicalHoldingRow
+from app.services.etf_holdings_capability import evaluate_capability
 from app.services.etf_holdings_refresh import reconcile_all_etf_holdings_classifications
 from app.services.instrument_mastering import ensure_instrument_type, register_identifier
 
@@ -171,6 +173,258 @@ async def test_ingest_persists_none_for_unclassified_source_tier(db):
 
 
 @pytest.mark.asyncio
+async def test_manual_import_cannot_claim_native_current_or_refresh_adapter_health(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="SPY",
+        name="SPDR S&P 500 ETF Trust",
+    )
+    now = datetime.now(UTC)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: now)
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[
+            CanonicalHoldingRow(
+                symbol=instrument.symbol,
+                name=instrument.name,
+                weight=Decimal("1"),
+                currency="USD",
+                holding_type="equity",
+                row_type="security",
+            )
+        ],
+        composition_date=now.date(),
+        known_at=now,
+        published_at=now,
+        provenance="issuer_current_holdings",
+        source_provider="spdr",
+        source_quality="issuer_current",
+        completeness_status="complete",
+        legal_metadata={
+            "source_tier": "issuer_native",
+            "artifact_identity_validation": {"status": "matched"},
+        },
+        allow_provider_enrichment=False,
+        manual_import=True,
+    )
+    profile = await ensure_etf_profile(async_db, etf_instrument)
+
+    assert snapshot.extra_data["source_tier"] == "none"
+    assert snapshot.extra_data["legal_metadata"]["ingestion_mode"] == "manual_import"
+    assert snapshot.extra_data["legal_metadata"]["source_tier"] == "none"
+    assert profile.legal_metadata["ingestion_mode"] == "manual_import"
+    assert profile.legal_metadata["source_tier"] == "none"
+    assert (
+        db.execute(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                ETFHoldingsAdapterState.adapter_key == "spdr",
+            )
+        ).scalar_one_or_none()
+        is None
+    )
+
+    capability = evaluate_capability(profile, snapshot, None, now=now)
+    assert capability.availability == "degraded"
+    assert capability.source_tier == "none"
+    assert not capability.usable_for_current_analysis
+
+
+@pytest.mark.asyncio
+async def test_manual_import_known_at_uses_import_time_and_preserves_pit_cutoff(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="RSST",
+        name="Return Stacked U.S. Stocks & Managed Futures ETF",
+    )
+    import_time = datetime(2026, 10, 23, 10, 0, tzinfo=UTC)
+    composition_date = date(2026, 10, 15)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: import_time)
+    row = CanonicalHoldingRow(
+        symbol=instrument.symbol,
+        name=instrument.name,
+        weight=Decimal("1"),
+        holding_type="equity",
+        row_type="security",
+    )
+
+    with pytest.raises(ValueError, match="cannot predate the import time"):
+        await ingest_holdings_snapshot(
+            async_db,
+            etf_instrument=etf_instrument,
+            rows=[row],
+            composition_date=composition_date,
+            known_at=datetime(2026, 10, 15, 19, 9, 11, tzinfo=UTC),
+            provenance="manual_import",
+            source_provider="manual_csv",
+            source_url="https://issuer.example/retained-artifact.csv",
+            source_quality="unknown",
+            completeness_status="unknown",
+            raw_payload_text="Ticker,Weight\nMSFT,100%\n",
+            legal_metadata={"source_tier": "none"},
+            allow_provider_enrichment=False,
+            manual_import=True,
+        )
+
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[row],
+        composition_date=composition_date,
+        provenance="manual_import",
+        source_provider="manual_csv",
+        source_url="https://issuer.example/retained-artifact.csv",
+        source_quality="unknown",
+        completeness_status="unknown",
+        raw_payload_text="Ticker,Weight\nMSFT,100%\n",
+        legal_metadata={"source_tier": "none"},
+        allow_provider_enrichment=False,
+        manual_import=True,
+    )
+
+    persisted_known_at = snapshot.known_at
+    if persisted_known_at.tzinfo is None:
+        persisted_known_at = persisted_known_at.replace(tzinfo=UTC)
+    assert persisted_known_at == import_time
+    assert (
+        await get_holdings_page(
+            async_db,
+            "RSST",
+            snapshot_date=composition_date,
+            point_in_time=True,
+        )
+        is None
+    )
+    assert await get_holdings_page(async_db, "RSST", snapshot_id=snapshot.id) is not None
+
+
+@pytest.mark.asyncio
+async def test_manual_sec_import_retains_sec_source_tier_without_native_adapter_health(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="SECX",
+        name="Synthetic SEC Filing ETF",
+    )
+    now = datetime.now(UTC)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: now)
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[
+            CanonicalHoldingRow(
+                symbol=instrument.symbol,
+                name=instrument.name,
+                weight=Decimal("1"),
+                currency="USD",
+                holding_type="equity",
+                row_type="security",
+            )
+        ],
+        composition_date=now.date(),
+        published_at=datetime(2026, 10, 1, tzinfo=UTC),
+        provenance="sec_filing",
+        source_provider="sec",
+        source_quality="sec_filing",
+        completeness_status="filing_reconstructed",
+        legal_metadata={"source_tier": "issuer_native"},
+        allow_provider_enrichment=False,
+        manual_import=True,
+    )
+    profile = await ensure_etf_profile(async_db, etf_instrument)
+    profile.adapter_key = "spdr"
+
+    assert snapshot.extra_data["source_tier"] == "sec_filing"
+    assert snapshot.extra_data["legal_metadata"]["source_tier"] == "sec_filing"
+    persisted_known_at = snapshot.known_at
+    if persisted_known_at.tzinfo is None:
+        persisted_known_at = persisted_known_at.replace(tzinfo=UTC)
+    persisted_published_at = snapshot.published_at
+    if persisted_published_at.tzinfo is None:
+        persisted_published_at = persisted_published_at.replace(tzinfo=UTC)
+    assert persisted_known_at == now
+    assert persisted_published_at == datetime(2026, 10, 1, tzinfo=UTC)
+    assert profile.legal_metadata["source_tier"] == "sec_filing"
+    assert (
+        db.execute(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                ETFHoldingsAdapterState.adapter_key == "sec",
+            )
+        ).scalar_one_or_none()
+        is None
+    )
+
+    capability = evaluate_capability(profile, snapshot, None, now=now)
+    assert capability.availability == "degraded"
+    assert capability.source_tier == "sec_filing"
+    assert not capability.usable_for_current_analysis
+
+
+@pytest.mark.asyncio
+async def test_automated_sec_reconstruction_does_not_refresh_issuer_adapter_health(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="SECY",
+        name="Synthetic SEC Reconstruction ETF",
+    )
+    profile = await ensure_etf_profile(async_db, etf_instrument)
+    profile.adapter_key = "spdr"
+    await async_db.flush()
+
+    accepted_at = datetime(2026, 6, 1, 13, 45, tzinfo=UTC)
+    monkeypatch.setattr(
+        "app.services.etf_holdings._now", lambda: datetime(2026, 10, 23, tzinfo=UTC)
+    )
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[
+            CanonicalHoldingRow(
+                symbol=instrument.symbol,
+                name=instrument.name,
+                weight=Decimal("1"),
+                currency="USD",
+                holding_type="equity",
+                row_type="security",
+            )
+        ],
+        composition_date=date(2026, 5, 31),
+        known_at=accepted_at,
+        published_at=accepted_at,
+        provenance="sec_nport_reconstructed_holdings",
+        source_provider="sec",
+        source_quality="filing_reconstructed_holdings",
+        completeness_status="filing_reconstructed",
+        legal_metadata={"source_format": "nport_xml"},
+        allow_provider_enrichment=False,
+    )
+
+    assert snapshot.extra_data["source_tier"] == "sec_filing"
+    assert (
+        db.execute(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                ETFHoldingsAdapterState.adapter_key == "spdr",
+            )
+        ).scalar_one_or_none()
+        is None
+    )
+
+
+@pytest.mark.asyncio
 async def test_ingest_rejects_future_metadata_before_profile_hydration(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     etf_instrument = await ensure_lightweight_etf_instrument(
@@ -193,6 +447,17 @@ async def test_ingest_rejects_future_metadata_before_profile_hydration(db, monke
             etf_instrument=etf_instrument,
             rows=[],
             composition_date=date.today() + timedelta(days=1),
+            provenance="issuer_native",
+            source_provider="issuer-test",
+        )
+
+    with pytest.raises(ValueError, match="future known-at timestamp"):
+        await ingest_holdings_snapshot(
+            async_db,
+            etf_instrument=etf_instrument,
+            rows=[],
+            composition_date=date.today(),
+            known_at=datetime.now(UTC) + timedelta(days=1),
             provenance="issuer_native",
             source_provider="issuer-test",
         )
@@ -447,6 +712,82 @@ async def test_ingest_normalizes_legacy_equity_labels_without_rewriting_audit_ev
     assert snapshot.snapshot_hash == _snapshot_hash([row])
 
 
+@pytest.mark.parametrize("holding_type", ["Cash", "Currency", "Collateral"])
+def test_reconcile_does_not_treat_legacy_non_equity_labels_as_securities(holding_type):
+    row = ETFHolding(
+        reported_symbol="CASHROW",
+        row_type="Security",
+        holding_type=holding_type,
+        is_resolved=False,
+    )
+
+    assert _holding_needs_reconcile(row) is False
+
+
+@pytest.mark.asyncio
+async def test_reconcile_retries_legacy_equity_labels_without_rewriting_source_evidence(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "test")
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: FakeMetadataProvider(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: pytest.fail("local reconciliation must not call identifier providers"),
+    )
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="LEGACYRECONETF",
+        name="Legacy Reconciliation ETF",
+    )
+    canonical_row = CanonicalHoldingRow(
+        symbol="LEGACYRECON",
+        name="Legacy Reconciliation Corporation",
+        currency="USD",
+        holding_type="Common Stock",
+        row_type="Security",
+    )
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[canonical_row],
+        composition_date=date(2026, 9, 30),
+        provenance="issuer_native",
+        source_provider="issuer-test",
+        completeness_status="complete",
+        allow_provider_enrichment=False,
+    )
+    db.flush()
+    db.refresh(snapshot)
+    holding = snapshot.rows[0]
+    instrument_id = holding.constituent_instrument_id
+    assert instrument_id is not None
+
+    # Model a persisted legacy row that remains unresolved and must be revisited
+    # by the later classification/reconciliation pass.
+    holding.constituent_instrument_id = None
+    holding.constituent_instrument = None
+    holding.is_resolved = False
+    snapshot.resolved_count = 0
+    snapshot.unresolved_count = 1
+    db.flush()
+
+    await reconcile_snapshot_constituents(async_db, snapshot)
+    db.flush()
+    db.refresh(snapshot)
+    db.refresh(holding)
+
+    assert holding.constituent_instrument_id == instrument_id
+    assert holding.is_resolved is True
+    assert holding.holding_type == "Common Stock"
+    assert holding.row_type == "Security"
+    assert snapshot.resolved_count == 1
+    assert snapshot.unresolved_count == 0
+
+
 @pytest.mark.asyncio
 async def test_ingest_keeps_unsupported_reit_label_unresolved_and_auditable(db):
     async_db = AsyncSessionAdapter(db)
@@ -567,6 +908,7 @@ async def test_resolver_does_not_bind_future_ticker_to_existing_equity(db):
         "commodity",
         "other",
         "unclassified",
+        "unknown",
         "security",
     ],
 )

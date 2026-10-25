@@ -78,6 +78,7 @@ def _ensure_holdings_dates_are_not_future(
     as_of_date: date | None,
     *,
     today: date | None = None,
+    known_at: datetime | None = None,
     published_at: datetime | None = None,
     now: datetime | None = None,
 ) -> None:
@@ -97,14 +98,14 @@ def _ensure_holdings_dates_are_not_future(
                 f"Issuer holdings route returned a future {label} date "
                 f"({value.isoformat()} > {reference_date.isoformat()})."
             )
-    if published_at is not None:
-        normalized_published_at = (
-            published_at if published_at.tzinfo is not None else published_at.replace(tzinfo=UTC)
-        )
-        if normalized_published_at > reference_now:
+    for label, value in (("known-at", known_at), ("published-at", published_at)):
+        if value is None:
+            continue
+        normalized_value = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+        if normalized_value > reference_now:
             raise ValueError(
-                "Issuer holdings route returned a future published-at timestamp "
-                f"({normalized_published_at.isoformat()} > {reference_now.isoformat()})."
+                f"Issuer holdings route returned a future {label} timestamp "
+                f"({normalized_value.isoformat()} > {reference_now.isoformat()})."
             )
 
 
@@ -220,6 +221,12 @@ def _capability_source_tier(
     if any(token in text for token in ("issuer", "native", "self_snapshotted")):
         return "issuer_native"
     return "none"
+
+
+def _is_sec_filing_source(*, provenance: str, source_provider: str) -> bool:
+    normalized_provider = source_provider.strip().lower()
+    normalized_provenance = provenance.strip().lower()
+    return normalized_provider == "sec" or normalized_provenance.startswith("sec_")
 
 
 def _capability_transport_kind(*, source_url: str | None, legal_metadata: dict[str, Any]) -> str:
@@ -1128,14 +1135,43 @@ async def ingest_holdings_snapshot(
     legal_metadata: dict | None = None,
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
+    manual_import: bool = False,
 ) -> ETFHoldingsSnapshot:
     now = _now()
     _ensure_holdings_dates_are_not_future(
         composition_date,
         as_of_date,
+        known_at=known_at,
         published_at=published_at,
         now=now,
     )
+    legal_metadata = dict(legal_metadata or {})
+    if manual_import:
+        # Admin-supplied uploads are stored evidence, not proof that a native
+        # provider request passed shared admission. Do not let caller metadata
+        # promote the artifact to issuer-current or refresh native route health.
+        if known_at is not None:
+            normalized_known_at = (
+                known_at if known_at.tzinfo is not None else known_at.replace(tzinfo=UTC)
+            )
+            if normalized_known_at < now:
+                raise ValueError("Manual-import known-at timestamp cannot predate the import time.")
+            known_at = normalized_known_at.astimezone(UTC)
+        else:
+            # A manual upload becomes known to this system at import time, not
+            # at the historical composition date or an unverified publication
+            # timestamp. Preserve that knowledge boundary for PIT consumers.
+            known_at = now
+        legal_metadata["ingestion_mode"] = "manual_import"
+        # Keep the non-current SEC classification when the import is explicitly
+        # identified as a filing; otherwise ignore caller-supplied tier claims.
+        manual_source_tier = _capability_source_tier(
+            provenance=provenance,
+            source_provider=source_provider,
+        )
+        legal_metadata["source_tier"] = (
+            "sec_filing" if manual_source_tier == "sec_filing" else "none"
+        )
     profile = await ensure_etf_profile(db, etf_instrument, legal_metadata=legal_metadata)
     canonical_rows = [
         row
@@ -1159,10 +1195,12 @@ async def ingest_holdings_snapshot(
         )
         for row in rows
     ]
-    known_at = known_at or published_at or _date_end(composition_date)
+    if manual_import:
+        known_at = known_at or now
+    else:
+        known_at = known_at or published_at or _date_end(composition_date)
     data_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
     snapshot_hash = _snapshot_hash(canonical_rows)
-    legal_metadata = dict(legal_metadata or {})
     capability_metadata = {
         "source_tier": _capability_source_tier(
             provenance=provenance,
@@ -1312,29 +1350,35 @@ async def ingest_holdings_snapshot(
 
     snapshot.resolved_count = resolved
     snapshot.unresolved_count = unresolved
-    await _record_adapter_success(
-        db,
-        profile=profile,
-        data_source_id=data_source.id,
-        adapter_key=profile.adapter_key or source_provider,
-        source_url=source_url,
-        source_identifier=source_identifier,
-        parser_version=parser_version,
-        row_count=len(canonical_rows),
-        resolved_count=resolved,
-        unresolved_count=unresolved,
-        composition_date=composition_date,
-        published_at=published_at,
-        completeness_status=completeness_status,
-        observation_metadata=snapshot.extra_data,
-    )
+    if not manual_import and not _is_sec_filing_source(
+        provenance=provenance,
+        source_provider=source_provider,
+    ):
+        await _record_adapter_success(
+            db,
+            profile=profile,
+            data_source_id=data_source.id,
+            adapter_key=profile.adapter_key or source_provider,
+            source_url=source_url,
+            source_identifier=source_identifier,
+            parser_version=parser_version,
+            row_count=len(canonical_rows),
+            resolved_count=resolved,
+            unresolved_count=unresolved,
+            composition_date=composition_date,
+            published_at=published_at,
+            completeness_status=completeness_status,
+            observation_metadata=snapshot.extra_data,
+        )
     await db.flush()
     await db.refresh(snapshot)
     return snapshot
 
 
 def _holding_needs_reconcile(row: ETFHolding) -> bool:
-    if row.row_type != "security" or row.holding_type in {"cash", "currency", "collateral"}:
+    row_type = _normalize_holding_classification(row.row_type)
+    holding_type = _normalize_holding_classification(row.holding_type)
+    if row_type != "security" or holding_type in {"cash", "currency", "collateral"}:
         return False
     if not row.is_resolved or row.constituent_instrument is None:
         return True

@@ -15,6 +15,7 @@ import pytest
 import yaml
 
 from app.config import settings
+from app.services import etf_holdings_provider_bridge as bridge
 from app.services.etf_holdings_adapters import (
     ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS,
     ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS,
@@ -2018,25 +2019,26 @@ async def test_kensington_adapter_filters_account_validates_identity_and_preserv
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         FakeResponse(text=identity_json, content_type="application/json"),
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url=adapter.HOLDINGS_URL,
+        ),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-
-    def fake_get(url, **kwargs):
-        assert url == (
-            "https://www.kensingtonassetmanagement.com/data/" "KensingtonWeb2.40K4.ETF_Holdings.csv"
-        )
-        assert kwargs["headers"]["Referer"].endswith("/solutions/etfs-khpi/")
-        response = FakeResponse(text=holdings_csv, content_type="text/csv", url=url)
-        response.status_code = 200
-        return response
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("holdings CSV must use admitted HTTPX"),
+    )
 
     result = await adapter.fetch_latest(symbol="KHPI")
 
     assert [url for url, _kwargs in FakeAsyncClient.requested] == [
         "https://www.kensingtonassetmanagement.com/wp-json/wp/v2/investment/249",
+        adapter.HOLDINGS_URL,
     ]
+    assert FakeAsyncClient.requested[1][1]["follow_redirects"] is True
+    assert FakeAsyncClient.requested[1][1]["headers"]["Referer"].endswith("/solutions/etfs-khpi/")
     assert len(result.rows) == 3
     assert result.rows[0].symbol is None
     assert result.rows[0].holding_type == "derivative"
@@ -2056,6 +2058,44 @@ async def test_kensington_adapter_filters_account_validates_identity_and_preserv
         await adapter.fetch_latest(symbol="KHPI", source_url="https://example.test/holdings")
     with pytest.raises(ValueError, match="must match"):
         await adapter.fetch_latest(symbol="KHPI", issuer_product_id="KAMO")
+
+
+@pytest.mark.asyncio
+async def test_kensington_holdings_csv_403_stays_on_admitted_httpx(monkeypatch):
+    adapter = get_holdings_adapter("kensington")
+    assert adapter is not None
+    identity_json = json.dumps(
+        {
+            "title": {"rendered": "Hedged Premium Income ETF"},
+            "acf": {"ticker": "KHPI"},
+        }
+    )
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=identity_json, content_type="application/json"),
+        ForbiddenResponse(url=adapter.HOLDINGS_URL),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="KHPI")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_API_URLS["KHPI"],
+        adapter.HOLDINGS_URL,
+    ]
+    assert FakeAsyncClient.requested[1][1]["follow_redirects"] is True
 
 
 @pytest.mark.asyncio
@@ -2119,6 +2159,133 @@ async def test_rayliant_adapter_discovers_product_page_and_preserves_foreign_ref
     assert result.rows[2].row_type == "cash"
     assert result.legal_metadata["route_resolution"] == "issuer_product_sitemap_full_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
+async def test_rayliant_product_page_403_stays_on_admitted_httpx(monkeypatch):
+    adapter = get_holdings_adapter("rayliant")
+    assert adapter is not None
+    product_page_url = "https://funds.rayliant.com/cnqq/"
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(url=product_page_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter._fetch_text(product_page_url, accept="text/html,*/*")
+
+    assert len(FakeAsyncClient.requested) == 1
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == product_page_url
+    assert request_kwargs["follow_redirects"] is True
+    assert request_kwargs["headers"]["Accept"] == "text/html,*/*"
+
+
+@pytest.mark.asyncio
+async def test_nsi_product_page_and_csv_use_guarded_httpx_attempts(monkeypatch):
+    adapter = get_holdings_adapter("nsi")
+    assert adapter is not None
+    product_url = "https://www.nationalsecurityindex.com/"
+    csv_url = "https://www.nationalsecurityindex.com/f/holdings.csv"
+    product_page = (
+        "<title>National Security Emerging Markets Index ETF</title> " "NSI /f/holdings.csv"
+    )
+    raw_csv = (
+        "National Security Emerging Markets Index ETF\n"
+        "Holdings as of 10/21/2026\n"
+        "Name,Security Identifier,Symbol,Net Assets %,Market Price,Shares Held,Market Value,Market Value %\n"
+        "Example Corp,037833100,AAA,1.0,10,100,1000,1.0\n"
+    )
+
+    class RecordingAsyncClient(FakeAsyncClient):
+        instances = []
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            type(self).instances.append(self)
+
+    FakeAsyncClient.requested = []
+    RecordingAsyncClient.instances = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, url=product_url),
+        FakeResponse(text=raw_csv, url=csv_url),
+    ]
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.httpx.AsyncClient", RecordingAsyncClient
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("NSI must not bypass the shared HTTPX transport"),
+    )
+
+    result = await adapter.fetch_latest(symbol="NSI")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [product_url, csv_url]
+    assert len(RecordingAsyncClient.instances) == 1
+    assert RecordingAsyncClient.instances[0].kwargs["follow_redirects"] is True
+    assert all(kwargs["follow_redirects"] is True for _url, kwargs in FakeAsyncClient.requested)
+    assert FakeAsyncClient.requested[1][1]["headers"]["Referer"] == product_url
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "AAA"
+    assert result.legal_metadata["composition_date"] == "2026-10-21"
+    assert result.source_url == csv_url
+
+
+@pytest.mark.asyncio
+async def test_nsi_product_page_403_stops_before_csv_or_legacy_transport(monkeypatch):
+    adapter = get_holdings_adapter("nsi")
+    assert adapter is not None
+    product_url = "https://www.nationalsecurityindex.com/"
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(url=product_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="NSI")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [product_url]
+
+
+@pytest.mark.asyncio
+async def test_nsi_direct_fetch_without_binding_is_denied_before_transport(monkeypatch):
+    adapter = get_holdings_adapter("nsi")
+    assert adapter is not None
+    attempts = []
+
+    def record_attempt_factory(**kwargs):
+        attempts.append(kwargs)
+        raise AssertionError("an unbound NSI route must be denied before transport setup")
+
+    monkeypatch.setattr(bridge, "_make_loop_local_httpx_attempt", record_attempt_factory)
+
+    with pytest.raises(
+        bridge.ETFHoldingsRouteHeldError,
+        match="without a bound shared-admission context",
+    ):
+        await adapter.fetch_latest(symbol="NSI")
+
+    assert attempts == []
 
 
 @pytest.mark.asyncio
@@ -2503,7 +2670,7 @@ async def test_peakshares_adapter_verifies_product_page_and_parses_fund_scoped_h
 
 
 @pytest.mark.asyncio
-async def test_peakshares_adapter_uses_requests_transport_after_repeated_filepoint_timeouts(
+async def test_peakshares_adapter_stops_after_governed_filepoint_timeouts(
     monkeypatch,
 ):
     adapter = get_holdings_adapter("peakshares")
@@ -2523,44 +2690,24 @@ async def test_peakshares_adapter_uses_requests_transport_after_repeated_filepoi
         httpx.ReadTimeout("PeakShares FilePoint route was slow"),
         httpx.ReadTimeout("PeakShares FilePoint route was slow"),
     ]
-    requests_post_calls = []
-
-    def fake_requests_post(url, **kwargs):
-        requests_post_calls.append((url, kwargs))
-        return FakeResponse(
-            text=json.dumps(
-                [
-                    {
-                        "asOfDate": "2026-07-24T00:00:00",
-                        "portfolioNumber": "1477",
-                        "portfolioName": "PeakShares Sector Rotation ETF",
-                        "securityIdentifier": "81369Y886",
-                        "securityTicker": "XLU US",
-                        "securityDescriptionLong": "State Street Utilities Select Sector SPDR ETF",
-                        "netAssetsPercent": 0.1219,
-                        "segment": "EXCHANGE-TRADED FUND",
-                        "category": "EQUITY",
-                    },
-                ]
-            ),
-            content_type="application/json",
-            url="https://filepoint.live/peakshares_getholdings_cached4.php",
-        )
-
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.post", fake_requests_post)
 
-    result = await adapter.fetch_latest(symbol="PSTR", identifiers={})
+    with pytest.raises(httpx.ReadTimeout, match="FilePoint route was slow"):
+        await adapter.fetch_latest(symbol="PSTR", identifiers={})
 
     assert len(FakeAsyncClient.requested) == 4
-    assert len(requests_post_calls) == 1
-    assert requests_post_calls[0][0] == "https://filepoint.live/peakshares_getholdings_cached4.php"
-    assert requests_post_calls[0][1]["data"] == {"fundID": "1477"}
-    assert requests_post_calls[0][1]["headers"]["Referer"] == (
-        "https://www.peaksharesfunds.com/PSTR.html"
+    assert all(
+        request_url == "https://filepoint.live/peakshares_getholdings_cached4.php"
+        for request_url, _ in FakeAsyncClient.requested[1:]
     )
-    assert result.rows[0].symbol == "XLU"
-    assert result.legal_metadata["composition_date"] == "2026-07-24"
+    assert all(
+        request_kwargs["data"] == {"fundID": "1477"}
+        for _, request_kwargs in FakeAsyncClient.requested[1:]
+    )
+    assert all(
+        request_kwargs["headers"]["Referer"] == "https://www.peaksharesfunds.com/PSTR.html"
+        for _, request_kwargs in FakeAsyncClient.requested[1:]
+    )
 
 
 @pytest.mark.asyncio
@@ -4068,26 +4215,35 @@ BBH SWEEP VEHICLE,BBHETFMM,9BBH,3.378236649900,100.000000000000,1355227.7100000,
 FABRINET,G3323L100,FN US,0.894731214000,476.040000000000,754.0000000,358934.16,0.894779747900
 PDD HOLDINGS INC,722304102,PDD US,2.550078195600,82.660000000000,12376.0000000,1023000.16,2.550216522300
 """
-    requested = []
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>National Security Emerging Markets Index ETF</h1>"
+                '<span>NSI</span><a href="/f/holdings.csv">Full holdings</a>'
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(text=raw_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("NSI must not use the legacy requests transport"),
+    )
 
-    def fake_get(url, **kwargs):
-        requested.append((url, kwargs))
-        if url == product_url:
-            return FakeResponse(
-                text=(
-                    "<h1>National Security Emerging Markets Index ETF</h1>"
-                    '<span>NSI</span><a href="/f/holdings.csv">Full holdings</a>'
-                ),
-                content_type="text/html",
-                url=product_url,
-            )
-        return FakeResponse(text=raw_csv, content_type="text/csv", url=holdings_url)
+    with bridge.bind_etf_holdings_request_context(
+        db=object(),
+        adapter=adapter,
+        profile_id=11,
+        instrument_id=23,
+        provider_symbol="NSI",
+        operation="fetch_etf_holdings_latest",
+    ):
+        result = await adapter.fetch_latest(symbol="NSI")
 
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
-
-    result = await adapter.fetch_latest(symbol="NSI")
-
-    assert [request[0] for request in requested] == [product_url, holdings_url]
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [product_url, holdings_url]
     assert len(result.rows) == 4
     assert result.rows[0].symbol is None
     assert result.rows[0].holding_type == "cash"
@@ -4803,6 +4959,36 @@ async def test_gabelli_adapter_parses_per_fund_daily_holdings_csv(monkeypatch):
     assert result.rows[2].row_type == "cash"
     assert result.legal_metadata["route_resolution"] == "issuer_per_fund_daily_holdings_csv"
     assert result.legal_metadata["composition_date"] == "2026-07-09"
+
+
+@pytest.mark.asyncio
+async def test_gabelli_holdings_csv_403_stays_on_admitted_httpx(monkeypatch):
+    adapter = get_holdings_adapter("gamco")
+    assert adapter is not None
+    holdings_url = "https://gabelli.com/wp-content/uploads/Holdings_GCAD.csv"
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(url=holdings_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="GCAD")
+
+    assert len(FakeAsyncClient.requested) == 1
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == holdings_url
+    assert request_kwargs["follow_redirects"] is True
+    assert request_kwargs["headers"]["Referer"] == "https://gabelli.com/ticker/gcad/"
 
 
 @pytest.mark.asyncio
@@ -5772,6 +5958,27 @@ def test_parse_holdings_table_handles_aliases_cash_rows_and_cusip_fallback():
     assert rows[0].weight == Decimal("0.061")
     assert rows[1].row_type == "cash"
     assert rows[1].holding_type == "cash"
+
+
+def test_manual_csv_keeps_untyped_securities_unknown_and_preserves_explicit_types():
+    raw_csv = (
+        "Ticker,SecurityName,Weightings,Security Type\n"
+        "SPYM,State Street SPDR Portfolio S&P 500 ETF,74.21%,\n"
+        "ESZ6 Index,S&P500 EMINI FUT Dec26,36.82%,Future\n"
+        "Cash&Other,Cash & Other,11.98%,\n"
+    )
+
+    rows = parse_holdings_csv(raw_csv, untyped_holding_type="unknown")
+
+    assert [row.holding_type for row in rows] == ["unknown", "future", "cash"]
+    assert [row.row_type for row in rows] == ["security", "security", "cash"]
+    assert rows[0].extra_data["SecurityName"] == "State Street SPDR Portfolio S&P 500 ETF"
+    assert rows[1].extra_data["Security Type"] == "Future"
+    assert rows[2].symbol is None
+
+    # Existing adapter callers retain their historical equity default.
+    native_rows = parse_holdings_csv("Ticker,Name,Weight\nAAPL,Apple Inc.,100%\n")
+    assert native_rows[0].holding_type == "equity"
 
 
 def test_parse_holdings_table_handles_ark_company_name_alias():
@@ -8104,6 +8311,25 @@ async def test_bondbloxx_adapter_discovers_product_page_from_sitemap(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_bondbloxx_httpx_403_stops_without_legacy_retry(monkeypatch):
+    adapter = get_holdings_adapter("bondbloxx")
+    assert adapter is not None
+    product_url = adapter.KNOWN_PRODUCT_PAGES["PCMM"]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [httpx.Response(403, request=httpx.Request("GET", product_url))]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("BondBloxx must not retry 403 via requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError):
+        await adapter.fetch_latest(symbol="PCMM")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [product_url]
+
+
+@pytest.mark.asyncio
 async def test_invesco_adapter_fetches_public_json_api(monkeypatch):
     adapter = get_holdings_adapter("invesco")
     assert adapter is not None
@@ -9802,6 +10028,29 @@ async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_fm_investments_httpx_403_stops_without_legacy_retry(monkeypatch):
+    adapter = get_holdings_adapter("fm_investments")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.Response(
+            403,
+            request=httpx.Request("GET", adapter.ETF_LIST_URL),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("F/M Investments must not retry 403 via requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError):
+        await adapter.fetch_latest(symbol="TBIL", identifiers={})
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [adapter.ETF_LIST_URL]
+
+
+@pytest.mark.asyncio
 async def test_pacific_investments_adapter_parses_complete_geme_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("pacific_investments")
     assert adapter is not None
@@ -11100,19 +11349,9 @@ async def test_arin_adapter_routes_unverified_symbols_to_explicit_sec_fallback(m
 
 
 @pytest.mark.asyncio
-async def test_etf_architect_adapter_retries_issuer_page_with_requests_after_httpx_403(monkeypatch):
+async def test_etf_architect_403_does_not_escape_guarded_httpx_transport(monkeypatch):
     adapter = get_holdings_adapter("etf_architect")
     assert adapter is not None
-
-    holdings_html = """
-    <table><thead><tr>
-      <th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>
-      <th>Price (Local)</th><th>Market Value ($mm)</th><th>% of Net Assets</th>
-    </tr></thead><tbody><tr>
-      <td>ADT</td><td>ADT Inc</td><td>00090Q103</td><td>1,717,080</td>
-      <td>6.83</td><td>11.73</td><td>2.14</td>
-    </tr></tbody></table>
-    """
 
     class ForbiddenResponse(FakeResponse):
         def raise_for_status(self):
@@ -11124,67 +11363,49 @@ async def test_etf_architect_adapter_retries_issuer_page_with_requests_after_htt
     FakeAsyncClient.queue = [
         ForbiddenResponse(url="https://funds.alphaarchitect.com/qval/"),
     ]
-    requests_called: list[str] = []
-
-    def fake_get(url, **kwargs):
-        requests_called.append(url)
-        return FakeResponse(text=holdings_html, content_type="text/html", url=url)
-
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
 
-    result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="QVAL", identifiers={})
 
-    assert requests_called == ["https://funds.alphaarchitect.com/qval/"]
-    assert result.rows[0].symbol == "ADT"
-    assert result.rows[0].weight == Decimal("0.0214")
+    assert len(FakeAsyncClient.requested) == 1
+    assert FakeAsyncClient.requested[0][0] == "https://funds.alphaarchitect.com/qval/"
+    assert FakeAsyncClient.requested[0][1]["follow_redirects"] is True
 
 
 @pytest.mark.asyncio
-async def test_etf_architect_empty_requests_body_after_httpx_403_is_explicit_access_challenge(
+async def test_etf_architect_httpx_challenge_page_is_not_accepted_as_holdings(
     monkeypatch,
 ):
     adapter = get_holdings_adapter("etf_architect")
     assert adapter is not None
 
-    class ForbiddenResponse(FakeResponse):
-        def raise_for_status(self):
-            request = httpx.Request("GET", self.url)
-            response = httpx.Response(403, request=request)
-            raise httpx.HTTPStatusError("blocked", request=request, response=response)
-
     FakeAsyncClient.queue = [
-        ForbiddenResponse(
+        FakeResponse(
             text="<html>Cloudflare Ray ID: challenge-platform</html>",
             content_type="text/html",
             url="https://funds.alphaarchitect.com/qval/",
         ),
     ]
+    FakeAsyncClient.requested = []
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    requests_calls: list[str] = []
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("challenge response must not escape to requests"),
+    )
 
-    def empty_success(url, **_kwargs):
-        requests_calls.append(url)
-        return FakeResponse(text="", content_type="text/html", url=url)
-
-    async def no_sleep(_seconds):
-        return None
-
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", empty_success)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", no_sleep)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.to_thread", fake_to_thread)
-
-    with pytest.raises(ValueError, match="issuer access challenge persisted"):
+    with pytest.raises(ValueError, match="no parseable holdings rows"):
         await adapter.fetch_latest(symbol="QVAL", identifiers={})
 
-    assert requests_calls == ["https://funds.alphaarchitect.com/qval/"] * 3
+    assert len(FakeAsyncClient.requested) == 1
 
 
 @pytest.mark.asyncio
-async def test_etf_architect_adapter_retries_transient_requests_gateway_error(monkeypatch):
+async def test_etf_architect_adapter_retries_transient_httpx_gateway_error(monkeypatch):
     adapter = get_holdings_adapter("etf_architect")
     assert adapter is not None
 
@@ -11205,48 +11426,31 @@ async def test_etf_architect_adapter_retries_transient_requests_gateway_error(mo
             raise httpx.HTTPStatusError("gateway", request=request, response=response)
 
     FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [GatewayResponse(url="https://funds.alphaarchitect.com/qval/")]
-    requests_called: list[str] = []
-    responses = [
-        SimpleNamespace(
-            status_code=502,
-            url="https://funds.alphaarchitect.com/qval/",
-            raise_for_status=lambda: None,
-        ),
+    FakeAsyncClient.queue = [
+        GatewayResponse(url="https://funds.alphaarchitect.com/qval/"),
         FakeResponse(
             text=holdings_html,
             content_type="text/html",
             url="https://funds.alphaarchitect.com/qval/",
         ),
     ]
-    to_thread_calls = []
-
-    def fake_get(url, **kwargs):
-        requests_called.append(url)
-        return responses.pop(0)
-
-    async def run_fake_transport_in_test(function, *args, **kwargs):
-        # Retry behavior is under test; real executor scheduling is not.
-        to_thread_calls.append((function, args, kwargs))
-        return function(*args, **kwargs)
 
     async def skip_delay(_seconds):
         return None
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
     monkeypatch.setattr(
-        "app.services.etf_holdings_adapters.asyncio.to_thread", run_fake_transport_in_test
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("transient retry must remain on HTTPX"),
     )
     monkeypatch.setattr("app.services.etf_holdings_adapters.asyncio.sleep", skip_delay)
     result = await adapter.fetch_latest(symbol="QVAL", identifiers={})
 
-    assert requests_called == [
+    assert [call[0] for call in FakeAsyncClient.requested] == [
         "https://funds.alphaarchitect.com/qval/",
         "https://funds.alphaarchitect.com/qval/",
     ]
-    assert len(to_thread_calls) == 2
-    assert all(call[0] is requests.get for call in to_thread_calls)
+    assert all(call[1]["follow_redirects"] is True for call in FakeAsyncClient.requested)
     assert result.rows[0].symbol == "ADT"
 
 
@@ -12161,6 +12365,30 @@ async def test_day_hagan_declared_airtable_adapter_parses_holdings(monkeypatch, 
 
     with pytest.raises(ValueError, match="No verified Arax/Day Hagan native holdings route"):
         await adapter.fetch_latest(symbol="UNKNOWN", identifiers={})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("adapter_key", ["araq", "day_hagan"])
+async def test_day_hagan_declared_airtable_route_stays_held_before_transport(
+    monkeypatch, adapter_key
+):
+    adapter = get_holdings_adapter(adapter_key)
+    assert adapter is not None
+    transport_calls = []
+
+    def forbidden_transport(*args, **kwargs):
+        transport_calls.append((args, kwargs))
+        raise AssertionError("unreviewed Arax/Day Hagan route must not reach HTTP transport")
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters._requests.get", forbidden_transport)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters._httpx.AsyncClient", forbidden_transport
+    )
+
+    with pytest.raises(bridge.ETFHoldingsRouteHeldError, match="legacy requests transport"):
+        await adapter.fetch_latest(symbol="SSUS", identifiers={})
+
+    assert transport_calls == []
 
 
 @pytest.mark.asyncio
@@ -14443,6 +14671,37 @@ async def test_saracen_adapter_verifies_sanjac_data_feed_and_parses_account_csv(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("method", ["get", "post"])
+async def test_saracen_403_does_not_escape_guarded_httpx_transport(method):
+    adapter = get_holdings_adapter("saracen")
+    assert adapter is not None
+    url = "https://sanjacalpha.com/wp-admin/admin-ajax.php"
+    client = FakeAsyncClient()
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(status_code=403, content_type="text/plain", url=url)]
+    headers = {"Referer": "https://sanjacalpha.com/etf-sjcp/"}
+
+    if method == "get":
+        response = await adapter._browser_compatible_get(client, url, headers=headers)
+    else:
+        response = await adapter._browser_compatible_post(
+            client,
+            url,
+            headers=headers,
+            data={"action": "get_feed_urls"},
+        )
+
+    assert response.status_code == 403
+    assert len(FakeAsyncClient.requested) == 1
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == url
+    assert request_kwargs["headers"] == headers
+    assert request_kwargs["follow_redirects"] is True
+    if method == "post":
+        assert request_kwargs["data"] == {"action": "get_feed_urls"}
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("adapter_key", ["mm_vam", "vident"])
 async def test_vident_product_page_adapter_parses_holdings_table(monkeypatch, adapter_key):
     adapter = get_holdings_adapter(adapter_key)
@@ -15773,6 +16032,35 @@ async def test_ars_provider_alias_uses_verified_ars_product_page_route(monkeypat
     assert result.rows[0].symbol == "NVDA"
     assert result.legal_metadata["adapter_key"] == "ars"
     assert result.legal_metadata["source_provider"] == "ars_investment_partners"
+
+
+@pytest.mark.asyncio
+async def test_ars_product_page_403_stays_on_admitted_httpx(monkeypatch):
+    adapter = get_holdings_adapter("ars")
+    assert adapter is not None
+    product_page_url = "https://arsinvestetfs.com/acep/"
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(url=product_page_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter._fetch_product_page(product_page_url)
+
+    assert len(FakeAsyncClient.requested) == 1
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == product_page_url
+    assert request_kwargs["follow_redirects"] is True
 
 
 @pytest.mark.asyncio
@@ -17704,15 +17992,19 @@ async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
             '2,"PDD HOLDINGS INC",7.50,PDD,US7223041028,"5,297,745","430,706,669"',
         ]
     )
-    requested: list[tuple[str, dict]] = []
-
-    def fake_get(url, **kwargs):
-        requested.append((url, kwargs))
-        response = FakeResponse(text=holdings_csv, content_type="text/csv")
-        response.url = url
-        return response
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url="https://kraneshares.com/csv/06_11_2026_kweb_holdings.csv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("KraneShares must use the guarded HTTPX client"),
+    )
 
     result = await adapter.fetch_latest(
         symbol="KWEB",
@@ -17720,7 +18012,9 @@ async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
         identifiers={},
     )
 
-    assert requested[0][0] == ("https://kraneshares.com/csv/06_11_2026_kweb_holdings.csv")
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://kraneshares.com/csv/06_11_2026_kweb_holdings.csv"
+    )
     assert result.rows[0].symbol == "700"
     assert result.rows[0].name == "TENCENT HOLDINGS LTD"
     assert result.rows[0].isin == "KYG875721634"
@@ -17746,12 +18040,15 @@ async def test_quadratic_adapter_parses_verified_kraneshares_holdings_csv(monkey
         ]
     )
 
-    def fake_get(url, **kwargs):
-        response = FakeResponse(text=holdings_csv, content_type="text/csv")
-        response.url = url
-        return response
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url="https://kraneshares.com/csv/09_02_2026_ivol_holdings.csv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     result = await adapter.fetch_latest(
         symbol="IVOL",
         source_url="https://kraneshares.com/csv/09_02_2026_ivol_holdings.csv",
@@ -17765,6 +18062,9 @@ async def test_quadratic_adapter_parses_verified_kraneshares_holdings_csv(monkey
     assert result.legal_metadata["publisher"] == "kraneshares"
     assert result.legal_metadata["route_resolution"] == ("quadratic_kraneshares_dated_csv_lookback")
     assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://kraneshares.com/csv/09_02_2026_ivol_holdings.csv"
+    )
 
 
 @pytest.mark.asyncio
@@ -17810,21 +18110,23 @@ async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeyp
             '1,"TENCENT HOLDINGS LTD",10.08,700,KYG875721634,"9,923,675","578,937,496"',
         ]
     )
-    requested: list[str] = []
-
-    def fake_get(url, **kwargs):
-        requested.append(url)
-        response = FakeResponse(text=holdings_csv, content_type="text/csv")
-        response.url = url
-        return response
-
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url="https://kraneshares.com/csv/07_06_2026_kweb_holdings.csv",
+        )
+    ]
     MockDate.today_value = date(2026, 7, 6)
     monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
     result = await adapter.fetch_latest(symbol="KWEB")
 
-    assert requested == ["https://kraneshares.com/csv/07_06_2026_kweb_holdings.csv"]
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://kraneshares.com/csv/07_06_2026_kweb_holdings.csv"
+    ]
     assert result.rows[0].symbol == "700"
     assert result.legal_metadata["adapter_key"] == "cicc"
     assert result.legal_metadata["source_provider"] == "kraneshares"
@@ -17838,6 +18140,35 @@ async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_cicc_kraneshares_lookback_retries_404_through_httpx(monkeypatch):
+    adapter = get_holdings_adapter("cicc")
+    assert adapter is not None
+    holdings_csv = "\n".join(
+        [
+            '"KWEB Holdings","As of 2026-07-05","Holdings Are Subject To Change"',
+            'Rank,"Company Name","% of Net Assets",Ticker,Identifier,"Shares Held","Market Value($)"',
+            '1,"TENCENT HOLDINGS LTD",10.08,700,KYG875721634,"9,923,675","578,937,496"',
+        ]
+    )
+    first_url = "https://kraneshares.com/csv/07_06_2026_kweb_holdings.csv"
+    second_url = "https://kraneshares.com/csv/07_05_2026_kweb_holdings.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.Response(404, request=httpx.Request("GET", first_url)),
+        FakeResponse(text=holdings_csv, url=second_url),
+    ]
+    MockDate.today_value = date(2026, 7, 6)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="KWEB")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [first_url, second_url]
+    assert result.legal_metadata["composition_date"] == "2026-07-05"
+    assert result.legal_metadata["route_resolution"] == "cicc_kraneshares_dated_csv_lookback"
+
+
+@pytest.mark.asyncio
 async def test_man_group_adapter_is_limited_to_its_verified_kraneshares_route(monkeypatch):
     adapter = get_holdings_adapter("man_group")
     assert adapter is not None
@@ -17848,20 +18179,22 @@ async def test_man_group_adapter_is_limited_to_its_verified_kraneshares_route(mo
             '1,"NEWS CORP - CLASS A",1.67,NWSA,US65249B1098,"9,826","274,931"',
         ]
     )
-    requested: list[str] = []
-
-    def fake_get(url, **kwargs):
-        requested.append(url)
-        response = FakeResponse(text=holdings_csv, content_type="text/csv")
-        response.url = url
-        return response
-
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=holdings_csv,
+            content_type="text/csv",
+            url="https://kraneshares.com/csv/07_06_2026_buyo_holdings.csv",
+        )
+    ]
     MockDate.today_value = date(2026, 7, 6)
     monkeypatch.setattr("app.services.etf_holdings_adapters.date", MockDate)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
     result = await adapter.fetch_latest(symbol="BUYO")
 
-    assert requested == ["https://kraneshares.com/csv/07_06_2026_buyo_holdings.csv"]
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://kraneshares.com/csv/07_06_2026_buyo_holdings.csv"
+    ]
     assert result.rows[0].symbol == "NWSA"
     assert result.legal_metadata["adapter_key"] == "man_group"
     assert result.legal_metadata["publisher"] == "kraneshares"
@@ -18636,21 +18969,32 @@ async def test_voya_adapter_filters_symbol_daily_holdings_csv(monkeypatch):
 07/10/2026,VMSB,,7707194,ICE: (CDX.NA.HY.46.V1),-33334937.0,-8.08,2692063.00,0.8666%,310430774.67,6280000.0
 07/10/2026,VCOB,,91282CQX2,US TREASURY N/B 4.125 6/30/2031,2120500.0,99.36,2106998.37,0.6783%,310430774.67,6280000.0
 """
-    requested = []
+    client_options = {}
 
-    def fake_get(url, **kwargs):
-        requested.append((url, kwargs))
-        return FakeResponse(
+    class CapturingClient(FakeAsyncClient):
+        def __init__(self, *args, **kwargs):
+            client_options.update(kwargs)
+            super().__init__(*args, **kwargs)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
             text=raw_csv,
             content_type="text/csv",
             url="https://vimetfs.com/vmsb/holdings",
         )
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", CapturingClient)
 
     result = await adapter.fetch_latest(symbol="VMSB", identifiers={})
 
-    assert requested[0][0] == "https://vimetfs.com/vmsb/holdings"
+    assert client_options == {
+        "timeout": settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+        "follow_redirects": True,
+    }
+    requested_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert requested_url == "https://vimetfs.com/vmsb/holdings"
+    assert request_kwargs["headers"]["Referer"] == "https://vimetfs.com/"
     assert result.rows[0].cusip == "95002YAE3"
     assert result.rows[0].holding_type == "fixed_income"
     assert result.rows[0].weight == Decimal("0.016318")
@@ -19754,21 +20098,30 @@ FGXXX,FIRST AMERICAN GOVERNMENT OBLIG X,31846V336,0.12%,"$820,000.00",820000
 46438R105-TRS-11/05/26-L,ISHARES ETHEREUM TRUST SWAP-L,,200.00%,"$16,551,484.69",1254851
 Cash&Other,Cash & Other,,-109.50%,"$-9,062,237.02",-9062237
 """
-    requested = []
+    client_options = {}
 
-    def fake_post(url, **kwargs):
-        requested.append((url, kwargs))
-        return FakeResponse(
+    class CapturingClient(FakeAsyncClient):
+        def __init__(self, *args, **kwargs):
+            client_options.update(kwargs)
+            super().__init__(*args, **kwargs)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
             text=raw_csv,
             content_type="text/csv",
             url="https://www.rexshares.com/fepi/",
         )
-
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.post", fake_post)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", CapturingClient)
 
     result = await adapter.fetch_latest(symbol="FEPI", identifiers={})
 
-    request_url, request_kwargs = requested[0]
+    assert client_options == {
+        "timeout": settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+        "follow_redirects": True,
+    }
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
     assert request_url == "https://www.rexshares.com/fepi/"
     assert request_kwargs["data"] == {"CSV": "Download CSV", "symbol": "FEPI"}
     assert request_kwargs["headers"]["Referer"] == "https://www.rexshares.com/fepi/"
@@ -22088,6 +22441,158 @@ def test_cohen_steers_adapter_parses_public_fund_payload():
 
 
 @pytest.mark.asyncio
+async def test_cohen_steers_fund_api_uses_bound_httpx_client(monkeypatch):
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    payload = {
+        "meta": {
+            "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
+            "fullHoldings": [
+                {
+                    "holdingName": "Acadia Realty Trust",
+                    "ticker": "AKR",
+                    "cusip": "004239109",
+                    "securityType": "Common Stock",
+                    "accountWeight": "4.152700",
+                    "shares": "922081.0",
+                    "marketValue": "19594221.25",
+                    "asOfDate": "2026-07-10T00:00:00",
+                }
+            ],
+        }
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url=adapter.fund_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("Cohen & Steers must use shared HTTPX transport"),
+    )
+
+    with bridge.bind_etf_holdings_request_context(
+        db=object(),
+        adapter=adapter,
+        profile_id=11,
+        instrument_id=23,
+        provider_symbol="CSRE",
+        operation="fetch_etf_holdings_latest",
+    ):
+        result = await adapter.fetch_latest(symbol="CSRE", issuer_product_id="15098")
+
+    assert len(FakeAsyncClient.requested) == 1
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert request_url == adapter.fund_url
+    assert request_kwargs["params"] == {"action": "load_fund", "id": "15098"}
+    assert request_kwargs["follow_redirects"] is True
+    assert request_kwargs["headers"]["Accept"] == "application/json,*/*"
+    assert result.rows[0].symbol == "AKR"
+    assert result.rows[0].cusip == "004239109"
+    assert result.legal_metadata["route_resolution"] == "cohen_steers_public_fund_api"
+    assert result.legal_metadata["composition_date"] == "2026-07-10"
+
+
+@pytest.mark.asyncio
+async def test_cohen_steers_sitemap_discovery_keeps_every_request_on_httpx(monkeypatch):
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    sitemap_url = adapter.fund_sitemap_url
+    irrelevant_page = "https://www.cohenandsteers.com/funds/other/"
+    target_page = "https://www.cohenandsteers.com/funds/csre/"
+    sitemap = f"<urlset><url><loc>{irrelevant_page}</loc></url><url><loc>{target_page}</loc></url></urlset>"
+    pages = [
+        FakeResponse(
+            text="<section data-id='15097' data-fund-type='etf' data-default-symbol='CNS'>"
+        ),
+        FakeResponse(
+            text='<section data-id="15098" data-fund-type="etf" data-default-symbol="CSRE">',
+            url=target_page,
+        ),
+    ]
+    payload = {
+        "meta": {
+            "shareClasses": [{"characteristics": {"symbol": "CSRE"}}],
+            "fullHoldings": [
+                {
+                    "holdingName": "Acadia Realty Trust",
+                    "ticker": "AKR",
+                    "securityType": "Common Stock",
+                    "accountWeight": "4.152700",
+                    "asOfDate": "2026-07-10T00:00:00",
+                }
+            ],
+        }
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=sitemap, url=sitemap_url),
+        *pages,
+        FakeResponse(
+            text=json.dumps(payload), content_type="application/json", url=adapter.fund_url
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("Cohen & Steers must use shared HTTPX transport"),
+    )
+
+    with bridge.bind_etf_holdings_request_context(
+        db=object(),
+        adapter=adapter,
+        profile_id=11,
+        instrument_id=23,
+        provider_symbol="CSRE",
+        operation="fetch_etf_holdings_latest",
+    ):
+        result = await adapter.fetch_latest(symbol="CSRE")
+
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        sitemap_url,
+        irrelevant_page,
+        target_page,
+        adapter.fund_url,
+    ]
+    assert FakeAsyncClient.requested[-1][1]["params"] == {
+        "action": "load_fund",
+        "id": "15098",
+    }
+    assert result.rows[0].symbol == "AKR"
+    assert result.source_identifier == "15098"
+
+
+@pytest.mark.asyncio
+async def test_cohen_steers_rejects_unbound_and_mismatched_adapter_context(monkeypatch):
+    adapter = get_holdings_adapter("cohen_steers")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+
+    with pytest.raises(bridge.ETFHoldingsRouteHeldError, match="no bound shared-admission"):
+        await adapter.fetch_latest(symbol="CSRE", issuer_product_id="15098")
+
+    with bridge.bind_etf_holdings_request_context(
+        db=object(),
+        adapter=SimpleNamespace(source_provider="other", adapter_key="other"),
+        profile_id=11,
+        instrument_id=23,
+        provider_symbol="CSRE",
+        operation="fetch_etf_holdings_latest",
+    ):
+        with pytest.raises(
+            bridge.ETFHoldingsRouteHeldError,
+            match="does not match the bound shared-admission context",
+        ):
+            await adapter.fetch_latest(symbol="CSRE", issuer_product_id="15098")
+
+    assert FakeAsyncClient.requested == []
+
+
+@pytest.mark.asyncio
 async def test_capital_impact_adapter_fetches_issuer_ssnc_full_holdings(monkeypatch):
     adapter = get_holdings_adapter("capital_impact")
     assert adapter is not None
@@ -23979,6 +24484,7 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
         metadata = known_etf_route_metadata(symbol)
         assert metadata["issuer"] == "State Street Global Advisors"
         assert metadata["provider_aliases"]["holdings_adapter"] == "spdr"
+        assert metadata["provider_aliases"]["holdings_source_provider"] == "spdr"
 
     for symbol, product_slug in {
         "SMH": "semiconductor-etf-smh",
@@ -25371,9 +25877,21 @@ async def test_delaware_adapter_parses_nomura_successor_daily_holdings_table(mon
 async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(monkeypatch):
     adapter = get_holdings_adapter("aegon")
     assert adapter is not None
+    request_identity = SimpleNamespace(
+        db=object(),
+        profile_id=17,
+        instrument_id=23,
+        provider_symbol="CGUS",
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_provider_bridge.current_etf_holdings_request_identity",
+        lambda: request_identity,
+    )
+    sec_attempts = []
 
     async def fake_discover_holdings_filings(**kwargs):
         assert kwargs["cik"] == "0001234567"
+        assert kwargs["request_identity"] is request_identity
         return [
             SimpleNamespace(
                 accession_number="0001234567-26-000001",
@@ -25383,15 +25901,15 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
             )
         ]
 
-    monkeypatch.setattr(
-        "app.services.etf_holdings_edgar.discover_holdings_filings",
-        fake_discover_holdings_filings,
-    )
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(
+    async def fake_sec_get(identity, *, operation, url):
+        assert identity is request_identity
+        assert operation == "fetch_etf_holdings_sec_filing"
+        sec_attempts.append(url)
+        return FakeResponse(
             text="""
             <edgarSubmission>
+              <seriesId>S000000001</seriesId>
+              <classId>C000000001</classId>
               <formData>
                 <genInfo>
                   <repPdDate>2026-05-31</repPdDate>
@@ -25413,12 +25931,20 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
             """,
             content_type="application/xml",
         )
-    ]
-    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_edgar.discover_holdings_filings",
+        fake_discover_holdings_filings,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_edgar._sec_get", fake_sec_get)
 
     result = await adapter.fetch_latest(
         symbol="CGUS",
-        identifiers={"sec_cik": "0001234567"},
+        identifiers={
+            "sec_cik": "0001234567",
+            "sec_series_id": "S000000001",
+            "sec_class_id": "C000000001",
+        },
     )
 
     assert result.rows[0].symbol == "AAPL"
@@ -25426,12 +25952,65 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
     assert result.legal_metadata["source_provider"] == "sec"
     assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
     assert result.legal_metadata["snapshot_provenance"] == "sec_nport_reconstructed_holdings"
+    assert sec_attempts == ["https://www.sec.gov/Archives/edgar/data/1234567/fixture.xml"]
+
+
+@pytest.mark.asyncio
+async def test_sec_fallback_without_qualifying_filings_is_not_an_empty_success(monkeypatch):
+    adapter = get_holdings_adapter("aegon")
+    assert adapter is not None
+    request_identity = SimpleNamespace(
+        db=object(),
+        profile_id=17,
+        instrument_id=23,
+        provider_symbol="CGUS",
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_provider_bridge.current_etf_holdings_request_identity",
+        lambda: request_identity,
+    )
+    discovery_calls = []
+
+    async def no_candidate_filings(**_kwargs):
+        discovery_calls.append("discovery")
+        return []
+
+    async def forbidden_sec_get(*_args, **_kwargs):
+        raise AssertionError("empty discovery must not fetch a filing")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_edgar.discover_holdings_filings",
+        no_candidate_filings,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_edgar._sec_get", forbidden_sec_get)
+
+    with pytest.raises(ValueError, match="no qualifying identity-matched filing"):
+        await adapter.fetch_latest(
+            symbol="CGUS",
+            identifiers={
+                "sec_cik": "0001234567",
+                "sec_series_id": "S000000001",
+                "sec_class_id": "C000000001",
+            },
+        )
+
+    assert discovery_calls == ["discovery", "discovery"]
 
 
 @pytest.mark.asyncio
 async def test_sec_fallback_skips_parseable_nport_for_wrong_series(monkeypatch):
     adapter = get_holdings_adapter("point_bridge")
     assert adapter is not None
+    request_identity = SimpleNamespace(
+        db=object(),
+        profile_id=17,
+        instrument_id=23,
+        provider_symbol="MAGA",
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_provider_bridge.current_etf_holdings_request_identity",
+        lambda: request_identity,
+    )
 
     async def fake_discover_holdings_filings(**kwargs):
         assert kwargs["cik"] == "0001540305"
@@ -25474,6 +26053,7 @@ async def test_sec_fallback_skips_parseable_nport_for_wrong_series(monkeypatch):
         FakeResponse(text=fixture("S000058757", "C000192803", "RIGHT")),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.etf_holdings_edgar.httpx.AsyncClient", FakeAsyncClient)
 
     result = await adapter._fetch_latest_sec_filing_holdings(
         symbol="MAGA",
@@ -25491,6 +26071,22 @@ async def test_sec_fallback_skips_parseable_nport_for_wrong_series(monkeypatch):
     assert result.legal_metadata["filing_identity_status"] == "verified"
     assert result.legal_metadata["filing_identity"]["class_id"] == "C000192803"
     assert len(FakeAsyncClient.requested) == 2
+
+
+@pytest.mark.asyncio
+async def test_sec_fallback_without_committed_series_and_class_stays_held():
+    adapter = get_holdings_adapter("ishares")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+
+    with pytest.raises(bridge.ETFHoldingsRouteHeldError, match="committed fund series and class"):
+        await adapter._fetch_latest_sec_filing_holdings(
+            symbol="IWM",
+            issuer_product_id=None,
+            identifiers={"sec_cik": "0001100663"},
+        )
+
+    assert FakeAsyncClient.requested == []
 
 
 def test_registered_holdings_adapters_are_provider_specific():
@@ -29103,33 +29699,60 @@ async def test_neos_adapter_fetches_ajax_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_public_csv_transport_retries_http_403_with_browser_compatible_requests(monkeypatch):
+async def test_neos_aggregate_csv_transport_does_not_escape_httpx_guard_on_403(monkeypatch):
     adapter = get_holdings_adapter("neos")
     assert adapter is not None
-    csv_text = "\n".join(
-        [
-            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
-            '06/12/2026,SPYI,A,00846U101,"Agilent Technologies Inc","45,190",129.55,"5,854,364.50",0.06%,"10,017,366,830.00","189,590,000","18,959",',
-        ]
-    )
-    FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [FakeResponse(text="forbidden", status_code=403)]
-    browser_response = FakeResponse(text=csv_text, content_type="text/csv")
-    requests_calls: list[tuple[str, dict]] = []
 
-    def fake_requests_get(url, **kwargs):
-        requests_calls.append((url, kwargs))
-        return browser_response
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse(status_code=403)]
 
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_requests_get)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
 
-    result = await adapter.fetch_latest(symbol="SPYI")
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="SPYI")
 
-    assert len(result.rows) == 1
-    assert result.rows[0].symbol == "A"
-    assert requests_calls[0][0] == adapter.holdings_url_template.format(symbol_upper="SPYI")
-    assert requests_calls[0][1]["headers"]["Referer"] == "https://neosfunds.com/"
+    assert len(FakeAsyncClient.requested) == 1
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert request_url == adapter.holdings_url_template.format(symbol_upper="SPYI")
+    assert request_kwargs["headers"]["Referer"] == "https://neosfunds.com/"
+    assert request_kwargs["follow_redirects"] is True
+
+
+@pytest.mark.asyncio
+async def test_public_csv_helper_does_not_escape_httpx_guard_on_403(monkeypatch):
+    adapter = PublicCsvHoldingsAdapter("parser_helper", "test")
+
+    class ForbiddenResponse(FakeResponse):
+        def raise_for_status(self):
+            request = httpx.Request("GET", self.url)
+            response = httpx.Response(403, request=request)
+            raise httpx.HTTPStatusError("blocked", request=request, response=response)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [ForbiddenResponse()]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("403 must not escape to requests"),
+    )
+
+    with pytest.raises(httpx.HTTPStatusError, match="blocked"):
+        await adapter.fetch_latest(symbol="TEST", source_url="https://issuer.example/holdings.csv")
+
+    assert len(FakeAsyncClient.requested) == 1
+    request_url, request_kwargs = FakeAsyncClient.requested[0]
+    assert request_url == "https://issuer.example/holdings.csv"
+    assert request_kwargs["follow_redirects"] is True
 
 
 @pytest.mark.asyncio
@@ -29946,7 +30569,28 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "vistashares",
     }
     assert set(record_keys) == fallback_keys | native_promoted
-    assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
+    ranked_records = sorted(records, key=lambda record: record["queue_rank"])
+    assert [record["queue_rank"] for record in ranked_records] == list(range(1, len(records) + 1))
+    baseline_status_priority = {
+        "issuer_access_blocked": 0,
+        "needs_first_party_route_discovery": 1,
+        "non_executable_public_source": 2,
+        "provider_not_a_portfolio_publisher": 3,
+    }
+    expected_baseline_order = sorted(
+        records,
+        key=lambda record: (
+            baseline_status_priority[record["starting_status"]],
+            record["adapter_key"].casefold(),
+        ),
+    )
+    assert [record["adapter_key"] for record in ranked_records] == [
+        record["adapter_key"] for record in expected_baseline_order
+    ]
+    riverfront = next(record for record in records if record["adapter_key"] == "riverfront")
+    assert riverfront["starting_status"] == "needs_first_party_route_discovery"
+    assert riverfront["current_status"] == "provider_not_a_portfolio_publisher"
+    assert riverfront["disposition"] == "provider_not_a_portfolio_publisher"
 
     allowed_statuses = {
         "issuer_access_blocked",
@@ -29969,7 +30613,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
             assert record["current_status"] in allowed_statuses
             assert record["disposition"] in allowed_statuses
             assert record["current_status"] == record["disposition"]
-            assert date.fromisoformat(str(record["last_checked"])) >= audit.last_checked
+            assert date.fromisoformat(str(record["last_checked"])) == audit.last_checked
             assert record["evidence_refs"][:2] == [
                 f"runtime:FALLBACK_ISSUER_AUDITS.{key}",
                 f"runtime:ISSUER_ADAPTER_CONFIGS.{key}",
@@ -30076,6 +30720,7 @@ def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
     provider_universe = (
         Path(__file__).resolve().parents[4] / "docs" / "etf-provider-universe.md"
     ).read_text()
+    normalized_provider_universe = " ".join(provider_universe.split())
     ledger = yaml.safe_load((workstream_root / "provider-audit.yaml").read_text())
     plan = yaml.safe_load((workstream_root / "plan.yaml").read_text())
     session = json.loads((workstream_root / "session.json").read_text())
@@ -30088,15 +30733,41 @@ def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
     assert ledger["current_fallback_count"] == fallback_count
     runtime_status_counts = {
         status: sum(audit.status == status for audit in FALLBACK_ISSUER_AUDITS.values())
-        for status in {
+        for status in (
             "issuer_access_blocked",
             "needs_first_party_route_discovery",
             "non_executable_public_source",
             "provider_not_a_portfolio_publisher",
-        }
+            "inactive_or_successor_disposition",
+        )
     }
-    for status, count in runtime_status_counts.items():
-        assert f"- `{status}`: `{count}`" in provider_universe
+    current_status_lines = provider_universe.split("Current fallback status counts are:", 1)[
+        1
+    ].splitlines()
+    documented_status_lines = []
+    for line in current_status_lines:
+        if not line.strip():
+            if documented_status_lines:
+                break
+            continue
+        documented_status_lines.append(line.strip())
+    expected_status_lines = [
+        f"- `{status}`: `{runtime_status_counts[status]}`" for status in runtime_status_counts
+    ]
+    assert documented_status_lines == expected_status_lines
+    assert (
+        "Current native-route split:\n\n- Native/live-backed providers: `422`\n"
+        "- Audited fallback-only providers: `74`"
+    ) in provider_universe
+    assert (
+        "At the older provider-repair implementation checkpoint `a696277b6efed719cc40051e010f5e6a5b542f3e`, "
+        "the then-current split was 421 native and 75 fallback-only."
+    ) in normalized_provider_universe
+    assert (
+        "At that 2026-10-05 evidence checkpoint, counts were then 496 registered, "
+        "421 native/live-backed, and 75 fallback-only; no native promotion or "
+        "budget change was recorded."
+    ) in normalized_provider_universe
     assert len(ledger["symbol_priority_ledger"]["symbols"]) == tier_zero_count
     assert len(ledger["symbol_audit_ledger"]["symbols"]) == tier_one_count
 
@@ -30151,10 +30822,8 @@ def test_symbol_priority_ledger_matches_runtime_tier_zero_audits():
         assert row["provider_identity"] == audit.provider_identity
         assert row["current_outcome"] == audit.outcome
         assert row["evidence_state"] == audit.evidence_state
-        assert (
-            date.fromisoformat(str(row.get("investigated_at", "2026-09-04")))
-            == audit.investigated_at
-        )
+        assert "investigated_at" in row
+        assert date.fromisoformat(str(row["investigated_at"])) == audit.investigated_at
         assert tuple(row["evidence_refs"]) == audit.evidence_refs
         assert row["next_action"]
 

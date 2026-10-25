@@ -1,5 +1,1062 @@
 # feat/etf-holdings-constituents
 
+## FHSC3 send-boundary deadline correction — 2026-10-24T16:01Z
+
+Root's review of the in-progress FHSC3 repair found that the worker computed
+the SEC attempt timeout before constructing the loop-local transport/client,
+then started that duration only after setup. The retained offline probe
+`/home/m920q/charting-platform/.ai/staging-attempts/probe-etf-setup-deadline-20261024.py`
+reproduced a 0.05-second fund budget with a 0.10-second factory delay: the
+physical send began after expiry and was cancelled later. The worker now keeps
+the early expiry guard, then recomputes the remaining fund duration after
+transport/client/request setup immediately before `client.send`. Expired
+setup latches the terminal deadline and performs no send; an in-flight request
+still uses the minimum of the existing attempt cap and remaining fund budget,
+with timeout settlement behavior unchanged.
+
+Root's follow-up review noted that bare `asyncio.timeout` produces an empty-
+message `TimeoutError`, while the DB regression correctly expects a durable
+deadline reason. Only when the fund deadline itself expires, the worker now
+rethrows `TimeoutError` with the explicit non-secret message `SEC one-fund
+execution deadline exceeded`; ordinary attempt timeouts remain unchanged. The
+offline real-transport cancellation test asserts that message, preserving the
+type used by shared Provider classification.
+
+Added `test_sec_worker_rechecks_deadline_after_slow_setup_before_send`, which
+uses only a 0.10-second local setup delay and MockTransport, then asserts that
+the send handler is never called and the deadline remains terminal. The
+focused `test_etf_holdings_provider_bridge.py` module passed **39/39** in
+5.70s. Ruff check, Ruff format-check (three changed Python files), and
+`git diff --check` passed. The DB-backed regression
+`test_sec_fund_deadline_cancels_worker_transport_before_durable_settlement`
+remains present but was not run locally because it requires the assigned
+database fixture; it must be covered by Root's later validation slot. No live
+HTTP, credentials, quota, DB, service, browser, or full-profile action was
+performed.
+
+The exact prior e429 full-profile proof remains valid for its then-tested
+source only; this FHSC3 source delta has not yet received full-profile or
+exact-source hosted CI validation. The original first-human checkpoint and
+full AC1–AC14 roadmap remain pending, and SEC transport remains held. Preserve
+`15 Tier-0 and 156 Tier-1`, all quarantines, raw/PIT/known-at lineage, disabled
+unknown/paid/trial routes, retained data, and the 30-day observation gate.
+An attempted automatic session preflight could not access the Docker API in
+this runtime; its exact blocked-local-runtime receipt remains in
+`validation.jsonl`. It is not evidence that Docker Desktop or the daemon is
+stopped. The preflight also could not prepare the external private quota config
+under this sandbox; no permission workaround or service action was attempted.
+
+This source and its coherent evidence are now published cleanly at
+`81470b2a1cce2e38e0410aad6aeb7e985b394965`, equal to the ETF origin branch.
+Exact push CI `40109273092` remains in progress; the latest GitHub jobs check
+reported Frontend Unit Tests passed and Backend Tests in progress. Root's
+earlier `Root40491` attempt failed before test collection in its adapter and is
+not test evidence. The corrected isolated run `Root15711` then passed the new
+DB-backed cancellation/settlement regression 1/1 in 9.64s; its receipt records
+cleanup_failed=0 and empty container/volume/network inventory differences:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-81470-deadline-qualification-20261024.md`.
+This proves that one shared Provider admission, real MockTransport
+cancellation, durable failed request log, and uncertain reservation settlement
+path only. The narrow worker-boundary deadline-message test also passed 1/1
+locally. Do not rerun or start another fixture. Freeze source and records after
+this final owner-record publication for Root's fresh complete backend
+qualification; the complete local `full_stack_browser`, applicable
+live/deployed sample, and checkpoint acceptance remain open. SEC transport
+remains held.
+
+## Proposed first-human SEC source checkpoint — 2026-10-23T19:00Z
+
+The prior `etf-holdings-integration-1` acceptance and its complete closure,
+receipt, and original AC1–AC14 dispositions remain preserved under the
+historical checkpoint fields in `plan.yaml` and `session.json`. The current
+checkpoint is now `etf-first-human-sec-source-1`; planning was requested, but
+Root acceptance and closure are **pending**. The native full-roadmap goal,
+goal history/accounting, model, and effort were not replaced or reset.
+
+The proposed source scope is limited to the dedicated SEC one-fund identity,
+transport, shared-budget/accounting and idempotent-ingestion path; secure
+admin-only dry-run/default-held provisioning that preserves shared Provider
+state; and truthful historical/PIT/freshness API/UI contracts. The proposed
+checkpoint does not claim new native issuer support, completion of the 537
+live-source matrix, or the 30-day observation. SEC remains held until reviewed
+source/account/policy and the exact invocation are accepted. No real IWM
+acquisition or UI sample is proven: Root owns that later deployment-acceptance
+proof after a qualifying source is established and the exact invocation is
+reviewed.
+
+All fourteen original criteria remain verbatim under
+`roadmap_acceptance_criteria`; `plan.yaml.integration_checkpoint` now records
+each as delivered-in-checkpoint, partial, or deferred with owner and a
+continuation acceptance test. `full_integration` and
+`full_stack_browser` remain mandatory, along with existing assertions,
+tolerances and exact-source CI. No local full profile or new DB fixture is
+started without Root's assigned slot and the already-recorded memory guards.
+
+The published branch is clean and synchronized at
+`d42e5ff07490af8f0fb894e7ab924e4f62cc4379`. Exact push CI `40006029802` was
+last observed in progress: Frontend passed and Backend unit tests were
+running. It must finish unchanged; no cancellation or replay. The authorized
+one-shot DB suite remains unrun because the last host reading was below the
+1536 MiB floor; the earlier 384 MiB OOM remains partial/inconclusive. The
+current proposal does not make those results green or claim DB proof.
+
+## Selected-snapshot lineage UI correction — 2026-10-23T19:10Z
+
+Static review found that `ETFHoldingsView.vue` allowed selection of an older
+snapshot but showed only composition date, source provider/quality and the
+profile capability. Unlike the compact holdings panel, this full research view
+did not display the selected snapshot's provenance or `known_at`, and its
+current-capability pill did not clarify that it described profile eligibility
+rather than the explicitly selected historical snapshot.
+
+The view now labels the selected record `Latest stored snapshot` or
+`Historical snapshot` by comparing the returned snapshot identity with the
+profile's latest snapshot ID. It separately labels profile current-analysis
+eligibility and displays the selected snapshot's provenance, system-observed
+`known_at`, and source-reported publication time. Missing publication metadata
+is shown as `Not established`; the UI does not infer public-availability time
+or expose a raw source URL. No backend/API, data, route, entitlement or source
+policy changed.
+
+The offline view test covers latest and historical selection, provenance,
+exact `known_at`, unknown publication, and the separation from profile
+eligibility. The first focused run had two test-selector assertions pointed at
+the wrong rendered sections; those were corrected to inspect panel metadata,
+then the unchanged six-test view file passed `6/6`. `vue-tsc --noEmit` exited
+`0`. This is not browser/full-stack proof. Exact CI `40006029802` remains live
+on published SHA `d42e5ff07490af8f0fb894e7ab924e4f62cc4379` and does not include
+these local UI edits; as of `19:10:25Z`, Backend, Frontend and Branch-declared
+passed, E2E was installing Playwright, and Exhaustive was skipped by feature
+policy.
+
+The authorized offline DB preflight at `19:05:20Z` found
+`MemAvailable=1510824KiB`, below the required `1536MiB`; memory PSI was low,
+but the hard floor was not met. No test fixture/database/Redis resource was
+created. Keep the one-shot DB grant unused until a fresh preflight passes all
+its guards. No actual IWM acquisition or UI sample, SEC current/native support,
+full local `full_stack_browser`, applicable live evidence, or checkpoint
+acceptance is claimed. Preserve all AC1–AC14, holds, quarantines, retained data,
+the 30-day observation and Root's deployment-acceptance boundary.
+
+## Accepted staging a6b9 adoption — 2026-10-23T18:42Z
+
+After local SEC correction commit `cf97bc64a75969dd7e0fb300b4f05b3ebabc914c`,
+this worktree fetched and verified that `origin/staging` still pointed exactly
+to coordinator-accepted green `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`.
+The green receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T150603Z-a6b9cc8d4fc2.json`
+(`state=green`, exact Actions run `39962134726`, first parent
+`f04fb2a26c6363c6090e76c2658cfcfe7adabf61`). The staging baseline was merged
+into ETF as `c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2` with parents `cf97bc6`
+and `a6b9cc8`; Git reported no conflicts. No source from another feature
+branch was imported. Staging-owned additive market-series timestamp migration,
+migration compatibility, F8m readiness/workflow tests, and their authoritative
+workstream records were preserved unchanged.
+
+Post-merge lightweight evidence: `backend/app/strategy_lab_v2/tests/test_migration_compatibility.py`
+passed `19/19`; `tests/workflow/test_agent_session.py` passed `56/56`; Ruff
+check and format passed on the six imported Python files. The PostgreSQL
+migration integration, full local profile, and exact combined-source CI remain
+unrun. At this checkpoint ETF HEAD is `c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2`,
+while the ETF remote is still `c45139b45324a5c3333868e63224d2464240034b`;
+the combined tip has not yet been pushed. Only the owned workstream records
+remain dirty for final validation/commit. Preserve the terminal c451 red,
+earlier OOM and DB floor refusal, all holds and the full roadmap.
+
+## SEC provisioning and exact-red repairs — 2026-10-23T18:36Z
+
+The preceding 18:30Z note captured CI `40001975210` while it was still
+running. The run is now terminal RED on exact source `c45139b45324a5c3333868e63224d2464240034b`: Backend integration had 498 passed,
+3 failed, and 2 skipped; Frontend passed and downstream jobs were skipped.
+The three failures were two duplicate SEC backfills (N-PORT and legacy),
+which returned `partial` on a repeated already-ingested qualifying accession,
+and `test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik`,
+which raised `httpx.StreamConsumed` on an eagerly constructed mock redirect
+response while production correctly requests with `stream=True`. The exact run
+is preserved; it was not rerun.
+
+The backfill now counts an accession with persisted `snapshot_id` and
+`ingested_at` as an already-successful qualifying filing, separately from the
+`ingested` count of newly created snapshots. Thus a repeated successful filing
+can finish `completed` with `ingested=0, skipped=1`, while zero discovered,
+wrong-fund, or otherwise nonqualifying candidates remain failed/partial. A
+unit regression covers empty, wrong-series and already-ingested cases; the two
+original integration tests retain their strong duplicate assertions. The
+per-hop runtime fixture now supplies an unread `httpx.ByteStream` for its 302
+response, matching the production streaming transport; the bounded production
+reader was not changed to add an eager/unbounded fallback.
+
+The focused SEC/backfill, Provider bridge and provisioning router unit modules
+passed `61/61` in `26.62s`; targeted Ruff check and format-check passed. This is
+lightweight unit evidence only, not the database-backed API/per-hop proof. The
+one-shot 512MiB offline DB allowance remains unused: an immediate host preflight
+at `18:35Z` reported `MemAvailable=1425592KiB`, below the mandatory 1536MiB
+floor. Full PSI averages were within limits and no competing pytest/Playwright/
+Chromium process was found. Read-only Docker checks confirmed only the already
+retained ETF PostgreSQL (`43fb83fd98ad`, loopback `15432`) and Redis
+(`7d3b9bd1e3c1`, loopback `16379`); neither was modified or used for tests, and
+no database, Redis, container, fixture, or test resource was created.
+
+Provider's independent read-only review found no concrete defect in the
+provisioning request's admin/dry-run boundary, shared-cost preservation,
+idempotency, or held-row behavior; this is source review, not runtime or target
+acceptance. The coordinator then confirmed exact accepted green staging tip
+`a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`; its canonical staging-attempt
+record is `/home/m920q/charting-platform/.ai/staging-attempts/20261023T150603Z-a6b9cc8d4fc2.json` (`state=green`, starting from released
+f04). This is not yet an ETF adoption. At the next clean boundary, commit this
+coherent ETF source correction locally, then verify and merge only that exact
+green staging SHA into this feature branch, reconcile additive schema/migration
+and shared test/workstream changes, and publish the combined own-branch tip
+once. Do not push the pre-sync commit. Preserve the terminal red, prior 384MiB
+OOM and all below-floor refusals. The DB-backed SEC cases, full local profile,
+required live evidence and exact new-tip CI remain open; SEC routing stays held. Keep
+all AC1-AC14, `15 Tier-0 and 156 Tier-1`, the IWM candidate-only status,
+MSMR/QQQ and Militia/GOOG quarantines, all quota/paid/trial/unsafe holds,
+retained data and the 30-day observation gate unchanged.
+
+## Dedicated EDGAR ETF provisioning candidate — 2026-10-23T18:30Z
+
+The SEC bounded-transport candidate was published at
+`c45139b45324a5c3333868e63224d2464240034b`; its exact-source Actions run
+`40001975210` was still active at the time of that snapshot; see the later
+18:36Z terminal-red reconciliation above. The earlier 384MiB database attempt
+remains an OOM-killed partial with no pytest summary; two corrected-grant
+preflights were below the 1536MiB floor and created no resources. These receipts
+remain separate and no DB-backed result is claimed.
+
+Provider's read-only EDGAR handoff identifies the concrete provisioning gap:
+generic `seed_provider_runtime` excludes ETF_HOLDINGS for EDGAR, while the
+existing admin PATCH endpoints cannot create absent rows. The reviewed Provider
+source was `5b02caf509107856195ef8cfb2374e2ab6120612`; its handoff records hashes
+for config, quota coordinator, runtime, provider router, admin router, and the
+ETF bridge. Coordinator target inspection (not performed by this ETF session)
+reports an existing EDGAR DataSource with ETF policy and entitlement absent;
+routing and SEC scheduler are off.
+
+The local candidate adds admin-only `POST
+/api/v1/providers/edgar-etf-holdings/provision`, with `apply=false` by default.
+It requires all three dedicated SEC ETF operations, both exact SEC hosts, a
+valid descriptive EDGAR User-Agent, explicit `edgar:ip` mapping, matching
+resolved shared account scope, complete quota dimensions explicitly scoped to
+IP, positive operation costs, and explicit admin-attested publisher/quota/
+entitlement evidence. Applying attaches only the dedicated ETF review and
+operation costs to the existing active EDGAR source and creates missing ETF
+policy/entitlement/neutral-health/revision rows with policy disabled. It does
+not create EDGAR or generic ETF capability declarations, change generic
+supported-capability lists, create a recurring budget/commitment, access a
+ledger, send HTTP, or enable routing. Existing source/review/policy/entitlement
+state is preserved when identical and mismatches are refused. This records
+admin attestations; it does not establish the truth of submitted evidence.
+
+The offline SQLite/TestClient selection passed `9/9` in `11.65s`: admin-only
+access, default dry run, explicit apply, second-run idempotency, preserved
+generic capabilities and source configuration, disabled policy, no request
+logs or recurring-cost records, and refusal of mismatched source/review/policy,
+missing identity/scope/operation evidence, and non-IP quota scope. Changed-file
+Ruff check and format-check pass. These tests use synthetic test-only values;
+they prove provisioning behavior only, not target readiness, actual EDGAR
+review, quota headroom/reset, recurring commitment, DB/Redis admission, or SEC
+availability.
+
+This was an uncommitted add-on at 18:30Z; it is now included in the coherent
+candidate alongside the subsequent SEC idempotence and stream-fixture
+corrections. Publish once under the normal branch workflow and inspect its
+exact-source CI. Do not launch a DB profile below the coordinator's fresh
+1536MiB guard. Full DB/functional/visual and applicable live evidence remain
+OPEN; SEC transport remains held. Preserve all AC1–AC14, `15 Tier-0 and
+156 Tier-1`, IWM candidate-only status, MSMR/QQQ and Militia/GOOG quarantines,
+quota/paid/trial/unsafe holds, retained data, and the 30-day observation gate.
+
+## Manual-import metadata defaults follow-up — 2026-10-23T14:51:15Z
+
+The manual CSV parser/source context was published as `d26155d949d2f1a9598685beb2b69e110913d125`; local HEAD and origin match and the worktree was clean at the start of this follow-up. The previous section below is retained as a historical snapshot from 14:04Z, when that parser patch was still local. Exact CI `39967540569` is terminal green on `d26155d`: Backend, Frontend Unit, Branch-declared, and Playwright passed; Exhaustive was skipped by feature-branch policy. The run does not cover the new local change below.
+
+Source review found both admin manual-ingest request schemas defaulted omitted `provenance`, `source_quality`, and `completeness_status` to `issuer_current_holdings`, `issuer_current`, and `complete`. Those defaults could misstate a manual artifact even though the service's `source_tier=none` guard prevents current capability. The schemas now default to `manual_import`, `unknown`, and `unknown`; explicit values such as `sec_filing` and evidence-backed quality/completeness remain preserved. The combined router/schema and service regressions passed `4/4`; changed-file Ruff check and format-check and `git diff --check` passed. This correction changes neither provider transport nor capability guards.
+
+Keep the RSST body unimported. Accepted f04 still lacks safe manual-only enrichment/profile/health behavior; the current branch has newer manual guards, but no storage/display rights or initial request URL evidence was found. Preserve the exact raw artifact and historical/PIT boundaries if those gaps are independently resolved later; do not label it native-current or admitted. No issuer/provider/SEC request, quota, import, profile/runtime mutation, fixture, cleanup, or cross-worktree action occurred.
+
+Final pre-publication checks completed at 2026-10-23T14:58Z: the required `15 Tier-0 and 156 Tier-1` narrative sentinel passed 1/1; the workstream validator accepted one record; session JSON and all 984 validation JSONL rows parsed; `session.plan_hash` matched `plan.yaml`; and `git diff --check` passed. Publish this substantive manual-metadata-default correction once and inspect its exact-source CI. CI `39967540569` validates published `d26155d`, not this follow-up. The Root-owned `full_stack_browser` profile remains required and resource-assigned; do not launch it locally without the slot. Continue all AC1-AC14, quarantines, holds, retained data, and the 30-day observation gate.
+
+## Current manual CSV typing and RSST offline finding — 2026-10-23T14:04:37Z
+
+The scoped manual-import parser change is local and uncommitted at synchronized
+published baseline `f6eabc1ed3af7940bc1d090cb1f840c00ab289e3`. Exact CI
+`39958914991` is green for that baseline only; it predates this patch. The
+focused no-network profile passed `65/65` across the full resolution module,
+manual parser regressions and manual-import router wiring. Ruff check/format,
+Python compilation and `git diff --check` also passed. Exact-source CI remains
+pending, and the Root-owned `full_stack_browser` profile is not run or waived.
+The exact narrative-count sentinel passed `1/1` after correcting a temporary
+session JSON delimiter error; the final workstream validator accepted one
+record, JSON/JSONL parsing and plan-hash parity passed, and the final diff check
+was clean. The 65-test profile's exact execution minute was not retained; this
+receipt is timestamped at the actual clock read and does not backdate that run.
+
+Current-branch source review answers the RSST preparation question as follows:
+the current admin `/ingest` route accepts normalized rows, raw payload, source
+URL/identifier, composition/as-of dates, known/publication timestamps, and
+legal metadata; it disables provider enrichment and marks the operation as a
+manual import. The current `/ingest-csv` route also disables enrichment and
+retains raw CSV, but this local patch changes missing CSV type labels from an
+assumed equity to `unknown`. Explicit CSV classifications remain represented;
+normalized `/ingest` rows can carry manually evidenced `future` and `cash`
+types. The resolver leaves unknown and non-equity identities unresolved rather
+than matching them to equities. Manual import stamps `known_at` at actual
+import time when omitted, rejects a caller-supplied earlier value, forces
+`legal_metadata.source_tier=none` for a non-SEC manual artifact, and does not
+write native adapter-success health.
+
+This makes a correctly reviewed and explicitly typed **dated, non-current**
+RSST record representable on the current ETF branch; it does not make one
+eligible to import now. The normalized request must explicitly state
+`provenance=manual_import`, `source_provider=manual_csv`,
+`composition_date=2026-10-15`, `published_at=null`, `source_tier=none`, raw
+artifact bytes and only a provenance-supported `source_url`. It must explicitly
+set non-current `source_quality` and `completeness_status`: the Pydantic manual
+ingest schemas default these to `issuer_current` and `complete`, respectively,
+so relying on defaults would misstate the evidence even though capability
+source tier none prevents current-analysis use. Keep unsupported identities
+unresolved. A later import's actual `known_at` must not be backdated to the
+composition date, and that knowledge-time cutoff means the sample must not
+appear in an October 15 point-in-time view before its actual import.
+
+Two material evidence gaps still make the retained sample **not ready to
+import**: the captured header/body do not establish the original request URL,
+and no evidence establishes rights to store/display this issuer artifact.
+Public availability is not such permission. No import, profile/admin change,
+HTTP request, quota, Provider operation, activation, fixture or data change was
+made. The accepted-f04 historical limitations remain correctly recorded as
+limitations of f04; the newer manual guards and conservative CSV typing are
+current branch source, not retroactive claims about f04. Earlier 09:08/09:12
+journal labels remain append-only historical evidence and were not rewritten;
+this entry's UTC timestamp comes from the current session clock read.
+
+Next: complete final workstream/count/JSON/plan-hash/diff validation, publish
+this substantive parser correction once, and inspect only its resulting exact
+CI. Keep the RSST artifact unimported; preserve AC1-AC14, `15 Tier-0 and 156
+Tier-1`, all issuer quarantines and route/cost holds, retained data, and the
+30-day observation gate.
+
+## Current owner checkpoint — narrative sentinel reconciliation — 2026-10-23T13:08:30Z
+
+The exact consumer fixture context is already committed and pushed at
+`dc43bb65403457c6745dcc9c10df0da97631e9dc`; local HEAD and origin are clean
+and synchronized. It changed only integration-test fixtures/helper and owner
+records; it did not modify the manual-import router/service context, which is
+already published with its prior 62/62 focused result. Exact Actions run
+`39957012029` on `dc43bb6` is terminal red: Frontend Unit passed; Backend unit
+failed only `test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`
+(5235 passed, 1 failed, 1 skipped, 37 warnings); integration and downstream
+jobs were skipped. The cause is that the prior
+`session.json.progress.current_blocker` omitted the required exact
+`15 Tier-0 and 156 Tier-1` phrase. The focused sentinel passed 1/1 after the
+record correction; the workstream validator, JSON/JSONL parsing, plan hash,
+and diff check also pass. Preserve the exact run as red; do not rerun it or
+describe it as a product/route failure.
+
+This receipt corrects the stale session narrative and records the current
+published SHA/run. The test fixture commit has static checks but still no
+DB-backed local proof; the red CI skipped backend integration, so it did not
+prove those fixtures. The required `full_stack_browser` profile remains under
+Root's exclusive resource-slot control. Keep RSST unimported: accepted f04
+does not establish a manual-only no-enrichment path, the retained CSV's futures
+are not safely typed by its generic parser, native adapter-success health would
+be recorded, and original request URL plus storage/display rights are
+unverified. No import, live HTTP, quota, activation, fixture, cleanup, or
+cross-worktree action occurred. Preserve the full AC1-AC14 roadmap, the `15
+Tier-0 and 156 Tier-1` audits, MSMR/QQQ and Militia/GOOG quarantines, all route
+and cost holds, retained data, and the 30-day observation.
+
+### Historical pre-publication checkpoint (recorded 12:52Z)
+
+At the recorded UTC check time, local ETF HEAD is `12ac3b694` and origin is `1adb658d4f7131876d30beb410f48ffb66e93aa8`; the owner branch is one local commit ahead before the pending test-only harness commit. Exact CI `39949218663` is terminal red on `1adb658`: Backend unit and Frontend Unit passed; Backend integration failed; Branch-declared, Exhaustive, and Playwright were skipped. Backend job `120399294993` reports 12 failures, 486 passes, and 2 skips. Preserve this result; do not rerun it. The manual-import known-at/PIT source is already published; there are no dirty router/service files. Its recorded 62/62 focused service/router tests are prior evidence, not a claim that this red exact CI passed.
+
+The 12 integration failures are: overlap summary/matrix/family expansion (3); manual historical basket selection and non-current historical basket lookup (2); nearest-snapshot lookup (401); two strategy PIT tests rejected because their old synthetic import timestamps predated the new manual-import knowledge-time guard; three dynamic ETF strategy tests rejected with HTTP 400; and ETF industry PIT lookup returning 404. The current dirty test-only patch adapts those consumers to current UTC dates or explicit test-only historical snapshot fixtures. Source inspection confirms `E2E_SEED_MARKET_DATA` is set true only in the separate Playwright stack job, not the Backend integration job; do not attribute these failures to that setting without new evidence. The nearest-snapshot 401 remains unexplained from the captured assertion (which did not include the response body), so the test context is not yet proven green.
+
+The local nearest-snapshot regression now includes `response.text` in its unchanged expected-200 assertion so a permitted future integration run exposes the exact 401 detail. Ruff check, Ruff format check, Python compilation, workstream validation, JSON/JSONL parse, plan-hash parity, and diff check pass for the current local edits. No DB-backed tests were run; the new diagnostic is not runtime evidence.
+
+The AC1 status-count documentation and regression sentinel are now a distinct local substantive commit, `12ac3b694`; it is not yet pushed and has no exact-source CI. Remaining local changes are the consumer integration-test fixture rewrite/helper and current owner records. Ruff check/format, Python compilation, workstream validation, plan-hash parity and diff checks pass. No local DB-backed integration profile was run, so the fixture repair is not yet proven. The exact red run predates both current changes. The nearest-snapshot regression now includes the response body in its unchanged expected-200 assertion to expose the previously unexplained 401 in the next run. No source/runtime behavior changed for the RSST audit.
+
+The read-only RSST decision remains **not safe to import through accepted f04**. The retained candidate is RSST-only, with 36 rows dated 2026-10-15 including SPYM, cash, and futures. Its artifact/header hashes and timing remain recorded below; no import or external request occurred. Accepted f04 has no manual-only no-enrichment control, its generic CSV parser does not correctly distinguish the futures rows as derivatives, and manual ingestion records adapter-success health. The initial request URL and permission to store/display the file remain unverified. Do not label this sample current, admitted, rights-cleared, or usable.
+
+The earlier 09:08/09:12 journal timestamp discrepancy remains qualified as historical; no append-only evidence was rewritten. Preserve the full AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`, issuer quarantines, disabled routes, retained data, and the 30-day observation gate. No issuer/provider/SEC request, quota, import, activation, fixture, cleanup, staging/sibling/master write, promotion, or deployment occurred.
+
+Next: keep the AC1 count repair and consumer fixture repair as distinct source commits; do not mix either with the already-published manual-import source. The approved Root resource sequence grants the next local full profile after coherent harness-fix publication. Publish the reviewed test harness changes with the AC1 commit, with live issuer/provider flags held at zero; inspect that new exact-source CI for real DB-backed integration results, including the nearest-snapshot response body. Do not launch local DB/container/browser work until the assigned slot. Continue the complete AC1–AC14 roadmap and preserve the RSST no-import disposition, route/rights/quota holds, quarantines, and 30-day observation.
+
+## Prior current fallback-count parity repair — 2026-10-23T12:06:59Z
+
+This historical checkpoint described CI `39949218663` as in progress. Its later terminal result is recorded above; the old text is retained as history rather than rewritten.
+
+The prior manual-import known-at/PIT fix is published as `1adb658d4f7131876d30beb410f48ffb66e93aa8`; local HEAD and origin matched before this new local correction. Exact CI `39949218663` is live on `1adb658`: Frontend Unit and Backend unit tests passed; Backend integration is running and coverage is pending. This run does not include the local doc/test diff below; preserve it and do not cancel or replace the exact run.
+
+An offline AC1 consistency audit imported the current runtime fallback registry and read the durable provider ledger. All 74 current runtime fallback keys appear exactly once in the 140-record starting ledger, and every such row has dated external attempt evidence, a disposition, and next action; older promoted records remain historical. A concrete current-doc drift remains: `docs/etf-provider-universe.md` currently says 7 `issuer_access_blocked`, while runtime computes 6 (the complete five-category runtime distribution totals 74). The existing sentinel searched the whole document and could be satisfied by historical mentions instead of the current table.
+
+The local correction changes the current table count to 6 and strengthens that sentinel to compare all five runtime-status rows against only the current table section. After an initial test-parser mistake (the section starts with a blank line), the corrected exact sentinel passed 1/1; Ruff check/format and diff checks pass. No provider ledger disposition, runtime status, issuer route, symbol outcome, source data, or AC1 count phrase changed. The local doc/test fix is not published and is not covered by CI `39949218663`.
+
+Next: preserve CI `39949218663` until terminal. Then append its exact job result, complete the workstream validation, commit/push this coherent AC1 docs+regression correction with owner records, verify origin parity, and inspect that new exact-source CI. Continue the full AC1–AC14 roadmap and the offline AC2/AC4/AC5 audit; preserve `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG quarantines, disabled routes, retained data, and the 30-day observation. The Root-owned `full_stack_browser` gate remains pending. No issuer/provider/SEC request, quota, activation, data import, fixture, cleanup, cross-worktree write, promotion, or deployment occurred.
+
+## Manual-import knowledge-time/PIT guard — 2026-10-23 11:48Z
+
+The prior manual-import safety/router context is already present in the clean,
+published ETF branch; no dirty router patch was found at resume. Exact source
+`e4ce7dd423620d2cad00e2c68f0468b53893314d` is synchronized to origin. Exact CI
+`39942187427` is terminal success for Backend, Frontend Unit, Branch-declared,
+and Playwright E2E; Exhaustive was skipped under feature-branch policy. This
+does not prove the required local `full_stack_browser` profile or complete the
+full AC1–AC14 roadmap.
+
+A remaining PIT issue was found in the already-published manual import path:
+`ingest_holdings_snapshot` defaulted omitted `known_at` to `published_at` or
+the end of the composition date. A later manual upload could therefore be
+visible to a historical query from before the application imported it. The
+current local fix sets an omitted manual-import `known_at` to the service's UTC
+import timestamp, rejects a supplied timestamp earlier than that import time,
+and leaves non-manual provider ingestion's existing publication/composition
+fallback unchanged. The regression verifies a 2026-10-15 composition imported
+on 2026-10-23 is excluded from the October 15 PIT lookup but remains explicitly
+selectable by snapshot ID. The affected service and manual-import router test
+modules pass `62/62` with both live flags `0`; Ruff check/format and
+`git diff --check` pass. No issuer/provider/SEC HTTP, quota, import of the
+retained RSST artifact, profile or Provider mutation, fixture, cleanup,
+staging/sibling/master write, or deployment occurred. This source change is
+not yet published and requires exact-source CI.
+
+Keep the retained RSST bytes non-routable: the accepted-f04 importer still
+lacks evidence-backed rights, the initial request URL, a supported manual
+profile identity, and accepted manual-only enrichment/health behavior. Current
+branch safeguards are not a claim of native SPDR admission or a legal grant.
+The earlier journal timestamp discrepancy at 09:08/09:12 remains qualified in
+validation history without rewriting those append-only entries.
+
+Final bounded verification completed at 2026-10-23 11:50Z: the exact
+`15 Tier-0 and 156 Tier-1` narrative sentinel passed `1/1`; the workstream
+validator passed; session JSON and validation JSONL parsed; recorded plan hash
+matched the current plan; `git diff --check` passed. The service+router focused
+tests remain `62/62` green after formatting. Next inspect the exact owned diff,
+commit and push this coherent source+records checkpoint, and inspect its
+exact-source CI. Continue offline AC2/AC4/AC5 evidence reconciliation after
+publication; do not start the Root-assigned full_stack_browser profile, issue
+external requests, spend quota, activate held routes, alter retained data, or
+shrink the full roadmap.
+
+## Manual-import current-health consumer correction — 2026-10-23
+
+Follow-up exact CI `39938965987` on `095a08a4dcd88a0deb306b943813d8f94f5c61bf`
+is terminal red: Frontend Unit passed; Backend unit passed `5235` with one
+skip; Backend integration passed `497` with two skips and failed only the same
+workspace industry test; downstream jobs were skipped. The integration log
+confirms the API returns the intended current-mode 409 and the explicit
+historical read succeeds; only the reason text differed because capability
+evaluation reports the unassigned adapter before the artifact's tier. The
+owned test expectation now matches this precedence without changing any
+response, stale/tier/current-use assertion, or historical positive. Ruff and
+format checks pass on the test file; no local integration fixture was run
+because the exclusive full-profile resource slot remains Root-assigned.
+
+Exact parent source `9e183e6c75940e4c6e0abf5bfc32afa589d95969` CI
+`39929980961` is terminal red: Backend unit and Frontend Unit passed; Backend
+integration failed four cases; Branch-declared, Playwright E2E and Exhaustive
+were skipped after that failure. The failures were:
+
+- `test_etf_holdings_snapshot_can_materialize_read_only_basket` expected an
+  admin-manual upload to serve as current; the API correctly returned 409.
+- `test_etf_holdings_basket_rejects_non_current_without_historical_selection`
+  expected SEC filing lineage, but the first manual-import guard had replaced
+  it with tier `none`.
+- `test_strategy_run_can_use_etf_holdings_snapshot_universe` expected a manual
+  upload to be current after directly inserting fabricated successful native
+  adapter-health state.
+- `test_etf_industries_are_derived_from_point_in_time_holdings` expected an
+  unrecognized manual source to have `issuer_native` tier.
+
+The current owned correction preserves `sec_filing` only when explicit
+provenance and source-provider values identify a filing; it remains
+non-current and does not write native adapter-success health. The basket API
+test asserts current-mode rejection and retains explicit historical basket
+access as its positive assertion. The Strategy test verifies that manual data
+cannot populate a latest/current analysis universe; its former positive fixture
+was not native-route evidence because it fabricated adapter-success state.
+The workspace expectation now matches tier `none` for its unrecognized manual
+source. Historical/PIT behavior and current-analysis rejection remain intact.
+
+Focused validation on these local changes: the complete
+`test_etf_holdings_resolution.py` module passed `60/60` in `45.51s` with both
+live flags set to zero. Ruff check passed and Ruff format check confirmed all
+five changed Python files are formatted. No local integration or full-stack
+profile was run; this does not replace hosted validation. Exact new-source CI
+was pending when this correction note was first written; see the terminal
+result below. Preserve the parent CI red receipt; do not rerun it.
+
+No issuer/provider/SEC HTTP, quota, data import, profile/Provider mutation,
+activation, fixture, cleanup, or cross-worktree write occurred. The RSST
+read-only feasibility result below remains unchanged: do not import until the
+documented rights, initial-request URL, derivative-row and no-enrichment/manual-
+profile gaps are resolved. Preserve AC1–AC14, the `15 Tier-0 and 156 Tier-1`
+investigations, historical evidence, quarantines, holds, retained data, the
+30-day observation and Root's exclusive `full_stack_browser` slot.
+
+Exact-source CI `39934411063` for `4dae395c1972457e644c8ec18ba289891c20426e`
+is terminal red, not a checkpoint acceptance: Frontend Unit passed; Backend
+unit passed `5235` with one skip; Backend integration passed `497` with two
+skips and one failure; Branch-declared, E2E and Exhaustive were skipped after
+integration failure. The only failure was
+`test_etf_industries_are_derived_from_point_in_time_holdings` at
+`backend/tests/integration/api/test_workspaces.py:2120`. The test's actual
+current-mode request returned 409 and its explicit dated historical request
+passed. The mismatch is only the exact denial `reason`: this fixture has no
+concrete adapter assigned, so the API correctly reports `No concrete ETF
+holdings adapter is assigned to this profile.` before considering the
+artifact's `source_tier=none`; the assertion expected the lower-priority
+source-tier reason. This is a stale test expectation, not evidence that manual
+data was accepted as current. Preserve the 409, stale status, tier `none`,
+`usable_for_current_analysis=false`, and historical positive. No rerun or
+source/test edit was made under the read-only RSST audit scope.
+
+The subsequent documentation-only commit `e0f6aa2a1c488d39ed0e299a629f79409dcc4e2`
+CI `39937538292` is terminal red on one regression in the workstream count
+sentinel: `session.progress.current_blocker` omitted the required exact phrase
+`15 Tier-0 and 156 Tier-1`. Backend unit result was 5234 passed, one failed
+sentinel and one skipped; Frontend Unit passed; later jobs were skipped. This
+does not indicate a product/current-data failure. The exact count phrase was
+restored to that current blocker; the changed-field sentinel passed once in
+4.24s. Retain both CI results and do not rerun either prior workflow.
+
+## Retained RSST against accepted-f04 manual-import contract — read-only — 2026-10-23
+
+Static inspection of exact accepted staging source `0e342512e53ba2268425294d61c50e219eaafa4f`
+and the retained `.ai/validation/structural-return-stacked-20261015.{body,headers}`
+answers the feasibility question as **not safely importable through accepted f04
+yet**. F04 can physically store an explicitly dated artifact, but cannot provide
+the complete requested manual-only contract without unsupported identity/profile
+workarounds or side effects:
+
+- `ETFHoldingsIngestRequest` accepts `composition_date`, `known_at`, nullable
+  `published_at`, `provenance`, `source_provider`, `source_url`, raw payload,
+  legal metadata and normalized row fields. It can represent derivatives and
+  cash with explicit row/holding types while retaining `raw_payload_text`.
+  `legal_metadata.source_tier=none` is recognized by capability classification.
+  Do not rely on schema defaults: the schema otherwise defaults quality to
+  issuer-current and completeness to complete, neither of which is evidenced
+  for this manual sample.
+- `ETFHoldingsProfileUpdateRequest` does not accept `adapter_key`. It accepts
+  `provider_aliases`, but `ensure_etf_profile` applies `holdings_adapter` only
+  when that key exists in the registered ETF adapter catalog. `manual_csv` is
+  not registered at f04 (`git grep` found it only as the CSV request's default
+  `source_provider`). A direct DB alias/key insert would be an unsupported
+  workaround, not a reviewed operator path.
+- Both accepted admin ingest routes call the common snapshot ingestion with
+  default `allow_provider_enrichment=true`; there is no request field or
+  documented manual-only no-enrichment switch. Outside test configuration,
+  unresolved rows can reach identifier-provider enrichment. The generic CSV
+  parser defaults non-cash rows to `holding_type=equity` and `row_type=security`,
+  so it would misclassify the RSST futures. The normalized-row ingest endpoint
+  can encode correctly reviewed derivative/cash types, but it does not solve
+  enrichment or manual profile binding.
+- Accepted-f04 `ingest_holdings_snapshot` always calls `_record_adapter_success`.
+  An explicit `source_tier=none` prevents the snapshot from becoming usable for
+  current analysis, but the import still writes a successful adapter-health
+  row. With an unassigned profile the capability can be `stale`; with a
+  concrete profile adapter and tier `none` it is `degraded`. Thus f04 does not
+  guarantee the requested clean manual/noncurrent health representation. The
+  ETF branch's newer unaccepted safeguard skips that native-success write, but
+  is not an accepted-f04 operator contract and does not yet disable enrichment.
+- F04 history reads filter explicit point-in-time requests by both
+  `composition_date <= requested_date` and `known_at <= end_of_requested_date`
+  (or a null `known_at`). The full holdings view offers snapshot-date selection;
+  the panel shows a non-current capability notice and only enables opening a
+  constituent when capability is current. The basket endpoint rejects an
+  unselected non-current request with 409 while an explicit date/snapshot is a
+  historical selection. If a later approved import is ever made, it must set a
+  non-null `known_at` to the actual import/observation time so an October 15
+  query cannot see an artifact imported later; leaving it null would bypass the
+  PIT cutoff. `published_at` can remain null. The service's fallback
+  `known_at` based on composition date is not suitable for a later import.
+
+Retained evidence identifies a CSV response redirected to
+`https://static.returnstackedetfs.com/data/TidalFG_Holdings_RSST.csv`, with
+HTTP 200 observed at `2026-10-15T19:09:11Z`; the body has 36 RSST-scoped rows
+dated `2026-10-15`, including SPYM, cash, and long/short futures. It is not
+SPY/RSP holdings evidence. The initial request URL is absent from the retained
+header capture, so only the redirect target is proven. `Last-Modified` is not
+verified publication time. The reviewed local materials do not establish
+storage/display/redistribution rights; this is an evidence gap, not a claim
+that rights are prohibited. No import, profile/admin mutation, runtime
+operation, HTTP request, quota action or external lookup was performed.
+
+Disposition: keep the RSST body untouched and non-routable. The schema could
+store a future explicit manual artifact with raw body, evidence-backed source
+URL, reviewed row typing, `provenance=manual_import`, `source_provider=manual_csv`,
+`source_tier=none`, unknown publication time, and an actual non-null import-time
+`known_at`; but rights, initial-request provenance, no-enrichment behavior and
+manual-profile/health semantics must first be resolved through supported
+reviewed paths. Preserve all AC1–AC14, `15 Tier-0 and 156 Tier-1`, quarantines,
+holds, retained data and the 30-day observation.
+
+## RSST manual/noncurrent sample feasibility — 2026-10-23
+
+Follow-up against immutable accepted f04 and the retained RSST artifact finds a
+potential dated **RSST** sample, not SPY/RSP data. Retained response headers
+show observation at `2026-10-15T19:09:11Z`, redirect to the static Return
+Stacked CSV, and HTTP 200; the separate retained transport event reports 36
+rows dated `2026-10-15` and scoped to `RSST`. They include SPYM, cash, and
+long/short futures. The retained header does not identify the initial request
+URL; only the final CSV URL/redirect target is explicit, so initial-request
+lineage must be recovered before import. No verified publication
+timestamp or evidence granting storage/display/redistribution rights was
+found; HTTP `Last-Modified` is not treated as `published_at`.
+
+Accepted f04 can store raw CSV and composition/known-at/publication/source
+fields through its admin import schema, but the path is **not safe to execute
+as-is**. The profile PATCH does not accept `adapter_key`; it honors a supplied
+`holdings_adapter` only if it is registered, and `manual_csv` is not a
+registered ETF adapter. The generic CSV parser has no asset-class mapping for
+this body and defaults its non-cash futures to equities. The normalized-row
+route can explicitly represent derivatives/cash and retain raw bytes, but
+both accepted import handlers leave `allow_provider_enrichment=true` by
+default, so unresolved identities can trigger external provider lookup. No
+no-enrichment flag is exposed. Accepted f04 also writes adapter-success state
+for manual import. Current unaccepted ETF changes force `manual_import` and
+`source_tier=none` before profile hydration and skip the native-health write;
+the full resolution module plus route-wiring test pass 60/60 with live flags
+off. That local correction is not in f04 and does not close the separate
+identity-enrichment/network risk.
+
+If later authorized after rights and safe-path gaps are resolved, truthful
+metadata would use symbol `RSST`, composition/as-of `2026-10-15`,
+`provenance=manual_import`, `source_provider=manual_csv`,
+`source_tier=none`, and `published_at=null`. `known_at` must be no earlier than
+both the retained observation and actual import time. Preserve the exact raw
+body, final CSV URL/redirect headers, every derivative/cash row, and unresolved
+identities absent canonical evidence. The initial request URL is not in the
+retained capture. Historical PIT
+queries before actual `known_at` must exclude this later-imported snapshot;
+later as-of reads may display it as degraded/last-known, never current
+analysis. f04's PIT endpoint filters by composition and `known_at`; the ETF
+panel shows capability, provenance and known-at and gates opening constituents
+on current capability, but has no date selector itself.
+
+Disposition: **not ready to import**. The retained file is an offline RSST
+candidate, but no admin/profile/import operation was made. Missing evidence
+includes retention/display rights; initial-request URL provenance; safe
+no-enrichment import; accurate
+derivative classification; and a supported manual-profile representation (or
+a decision that a manual profile key is unnecessary). Do not substitute SPY,
+claim native entitlement/health or Provider admission, infer source quota/cost
+from app caps, or make any external request. Preserve the full AC1–AC14
+roadmap, quarantines, holds and 30-day observation gate.
+
+## Current continuation — published provisioning and first-sample evidence review (2026-10-23 08:44Z)
+
+Current branch HEAD and origin are synchronized at
+`04f49d940c877635de52c0c0616e54f47018bf25`. Exact CI `39924473582` on this
+SHA started at 08:25Z; Frontend Unit and Backend unit tests have passed, while
+Backend integration tests are in progress. This run has no terminal result yet.
+Earlier run `39918702578` is terminal green only for its parent source
+`709bb36880ac960031f309c6dc037bd21ea9d47b`. The publisher
+provisioning implementation is now published at `04f49d9`; its admin-created
+source has `DataSource.is_active=true`, but its `ETF_HOLDINGS` policy remains
+disabled, and no aggregate budget, commitment, evidence verification, or route
+admission is claimed. The local router module passed 10/10 with both live flags
+zero; Root still owns the required `full_stack_browser` slot.
+
+Offline retained-evidence audit: the provider ledger accounts for all 140
+baseline records and 74 current fallback identities. Their disposition counts
+are 18 issuer-access-blocked, 18 inactive/successor, 20 non-publishers, and 18
+non-executable public sources. Recorded fallback `last_checked` dates range
+from 2026-09-02 through 2026-10-05. The 15 Tier-0 symbol rows currently split
+11 current / 2 degraded / 2 unavailable, investigated 2026-09-05 through
+2026-10-15; the 156 Tier-1 rows split 17 current / 82 unavailable /
+57 not-applicable, investigated 2026-09-02 through 2026-10-05. Six existing
+no-network tests passed for provider/runtime/YAML parity, symbolless holds,
+vendor budget/activation disposition, symbol-ledger parity, and the narrative
+count sentinel. This is static completeness evidence only: no issuer evidence
+was refreshed, and the dates do not prove present source availability. No
+provider/issuer/SEC HTTP, quota, fixture, runtime mutation, activation, or
+cleanup occurred. Keep MSMR/QQQ and Militia/GOOG quarantined, retain all AC1–AC14
+and the 30-day observation gate, and do not infer a new provider disposition.
+
+The source-backed first-sample review confirmed that accepted f04's admin
+`PATCH /api/v1/etf-holdings/{symbol}/profile` can persist the existing
+`holdings_adapter: spdr` plus `holdings_source_provider: spdr` and supporting
+`legal_metadata`, but it does not authenticate those claims or create SPDR's
+shared Provider source, ETF_HOLDINGS policy/entitlement/health, or review
+configuration. The generic Provider seed omits `spdr`; policy/entitlement
+PATCHes are update-only. The existing recurring-cost budget and commitment
+routes cannot create the missing source; commitments require its `data_source_id`.
+The newer ETF-branch `POST /api/v1/providers/etf-publishers` creates disabled
+shared rows from admin attestations but is not part of accepted f04 and does
+not create a budget/commitment or verify evidence truth.
+
+The bounded local evidence search found a retained real Return Stacked capture:
+`.ai/validation/structural-return-stacked-20261015.headers` redirects to its
+dated RSST CSV, whose body is account-scoped to RSST and lists SPYM as a
+constituent. It is not a complete SPY or RSP holdings artifact and is not
+SPDR-sourced; no profile or runtime record was changed. No SPY/RSP artifact in
+the inspected local evidence presently qualifies for dated import. No upstream
+HTTP or quota action occurred.
+
+Fast record validation after these edits passed: the workstream validator,
+the exact narrative-count sentinel (`15 Tier-0 and 156 Tier-1`), session and
+JSONL parsing, session-to-plan hash comparison, and `git diff --check`. Exact
+CI `39924473582` remained nonterminal at the last check: Frontend Unit and
+Backend unit tests passed; Backend integration tests were still running. No
+local integration/browser profile was started; Docker access is permission-
+denied in this sandbox and Root retains the exclusive full-stack slot.
+
+## Current continuation — ETF publisher provisioning (2026-10-23 08:20Z)
+
+The assigned worktree is on published base
+`709bb36880ac960031f309c6dc037bd21ea9d47b` before these local edits, with the
+existing owner claim retained. Exact hosted CI `39918702578` is terminal green
+for Backend, Frontend Unit, Branch-declared, and Playwright E2E; Exhaustive was
+skipped by feature-branch policy. This run does not cover the local changes.
+
+The accepted-f04 review confirms an admin can bind SPY's existing adapter and
+publisher identity through the profile PATCH while retaining genuine review
+evidence, but that endpoint does not authenticate the claims. No real
+publisher/terms/quota evidence was fetched or established here. The accepted
+generic Provider registry/seed still omits SPDR and its existing policy and
+entitlement PATCH routes cannot create its initial rows. The current local
+source delta adds a new admin-only `POST /api/v1/providers/etf-publishers`
+preparation path. It accepts review evidence as administrator attestations,
+requires registered ETF-adapter identity and configured account scope, checks
+quota completeness and per-operation cost, and creates the shared source
+(whose source-level `is_active` value is true), disabled `ETF_HOLDINGS` policy,
+entitlement/revision, neutral health row, and `etf_holdings_review` config. The
+disabled policy keeps the source unroutable. It does not enable the policy,
+create an aggregate budget or recurring commitment, verify the truth of
+supplied evidence, or establish that SPY is admitted. It has not been called
+against any runtime.
+
+The actual changed Provider router unit module passed `10/10` in 23.87s on the
+latest rerun (an earlier same-source run passed in 24.24s). Both used
+`RUN_LIVE_ETF_HOLDINGS_TESTS=0` and `RUN_LIVE_PROVIDER_TESTS=0`. Ruff check,
+Ruff format check, and diff-check passed. These SQLite/unit checks do not prove
+the production shared PostgreSQL/Redis runtime, full stack, source evidence, or
+route admission. No issuer/provider/SEC HTTP, quota, budget/commitment
+mutation, policy activation, fixture, cleanup, or cross-worktree write
+occurred. Exact CI of the local source is still pending; the required
+`full_stack_browser` slot remains Root-assigned. Keep all AC1–AC14, `15 Tier-0
+and 156 Tier-1`, quarantines, route holds, retained data, and the 30-day
+observation gate intact.
+
+## ETF shared-health seed regression — 2026-10-23 07:28Z
+
+The accepted-f04 source review showed that `resolve_provider_chain` requires a
+matching `ProviderHealthState`, but generic `seed_provider_runtime` never seeds
+health for ETF-only publisher policies because those adapters are intentionally
+outside the generic provider registry. The ETF seed now supplies a neutral row
+only when an ETF policy already exists and lacks health state, sets all initial
+health metrics/scores to zero with no success/failure timestamps, and disables
+that policy. It does not create `DataSource`, policy, entitlement, review,
+budget, or commitment rows; it does not authorize a route. Existing health
+state and operator policy settings are left unchanged. This closes only the
+resolver health-row preparation gap, not the SPDR provisioning gap recorded in
+`first-human-sample-admission.md`.
+
+The new SQLite unit regression passed 1/1, then the containing Provider-runtime
+unit module passed 94/94 in 156.94 seconds with
+`RUN_LIVE_ETF_HOLDINGS_TESTS=0` and `RUN_LIVE_PROVIDER_TESTS=0`. Ruff check,
+Ruff format check, and `git diff --check` passed. These are deterministic unit
+results, not PostgreSQL/Redis, full-stack, shared-runtime admission, or live
+issuer evidence. Exact published-source CI `39913994245` covers committed tip
+`059667e706c6cdf6eb80f4c720b5ebff6c5ff595`; Backend, Frontend, and
+Branch-declared jobs passed, Playwright was still running at the last check,
+and Exhaustive was skipped by feature-branch policy. The new local change is
+not covered by that run. No upstream HTTP, quota, provider/issuer/SEC request,
+runtime record, fixture, or retained-resource action occurred.
+
+Follow-up receipt at 2026-10-23 07:31Z: exact GitHub run `39913994245` is now
+terminal successful for Backend, Frontend Unit, Branch-declared Tests, and
+Playwright E2E; Exhaustive was skipped by feature-branch policy. The earlier
+in-progress statement above is retained as contemporaneous history. This run
+still covers only committed `059667e706c6cdf6eb80f4c720b5ebff6c5ff595`, not
+the local health-seed change.
+
+## Offline SPDR provisioning and issuer-audit continuation — 2026-10-23 07:07Z
+
+The accepted-f04 source review is now durable in
+`first-human-sample-admission.md`. Its narrow conclusion: the admin ETF profile
+PATCH can persist an evidence-backed SPY adapter/publisher identity binding,
+but this satisfies only the profile identity gate. f04 has no management path
+that creates SPDR's shared `DataSource`, initial `ETF_HOLDINGS`
+policy/entitlement, bridge-required host/operation/account review config, or
+required `ProviderHealthState`. The Provider runtime's generic seed only walks
+the generic provider registry; the existing policy/entitlement PATCH endpoints
+require pre-existing rows, and the recurring-cost commitment path requires an
+existing data-source id. The shared resolver inner-joins health, which generic
+seeding does not create for adapter-only SPDR. No runtime record or admission
+state was changed. The recipe also records the model-default hazards
+(`DataSource` and policy default active/enabled; entitlement defaults
+`is_free=True`) for any future fail-closed provisioning implementation.
+
+Four bounded no-network checks against the current source passed: the
+code-derived fallback provider ledger, exact `15 Tier-0 and 156 Tier-1`
+narrative, Tier-0 runtime/date parity, and ranked Tier-1 runtime parity (4/4,
+12.26s; both live test flags were set to zero). The first invocation named a
+nonexistent Tier-0 test selector and executed no tests; the corrected command
+then ran the four intended checks. These are internal ledger/runtime
+consistency checks only; they do not establish current issuer availability,
+terms, quota, a native sample, or route eligibility. No issuer/provider/SEC
+HTTP, quota operation, database fixture, policy activation, or cleanup
+occurred.
+
+Exact published-source CI `39913994245` on `059667e706c6cdf6eb80f4c720b5ebff6c5ff595`
+was checked during this continuation: Backend, Frontend Unit, and
+Branch-declared Tests were successful; Playwright E2E was still in progress;
+Exhaustive was skipped under feature-branch policy. This hosted run covers the
+published SHA, not the current local workstream documentation. Continue
+offline AC2/AC4/AC5 review from retained evidence, preserve unresolved or
+unqualified dispositions, and keep SPY non-routable until both evidence and a
+supported Provider provisioning path exist. The full AC1–AC14 roadmap and
+Root-assigned `full_stack_browser` slot remain open.
+
+## Current green-baseline adoption — 2026-10-23
+
+The coordinator released exact staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`
+as a synchronized green common baseline. Release evidence is
+`/home/m920q/charting-platform/.ai/staging-attempts/f04-four-owner-green-release-20261023.md`
+and canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`.
+Exact staging CI `39896524209` and Exhaustive job `120233695506` are terminal
+green: 104 backend unit shards, 497 integration/2 existing skips/84% coverage,
+1337 frontend, 194 functional/107 existing skips, 104 strict visual cases with
+zero retries, and ordinary E2E 191 passed/110 existing skips. Canonical
+reconcile `29507` exited zero and the degraded marker is absent. This baseline
+release does not accept later ETF roadmap work; Root owns master gates and
+deployment.
+
+Before adoption, this assigned ETF worktree and origin were clean and
+synchronized at `8e25283c7464ec429a96c7216eeeb0becc79de37`; exact branch CI
+`39901930128` is now terminal successful for Backend, Frontend Unit,
+Branch-declared and Playwright E2E, with Exhaustive skipped by feature-branch
+policy. The run was allowed to finish and was not canceled or rerun.
+
+After verifying the fetched staging ref was exactly `f04fb2a...`, I merged
+only that release into this ETF worktree. The merge is conflict-free. The
+incoming common delta consists of the hidden-refresh browser request-initiation
+observer and its tests in three frontend test paths, plus the Strategy repair
+handoff/plan/session/validation records delivered by staging. Those imported
+records are preserved unchanged; ETF implementation, historical receipts,
+quarantines and full AC1–AC14 roadmap remain intact. Merge commit
+`9aea5a0bba53c2dbbdbbefa85b72771bceb9a54b` is published and local/origin refs
+are synchronized. Exact post-merge run `39907317600` is terminal green for
+Backend, Frontend Unit, Branch-declared Tests, and Playwright E2E; Exhaustive
+was skipped by feature-branch policy. That CI covers only the merge source and
+does not cover the current local capability test or source-preparation recipe.
+The required `full_stack_browser` profile remains pending Root's exclusive
+host slot; no fixture, provider/issuer/SEC request, quota operation,
+paid/trial/unsafe activation, cleanup, or staging/sibling/master write
+occurred.
+
+The bounded ETF checkpoint already accepted in green staging remains distinct
+from the open full roadmap. Keep all 140 starting fallback dispositions, the
+`15 Tier-0 and 156 Tier-1` investigations, MSMR/QQQ and Militia/GOOG
+quarantines, held routes, retained data, and the post-integration 30-day
+observation gate. The current local continuation adds the canonical
+`holdings_source_provider=spdr` identity beside the SPDR adapter route, with
+tests for metadata selection/application and preservation of unrelated profile
+aliases. The complete adapter, refresh, and capability modules passed 764/764
+with live flags set to zero; changed-file Ruff and format checks passed. The
+accepted f04 baseline lacked this field. The shared runtime
+registration/review bootstrap gap remains: generic Provider seeding does not
+register `spdr`, and its admin PATCH APIs cannot create the initial publisher
+source, `ETF_HOLDINGS` policy/entitlement, or the host/operation/account review
+configuration. The source recipe records this separately from the supported
+admin profile PATCH. These changes do not create runtime records or admit a
+route.
+
+## First-human SPY sample admission recipe — 2026-10-23
+
+Source-only review used exact accepted baseline `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`.
+No real SPY/RSP response body suitable for dated import was found in the
+reviewed local test/evidence paths. The SPY adapter's XLSX in its unit test is
+mocked data, not issuer evidence. The durable recipe is
+[`first-human-sample-admission.md`](first-human-sample-admission.md).
+
+SPY is the most direct candidate: f04 maps it to native adapter `spdr`, whose
+fund-specific workbook URL is on `www.ssga.com`, and whose parser checks the
+workbook's SPY identity and issuer as-of date. This is route/code evidence,
+not a recent live test, evidence of present availability, legal permission, or
+an enabled Provider policy. The recipe records all accepted Provider gates,
+the single-symbol canary path and its redirect/timeout limits, current-vs-PIT
+interpretation, and constituent-resolution caveats. It also records the
+original pre-request blocker: f04's SPY profile metadata supplied only
+`holdings_adapter=spdr`, while the bridge also requires
+`source_provider` or `holdings_source_provider=spdr` on the committed profile.
+The current local branch now supplies `holdings_source_provider=spdr` from
+canonical SPDR route metadata; this is a source identity correction, not a live
+review or admission. The independent missing Provider source/policy/entitlement
+and `etf_holdings_review` bootstrap described in the recipe remains unresolved
+and requires a supported authorized provisioning path before any attempt.
+
+The local uncommitted capability regression separately proves that a static
+Tier-0 `CURRENT` audit does not establish current holdings: no snapshot is
+unknown, an expired snapshot is stale/last-known, and only a fresh snapshot
+with successful route state becomes current. The whole capability module
+passed 115/115 after that test; the exact narrative-count sentinel passed1/1,
+Ruff check/format and `git diff --check` passed, and the workstream validator
+accepted the record. This later branch-local check is not a claim that f04
+contains the regression, nor is it the sample's live evidence.
+
+No upstream request, quota use, route activation, paid/trial operation, target
+fixture, cleanup, or cross-worktree write occurred. Continue with a supported,
+fail-closed SPDR shared-runtime provisioning path only when its source and
+policy/terms evidence can be supplied; until then keep SPY non-routable and
+continue other bounded offline roadmap work. Keep full AC1–AC14,
+`15 Tier-0 and 156 Tier-1`, all prior failures, quarantines, route/cost holds,
+and the 30-day observation gate intact. Do not claim SPY usable/current until
+the exact evidence gates and a human-authorized first sample are satisfied.
+
+## Current full-roadmap continuation — shared CSV transport boundary — 2026-10-22
+
+The central coordinator released the exact synchronized green four-feature
+staging baseline `0e342512e53ba2268425294d61c50e219eaafa4f` with full CI and the
+Exhaustive Integration Gate green. The canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`;
+the release record is
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`.
+That staging commit is already an ancestor of this ETF branch, so no merge was
+needed. The existing branch and origin were synchronized at
+`4823bcf889b5ef0a51808fbfa39aa83ed6359953`; exact CI `39857543318` is
+`in_progress` on that source and does not cover the work below.
+
+The next offline transport audit found that HTTPX 403 responses in both
+`PublicCsvHoldingsAdapter.fetch_latest` and the Innovator aggregate CSV helper
+(used by the registered NEOS route) fell back to raw `requests.get`. The
+shared Provider runtime deliberately fails closed for that unadmitted legacy
+requests transport, so the fallback was neither a reliable recovery nor a
+valid per-attempt governed request. Both paths now surface the HTTPX status
+failure directly. Redirect behavior, configured issuer URL/headers, and the
+existing success parser paths are unchanged; no route was promoted or
+reclassified. Regressions prove that the actual NEOS route and shared public
+CSV helper issue one HTTPX attempt, propagate a 403, and never invoke raw
+`requests.get`; the existing successful NEOS CSV test still passes.
+
+Validation on the local source change: focused successful-NEOS and two 403
+contracts passed 3/3; the complete deterministic adapter module passed
+614/614; checkpoint consumers plus issuer route drift passed 38/38; default
+ETF live contracts passed 9 with 537 network-bearing cases skipped. Ruff and
+format checks passed, as did frontend type-check, 17 ETF UI tests and the
+production build. Both `RUN_LIVE_ETF_HOLDINGS_TESTS=0` and
+`RUN_LIVE_PROVIDER_TESTS=0` were set for the backend checks. No issuer,
+provider or SEC HTTP, quota operation, or live route replay occurred. The final
+narrative-count sentinel, workstream validator, plan hash, JSON/JSONL parsing
+and diff check pass; fresh exact-source CI is pending publication.
+The earlier CI run `39857543318` applies only to its older `4823…` SHA.
+
+At entry, the existing claim `f206bbc5-abbf-473a-a44f-fb5706c81282` matched
+this exact ETF worktree. A pre-existing dirty `session.json` reconciliation
+already reflected published HEAD/origin `4823…`; it was preserved and folded
+into this coherent workstream update, not reset or discarded. `make
+agent-session-start` is a clean-bootstrap command and was not used to displace
+the active claim. The UV-managed `make agent-context` classified this as the
+implementation worktree; its optional private quota-ledger directory setup
+reported a filesystem permission error outside this worktree. No other path
+was changed for that setup error.
+
+The full AC1–AC14 roadmap remains active and uncompleted, including all 140
+starting fallback dispositions, the 15 Tier-0 and 156 Tier-1 investigations,
+issuer onboarding, and the post-integration 30-day observation gate. MSMR/QQQ
+and Militia/GOOG remain unresolved and quarantined. Unknown, quota-held,
+unreviewed, paid/trial, and unsafe operations remain disabled. `full_stack_browser`
+validation still requires a Root-assigned safe slot; no staging/sibling/master
+write, deployment, retained-resource cleanup, data reset, or self-integration
+is authorized.
+
+Next: publish this coherent ETF-only change, inspect exact-source CI, then
+continue the next source-audit item from retained evidence without external
+HTTP or quota use.
+
+## Current continuation — guarded native-adapter transport fixes — 2026-10-22
+
+The exact synchronized green staging release `0e342512e53ba2268425294d61c50e219eaafa4f`
+is an ancestor of this ETF branch. It was verified from the canonical release
+record and receipt; no merge was needed because it was already in the branch
+history. The ETF branch is now published at
+`c23fa9e925677c5dc6bc4335e1419f6d0c05954b`, containing the Voya and REX
+guarded-transport fixes; local and remote refs matched after push. Exact CI
+`39855044854` was created for this REX commit and is pending/in progress. The
+earlier Voya CI `39853885891` is on its parent only. These are source fixes on
+the accepted baseline, not acceptance or closure of the full ETF roadmap.
+
+The next offline audit found the same concrete guarded-transport defect in the
+REX native route: its complete holdings CSV form used `requests.post`, which is
+intentionally blocked by the shared Provider boundary. The REX adapter now
+uses `httpx.AsyncClient` with the configured timeout and redirect policy,
+retaining the product URL, POST form fields, Referer, CSV parser, result
+metadata, and response error handling. The deterministic test uses the
+existing fake async client instead of monkeypatching the blocked requests
+namespace. The focused REX regression passed 1/1; the complete adapter module
+passed 611/611. The full branch-declared offline suite passed: adapter 611,
+checkpoint consumer 15, route-drift 23, offline live contracts 9 passed/537
+network-bearing cases skipped, Ruff/workstream validation, frontend type-check,
+17 frontend tests, and production build. No external issuer/provider/SEC HTTP
+or quota operation occurred, and the opt-in live sweep remained disabled. REX
+was committed and pushed as `c23fa9e925677c5dc6bc4335e1419f6d0c05954b`;
+exact run `39855044854` applies to that SHA and does not include PeakShares.
+
+The next offline audit found a separate unsafe PeakShares fallback: after three
+HTTPX POST timeouts the adapter called raw `requests.post`, escaping the shared
+per-attempt admission boundary. The fallback is removed; all three attempts
+continue through the same Provider-backed client and a terminal timeout is
+surfaced rather than making an unadmitted fourth request. The success-after-one-
+timeout contract and the three-timeout fail-closed contract pass; the latter
+asserts all three POSTs use the configured FilePoint URL, fund ID and product
+page Referer. The complete declared branch suite passed again with live tests
+disabled. PeakShares fix and evidence were published as
+`db023ed8023bdacd6316380147114d344848ed14`; exact CI `39855756183` was later
+cancelled after the next ETF push superseded that head. Saracen's guarded-403
+fix and tests were published in `5f4117ad4df3f239bf4df8d12bb3a237293836de`;
+exact CI `39856500578` is in progress on that SHA.
+
+The next static route review found Saracen/SanJac's registered native route
+retried HTTPX 403 responses with raw `requests.get/post`, bypassing the shared
+Provider admission boundary. Those fallbacks are removed: redirects and all
+attempts remain within the Provider-backed client, and a 403 remains an error
+rather than being retried through an ungoverned transport. Three offline
+Saracen contracts (the full product-page feed and GET/POST 403 boundaries) pass;
+the full declared offline suite passed with 613 adapter cases, consumers15,
+route-drift23, offline contracts9 passed/537 live cases skipped, lint and
+workstream validation, frontend type-check, ETF frontend17 and build. The
+published `5f4117ad4df3f239bf4df8d12bb3a237293836de` source includes Saracen;
+its exact CI `39856500578` is running.
+
+The next offline transport audit found Alpha Architect/ETF Architect's native
+product-page adapter still escaping from the shared HTTPX admission boundary to
+the fail-closed `requests` namespace on 403/5xx/timeouts. Its tests had
+monkeypatched that namespace and therefore modeled an unavailable production
+fallback as successful. The adapter now keeps bounded 5xx/timeout retries on
+HTTPX, preserves backoff, surfaces 403, and does not accept a challenge page as
+holdings. Three focused route contracts pass, and the complete offline adapter
+module passes 613/613. The declared offline branch suite also passed: adapters
+613, checkpoint consumers15, route-drift23, offline live contracts9 passed/537
+network-bearing cases skipped, Ruff/workstream validation, frontend type-check,
+ETF frontend17 and production build. Live calls were explicitly disabled. These
+local ETF Architect changes are not in the published
+`5f4117ad4df3f239bf4df8d12bb3a237293836de`; final exact-source CI remains
+required after coherent publication.
+
+No live REX, PeakShares, or Saracen success, full-stack browser pass, route promotion,
+full-roadmap completion, or post-integration observation is claimed. MSMR/QQQ
+and Militia/GOOG remain unresolved/quarantined; all unknown, quota-held,
+unreviewed, paid/trial, and unsafe operations remain disabled. Preserve all
+fourteen criteria, the exact “15 Tier-0 and 156 Tier-1” count wording,
+historical failures, and the 30-day observation gate.
+
+Next: finish final narrative/workstream/hash/diff checks, then publish the
+substantive ETF Architect guarded-retry change with coherent evidence and
+inspect its exact-source CI. Continue
+the full roadmap from retained evidence without issuer/provider/SEC requests
+or quota spend. A full
+`full_stack_browser` matrix remains required and needs Root's assigned safe
+slot; no staging/sibling/master write, deployment, self-integration, data reset,
+or retained-resource cleanup is authorized.
+
+The following 2026-10-21 integration-checkpoint packet is retained historical
+context; its then-current C publication instructions have been superseded by
+the later release and continuation entries above.
+
 ## Bounded ETF integration checkpoint — final publication C pending — 2026-10-21
 
 The coordinator's technical review is **approved conditionally** for the bounded
@@ -42,12 +1099,9 @@ disabled/non-routable. No live issuer/SEC/provider traffic, quota replay,
 staging/sibling mutation, deployment, or retained-data cleanup is authorized
 or claimed.
 
-Next action: validate and commit only this workstream-record packet as C, push C
-once, verify origin parity, and inspect that exact CI run. Do not push B
-separately, repeat the completed local matrix, or create a follow-up
-metadata/hash-loop commit. After exact-C CI is green, hand off to the central
-coordinator for acceptance, guarded staging integration, and EIG; the feature
-worker does not self-integrate.
+Historical next action at the time of this checkpoint: validate and commit
+that workstream-record packet as C. This has been superseded by the current
+continuation above; do not treat it as the present next action.
 
 ## Isolated shared-runtime DB/Redis slot — 2026-10-20
 
@@ -13217,3 +14271,1784 @@ task cancellation), the exact full 31-case coverage module was run again on
 that final test diff: `31 passed, 352.94s`, exit 0. The direct wait does not
 force termination through deferred settlement; do not describe this result as
 proving a hard 10-second cancellation bound.
+
+## Green staging adoption and legacy-label reconciliation — 2026-10-22
+
+The coordinator's exact green release at staging
+`0e342512e53ba2268425294d61c50e219eaafa4f` was read from
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`
+and canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`.
+The release record reports exact Actions run `39827786248` and successful
+Exhaustive Integration Gate `120006510572`. Actual remote staging resolved to
+the same SHA. The original ETF tip was clean/synchronized at
+`c2c232596cf848d83c20e5f2b9f5c502ddd01808` and an ancestor of the release, so
+this worktree fast-forwarded to the exact release and pushed only
+`feat/etf-holdings-constituents`; independent remote verification confirmed
+the ETF branch now resolves to `0e342512e53ba2268425294d61c50e219eaafa4f`.
+The initial integration checkpoint is therefore accepted in green staging;
+this does not complete the full fourteen-criterion ETF roadmap, issuer
+onboarding, unresolved live-source cases, or the later 30-day observation.
+
+The next ETF-owned correction addresses persisted legacy holdings whose raw
+classification labels are title-cased or punctuated. Initial ingestion and
+the resolver already normalize classification for equity-only identity
+resolution, but `_holding_needs_reconcile` compared persisted `row_type` and
+`holding_type` as raw strings. Such a row could be excluded from a later
+reconciliation pass despite being a supported security/equity classification.
+The fix normalizes labels only for this eligibility decision; raw persisted
+labels and snapshot evidence remain untouched, and cash/currency/collateral
+rows remain excluded before the equity-only resolver. The regression simulates
+a persisted unresolved `Common Stock` / `Security` row and verifies local
+reconciliation attaches its existing canonical equity identity without
+identifier-provider calls. A companion guard verifies title-case
+cash/currency/collateral remain ineligible.
+
+For the implementation diff based on
+`0e342512e53ba2268425294d61c50e219eaafa4f`, the full focused resolution module
+passed 58/58 in 23.98 seconds; changed-file Ruff check, format check, Python
+compilation, and `git diff --check` passed. These deterministic tests used no external
+issuer/provider/SEC traffic, quota operation, Compose/browser fixture, or
+service cleanup. The pre-existing `make agent-docker-ready` validation row
+records a sandbox Docker-socket permission denial, not proof that the daemon is
+stopped. Full local profile work remains subject to Root's safe-slot direction;
+it is not waived. Next: commit and push this bounded ETF-owned source/test fix,
+then publish one coherent workstream checkpoint recording the exact staging
+adoption, accepted checkpoint boundary, results, and full-roadmap continuation.
+Keep MSMR/QQQ and Militia/GOOG unresolved/quarantined; no unknown, held,
+unreviewed, paid, trial, or unsafe route is enabled.
+
+The coherent record update is now being published at the same branch-owned
+checkpoint boundary: staging adoption and the legacy-label source fix are
+recorded separately from the full AC1-AC14 roadmap. The bounded EICP checkpoint
+goal was completed only after coordinator acceptance and same-branch adoption;
+the original goal accounting was preserved. A new unbudgeted full-roadmap goal
+is active in this same native thread, with no accounting reset. The focused fix
+is at `c7fb559a57b5d66dfd1a8f5ab252e0c88abf5156`, synchronized to the ETF
+remote. Exact push-CI was not returned by the PR-filtered GitHub connector, so
+its status is unverified here; do not infer green. The full local
+`full_stack_browser` profile remains required and awaits Root's safe-slot
+assignment. Continue offline AC2/AC4/AC5 audit and capability work meanwhile;
+preserve every prior partial/red receipt, all 14 roadmap criteria, `15 Tier-0
+and 156 Tier-1`, unresolved/quarantined MSMR/QQQ and Militia/GOOG, all route and
+cost holds, and the 30-day observation gate. No live issuer/provider/SEC
+request, quota replay, data reset, retained-resource cleanup, deployment, or
+cross-worktree mutation occurred.
+
+## Terminal capability without stored holdings — 2026-10-22
+
+The exact green release at staging `0e342512e53ba2268425294d61c50e219eaafa4f`
+is already an ancestor of this ETF branch. The canonical release record and
+receipt are
+`/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`
+and `/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`;
+they record green Actions run `39827786248` and Exhaustive job `120006510572`.
+The normal preflight classified this exact checkout as the ETF implementation
+worktree and retained claim `f206bbc5-abbf-473a-a44f-fb5706c81282`. The actual
+ETF remote ref was independently read as `4af6a4f6237bb76e22c3f2b0da6b4d6acc786788`
+and staging as the released `0e342512e53ba2268425294d61c50e219eaafa4f`.
+
+Offline source review found a capability-display gap: `symbol_audit_for_profile`
+already returns an explicit not-applicable disposition for liquidated/successor
+symbols and audited non-publisher identities, but `evaluate_capability` returned
+generic unknown when those known terminals had no stored holdings snapshot. The
+ETF-owned fix at `81be3e1f83c35f40ea79567beccfd2462cc26d4d` maps only those two
+explicit terminal evidence states to `not_applicable` when there is no snapshot
+and no route failure. Regression coverage proves ADFI's inactive/successor and
+ABEQ's audited non-publisher outcomes, while an unreviewed symbol remains
+unknown and an actual failed route remains unavailable. No holdings become
+displayable or usable for current analysis from this classification.
+
+The full deterministic `test_etf_holdings_capability.py` module passed 105/105
+in 3.09 seconds. Ruff check, Ruff format check, and `git diff --check` passed on
+the two changed source/test files. No external request, quota operation,
+database, Docker/browser profile, or service cleanup was used. This closes only
+that narrow AC9/AC13 contract improvement; the full local `full_stack_browser`
+profile remains required and awaits Root's safe slot.
+
+At review time, exact Actions run `39843906382` was still `in_progress` on the
+prior workstream-only source `4af6a4f6237bb76e22c3f2b0da6b4d6acc786788`; it does
+not validate the new implementation. The run is retained as historical
+evidence and the final published branch tip requires its own exact-source CI.
+The full AC1-AC14 roadmap remains active, including issuer onboarding, the
+`15 Tier-0 and 156 Tier-1` audit narrative, and the post-integration 30-day
+observation. Preserve all prior failures/partial profiles, MSMR/QQQ and
+Militia/GOOG quarantines, and disabled unknown/quota-held/unreviewed/paid/trial/
+unsafe routes. The next independent work is offline evidence-backed AC2/AC4/AC5
+audit/capability work in relevance order; do not refresh a blocked route without
+new retained evidence or authorized access.
+
+## Runtime fallback audit-date reconciliation — 2026-10-22
+
+The accepted integration baseline remains exact synchronized green staging
+`0e342512e53ba2268425294d61c50e219eaafa4f`; it is an ancestor of this branch.
+The normal owner preflight confirms claim
+`f206bbc5-abbf-473a-a44f-fb5706c81282` in the assigned ETF worktree. The
+checkout is at source `535f8928da53da9c20838007336d71b6e627e4c9`, one
+substantive source commit ahead of origin `ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3`;
+the plan/session packet for publication is being completed. No staging merge
+was needed or performed because the released baseline was already in history.
+
+Offline parity review found all 74 runtime fallback identity summaries sharing
+the obsolete `2026-07-26` investigation date while their current durable
+provider-audit records carry issuer-specific dates from `2026-09-02` through
+`2026-10-05`. The source change maps each fallback key to its ledger date and
+the existing parity test now requires exact equality; an identity-level test
+confirms the Aegon audit displays `2026-10-05` while remaining unavailable.
+This changes audit chronology only: no route status, eligibility, holdings
+freshness, or source availability is promoted.
+
+Validation on source `535f8928da53da9c20838007336d71b6e627e4c9`: the complete
+capability module plus exact fallback-ledger parity test passed 107 combined
+cases. Changed-file Ruff and formatting checks and `git diff --check` passed.
+The earlier run `39845969811` is on preceding source
+`ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3` (Frontend succeeded; Backend was
+still running at the last live check) and is not evidence for `535f8928`.
+Exact-source hosted CI for `535f8928` remains pending publication; the required
+`full_stack_browser` profile remains open and awaits Root's safe slot.
+
+Next: finish this coherent branch-owned evidence packet, publish the source and
+records on the ETF branch, verify exact remote parity and inspect its own CI;
+then continue offline AC2/AC4/AC5 audit/capability remediation in relevance
+order. Preserve all 14 criteria and history, the `15 Tier-0 and 156 Tier-1`
+accounting, MSMR/QQQ and Militia/GOOG quarantines, all unknown/quota-held/
+unreviewed/paid/trial/unsafe holds, and the 30-day observation gate. No live
+issuer/Provider/SEC request, quota action, heavy profile, data/resource cleanup,
+staging/sibling/master write, deployment, or self-acceptance occurred.
+
+## Provider-universe current-count chronology — 2026-10-22
+
+The current code-derived provider split is 496 registered, 422 native, and 74
+fallback-only, matching `provider-audit.yaml` and the `Repo Coverage` section of
+`docs/etf-provider-universe.md`. AC1 review found a separate stale paragraph in
+that same document describing the older 421/75 split as current. It now labels
+421/75 historical at implementation checkpoint
+`a696277b6efed719cc40051e010f5e6a5b542f3e` and leaves 422/74 as current. The
+current narrative sentinel now checks both statements so future drift is
+visible without deleting historical checkpoint information.
+
+The exact accepted staging release `0e342512e53ba2268425294d61c50e219eaafa4f`
+was rechecked against this branch: it is already an ancestor of source
+`c5a8df29583631950c5b74e6fb9a59519eb9fe68`, so no merge or rebase was needed.
+The normal owner preflight confirmed claim
+`f206bbc5-abbf-473a-a44f-fb5706c81282` and local/tracking-remote parity at `c5`.
+The existing local AC1 documentation/test packet was preserved and is being
+validated as the next substantive checkpoint; the full fourteen-criterion
+roadmap remains open.
+
+The focused ledger and current-narrative tests passed 2/2; changed-file Ruff,
+format and `git diff --check` passed. The first draft of the new sentinel used
+a literal phrase spanning a Markdown line wrap; that test-only assertion failed
+and was corrected to normalize whitespace. The final 2/2 run passed; no product
+behavior changed. No live request, quota, DB, Docker/browser profile, or cleanup
+occurred. Source `c5a8df29583631950c5b74e6fb9a59519eb9fe68` is independently
+confirmed at origin. The prior run `39845969811` on
+`ab0b9bdbc8b14900ceab1e9a19fa854f0e6e34c3` is terminal cancelled after
+Frontend and backend unit success; it does not validate `c5`. The combined-status
+lookup for `c5` returned no entries, so its exact CI is unverified, not green.
+At this historical handoff checkpoint, the AC1 documentation/test correction
+was still local. It was subsequently published as commit
+`281368f979361003edd153e5b19251922e30f6ba`; its exact run
+`39848752641` is now terminal-cancelled and does not validate later source.
+
+Next at that checkpoint: finish the two-file change with its owner records and
+continue evidence-backed AC2/AC4/AC5 audit offline. Preserve all 14 criteria,
+`15 Tier-0 and 156 Tier-1`, unresolved/quarantined MSMR/QQQ and Militia/GOOG,
+route and cost holds, and the 30-day observation. The required full
+`full_stack_browser` profile still needs Root's safe slot.
+
+## Dated provider-count context follow-up — 2026-10-22
+
+A repository-wide count-phrase scan found another `421/75` statement inside
+the dated 2026-10-05 Tier-0 source-availability report. It described that
+historical checkpoint, but present-tense “Provider counts remain” could be read
+as a current claim. The text now explicitly says those were the counts at that
+2026-10-05 evidence checkpoint; the current 422/74 statement and dated report
+history are retained. The narrative sentinel now checks this time boundary.
+
+The focused provider-ledger and narrative tests passed 2/2 in 8.12s; Ruff,
+format, and `git diff --check` passed. This substantive follow-up was published
+at `f11a798406f42dfbb769f8f5d96685c49a689b38`; exact push run `39849423269` is
+in progress on f11. Earlier run `39848752641` for 281 is terminal-cancelled.
+Neither run validates the later AC2 working diff. No external HTTP, quota,
+full-stack profile, or resource cleanup occurred.
+
+Next after that correction: continue the offline AC2/AC4/AC5 audit/capability
+work in relevance order. Preserve all fourteen criteria,
+`15 Tier-0 and 156 Tier-1`, the unresolved MSMR/QQQ and Militia/GOOG
+quarantines, verified-free-only routing, and the 30-day observation gate.
+
+## Fallback audit queue baseline preservation — 2026-10-22
+
+The AC2 ledger contract says `starting_status` preserves the original queue
+classification and the baseline queue is ordered by status priority, then
+`adapter_key`. A read-only comparison against the original ledger commit
+`212207ca35ca055bab5283a15ccfa695d387fb93` found exactly one overwritten
+starting status: RiverFront was originally `needs_first_party_route_discovery`
+at rank 104, but a later issuer review replaced that field with its terminal
+`provider_not_a_portfolio_publisher` disposition. The rank itself never moved.
+Restoring the original starting status makes all 140 records match the declared
+deterministic baseline order; its current non-publisher disposition, evidence,
+and next action remain unchanged.
+
+The provider-ledger regression now checks contiguous queue ranks and the full
+status-priority/adapter-key order. The focused ledger and narrative tests passed
+2/2 in 8.02s; Ruff, format, and `git diff --check` passed. Exact run
+`39849423269` is still in progress on prior source f11 and cannot validate this
+AC2 diff. This is branch-owned offline AC2 work only: no issuer/SEC/provider
+HTTP, quota, route promotion, data cleanup, or change to unresolved
+MSMR/QQQ/Militia/GOOG evidence. Exact current-source CI remains required.
+
+Next: publish this AC2 ledger/test correction and continue offline AC2/AC4/AC5
+work using retained evidence. Do not infer new issuer availability, alter route
+holds, or start the unassigned full-stack profile.
+
+After completing this workstream packet, the same focused source profile plus
+the mandatory narrative-count sentinel was rerun on unchanged implementation
+`535f8928da53da9c20838007336d71b6e627e4c9`: 108 tests passed in 5.14s. Ruff,
+format, workstream validation, and whitespace checks also passed. Exact CI
+`39845969811` remains on the preceding source; its frontend job passed, backend
+unit phase passed, and backend integration phase is still running. It is neither
+the final source CI nor a reason to wait before continuing offline work.
+
+## RiverFront baseline-status regression hardening — 2026-10-22
+
+The substantive ledger correction is published at
+`a3fbba69beabecfea5d998e950dc8380512f50b1`; exact Actions run
+`39850572582` is pending on that source. After publication, review of the
+regression identified that deterministic ordering alone would not prevent a
+future coordinated edit to both `starting_status` and `queue_rank`. The adapter
+ledger test now directly asserts RiverFront retains its original
+`needs_first_party_route_discovery` starting status while its current status
+and disposition remain `provider_not_a_portfolio_publisher`. The focused test
+passed 1/1 in 7.45s; Ruff, formatting, and diff checks passed. This test-only
+hardening is uncommitted and not covered by run `39850572582`; all external
+routes, issuer evidence, quota state, holds, and other source remain unchanged.
+
+Next: publish this narrow regression assertion, verify exact remote parity and
+its exact-source CI, then continue offline evidence-backed AC2/AC4/AC5 work.
+The full fourteen-criterion roadmap, `15 Tier-0 and 156 Tier-1` investigations,
+MSMR/QQQ and Militia/GOOG quarantines, and post-integration 30-day observation
+remain open. Do not issue issuer/provider/SEC traffic, spend quota, activate
+held routes, or start the unassigned full-stack profile.
+
+## RiverFront regression publication and continuation status — 2026-10-22
+
+The RiverFront starting-status regression is published at exact source
+`e4816268eb0c5effaad97979d13be843b50fc950`; the accepted initial checkpoint's
+green staging source `0e342512e53ba2268425294d61c50e219eaafa4f` remains an
+ancestor. Normal session preflight confirmed the existing claim
+`f206bbc5-abbf-473a-a44f-fb5706c81282`, the assigned ETF worktree, and local /
+origin parity at e481. Exact Actions run `39850920455` is still in progress on
+that same SHA: Frontend Unit Tests passed, while Backend Tests are in the unit
+phase and integration is pending. The complete deterministic adapter,
+capability, and refresh unit modules previously passed locally with 611, 106,
+and 19 tests respectively; those results do not substitute for terminal exact
+CI or the required `full_stack_browser` profile. Continue offline AC2/AC4/AC5
+audit and Tier-0 consumer work from retained evidence; obtain Root's safe slot
+before the full profile. Keep all fourteen criteria, `15 Tier-0 and 156 Tier-1`,
+MSMR/QQQ and Militia/GOOG quarantines, held routes, historical/red evidence,
+and the post-integration 30-day observation intact. No issuer/provider/SEC
+HTTP, quota use, paid/trial/unsafe activation, data reset, retained-resource
+cleanup, staging/sibling/master write, deployment, or self-acceptance occurred.
+
+The branch's default live-provider contract module was also run explicitly
+offline with `RUN_LIVE_ETF_HOLDINGS_TESTS=0`: 9 passed, 537 network-bearing
+cases skipped. This verifies the offline opt-in guard/contracts only; it does
+not validate any live issuer route or the full opt-in matrix. Exact CI
+`39850920455` remained active on e481 when checked (Frontend Unit Tests passed;
+Backend unit phase still running, integration pending). The next safe work is
+offline AC2/AC4/AC5 and Tier-0 consumer progression from already retained
+evidence, not replaying held issuer probes. The complete roadmap and all
+existing quarantines/holds remain open.
+
+## Four-feature green release adoption and Voya transport correction — 2026-10-22
+
+The canonical release record and receipt confirm synchronized green staging at
+`0e342512e53ba2268425294d61c50e219eaafa4f` (CI `39827786248`, Exhaustive Gate
+`120006510572`, canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261022T192741Z-0e342512e53b.json`).
+That exact SHA is already an ancestor of this ETF branch's current source
+`e4816268eb0c5effaad97979d13be843b50fc950`; GitHub independently reports the
+ETF remote at the same `e481626` tip. Adoption is therefore already present in
+history; no redundant merge or push was performed.
+
+The existing owner claim is `f206bbc5-abbf-473a-a44f-fb5706c81282` for this
+exact worktree. `make agent-context` classified it as the expected
+implementation checkout. The UV-managed `agent-session-start` preflight
+refused the dirty bootstrap boundary; the four dirty paths were already
+ETF-owned handoff/plan/session/validation records and were preserved. The
+released staging tree also changes overlapping ETF record/test paths, so no
+fast-forward was attempted over that dirty context. The current records remain
+part of this coherent source-and-evidence changeset, not a standalone
+acknowledgment commit.
+
+Offline review found Voya's registered native adapter calling the
+intentionally fail-closed `requests.get` namespace, while its unit test mocked
+that blocked namespace and concealed the defect. The adapter now uses the
+shared Provider-backed HTTPX client with `follow_redirects=True` (handled as
+individually admitted hops), preserving URL, timeout, headers, parsing, source
+metadata, and response error handling. Its regression verifies the configured
+timeout/redirect policy, request URL, and Referer without issuer traffic.
+Validation on the current worktree source: Voya-focused test 1/1; complete
+adapter unit module 611/611; Provider bridge plus refresh unit modules 34/34;
+changed-file Ruff check, format check, and `git diff --check` passed. The full
+declared branch suite also passed: adapter 611, checkpoint consumer 15,
+route-drift 23, offline live contracts 9 passed/537 network cases skipped,
+Ruff/workstream validation, frontend type-check, 17 frontend tests, and
+frontend build. The exact count sentinel and all workstream/schema/hash checks
+passed after the final record edit. This does not establish a live Voya route
+or replace the required full profile. CI
+`39850920455` remains in progress on the pre-fix published source e481 and does
+not cover this uncommitted change.
+
+Next: publish this substantive adapter/test/evidence change as one coherent
+ETF-owned source checkpoint and inspect its exact-source CI. Continue
+the AC2/AC4/AC5 and Tier-0 roadmap from retained evidence. Preserve the exact
+“15 Tier-0 and 156 Tier-1” text, all fourteen roadmap criteria, unresolved
+MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/quota-held/unreviewed/
+paid/trial/unsafe routes, historical/red/partial evidence, and the 30-day
+observation gate. Do not issue issuer/provider/SEC requests or spend quota; do
+not launch a full-stack/browser matrix without Root's slot; no sibling/staging/
+master/deployment/data/retained-resource action occurred.
+
+## Kensington guarded CSV transport — 2026-10-22 21:43Z
+
+The accepted green staging release `0e342512e53ba2268425294d61c50e219eaafa4f`
+is already an ancestor of this branch. Published source `61dea5d3d22ffd6a1f04e301bc7e688001251953`
+contains the PublicCsv/NEOS guarded-403 correction; its exact hosted CI outcome
+was not independently available in this session. A bounded static audit then
+found that registered Kensington holdings still used raw `requests.get`, a
+transport the shared ETF facade deliberately blocks. The adapter now uses the
+Provider-backed HTTPX facade and keeps redirects on that governed path. Its
+existing deterministic success case now exercises the fake HTTPX client for
+both identity and CSV requests, and a 403 regression asserts no requests
+fallback. Focused Kensington tests passed 2/2.
+
+The already-running full declared offline branch command completed with exit 0
+and covered this exact worktree diff: adapters615 passed, checkpoint consumers15,
+route drift23, offline live contracts9 passed/537 skipped, Ruff/workstream
+validation, frontend type-check, ETF frontend tests17, and frontend build. Both
+live switches were explicitly 0. This run is not a full_stack_browser profile
+or live issuer validation. No issuer/provider/SEC HTTP or quota operation was
+made. This change remains uncommitted until the workstream is coherently updated
+and checked; fresh exact-source CI will be required after publication. Do not
+start another heavy local job while Root owns the slot. Preserve the full
+AC1-AC14 roadmap, `15 Tier-0 and 156 Tier-1`, all historic partial/red evidence,
+MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/quota-held/unreviewed/
+paid/trial/unsafe routes, and the post-integration 30-day observation.
+
+## Guarded 403 handling for Kensington, Rayliant, Gabelli, and ARS — 2026-10-22 21:56Z
+
+Published Kensington fix `96e2a3511fa19078810e4dd4e88c25d469a28b40` is clean
+and synchronized to the ETF branch. Exact Actions CI `39860049634` is active
+on that published SHA (Frontend green; Backend integration phase active). A
+further offline transport audit found Rayliant's product-page, Gabelli's
+holdings-CSV, and ARS's product-page paths each attempted raw `requests.get`
+after HTTPX 403. Those fallbacks cannot run under the intentional fail-closed
+ETF `requests` namespace and do not create governed attempt records. All three
+adapters now surface the admitted HTTPX status error instead of trying an
+unadmitted transport; route eligibility, source evidence, and business parsing
+remain unchanged.
+
+Focused deterministic success and HTTP403/no-fallback tests passed 6/6. Ruff
+passed; formatting and `git diff --check` passed after mechanical formatting.
+No provider/issuer/SEC HTTP, quota, or route-eligibility change occurred. This
+is a focused source/test worktree change only; the full declared branch suite
+has not been rerun for it because Root owns the heavy local slot. The current
+exact CI must terminate before deciding publication timing; do not cancel it or
+launch another broad local run. Preserve all fourteen roadmap criteria,
+`15 Tier-0 and 156 Tier-1`, historical results, MSMR/QQQ and Militia/GOOG
+quarantines, disabled unknown/quota-held/unreviewed/paid/trial/unsafe routes,
+and the 30-day observation gate.
+
+## Exact CI follow-up: correct legacy-transport fixture — 2026-10-22 22:04Z
+
+Exact Actions run `39860049634` on published source
+`96e2a3511fa19078810e4dd4e88c25d469a28b40` is terminal RED. Frontend passed;
+backend unit passed 5,204 with one expected skip; backend integration passed
+496, skipped 2, and failed 1; dependent E2E, Exhaustive and branch-declared jobs
+were skipped. The sole failure was
+`test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_binding`:
+the synthetic fixture invoked Voya but expected the fail-closed `requests`
+guard. Voya now uses the shared HTTPX bridge, so its call was correctly denied
+first by the fixture's reviewed-host allowlist. Source inspection confirmed NSI
+is a registered adapter whose actual fetch path still calls the intentionally
+blocked `requests` namespace. The integration fixture now invokes NSI with its
+configured `NSI` symbol, preserving the intended zero-transport guard assertion;
+this test-only correction has not yet run against a database or hosted CI.
+
+In the same uncommitted follow-up, Rayliant, Gabelli/GAMCO and ARS no longer
+attempt raw `requests.get` after admitted HTTPX 403 responses; those fallbacks
+could not be admitted/accounted by the shared runtime. Their six deterministic
+success/403 cases passed. A repeat run also passed all six cases and the
+audit-count sentinel; Ruff check/format, diff check and the branch workstream
+validator passed. No broad local backend/integration/browser work was run while
+Root owns the heavy slot. No issuer/provider/SEC request, quota use, route-state
+change, staging/sibling mutation or cleanup occurred. The current code and
+fixture changes remain uncommitted and need fast collection/static checks,
+coherent publication and fresh exact-source CI. Preserve CI `39860049634` as
+historical red evidence; do not rerun or relabel it green. The full
+`full_stack_browser` profile, all AC1-AC14 roadmap scope, 15 Tier-0 and 156
+Tier-1 accounting, MSMR/QQQ and Militia/GOOG quarantines, disabled unknown/
+quota-held/unreviewed/paid/trial/unsafe routes, and the post-integration
+30-day observation remain open. Exact owned paths in this uncommitted context:
+`backend/app/services/etf_holdings_adapters.py`,
+`backend/tests/unit/services/test_etf_holdings_adapters.py`,
+`backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`, and
+the four ETF-owned records `plan.yaml`, `handoff.md`, `session.json`, and
+`validation.jsonl`.
+
+## NSI adapter transport moved to shared HTTPX — 2026-10-22 22:14Z
+
+The prior source/test/workstream checkpoint is published cleanly at
+`6d08854c81ea6892011a98b3711a9233b59c401b`, with independent remote-ref parity.
+Exact CI `39862778512` for that SHA remains active in Backend unit tests;
+Frontend Unit Tests passed. The earlier `39860049634` red run is retained: its
+one integration failure was the test invoking Voya's guarded HTTPX path while
+expecting the legacy-requests guard. In this follow-up that negative test now
+uses Cohen & Steers with a supplied synthetic fund ID, so its actual legacy
+`requests` invocation reaches the expected fail-closed guard without a network
+request.
+
+Static review found NSI's registered native adapter still used raw `requests`
+for both product-page discovery and its declared CSV. It now uses the shared
+Provider-backed HTTPX client for both physical attempts, in the caller's
+async/event-loop context, with redirects enabled and the CSV Referer tied to
+the final product-page URL. Product identity, declared CSV path, symbol,
+parsing, source metadata and freshness behavior are preserved. Deterministic
+success and HTTP403/no-legacy-fallback tests passed 2/2; the narrative-count
+sentinel passed 1/1; Ruff check/format and `git diff --check` passed. The
+revised provider-bridge integration test was collected (1/31), not executed
+locally because Root owns the heavy fixture slot. No DB-backed NSI admission
+result is claimed; hosted exact-source CI is still needed. No issuer/provider/
+SEC request, quota, source eligibility change, or data/resource cleanup
+occurred.
+
+This is a bounded step toward AC3/AC7/AC10, not route requalification or full
+roadmap completion. Preserve all AC1-AC14, the 15 Tier-0 and 156 Tier-1
+accounting, unresolved/quarantined MSMR/QQQ and Militia/GOOG, disabled unknown/
+quota-held/unreviewed/paid/trial/unsafe routes, historical red evidence, and
+the 30-day post-integration observation. Exact owned paths in this context:
+`backend/app/services/etf_holdings_adapters.py`,
+`backend/tests/unit/services/test_etf_holdings_adapters.py`,
+`backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`, and
+the ETF-owned `plan.yaml`, `handoff.md`, `session.json`, and `validation.jsonl`.
+
+## NSI shared-admission contract strengthened — 2026-10-22 22:24Z
+
+Static review found that the NSI unit tests replace the adapter HTTPX namespace
+with a fake client. They prove request construction and fail-closed 403
+behavior, but not that the registered adapter uses shared Provider admission.
+Added a database integration case using the existing `provider_db` isolated
+schema and HTTPX MockTransport: it seeds committed synthetic provider policy,
+entitlement, reviewed host/operation and profile identity before invoking the
+real registered NSI adapter under a bound request context. The mocked product
+URL redirects to a product page, which declares the CSV; the case asserts three
+physical calls, matching bound URLs/log IDs, and three independently settled
+reservations/quota units; the CSV attempt must use the redirected product page
+as its Referer. This is synthetic contract evidence only, not
+publisher entitlement or route qualification.
+
+The three focused NSI unit contracts pass, including a direct unbound-call test
+that proves denial occurs before loop-local attempt/transport construction.
+Ruff format/check passed and the exact integration test collects (1 test), but
+the database-backed test was not executed because Root owns the heavy fixture
+slot. The source base remains `6d08854c81ea6892011a98b3711a9233b59c401b`,
+local/origin synchronized; exact CI `39862778512` was last reported active at
+22:14Z but cannot be queried from this runtime (private-run connector 404, no
+`gh` CLI). Preserve the run; its terminal state is unverified here, not assumed
+green or cancelled. No provider/issuer/SEC HTTP, quota use, full local profile,
+service/data cleanup, staging/sibling write or route-state change occurred.
+
+Next: obtain exact run status through the authorized owner channel; after the
+current CI boundary, run the existing assigned DB integration case under its
+explicit project/URLs and record actual outcome before publication. Preserve
+all AC1-AC14, historical results, 15 Tier-0 and 156 Tier-1, MSMR/QQQ and
+Militia/GOOG quarantines, disabled unknown/quota-held/paid/trial/unsafe routes,
+and the 30-day observation gate.
+
+## Remaining legacy transport callsite inventory — 2026-10-22 22:30Z
+
+Read-only `rg`/source inspection found five remaining `requests.get` callsites
+in `etf_holdings_adapters.py`: Cohen & Steers public fund API/discovery;
+Arax/Day Hagan paginated Airtable records using a token parsed from page HTML;
+FM Investments' retry after HTTPX403; BondBloxx's retry after HTTPX403; and
+KraneShares' date-candidate CSV fetch. The module's `requests` namespace still
+fails closed with `ETFHoldingsRouteHeldError`, so these are not admitted
+transports and must not be described as usable. The Cohen & Steers synthetic
+guard fixture supplies an ID to skip optional sitemap discovery but still
+reaches its mandatory API `requests.get`, preserving a deterministic zero-
+transport denial. Arax's embedded token/account and all publisher terms remain
+unreviewed; do not activate or migrate it using inferred credentials. The three
+fallback patterns remain blocked rather than producing an unadmitted second
+attempt. No source change or external request was made from this inventory.
+
+Next remediation should be selected from retained evidence and a reviewed
+shared-runtime contract; if adapted, each real page, CSV, API, redirect, retry
+or pagination request must independently pass admission/settlement. No attempt
+cost, free entitlement, quota, source reliability or publisher permission is
+inferred by this static inventory. Preserve route holds and prior live/quota
+history.
+
+## FM Investments and BondBloxx legacy-403 fallback removed — 2026-10-22 22:33Z
+
+The 22:30 static inventory identified FM Investments and BondBloxx as two of
+the five remaining raw-requests sites: each retried an HTTPX 403 via the
+module's fail-closed `requests` namespace, which denied before transport and
+could never provide the fallback behavior claimed by that code. Removed only
+those unreachable fallback branches. The original HTTPX status error now
+propagates unchanged; successful page and holdings parsing paths are unchanged.
+Offline success and HTTP403/no-legacy-retry contracts passed for both adapters
+(4/4 total), and Ruff/format passed. One initial focused run had 3/4 because
+the new BondBloxx guard test expected sitemap discovery for PCMM, although the
+adapter correctly uses its configured PCMM product page; the test expectation
+was corrected and the same four-case run passed. No external request or quota
+was used and no route eligibility changed.
+
+Static `rg` after the repair finds three raw `requests.get` callsites still in
+the module: Cohen & Steers API/discovery, Arax/Day Hagan Airtable pagination,
+and KraneShares date-candidate CSV fetch. They remain fail-closed and
+non-routable; Arax's HTML-embedded token/account remains explicitly unreviewed.
+Exact CI `39862778512` on published base `6d08854c81ea6892011a98b3711a9233b59c401b`
+is still inaccessible to this runtime (private-run API 404, `gh` absent); do
+not infer terminal result, cancel, or replay. Do not run DB integration or full
+profile while Root's slot is reserved. Preserve the NSI real shared-admission
+integration case as collected-only pending its assigned DB run.
+
+At 22:35Z, one combined current-source offline run passed all seven focused
+NSI/FM/BondBloxx unit cases, Ruff check/format passed for all three changed
+Python modules, and the NSI shared-admission DB integration case collected
+1/1. This combined run confirms the fallback removal and NSI unit behavior
+together; it still does not prove real DB admission or any issuer availability.
+
+## KraneShares-family guarded CSV transport — 2026-10-22 22:39Z
+
+The offline audit's remaining KraneShares `requests.get` callsite covered the
+KraneShares adapter plus the Quadratic, CICC, and Man Group adapters that share
+its dated CSV helper. The namespace is intentionally fail-closed, so the old
+thread-backed fallback could not provide a usable governed path. These routes
+now use one Provider-backed HTTPX client per fetch; every dated candidate still
+goes through a separate `get`/shared admission attempt, and the existing
+403/404 lookback behavior, timeout, redirects, headers, parser, metadata, and
+lookback bound are preserved. This changes transport wiring only: it does not
+review publisher terms, assign cost or quota policy, promote a route, or claim
+live availability.
+
+The four existing KraneShares/Quadratic/CICC/Man Group parser and route
+contracts plus a new CICC 404-then-next-date regression passed 6/6 with
+mocked HTTPX. Changed-file Ruff check/format, Python compilation, and
+`git diff --check` passed. No database fixture, external HTTP, quota operation,
+route activation, or full profile was used. The NSI real shared-admission
+integration remains collection-only pending the Root-owned slot. This
+worktree-only changeset is not yet covered by exact-source CI.
+
+After the KraneShares migration, the two remaining adapter-source raw
+`requests.get` callsites are Cohen & Steers and Arax/Day Hagan; both remain
+held by the fail-closed namespace. Cohen & Steers still needs its actual shared
+Provider context/identity contract reconciled; Arax/Day Hagan's page token,
+account, and publisher terms remain unreviewed and must not be activated or
+inferred. Preserve all AC1–AC14, 15 Tier-0 and 156 Tier-1, historical CI
+results, MSMR/QQQ and Militia/GOOG quarantines, unknown/quota-held/paid/trial/
+unsafe holds, and the 30-day observation gate. Root owns its active Market Map
+repair CI and fixture slot; no Root CI was polled and no heavy local gate was
+started.
+
+Next: run the ETF workstream/narrative/static checks, publish this coherent
+branch-owned source and record update, then inspect only the resulting exact
+ETF branch CI. Continue with the two remaining raw transports only from
+retained evidence; do not make external calls, infer policy values, or reduce
+the full roadmap.
+
+## Cohen & Steers per-attempt transport and binding ownership — 2026-10-22 22:47Z
+
+After the prior substantive publication `62f0387fef04c2e2d6b1a8d496a6e001b2fecf7f`,
+the remaining Cohen & Steers fund API/sitemap/page calls were traced to the
+fail-closed `requests` namespace. The route already existed in the adapter
+registry and retained issuer-route records, but no current runtime request
+could use it. Its optional sitemap resolution also gathers multiple fund-page
+requests, so moving the path to shared HTTPX must account for every such
+physical request and must not borrow another adapter's ambient binding.
+
+Added `require_bound_etf_holdings_adapter` and applied it before Cohen & Steers
+opens a client: an absent binding or a binding for another adapter is rejected
+before any transport. The API, sitemap, and each sitemap-listed page now use
+one Provider-backed HTTPX client, preserving timeout, redirects, JSON/parser
+behavior, endpoint parameters, and the existing page-discovery semantics.
+This does not create a policy, grant publisher/account/host entitlement, or
+assert that sitemap fan-out is quota-approved: the shared Provider runtime
+still decides each attempt, and any absent/held policy must remain a zero-HTTP
+denial. The existing integration negative now specifically verifies that a
+different adapter cannot reuse the current synthetic binding.
+
+The four Cohen & Steers parser/API/discovery/binding unit contracts passed,
+and the combined previously changed NSI, F/M, BondBloxx, KraneShares, Quadratic,
+CICC and Man Group selection passed17/17. Ruff check/format and Python
+compilation passed for all four changed Python modules. The updated ambient-
+binding integration test collected1/1; it was not executed against the
+database because Root retains the heavy fixture slot. No issuer/provider/SEC
+HTTP, quota operation, route-state change, paid/trial activation, or full
+profile occurred. Exact ETF CI status cannot be queried through the GitHub
+connector for this private repository; no CI result is inferred.
+
+Only Arax/Day Hagan's page-declared Airtable path still uses raw `requests` in
+the adapter module. Its embedded token/account and publisher terms remain
+unreviewed, so the route stays held and unchanged. The latest Root staging
+repair `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is running exact CI
+`39866387942`, not accepted green; do not adopt it until Root releases the
+exact synchronized green receipt. Preserve every historical partial/red
+result, all AC1–AC14 and the `15 Tier-0 and 156 Tier-1` investigations,
+MSMR/QQQ and Militia/GOOG quarantine, disabled unknown/quota-held/paid/trial/
+unsafe operations, and the 30-day observation gate. No Root CI polling,
+heavy local fixture, staging/sibling write, cleanup, or deployment was done.
+
+Next: finish exact workstream/hash/count/diff validation, publish this
+substantive ETF-only adapter/binding change, then verify only its own exact
+branch CI. Keep the Arax route held pending actual retained publisher/account/
+terms evidence; do not infer its credential rights or costs.
+
+## Cohen & Steers refresh-path MockTransport coverage — 2026-10-22 22:58Z
+
+Follow-up testing found the adapter-only Cohen cases replace the adapter's
+HTTPX namespace with a fake client. Added a separate offline regression that
+calls the real Cohen & Steers adapter from `_refresh_adapter_route`, through the
+Provider-backed HTTPX facade and the real `LoopLocalHTTPXAttempt` worker-local
+HTTPX client. Its MockTransport serves a sitemap, matching fund page, and API
+payload; it asserts the exact three wire URLs equal the per-attempt reviewed
+URLs and that all three request IDs/URL pairs reach snapshot-ingestion metadata.
+The test exercises refresh/caller binding and loop/client lifetime, but mocks
+the shared Provider policy/executor and persistence session: it is not
+DB-backed admission, durable ledger, or settlement evidence.
+
+The new test passes alone and as part of the entire 16-test provider-bridge unit
+module; the combined guarded-transport selection passes16/16. Ruff check and
+format pass. Two early test-development failures were fixture mistakes
+(referencing an undefined local schema helper, then comparing HTTPX QueryParams
+to a string); the assertion was corrected and the unchanged behavior now passes.
+The canonical `make agent-session-start` preflight was also attempted: it
+recorded `blocked_local_runtime` after the helper's 180-second Docker readiness
+check received permission denied on `/var/run/docker.sock`. It started no
+container and did not alter the existing claim. This does not block bounded
+offline tests; no local DB/browser/full profile was started.
+
+Own-source CI39867753554 is on exact published SHA
+92e58ed4106f8ab8a9a9f86f637074e0277b3609: Frontend Unit Tests passed and
+Backend Tests are still in progress. Do not claim the run green or rerun it.
+The new caller-path test and its validation record are still uncommitted and
+not in that run. Wait for this exact branch-owned backend job to reach a
+terminal result, then publish the real test-strengthening context coherently
+and verify its resulting exact ETF CI. Root's staging run is separate and
+remains unreleased; do not poll or adopt it. Keep Arax/Day Hagan fail-closed,
+all issuer/quota holds, the complete AC1–AC14 roadmap, and the 30-day gate.
+
+## Exact CI failure reconciliation and NSI fixture binding — 2026-10-22 23:02Z
+
+Exact ETF CI39867753554 on published `92e58ed4106f8ab8a9a9f86f637074e0277b3609`
+is terminal RED, not a code-free pass: Frontend Unit Tests passed; Backend
+Tests failed with5,215 passed,1 failed,1 skipped and37 warnings; downstream
+Exhaustive Integration, Playwright and Branch-declared jobs were skipped. The
+only backend failure was
+`test_nsi_adapter_verifies_product_page_csv_and_keeps_cash_non_tradable`:
+it still mocked `requests.get`, even though the NSI source had already moved
+to guarded HTTPX. CI therefore exercised the real fail-closed facade without a
+bound request context and raised `ETFHoldingsRouteHeldError` before transport.
+This is a stale unit fixture, not evidence that valid NSI admission fails.
+Historical CI remains preserved; it was not rerun.
+
+Updated that test to feed its existing product page and holdings CSV through
+the HTTPX fake, bind the NSI adapter/profile/instrument/symbol/latest operation,
+and fail if the legacy requests namespace is invoked. All original parsed-row,
+cash classification, issuer identity, composition-date and URL assertions
+remain. The focused legacy success, guarded success, and 403 stop cases pass
+3/3 locally. This fake-client contract is not DB-backed admission evidence.
+The Cohen real-adapter/refresh loop-local MockTransport test also remains in
+the same uncommitted workstream context; its Provider execution/session are
+mocked and it does not prove durable quota settlement. The exact result above
+does not cover that new test, which had not yet been published.
+
+Next: run the bounded touched-module tests, Ruff/format, the exact narrative
+count sentinel and workstream/plan-hash checks; retain both development
+failure histories and the canonical Docker-socket preflight denial. Publish
+the substantive test-context correction coherently to the ETF branch, then
+inspect only its new exact-source CI. Root owns its separate staging run; do
+not poll/adopt staging or launch the reserved local DB/browser/full profile.
+All external request, quota, route activation, quarantine and roadmap
+boundaries remain unchanged.
+
+## Arax/Day Hagan transport-denial regression — 2026-10-22 23:16Z
+
+The published ETF tip `c9aac760e3a62f82e28dca2605ee2fdffa68c8e3` is clean and
+synchronized. Its exact push CI `39869367875` is still active: Frontend Unit
+Tests passed and Backend Tests remain in the unit phase. Do not treat this as a
+terminal result or interrupt it with a new push; the workflow cancels prior
+same-branch CI when a newer push arrives.
+
+While that exact run executes, added one bounded, test-only negative contract
+for the remaining Arax/Day Hagan adapter path. The existing fixture-based
+success contract replaces its transport and proves parsing only; it is not
+evidence that the production route is admitted. The new parameterized case
+invokes both registered adapter entry points using the real fail-closed
+requests namespace while tripwiring the underlying requests and HTTPX clients.
+Both raise `ETFHoldingsRouteHeldError` before either underlying transport is
+called. The earlier fixture parsing contract remains unchanged. Four cases
+(two adapter keys across the held-path and fixture-parser contracts) passed;
+Ruff check/format and `git diff --check` passed. No HTTP, quota, database,
+provider policy, route activation, or source behavior was changed.
+
+The new test and workstream evidence are not part of CI `39869367875`. After
+that exact run is terminal, preserve its outcome, validate these owned records
+and the count sentinel, then publish the combined test-only context and
+inspect only the resulting own-branch CI. Keep the route held pending reviewed
+publisher/account/terms evidence; unknown, quota-held, paid/trial, and unsafe
+routes remain disabled. Preserve all AC1–AC14, `15 Tier-0 and 156 Tier-1`,
+MSMR/QQQ and Militia/GOOG quarantines, full-profile requirements, historical
+failures, and the post-integration 30-day gate. Root's staging CI is separate
+and remains unreleased; do not poll or adopt staging.
+
+## Reservation-schema test correction and terminal CI receipt — 2026-10-22 23:27Z
+
+Exact own-branch Actions run `39869367875` on
+`c9aac760e3a62f82e28dca2605ee2fdffa68c8e3` is terminal RED. Frontend Unit and
+backend unit passed; backend integration reported 1 failed, 497 passed, 2
+skipped and 57 warnings in 625.23 seconds; later jobs were skipped. Its sole
+failure was `test_nsi_real_adapter_submits_product_redirect_and_csv_to_shared_admission`:
+the assertion ordered Provider-owned reservation rows by nonexistent
+`reserved_at`. Direct source inspection confirms the canonical table has
+`created_at` and integer primary key `id`, and no `reserved_at`. The narrow
+test-only correction orders by `created_at,id`; the three-reservation,
+settled-state, settled-timestamp and one-unit assertions remain unchanged.
+This DB-backed correction has not been rerun locally because Root owns the
+heavy fixture slot; preserve the exact red CI without replay.
+
+The prepared Arax/Day Hagan adapter-entry denial regression is unchanged: its
+four-case parser/held-route selection passed with Requests and HTTPX transports
+tripwired and untouched. The combined coherent change contains tests and
+workstream evidence only; no production behavior or route eligibility changed.
+After bounded no-network checks and workstream validation, publish once and
+inspect only the resulting exact ETF CI. Root's staging repair
+`4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` is still live and unreleased; do
+not poll or adopt it. Keep unknown/quota-held/paid/trial/unsafe routes disabled,
+preserve all AC1–AC14, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
+quarantines, all history, and the 30-day observation gate.
+
+## Accepted common staging repair reconciled — 2026-10-23 00:13Z
+
+The coordinator released synchronized green common staging at exact SHA
+`4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`. Its canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json`;
+exact staging CI `39866387942` attempt 1 is terminal green. The release reports
+104 backend unit shards, 497 integration checks with 2 skips at 84%, 1331
+frontend tests, 194 functional cases with 107 existing skips, 104 strict
+visuals, and ordinary E2E 191 passed / 110 existing skips, without failures or
+flakes. The prior ETF integration checkpoint remains accepted at `0e342512`;
+this common repair is not a new ETF roadmap acceptance and does not close any
+of AC1–AC14 or the 30-day observation gate.
+
+At the safe owner boundary, this worktree was confirmed clean and synchronized
+at ETF source `58a0fdd81779561c434d8690aa5906f8ed71c1db`; the origin staging
+ref and fetched `FETCH_HEAD` both matched the exact released SHA. The histories
+had diverged, so only `4687bd0` was merged as a two-parent merge into this ETF
+branch; no reset/rebase, staging write, sibling checkout change, or direct
+feature-branch import occurred. The merge had no conflicts. Its shared changes
+include the accepted Market Map late-selection repair and its unit coverage,
+plus workflow-owned resource-label handling and tests.
+
+Bounded local regressions passed after the merge: `tests/workflow/test_agent_session.py`
+38/38 and `frontend/tests/unit/components/test_market_map_tool.test.ts` 61/61.
+No backend integration database, Compose stack, browser/native profile, or
+external provider/issuer/SEC request was started. The branch push and exact ETF
+CI for the resulting branch HEAD are the next publication boundary; no status
+or acceptance claim is inferred from the staging run. The historical ETF red
+run `39869367875` remains preserved, and its NSI reservation-field correction
+still lacks local DB-backed proof. MSMR/QQQ and Militia/GOOG remain
+unresolved/quarantined; all unknown, quota-held, unreviewed, paid/trial and
+unsafe operations remain disabled.
+
+The next local full-profile execution recipe is source-pinned to the exact
+published ETF HEAD and the existing required `make validate-integration`
+matrix with `INTEGRATION_BRANCH=feat/etf-holdings-constituents`; do not add
+global `E2E_SEED_MARKET_DATA` or `PYTEST_ADDOPTS`. Use only after Root grants
+the exclusive host slot. Recheck the existing writer claim, exact HEAD/origin,
+memory/disk, Docker readiness, complete baseline container/volume/network/image/
+builder inventory, ports and mounts. Preserve the assigned retained ETF DB/
+Redis containers at `127.0.0.1:15432` and `127.0.0.1:16379` and their volumes;
+do not mount or seed from them. Use the generated ETF stack project and ports
+from the assigned runtime allocation, fresh synthetic DB/Redis volumes, the
+reviewed pinned Noble image digest, worker count 1, zero browser retries,
+existing screenshot references/tolerances, and the reviewed egress-deny and
+resource-preserving cleanup wrapper. Record every created resource ID and
+remove only exact new resources after all profile parents/descendants exit;
+never stop or clean retained or baseline services/data. This is preparation
+only, not launch authorization or profile evidence.
+
+## Successful-capability timestamp consistency — 2026-10-23 00:40Z
+
+Offline source review found that `evaluate_capability` could classify a
+snapshot as `current` when adapter state said `success` and had a non-future
+`last_checked_at`, even if `last_success_at` was absent or occurred after the
+check timestamp. The canonical `_record_success` writer records both times
+together; absent, future, or out-of-order success lineage is not sufficient
+evidence of current capability. The predicate now requires
+`last_success_at <= last_checked_at <= now`; incoherent state remains
+`unknown`, preserves the snapshot as displayable last-known data, and cannot
+be used for current analysis.
+
+The complete deterministic capability module passed 109 tests, including
+three new cases for missing, future, and out-of-order success timestamps.
+Ruff check and format-check passed, as did `git diff --check`. This is
+stack-free unit evidence only; no DB/browser profile or external route was
+used. Exact ETF CI `39877470823` is still running its backend integration
+step on prior published source `983d5d293a6b954fb503eca73785479b434e4109`;
+it does not include this dirty change. Preserve that run through terminal
+result before publishing the new source. This does not close AC1–AC14 or the
+required full profile; retain `15 Tier-0 and 156 Tier-1`, unresolved/quarantined
+MSMR/QQQ and Militia/GOOG, all route holds, and the post-integration 30-day
+observation gate.
+
+## Future-known-at lineage guard — 2026-10-23 00:52Z
+
+The accepted common staging release `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`
+was freshly fetched and verified from `origin/staging`, with canonical green
+receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0.json`
+and exact CI `39866387942`. It is already an ancestor of current ETF source
+`680d8b6c3851f57072d97caee35512f21092ed2d`, so no duplicate merge or new merge
+commit was needed. The previously recorded baseline adoption remains in
+effect; no staging, sibling, master, or deployment ref was changed.
+
+Continued offline lineage review found that
+`_ensure_holdings_dates_are_not_future` rejected future composition, as-of,
+and publication timestamps but not an explicit future `known_at`;
+`evaluate_capability` had the same omission. Both boundaries now reject a
+future known-at timestamp, treating legacy naive datetimes consistently as
+UTC. Regression coverage checks that future-known snapshots are DEGRADED and
+not usable for current analysis, the shared ingestion guard rejects the
+timestamp, and `ingest_holdings_snapshot` rejects it before ETF profile
+hydration. Existing current, last-known, historical/PIT, identity, and route
+holds were not weakened.
+
+The complete affected deterministic capability, refresh, and resolution unit
+modules passed `186/186`; the focused capability/refresh cases passed `2/2`,
+and the ingestion-path regression passed `1/1` before the combined module run.
+The exact `15 Tier-0 and 156 Tier-1` narrative sentinel passed `1/1`; the
+workstream validator accepted all `45` records; Ruff check and format-check
+passed for all changed Python files. These are stack-free tests only. No
+issuer/provider/SEC HTTP, quota, database fixture, Compose/browser/full
+profile, route activation, or data cleanup occurred.
+
+Exact ETF branch CI `39880187551` on published parent
+`680d8b6c3851f57072d97caee35512f21092ed2d` is terminal green for Frontend,
+Backend, Branch-declared, and E2E Playwright jobs; the Exhaustive Integration
+Gate was skipped under feature-branch policy. The local lineage fix is not in
+that run. Its result is preserved; exact-source CI for the committed fix is
+required after push. The source and records are owned by this ETF session and
+were validated before their single coherent local commit.
+
+The required `full_stack_browser` profile remains unrun pending Root's
+exclusive host slot. Its prepared repository invocation is
+`make validate-integration INTEGRATION_BRANCH=feat/etf-holdings-constituents
+PLAYWRIGHT_DOCKER=<freshly reviewed pinned zero-retry wrapper>
+RUN_LIVE_PROVIDER_TESTS=0 RUN_LIVE_ETF_HOLDINGS_TESTS=0`; keep both live flags
+zero in the environment as well, keep `PYTEST_ADDOPTS` and global
+`E2E_SEED_MARKET_DATA` unset, and provide `PLAYWRIGHT_DOCKER` as a MAKE
+command-line assignment. Pin the final published source SHA and a new unique
+run/project marker after coordinator slot assignment. Use one worker, the
+reviewed browser digest and 1536 MiB / 2 CPU / 512 PID limits, the existing
+backend-egress-deny service and browser host relay, and fresh generated
+synthetic stack data only. Preserve the existing loopback ETF DB/Redis services
+and all retained datasets/volumes. Recheck immutable baseline and exact owned
+resources immediately before launch; after all descendants exit, clean only
+resources created by that uniquely labelled profile. No profile launch is
+authorized by this handoff.
+
+## Success/failure timestamp consistency guard — 2026-10-23 01:48Z
+
+Current clean/published parent is ETF SHA
+`02384a2b67a9e336974d32a51c0e3f40ad106398`; remote verification confirmed
+`origin/feat/etf-holdings-constituents` at the same SHA, and released common
+staging `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad` remains an ancestor. Exact
+CI `39884332043` is still active on that parent: Frontend, Backend, and
+Branch-declared jobs passed, E2E Playwright is starting its stack, and the
+Exhaustive Integration Gate was skipped under feature-branch policy. This
+local capability change is not included in that run; do not interrupt or
+replace it.
+
+An offline capability-state review found that `evaluate_capability` required
+`last_success_at <= last_checked_at <= now` but ignored a contradictory
+`last_failure_at` later than that success. Such an internally inconsistent
+record could still label complete holdings current. Current eligibility now
+also requires no failure timestamp after the last successful fetch. A failure
+at or before a later coherent success remains compatible, preserving the
+canonical writer's history semantics. The complete deterministic capability
+module passed `111/111`; changed-file Ruff check and format-check, plus
+`git diff --check`, passed. No provider/issuer/SEC HTTP, quota, database,
+Compose/browser profile, route activation, or data cleanup occurred.
+
+The source and corresponding durable receipt remain uncommitted while the
+exact parent CI finishes; publishing earlier would cancel its E2E job. Once it
+is terminal, preserve its actual result, then run the narrative-count
+sentinel, workstream validator, JSON/hash/diff checks and publish this
+coherent capability change once. Inspect only the resulting exact-source CI.
+The `full_stack_browser` profile is still required and awaits Root's exclusive
+slot; its pinned zero-retry wrapper, one-worker resource bounds, backend egress
+deny, both live flags at zero, generated synthetic data, and preservation of
+retained ETF DB/Redis services and volumes remain mandatory. Keep the full
+AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
+quarantines, unknown/unreviewed/quota-held/paid/trial/unsafe holds, all prior
+red/partial history, and the post-integration 30-day observation gate.
+
+Parent exact-source CI closure — 2026-10-23 02:13Z
+
+Exact own-branch run39884332043 for published parent02384a2b67a9e336974d32a51c0e3f40ad106398 is terminal green: Backend, Frontend, Branch-declared, and Playwright E2E passed; the Exhaustive Integration Gate was skipped by feature-branch policy. The local capability failure-ordering change above is not included and still requires exact-source CI after publication. Released common staging SHA4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad is already an ancestor of this branch, so no duplicate staging merge is needed. The local full_stack_browser slot remains held by Root.
+
+## Tier-0 audit date field presence guard — 2026-10-23 02:30Z
+
+The current published ETF source is `62c0f9742b69ba604bde9dceeacd386e58ee26b4`; the released staging baseline remains an ancestor. Static inspection found the Tier-0 audit parity test used `row.get("investigated_at", "2026-09-04")`, which could let a missing durable date pass for rows whose runtime audit date is September 4. All 15 current Tier-0 ledger rows explicitly contain `investigated_at`. The test now requires the key and compares the recorded ISO date directly to runtime audit evidence; no ledger value or source disposition changed. Focused regression passed 1/1; changed-file Ruff check, format check, and diff check passed. No issuer/provider/SEC HTTP, quota, or fixture was used.
+
+Exact CI `39888526578` on source `62c0f9742b69ba604bde9dceeacd386e58ee26b4` is terminal green for Backend, Frontend, Branch-declared and Playwright E2E; Exhaustive was skipped by feature-branch policy. The local Tier-0 date-presence test is excluded and still needs exact-source CI after publication. Following the coordinator's expired quiet-validation lease, the narrative-count sentinel passed 1/1 again, changed-file Ruff/format and diff checks passed, and the workstream validator accepted 45 records. No new browser or heavy local profile was started. Keep the full AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG quarantines, all route/cost holds, retained data, and 30-day observation gate. The required `full_stack_browser` profile remains pending Root's exclusive slot.
+
+## Tier-0 date guard exact-source CI closure — 2026-10-23
+
+The audit-date presence guard was published in commit `5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24`. Exact Actions run `39892126843` on that SHA is terminal green for Backend, Frontend, Branch-declared, and Playwright E2E; Exhaustive was skipped by feature-branch policy. No local full profile, issuer/provider/SEC request, quota use, activation, or cleanup occurred. Continue the full AC1–AC14 roadmap with offline AC2/AC4/AC5 audit and capability work from retained evidence. The required local `full_stack_browser` profile remains pending Root's exclusive resource slot; preserve all prior red/partial evidence, `15 Tier-0 and 156 Tier-1`, unresolved/quarantined MSMR/QQQ and Militia/GOOG, route/cost holds, retained data, and the 30-day observation gate.
+
+## Offline provider-audit parity recheck — 2026-10-23 03:47Z
+
+The current synchronized source remains `5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24`, with exact-source CI `39892126843` terminal green for Backend, Frontend Unit, Branch-declared, and Playwright E2E; Exhaustive was skipped by feature policy. Three bounded offline ledger/runtime checks passed: the 140-provider fallback ledger matches runtime membership and ranking, all 15 Tier-0 symbol audit entries match runtime including required `investigated_at`, and the 156 Tier-1 entries match the ranked runtime cohort. The narrative-count sentinel also passed 1/1 and all 45 workstream records validate. This establishes record consistency only, not current source availability, native route reliability, or whole-roadmap completion. No live HTTP, quota, database fixture, route activation, or cleanup occurred. The full AC1–AC14 roadmap, quarantines, holds, and Root-assigned `full_stack_browser` gate remain open.
+
+## Tier-0 shadow-gate UTC date boundary — 2026-10-23 03:50Z
+
+Static review found the post-integration 30-day gate used the calendar date in an observation's supplied offset and used host-local `date.today()` for its implicit end date. A one-day-window regression with `2026-09-21T00:15:00+02:00` and `now=2026-09-21T00:30:00+02:00` failed before the fix: the gate reported September21 rather than the equivalent UTC date September20. The implementation now normalizes both explicit `now` and parsed observation timestamps to UTC and derives its default end date from `datetime.now(UTC)`. This changes only date-boundary interpretation; all eligibility, freshness, identity, completeness, and failure assertions are unchanged. After the fix, the full capability module passed112/112 and changed-file Ruff check/format-check passed. The published base remains `5433bc0416aa3f5ba5de26be4d4e71f1de4cdb24`; this local fix is not yet committed or covered by hosted CI. No network, quota, database fixture, route activation, or cleanup occurred. The 30-day observation gate itself remains post-integration and unrun.
+
+Follow-up at 03:52Z added a separate regression for the implicit-clock path, requiring the function to request `datetime.now(UTC)`. The current full capability module passes113/113; the earlier112/112 result above is retained as the preceding test revision.
+
+## Capability date-projection UTC boundary — 2026-10-23 04:19Z
+
+On published source `66c9780278cd810a870b8025a091df58d9c091d1`, exact Actions run `39897635916` remains active: Frontend Unit and Backend unit tests passed, the integration step passed, and combined coverage enforcement is still running. Preserve that exact run; it does not include the following local correction. A new deterministic offset-aware `evaluate_capability` regression reproduced a false stale result because `now=2026-09-21T00:30:00+02:00` was compared by its local calendar date even though its UTC date is September20, the freshness deadline. The implementation now normalizes the effective evaluation clock and canary audit date projection to UTC before date guards. The complete capability module passes114/114 after the change, and changed-file Ruff and formatting checks pass. This source+records changeset remains unpublished pending the prior exact CI run's terminal result. No external HTTP, quota, database fixture, activation, or cleanup occurred. Preserve all historical red/partial evidence, `15 Tier-0 and 156 Tier-1`, the full AC1–AC14 roadmap, unresolved MSMR/QQQ and Militia/GOOG quarantines, route/cost holds, retained data, and the post-integration 30-day observation gate; `full_stack_browser` remains pending Root's exclusive slot.
+
+### Parent exact-source CI closure — 2026-10-23 04:42Z
+
+Exact Actions run `39897635916` on published source `66c9780278cd810a870b8025a091df58d9c091d1` is terminal green for Backend, Frontend Unit, Branch-declared Tests, and Playwright E2E; Exhaustive Integration was skipped by feature-branch policy. This run does not include the local capability date-projection correction described above. The corrected local capability module passes114/114, changed-file Ruff/format checks pass, the `15 Tier-0 and 156 Tier-1` narrative sentinel passes1/1, and the workstream validator accepts45 records. Publish the source+records correction once and inspect its exact-source CI. The full AC1–AC14 roadmap, unresolved quarantines, route/cost holds, retained data, 30-day observation, and Root-owned full_stack_browser resource gate remain open.
+
+## Accepted-f04 first-human sample/operator path audit — 2026-10-23
+
+Read-only inspection of immutable accepted f04 `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` confirms two separate supported admin operations, with different evidentiary meaning:
+
+- `PATCH /api/v1/etf-holdings/{symbol}/profile` persists admin-reviewed `provider_aliases` and `legal_metadata`. It can bind SPY to `holdings_adapter=spdr` and `holdings_source_provider=spdr` without product-source changes when the retained evidence genuinely supports that identity. The endpoint stores the supplied values; it does not authenticate or validate the evidence and does not create Provider admission records.
+- `POST /api/v1/etf-holdings/{symbol}/ingest-csv` (or `/ingest`) imports an already obtained artifact and calls `ingest_holdings_snapshot` directly, retaining raw payload and caller-provided provenance/timestamps under `etf_holdings_internal`. It does not pass through the shared Provider bridge or reserve/settle Provider quota. Static source tracing found a caveat: `ingest_holdings_snapshot` unconditionally calls `_record_adapter_success`, including for manual imports, while capability evaluation may infer `issuer_native` from caller-supplied provenance and accepts caller-supplied `artifact_identity_validation` metadata. Thus an admin import may potentially satisfy generic `CURRENT` checks without native Provider request/reservation lineage. This static condition is not a reproduced SPY runtime result, but it means the import must not be used as a workaround or claimed as Provider-admitted. Before treating an imported sample as current, resolve whether manual imports are a distinct reviewed source contract or must be prevented from updating native adapter success/current state. The schema's issuer-current/complete defaults are not evidence. A real artifact can be retained as dated/PIT data, but the SEC ingest/backfill routes are separate SEC workflows and not a substitute for the SPDR route.
+
+SPDR's native adapter/curated symbol mapping is in the ETF adapter catalog, while the generic shared runtime seeds only `supported_provider_names()` from `app.providers.registry._PROVIDERS`; that registry has the internal ETF provider but no `spdr` publisher. In f04, the policy and entitlement admin PATCH routes only update existing rows, and the recurring-cost budget PUT/commitment POST do not create the missing publisher source, capability rows, health, or host/operation/account review. Commitment creation requires the existing source ID. No accepted-f04 publisher bootstrap endpoint or documented operator provisioning runbook was found. The later unaccepted ETF-owned disabled publisher-provisioning API is not f04 and remains separate.
+
+Practical disposition: if a real, rights-reviewed SPY/RSP artifact is independently available, an administrator may import it with original body and accurate source, identity, publication/composition/as-of/known-at, completeness, and rights provenance, but accepted f04 does not clearly isolate imported success from native adapter success; do not rely on that import for current support until the distinction is resolved. Static source logic indicates the API could still mark a sufficiently caller-attested import `CURRENT`; this has not been reproduced at runtime and is not evidence of Provider admission. The local artifact search found no such SPY/RSP basket: the retained RSST CSV is for RSST and lists SPYM only as a constituent. For a native SPY request, the profile binding is supported, but f04 lacks a demonstrated bootstrap path for the shared SPDR admission records. Required evidence still includes actual issuer/product and route identity, reviewed host/redirect and permitted-use/retention terms, actual request/quota dimension facts, account-scope binding, and evidence for any zero recurring commitment plus the reviewed aggregate budget; none is inferred from public reachability or application safety caps. Do not call the route or imported sample admitted/current until those records and runtime checks exist.
+
+No API, import, profile/runtime row, policy, entitlement, quota, commitment, budget, activation, upstream HTTP, fixture, data operation, cleanup, or external write was performed. This is a source/retained-evidence conclusion only; all ETF roadmap and safety gates remain open. The adapter timeout, redirect ceiling, canary symbol cap, and other app-side safety limits are not SPDR quota/rate-limit/account-counter or cost facts. Those publisher-native facts remain unknown absent reviewed evidence. The corrected workstream validator accepted the record, the exact narrative-count sentinel passed1/1, session/JSONL parsing and session-to-plan hash comparison passed, and `git diff --check` passed. These checks do not establish Provider admission or sample eligibility.
+
+## Accepted-f04 SEC first-use path review — 2026-10-23 15:30Z
+
+Read-only review of immutable accepted f04 `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` and Root's `etf-historical-view-review-20261023.md`: accepted f04 cannot currently populate a genuine SEC historical holdings sample through its normal SEC bootstrap/backfill without crossing the shared Provider admission boundary. This is a source-path conclusion, not a live SEC availability test.
+
+- `backend/app/services/etf_holdings_edgar.py::_HeldSECHTTPXNamespace.AsyncClient` (lines 24-36) raises `ETFHoldingsRouteHeldError` requiring a dedicated reviewed `ETF_HOLDINGS` binding. Both `discover_holdings_filings` (300-325) and `_backfill_sec_holdings` (421 onward; filing fetch at 498-525) use that namespace. The admin routes `backfill_sec_nport_holdings_for_etf` / `backfill_sec_legacy_holdings_for_etf` (router lines 1175-1218) call those services; they do not bypass the hold. `bootstrap_etf_holdings_profile` (refresh service lines 1303-1405) may call SEC fund-ticker enrichment and `_bootstrap_from_sec_filings` (659-715) when no issuer route is ready, but that fallback reaches the same held transport. A configured CIK or normal bootstrap/backfill invocation therefore does not make SEC data available today.
+- The shared ETF bridge `execute_etf_holdings_request_attempt` (provider bridge lines 494-600) handles bound, per-physical-attempt requests. `_review_attempt_context` requires a committed profile/instrument and matching publisher/adapter identity, shared `DataSource`, explicitly enabled `ETF_HOLDINGS` policy, reviewed HTTPS host and operation evidence, entitlement, configured account-scope binding matching review evidence, and an active verified-zero-cost commitment within the shared aggregate recurring-cost budget (lines 365-491). SEC's transport namespace is explicitly not bound; do not route around it or infer admission from an admin endpoint.
+- Separate admin-supplied XML handlers `ingest_sec_nport_holdings` and `ingest_sec_legacy_holdings` (router lines 1080-1172) parse caller-supplied XML and pass filing URL/accession/provenance/raw XML to `_ingest_snapshot_or_400`. This persists an already-acquired artifact; it does not make or account for the acquisition request. In accepted f04 these handlers omit `allow_provider_enrichment=False`, although `ingest_holdings_snapshot` exposes it and defaults to `True` (service lines 1110-1131). More importantly, ingestion unconditionally calls `_record_adapter_success` with `profile.adapter_key or source_provider` (1313-1330); `_record_adapter_success` sets adapter status to success and last-success/check timestamps (1432-1464). Thus this is not a safe SEC-backfill workaround: disabling enrichment alone would still risk attributing a manual SEC import to native adapter health. Do not describe an admin XML import as issuer-native or Provider-admitted.
+- The XML handlers supply `known_at=body.known_at or body.published_at` and `published_at=body.published_at`. If both are absent, `ingest_holdings_snapshot` falls back to `_date_end(composition_date)` (1162), which can claim knowledge at composition time without evidence of filing acceptance/publication or actual observation/import time. In contrast, the held backfill path derives `_known_at(filing)` from acceptance datetime, falling back to filing-date UTC midnight and finally current UTC (`etf_holdings_edgar.py:104-109`); it writes that as both known and published time and preserves filing URL, accession, raw response and SEC provenance while setting `allow_provider_enrichment=False` (`:542-569`). Filing-date fallback remains coarse and is not exact public-availability proof.
+- `evaluate_capability` maps SEC source tier to `DEGRADED` with the reason that reconstructed SEC holdings are not issuer-current support (`etf_holdings_capability.py:401-453, 2235-2340`); `usable_for_current_analysis` requires `CURRENT` and a current source tier (`:2401-2409`). A properly evidenced SEC snapshot may support historical/last-known display, not current constituent analysis or native adapter health. Retain SEC provenance, source URL/accession, raw filing, composition/as-of dates, evidence-based publication/known-at, completeness/identity limitations and unresolved rows. PIT eligibility must follow the actual known-at cutoff, not improve merely because data was imported today.
+
+Disposition: accepted f04 has no safe normal SEC population path until the dedicated reviewed shared SEC request binding is implemented/released. An already acquired genuine filing would still require a safe historical/manual-ingest contract that suppresses enrichment and native adapter-success writes and never infers `known_at` from composition date; accepted f04's public SEC XML handlers do not establish those protections. No filing was fetched/imported and no DB, credential, provider policy, entitlement, budget, commitment, fixture, route, source or external system was changed. This is immutable-source review only—not evidence of SEC reachability, a populated target, or issuer-native SPY/RSP availability. Exact-branch CI running on the unchanged published source does not validate this audit. The full AC1-AC14 roadmap, existing holds/quarantines and remaining gates remain open.
+
+## SEC XML admin-ingest historicalization follow-up — 2026-10-23 15:34Z
+
+Continued from that static gap on the ETF branch without enabling SEC transport or importing a filing. Both admin XML routes (`ingest_sec_nport_holdings` and `ingest_sec_legacy_holdings`) now invoke the existing `ingest_holdings_snapshot` manual-import mode with `allow_provider_enrichment=False` and `manual_import=True`, matching the already guarded manual rows/CSV paths. They now pass `known_at=body.known_at` independently from `published_at`; a historical filing publication date is retained but cannot be mistaken for this system's import knowledge time. When no explicit valid known-at is provided, the service records the actual import clock. Existing service behavior forces SEC source tier to `sec_filing` and suppresses `_record_adapter_success` for manual imports, so the route cannot mark SPDR/native adapter health successful from an admin-uploaded filing.
+
+Added route regression covering both N-PORT and legacy endpoints: original raw XML, source URL/accession, SEC provenance, and old `published_at` remain bound; enrichment is disabled; manual-import mode is explicit; and no `known_at` is copied from `published_at`. Strengthened the existing service regression to verify persisted `known_at` equals import time, old filing `published_at` is preserved, SEC source tier remains, capability is degraded/non-current, and no SEC/native adapter-health state is created. The focused router file passed3/3; the service module manual-import/SEC selection passed3/3 (59 deselected); Ruff check and format-check passed for the three changed code/test files; `git diff --check` passed. An initial service assertion observed SQLite's naive timestamp retrieval; the assertion was corrected to normalize the returned stored timestamp to UTC, preserving the expected instant. This was test-only and remains recorded in validation history.
+
+Exact published-source Actions run `39974388339` remains in progress on source `867650d1dd8a15683438aa51cd7120d1a893f76f`: Backend, Frontend Unit, and Branch-declared jobs passed; Playwright is still running; Exhaustive is skipped by feature-branch policy. This local SEC ingestion correction is not part of that run and has no hosted validation yet. Do not publish until that exact run is terminal, then preserve its result and publish the coherent changeset once for exact-source CI. No SEC/provider/issuer HTTP, quota, DB import/write, credentials, route activation, fixture, service cleanup, staging/sibling/master write, or deployment occurred. SEC backfill remains held pending reviewed shared-runtime wiring; this change only makes an already-admin-supplied genuine SEC artifact historical and non-native if separately and lawfully obtained. Full AC1-AC14 and all existing quarantines/holds remain open.
+
+### Prior-source CI closure and required-gate disposition — 2026-10-23 15:42Z
+
+Authenticated job inspection confirms exact Actions run `39974388339` is terminal successful on published `867650d1dd8a15683438aa51cd7120d1a893f76f`: Backend, Frontend Unit, Branch-declared, and Playwright E2E passed; Exhaustive Integration was skipped by feature-branch policy. This is not validation of the local six-path SEC-ingest changeset. Focused local tests and source formatting are green, but the workstream still classifies `full_stack_browser` as required; it has not been run on this local diff. The coordinator priority file expressly forbids starting a new fixture/browser run now, and no fresh local profile slot is assigned. No commit/push was made to bypass that gate.
+
+Validation/resource disposition for Root: exact local profile need remains the existing branch-declared `full_stack_browser` matrix at the then-current exact feature SHA, using its approved pinned zero-retry runner, explicit live flags `RUN_LIVE_ETF_HOLDINGS_TESTS=0` and `RUN_LIVE_PROVIDER_TESTS=0`, single worker and previously recorded resource/ownership safeguards. Do not recapture the protected baseline or clean retained services/data; wait for Root's sequential slot. No actual SEC backfill/live replay is requested or run: accepted transport remains held, credential access and live activation are forbidden, and the prior 119 consumed requests must not be replayed. The exact required live/SEC evidence is therefore unfulfilled, not waived; Root should record reviewer denial or provide a specific separately authorized non-quota evidence path if the mandatory live matrix cannot be met inside current holds. Do not stage/commit this changeset while those mandatory validation gates remain outstanding. Continue only bounded offline SEC implementation planning/unit work until resource/gate disposition arrives, preserving all prior red/partial receipts, quarantines, holds, full AC1-AC14 and the 30-day observation.
+
+## SEC filing-date PIT fallback regression — 2026-10-23 15:48Z
+
+The SEC XML manual-ingest changeset remains uncommitted: its declared
+`full_stack_browser` profile has not run on changed source, and the coordinator
+has not assigned a fixture slot or dispositioned any applicable reviewed live
+matrix. The priority note prohibits a new fixture and publication around
+unmet mandatory gates. Exact CI `39974388339` is green only for the unchanged
+published parent `867650d1`; it does not cover this worktree diff.
+
+Added a deterministic regression for the date-only EDGAR fallback in
+`_known_at`: when acceptance timestamp is absent, the SEC filing date is
+day-granular, so the conservative known-at boundary is the end of that UTC day
+rather than midnight. Exact EDGAR acceptance timestamps remain unchanged. This
+prevents intraday PIT queries earlier on the filing date from seeing a record
+whose actual acceptance time is unknown. SEC backfill transport remains held;
+this does not establish reachability or enable acquisition.
+
+Validation: `test_etf_holdings_edgar.py` plus
+`test_etf_holdings_manual_import.py` passed 7/7; the manual-import/SEC service
+selection passed 3/3 (59 deselected); changed-file Ruff check and format-check
+passed; `git diff --check` passed. An initial format check identified the new
+test formatting; Ruff formatted the test and the final check passed. No
+database, HTTP, quota, credential, fixture, activation, cleanup, or other
+worktree action occurred. The existing full profile and exact-source CI remain
+required; do not commit or push until the coordinator resolves the outstanding
+gates. After this changeset is properly cleared, continue with source/unit/no-
+network implementation of the dedicated governed SEC Provider binding,
+preserving per-physical-attempt admission, historical lineage, all disabled
+route holds, AC1-AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data,
+and the 30-day observation gate.
+
+## SEC known-at observation-time correction — 2026-10-23 15:55Z
+
+The preceding 15:48 entry records an intermediate date-end fallback and is
+superseded by this correction. Review found that a date-only UTC end-of-day
+could still predate a late SEC acceptance expressed in another timezone, and
+an artificially future cutoff would be rejected by the shared ingestion
+boundary. The final bounded contract is: preserve exact EDGAR
+`acceptance_datetime` when present; otherwise set `known_at` to the actual
+post-response `observed_at` captured before ingestion, and leave
+`published_at` null rather than treating the filing date or observation time
+as a proven publication instant. Thus historical/PIT visibility cannot be
+backdated from a date-only filing record.
+
+The revised EDGAR plus manual SEC XML route tests passed 7/7; manual-import/SEC
+service tests passed 3/3 (59 deselected); Ruff check, Ruff format-check and
+`git diff --check` passed. Date-only helper tests inject a fixed observation
+instant and confirm exact acceptance timestamps still take precedence. No
+transport, HTTP, database, quota, credential, fixture or target import was
+used. This remains an interim focused source checkpoint: full_stack_browser
+is still required before review/acceptance, and any mandatory SEC live matrix
+still requires an explicit safe disposition/evidence. Do not enable SEC
+transport or claim an acquired sample.
+
+## Publication-sequencing clarification — 2026-10-23 15:56Z
+
+The coordinator clarified that focused-validation/scoped-commit/push closure
+permits interim publication for this current internal API/date/test changeset;
+the unchanged classifier in both scripts does not treat these paths as an
+external-service path. This supersedes the earlier publication restriction
+for this scoped context only. The full local profile remains mandatory before
+review/acceptance or normal finish, and this publication is not checkpoint
+acceptance. Any future SEC transport binding remains subject to its actual
+mandatory live evidence before source release; no such request or quota use is
+authorized here. If a real hook or reviewer denies the scoped publication,
+preserve and report that denial without bypassing it.
+
+## Automated SEC adapter-health separation and transport contract — 2026-10-23
+
+The manual SEC XML/known-at context was published at `5359f225b70c0e8cd0e15374b58748d917012474`; `git ls-remote` independently confirmed the ETF remote at that SHA and the worktree was clean. The connected commit-status lookup returned no statuses and the workflow-run connector returned no push-triggered run (its exposed query is PR-triggered only), so exact-source CI for `5359f225` is unverified—not green. Do not repeat or rerun that workflow merely to obtain a status through the limited connector.
+
+The next bounded code defect was in `ingest_holdings_snapshot`: the normal automated SEC backfill uses `allow_provider_enrichment=False` but `manual_import=False`, so it could call `_record_adapter_success` for `profile.adapter_key` (for example, `spdr`) even though the artifact is SEC reconstruction. The ingestion path now recognizes SEC provider/provenance and skips native ETF adapter-health success while retaining `sec_filing` source tier. A regression creates an existing synthetic SPDR-profile adapter and ingests an automated SEC-tier snapshot with explicit historical acceptance/publication; it asserts no SPDR success state is written. This does not fake a provider request or test SEC availability. The complete resolution and capability unit modules passed `178/178`; Ruff check/format and `git diff --check` passed. No provider admission, SEC HTTP, quota, credentials, import, activation, fixture, cleanup, or cross-worktree action occurred. This focused internal change may be published under the sequencing clarification; full_stack_browser remains mandatory before review/acceptance.
+
+Source-backed future SEC transport contract, still held and not implemented/enabled in this context:
+
+- The current EDGAR code builds `https://data.sec.gov/submissions/CIK{cik}.json`, archived submissions URLs under `https://data.sec.gov/submissions/{file_name}`, and filing-document URLs under `https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{document}`. These are code-derived destinations, not proof that current publisher terms, access, or a route are approved.
+- Proposed logical operation bindings are separate SEC-submissions discovery and SEC filing-document fetch operations. Every physical HTTP attempt—including each redirect, archived-submissions file, retry, page, and filing document—must use the existing shared `ETF_HOLDINGS` provider runtime and its durable request/reservation/settlement ledger. Do not borrow an ambient issuer-latest/dated binding or use raw HTTP. Bind requests to the committed ETF profile, instrument ID/symbol, and exact normalized `sec_cik`; retain actual attempt URL/log IDs and raw filing bytes/accession/source URL.
+- Shared Provider enum `ETF_HOLDINGS` exists, but this source review did not verify a routable SEC `DataSource` policy, entitlement, host/operation evidence, configured account-scope mapping, quota dimensions or operation costs, permitted-use/retention terms, or an active verified-zero-cost recurring-cost commitment. The SEC account/quota scope and actual publisher counter behavior are therefore unknown. Do not infer them from public URLs, app-side caps, the accepted generic Provider contract, or historical request count. No policy/entitlement/commitment was read from live runtime or activated.
+- Until that review is complete, SEC transport remains held. The future offline implementation/tests must prove absent/unknown/wildcard/mismatched/held policy denies before adapter construction, reservation, or transport; a real admitted call must record/settle exactly once per physical attempt through the canonical shared ledger. SEC results remain historical/degraded, never native-current; exact acceptance time is publication evidence where present, otherwise use post-response `known_at` and leave publication unknown. PIT reads remain network/quota-free; SEC ingestion must not refresh native issuer-adapter health.
+- Before review/acceptance, retain deterministic positive and zero-transport negative tests, a real shared-runtime DB-backed mocked-transport proof when the coordinator assigns its safe slot, required full_stack_browser, exact-source CI, and any mandatory reviewed live SEC matrix. The future transport binding cannot be committed/released without its actual required live evidence; no consumed-request replay or allowance is inferred. Preserve `15 Tier-0 and 156 Tier-1`, all AC1–AC14, issuer quarantines, retained data, and the 30-day observation.
+## Automated SEC reconstruction health separation — 2026-10-23 16:09 UTC
+
+Committed the narrow internal correction as `676cb4e53ef004ee69d9ceabadb12ad06813ce20` (`fix(etf): keep SEC reconstruction out of issuer health`), containing only `backend/app/services/etf_holdings.py` and its focused regression in `backend/tests/unit/services/test_etf_holdings_resolution.py`. Automated SEC filing reconstruction (`source_provider=sec` or `sec_*` provenance) retains `sec_filing` source tier but no longer records success against the ETF profile's native adapter key. The complete resolution and capability modules passed `178/178`; current narrative sentinel passed `1/1`, workstream validation passed, Ruff check/format passed, session JSON and validation JSONL parse, plan hash parity and diff check passed. The commit was pushed, and independent `git ls-remote` verified the remote ETF branch at the same SHA.
+
+Exact-source CI is not established: the GitHub commit-status connector returned an empty status list and its workflow-run query exposes only PR-triggered runs; do not call this commit green without an authoritative exact-source run. The manual SEC import/known-at changeset is prior history; this new change is still not SEC transport. No SEC/issuer/provider HTTP, quota, credential access, import, activation, fixture, cleanup, or cross-worktree write occurred. SEC account scope, operation review, quota dimensions, legal terms, and a verified-zero-cost commitment remain unverified; no future SEC operation is registered or routable here. The full_stack_browser profile and applicable mandatory reviewed live SEC evidence remain required before review/acceptance or normal finish. Preserve the full AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`, unresolved/quarantined issuers, disabled routes, retained data and the 30-day observation.
+
+Next: continue only offline source/unit/no-network preparation for the shared-runtime SEC path, preserving per-physical-attempt admission/settlement and truthful historical/PIT behavior. Do not enable transport absent source-backed account/operation/host/entitlement/quota/terms/zero-cost review and the actual mandatory live evidence.
+
+## EDGAR shared-runtime interface reconciliation — 2026-10-23 16:46 UTC
+
+Read the forwarded Provider review and its producer heading,
+`/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md`
+(`EDGAR shared-runtime interface note for ETF`, producer source
+`edea60a769a63863f72ef2a19df5df7a9378c277`). The current ETF source confirms
+`ProviderCapability.ETF_HOLDINGS`, the dedicated
+`bind_etf_holdings_request_context` / `execute_etf_holdings_request_attempt`
+path, and reuse of `execute_provider_call` with the shared contract and durable
+quota reserve/settlement. Each bridge invocation is one physical attempt; the
+HTTPX facade creates a worker-loop-local client and manually re-admits each
+redirect hop. The active recurring-cost check requires an active same-environment,
+same-account-scope commitment with amount and monthly equivalent exactly zero,
+and no post-trial charge.
+
+The scope detail is consequential: `account_scope_for_provider("edgar", "ip")`
+resolves the namespaced `PROVIDER_QUOTA_ACCOUNT_SCOPES["edgar:ip"]` key (or the
+provider's default shared-IP scope); a bare `edgar` key is not the resolver's
+IP mapping. The bridge's prior preliminary check nevertheless accepted either
+key. This owned change now requires the exact `edgar:ip` mapping for EDGAR/IP
+while preserving existing provider-level fallback behavior for other routes;
+the resolver still supplies the actual scope and the committed review must
+match it exactly. A focused no-network regression covers bare-key denial,
+namespaced-key acceptance, and unchanged non-EDGAR account-scope behavior.
+
+Static source review also confirms the boundary is not yet a working SEC route:
+the bridge currently recognizes only `fetch_etf_holdings_latest` and
+`fetch_etf_holdings_for_date`, while `etf_holdings_edgar.py` still contains
+direct `httpx.AsyncClient` calls for submissions discovery and filing fetches.
+Its unbound-context guard prevents borrowing an ambient issuer binding but is
+not itself shared admission. No EDGAR-specific ETF adapter/operation binding
+was found. The default EDGAR quota contract records the SEC 10-requests/second
+ceiling with a rolling one-second application safety envelope and
+`application_usage_only`; it retains the unknown native reset dimension and
+does not provide operation costs. Shared admission also requires positive
+operation request units. Operation-specific response-byte bounds, a configured
+exact `edgar:ip` alias, reviewed SEC operation evidence, the actual entitlement,
+and the active zero-USD commitment remain unverified. These missing values are
+not filled with guesses, and no policy or transport was activated.
+
+The narrow source/test diff is limited to the EDGAR namespaced-scope
+precondition and its unit regression. The Provider bridge plus EDGAR unit
+modules passed `23/23`; changed-file Ruff check and format-check passed, as did
+`git diff --check`. This is focused local evidence only. Exact Actions run
+`39987273700` remains in progress on the prior published SHA `7c8cda46`; its
+backend integration phase is running and does not validate this uncommitted
+diff. No SEC/provider/issuer request, quota operation, credential access,
+database write, fixture, import, activation, cleanup, or cross-worktree write
+occurred. Keep SEC transport held; next work must define only source-reviewed
+operation and cost/byte contracts, then cover each denied direct path with
+zero transport before any explicitly authorized live evidence. Preserve
+AC1–AC14, `15 Tier-0 and 156 Tier-1`, all quarantines, retained data, and the
+30-day observation.
+## SEC ambient issuer-binding isolation — 2026-10-23 16:15 UTC
+
+Added an explicit `require_unbound_etf_holdings_context` guard at the SEC holdings discovery and backfill entry points. This prevents SEC fallback/discovery from borrowing a surrounding issuer latest/dated operation, and runs before constructing the HTTP client or writing a backfill job. The regression binds a synthetic issuer context, invokes both actual entry points, and asserts the client constructor and database `add` are never reached. This does not add a SEC Provider operation, adapter, policy, entitlement, account mapping, cost/quota value, or live transport.
+
+The complete EDGAR and shared Provider bridge modules passed `21/21` with live flags disabled; changed-file Ruff/format and `git diff --check` passed. Commit `56ae9fd26b92e32bab04c860ba6a125ecf70813a` was pushed and independent `git ls-remote` matched the feature branch. The exact GitHub status query returned no statuses and workflow discovery is PR-trigger-filtered, so exact-source CI is not surfaced and must not be called green. The prior SEC reconstruction health fix remains published at `676cb4e53ef004ee69d9ceabadb12ad06813ce20`.
+
+Current SEC route facts remain unknown/unreviewed: no verified SEC DataSource/ETF_HOLDINGS policy, account scope, entitlement, host/operation evidence, quota dimensions, terms/retention approval, or zero-cost recurring commitment was established. Keep transport held and do not infer values or spend/replay quota. Next offline step is a dedicated SEC shared-runtime context tied to committed profile/instrument/CIK identity, separate from issuer bindings, with denial before client/reservation/network when evidence is absent or mismatched. Preserve per-attempt shared ledger, truthful SEC historical/degraded/PIT semantics, full AC1–AC14, `15 Tier-0 and 156 Tier-1`, quarantines, retained data and 30-day observation. Full_stack_browser and applicable mandatory live SEC evidence remain required before review/acceptance or normal finish. No HTTP, quota, credential access, import, activation, fixture, cleanup, or cross-worktree write occurred.
+
+## SEC public-data facts and fallback-failure lineage — 2026-10-23 16:25 UTC
+
+Root's primary-documentation review at
+`/home/m920q/charting-platform/.ai/staging-attempts/sec-public-data-contract-review-20261023.md`
+is now incorporated as contract evidence. SEC public filing access/reuse is
+documented free and the public data APIs require no key; the SEC's 10-request/
+second ceiling is aggregate across machines, and clients must send a declared
+User-Agent. These facts establish public SEC data's monetary access cost and
+reuse basis, not a routable ETF operation or an independent ETF allowance.
+The real operator/contact identity, actual fund/series/class match and filing
+availability, shared Provider account/policy/entitlement, active zero-cost
+commitment, and native account counters/reset remain unverified. Acceptance
+time is not a documented exact public-availability timestamp; the existing
+known-at safeguard must continue using actual post-response observation time
+when exact acceptance evidence is absent and must leave publication unknown.
+No request, credential access, activation or quota use occurred. Provider's
+assigned read-only shared-interface review has not yet been delivered in the
+accessible worktree/coordinator records; no interface is inferred.
+
+An offline real-adapter/refresh regression found and corrected one error-lineage
+gap: if an issuer route failed and SEC fallback was denied by the ambient
+issuer-binding guard, `IssuerCsvHoldingsAdapter.fetch_latest` surfaced only the
+fallback failure, masking the original issuer HTTP failure. It now uses the
+existing `_sec_fallback_after_route_error` helper, retaining both causes. Under
+MockTransport, the actual refresh caller made exactly one synthetic publisher
+request (503); the SEC fallback was attempted but failed closed before SEC
+client construction, with no second transport. The assertions retain the
+original issuer status, explicit ambient-binding denial and zero SEC clients.
+The stale DB integration expectation was updated to the guard's actual error
+message; that integration module has not been run locally because it requires
+the assigned DB fixture.
+
+Validation at 16:25Z: ETF provider-bridge plus EDGAR unit modules passed 22/22;
+the full deterministic adapter unit module passed 630/630 with both live-test
+flags set to 0; changed-file Ruff and format checks, Python compilation and
+`git diff --check` passed. The initial default-UV-cache attempt failed before
+pytest because the cache was read-only; the isolated `/tmp` cache retry ran the
+complete module successfully. No live source or SEC request occurred. This
+does not validate SEC reachability, policy, quota, rights, real-data identity,
+the DB-backed integration assertion, full_stack_browser or exact-source CI.
+Keep the SEC bridge held until the Provider interface review and all required
+source-backed admission evidence exist. Preserve AC1-AC14, `15 Tier-0 and 156
+Tier-1`, MSMR/QQQ and Militia/GOOG quarantines, disabled routes, retained data,
+all historical red/partial evidence and the 30-day observation gate.
+
+### EDGAR scope-guard regression follow-up — 2026-10-23 16:52 UTC
+
+After the prior 23-test run, added a focused test at the actual attempt-review
+boundary: an `edgar` policy with IP quota scope and only the bare `edgar`
+account alias is rejected before the recurring-cost callback. The complete
+bridge and EDGAR unit modules now pass 24/24 in 2.42 seconds; changed-file Ruff
+and format checks and `git diff --check` pass. No network, DB, quota, credential,
+activation or fixture action occurred. The bridge source change remains local
+and unpublished because the `external_service_path` classifier requires
+mandatory live evidence, which is not present or authorized. The EDGAR direct
+HTTP routines are still not admitted through the shared bridge; operation
+costs, byte bounds, deployment scope mapping, entitlement/commitment and native
+headroom/reset evidence remain open. CI run `39987273700` is on parent `7c8cda`
+and does not cover the local delta. Full AC1-AC14, `15 Tier-0 and 156 Tier-1`,
+quarantines, holds, retained data and the 30-day observation remain open.
+
+### EDGAR scope mapping value validation — 2026-10-23 16:55 UTC
+
+Review found that checking only for the `edgar:ip` key was insufficient:
+`account_scope_for_provider` falls back to its default when that key's value is
+empty. The bridge guard now requires a nonblank string for the explicit
+namespaced value, while preserving existing non-EDGAR alias behavior. The
+actual attempt-review regression verifies that a bare alias, empty value, or
+whitespace value is denied before recurring-cost admission; exact configured
+nonblank values remain accepted by the pure mapping contract. The focused
+bridge and EDGAR modules pass 26/26 (2.53 seconds); Ruff, format and diff checks
+pass. After the record update, the required `15 Tier-0 and 156 Tier-1`
+sentinel passed 1/1; the workstream validator, session/validation parsing, plan
+hash check and diff check also passed. No live request or quota use occurred.
+The bridge change remains local/unpublished because mandatory live evidence
+for this `external_service_path` is absent and unauthorized; EDGAR direct HTTP
+paths, operation costs/byte bounds, deployment scope, entitlement/commitment,
+and native headroom/reset remain unresolved. Exact CI `39987273700` covers only
+parent `7c8cda`; the full roadmap and quarantines remain open.
+
+### Public attempt-entry denial proof — 2026-10-23 16:57 UTC
+
+Extended the blank/bare EDGAR scope regression through
+`execute_etf_holdings_request_attempt`, using only an offline fake session.
+For a provider-level alias, empty namespaced value, and whitespace namespaced
+value, the real bridge entry raises before calling `execute_provider_call`;
+therefore no shared reservation or transport is attempted. The unadmitted
+attempt session rolls back and closes. Bridge and EDGAR unit modules pass
+29/29 (2.44 seconds); Ruff, format and diff checks pass. This is deterministic
+no-network evidence only, not a DB-backed shared-runtime or live SEC proof.
+No external request/quota or data change occurred. The bridge remains local and
+unpublished under the mandatory live-evidence gate; direct EDGAR paths still
+are not wired into the admitted bridge. Full AC1-AC14 and the held SEC evidence
+gaps remain open.
+
+## SEC first-human path: identity, shared transport, and current validation — 2026-10-23 17:20 UTC
+
+The exact parent CI run `39987273700` is terminal red on published source
+`7c8cda46a56ee52bc358a6f6c75e0ef59e168903`; it is not current-worktree
+evidence. Its five failures were stale `known_at` expectations in the N-PORT
+and legacy SEC integration cases. The current implementation now records the
+post-response observation time, keeps SEC acceptance separately as filing
+metadata, leaves `published_at` unknown, and preserves PIT lookup behavior.
+Those five DB-backed integration cases have not been rerun locally.
+
+The local SEC path is now wired through the dedicated `edgar` ETF_HOLDINGS
+bridge. Each submissions, submissions-file, or filing request uses its own
+shared admission/settlement; HTTPX redirects are separately admitted. The
+committed profile CIK is checked against every SEC URL. Before N-PORT rows can
+be ingested, the filing's series and class must match the committed profile;
+missing/mismatched identity is retained as rejected evidence and cannot create
+a snapshot or native issuer success. No outbound request was made.
+
+The newly supplied read-only candidate record
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-existing-identity-candidates-20261023.md`
+identifies IWM as a lower-bootstrap-cost *candidate*, not an admitted/live
+route: target instrument/profile 5 has null SEC profile columns, while existing
+curated aliases and accepted source metadata agree on CIK `0001100663`, series
+`S000004344`, and class `C000012074`. This CIK also covers unrelated funds, so
+CIK alone cannot authorize ingestion. The existing `_apply_known_route_metadata`
+function is the canonical local symbol-map hydrator; the per-symbol N-PORT and
+legacy admin backfill routes now invoke it before their backfill service. It
+does not perform catalog HTTP. An offline unit test confirms IWM's curated
+series/class mapping, and a no-network API regression was added for the N-PORT
+route, but the API regression remains unrun pending a safe DB slot. Do not
+invoke bootstrap or backfill against the target now: bootstrap may attempt an
+issuer fetch, and SEC backfill still requires reviewed shared admission plus
+actual-file identity verification.
+
+The offline no-network bridge/EDGAR/adapter unit modules passed `660/660` after
+updating one old adapter fixture to supply an explicit request identity; the
+initial `659/660` run is retained as the stale-fixture failure, not hidden. The
+new IWM hydration unit case passed `1/1`; changed-file Ruff and format checks
+and `git diff --check` passed. The coordinator's isolated DB-slot preflight
+measured `MemAvailable=1364 MiB` against its `1536 MiB` minimum and declined
+the run. Memory PSI was within the declared limits; Docker socket access was
+denied in this sandbox, so no container/fixture state is inferred. No database
+or container was created or touched. The five timestamp integrations, new
+shared-runtime SEC MockTransport test, and IWM route API regression remain
+unvalidated and must not be counted green.
+
+Still unresolved before any real SEC transport: reviewed deployed SEC
+operations and positive per-operation request costs, response-byte bounds,
+exact nonblank `edgar:ip` account mapping, entitlement, active zero-USD shared
+commitment, native counter/headroom/reset facts, an actual qualifying IWM
+filing with verified series/class identity, and the mandatory live SEC
+validation gate. SEC public filing reuse is documented by the reviewed source;
+this does not itself establish a routable operation or fund-specific filing.
+The SEC public-data terms do not establish native counters or an ETF request
+allowance. Keep transport, paid/trial/unknown paths and quota replay disabled;
+preserve MSMR/QQQ and Militia/GOOG quarantines, all historical evidence, all
+fourteen roadmap criteria, `15 Tier-0 and 156 Tier-1`, and the 30-day
+observation. The source/workstream diff remains local; no target DB, credential,
+live HTTP, quota, staging/sibling/master mutation, cleanup, or deployment
+occurred.
+
+### Bounded SEC terminal-failure and empty-result follow-up — 2026-10-23 17:43 UTC
+
+Applied the read-only source review at
+`/home/m920q/charting-platform/.ai/staging-attempts/sec-bounds-source-review-20261023.md`
+to the current local implementation. The shared one-fund SEC budget now latches
+decoded per-response/aggregate body-limit failures, 403/429 access limits,
+redirect/page/attempt-limit exhaustion, and deadline exhaustion. A later
+candidate checks that latch before entering Provider admission, so it cannot
+reserve or send after a terminal bound. A N-PORT/legacy backfill with no
+identity-qualified, ingested filing now records
+`no_qualifying_filing_within_reviewed_budget` and reports `partial` when
+candidates were skipped or `failed` when discovery was empty; it cannot return
+`completed` with zero snapshots. The latest-adapter fallback also emits an
+explicit no-qualifying error instead of silently returning empty. The bounded
+gzip/deflate decoder rejects `unused_data`, concatenated gzip members and
+trailing bytes under the same decoded-byte budget; it never accepts the first
+member while ignoring a tail.
+
+Added offline regressions for 403, 429 and body-cap latching with a second
+candidate denied before the shared attempt function; concatenated/trailing
+gzip rejection; empty and wrong-series backfill disposition; and retained the
+existing one-fund identity and Provider bridge contracts. Two old synthetic
+tests were corrected to carry committed series/class identity (and valid XML
+identity elements) so their existing intended caller-session/fallback
+assertions remain exercised under the stricter production contract. The first
+combined run passed 670/675 and exposed four new-test expectation/fixture issues
+plus one strict-identity fixture issue; these are retained as initial
+diagnostic failures. After correction, bridge/EDGAR/adapter modules passed
+676/676 and adjacent refresh units passed 21/21; the final four-module suite
+passed 697/697 in 26.29s. Ruff check, format check and `git diff --check` pass
+for the affected files. No HTTP, quota,
+credential, database, Redis, fixture, activation, retained-resource cleanup or
+cross-worktree action occurred.
+
+The earlier 1364 MiB refusal against the first DB slot's 1536 MiB minimum stays
+historical and correct. The later approved existing-ETF-PostgreSQL/new-Redis
+alternative remains unused; it may be considered only at fresh
+MemAvailable >=1280 MiB with all recorded PSI, reserve, exact ownership,
+memory-cap and no-competitor checks satisfied. This unit evidence does not
+validate DB/API/shared-runtime behavior, actual SEC availability, native quota
+headroom, or live transport. Exact published Actions run `39987273700` remains
+terminal red on parent `7c8cda` and does not cover this dirty source. The
+external-service live gate remains unauthorized; SEC route is not declared
+operational. Keep IWM as an identity-backed candidate only, exact observed
+`known_at`, unknown publication time, dated/PIT-only SEC semantics, all AC1–AC14,
+`15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG quarantines, disabled
+unknown/paid/trial routes, retained data and the 30-day observation.
+
+### Existing offline DB-slot recheck — 2026-10-23 17:49 UTC
+
+The user reaffirmed the existing one-session lower-footprint offline validation
+grant. Canonical `make agent-context` and `make agent-session-status` confirmed
+the original ETF branch/worktree/claim, source HEAD and origin remain
+`7c8cda46a56ee52bc358a6f6c75e0ef59e168903`, and only the existing fourteen
+source/workstream paths are dirty. The status helper emitted its known private
+quota-directory warning but returned the exact owner/session successfully.
+
+The fresh host-boundary preflight verified the exact existing PostgreSQL
+container/project/service, loopback `127.0.0.1:15432`, 768 MiB memory cap,
+1.5 GiB swap cap, and 9.691 MiB observed container memory. Its database list
+was unchanged from the earlier preflight. Existing Redis `16379` and cached
+image identity were inspected read-only; neither was reused or modified.
+No pytest/browser/build competitor was present, cgroup v2 and `systemd-run`
+were available, PSI full averages were `0.57`/`0.59`, and the host reserve was
+above 512 MiB. However the decisive `MemAvailable` was only `1,147,404 KiB`
+(about `1,120.5 MiB`), below the lower-footprint grant's `1,310,720 KiB`
+(`1,280 MiB`) minimum. The preflight therefore refused before creating a new
+database or Redis, invoking pytest/conftest, or changing any existing resource.
+
+The five timestamp API regressions, IWM hydration API case and two shared
+runtime SEC MockTransport cases remain unrun against PostgreSQL/Redis; the
+697/697 result remains unit-only. Retry only after a new fresh preflight meets
+all grant thresholds. Keep original databases and Redis, target state, SEC
+transport holds, quota state and all retained data untouched. This refusal
+does not change the source, external-service gate, or full AC1–AC14 roadmap.
+
+### Bounded SEC API/shared-runtime DB attempt — 2026-10-23 17:56 UTC
+
+A later immediate preflight passed and used the existing one-session grant. At
+17:52:05Z, host `MemAvailable` was `1,516,176 KiB` with PSI full avg10/avg60
+`0.00`/`0.03`, no competing pytest/browser/build, exact retained PostgreSQL
+healthy on loopback `127.0.0.1:15432`, and 9.695 MiB baseline PG memory. The
+owned test database `etf_offline_20261023_4c1cca8c8a4c` was confirmed absent
+before creation. A new Redis container
+`etf-offline-20261023-4c1cca8c8a4c` (ID
+`4c089f4d256b2d17fadd316da7c463be774655677475bf34476b7e8ff03a2fbf`) used the
+cached Redis image, loopback port `32808`, 48 MiB memory/no swap, 0.5 CPU and
+64-PID cap. The exact DB, Redis, worktree-ID and loopback-port DSN components
+were asserted without printing credentials before pytest/conftest.
+
+The one pytest invocation used `systemd-run --user --scope` unit
+`etf-offline-validation-20261023-4c1cca8c.scope`, invocation ID
+`8eb9bfc2c3e84abe901dcc069b7de6bc`, with 384 MiB/no-swap/1 CPU/64 tasks and
+`timeout --signal=INT --kill-after=5s 20m`. It collected nine cases: the five
+SEC `known_at` API tests, IWM backfill-hydration API test, ambient SEC binding
+denial, SEC per-hop admission/redirect/wrong-CIK, and held optional SEC
+enrichment. The node IDs were `test_sec_nport_ingestion_reconstructs_filing_holdings`,
+`test_sec_legacy_ingestion_reconstructs_table_like_filing_holdings`,
+`test_sec_legacy_ingestion_reconstructs_html_table_filing_holdings`,
+`test_sec_legacy_ingestion_reconstructs_split_identity_html_rows`,
+`test_sec_legacy_ingestion_handles_month_name_dates_and_value_thousands`,
+`test_sec_backfill_route_hydrates_curated_iwm_identity_without_network`,
+`test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_binding`,
+`test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik`, and
+`test_bootstrap_treats_held_optional_sec_enrichment_separately_from_issuer_route`.
+Console progress showed six API dots and one runtime dot before
+the cgroup ended with `Result=oom-kill` at 384 MiB peak after 43.63 seconds.
+No pytest summary or terminal pass exists; do not report this selection green
+or automatically replay it. Host memory remained above the 512 MiB reserve
+during observation but fell below the 1280 MiB launch floor after OOM; PSI
+temporarily breached avg10. PostgreSQL peaked at 81.78 MiB (72.09 MiB above
+its 9.695 MiB baseline, within the 128 MiB ceiling).
+
+After independently confirming the exact scope/process was gone, the new DB
+had zero connections, and the Redis volume belonged only to the generated
+container, cleanup removed only that DB, container, and its automatically
+created anonymous volume
+`6798e0baa9de0b9f4816c29a6d2b72d8433a01a7b930c56c06d44fc2aa203a71`. The
+original six database names were verified unchanged; retained PostgreSQL
+container `43fb83fd98ad000b6eca0faa014a6d83e64e41b6c54be94f25782bd6c4807856`
+and Redis `7d3b9bd1e3c1c97878378b9794c2570459bf9aa54af77ffcd91d345162c63c39`
+remain running at their original loopback ports/caps. No issuer, SEC or
+provider endpoint, quota, credential, target, or product service was used.
+
+The original offline unit result remains `697/697`; the DB-backed selection is
+partial/inconclusive due the enforced process memory ceiling. No further DB
+replay or cap increase is authorized by the consumed one-session slot. Obtain a
+coordinator-reviewed bounded alternative before another DB-backed attempt;
+continue non-DB source work without changing the external-service hold or full
+roadmap.
+
+### SEC shared-runtime response-limit accounting correction — 2026-10-23 18:12 UTC
+
+The Provider review identified that a marked/capped HTTP 200 was observed by
+the ETF wrapper but still returned normally from `_sync_provider_invoke`, so
+the shared Provider executor could record a successful request before the
+outer SEC reader rejected the response. The bridge now checks the response
+limit marker after recording actual response telemetry and raises the typed
+`ETFHoldingsRouteHeldError` inside the synchronous one-attempt callback, before
+the executor can settle success. This preserves measured physical request,
+decoded-byte, and cost telemetry while making the attempt fail and leaving the
+fund-budget latch sticky.
+
+Added the shared-runtime regression
+`test_sec_invalid_http_200_is_failed_and_measured_before_sticky_denial`: a
+local `MockTransport` returns a concatenated-gzip HTTP 200 whose first member
+is parseable. The test expects one failed Provider log with measured decoded
+bytes and zero successful response items, no capability-support promotion,
+one settled shared reservation, failure health, and a later candidate denied
+before a second transport call. The bridge and EDGAR unit modules passed 44
+tests in 6.32 seconds after this correction; source hashes were rechecked
+unchanged at publication preparation. The new DB-backed regression itself has
+not yet run. The previous nine-case DB attempt remains OOM-killed at its
+384 MiB cap after 43.63 seconds with no final summary; it is partial and
+inconclusive, not a pass.
+
+The revised coordinator grant now permits one corrected attempt with a
+512 MiB/no-swap pytest cap, the same isolated new-database/new-Redis ownership
+rules, and a fresh host `MemAvailable >= 1536 MiB` gate. It does not authorize
+lowering that floor or replaying automatically. Two fresh host readings in
+this continuation turn were 1,212,552 KiB and 1,312,184 KiB (plus a sandbox
+reading of 1,139,636 KiB); both host readings remained below the required
+1,572,864 KiB. PSI full avg10/avg60 remained within the stated limits, but the
+mandatory available-memory floor failed. No database, Redis, pytest, or other
+fixture was created. Retained services and data were not changed. The one
+corrected attempt remains unused.
+
+The coherent SEC source candidate is being prepared for a normal ETF-branch
+commit/push so exact-source hosted CI can validate it. Until that CI and the
+required local DB/full-profile and live gates are satisfied, no checkpoint or
+SEC route acceptance is claimed. Keep SEC transport held; preserve IWM as an
+identity-backed historical candidate only, unknown publication time, exact
+observed `known_at`, historical/PIT and rejected-raw lineage, the full AC1–AC14
+roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG quarantines,
+disabled unknown/paid/trial routes, retained data, `full_stack_browser`, and
+the 30-day observation gate.
+
+## Resource refusal, recovery, and exact CI update — 2026-10-23T19:25:29Z
+
+Root reports that its guarded 19:21 private-backend maintenance window was
+refused at 1223 MiB available and PSI full avg10=4.33/avg60=3.64. The
+`WINDOWOPEN` signal was never issued, so the corrected 512 MiB offline DB slot
+remains unused; no DB test or new resource was created. Root independently
+verified recovery: all six target services are healthy, and schema, seeds,
+routing, request-log count 4, real 479 SPY and 479 RSP bars, and Run 4
+artifacts are unchanged. The independent restore timer completed after that
+health proof. Preserve the refusal and earlier 384 MiB OOM as resource-gate and
+partial evidence, not test failures. Do not replay maintenance or preflight or
+launch local tests, services, or fixtures absent a future Root-coordinated
+window.
+
+The latest read of exact GitHub run 40006029802 on published SHA
+`d42e5ff07490af8f0fb894e7ab924e4f62cc4379`, at 19:25:29Z, shows Frontend
+Unit, Backend, and Branch-declared jobs passed; E2E is running Playwright
+tests; Exhaustive is skipped by feature-branch policy. Preserve the same run
+without cancellation or replay. It does not include the uncommitted
+selected-snapshot lineage UI change; the earlier focused view suite passed
+6/6 and `vue-tsc --noEmit` passed. This is a CI/UI checkpoint update only, not
+full `full_stack_browser`, DB/runtime, live, sample-acquisition, or checkpoint
+acceptance evidence. Keep SEC held and preserve AC1–AC14, 15 Tier-0 and 156
+Tier-1, quarantines, disabled routes, retained data, and the 30-day gate.
+
+## Published-parent CI terminal result and UI publication — 2026-10-23T19:51:41Z
+
+Root independently confirmed exact GitHub run 40006029802 on d42 terminal
+GREEN: Frontend Unit, Backend, Branch-declared, and Playwright E2E passed;
+Exhaustive was skipped by feature-branch policy. The exact run does not contain
+the local selected-snapshot lineage UI changes. Root reviewed the existing
+focused view 6/6 and frontend type-check pass receipts. Publish the UI and the
+checkpoint/workstream update together in one ordinary branch-owned commit/push,
+then monitor the automatically triggered exact-source CI for that new tip. Do
+not replay the unchanged UI tests or start local full-profile/DB work: the
+corrected DB slot remains unused and requires a future Root-coordinated window.
+This does not accept the new checkpoint; DB/full-stack/live/deployed sample
+gates and the complete AC1–AC14 roadmap remain open.
+
+## Resource-corrected offline SEC DB selection — 2026-10-23, window 2129
+
+The exact source remained `45c6a5f69029aa3b873ad68d717202f308845dd5`, clean
+and synchronized with `origin/feat/etf-holdings-constituents`; no source, test,
+or configuration file changed for this validation. Root verified the
+source/backend-tree identity before the attempt. The explicit one-run resource
+correction changed only the PostgreSQL-growth guard from 128 MiB to 192 MiB.
+Pytest remained capped at 512 MiB/no swap, with the same PostgreSQL and Redis
+services, isolated new database, loopback-only 48 MiB Redis, CPU/task limits,
+1536 MiB host floor, PSI/reserve/deadline checks, and exact owned-resource
+cleanup rules.
+
+The full selected 12-case offline DB invocation completed: **12 passed, 5
+warnings in 66.84 seconds; pytest exit 0**. It covered the five `known_at` API
+regressions; curated IWM identity hydration; ambient discovery/SEC binding
+denial; shared per-hop SEC admission and wrong-CIK rejection; held optional
+SEC enrichment; measured failed accounting for invalid HTTP 200 before sticky
+denial; and idempotent N-PORT and legacy backfills. Exact node IDs:
+
+- `test_sec_nport_ingestion_reconstructs_filing_holdings`
+- `test_sec_legacy_ingestion_reconstructs_table_like_filing_holdings`
+- `test_sec_legacy_ingestion_reconstructs_html_table_filing_holdings`
+- `test_sec_legacy_ingestion_reconstructs_split_identity_html_rows`
+- `test_sec_legacy_ingestion_handles_month_name_dates_and_value_thousands`
+- `test_sec_backfill_route_hydrates_curated_iwm_identity_without_network`
+- `test_discovery_and_sec_entry_points_cannot_inherit_latest_refresh_binding`
+- `test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik`
+- `test_bootstrap_treats_held_optional_sec_enrichment_separately_from_issuer_route`
+- `test_sec_invalid_http_200_is_failed_and_measured_before_sticky_denial`
+- `test_sec_nport_backfill_discovers_and_ingests_edgar_filings`
+- `test_sec_legacy_backfill_discovers_and_ingests_edgar_filings`
+
+The run used systemd scope `etf-offline-sec-20261023-2129.scope`, invocation
+`cb70f8a99a744655812e9fd95fb79d39`, log
+`/tmp/etf-offline-sec-20261023-2129.scope.log` (SHA256
+`d0dad0e3f53120f3cd6c964199ccf3cf3fe735e9762fb8263b978aa6a407687a`). The
+worker verified a 536870912-byte memory maximum, zero swap, one CPU and 64
+tasks. Root recorded 29.234 seconds CPU, 69.807 seconds wall time, rounded
+512 MiB peak, and OOM counters 0/0. No external HTTP, provider/issuer/SEC
+request, live allowance, or quota was used.
+
+Cleanup was independently verified: the exact Redis container and disposable
+database `etf_offline_20261023_2129` are absent; the attempt UV cache is absent;
+the six original databases remain (`chartingdb`,
+`etf_bridge_integration_20261020`, `etf_etf_dated_retention_20261021`,
+`postgres`, `template0`, `template1`). Root restored and checked all six
+application services healthy with seeds disabled, auth boundary intact, the
+479 SPY/RSP bars and Run 4 artifacts unchanged, and the restore guard removed
+after health proof.
+
+Preserve window 2119 separately: it emitted eight progress markers before its
+PostgreSQL-growth guard observed 138399744 bytes above the then-128 MiB limit;
+the exact process received SIGINT/SIGKILL and exited 137 without a pytest
+summary. Those markers are historical partial output, not a complete result;
+do not say no cases ran, and do not convert the attempt into either a test
+failure or pass. The earlier 384 MiB OOM attempt also remains
+partial/inconclusive. Window 2129 is the explicit resource-corrected full
+selection result, not an automatic replay.
+
+This evidence closes only the named offline DB/API/shared-runtime selection.
+It does not establish native SEC limits, live access, a real IWM acquisition,
+deployed positive behavior, or checkpoint acceptance. The `etf-first-human-sec-source-1`
+checkpoint remains pending Root review. Broader local full-profile/full
+functional/strict-visual gates, applicable live-acquisition and deployment
+proof remain open. Exact green CI 40006029802 covers prior source
+`d42e5ff07490af8f0fb894e7ab924e4f62cc4379`, not current source 45c6; this
+receipt does not refresh current-source CI. Root will assign the next specific
+profile phase. Until then, do not start another test, preflight, fixture,
+browser matrix, CI run, or source investigation. Preserve full AC1–AC14,
+`15 Tier-0 and 156 Tier-1`, all route holds and quarantines, retained data,
+current/PIT and raw-lineage semantics, and the 30-day observation gate.
+
+## Released Provider/Strategy staging adoption — 2026-10-24
+
+The prior “Root will assign the next phase” boundary above is superseded for
+this exact staging synchronization only. Root released synchronized-green
+staging `cdc33442c19f5c387b9ada759607d961365993c0`; release record
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-cdc334-green-release-20261024.md`
+and canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261024T111337Z-cdc33442c19f.json`
+record terminal-green Actions run `40083128955` and Exhaustive Integration
+Gate job `120844769370`. A direct `git ls-remote` confirmed `origin/staging`
+was exactly that SHA and `origin/feat/etf-holdings-constituents` was still
+`45c6a5f69029aa3b873ad68d717202f308845dd5` before this adoption.
+
+The four pre-existing dirty ETF-owned records were preserved and first closed
+in commit `d648557f0e4b87618797554f72630aacbea6b04f` after the canonical
+workstream validator, JSON/JSONL parsing, plan-hash comparison and diff check
+passed. The exact staging SHA was then merged into this worktree. Git found no
+conflicts; merge base was `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`, and merge
+commit `dc7d5687e5f932fcec9009d17abb1f802e3bbfbc` has parents `d648557f` and
+the exact released `cdc33442`.
+
+The merge preserves the later ETF SEC implementation, tests, workstream history
+and all fourteen roadmap criteria; it also brings in the released Provider and
+Strategy source and their own staging evidence. No sibling worktree or staging
+ref was written. Static contract inspection confirms the merged shared
+`execute_provider_call` still requires its invoke callback to be synchronous
+and non-awaitable, and the ETF bridge adapts requests through
+`_sync_provider_invoke` while calling the shared `ETF_HOLDINGS` execution
+path. This is not runtime validation. The existing window-2129 12/12 result
+remains tied to source `45c6`, not the merged source.
+
+This adoption does not accept or close `etf-first-human-sec-source-1`, establish
+a live or native-current IWM result, or complete AC1–AC14. SEC transport and
+unknown native account/cost/headroom evidence remain held; no live request,
+quota replay, paid/trial activation, deployment or data cleanup occurred. The
+branch-owned reconciliation records are being committed with the merged
+source, followed by one push of the combined clean ETF tip. That push will
+trigger exact-source CI; no tests, build, browser, Docker or service action was
+run during this adoption. Root will assign the next bounded local validation
+slot after publication. Preserve the historical CI reds, skips and partials,
+the full roadmap, `15 Tier-0 and 156 Tier-1`, MSMR/QQQ and Militia/GOOG
+quarantines, PIT/raw lineage, all holds and the 30-day observation gate.
+
+## Narrative-count correction on frozen source — 2026-10-24T11:38:19Z
+
+The published ETF source is frozen at `57f898af1e020c007b226e20d9b61bd57b02c896`,
+clean and origin-synchronized. Exact Actions run `40089689933` is terminal RED
+in the backend unit job: `5,426 passed, 1 failed, 1 declared skip`. The only
+failure is `test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`;
+the exact source/test log and coordinator receipt are
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-57-ci-narrative-failure-20261024.md`.
+The current `plan.current_blocker` and `session.progress.current_blocker`
+summaries omitted the invariant `15 Tier-0 and 156 Tier-1`. Both now contain 15 Tier-0 and 156 Tier-1
+symbol investigations, derived from the runtime audit
+sets and YAML symbol ledgers; the existing audit records and tests are not
+changed. This is a records-only correction, not a product or test repair.
+
+## FHSC3 in-flight deadline test repair — 2026-10-24
+
+Source freeze was released by Root for this narrow test-only repair. Exact CI
+`40110202709` on `d179d8772b8c9c37feacbfe2b3f6f51f24240365` is terminal RED:
+backend integration `536 passed / 1 failed / 2 existing skips`; the only
+failure was `test_sec_fund_deadline_cancels_worker_transport_before_durable_settlement`.
+The request correctly reported the deadline, but the observed transport count
+was zero because its two-second whole-fund budget expired during real Provider
+admission. Frontend passed and downstream jobs were skipped. Root92627's
+separate unit-boundary run completed all218 unit shards (`5430 passed / 1
+declared skip`) before deliberate SIGINT and ended124; this is not a complete
+backend pass. Preserve these exact outcomes.
+
+The sole product-tree edit is to the existing integration test. It gives
+admission a finite test-only 30-second allowance, retains the five-second
+worker attempt cap, then at actual admitted worker `execute` entry clamps the
+same test budget to `min(existing deadline, monotonic_now + 2 seconds)` before
+calling the original method. It asserts that the real HTTPX transport starts
+before the effective deadline and is cancelled within it. Existing held caller
+result, terminal/no-later-attempt checks and durable failed `TimeoutError`,
+zero-byte, uncertain-reservation assertions remain unchanged. Production
+210-second/20-second limits and separate caller-cancellation/shield cases are
+untouched. This test targets admitted worker-send cancellation and durable
+settlement; it does not independently prove cancellation initiated by the
+outer caller scope.
+
+Stack-free evidence after the edit: the exact narrative-count sentinel passed
+`1/1`; Ruff check passed; Ruff format check passed; Python AST parse passed;
+`git diff --check` passed. Root15711's earlier isolated DB result (`1/1`) was
+for the prior version of this test setup and does not validate the adjusted
+arrangement. No DB/Compose/browser/full suite, provider/issuer/SEC request,
+quota, or service action occurred. The adjusted integration case awaits Root's
+assigned focused DB slot and fresh complete integration/coverage qualification.
+Keep SEC transport held, all AC1–AC14, `15 Tier-0 and 156 Tier-1`, unresolved
+issuer quarantines, disabled routes, retained data, PIT/raw lineage, and the
+30-day observation gate. No checkpoint or roadmap acceptance is claimed.
+
+Root's fresh frontend qualification passed 1,353 tests across 140 files with
+85.69% statement, 73.68% branch, and 75.51% function coverage; canonical uPlot
+checks for 55 files and visual-policy checks for 26 assertions passed. The
+frontend type-check exited 134 at Root's Node 512 MiB heap cap; this is a
+resource-limited result, not a diagnosed source error. Build was not run. Root
+did not start the local full backend profile. Preserve those outcomes as
+reported; do not rerun frontend or broad backend work as part of this repair.
+
+Next, run only the exact narrative sentinel in a bounded lightweight scope,
+canonical workstream/record/plan-hash/diff checks, and publish the coherent
+owner-record correction. Root will qualify the resulting frozen source and
+address the separately capped type-check. Full local integration/browser,
+applicable live SEC and deployed one-fund sample gates remain open; SEC
+transport, unknown account/cost/native-counter facts, paid/trial/unsafe routes,
+and unresolved issuer quarantines remain held. Preserve full AC1-AC14, all
+historical reds/skips/partials, retained data, historical/PIT/raw lineage and
+the 30-day observation; no checkpoint or full-feature acceptance is claimed.
+
+## FHSC3 uvloop timer-cause correction — 2026-10-24
+
+Root released the source freeze for this narrow production cause fix. Exact
+published CI `40114130605` on `39c411b910fcac5c637163cffd13ae68286988f4` is
+terminal RED: Backend unit result `5429 passed / 1 failed / 1 skipped` in
+`676.90s`; Frontend passed and downstream jobs were skipped. The sole failing
+test was `test_sec_worker_cancels_real_httpx_transport_at_remaining_fund_deadline`.
+Its real HTTPX transport was cancelled by asyncio's fund-selected timer under
+uvloop, but a subsequent strict read of the SEC budget clock still returned
+just before the fund deadline. The handler consequently failed to latch the
+fund terminal reason and rethrew a bare `TimeoutError`. This exact CI failure
+is preserved, not retried or called green.
+
+The production correction carries the selected per-attempt timeout and a
+fund-bound flag from one budget-clock read into the actual `asyncio.timeout`
+scope. A caught `TimeoutError` becomes terminal fund expiry only when that
+scope reports `expired()` and the selected timeout came from the fund bound;
+equal fund/attempt bounds deliberately count as fund-bound. Attempt-cap-only
+timeouts and a transport-raised timeout before the timer fires remain
+recoverable and are not mislabeled. The budget uses a module-local monotonic
+clock reference solely so tests can freeze budget time without patching global
+`time.monotonic` or the event loop's clock. Production `210s` fund and `20s`
+attempt limits, shared settlement, the existing finite-admission/worker-entry
+integration fixture, and all holds remain unchanged.
+
+The deterministic bridge unit module passed `42/42` under normal asyncio and
+`42/42` with `uvloop.EventLoopPolicy()` installed before pytest, which also
+covers the worker's in-thread `asyncio.run` path. New/updated cases exercise
+actual HTTPX cancellation while the budget clock remains just before expiry,
+sticky refusal of a later attempt, attempt-cap cancellation without fund
+latching, a transport-originated `TimeoutError` before timer expiry, and equal
+bound precedence. The local run did not use DB/Compose/browser or live
+provider/issuer/SEC requests. Root's local run was: Root88520, fresh539-case
+integration collection, 900-second timeout at97%, exit124; cleanup0/private
+recovery passed, with no assertion failure reported. That result is incomplete,
+not a full-suite pass. Root must run fresh complete units, integration and full app gates for
+this production delta. Preserve full AC1–AC14, `15 Tier-0 and 156 Tier-1`, all
+holds/quarantines, retained data, PIT/raw lineage, and the 30-day observation;
+the checkpoint and full roadmap remain open.
+
+## FHSC1–FHSC7 source checkpoint accepted — 2026-10-25 03:35Z
+
+Root accepted the named `etf-first-human-sec-source-1` checkpoint for
+integration under the human's recorded conditional checkpoint-acceptance
+delegation. The accepted implementation is exact source
+`8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7`; exact branch CI
+`40118007739` is terminal green for required jobs, with Exhaustive skipped by
+feature-branch policy. The acceptance decision is documented at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-checkpoint-source-acceptance-20261025.md`.
+
+The reviewed final local audit is
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-final-local-audit-20261025.json`.
+It records 5433 backend unit passes/1 existing skip, 537 integration passes/2
+held native cases, 84.47% combined coverage, 1353 frontend tests, 195
+functional passes/2 existing declared live skips, and 104/104 strict visuals
+with zero retries. App/API/worker, cleanup, and original target-preservation
+evidence passed. The receipt retains the exact same-source component reuse and
+input qualifications; these counts are not represented as a single monolithic
+collector invocation. Migration compatibility against accepted green staging
+`cdc33442c19f5c387b9ada759607d961365993c0` was a no-change-input SKIP, not a
+fresh previous-release upgrade test.
+
+This closes FHSC1–FHSC7 source readiness and records the workstream at
+`ready_for_integration` with `integration_capture: exact branch HEAD`. It does
+not claim real SEC acquisition, a populated deployed inspector, native-current
+holdings, or completion of the full AC1–AC14 roadmap. SEC/unknown operations
+remain held; the actual one-fund acquisition/UI proof and 30-day observation
+remain future gates. Preserve every earlier red/incomplete result, all fourteen
+criterion texts and dispositions, `15 Tier-0 and 156 Tier-1`, quarantines,
+retained data, and raw/PIT lineage. Root owns synchronized staging integration.
+
+The existing ETF claim `f206bbc5-abbf-473a-a44f-fb5706c81282` was confirmed by
+the UV-managed session status command on the assigned branch/worktree and
+source. This resumed the existing owner context; no new claim or takeover was
+created. `make agent-context` was run with an isolated offline UV cache. The
+normal `agent-session-start` entry point is a new-writer bootstrap and refuses
+dirty recorded state; the active claim was preserved rather than displaced.
+The final records commit intentionally identifies validated implementation
+source `8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7`, not its own future commit
+hash, to avoid a self-hash metadata loop.

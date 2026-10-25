@@ -7253,7 +7253,7 @@ providers:
   - adapter_key: riverfront
     display_name: riverfront
     queue_rank: 104
-    starting_status: provider_not_a_portfolio_publisher
+    starting_status: needs_first_party_route_discovery
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
     last_checked: 2026-09-03
