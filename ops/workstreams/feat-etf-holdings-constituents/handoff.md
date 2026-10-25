@@ -1,5 +1,205 @@
 # feat/etf-holdings-constituents
 
+## Current accepted checkpoint — FQC source readiness
+
+Root accepted FQ1–FQ8 source readiness at `a7d0f25064e98f8c3015e9866804f7a68fcaa263`
+on 2026-10-25T13:33:51Z under the existing delegated checkpoint authority.
+Exact-source CI40191164658 is green. The complete local profile passed
+195 functional cases with 2 existing live-held skips and all 104 strict visuals;
+zero retries, cleanup and global inventory checks passed, and private Study 5
+readback verified 479 bars. Acceptance and audit:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-checkpoint-source-acceptance-20261025.md`
+and `/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-final-local-audit-20261025.json`.
+The exact final closure-head CI and Root-owned staging integration remain next.
+No real SEC acquisition, target/UI acceptance, live route enablement, or full
+AC1–AC14 roadmap completion is claimed; preserve disabled policy and all holds.
+
+## Audit-link correction — 2026-10-25
+
+At frozen baseline `54081f43892f80c43efcc46f40a8a55b94ec1c92`, Root-reviewed
+CI40187575496 is preserved as RED (543 integration passed, 2 failed, 2 skipped).
+The raw-artifact request-ID assertion passed; failure was the qualification
+job's missing `provider_request_log_ids`. A partial wrong-body result bypassed
+the success-evidence refresh, then the parent finalizer overwrote the child's
+durable ID link with stale JSON. The tamper test hook also needed a refresh
+before editing selection so its deliberate mutation would preserve the linked
+IDs and exercise the existing selection guard. Applied the reviewed narrow
+production refresh in the not-qualified finalizer and the test-hook refresh plus
+before/after ID assertions. Production audit checks/order and the raw-artifact
+assertion are unchanged.
+
+Focused offline qualification/EDGAR SQLite unit modules: 44 passed. Ruff check,
+Ruff format check, AST parse, and the exact narrative-count sentinel passed.
+Preserved shard56 records (distinct attempts): (1) complete local unit run
+30077 timed out after 47 tests in shard56 with exit124; cleanup passed. (2) the
+first debug run 36975 at
+`/tmp/etf-fqc-54081f43-shard56-diagnostic-20261025` used noncanonical
+`routing=false`, had multiple assertion failures, and exited -11 (signal11).
+(3) the required-before-edit run 11138 at
+`/tmp/etf-fqc-54081f43-shard56-canonical-diagnostic-20261025` used canonical
+`routing=true`, paid/live flags off, the same 50 cases and original 300-second
+cap: 46 passed with no assertion failures, then SIGINT at 300 seconds, exit2,
+elapsed301.568s. Timings59.92s/31.02s/25.58s and98% CPU support cumulative
+batch cost; they do not prove a hang. Root will subdivide expensive groups to
+at most25 without raising the timeout or dropping cases. None of these runs was
+replayed here. No
+PostgreSQL fixture, Docker/browser/full suite, provider/SEC request, quota or
+target action was run by this owner. Root owns corrected PostgreSQL validation,
+complete new-source profiles and exact-tip CI. FQ remains in_progress/not
+accepted; preserve all FQ1-FQ8, AC1-AC14, 15 Tier-0 and 156 Tier-1, prior red/
+partial history, holds, raw/PIT lineage, the 119-request history and 30-day
+observation.
+
+Files in this correction changeset: `backend/app/services/etf_holdings_edgar.py`,
+`backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`, this
+handoff, `session.json`, and the appended `validation.jsonl` receipt. FQ/AC
+criterion text in `plan.yaml` is unchanged. The complete new-source gates are
+still pending; this focused evidence is not checkpoint acceptance.
+
+# Green staging adoption and first SEC qualification plan — 2026-10-25
+
+## Adopted source baseline
+
+The exact canonical green staging release `5b29620741fd82d27db45987afb927bf91396712`
+was fast-forwarded into this existing ETF branch from `d203212f4841f9fa21e68525ea4bc608a86ff798`.
+Its receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261025T055427Z-5b29620741fd.json`
+and exact CI is `40161945123`. The local `origin/staging` tracking ref and
+receipt both resolve to the released SHA. A direct `git ls-remote` attempt was
+blocked by temporary DNS resolution failure, so the remote was not independently
+queried in this session. The normal fast-forward initially could not write the
+linked-worktree `ORIG_HEAD` because shared Git metadata was read-only; the same
+ordinary `git merge --ff-only` then succeeded through the authorized elevated
+Git boundary. No alternate index/ref was used.
+
+The four imported workstream directories are unchanged from the released tree.
+Only ETF-owned workstream planning/receipt updates are being made after the
+backmerge. The prior `etf-first-human-sec-source-1` FHSC1–FHSC7 acceptance,
+closure, exact CI `40118007739`, local audit qualifications and all older
+failure/partial evidence remain preserved. This adoption is not another
+checkpoint acceptance and does not close any of AC1–AC14.
+
+The normal UV-managed `make agent-context` initially failed because the shared
+UV cache under `/home/m920q/.cache/uv` is read-only. Repeating the same role
+preflight with `UV_CACHE_DIR=/tmp/etf-owner-preflight-cache` and
+`UV_NO_SYNC=1` classified the exact checkout as the implementation worktree.
+`make agent-session-status` confirmed existing claim
+`f206bbc5-abbf-473a-a44f-fb5706c81282` and worktree ID
+`feat-etf-holdings-constituents-fdc36fa27a`; no new claim or goal was created.
+The preflight reported the existing private quota-ledger directory permission
+issue and Docker socket denial; no runtime or quota action was attempted.
+
+## New bounded checkpoint implementation — in progress, not accepted
+
+The new checkpoint is `etf-sec-first-qualification-1`. The source-backed
+circularity is visible in the released application path: admin-only
+`provision_edgar_etf_holdings` creates the dedicated ETF entitlement with
+`live_probe_status="not_run"` (`backend/app/routers/providers.py` around
+`597–900`), while Provider runtime candidate selection excludes any entitlement
+whose probe status is not in its positive set (`backend/app/services/provider_runtime.py`
+around `2624`). Consequently, normal candidate selection cannot issue the first
+qualification request; enabling normal policy or writing a positive probe
+status first would fabricate evidence. Neither action is authorized.
+
+Root's direct 2026-10-25 implementation go-ahead accepts Producer's interface
+review and explicitly authorizes the implementation. The exact contract is
+`/home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-producer-contract-20261025.md`.
+The in-progress implementation adds the separate admin-only
+`POST /api/v1/etf-holdings/{symbol}/sec-initial-qualification` path and the
+small task-local shared-runtime authority it requires. The authority bypasses
+only prior positive live-probe evidence for the exact reviewed SEC operation
+set and committed fund/account/task; ordinary routes remain denied while the
+entitlement is `not_run`. The policy is disabled at the operation's terminal
+boundary. No live invocation, actual qualification, native-current claim, or
+policy enablement is authorized or claimed.
+
+All other gates remain mandatory: committed CIK/series/class identity; reviewed
+HTTPS host/operation/account binding; entitlement; evidence-backed zero-cost
+and recurring-cost/budget policy; shared quota/headroom decisions and durable
+per-physical-attempt reservation, request log, measured settlement and health;
+and fail-closed unknown/held state. Native quota counters/headroom, unknown
+costs and unreviewed operations are not inferred. Serialize and durably latch
+one attempt; expiry, concurrent duplicate, consumed context or replay cannot
+cause another transport. Preserve the existing envelope exactly: nine total
+physical attempts, one archive page, two redirects per logical request, one
+request/second, 20-second attempt timeout, 210-second whole-fund deadline,
+2 MiB JSON, 16 MiB filing body, and 20 MiB aggregate decoded bytes.
+
+The planned offline acceptance cases are recorded in
+`plan.yaml.integration_checkpoint.planned_acceptance_cases`. In particular,
+the positive deterministic MockTransport case must prove a usable, exact
+fund-identity-matched result, retained raw artifact/content hash, request-log
+and reservation linkage, measured settlement, observed `known_at`, and a
+positive status only after completion; it must leave route policy disabled.
+Unauthorized/normal-route/scope-mismatch/held/unknown cases must prove no
+unadmitted transport; concurrency/replay/expiry/cancellation must preserve the
+one-shot latch and uncertain settlement; HTTP/parser/body/identity/empty/failure
+outcomes must never mark success. These offline tests prove implementation
+semantics only, not a genuine SEC acquisition.
+
+The current source changes are limited to the shared-runtime authority hook,
+ETF SEC bridge/backfill service, admin router, and focused tests. Bounded
+stack-free checks passed 57 tests across the new authority/router module, the
+bridge and EDGAR service modules, the narrative-count sentinel, and the
+positive-probe runtime regression. Ruff check/format and syntax checks passed.
+A real shared-runtime MockTransport integration test for the initial success,
+account-scoped concurrent duplicate/replay denial, zero-reservation ordinary
+denial, durable snapshot/raw/request evidence, settled reservations, and
+disabled final policy is retained in
+`backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`; it
+has not been run because this owner has no DB fixture slot. This implementation
+is not source acceptance.
+
+No provider/issuer/SEC request, credential, quota state, target, fixture,
+service, staging or sibling worktree was used. MSMR/QQQ and Militia/GOOG remain
+unresolved/quarantined; unknown, quota-held, paid/trial and unsafe operations
+remain disabled. Preserve the full AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`,
+raw/PIT lineage, retained data and the 30-day observation.
+
+## Root-reviewed d93 first-qualification boundary corrections — 2026-10-25
+
+Root authorized two corrections within the same `etf-sec-first-qualification-1`
+checkpoint after reviewing exact source `d93a7f3fa12700a2b3c5e908aea7147e48671254`.
+The first closes a deadline mismatch: a task-local qualification authority's
+absolute `expires_at` now clamps the SEC budget's monotonic whole-call deadline
+at budget creation. The outer call timeout uses that same remaining budget;
+the worker's existing pre-setup guard and immediate post-client/request setup
+check therefore prevent send after expiry. An already-started HTTPX coroutine
+remains bounded by the same remaining time and existing shared settlement path.
+The 20-second attempt and 210-second whole-fund maxima, request pacing, body
+caps, and zero-retry behavior are unchanged.
+
+The second correction keeps candidate search truthful. Only the dedicated
+qualification backfill records a candidate as an expected non-target discard,
+and only when the parsed N-PORT identity explicitly mismatches the committed
+series ID or class ID. The skipped filing and identity evidence remain durable.
+Ordinary backfills retain their prior failure summary. Qualification evidence
+validates every discard against the committed expected IDs and persisted filing
+state; it still requires exactly one new usable matched snapshot, raw artifact,
+request logs and shared settlements. Missing identity, no match, parser/HTTP/
+transport/quota/deadline/body failure or incomplete audit cannot set the marker.
+
+Bounded offline validation on the current worktree passed **61 tests** across
+`test_etf_holdings_initial_qualification.py`,
+`test_etf_holdings_provider_bridge.py`, `test_etf_holdings_edgar.py`, the
+exact workstream narrative-count sentinel, and the positive-probe runtime
+guard. Ruff, Python compilation, and pytest collection passed; the retained
+shared-runtime qualification test collects three scenarios:
+wrong-fund-then-match, no-match, and HTTP failure. Those DB-backed cases were
+not executed because no database fixture was assigned. No HTTP, credential,
+quota, target, database, fixture, service, browser, staging, or sibling action
+occurred. FHSC1–FHSC7 remains historically accepted; this FQC checkpoint remains
+in progress and unaccepted pending Producer re-review and Root's assigned DB,
+full-profile, and exact-source CI gates. Preserve all fourteen roadmap
+criteria, `15 Tier-0 and 156 Tier-1`, disabled/held operations, quarantines,
+historical evidence, raw/PIT lineage, and the 30-day observation.
+
+**Next action:** publish this coherent implementation and owner-record
+changeset, then hand the exact source to Producer peer review and Root's
+assigned real shared-runtime DB/full-profile gates. No live request, quota use,
+actual qualification, route enablement, checkpoint acceptance or roadmap
+completion is claimed.
+
 ## FHSC3 send-boundary deadline correction — 2026-10-24T16:01Z
 
 Root's review of the in-progress FHSC3 repair found that the worker computed
@@ -16052,3 +16252,185 @@ dirty recorded state; the active claim was preserved rather than displaced.
 The final records commit intentionally identifies validated implementation
 source `8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7`, not its own future commit
 hash, to avoid a self-hash metadata loop.
+
+## FQC parent/Provider transaction wait correction — 2026-10-25
+
+Root's focused run on exact source `1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d`
+reached the initial qualification integration test, then timed out after
+180 seconds plus the 10-second termination grace (elapsed190.03s, exit `-9`).
+It recorded zero Provider HTTP and no target changes. Root's PostgreSQL lock
+snapshot showed PID117 idle in a transaction after inserting
+`etf_holdings_backfill_filing`, PID120 waiting on PID117's transaction while
+updating that qualification job's `extra_data`, and PID119 holding the
+account-scoped advisory transaction lock while PID118 waited for it.
+The exact coordinator evidence is in
+`/tmp/fqc-1f622779-db-20261025/root-focused-result.json`,
+`root-focused.log`, and `root-lock-observation.json`. The earlier owner-local
+attempt on that source ended at fixture setup with three connection errors and
+no test bodies; its log is `etf-initial-qualification.log` in the same temp
+directory. That setup error is distinct from Root's later transaction wait.
+
+The source path confirms the row-lock cycle: `_backfill_sec_holdings` flushes
+the candidate filing and job state in the qualification operation session,
+then awaits `_sec_get`; the shared Provider child session settles its request
+and tries to durably append the request-log ID to that same job before
+returning. The awaiting parent still owns the job-row update lock. The
+account advisory lock is separate and remains the intended one-attempt
+serialization mechanism.
+
+The correction is limited to requests carrying the sealed initial
+qualification authority: `_sec_get` flushes and commits the dedicated
+qualification operation session immediately before each shared SEC request.
+This releases pending job/filing row locks before the Provider child session
+durably links request-log IDs. The attempt/job state is persisted before the
+request; child settlement and linkage remain in its own transaction, and the
+qualification finalizer still records interruption/cancellation. Ordinary
+SEC backfills do not commit caller-owned transactions. The existing
+MockTransport PostgreSQL integration gained a `cross_session_job_link` case
+that enters the filing request after parent job/filing writes and verifies the
+committed job links exactly the returned settled request-log rows. The existing
+wrong-fund-then-match, no-match, real-failure, concurrent-latch, replay-denial,
+disabled-policy, expiry, physical-attempt, and audit assertions are retained.
+
+Stack-free validation on the worktree passed 62 tests/5 warnings in 15.05s,
+including the prior 61 offline assertions and a parent-flush/commit ordering
+unit regression. Ruff check and format-check passed for the three changed
+Python files. The PostgreSQL selector collects four cases (three prior
+candidate-search outcomes plus `cross_session_job_link`), but no corrected
+source DB case has run in this owner turn. Root owns the next isolated
+PostgreSQL validation. No Docker/DB/browser fixture, live HTTP, credential,
+quota, target, service, staging, sibling, master or deployment action occurred.
+FQC remains in progress/not accepted; preserve all FHSC history, AC1–AC14,
+`15 Tier-0 and 156 Tier-1`, holds, quarantines, retained data, PIT/raw lineage,
+119 consumed allowance and the 30-day observation.
+
+## FQC scenario-specific PostgreSQL assertion repair — 2026-10-25
+
+Root's exact-source run on `f164db5807e746bbb0a5d57f16030ac10f07ee61`
+completed the four selected initial-qualification PostgreSQL test bodies in
+34.70s with mocked external HTTP. `wrong_fund_then_match`, `no_match`, and
+`real_failure` passed. `cross_session_job_link` reached its successful snapshot
+and exact durable request-log linkage checks, then failed because a shared
+success-path assertion required the wrong-fund skipped row even though that
+scenario supplies no wrong-fund candidate. Root recorded zero Provider HTTP and
+no target change. The earlier parent/Provider transaction wait is resolved;
+this was a test-scenario expectation mismatch, not a new product defect.
+
+The test now keeps the skipped filing, expected identity-disposition metadata,
+and retained raw artifact/hash assertions specifically for
+`wrong_fund_then_match`. For `cross_session_job_link` it asserts that the
+wrong-fund row and artifact are absent. Other successful snapshot, unique
+request-linkage, replay-denial, concurrency, failure/nonpositive, and disabled
+policy assertions are unchanged. The owner reran only stack-free checks:
+62 tests passed with five warnings, Ruff check/format passed, and all four
+PostgreSQL cases collected. No corrected-source PostgreSQL rerun occurred in
+this owner turn; Root owns it. FQC remains in progress/not accepted, with
+full-profile and exact-source CI gates open. No live request, quota, target,
+database, fixture, service, staging, sibling, master, or deployment action was
+performed here. Preserve FHSC history, AC1–AC14, `15 Tier-0 and 156 Tier-1`,
+all holds/quarantines, raw/PIT lineage, retained data, the 119 consumed
+allowance, and the 30-day observation.
+
+## Exact-5e96 cancellation-test factory correction — 2026-10-25
+
+Root's exact-source CI `40174878538` on `5e96df678ba5473eb1930461a4e02db3365d269b`
+is terminal red and remains historical: unit phase 5442 passed/1 declared
+skip; integration 540 passed/2 held skips/1 failed. The sole failure was
+`test_sec_fund_deadline_cancels_worker_transport_before_durable_settlement`:
+the monkeypatched test factory accepted no argument while production passes
+`initial_qualification_authority` (None on this ordinary route). The real
+transport assertions were not reached; this is not a corrected cancellation
+proof.
+
+Applied only the prepared test-double correction. Its factory accepts the
+optional authority, asserts None for ordinary use, and forwards it to the
+original `ETFSECExecutionBudget`. No production code, timeout, transport,
+cancellation, thread, reservation, settlement or other assertion changed.
+Root's complete unchanged-source unit validation is terminal green: 109 shards,
+5442 passed/1 declared skip, all 5443 covered. Coverage is sealed at SHA
+`f5730e0be5dca5f6a376e6284604a2155eb1d736b69a05785b92bb5faa8fa7da`; unit
+manifest SHA is `e9f958aa0a21e2c5b2280783604d24571b9e29f4ae98bba73a27dc0a4211f8b4`.
+Root must verify relevant source/test input byte-equivalence before reusing that
+unit evidence, and separately confirm unchanged frontend build inputs. The
+corrected cancellation case, complete integrations, app profile and exact-tip
+CI remain open. This owner turn uses no DB fixture, Docker/browser/build, live
+provider/SEC request, quota, target or service action. Preserve the full
+AC1–AC14 roadmap, FHSC history, `15 Tier-0 and 156 Tier-1`, disabled routes,
+holds/quarantines, retained data, raw/PIT lineage, 119 allowance history and
+the 30-day observation; checkpoint acceptance remains pending.
+
+## FQ8 committed-filing-reference correction — 2026-10-25
+
+Root reviewed and authorized the inert r5 patch against frozen source
+`38d96e1e2f77c54feba21c7fdc3ceaccaf297c65`, SHA256
+`632ec78b487768662ae12b48bb622c49ef9a96f3c921efa07bb8be629fcdbb76`.
+The exact approved patch is preserved at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-fqc-committed-filing-reference-38d-r5-20261025.patch`.
+The source delta adds strict committed filing-reference validation and
+selection only to the dedicated qualification path; no-reference discovery,
+ordinary routing, shared Provider admission/accounting, and all physical/body/
+time limits remain unchanged. The qualification success check revalidates the
+current profile reference against the durable job selection and actual
+ingested filing/accession/URL, while preserving the original default discovery
+submissions-plus-filing subset contract. The committed path requires the
+filing-operation audit and cannot qualify from a method flag alone.
+
+The new FQ8 criterion preserves FQ1-FQ7, FHSC1-FHSC7 history and the full
+AC1-AC14 roadmap. New regressions cover malformed/future/ambiguous metadata,
+attempt use outside the active qualification job, metadata preservation on
+successful ingestion, unchanged profile metadata after a wrong-identity body,
+durable rejected-body and shared-request lineage, and tampered selection audit
+rejection. A wrong-body HTTP 200 remains a successful transport measurement but
+is not a successful qualification: it creates no snapshot or positive marker,
+and the policy remains disabled. The operator's existing admin PATCH still
+requires full read/merge/write/readback of `legal_metadata`.
+
+This is an implementation correction, not FQC acceptance. Focused offline tests,
+real-PostgreSQL MockTransport cases, complete new-source local profiles and
+exact-tip CI remain required. No SEC/provider request, quota operation, target
+mutation, database fixture or browser/full-stack gate was performed for this
+amendment. Preserve every earlier red/partial receipt, `15 Tier-0 and 156
+Tier-1`, the 119-use history, holds/quarantines, raw/PIT lineage and 30-day
+observation. No actual acquisition, current holdings, native-current support,
+route enablement or deployed acceptance is claimed.
+
+
+## FQ1–FQ8 source-readiness checkpoint accepted — 2026-10-25
+
+Root accepted `etf-sec-first-qualification-1` source readiness at
+2026-10-25T13:33:51Z under the human's existing delegated checkpoint-acceptance
+authority. This is the coordinator's technical decision; no new human quote is
+asserted. Acceptance record:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-checkpoint-source-acceptance-20261025.md`
+(SHA256 `9b598fcbdecd3faf5d4044a4d0526eb8c6ba6a4a6c4030c20fbdb783b11b8e75`).
+Final audit:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-final-local-audit-20261025.json`
+(SHA256 `ba27c25af69bf29dff97414d051d07bc1b05e8ef5e18b8903713068f876548c7`).
+
+Validated implementation is exact source `a7d0f25064e98f8c3015e9866804f7a68fcaa263`.
+Exact-source CI40191164658 is terminal green. Backend: 5471 unit passed/1
+declared skip; 545 integration passed/2 held-native skips; 84% combined
+coverage. Frontend: 1353 tests/140 files and normal build passed. Selected
+offline PostgreSQL qualification cases and isolated canonical migration tests
+passed. The final local full app resumption receipt
+`/tmp/etf-app-a7d0f250-fqc-20261025/artifacts/root-full-profile-resume-result.json`
+(SHA256 `49d142df3141a11cbc9d445872ab647b1ade9c157c95ab0ed63c34c541550f83`)
+finished exit0 at 2026-10-25T13:29:53.618791Z: 195 functional passed/2 existing
+live-held skips, 104/104 strict visuals, zero retries, cleanup_error 0 and
+restore_proved 1. Both browser states exited with code 0; all five global
+inventory diffs were empty and live inventories matched the final snapshots.
+Genuine private Study 5 readback verified 479 bars and the expected result,
+with no business writes or provider requests. The initial pre-effect launcher
+refusal (exit 1) and every earlier red/partial result remain preserved.
+
+Both now contain 15 Tier-0 and 156 Tier-1. The checkpoint closes FQ1–FQ8
+source readiness only. It does not claim actual SEC acquisition, positive first-fund qualification, live route enablement,
+native-current holdings, deployed inspector acceptance, or completion of
+AC1–AC14. The route policy remains disabled. Preserve previous FHSC acceptance,
+every AC1–AC14 text/disposition, `15 Tier-0 and 156 Tier-1`, the 119-request
+history, quarantines, raw/PIT lineage, held operations and 30-day observation.
+No new migration paths were added relative to accepted staging5b; the
+`backend/alembic` diff is empty and the target remains at head `d4a5b6c7e812`
+(124 revisions). Root owns actual one-fund invocation/UI acceptance after
+separate live prerequisites. Final closure-head CI and persistent-staging
+integration remain pending. integration_capture: exact branch HEAD.
