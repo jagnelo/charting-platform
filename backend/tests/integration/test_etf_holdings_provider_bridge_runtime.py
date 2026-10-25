@@ -3128,16 +3128,21 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
                     ETFHoldingsBackfillFiling.accession_number == wrong_accession,
                 )
             )
-            assert discarded_row is not None and discarded_row.status == "skipped"
-            assert (
-                discarded_row.extra_data["identity_validation"]["qualification_disposition"]
-                == "expected_non_target_fund_candidate"
-            )
-            discarded_artifact = next(
-                item for item in artifacts if item.source_identifier == wrong_accession
-            )
-            assert discarded_artifact.payload_text == wrong_filing_xml
-            assert discarded_artifact.content_hash == _hash_payload(wrong_filing_xml)
+            if scenario == "wrong_fund_then_match":
+                assert discarded_row is not None and discarded_row.status == "skipped"
+                assert (
+                    discarded_row.extra_data["identity_validation"]["qualification_disposition"]
+                    == "expected_non_target_fund_candidate"
+                )
+                discarded_artifact = next(
+                    item for item in artifacts if item.source_identifier == wrong_accession
+                )
+                assert discarded_artifact.payload_text == wrong_filing_xml
+                assert discarded_artifact.content_hash == _hash_payload(wrong_filing_xml)
+            else:
+                assert scenario == "cross_session_job_link"
+                assert discarded_row is None
+                assert all(item.source_identifier != wrong_accession for item in artifacts)
         else:
             assert entitlement.live_probe_status == "not_run"
             assert attempt.status in {"partial", "failed"}

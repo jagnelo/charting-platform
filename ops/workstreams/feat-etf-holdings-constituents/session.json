@@ -99,13 +99,11 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "Root's focused PostgreSQL run on source1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d timed out after180s plus10s grace (190.03s, exit-9) with zero Provider HTTP and no target change. PID117 held the qualification job transaction after filing-state insertion while PID120's Provider child transaction waited to append request-log IDs to that job; PID119/PID118 were the separate intended advisory-lock holder/waiter. The qualification-only pre-request flush/commit now releases the parent row lock before child linkage, preserving the advisory latch and caller-owned ordinary backfills. Offline focused tests pass62/62 with five warnings; Ruff/format pass; four actual PostgreSQL cases collect, including cross_session_job_link, but corrected-source DB proof is still Root-owned and pending. Full-profile/exact-source CI and FQ acceptance remain open. No live request, quota, target mutation or actual qualification is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data and raw/PIT lineage.",
+  "current_blocker_latest": "Root's exact-f164 disposable PostgreSQL run completed all four selected initial_sec_qualification bodies in34.70s with mocked external HTTP: wrong_fund_then_match, no_match and real_failure passed; cross_session_job_link reached the durable successful snapshot/request-log checks then failed only because it reused the wrong-fund skipped-row assertion despite having no wrong-fund candidate. Root recorded zero Provider HTTP and no target change. The transaction wait from the earlier1f run is resolved by the qualification-only pre-request commit; ordinary backfills retain caller-owned transactions. The test now requires the wrong-fund row/raw artifact only in wrong_fund_then_match and asserts their absence in cross_session_job_link. Stack-free checks pass62/62, Ruff/format pass, and all four DB cases collect; Root owns the corrected-source DB rerun. Full-profile/exact-source CI and FQ acceptance remain open. No live request, quota, target mutation or actual qualification is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data and raw/PIT lineage.",
   "current_checkpoint_objective": "Implement etf-sec-first-qualification-1 under Root-accepted Producer contract: add one separate administrator-only one-fund SEC qualification operation and narrowly scoped shared-runtime hook without bypassing normal admission, identity, account, hold, budget, settlement, provenance or bounded-transport controls. Keep ordinary routes denied and policy disabled until Root accepts real qualifying evidence; preserve FHSC1-FHSC7 acceptance and the complete AC1-AC14 roadmap.",
-  "current_local_delta": "On top of d93 and published source1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d, qualification-only _sec_get flushes/commits the dedicated parent operation session before awaiting the separate Provider transaction that durably appends request-log IDs to the job. This prevents the observed parent-held job-row/child-update deadlock without changing ordinary backfill transaction ownership. Added a stack-free commit-order regression and a real-PostgreSQL cross_session_job_link scenario, and strengthened exact request-log ID linkage. Focused tests pass62/62 and Ruff/format pass. The assigned Root DB run on1f failed before assertions due the observed lock cycle; no corrected-source PostgreSQL case has run. FHSC remains historically accepted; FQC, exact-source CI and full profile remain open. No live HTTP, quota, target, service or fixture action by this owner turn.",
+  "current_local_delta": "The published f164 source includes the qualification-only _sec_get flush/commit before shared Provider requests, releasing the job row before durable child request-log linkage while ordinary backfills retain caller transaction ownership. Root's exact-f164 PostgreSQL run completed all four bodies in34.70s; three passed, and cross_session_job_link failed only at a wrong-fund-row expectation although that scenario submits no wrong-fund candidate. The test-only correction preserves strict skipped-row/identity/raw-artifact checks for wrong_fund_then_match and asserts absence for cross_session_job_link. Owner stack-free suite passed62/62; Ruff check/format-check passed; all four database cases collect but this owner did not rerun them. Root owns the corrected-source PostgreSQL rerun. FQC, exact-source CI and full profile remain open; no live HTTP, quota, target, service or fixture action by this owner turn.",
   "dirty_paths": [
-    "backend/app/services/etf_holdings_edgar.py",
     "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "backend/tests/unit/services/test_etf_holdings_edgar.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -135,7 +133,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d",
+  "head": "f164db5807e746bbb0a5d57f16030ac10f07ee61",
   "implementation_sha": "5b29620741fd82d27db45987afb927bf91396712",
   "integration_checkpoint": {
     "acceptance_authorization": "pending_root_review_and_future_checkpoint_acceptance",
@@ -427,8 +425,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish this transaction-safe correction with its offline and exact Root lock-timeout evidence. Root then runs the four retained real-PostgreSQL qualification cases on the corrected source; do not use another database or repeat locally. Fresh full-profile/exact-source CI and FQ acceptance remain open. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
-  "plan_hash": "f56e616ce580b85f6a1274553083220185b3e300ded78d6073b9d322049502d8",
+  "next_action": "Publish this scenario-specific integration-test correction with its stack-free checks and exact Root f164 result. Root then reruns the four retained real-PostgreSQL qualification cases on the corrected test; this owner must not use another database or repeat locally. Fresh full-profile/exact-source CI and FQ acceptance remain open. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
+  "plan_hash": "6b6be730aa99ec1b858ca972d771bb2b38b0493b2eb184830607d17da3807fd9",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -652,11 +650,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root's assigned PostgreSQL run on tested source1f timed out at190.03s after the parent qualification transaction held the job row while the Provider child waited to append request-log IDs; zero Provider HTTP and no target change. The qualification-only pre-request commit now releases that row lock; ordinary backfills remain caller-owned. Offline focused checks pass62/62, Ruff/format pass, and four PG cases collect including the explicit cross-session link regression. No corrected-source DB case has run. Full-profile/exact-source CI and FQ acceptance remain open. No live request, quota, target mutation or actual qualification is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data and raw/PIT lineage.",
+    "current_blocker": "Root's exact-f164 PostgreSQL run completed the four selected initial_sec_qualification bodies in34.70s: wrong_fund_then_match, no_match and real_failure passed; cross_session_job_link failed only because a shared success assertion incorrectly required a wrong-fund discarded row in a scenario without that candidate. Root recorded zero Provider HTTP and no target change. The scenario-specific test correction is now present; Root owns the corrected-source PostgreSQL rerun. Stack-free checks pass62/62 with Ruff/format, and all four DB cases collect. Full-profile/exact-source CI and FQ acceptance remain open. No live request, quota, target mutation or actual qualification is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data and raw/PIT lineage.",
     "current_phase": "etf_sec_first_qualification_implementation_in_progress_pending_root_validation",
     "next_action": "After this single coherent source-and-record publication, Root owns corrected-source PostgreSQL validation of wrong-fund match, cross-session job-link, no-match and real-failure cases. Then continue required full-profile and exact-source CI qualification. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
     "total": 7,
-    "updated_at": "2026-10-25T07:51:07Z"
+    "updated_at": "2026-10-25T07:56:43Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -678,9 +676,9 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d",
-  "remote_observation": "Before this coherent workstream publication: local branch adopted released staging 5b29620741fd82d27db45987afb927bf91396712; origin/feat/etf-holdings-constituents still resolved locally to d203212f4841f9fa21e68525ea4bc608a86ff798. Direct ls-remote was DNS-blocked. Verify the final owner commit/push externally; do not create a self-hash metadata loop.",
-  "remote_sha": "1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d",
+  "remote": "f164db5807e746bbb0a5d57f16030ac10f07ee61",
+  "remote_observation": "At this coherent test-and-record correction boundary, local HEAD and origin/feat/etf-holdings-constituents both resolve to f164db5807e746bbb0a5d57f16030ac10f07ee61. This pending records commit will be validated and pushed once; do not create a self-hash metadata loop.",
+  "remote_sha": "f164db5807e746bbb0a5d57f16030ac10f07ee61",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

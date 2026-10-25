@@ -16247,3 +16247,30 @@ quota, target, service, staging, sibling, master or deployment action occurred.
 FQC remains in progress/not accepted; preserve all FHSC history, AC1–AC14,
 `15 Tier-0 and 156 Tier-1`, holds, quarantines, retained data, PIT/raw lineage,
 119 consumed allowance and the 30-day observation.
+
+## FQC scenario-specific PostgreSQL assertion repair — 2026-10-25
+
+Root's exact-source run on `f164db5807e746bbb0a5d57f16030ac10f07ee61`
+completed the four selected initial-qualification PostgreSQL test bodies in
+34.70s with mocked external HTTP. `wrong_fund_then_match`, `no_match`, and
+`real_failure` passed. `cross_session_job_link` reached its successful snapshot
+and exact durable request-log linkage checks, then failed because a shared
+success-path assertion required the wrong-fund skipped row even though that
+scenario supplies no wrong-fund candidate. Root recorded zero Provider HTTP and
+no target change. The earlier parent/Provider transaction wait is resolved;
+this was a test-scenario expectation mismatch, not a new product defect.
+
+The test now keeps the skipped filing, expected identity-disposition metadata,
+and retained raw artifact/hash assertions specifically for
+`wrong_fund_then_match`. For `cross_session_job_link` it asserts that the
+wrong-fund row and artifact are absent. Other successful snapshot, unique
+request-linkage, replay-denial, concurrency, failure/nonpositive, and disabled
+policy assertions are unchanged. The owner reran only stack-free checks:
+62 tests passed with five warnings, Ruff check/format passed, and all four
+PostgreSQL cases collected. No corrected-source PostgreSQL rerun occurred in
+this owner turn; Root owns it. FQC remains in progress/not accepted, with
+full-profile and exact-source CI gates open. No live request, quota, target,
+database, fixture, service, staging, sibling, master, or deployment action was
+performed here. Preserve FHSC history, AC1–AC14, `15 Tier-0 and 156 Tier-1`,
+all holds/quarantines, raw/PIT lineage, retained data, the 119 consumed
+allowance, and the 30-day observation.
