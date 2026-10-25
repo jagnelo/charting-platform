@@ -888,13 +888,12 @@ closure_summary: >-
 goal: >-
   Continue the full Provider roadmap after acceptance of
   provider-platform-integration-1 and the bounded
-  provider-first-human-coverage-retained-universe-2 checkpoint. Keep the
-  accepted implementation source frozen until Root completes terminal-green
-  exact CI for the closure publication and releases synchronized-green
-  staging. Then resume the remaining roadmap while preserving all criteria,
-  prior acceptance, and operation dispositions. Root owns guarded staging
-  integration; do not self-integrate, activate providers, deploy, or close the
-  full roadmap.
+  provider-first-human-coverage-retained-universe-2 checkpoint, including
+  adoption of synchronized-green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502
+  on this branch. Preserve all criteria, prior acceptance, and operation
+  dispositions. Root owns guarded staging integration and actual SEC
+  acquisition/target acceptance; do not self-integrate, activate providers,
+  deploy, or close the full roadmap.
 scope:
   - Selected-default coverage summary and requested-range alignment in the coverage API/service, with regressions preserving the selected default-series behavior.
   - Research single/batch reads apply the selected default-series predicate before per-instrument ranking/history limits, retain set-based batching, and preserve Strategy date/calendar inference, immutable snapshot copying, digests, and persisted GET readback.
@@ -1160,23 +1159,20 @@ integration_checkpoint:
       replay occurred.
   required_gates_remaining:
     - >-
-      The accepted P2 checkpoint is present in green staging 5b29620741fd82d27db45987afb927bf91396712.
-      The Provider roadmap remains open. The first SEC ETF qualification still
-      has no legitimate existing first-request route: the dedicated entitlement
-      begins not_run, runtime candidate selection requires positive probe
-      evidence, and the ordinary bridge also requires an enabled policy. Keep
-      this operation held until Root accepts an ETF-owned bounded qualification
-      design and actual exact-invocation review; do not fabricate passed or
-      not_required, reuse the consumed 119-request allowance, or change any
-      other provider/issuer/SEC hold.
+      The accepted P2 checkpoint remains part of history. Synchronized-green
+      staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 adds the ETF FQ1-FQ8
+      source checkpoint and has been adopted on this branch; it does not prove
+      a real SEC acquisition, target acceptance, or full-roadmap completion.
+      Root owns the actual one-fund SEC qualification and target acceptance.
+      Preserve all provider/issuer/SEC holds, the consumed 119-request
+      no-replay boundary, and every remaining roadmap criterion.
   next_action: >-
-    Root to accept or revise the first-qualification contract recorded in the
-    Provider handoff; ETF owns the single implementation and will request
-    exact-code peer review. Provider must not duplicate the implementation or
-    set a positive live-probe marker before actual matched, bounded evidence.
-    Preserve the full Provider roadmap and every hold; no provider/issuer/SEC
-    request, quota reservation, allowance replay, target activation, or
-    deployment is authorized by this review.
+    After Root releases branch publication following its independent master-CI
+    gate, continue the Provider-owned AC-UNIVERSE-COMPLETE and remaining
+    roadmap work from the adopted source. Root retains ownership of the actual
+    SEC sample and target acceptance. Preserve every hold and the consumed
+    119-request no-replay boundary; no new provider/issuer/SEC request, quota
+    reservation, target activation, or deployment is authorized here.
 previously_accepted_integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."

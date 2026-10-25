@@ -8,6 +8,7 @@ import logging
 import random
 import time
 from collections.abc import Callable
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -80,6 +81,128 @@ HistoryStartSpec = datetime | Callable[[str], datetime | None]
 _ACTIVE_PROVIDER_QUOTA_ADMISSION: contextvars.ContextVar[bool] = contextvars.ContextVar(
     "provider_runtime_quota_admission", default=False
 )
+_ETF_INITIAL_QUALIFICATION_SEAL = object()
+_ETF_INITIAL_QUALIFICATION_CONTEXT: contextvars.ContextVar[object | None] = contextvars.ContextVar(
+    "provider_runtime_etf_initial_qualification", default=None
+)
+_ETF_INITIAL_QUALIFICATION_OPERATIONS = frozenset(
+    {
+        "fetch_etf_holdings_sec_submissions",
+        "fetch_etf_holdings_sec_submissions_file",
+        "fetch_etf_holdings_sec_filing",
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _ETFInitialQualificationAuthority:
+    """Opaque, task-local authority for one ETF's first SEC qualification."""
+
+    seal: object
+    attempt_id: int
+    provider_name: str
+    capability: ProviderCapability
+    operations: frozenset[str]
+    profile_id: int
+    instrument_id: int
+    provider_symbol: str
+    account_scope: str
+    expires_at: datetime
+
+
+def _new_etf_initial_qualification_authority(
+    *,
+    attempt_id: int,
+    provider_name: str,
+    capability: ProviderCapability,
+    operations: frozenset[str],
+    profile_id: int,
+    instrument_id: int,
+    provider_symbol: str,
+    account_scope: str,
+    expires_at: datetime,
+) -> _ETFInitialQualificationAuthority:
+    """Mint an exact internal authority; no request body or generic boolean can create it."""
+
+    normalized_scope = str(account_scope).strip()
+    normalized_symbol = str(provider_symbol).strip().upper()
+    if (
+        attempt_id <= 0
+        or provider_name.strip().lower() != "edgar"
+        or capability != ProviderCapability.ETF_HOLDINGS
+        or operations != _ETF_INITIAL_QUALIFICATION_OPERATIONS
+        or profile_id <= 0
+        or instrument_id <= 0
+        or not normalized_symbol
+        or normalized_symbol in {"*", "ALL", "ANY"}
+        or not normalized_scope
+        or normalized_scope in {"*", "ALL", "ANY"}
+        or expires_at.tzinfo is None
+    ):
+        raise ValueError("invalid ETF initial qualification scope")
+    return _ETFInitialQualificationAuthority(
+        seal=_ETF_INITIAL_QUALIFICATION_SEAL,
+        attempt_id=attempt_id,
+        provider_name="edgar",
+        capability=capability,
+        operations=operations,
+        profile_id=profile_id,
+        instrument_id=instrument_id,
+        provider_symbol=normalized_symbol,
+        account_scope=normalized_scope,
+        expires_at=expires_at.astimezone(UTC),
+    )
+
+
+@contextmanager
+def _bind_etf_initial_qualification_authority(authority: object):
+    """Bind a minted authority only within the current task's shared attempt."""
+
+    if (
+        not isinstance(authority, _ETFInitialQualificationAuthority)
+        or authority.seal is not _ETF_INITIAL_QUALIFICATION_SEAL
+    ):
+        raise PermissionError("ETF initial qualification authority is invalid")
+    token = _ETF_INITIAL_QUALIFICATION_CONTEXT.set(authority)
+    try:
+        yield authority
+    finally:
+        _ETF_INITIAL_QUALIFICATION_CONTEXT.reset(token)
+
+
+def _etf_initial_qualification_matches(
+    *,
+    provider_name: str,
+    capability: ProviderCapability,
+    operation: str | None,
+    instrument_id: int | None,
+    provider_symbol: str | None,
+    profile_id: int | None,
+    policy: ProviderPolicy,
+) -> bool:
+    authority = _ETF_INITIAL_QUALIFICATION_CONTEXT.get()
+    if (
+        not isinstance(authority, _ETFInitialQualificationAuthority)
+        or authority.seal is not _ETF_INITIAL_QUALIFICATION_SEAL
+        or authority.expires_at <= datetime.now(UTC)
+        or provider_name.strip().lower() != authority.provider_name
+        or capability != authority.capability
+        or operation not in authority.operations
+        or operation not in _ETF_INITIAL_QUALIFICATION_OPERATIONS
+        or instrument_id != authority.instrument_id
+        or profile_id != authority.profile_id
+        or str(provider_symbol or "").strip().upper() != authority.provider_symbol
+    ):
+        return False
+    try:
+        from app.services.provider_quota_coordinator import (  # noqa: PLC0415
+            account_scope_for_provider,
+        )
+
+        actual_scope = account_scope_for_provider(provider_name, str(policy.quota_scope or ""))
+    except Exception:  # noqa: BLE001 - an unresolvable scope is not an authority match.
+        return False
+    return actual_scope == authority.account_scope
 
 
 def provider_runtime_quota_admission_active() -> bool:
@@ -2485,6 +2608,8 @@ async def resolve_provider_chain(
     capability: ProviderCapability,
     *,
     instrument_id: int | None = None,
+    provider_symbol: str | None = None,
+    profile_id: int | None = None,
     operation: str | None = None,
     operation_cost_overrides: dict[str, int] | None = None,
     adjusted: bool | None = None,
@@ -2620,10 +2745,23 @@ async def resolve_provider_chain(
         # plan review check here for the account-usage bootstrap path.
         if (not configured_plan or configured_plan == "unreviewed") and not account_usage_probe:
             continue
-        if (
+        live_probe_is_positive = (
             str(entitlement.live_probe_status or "not_run").strip().lower()
-            not in _POSITIVE_LIVE_PROBE_STATUSES
-        ):
+            in _POSITIVE_LIVE_PROBE_STATUSES
+        )
+        initial_etf_qualification = (
+            not live_probe_is_positive
+            and _etf_initial_qualification_matches(
+                provider_name=data_source.name,
+                capability=capability,
+                operation=operation,
+                instrument_id=instrument_id,
+                provider_symbol=provider_symbol,
+                profile_id=profile_id,
+                policy=policy,
+            )
+        )
+        if not live_probe_is_positive and not initial_etf_qualification:
             continue
         if (
             provider_configuration_required(data_source.name)
@@ -2810,6 +2948,7 @@ async def execute_provider_call(
     *,
     instrument_id: int | None = None,
     provider_symbol: str | None = None,
+    profile_id: int | None = None,
     usage_identity: str | Callable[[str], str | None] | None = None,
     provider_name: str | None = None,
     operation_cost_overrides: dict[str, int] | None = None,
@@ -2827,16 +2966,17 @@ async def execute_provider_call(
             "provider invoke callback must be synchronous; async callbacks are not awaited"
         )
 
-    chain = await resolve_provider_chain(
-        db,
-        capability,
-        instrument_id=instrument_id,
-        operation=operation,
-        operation_cost_overrides=operation_cost_overrides,
-        adjusted=adjusted,
-        history_start=history_start,
-        etf_holdings_adapters=etf_holdings_adapters,
-    )
+    resolve_kwargs: dict[str, Any] = {
+        "instrument_id": instrument_id,
+        "operation": operation,
+        "operation_cost_overrides": operation_cost_overrides,
+        "adjusted": adjusted,
+        "history_start": history_start,
+        "etf_holdings_adapters": etf_holdings_adapters,
+    }
+    if _ETF_INITIAL_QUALIFICATION_CONTEXT.get() is not None:
+        resolve_kwargs.update(provider_symbol=provider_symbol, profile_id=profile_id)
+    chain = await resolve_provider_chain(db, capability, **resolve_kwargs)
     if provider_name is not None:
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]
     loop = asyncio.get_event_loop()
