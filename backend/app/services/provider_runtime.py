@@ -2441,6 +2441,42 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
             policy.effective_score = _effective_score(policy, health)
             health.observed_score = policy.effective_score
 
+    # ETF publisher adapters are intentionally outside the generic Provider
+    # registry, so the normal capability loop above cannot create their
+    # shared health rows. The resolver inner-joins this table. Seed a neutral,
+    # no-observation row for any pre-provisioned ETF policy, but fail closed if
+    # it was enabled without health history: creating a row must not turn an
+    # unresolved policy into a routable provider or imply prior success.
+    etf_policies = (
+        await db.execute(
+            select(ProviderPolicy, ProviderHealthState)
+            .outerjoin(
+                ProviderHealthState,
+                (ProviderHealthState.data_source_id == ProviderPolicy.data_source_id)
+                & (ProviderHealthState.capability == ProviderPolicy.capability),
+            )
+            .where(ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS)
+        )
+    ).all()
+    for policy, health in etf_policies:
+        if health is not None:
+            continue
+        policy.is_enabled = False
+        policy.effective_score = Decimal("0")
+        db.add(
+            ProviderHealthState(
+                data_source_id=policy.data_source_id,
+                capability=ProviderCapability.ETF_HOLDINGS,
+                failure_streak=0,
+                ewma_latency_ms=Decimal("0"),
+                ewma_success_rate=Decimal("0"),
+                ewma_completeness=Decimal("0"),
+                ewma_freshness=Decimal("0"),
+                ewma_consistency=Decimal("0"),
+                observed_score=Decimal("0"),
+            )
+        )
+
     await db.flush()
 
 

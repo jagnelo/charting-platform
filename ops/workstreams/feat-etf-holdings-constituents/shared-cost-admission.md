@@ -523,3 +523,25 @@ profile/operation review were unfinished; staging
 `281a57bd9fb782c0f85bfb5127c713ea15037f68` remained a common-repair release
 with 0/4 product checkpoints accepted. No Provider, issuer or SEC request was
 made for this audit.
+
+## SEC public-data source evidence — 2026-10-23
+
+The coordinator's primary-documentation review is recorded at
+`/home/m920q/charting-platform/.ai/staging-attempts/sec-public-data-contract-review-20261023.md`.
+Official SEC material documents public filing access/reuse as free, public
+data APIs as not requiring an API key, and a declared identifying User-Agent.
+The documented 10-requests/second ceiling is aggregate across machines. This is
+evidence for the monetary access cost and permitted reuse of public SEC filing
+data, not an independent ETF quota allowance, an application-native counter or
+reset, an admitted `ETF_HOLDINGS` operation, or proof that an exact qualifying
+fund filing is available.
+
+The shared runtime still needs a reviewed SEC operation/host/account binding,
+entitlement, and active zero-cost commitment/budget decision. Native counter
+dimensions and reset semantics remain unknown. Preserve every physical
+request's shared admission and settlement, including redirects, retries,
+submission-history files and filing documents; never treat the 10/s fair-access
+ceiling as a substitute quota ledger. A filing acceptance timestamp is not a
+documented exact public-availability timestamp; absent exact evidence, retain
+post-response observation as `known_at` and do not infer publication time.
+No runtime policy was read or activated and no HTTP request/quota use occurred.

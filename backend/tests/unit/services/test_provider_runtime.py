@@ -466,6 +466,66 @@ async def test_legacy_free_plan_seed_refreshes_to_paid_and_blocks_transport(
 
 
 @pytest.mark.asyncio
+async def test_etf_health_seed_is_neutral_and_disables_policy_without_history(db):
+    source = DataSource(
+        name="spdr",
+        is_active=True,
+        supported_capabilities=[ProviderCapability.ETF_HOLDINGS.value],
+        config={"capabilities": [ProviderCapability.ETF_HOLDINGS.value]},
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.ETF_HOLDINGS,
+        is_enabled=True,
+        quota_contract=None,
+        quota_scope=None,
+        quota_source=None,
+        quota_verified_at=None,
+    )
+    db.add(policy)
+    db.flush()
+
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+
+    health = db.execute(
+        select(ProviderHealthState).where(
+            ProviderHealthState.data_source_id == source.id,
+            ProviderHealthState.capability == ProviderCapability.ETF_HOLDINGS,
+        )
+    ).scalar_one()
+    assert policy.is_enabled is False
+    assert policy.quota_verified_at is None
+    assert health.last_success_at is None
+    assert health.last_failure_at is None
+    assert health.ewma_success_rate == Decimal("0")
+    assert health.ewma_completeness == Decimal("0")
+    assert health.ewma_freshness == Decimal("0")
+    assert (
+        db.execute(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == source.id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        ).scalar_one_or_none()
+        is None
+    )
+
+    # Subsequent seed calls preserve the fail-closed state without duplicating
+    # the neutral row or inventing a successful observation.
+    await seed_provider_runtime(async_db)
+    assert policy.is_enabled is False
+    assert db.execute(
+        select(ProviderHealthState).where(
+            ProviderHealthState.data_source_id == source.id,
+            ProviderHealthState.capability == ProviderCapability.ETF_HOLDINGS,
+        )
+    ).scalars().all() == [health]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("provider_name", "setting_name", "legacy_plan", "free_plan", "paid_plan"),
     [

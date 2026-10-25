@@ -572,6 +572,13 @@ def _future_snapshot_reason(
         )
         if normalized_published_at > now:
             return "The latest holdings artifact has a future published-at timestamp."
+    known_at = getattr(snapshot, "known_at", None)
+    if known_at is not None:
+        normalized_known_at = (
+            known_at if known_at.tzinfo is not None else known_at.replace(tzinfo=UTC)
+        )
+        if normalized_known_at > now:
+            return "The latest holdings artifact has a future known-at timestamp."
     return None
 
 
@@ -2085,9 +2092,12 @@ def evaluate_tier0_shadow_gate(
     """
 
     if isinstance(now, datetime):
-        end_date = _as_utc(now).date() if _as_utc(now) is not None else date.today()
+        normalized_now = _as_utc(now) or datetime.now(UTC)
+        end_date = normalized_now.astimezone(UTC).date()
+    elif isinstance(now, date):
+        end_date = now
     else:
-        end_date = now or date.today()
+        end_date = datetime.now(UTC).date()
     days = max(1, int(window_days))
     start_date = end_date - timedelta(days=days - 1)
     requested_symbols = {
@@ -2120,9 +2130,13 @@ def evaluate_tier0_shadow_gate(
                 continue
             observed_at = observation.get("observed_at") or observation.get("last_canary_at")
             try:
-                observed_date = datetime.fromisoformat(str(observed_at)).date()
+                parsed_observed_at = datetime.fromisoformat(str(observed_at))
             except (TypeError, ValueError):
                 continue
+            normalized_observed_at = _as_utc(parsed_observed_at)
+            if normalized_observed_at is None:
+                continue
+            observed_date = normalized_observed_at.astimezone(UTC).date()
             if observed_date < start_date or observed_date > end_date:
                 continue
             if str(observation.get("status") or "").lower() == "missing_profile":
@@ -2241,7 +2255,7 @@ def evaluate_capability(
 ) -> ETFHoldingsCapability:
     """Evaluate current usability without contacting an external provider."""
 
-    now = _as_utc(now or datetime.now(UTC)) or datetime.now(UTC)
+    now = (_as_utc(now or datetime.now(UTC)) or datetime.now(UTC)).astimezone(UTC)
     state_metadata = _metadata(state.extra_data if state else None)
     source_tier = _source_tier(snapshot, state)
     future_snapshot_reason = _future_snapshot_reason(snapshot, now=now)
@@ -2337,7 +2351,13 @@ def evaluate_capability(
     elif deadline is not None and now.date() > deadline:
         availability = STALE
         reason = f"The latest holdings composition passed its {cadence} freshness window."
-    elif state_status == "success" and checked is not None and checked <= now:
+    elif (
+        state_status == "success"
+        and checked is not None
+        and success is not None
+        and success <= checked <= now
+        and (failure is None or failure <= success)
+    ):
         availability = CURRENT
         reason = "A complete holdings snapshot passed the latest adapter check."
     elif state_status in {
@@ -2357,6 +2377,22 @@ def evaluate_capability(
         )
 
     symbol_audit = symbol_audit_for_profile(profile)
+    if (
+        availability == UNKNOWN
+        and not has_snapshot
+        and symbol_audit.outcome == NOT_APPLICABLE
+        and symbol_audit.evidence_state
+        in {"inactive_or_successor_disposition", "identity_level_terminal_disposition"}
+    ):
+        # An explicit terminal identity/symbol audit is more informative than
+        # the generic no-snapshot state. Keep failed routes unavailable and
+        # unaudited routes unknown; this only surfaces a documented terminal
+        # disposition and never makes holdings usable.
+        availability = NOT_APPLICABLE
+        reason = (
+            "The symbol-level source audit records that this ETF/provider is no longer "
+            f"applicable ({symbol_audit.evidence_state})."
+        )
     audit_revalidated_at = _metadata_datetime(state_metadata, "symbol_audit_revalidated_at")
     if (
         availability == CURRENT
@@ -2376,7 +2412,7 @@ def evaluate_capability(
             symbol_audit,
             outcome=CURRENT,
             evidence_state="issuer_current_canary_reverified",
-            investigated_at=audit_revalidated_at.date(),
+            investigated_at=audit_revalidated_at.astimezone(UTC).date(),
             next_action=(
                 "Keep current only while complete, dated, identity-verified rows pass the "
                 "freshness window; degrade again on issuer challenge, route drift, or stale data."

@@ -13,6 +13,7 @@ from app.services.etf_holdings_capability import (
     CURRENT,
     DEGRADED,
     NO_SOURCE,
+    NOT_APPLICABLE,
     SEC_FILING,
     STALE,
     UNAVAILABLE,
@@ -47,6 +48,7 @@ def snapshot(
     *,
     composition_date: date = date(2026, 9, 3),
     as_of_date: date | None = None,
+    known_at: datetime | None = None,
     published_at: datetime | None = NOW,
     provenance: str = "issuer_current_holdings",
     source_provider: str = "issuer",
@@ -57,6 +59,7 @@ def snapshot(
     return SimpleNamespace(
         composition_date=composition_date,
         as_of_date=as_of_date,
+        known_at=known_at,
         published_at=published_at,
         provenance=provenance,
         source_provider=source_provider,
@@ -103,6 +106,41 @@ def test_current_requires_complete_snapshot_and_successful_check():
     assert result.displayable_last_known is True
     assert result.source_tier == "issuer_native"
     assert result.transport_kind == "file_export"
+
+
+@pytest.mark.parametrize(
+    ("checked", "success", "failure"),
+    [
+        (NOW, None, None),
+        (NOW, NOW + timedelta(seconds=1), None),
+        (NOW - timedelta(seconds=1), NOW, None),
+        (NOW, NOW, NOW + timedelta(seconds=1)),
+    ],
+    ids=["missing-success", "future-success", "success-after-check", "failure-after-success"],
+)
+def test_success_state_requires_coherent_success_timestamp(checked, success, failure):
+    result = evaluate_capability(
+        profile(),
+        snapshot(),
+        state(checked=checked, success=success, failure=failure),
+        now=NOW,
+    )
+
+    assert result.availability == UNKNOWN
+    assert result.usable_for_current_analysis is False
+    assert result.displayable_last_known is True
+
+
+def test_success_state_with_older_failure_remains_current():
+    result = evaluate_capability(
+        profile(),
+        snapshot(),
+        state(failure=NOW - timedelta(seconds=1)),
+        now=NOW,
+    )
+
+    assert result.availability == CURRENT
+    assert result.usable_for_current_analysis is True
 
 
 def test_sec_reconstruction_is_degraded_even_when_the_fetch_succeeded():
@@ -204,6 +242,7 @@ def test_future_dated_snapshot_is_never_current_even_if_route_succeeded():
     for future_snapshot in (
         snapshot(composition_date=NOW.date() + timedelta(days=1)),
         snapshot(as_of_date=NOW.date() + timedelta(days=1)),
+        snapshot(known_at=NOW + timedelta(days=1)),
         snapshot(published_at=NOW + timedelta(days=1)),
     ):
         result = evaluate_capability(profile(), future_snapshot, state(), now=NOW)
@@ -213,12 +252,73 @@ def test_future_dated_snapshot_is_never_current_even_if_route_succeeded():
         assert "future" in result.reason.lower()
 
 
+def test_capability_uses_utc_calendar_date_for_future_and_freshness_guards():
+    offset_now = datetime.fromisoformat("2026-09-21T00:30:00+02:00")
+    coherent_state = state(checked=offset_now, success=offset_now)
+
+    at_utc_deadline = evaluate_capability(
+        profile(),
+        snapshot(
+            composition_date=date(2026, 9, 13),
+            published_at=offset_now,
+        ),
+        coherent_state,
+        now=offset_now,
+    )
+    future_by_utc_date = evaluate_capability(
+        profile(),
+        snapshot(
+            composition_date=date(2026, 9, 21),
+            published_at=offset_now,
+        ),
+        coherent_state,
+        now=offset_now,
+    )
+
+    assert at_utc_deadline.freshness_deadline == date(2026, 9, 20)
+    assert at_utc_deadline.availability == CURRENT
+    assert future_by_utc_date.availability == DEGRADED
+    assert "future" in future_by_utc_date.reason.lower()
+
+
 def test_missing_snapshot_is_unknown_until_a_route_check_records_outcome():
     result = evaluate_capability(profile(), None, None, now=NOW)
 
     assert result.availability == UNKNOWN
     assert result.usable_for_current_analysis is False
     assert result.displayable_last_known is False
+
+
+def test_historical_tier_zero_current_audit_does_not_imply_current_holdings():
+    profile_value = profile_with_symbol("UTWO", "us_benchmark_series")
+    assert symbol_audit_for_profile(profile_value).outcome == CURRENT
+    observed_now = datetime(2026, 10, 23, 12, tzinfo=UTC)
+
+    no_snapshot = evaluate_capability(profile_value, None, None, now=observed_now)
+    expired_snapshot = evaluate_capability(
+        profile_value,
+        snapshot(
+            composition_date=observed_now.date() - timedelta(days=8),
+            published_at=observed_now - timedelta(days=8),
+        ),
+        state(checked=observed_now, success=observed_now),
+        now=observed_now,
+    )
+    fresh_snapshot = evaluate_capability(
+        profile_value,
+        snapshot(composition_date=observed_now.date(), published_at=observed_now),
+        state(checked=observed_now, success=observed_now),
+        now=observed_now,
+    )
+
+    assert no_snapshot.availability == UNKNOWN
+    assert no_snapshot.usable_for_current_analysis is False
+    assert no_snapshot.displayable_last_known is False
+    assert expired_snapshot.availability == STALE
+    assert expired_snapshot.usable_for_current_analysis is False
+    assert expired_snapshot.displayable_last_known is True
+    assert fresh_snapshot.availability == CURRENT
+    assert fresh_snapshot.usable_for_current_analysis is True
 
 
 def test_unassigned_profile_without_snapshot_is_unknown_not_not_applicable():
@@ -659,6 +759,15 @@ def test_ranked_fallback_symbol_audit_uses_explicit_issuer_evidence():
     assert "not current support" in result.next_action
 
 
+def test_identity_level_fallback_audit_uses_latest_durable_investigation_date():
+    result = symbol_audit_for_profile(profile_with_symbol("UNLISTED_AEGON", "aegon"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "identity_level_access_blocked"
+    assert result.investigated_at == date(2026, 10, 5)
+
+
 def test_ranked_fallback_symbol_audit_rejects_provider_identity_mismatch():
     result = symbol_audit_for_profile(profile_with_symbol("TALV", "other_provider"))
 
@@ -682,6 +791,55 @@ def test_ranked_fallback_terminal_symbol_is_not_applicable():
     assert result.tier == 1
     assert result.outcome == "not_applicable"
     assert result.evidence_state == "inactive_or_successor_disposition"
+
+
+@pytest.mark.parametrize(
+    ("symbol", "adapter_key", "evidence_state"),
+    [
+        ("ADFI", "anfield", "inactive_or_successor_disposition"),
+        ("ABEQ", "epiris", "identity_level_terminal_disposition"),
+    ],
+)
+def test_explicit_terminal_audit_is_not_applicable_without_a_snapshot(
+    symbol, adapter_key, evidence_state
+):
+    result = evaluate_capability(
+        profile_with_symbol(symbol, adapter_key),
+        None,
+        None,
+        now=NOW,
+    )
+
+    assert result.availability == NOT_APPLICABLE
+    assert result.symbol_audit.evidence_state == evidence_state
+    assert result.usable_for_current_analysis is False
+    assert result.displayable_last_known is False
+
+
+def test_unreviewed_symbol_without_snapshot_remains_unknown():
+    result = evaluate_capability(
+        profile_with_symbol("UNREVIEWED", "matrix"),
+        None,
+        None,
+        now=NOW,
+    )
+
+    assert result.availability == UNKNOWN
+    assert result.symbol_audit.outcome == UNKNOWN
+    assert result.usable_for_current_analysis is False
+
+
+def test_failed_route_for_terminal_symbol_remains_unavailable_without_snapshot():
+    result = evaluate_capability(
+        profile_with_symbol("ADFI", "anfield"),
+        None,
+        state(status="failure", reason="route failure"),
+        now=NOW,
+    )
+
+    assert result.availability == UNAVAILABLE
+    assert result.usable_for_current_analysis is False
+    assert result.reason == "route failure"
 
 
 @pytest.mark.parametrize("symbol", ["UDIV", "UDEF", "GEDG"])
@@ -1517,3 +1675,36 @@ def test_tier_zero_shadow_gate_normalizes_observation_symbol_keys():
     assert result["missing_symbols"] == []
     assert result["eligible_checks"] == 1
     assert result["passing_checks"] == 1
+
+
+def test_tier_zero_shadow_gate_uses_utc_calendar_dates_for_window_boundaries():
+    result = evaluate_tier0_shadow_gate(
+        {
+            "DXJ": [
+                _shadow_observation("2026-09-21T00:15:00+02:00"),
+            ]
+        },
+        now=datetime.fromisoformat("2026-09-21T00:30:00+02:00"),
+        window_days=1,
+        eligible_symbols=["DXJ"],
+    )
+
+    assert result["window_start"] == "2026-09-20"
+    assert result["window_end"] == "2026-09-20"
+    assert result["status"] == "pass"
+    assert result["eligible_checks"] == 1
+    assert result["passing_checks"] == 1
+
+
+def test_tier_zero_shadow_gate_default_window_uses_utc_clock(monkeypatch):
+    class FrozenUTCDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            assert tz is UTC
+            return cls(2026, 9, 20, 22, 30, tzinfo=UTC)
+
+    monkeypatch.setattr("app.services.etf_holdings_capability.datetime", FrozenUTCDateTime)
+    result = evaluate_tier0_shadow_gate({}, eligible_symbols=["DXJ"])
+
+    assert result["window_end"] == "2026-09-20"
+    assert result["window_start"] == "2026-08-22"

@@ -1,4 +1,9 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
+
+from tests.integration.api.etf_holdings_test_fixtures import (
+    seed_etf_profile,
+    seed_historical_snapshot,
+)
 
 
 class TestStrategyLabAPI:
@@ -1191,21 +1196,15 @@ class TestStrategyLabAPI:
         assert payload["benchmark"]["requested_status"] == "partial"
         assert payload["benchmark"]["requested_first_bar_at"].startswith("2024-03-01")
 
-    def test_strategy_run_can_use_etf_holdings_snapshot_universe(
+    def test_strategy_latest_universe_rejects_manually_imported_holdings(
         self,
         client,
         admin_headers,
         auth_headers,
-        db,
         instrument,
         ohlcv_bars,
     ):
         from datetime import UTC, datetime
-
-        from sqlalchemy import select
-
-        from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
-        from app.models.instrument import Instrument
 
         checked_at = datetime.now(UTC)
         current_composition_date = checked_at.date() - timedelta(days=1)
@@ -1246,32 +1245,6 @@ class TestStrategyLabAPI:
             json={"provider_aliases": {"holdings_adapter": "spdr"}},
         )
         assert profile_res.status_code == 200
-        profile = db.execute(
-            select(ETFProfile)
-            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
-            .where(Instrument.symbol == "SPY")
-        ).scalar_one()
-        db.add(
-            ETFHoldingsAdapterState(
-                etf_profile_id=profile.id,
-                adapter_key="spdr",
-                status="success",
-                last_success_at=checked_at,
-                last_checked_at=checked_at,
-                composition_date=current_composition_date,
-                completeness_status="complete",
-                extra_data={
-                    "source_tier": "issuer_native",
-                    "expected_cadence": "unspecified",
-                    "artifact_identity_validation": {
-                        "status": "matched",
-                        "matched": [{"value": "SPY"}],
-                    },
-                },
-            )
-        )
-        db.flush()
-
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",
             headers=auth_headers,
@@ -1326,29 +1299,11 @@ class TestStrategyLabAPI:
         )
         assert preview_res.status_code == 200
         preview = preview_res.json()
-        assert preview["universe"]["instrument_count"] == 1
-        assert preview["universe"]["resolved_symbols"] == [instrument.symbol]
-
-        run_res = client.post(
-            f"/api/v1/strategy-lab/versions/{version['id']}/runs",
-            headers=auth_headers,
-            json={
-                "test_mode": "backtest",
-                "timeframe": "D1",
-                "date_from": ohlcv_bars[0].ts.isoformat(),
-                "date_to": ohlcv_bars[-1].ts.isoformat(),
-                "parameter_values": {},
-                "execution_assumptions": {
-                    "initial_capital": 100000,
-                    "risk_per_trade_pct": 1.0,
-                    "slippage_bps": 5,
-                },
-            },
+        assert preview["universe"]["instrument_count"] == 0
+        assert preview["universe"]["resolved_symbols"] == []
+        assert any(
+            "cannot be used for current analysis" in warning for warning in preview["warnings"]
         )
-        assert run_res.status_code == 201
-        run = run_res.json()
-        assert run["result_summary"]["universe"]["resolved_instrument_count"] == 1
-        assert run["result_summary"]["universe"]["resolved_symbols"] == [instrument.symbol]
 
     def test_strategy_etf_universe_excludes_newer_controlled_fixture_snapshot(
         self,
@@ -1366,33 +1321,25 @@ class TestStrategyLabAPI:
         from datetime import UTC, datetime
 
         from app.config import settings
-        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import Instrument
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot
 
         monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
-        ingest_res = client.post(
-            "/api/v1/etf-holdings/SPY/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2024-01-01",
-                "known_at": "2024-01-02T00:00:00Z",
-                "source_provider": "canonical-provider",
-                "provenance": "issuer_current_holdings",
-                "rows": [
-                    {
-                        "symbol": instrument.symbol,
-                        "name": instrument.name,
-                        "weight": "1.0",
-                        "holding_type": "equity",
-                        "row_type": "security",
-                    }
-                ],
-            },
+        profile = seed_etf_profile(db, client, admin_headers, "SPY")
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2024, 1, 1),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument.id,
+                    "symbol": instrument.symbol,
+                    "name": instrument.name,
+                    "weight": "1.0",
+                }
+            ],
         )
-        assert ingest_res.status_code == 200, ingest_res.text
 
-        spy = db.query(Instrument).filter_by(symbol="SPY").one()
-        profile = db.query(ETFProfile).filter_by(instrument_id=spy.id).one()
         fixture_snapshot = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
             composition_date=datetime(2024, 2, 1, tzinfo=UTC).date(),
@@ -1469,47 +1416,35 @@ class TestStrategyLabAPI:
         from tests.conftest import AsyncSessionAdapter
 
         monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
-        initial = client.post(
-            "/api/v1/etf-holdings/SPY/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2024-01-01",
-                "known_at": "2024-01-02T00:00:00Z",
-                "source_provider": "canonical-provider",
-                "provenance": "issuer_current_holdings",
-                "rows": [
-                    {
-                        "symbol": instrument.symbol,
-                        "name": instrument.name,
-                        "weight": "1.0",
-                        "holding_type": "equity",
-                        "row_type": "security",
-                    }
-                ],
-            },
+        profile = seed_etf_profile(db, client, admin_headers, "SPY")
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2024, 1, 1),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument.id,
+                    "symbol": instrument.symbol,
+                    "name": instrument.name,
+                    "weight": "1.0",
+                }
+            ],
         )
-        assert initial.status_code == 200, initial.text
-
-        correction = client.post(
-            "/api/v1/etf-holdings/SPY/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2024-01-01",
-                "known_at": "2024-02-02T00:00:00Z",
-                "source_provider": "canonical-provider",
-                "provenance": "issuer_current_holdings",
-                "rows": [
-                    {
-                        "symbol": instrument_b.symbol,
-                        "name": instrument_b.name,
-                        "weight": "1.0",
-                        "holding_type": "equity",
-                        "row_type": "security",
-                    }
-                ],
-            },
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2024, 1, 1),
+            known_at=datetime(2024, 2, 2, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument_b.id,
+                    "symbol": instrument_b.symbol,
+                    "name": instrument_b.name,
+                    "weight": "1.0",
+                }
+            ],
         )
-        assert correction.status_code == 200, correction.text
 
         db.add_all(
             [
@@ -1685,50 +1620,44 @@ class TestStrategyLabAPI:
             )
         db.commit()
 
-        first_snapshot = client.post(
-            "/api/v1/etf-holdings/SPY/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2024-01-01",
-                "known_at": "2024-01-01T00:00:00Z",
-                "source_provider": "issuer-test",
-                "provenance": "issuer_self_snapshotted_holdings",
-                "rows": [
-                    {
-                        "symbol": instrument.symbol,
-                        "name": instrument.name,
-                        "weight": "1.0",
-                        "shares": "100",
-                        "holding_type": "Common Stock",
-                        "row_type": "Security",
-                    },
-                    {
-                        "name": "Unresolved issuer placeholder",
-                        "weight": "0.01",
-                    },
-                ],
-            },
+        profile = seed_etf_profile(db, client, admin_headers, "SPY")
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2024, 1, 1),
+            known_at=datetime(2024, 1, 1, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument.id,
+                    "symbol": instrument.symbol,
+                    "name": instrument.name,
+                    "weight": "1.0",
+                    "shares": "100",
+                    "holding_type": "Common Stock",
+                    "row_type": "Security",
+                },
+                {
+                    "name": "Unresolved test-only placeholder",
+                    "weight": "0.01",
+                    "is_resolved": False,
+                },
+            ],
         )
-        assert first_snapshot.status_code == 200
-        second_snapshot = client.post(
-            "/api/v1/etf-holdings/SPY/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2024-03-01",
-                "known_at": "2024-03-01T00:00:00Z",
-                "source_provider": "issuer-test",
-                "provenance": "issuer_self_snapshotted_holdings",
-                "rows": [
-                    {
-                        "symbol": instrument_b.symbol,
-                        "name": instrument_b.name,
-                        "weight": "1.0",
-                        "shares": "100",
-                    }
-                ],
-            },
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2024, 3, 1),
+            known_at=datetime(2024, 3, 1, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument_b.id,
+                    "symbol": instrument_b.symbol,
+                    "name": instrument_b.name,
+                    "weight": "1.0",
+                    "shares": "100",
+                }
+            ],
         )
-        assert second_snapshot.status_code == 200
 
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",
@@ -1865,44 +1794,37 @@ class TestStrategyLabAPI:
             )
         db.commit()
 
-        first_snapshot = client.post(
-            "/api/v1/etf-holdings/SPY/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2024-01-01",
-                "known_at": "2024-01-01T00:00:00Z",
-                "source_provider": "issuer-test",
-                "provenance": "issuer_self_snapshotted_holdings",
-                "rows": [
-                    {
-                        "symbol": instrument.symbol,
-                        "name": instrument.name,
-                        "weight": "1.0",
-                        "shares": "100",
-                    }
-                ],
-            },
+        profile = seed_etf_profile(db, client, admin_headers, "SPY")
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2024, 1, 1),
+            known_at=datetime(2024, 1, 1, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument.id,
+                    "symbol": instrument.symbol,
+                    "name": instrument.name,
+                    "weight": "1.0",
+                    "shares": "100",
+                }
+            ],
         )
-        assert first_snapshot.status_code == 200
-        second_snapshot = client.post(
-            "/api/v1/etf-holdings/SPY/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2024-03-01",
-                "known_at": "2024-03-01T00:00:00Z",
-                "source_provider": "issuer-test",
-                "provenance": "issuer_self_snapshotted_holdings",
-                "rows": [
-                    {
-                        "symbol": instrument_b.symbol,
-                        "name": instrument_b.name,
-                        "weight": "1.0",
-                        "shares": "100",
-                    }
-                ],
-            },
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2024, 3, 1),
+            known_at=datetime(2024, 3, 1, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument_b.id,
+                    "symbol": instrument_b.symbol,
+                    "name": instrument_b.name,
+                    "weight": "1.0",
+                    "shares": "100",
+                }
+            ],
         )
-        assert second_snapshot.status_code == 200
 
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",
@@ -2012,25 +1934,22 @@ class TestStrategyLabAPI:
             )
         db.commit()
 
-        first_snapshot = client.post(
-            "/api/v1/etf-holdings/SPY/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2024-01-01",
-                "known_at": "2024-01-01T00:00:00Z",
-                "source_provider": "issuer-test",
-                "provenance": "issuer_self_snapshotted_holdings",
-                "rows": [
-                    {
-                        "symbol": instrument.symbol,
-                        "name": instrument.name,
-                        "weight": "1.0",
-                        "shares": "100",
-                    }
-                ],
-            },
+        profile = seed_etf_profile(db, client, admin_headers, "SPY")
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2024, 1, 1),
+            known_at=datetime(2024, 1, 1, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument.id,
+                    "symbol": instrument.symbol,
+                    "name": instrument.name,
+                    "weight": "1.0",
+                    "shares": "100",
+                }
+            ],
         )
-        assert first_snapshot.status_code == 200
         basket_res = client.get(
             "/api/v1/etf-holdings/SPY/basket?date=2024-01-01",
             headers=auth_headers,
@@ -2038,25 +1957,21 @@ class TestStrategyLabAPI:
         assert basket_res.status_code == 200
         basket_id = basket_res.json()["id"]
 
-        second_snapshot = client.post(
-            "/api/v1/etf-holdings/SPY/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2024-03-01",
-                "known_at": "2024-03-01T00:00:00Z",
-                "source_provider": "issuer-test",
-                "provenance": "issuer_self_snapshotted_holdings",
-                "rows": [
-                    {
-                        "symbol": instrument_b.symbol,
-                        "name": instrument_b.name,
-                        "weight": "1.0",
-                        "shares": "100",
-                    }
-                ],
-            },
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2024, 3, 1),
+            known_at=datetime(2024, 3, 1, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument_b.id,
+                    "symbol": instrument_b.symbol,
+                    "name": instrument_b.name,
+                    "weight": "1.0",
+                    "shares": "100",
+                }
+            ],
         )
-        assert second_snapshot.status_code == 200
 
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",

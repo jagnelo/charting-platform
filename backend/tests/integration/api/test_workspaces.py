@@ -1,3 +1,10 @@
+from datetime import UTC, date, datetime
+
+from tests.integration.api.etf_holdings_test_fixtures import (
+    seed_etf_profile,
+    seed_historical_snapshot,
+)
+
 _CURRENT_ERROR_LINEAGE_FIELDS = (
     "displayable_last_known",
     "identity_verified",
@@ -2093,25 +2100,24 @@ class TestWorkspaces:
             )
         )
         db.flush()
-        ingested = client.post(
-            "/api/v1/etf-holdings/INDX/ingest",
-            headers=admin_headers,
-            json={
-                "composition_date": "2026-07-01",
-                "source_provider": "manual-test",
-                "rows": [
-                    {
-                        "symbol": instrument.symbol,
-                        "name": instrument.name,
-                        "weight": "0.05000000",
-                        "currency": "USD",
-                        "holding_type": "equity",
-                        "row_type": "security",
-                    }
-                ],
-            },
+        profile = seed_etf_profile(db, client, admin_headers, "INDX")
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=date(2026, 7, 1),
+            known_at=datetime(2026, 7, 1, tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument.id,
+                    "symbol": instrument.symbol,
+                    "name": instrument.name,
+                    "weight": "0.05000000",
+                    "currency": "USD",
+                    "holding_type": "equity",
+                    "row_type": "security",
+                }
+            ],
         )
-        assert ingested.status_code == 200
 
         current = client.get("/api/v1/market-groups/etf/INDX/industries", headers=auth_headers)
         assert current.status_code == 409
@@ -2121,7 +2127,7 @@ class TestWorkspaces:
             {
                 "code": "etf_holdings_not_current",
                 "availability": "stale",
-                "source_tier": "issuer_native",
+                "source_tier": "none",
                 "usable_for_current_analysis": False,
                 "failure_class": None,
                 "reason": "No concrete ETF holdings adapter is assigned to this profile.",

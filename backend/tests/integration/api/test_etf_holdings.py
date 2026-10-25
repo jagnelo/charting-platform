@@ -8,6 +8,11 @@ from xml.sax.saxutils import escape
 import httpx
 import pytest
 
+from tests.integration.api.etf_holdings_test_fixtures import (
+    seed_etf_profile,
+    seed_historical_snapshot,
+)
+
 _CURRENT_ERROR_LINEAGE_FIELDS = (
     "displayable_last_known",
     "identity_verified",
@@ -624,6 +629,45 @@ def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(client, auth_head
     assert body["refresh_attempted"] is True
     assert body["refresh_succeeded"] is True
     assert body["latest_snapshot"]["row_count"] == 1
+
+
+def test_sec_backfill_route_hydrates_curated_iwm_identity_without_network(
+    client, admin_headers, monkeypatch
+):
+    captured = {}
+
+    async def fake_backfill(_db, *, profile, **_kwargs):
+        captured["identity"] = (
+            profile.sec_cik,
+            profile.sec_series_id,
+            profile.sec_class_id,
+        )
+        captured["adapter_key"] = profile.adapter_key
+        return {
+            "status": "failed",
+            "discovered": 0,
+            "ingested": 0,
+            "skipped": 0,
+            "failed": 1,
+            "failures": [{"reason": "offline test; no SEC request made"}],
+        }
+
+    monkeypatch.setattr(
+        "app.routers.etf_holdings.backfill_sec_nport_holdings",
+        fake_backfill,
+    )
+    response = client.post(
+        "/api/v1/etf-holdings/IWM/backfill-sec-nport",
+        headers=admin_headers,
+        json={"start_date": "2026-01-01", "end_date": "2026-10-23", "max_filings": 1},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "identity": ("0001100663", "S000004344", "C000012074"),
+        "adapter_key": "ishares",
+    }
+    assert response.json()["failures"] == [{"reason": "offline test; no SEC request made"}]
 
 
 def test_bootstrap_endpoint_seeds_known_eem_ishares_route_metadata(
@@ -1304,11 +1348,12 @@ def test_overlap_summary_compares_constituents_across_etfs(client, admin_headers
     )
     assert qqq.status_code == 200
 
+    snapshot_date = datetime.now(UTC).date().isoformat()
     response = client.post(
         "/api/v1/etf-holdings/overlap-summary",
         json={
             "etf_symbols": ["OVLA", "OVLB", "MISSING"],
-            "snapshot_date": "2026-06-08",
+            "snapshot_date": snapshot_date,
             "top_n": 1,
         },
         headers=auth_headers,
@@ -1316,7 +1361,7 @@ def test_overlap_summary_compares_constituents_across_etfs(client, admin_headers
     assert response.status_code == 200
     body = response.json()
     assert body["requested_symbols"] == ["OVLA", "OVLB", "MISSING"]
-    assert body["snapshot_date"] == "2026-06-08"
+    assert body["snapshot_date"] == snapshot_date
     assert body["point_in_time"] is True
     assert body["etf_count"] == 2
     assert body["pair_count"] == 1
@@ -1372,11 +1417,12 @@ def test_overlap_matrix_summarizes_many_etf_relationships(client, admin_headers,
         )
         assert response.status_code == 200
 
+    snapshot_date = datetime.now(UTC).date().isoformat()
     response = client.post(
         "/api/v1/etf-holdings/overlap-matrix",
         json={
             "etf_symbols": ["OMXA", "OMXB", "OMXC", "NOPE"],
-            "snapshot_date": "2026-06-08",
+            "snapshot_date": snapshot_date,
             "metric": "jaccard",
             "top_n": 2,
         },
@@ -1451,12 +1497,13 @@ def test_overlap_matrix_can_expand_etf_family_from_profile_metadata(
         )
         assert profile.status_code == 200
 
+    snapshot_date = datetime.now(UTC).date().isoformat()
     response = client.post(
         "/api/v1/etf-holdings/overlap-matrix",
         json={
             "issuer": "Matrix",
             "fund_family": "Core",
-            "snapshot_date": "2026-06-08",
+            "snapshot_date": snapshot_date,
             "metric": "jaccard",
             "limit": 10,
         },
@@ -3431,12 +3478,15 @@ def test_admin_can_ingest_and_user_can_read_etf_holdings(client, admin_headers, 
     assert search.json()[0]["symbol"] == "SPY"
 
 
-def test_etf_holdings_snapshot_can_materialize_read_only_basket(
+def test_manual_snapshot_materializes_read_only_basket_only_with_historical_selection(
     client,
     admin_headers,
     auth_headers,
 ):
-    current_composition_date = date.today() - timedelta(days=1)
+    current_utc_date = datetime.now(UTC).date()
+    current_composition_date = current_utc_date - timedelta(days=1)
+    # Adversarial synthetic import: caller claims issuer-current identity, but
+    # manual ingestion must still remain non-current and non-entitled.
     ingest = client.post(
         "/api/v1/etf-holdings/DIA/ingest",
         json={
@@ -3482,9 +3532,22 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
     )
     assert profile.status_code == 200
 
-    materialized = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
-    assert materialized.status_code == 200
-    basket = materialized.json()
+    current = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
+    assert current.status_code == 409
+    capability = client.get("/api/v1/etf-holdings/DIA/capability", headers=auth_headers)
+    assert capability.status_code == 200
+    assert capability.json()["source_tier"] == "none"
+    assert capability.json()["availability"] == "degraded"
+    assert capability.json()["displayable_last_known"] is True
+    assert capability.json()["usable_for_current_analysis"] is False
+
+    historical = client.get(
+        "/api/v1/etf-holdings/DIA/basket",
+        headers=auth_headers,
+        params={"date": current_utc_date.isoformat()},
+    )
+    assert historical.status_code == 200
+    basket = historical.json()
     assert basket["source_type"] == "etf_holdings"
     assert basket["is_system_managed"] is True
     assert basket["is_read_only"] is True
@@ -3563,8 +3626,9 @@ def test_etf_holdings_basket_rejects_non_current_without_historical_selection(
         capability.json(),
     )
 
+    historical_as_of = datetime.now(UTC).date().isoformat()
     historical = client.get(
-        "/api/v1/etf-holdings/DIA/basket?date=2026-05-31",
+        f"/api/v1/etf-holdings/DIA/basket?date={historical_as_of}",
         headers=auth_headers,
     )
     assert historical.status_code == 200
@@ -3634,7 +3698,11 @@ def test_csv_ingestion_normalizes_broader_issuer_schema_variants(
     assert latest.json()["row_count"] == 2
 
 
-def test_sec_nport_ingestion_reconstructs_filing_holdings(client, admin_headers, auth_headers):
+def test_sec_nport_ingestion_reconstructs_filing_holdings(
+    client, admin_headers, auth_headers, monkeypatch
+):
+    import_observed_at = datetime(2026, 10, 23, 16, 0, tzinfo=UTC)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: import_observed_at)
     raw_xml = """
     <edgarSubmission>
       <formData>
@@ -3681,7 +3749,8 @@ def test_sec_nport_ingestion_reconstructs_filing_holdings(client, admin_headers,
     body = response.json()
     assert body["composition_date"] == "2026-03-31"
     assert body["as_of_date"] == "2026-03-31"
-    assert body["known_at"] == "2026-05-01T12:00:00Z"
+    assert body["known_at"] == "2026-10-23T16:00:00Z"
+    assert body["published_at"] == "2026-05-01T12:00:00Z"
     assert body["provenance"] == "sec_nport_reconstructed_holdings"
     assert body["source_quality"] == "filing_reconstructed_holdings"
     assert body["source_identifier"] == "0000000000-26-000001"
@@ -3692,11 +3761,20 @@ def test_sec_nport_ingestion_reconstructs_filing_holdings(client, admin_headers,
     latest = client.get("/api/v1/etf-holdings/VTI/latest", headers=auth_headers)
     assert latest.status_code == 200
     assert latest.json()["parser_version"] == "sec-nport-v1"
+    assert (
+        client.get(
+            "/api/v1/etf-holdings/VTI/nearest?date=2026-03-31",
+            headers=auth_headers,
+        ).status_code
+        == 404
+    )
 
 
 def test_sec_legacy_ingestion_reconstructs_table_like_filing_holdings(
-    client, admin_headers, auth_headers
+    client, admin_headers, auth_headers, monkeypatch
 ):
+    import_observed_at = datetime(2026, 10, 23, 16, 0, tzinfo=UTC)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: import_observed_at)
     raw_xml = """
     <filing>
       <periodOfReport>2018-12-31</periodOfReport>
@@ -3740,7 +3818,8 @@ def test_sec_legacy_ingestion_reconstructs_table_like_filing_holdings(
     body = response.json()
     assert body["composition_date"] == "2018-12-31"
     assert body["as_of_date"] == "2018-12-31"
-    assert body["known_at"] == "2019-02-01T12:00:00Z"
+    assert body["known_at"] == "2026-10-23T16:00:00Z"
+    assert body["published_at"] == "2019-02-01T12:00:00Z"
     assert body["provenance"] == "sec_legacy_reconstructed_holdings"
     assert body["source_quality"] == "filing_reconstructed_holdings"
     assert body["source_identifier"] == "0000000000-19-000001"
@@ -3753,11 +3832,20 @@ def test_sec_legacy_ingestion_reconstructs_table_like_filing_holdings(
     latest = client.get("/api/v1/etf-holdings/IVV/latest", headers=auth_headers)
     assert latest.status_code == 200
     assert latest.json()["provenance"] == "sec_legacy_reconstructed_holdings"
+    assert (
+        client.get(
+            "/api/v1/etf-holdings/IVV/nearest?date=2018-12-31",
+            headers=auth_headers,
+        ).status_code
+        == 404
+    )
 
 
 def test_sec_legacy_ingestion_reconstructs_html_table_filing_holdings(
-    client, admin_headers, auth_headers
+    client, admin_headers, auth_headers, monkeypatch
 ):
+    import_observed_at = datetime(2026, 10, 23, 16, 0, tzinfo=UTC)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: import_observed_at)
     raw_html = """
     <html>
       <body>
@@ -3812,7 +3900,8 @@ def test_sec_legacy_ingestion_reconstructs_html_table_filing_holdings(
     assert response.status_code == 200
     body = response.json()
     assert body["composition_date"] == "2017-06-30"
-    assert body["known_at"] == "2017-08-01T12:00:00Z"
+    assert body["known_at"] == "2026-10-23T16:00:00Z"
+    assert body["published_at"] == "2017-08-01T12:00:00Z"
     assert body["provenance"] == "sec_legacy_reconstructed_holdings"
     assert body["parser_version"] == "sec-legacy-v1"
     assert body["holdings"][0]["reported_symbol"] == "AAPL"
@@ -3823,11 +3912,20 @@ def test_sec_legacy_ingestion_reconstructs_html_table_filing_holdings(
     latest = client.get("/api/v1/etf-holdings/VHT/latest", headers=auth_headers)
     assert latest.status_code == 200
     assert len(latest.json()["holdings"]) == 2
+    assert (
+        client.get(
+            "/api/v1/etf-holdings/VHT/nearest?date=2017-06-30",
+            headers=auth_headers,
+        ).status_code
+        == 404
+    )
 
 
 def test_sec_legacy_ingestion_reconstructs_split_identity_html_rows(
-    client, admin_headers, auth_headers
+    client, admin_headers, auth_headers, monkeypatch
 ):
+    import_observed_at = datetime(2026, 10, 23, 16, 0, tzinfo=UTC)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: import_observed_at)
     raw_html = """
     <html>
       <body>
@@ -3882,7 +3980,8 @@ def test_sec_legacy_ingestion_reconstructs_split_identity_html_rows(
     assert response.status_code == 200
     body = response.json()
     assert body["composition_date"] == "2016-12-31"
-    assert body["known_at"] == "2017-02-24T12:00:00Z"
+    assert body["known_at"] == "2026-10-23T16:00:00Z"
+    assert body["published_at"] == "2017-02-24T12:00:00Z"
     assert len(body["holdings"]) == 2
     assert body["holdings"][0]["reported_name"] == "Apple Inc. Common Stock CUSIP 037833100"
     assert body["holdings"][0]["cusip"] == "037833100"
@@ -3897,11 +3996,20 @@ def test_sec_legacy_ingestion_reconstructs_split_identity_html_rows(
     latest = client.get("/api/v1/etf-holdings/VCR/latest", headers=auth_headers)
     assert latest.status_code == 200
     assert len(latest.json()["holdings"]) == 2
+    assert (
+        client.get(
+            "/api/v1/etf-holdings/VCR/nearest?date=2016-12-31",
+            headers=auth_headers,
+        ).status_code
+        == 404
+    )
 
 
 def test_sec_legacy_ingestion_handles_month_name_dates_and_value_thousands(
-    client, admin_headers, auth_headers
+    client, admin_headers, auth_headers, monkeypatch
 ):
+    import_observed_at = datetime(2026, 10, 23, 16, 0, tzinfo=UTC)
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: import_observed_at)
     raw_html = """
     <html>
       <body>
@@ -3950,7 +4058,8 @@ def test_sec_legacy_ingestion_handles_month_name_dates_and_value_thousands(
     assert response.status_code == 200
     body = response.json()
     assert body["composition_date"] == "2015-06-30"
-    assert body["known_at"] == "2015-08-15T12:00:00Z"
+    assert body["known_at"] == "2026-10-23T16:00:00Z"
+    assert body["published_at"] == "2015-08-15T12:00:00Z"
     assert len(body["holdings"]) == 2
     assert body["holdings"][0]["reported_name"] == "Apple Inc."
     assert body["holdings"][0]["cusip"] == "037833100"
@@ -3961,11 +4070,20 @@ def test_sec_legacy_ingestion_handles_month_name_dates_and_value_thousands(
     latest = client.get("/api/v1/etf-holdings/VLEG/latest", headers=auth_headers)
     assert latest.status_code == 200
     assert latest.json()["composition_date"] == "2015-06-30"
+    assert (
+        client.get(
+            "/api/v1/etf-holdings/VLEG/nearest?date=2015-06-30",
+            headers=auth_headers,
+        ).status_code
+        == 404
+    )
 
 
 def test_sec_nport_backfill_discovers_and_ingests_edgar_filings(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    import_observed_at = datetime(2026, 10, 23, 16, 0, tzinfo=UTC)
+    monkeypatch.setattr("app.services.etf_holdings_edgar._now", lambda: import_observed_at)
     submissions = {
         "filings": {
             "recent": {
@@ -3998,6 +4116,8 @@ def test_sec_nport_backfill_discovers_and_ingests_edgar_filings(
     <edgarSubmission>
       <formData>
         <generalInfo>
+          <seriesId>S000058757</seriesId>
+          <classId>C000192803</classId>
           <repPdDate>2026-03-31</repPdDate>
         </generalInfo>
         <invstOrSecs>
@@ -4051,7 +4171,12 @@ def test_sec_nport_backfill_discovers_and_ingests_edgar_filings(
 
     profile = client.patch(
         "/api/v1/etf-holdings/VT/profile",
-        json={"issuer": "Vanguard", "sec_cik": "1029090"},
+        json={
+            "issuer": "Vanguard",
+            "sec_cik": "1029090",
+            "sec_series_id": "S000058757",
+            "sec_class_id": "C000192803",
+        },
         headers=admin_headers,
     )
     assert profile.status_code == 200
@@ -4119,15 +4244,22 @@ def test_sec_nport_backfill_discovers_and_ingests_edgar_filings(
     assert latest.status_code == 200
     body = latest.json()
     assert body["composition_date"] == "2026-03-31"
-    assert body["known_at"] == "2026-05-01T15:30:00Z"
+    assert body["known_at"] == "2026-10-23T16:00:00Z"
+    assert body["published_at"] is None
     assert body["source_identifier"] == "0001029090-26-000001"
     assert body["source_url"].endswith("/primary_doc.xml")
     assert body["source_quality"] == "filing_reconstructed_holdings"
+    assert body["extra_data"]["legal_metadata"]["filing_acceptance_at"] == (
+        "2026-05-01T15:30:00+00:00"
+    )
+    assert body["extra_data"]["legal_metadata"]["public_availability_time"] == "unverified"
 
 
 def test_sec_legacy_backfill_discovers_and_ingests_edgar_filings(
     client, admin_headers, auth_headers, monkeypatch
 ):
+    import_observed_at = datetime(2026, 10, 23, 16, 0, tzinfo=UTC)
+    monkeypatch.setattr("app.services.etf_holdings_edgar._now", lambda: import_observed_at)
     submissions = {
         "filings": {
             "recent": {
@@ -4143,6 +4275,8 @@ def test_sec_legacy_backfill_discovers_and_ingests_edgar_filings(
     }
     raw_xml = """
     <filing>
+      <seriesId>S000057712</seriesId>
+      <classId>C000186111</classId>
       <periodOfReport>2018-12-31</periodOfReport>
       <scheduleOfInvestments>
         <investment>
@@ -4192,7 +4326,12 @@ def test_sec_legacy_backfill_discovers_and_ingests_edgar_filings(
 
     profile = client.patch(
         "/api/v1/etf-holdings/VTV/profile",
-        json={"issuer": "Vanguard", "sec_cik": "1029090"},
+        json={
+            "issuer": "Vanguard",
+            "sec_cik": "1029090",
+            "sec_series_id": "S000057712",
+            "sec_class_id": "C000186111",
+        },
         headers=admin_headers,
     )
     assert profile.status_code == 200
@@ -4255,7 +4394,8 @@ def test_sec_legacy_backfill_discovers_and_ingests_edgar_filings(
     assert latest.status_code == 200
     body = latest.json()
     assert body["composition_date"] == "2018-12-31"
-    assert body["known_at"] == "2019-02-01T15:30:00Z"
+    assert body["known_at"] == "2026-10-23T16:00:00Z"
+    assert body["published_at"] is None
     assert body["provenance"] == "sec_legacy_reconstructed_holdings"
     assert body["source_identifier"] == "0001029090-19-000001"
     assert body["source_url"].endswith("/ncsr.xml")
@@ -4314,22 +4454,29 @@ def test_coverage_summary_reports_missing_partial_and_full_ranges(
     assert body["missing"] == 1
 
 
-def test_nearest_snapshot_is_point_in_time_safe(client, admin_headers, auth_headers):
+def test_nearest_snapshot_is_point_in_time_safe(
+    client, admin_headers, auth_headers, db, instrument
+):
+    profile = seed_etf_profile(db, client, admin_headers, "SAFE")
     for snapshot_date in [date(2026, 1, 1), date(2026, 3, 1)]:
-        client.post(
-            "/api/v1/etf-holdings/SAFE/ingest",
-            json={
-                "composition_date": snapshot_date.isoformat(),
-                "known_at": f"{snapshot_date.isoformat()}T00:00:00Z",
-                "source_provider": "issuer-test",
-                "rows": [{"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.01"}],
-            },
-            headers=admin_headers,
+        seed_historical_snapshot(
+            db,
+            profile=profile,
+            composition_date=snapshot_date,
+            known_at=datetime.combine(snapshot_date, datetime.min.time(), tzinfo=UTC),
+            rows=[
+                {
+                    "instrument_id": instrument.id,
+                    "symbol": instrument.symbol,
+                    "name": instrument.name,
+                    "weight": "0.01",
+                }
+            ],
         )
 
     response = client.get(
         "/api/v1/etf-holdings/SAFE/nearest?date=2026-02-15",
         headers=auth_headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     assert response.json()["composition_date"] == "2026-01-01"

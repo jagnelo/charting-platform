@@ -97,6 +97,33 @@ async def _no_prior_snapshot(*_args, **_kwargs):
     return None
 
 
+def test_curated_spdr_route_metadata_binds_adapter_and_publisher_identity():
+    profile_value = _profile("SPY")
+    profile_value.provider_aliases = {"operator_review_ref": "retained-review-record"}
+
+    assert refresh._apply_known_route_metadata(profile_value) is True
+
+    assert profile_value.issuer == "State Street Global Advisors"
+    assert profile_value.adapter_key == "spdr"
+    assert profile_value.provider_aliases == {
+        "operator_review_ref": "retained-review-record",
+        "holdings_adapter": "spdr",
+        "holdings_source_provider": "spdr",
+    }
+
+
+def test_curated_iwm_route_metadata_hydrates_fund_scoped_sec_identity():
+    profile_value = _profile("IWM")
+
+    assert refresh._apply_known_route_metadata(profile_value) is True
+
+    assert profile_value.adapter_key == "ishares"
+    assert profile_value.sec_cik == "0001100663"
+    assert profile_value.sec_series_id == "S000004344"
+    assert profile_value.sec_class_id == "C000012074"
+    assert profile_value.provider_aliases["sec_fund_tickers_symbol"] == "IWM"
+
+
 @pytest.mark.asyncio
 async def test_canary_success_records_latency_recovery_and_symbol_gated_capability(monkeypatch):
     profile = _profile()
@@ -536,6 +563,14 @@ def test_future_holdings_dates_are_rejected_at_ingestion_boundary():
             date(2026, 9, 5),
             now=datetime(2026, 9, 5, 12, tzinfo=UTC),
             published_at=datetime(2026, 9, 5, 12, 1, tzinfo=UTC),
+        )
+
+    with pytest.raises(ValueError, match="future known-at timestamp"):
+        refresh._ensure_holdings_dates_are_not_future(
+            date(2026, 9, 5),
+            date(2026, 9, 5),
+            now=datetime(2026, 9, 5, 12, tzinfo=UTC),
+            known_at=datetime(2026, 9, 5, 12, 1, tzinfo=UTC),
         )
 
 

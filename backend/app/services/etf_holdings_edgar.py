@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+import contextvars
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime
 from typing import Any
 
 import httpx as _httpx
@@ -17,29 +20,65 @@ from app.models.etf_holdings import (
 )
 from app.models.instrument import Instrument
 from app.services.etf_holdings import ingest_holdings_snapshot
-from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
+from app.services.etf_holdings_provider_bridge import (
+    ETF_SEC_ADAPTER_KEY,
+    ETF_SEC_ATTEMPT_TIMEOUT_SECONDS,
+    ETF_SEC_FUND_DEADLINE_SECONDS,
+    ETF_SEC_MAX_REDIRECTS_PER_GET,
+    ETFHoldingsRequestIdentity,
+    ETFHoldingsRouteHeldError,
+    ETFSECExecutionBudget,
+    ProviderBackedHTTPXClient,
+    bind_etf_holdings_sec_request_context,
+    current_etf_holdings_request_identity,
+    require_unbound_etf_holdings_context,
+)
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
 
 
-class _HeldSECHTTPXNamespace:
-    """SEC transport awaits its own reviewed shared-runtime binding."""
+class _SECHTTPXNamespace:
+    """Keep SEC HTTPX calls on the existing per-attempt Provider bridge."""
 
     def AsyncClient(self, *_args, **_kwargs):
-        raise ETFHoldingsRouteHeldError(
-            "SEC holdings requests require a dedicated reviewed ETF_HOLDINGS binding"
-        )
+        if _args:
+            raise ETFHoldingsRouteHeldError(
+                "SEC shared-admission clients require keyword-only configuration"
+            )
+        return ProviderBackedHTTPXClient(**_kwargs)
 
     def __getattr__(self, name):
         return getattr(_httpx, name)
 
 
-httpx = _HeldSECHTTPXNamespace()
+httpx = _SECHTTPXNamespace()
+_SEC_FUND_BUDGET: contextvars.ContextVar[ETFSECExecutionBudget | None] = contextvars.ContextVar(
+    "etf_sec_fund_execution_budget", default=None
+)
 
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 SEC_SUBMISSIONS_FILE_URL = "https://data.sec.gov/submissions/{file_name}"
 SEC_ARCHIVES_BASE_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{document}"
 NPORT_FORMS = {"NPORT-P", "N-PORT", "NPORT-EX"}
 LEGACY_HOLDINGS_FORMS = {"N-Q", "NQ", "N-CSR", "N-CSRS", "NCSR", "NCSRS"}
+
+
+@dataclass(frozen=True, slots=True)
+class _EdgarETFHoldingsAdapter:
+    source_provider: str = "edgar"
+    adapter_key: str = ETF_SEC_ADAPTER_KEY
+
+    async def fetch_latest(self, **_kwargs):
+        raise ETFHoldingsRouteHeldError(
+            "EDGAR ETF requests are available only through the dedicated per-attempt bridge"
+        )
+
+    async def fetch_for_date(self, **_kwargs):
+        raise ETFHoldingsRouteHeldError(
+            "EDGAR ETF requests are available only through the dedicated per-attempt bridge"
+        )
+
+
+_EDGAR_ETF_HOLDINGS_ADAPTER = _EdgarETFHoldingsAdapter()
 
 
 @dataclass(slots=True)
@@ -61,6 +100,136 @@ def _headers() -> dict[str, str]:
         "User-Agent": settings.EDGAR_USER_AGENT,
         "Accept-Encoding": "gzip, deflate",
     }
+
+
+async def _resolve_request_identity(
+    *,
+    db: AsyncSession | None = None,
+    profile: ETFProfile | None = None,
+    request_identity: ETFHoldingsRequestIdentity | None = None,
+) -> ETFHoldingsRequestIdentity:
+    """Resolve a committed ETF identity before opening any SEC request scope."""
+
+    if request_identity is not None:
+        active_identity = current_etf_holdings_request_identity()
+        if active_identity is not None and (
+            active_identity.db is not request_identity.db
+            or active_identity.profile_id != request_identity.profile_id
+            or active_identity.instrument_id != request_identity.instrument_id
+            or active_identity.provider_symbol.strip().upper()
+            != request_identity.provider_symbol.strip().upper()
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "SEC request profile differs from the active ETF fetch identity"
+            )
+    if request_identity is not None:
+        if db is not None and request_identity.db is not db:
+            raise ETFHoldingsRouteHeldError("SEC request database differs from its bound identity")
+        if profile is not None and profile.id != request_identity.profile_id:
+            raise ETFHoldingsRouteHeldError("SEC request profile differs from its bound identity")
+        db = request_identity.db
+        profile_id = request_identity.profile_id
+        instrument_id = request_identity.instrument_id
+        provider_symbol = request_identity.provider_symbol
+        active_identity = current_etf_holdings_request_identity()
+        if active_identity is not None and (
+            active_identity.db is not db
+            or active_identity.profile_id != profile_id
+            or active_identity.instrument_id != instrument_id
+            or active_identity.provider_symbol.strip().upper() != provider_symbol.strip().upper()
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "SEC request profile differs from the active ETF fetch identity"
+            )
+    elif db is not None and profile is not None:
+        profile_id = int(profile.id or 0)
+        instrument_id = int(profile.instrument_id or 0)
+        instrument = await db.get(Instrument, instrument_id)
+        if instrument is None or instrument.id != instrument_id:
+            raise ETFHoldingsRouteHeldError("SEC request instrument is not linked to its profile")
+        provider_symbol = str(instrument.symbol or "").strip()
+        active_identity = current_etf_holdings_request_identity()
+        if active_identity is not None and (
+            active_identity.db is not db
+            or active_identity.profile_id != profile_id
+            or active_identity.instrument_id != instrument_id
+            or active_identity.provider_symbol.strip().upper() != provider_symbol.upper()
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "SEC request profile differs from the active ETF fetch identity"
+            )
+    else:
+        raise ETFHoldingsRouteHeldError(
+            "SEC holdings requests require an explicit committed ETF request identity"
+        )
+
+    if db is None or profile_id <= 0 or instrument_id <= 0 or not provider_symbol:
+        raise ETFHoldingsRouteHeldError("SEC holdings request identity is incomplete")
+    if not callable(getattr(db, "get", None)):
+        raise ETFHoldingsRouteHeldError(
+            "SEC request identity cannot be loaded from the caller database session"
+        )
+    committed_profile = await db.get(ETFProfile, profile_id)
+    if committed_profile is None or committed_profile.instrument_id != instrument_id:
+        raise ETFHoldingsRouteHeldError(
+            "SEC request identity must resolve to a committed ETF profile and instrument"
+        )
+    committed_instrument = await db.get(Instrument, instrument_id)
+    if (
+        committed_instrument is None
+        or committed_instrument.symbol.strip().upper() != provider_symbol.strip().upper()
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "SEC request symbol does not match its committed ETF instrument"
+        )
+    if not committed_profile.sec_cik:
+        raise ETFHoldingsRouteHeldError("SEC request profile has no committed CIK")
+    return ETFHoldingsRequestIdentity(
+        db=db,
+        profile_id=profile_id,
+        instrument_id=instrument_id,
+        provider_symbol=provider_symbol,
+    )
+
+
+async def _sec_get(
+    request_identity: ETFHoldingsRequestIdentity,
+    *,
+    operation: str,
+    url: str,
+) -> _httpx.Response:
+    """Perform one logical SEC GET; the facade admits every physical redirect hop."""
+
+    sec_budget = _SEC_FUND_BUDGET.get()
+    if sec_budget is None:
+        raise ETFHoldingsRouteHeldError(
+            "SEC request is missing its bounded one-fund execution context"
+        )
+
+    with bind_etf_holdings_sec_request_context(
+        db=request_identity.db,
+        adapter=_EDGAR_ETF_HOLDINGS_ADAPTER,
+        profile_id=request_identity.profile_id,
+        instrument_id=request_identity.instrument_id,
+        provider_symbol=request_identity.provider_symbol,
+        operation=operation,
+        sec_budget=sec_budget,
+    ) as request_binding:
+        async with httpx.AsyncClient(
+            timeout=ETF_SEC_ATTEMPT_TIMEOUT_SECONDS,
+            follow_redirects=True,
+            max_redirects=ETF_SEC_MAX_REDIRECTS_PER_GET,
+        ) as client:
+            response = await client.get(
+                url,
+                headers=_headers(),
+                follow_redirects=True,
+                max_redirects=ETF_SEC_MAX_REDIRECTS_PER_GET,
+            )
+            extensions = getattr(response, "extensions", None)
+            if extensions is not None:
+                extensions["etf_holdings_request_binding"] = request_binding
+            return response
 
 
 def normalize_cik(cik: str | int) -> str:
@@ -101,12 +270,44 @@ def _acceptance_datetime(value: Any) -> datetime | None:
     return None
 
 
-def _known_at(filing: EdgarNportFiling) -> datetime:
-    if filing.acceptance_datetime is not None:
-        return filing.acceptance_datetime
-    if filing.filing_date is not None:
-        return datetime.combine(filing.filing_date, time.min, tzinfo=UTC)
-    return datetime.now(UTC)
+def _known_at(
+    filing: EdgarNportFiling,
+    *,
+    observed_at: datetime | None = None,
+) -> datetime:
+    # SEC acceptance is filing metadata, not proof of the exact time the filing
+    # became publicly available. Record knowledge only after this process has
+    # observed the response; never backdate it to acceptance or filingDate.
+    return observed_at or datetime.now(UTC)
+
+
+def _sec_filing_identity_for_profile(
+    profile: ETFProfile,
+    raw_document: str,
+) -> tuple[bool, dict[str, str], str]:
+    """Require committed SEC series and class identity before backfill ingest."""
+
+    from app.services.etf_holdings_adapters import (  # noqa: PLC0415
+        _sec_nport_identity_match,
+    )
+
+    if not profile.sec_series_id or not profile.sec_class_id:
+        from app.services.etf_holdings_sec import (  # noqa: PLC0415
+            extract_sec_nport_filing_identity,
+        )
+
+        return (
+            False,
+            extract_sec_nport_filing_identity(raw_document),
+            "missing_committed_series_or_class_id",
+        )
+    return _sec_nport_identity_match(
+        raw_document,
+        identifiers={
+            "sec_series_id": profile.sec_series_id,
+            "sec_class_id": profile.sec_class_id,
+        },
+    )
 
 
 def _now() -> datetime:
@@ -128,6 +329,31 @@ def _job_summary(
         "failed": job.failed_count,
         "failures": failures,
     }
+
+
+@asynccontextmanager
+async def sec_fund_execution_scope():
+    """Share one bounded envelope across all SEC calls for the same fund."""
+    active_budget = _SEC_FUND_BUDGET.get()
+    if active_budget is not None:
+        active_budget._check_deadline()
+        yield active_budget
+        return
+
+    budget = ETFSECExecutionBudget()
+    token = _SEC_FUND_BUDGET.set(budget)
+    try:
+        async with asyncio.timeout(ETF_SEC_FUND_DEADLINE_SECONDS):
+            yield budget
+    except TimeoutError as exc:
+        raise ETFHoldingsRouteHeldError("SEC one-fund execution deadline exceeded") from exc
+    finally:
+        _SEC_FUND_BUDGET.reset(token)
+
+
+async def _run_in_sec_fund_scope(coro_factory):
+    async with sec_fund_execution_scope():
+        return await coro_factory()
 
 
 async def _filing_state_for_accession(
@@ -268,12 +494,18 @@ def parse_legacy_holdings_filings_from_submissions(
 async def discover_nport_filings(
     *,
     cik: str | int,
+    db: AsyncSession | None = None,
+    profile: ETFProfile | None = None,
+    request_identity: ETFHoldingsRequestIdentity | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
     max_filings: int = 20,
 ) -> list[EdgarNportFiling]:
     return await discover_holdings_filings(
         cik=cik,
+        db=db,
+        profile=profile,
+        request_identity=request_identity,
         forms=NPORT_FORMS,
         start_date=start_date,
         end_date=end_date,
@@ -284,12 +516,18 @@ async def discover_nport_filings(
 async def discover_legacy_holdings_filings(
     *,
     cik: str | int,
+    db: AsyncSession | None = None,
+    profile: ETFProfile | None = None,
+    request_identity: ETFHoldingsRequestIdentity | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
     max_filings: int = 20,
 ) -> list[EdgarHoldingsFiling]:
     return await discover_holdings_filings(
         cik=cik,
+        db=db,
+        profile=profile,
+        request_identity=request_identity,
         forms=LEGACY_HOLDINGS_FORMS,
         start_date=start_date,
         end_date=end_date,
@@ -301,63 +539,88 @@ async def discover_holdings_filings(
     *,
     cik: str | int,
     forms: set[str],
+    db: AsyncSession | None = None,
+    profile: ETFProfile | None = None,
+    request_identity: ETFHoldingsRequestIdentity | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
     max_filings: int = 20,
 ) -> list[EdgarHoldingsFiling]:
-    normalized_cik = normalize_cik(cik)
-    async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-        response = await client.get(
-            SEC_SUBMISSIONS_URL.format(cik=normalized_cik),
-            headers=_headers(),
-            follow_redirects=True,
+    if _SEC_FUND_BUDGET.get() is None:
+        return await _run_in_sec_fund_scope(
+            lambda: discover_holdings_filings(
+                cik=cik,
+                forms=forms,
+                db=db,
+                profile=profile,
+                request_identity=request_identity,
+                start_date=start_date,
+                end_date=end_date,
+                max_filings=max_filings,
+            )
         )
-        response.raise_for_status()
-        submissions = response.json()
-        filings = parse_holdings_filings_from_submissions(
-            submissions,
+    request_identity = await _resolve_request_identity(
+        db=db,
+        profile=profile,
+        request_identity=request_identity,
+    )
+    normalized_cik = normalize_cik(cik)
+    committed_profile = await request_identity.db.get(ETFProfile, request_identity.profile_id)
+    if normalize_cik(committed_profile.sec_cik) != normalized_cik:
+        raise ETFHoldingsRouteHeldError("SEC request CIK does not match the committed ETF profile")
+    response = await _sec_get(
+        request_identity,
+        operation="fetch_etf_holdings_sec_submissions",
+        url=SEC_SUBMISSIONS_URL.format(cik=normalized_cik),
+    )
+    response.raise_for_status()
+    submissions = response.json()
+    filings = parse_holdings_filings_from_submissions(
+        submissions,
+        cik=normalized_cik,
+        forms=forms,
+        start_date=start_date,
+        end_date=end_date,
+        max_filings=max_filings,
+    )
+    seen_accessions = {filing.accession_number for filing in filings}
+    archived_files = submissions.get("filings", {}).get("files") or []
+
+    for archived_file in archived_files:
+        if len(filings) >= max_filings:
+            break
+        file_from = _date_or_none(archived_file.get("filingFrom"))
+        file_to = _date_or_none(archived_file.get("filingTo"))
+        if end_date and file_from and file_from > end_date:
+            continue
+        if start_date and file_to and file_to < start_date:
+            continue
+        file_name = str(archived_file.get("name") or "").strip()
+        if not file_name:
+            continue
+        archived_response = await _sec_get(
+            request_identity,
+            operation="fetch_etf_holdings_sec_submissions_file",
+            url=SEC_SUBMISSIONS_FILE_URL.format(file_name=file_name),
+        )
+        archived_response.raise_for_status()
+        archived_filings = parse_holdings_filings_from_submissions(
+            archived_response.json(),
             cik=normalized_cik,
             forms=forms,
             start_date=start_date,
             end_date=end_date,
-            max_filings=max_filings,
+            max_filings=max_filings - len(filings),
         )
-        seen_accessions = {filing.accession_number for filing in filings}
-        archived_files = submissions.get("filings", {}).get("files") or []
-
-        for archived_file in archived_files:
+        for filing in archived_filings:
+            if filing.accession_number in seen_accessions:
+                continue
+            filings.append(filing)
+            seen_accessions.add(filing.accession_number)
             if len(filings) >= max_filings:
                 break
-            file_from = _date_or_none(archived_file.get("filingFrom"))
-            file_to = _date_or_none(archived_file.get("filingTo"))
-            if end_date and file_from and file_from > end_date:
-                continue
-            if start_date and file_to and file_to < start_date:
-                continue
-            file_name = str(archived_file.get("name") or "").strip()
-            if not file_name:
-                continue
-            archived_response = await client.get(
-                SEC_SUBMISSIONS_FILE_URL.format(file_name=file_name),
-                headers=_headers(),
-                follow_redirects=True,
-            )
-            archived_response.raise_for_status()
-            archived_filings = parse_holdings_filings_from_submissions(
-                archived_response.json(),
-                cik=normalized_cik,
-                forms=forms,
-                start_date=start_date,
-                end_date=end_date,
-                max_filings=max_filings - len(filings),
-            )
-            for filing in archived_filings:
-                if filing.accession_number in seen_accessions:
-                    continue
-                filings.append(filing)
-                seen_accessions.add(filing.accession_number)
-                if len(filings) >= max_filings:
-                    break
+        # The reviewed first-use envelope permits one archived-submissions page.
+        break
 
     return filings
 
@@ -436,6 +699,27 @@ async def _backfill_sec_holdings(
     no_rows_reason: str,
     notes: str,
 ) -> dict[str, Any]:
+    if _SEC_FUND_BUDGET.get() is None:
+        return await _run_in_sec_fund_scope(
+            lambda: _backfill_sec_holdings(
+                db,
+                profile=profile,
+                start_date=start_date,
+                end_date=end_date,
+                max_filings=max_filings,
+                requested_by_user_id=requested_by_user_id,
+                job_type=job_type,
+                discover_filings=discover_filings,
+                parse_xml=parse_xml,
+                provenance=provenance,
+                parser_version=parser_version,
+                source_format=source_format,
+                missing_date_reason=missing_date_reason,
+                no_rows_reason=no_rows_reason,
+                notes=notes,
+            )
+        )
+    require_unbound_etf_holdings_context("SEC holdings backfill")
     job = ETFHoldingsBackfillJob(
         etf_profile_id=profile.id,
         requested_by_user_id=requested_by_user_id,
@@ -475,10 +759,15 @@ async def _backfill_sec_holdings(
     ingested = 0
     skipped = 0
     failed = 0
+    already_ingested = 0
 
     try:
+        request_identity = await _resolve_request_identity(db=db, profile=profile)
         filings = await discover_filings(
             cik=profile.sec_cik,
+            db=db,
+            profile=profile,
+            request_identity=request_identity,
             start_date=start_date,
             end_date=end_date,
             max_filings=max_filings,
@@ -495,106 +784,172 @@ async def _backfill_sec_holdings(
 
     job.discovered_count = len(filings)
 
-    async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-        for filing in filings:
-            state = await _filing_state_for_accession(
-                db,
-                profile_id=profile.id,
-                filing=filing,
-                job_id=job.id,
-            )
-            if state.snapshot_id is not None and state.ingested_at is not None:
-                skipped += 1
-                state.status = "duplicate"
-                state.failure_reason = None
-                state.extra_data = {
-                    **(state.extra_data or {}),
-                    "last_skip_reason": "accession_already_ingested",
-                }
-                continue
+    for filing in filings:
+        state = await _filing_state_for_accession(
+            db,
+            profile_id=profile.id,
+            filing=filing,
+            job_id=job.id,
+        )
+        if state.snapshot_id is not None and state.ingested_at is not None:
+            skipped += 1
+            already_ingested += 1
+            state.status = "duplicate"
+            state.failure_reason = None
+            state.extra_data = {
+                **(state.extra_data or {}),
+                "last_skip_reason": "accession_already_ingested",
+            }
+            continue
 
-            try:
-                state.status = "fetching"
-                state.failure_reason = None
-                await db.flush()
-                response = await client.get(
-                    filing.filing_url,
-                    headers=_headers(),
-                    follow_redirects=True,
-                )
-                response.raise_for_status()
-                composition_date, rows = parse_xml(response.text)
-                composition_date = composition_date or filing.report_date
-                if composition_date is None:
-                    skipped += 1
-                    reason = missing_date_reason
-                    state.status = "skipped"
-                    state.failure_reason = reason
-                    failures.append({"accession_number": filing.accession_number, "reason": reason})
-                    continue
-                if not rows:
-                    skipped += 1
-                    reason = no_rows_reason
-                    state.status = "skipped"
-                    state.failure_reason = reason
-                    failures.append({"accession_number": filing.accession_number, "reason": reason})
-                    continue
-                snapshot = await ingest_holdings_snapshot(
-                    db,
-                    etf_instrument=profile.instrument,
-                    rows=rows,
-                    composition_date=composition_date,
-                    as_of_date=filing.report_date or composition_date,
-                    known_at=_known_at(filing),
-                    published_at=_known_at(filing),
-                    provenance=provenance,
-                    source_provider="sec",
-                    source_url=filing.filing_url,
-                    source_identifier=filing.accession_number,
-                    source_quality="filing_reconstructed_holdings",
-                    completeness_status="filing_reconstructed",
-                    parser_version=parser_version,
-                    raw_payload_text=response.text,
-                    legal_metadata={
-                        "source_access": "sec_filing",
-                        "source_format": source_format,
-                        "accession_number": filing.accession_number,
-                        "form": filing.form,
-                    },
-                    notes=notes,
-                    # SEC reconstruction already has a dated, filing-scoped
-                    # identity. Keep each filing transaction bounded and
-                    # leave optional identifier enrichment to a separate job.
-                    allow_provider_enrichment=False,
-                )
-                state.snapshot_id = snapshot.id
-                state.status = "ingested"
-                state.failure_reason = None
-                state.ingested_at = _now()
+        try:
+            state.status = "fetching"
+            state.failure_reason = None
+            await db.flush()
+            response = await _sec_get(
+                request_identity,
+                operation="fetch_etf_holdings_sec_filing",
+                url=filing.filing_url,
+            )
+            response.raise_for_status()
+            identity_matches, filing_identity, identity_status = _sec_filing_identity_for_profile(
+                profile, response.text
+            )
+            if not identity_matches:
+                reason = f"filing_fund_identity_rejected:{identity_status}"
+                binding = getattr(response, "extensions", {}).get("etf_holdings_request_binding")
+                if binding is not None:
+                    from types import SimpleNamespace  # noqa: PLC0415
+
+                    from app.services.etf_holdings_refresh import (  # noqa: PLC0415
+                        _retain_rejected_fetch_artifact,
+                    )
+
+                    await _retain_rejected_fetch_artifact(
+                        db,
+                        profile,
+                        _EDGAR_ETF_HOLDINGS_ADAPTER,
+                        binding,
+                        failure=ETFHoldingsRouteHeldError(reason),
+                        fetch_result=SimpleNamespace(
+                            raw_text=response.text,
+                            source_url=filing.filing_url,
+                            source_identifier=filing.accession_number,
+                        ),
+                        validation={
+                            "reason": reason,
+                            "expected_series_id": profile.sec_series_id,
+                            "expected_class_id": profile.sec_class_id,
+                            "observed_filing_identity": filing_identity,
+                        },
+                    )
+                skipped += 1
+                state.status = "skipped"
+                state.failure_reason = reason
                 state.extra_data = {
                     **(state.extra_data or {}),
-                    "composition_date": composition_date.isoformat(),
-                    "row_count": len(rows),
+                    "identity_validation": {
+                        "expected_series_id": profile.sec_series_id,
+                        "expected_class_id": profile.sec_class_id,
+                        "observed": filing_identity,
+                        "status": identity_status,
+                    },
                 }
-                ingested += 1
-            except Exception as exc:  # noqa: BLE001 - backfill summary should preserve per-filing failures.
-                failed += 1
-                state.status = "failed"
-                state.failure_reason = str(exc)
                 failures.append(
                     {
                         "accession_number": filing.accession_number,
-                        "filing_url": filing.filing_url,
-                        "reason": str(exc),
+                        "reason": reason,
                     }
                 )
+                continue
+            composition_date, rows = parse_xml(response.text)
+            composition_date = composition_date or filing.report_date
+            if composition_date is None:
+                skipped += 1
+                reason = missing_date_reason
+                state.status = "skipped"
+                state.failure_reason = reason
+                failures.append({"accession_number": filing.accession_number, "reason": reason})
+                continue
+            if not rows:
+                skipped += 1
+                reason = no_rows_reason
+                state.status = "skipped"
+                state.failure_reason = reason
+                failures.append({"accession_number": filing.accession_number, "reason": reason})
+                continue
+            observed_at = _now()
+            snapshot = await ingest_holdings_snapshot(
+                db,
+                etf_instrument=profile.instrument,
+                rows=rows,
+                composition_date=composition_date,
+                as_of_date=filing.report_date or composition_date,
+                known_at=_known_at(filing, observed_at=observed_at),
+                published_at=None,
+                provenance=provenance,
+                source_provider="sec",
+                source_url=filing.filing_url,
+                source_identifier=filing.accession_number,
+                source_quality="filing_reconstructed_holdings",
+                completeness_status="filing_reconstructed",
+                parser_version=parser_version,
+                raw_payload_text=response.text,
+                legal_metadata={
+                    "source_access": "sec_filing",
+                    "source_format": source_format,
+                    "accession_number": filing.accession_number,
+                    "form": filing.form,
+                    "filing_acceptance_at": (
+                        filing.acceptance_datetime.isoformat()
+                        if filing.acceptance_datetime is not None
+                        else None
+                    ),
+                    "public_availability_time": "unverified",
+                    "fund_identity": filing_identity,
+                },
+                notes=notes,
+                # SEC reconstruction already has a dated, filing-scoped
+                # identity. Keep each filing transaction bounded and
+                # leave optional identifier enrichment to a separate job.
+                allow_provider_enrichment=False,
+            )
+            state.snapshot_id = snapshot.id
+            state.status = "ingested"
+            state.failure_reason = None
+            state.ingested_at = _now()
+            state.extra_data = {
+                **(state.extra_data or {}),
+                "composition_date": composition_date.isoformat(),
+                "row_count": len(rows),
+            }
+            ingested += 1
+            # This one-fund execution may retain at most one accepted snapshot.
+            break
+        except Exception as exc:  # noqa: BLE001 - backfill summary should preserve per-filing failures.
+            failed += 1
+            state.status = "failed"
+            state.failure_reason = str(exc)
+            failures.append(
+                {
+                    "accession_number": filing.accession_number,
+                    "filing_url": filing.filing_url,
+                    "reason": str(exc),
+                }
+            )
 
     job.ingested_count = ingested
     job.skipped_count = skipped
     job.failed_count = failed
     job.completed_at = _now()
-    if failed:
-        job.status = "partial" if ingested or skipped else "failed"
+    successful_filings = ingested + already_ingested
+    if successful_filings == 0:
+        reason = "no_qualifying_filing_within_reviewed_budget"
+        failures.append({"reason": reason})
+        job.failure_reason = reason
+        job.status = "partial" if skipped else "failed"
+    elif failed or failures:
+        job.status = "partial"
     else:
         job.status = "completed"
     job.summary = _job_summary(job, status=job.status, failures=failures)
