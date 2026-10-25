@@ -19214,3 +19214,23 @@ focused regressions for ETF PIT membership, identity and admission/budget/quota 
 the accepted Provider local-series/coverage contract, followed by TC immutable CodeVersion/Study
 outputs. This is recorded as the next action only; it is not started in this adoption context. Heavy
 validation requires Root's slot, and SEC acquisition/target proof remain Root-owned.
+
+### Current private-deployment proof correction (2026-10-25)
+
+The preceding 3ff-adoption section captured the state before Root's later private 5b deployment;
+its a6b9 and inspector-proof-pending wording is historical, not current. Root's actual receipt
+`/home/m920q/charting-platform/.ai/deploy/first-human/deployment-5b296207-receipt-20261025.md`
+records the image-only deployment at 2026-10-25 07:44:57 UTC. The private backend runs immutable
+image `d5dfc32b781b59a4382e9a6d3eab02f6ec9200885de4b1f1cab62fe704cb7977`, revision
+5b29620741fd82d27db45987afb927bf91396712. The receipt proves normal-user Study run 5/artifact 7
+navigation to the inspector, successful owner-scoped GET, ten-field persisted readback and reload
+stability, plus a separate ordinary owner-3 404 for reference 5/7. Invalid/repeated route IDs made
+zero resolution requests and dispatch controls were absent. This is deployed 5b UI/API evidence only:
+it is not 3ff deployment, native Strategy execution, or completion of the 18-criterion roadmap.
+
+The private target is therefore 5b, not a6b9. The 3ff target upgrade and populated ETF sample remain
+Root-owned and pending; current master CI `40210522503` is in progress. SEC acquisition, consumed
+119-request history, provider/data/quota holds, and remaining final acceptance checks remain
+unchanged. The original native worker goal remains historically blocked; this Root-supervised
+bounded record correction did not resume or re-account that goal. Full-roadmap criteria and
+authoritative SPY/RSP listing-venue review remain open.

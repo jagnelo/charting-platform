@@ -34,24 +34,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [
-    "backend/app/routers/etf_holdings.py",
-    "backend/app/services/etf_holdings_edgar.py",
-    "backend/app/services/etf_holdings_provider_bridge.py",
-    "backend/app/services/provider_runtime.py",
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "backend/tests/unit/services/test_etf_holdings_edgar.py",
-    "backend/tests/unit/services/test_etf_holdings_initial_qualification.py",
-    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -84,14 +67,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "f3daad894e209b23b83c02789f2c6cbbffdcb9f2",
+  "head": "e5088d832db0f0bdaef2eabc39982e748abfd8c4",
   "implementation_sha": "3ff96af855a49d42b1dee10cecb43bc6690f4502",
-  "last_checkpoint": "2026-10-25T16:25:22Z",
+  "last_checkpoint": "2026-10-25T16:33:33Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root owns guarded staging integration of exact tested source 83e93958921b479ccd122494571d0b9dbb1acc5d after this ordinary closure is published and final exact-head CI is green. Continue the full 18-criterion roadmap in this same branch after coordinator release. This source checkpoint is not target acceptance: staging/master gates, separately authorized deployment, and genuine-data owner-positive/negative V2 inspector UI/API proof remain. Preserve SPY/RSP date-only venue review, prior red evidence, and all disabled live/native/forward/broker/capital boundaries.",
+  "next_action": "Next branch-owned roadmap item is AC-UPSTREAM combined-consumer qualification on the exact adopted source: stack-free review/regressions for ETF point-in-time membership, source identity, admission/budget/quota denial and interaction with the already accepted Provider local-series and coverage contracts, followed by TC immutable CodeVersion/Study-output qualification. The normal-user deployed inspector proof is complete only for private deployment 5b; do not relabel it as 3ff or native execution. Root owns the 3ff target upgrade, populated ETF sample and SEC acquisition; wait for those releases before any dependent target claim or resource work. Preserve ETF's held SEC acquisition and 119-request history. Do not start that development in this narrow record-correction turn. Keep all 18 criterion dispositions open and native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe operations held or disabled.",
   "parent_branch": "staging",
-  "plan_hash": "22baa910b19b790517f86e0469c11e5905e11a6caf34202b7990bd29ca080568",
+  "plan_hash": "6d1180b49cb350595ee4ae977ff2ec7b2ce75de97c39c2160d7d548f322df85b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -121,11 +104,11 @@
       "FH4",
       "FH5"
     ],
-    "current_blocker": "Exact synchronized-green ETF source 3ff96af855a49d42b1dee10cecb43bc6690f4502 is adopted as the second parent of this branch reconciliation; its canonical receipt is /home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json and exact hosted CI 40202604218 passed the required jobs, including Exhaustive Integration Gate. This is the accepted ETF FQ1-FQ8 source checkpoint, not source-combined deployment or target acceptance. Root's independent master CI 40210522503 remains in progress; the private target remains on a6b9. SEC acquisition and actual target acceptance remain Root-owned and pending; the historical 119-request consumption is preserved. The Provider P2 selected/default-series behavior from 5b remains present in direct single and bounded batch Research reads. Preserve the source-83 qualification and all earlier red attempts as source-83 evidence only; no tests or runtime work were repeated for this staging adoption. The genuine deployed Results-to-inspector owner-positive/negative proof, authoritative SPY/RSP canonical listing-venue review and full 18-criterion roadmap remain open. Native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe operations remain held or disabled.",
+    "current_blocker": "Exact synchronized-green ETF source 3ff96af855a49d42b1dee10cecb43bc6690f4502 is adopted as the second parent of this branch reconciliation; its canonical receipt is /home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json and exact hosted CI 40202604218 passed the required jobs, including Exhaustive Integration Gate. This is the accepted ETF FQ1-FQ8 source checkpoint, not the deployed target source. Root's deployment receipt `/home/m920q/charting-platform/.ai/deploy/first-human/deployment-5b296207-receipt-20261025.md` confirms the private target runs backend image `d5dfc32b781b59a4382e9a6d3eab02f6ec9200885de4b1f1cab62fe704cb7977`, revision 5b29620741fd82d27db45987afb927bf91396712, deployed 2026-10-25 07:44:57 UTC. On that 5b deployment, normal-user Study run 5/artifact 7 navigation, all ten immutable readback fields, reload persistence, and a separate normal-owner 404 were verified. This is proof for deployed 5b only, not 3ff and not native Strategy execution. The 3ff target upgrade and accepted ETF sample remain Root-owned and pending; master CI 40210522503 is still in progress. SEC acquisition and final target acceptance remain Root-owned and pending; the historical 119-request consumption is preserved. Provider P2 selected/default-series behavior from 5b remains in direct single and bounded batch Research reads. Preserve source-83 qualification and earlier red attempts as source-83 evidence only; no tests/runtime work was repeated for adoption. Authoritative SPY/RSP canonical listing-venue review and the full 18-criterion roadmap remain open. The original native worker goal remains historically blocked; this Root-supervised bounded record correction does not resume or re-account it. Native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe operations remain held or disabled.",
     "current_phase": "strategy-lab-v2-first-human-study-inspector-2",
-    "next_action": "Next branch-owned roadmap item is AC-UPSTREAM combined-consumer qualification on the exact adopted source: stack-free review/regressions for ETF point-in-time membership, source identity, admission/budget/quota denial and interaction with the already accepted Provider local-series and coverage contracts, followed by TC immutable CodeVersion/Study-output qualification. Preserve ETF's held SEC acquisition and 119-request history; Root owns actual SEC acquisition and target acceptance. Do not start that development or any heavy/resource work in this adoption checkpoint. Keep the private target a6b9 and all 18 criterion dispositions open; no deployment, native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown or unsafe operation is authorized here.",
+    "next_action": "Next branch-owned roadmap item is AC-UPSTREAM combined-consumer qualification on the exact adopted source: stack-free review/regressions for ETF point-in-time membership, source identity, admission/budget/quota denial and interaction with the already accepted Provider local-series and coverage contracts, followed by TC immutable CodeVersion/Study-output qualification. The normal-user deployed inspector proof is complete only for private deployment 5b; do not relabel it as 3ff or native execution. Root owns the 3ff target upgrade, populated ETF sample and SEC acquisition; wait for those releases before any dependent target claim or resource work. Preserve ETF's held SEC acquisition and 119-request history. Do not start that development in this narrow record-correction turn. Keep all 18 criterion dispositions open and native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe operations held or disabled.",
     "total": 5,
-    "updated_at": "2026-10-25T16:25:22Z"
+    "updated_at": "2026-10-25T16:33:33Z"
   },
   "remote": "f3daad894e209b23b83c02789f2c6cbbffdcb9f2",
   "remote_sha": "f3daad894e209b23b83c02789f2c6cbbffdcb9f2",

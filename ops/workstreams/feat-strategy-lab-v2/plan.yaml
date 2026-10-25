@@ -984,27 +984,35 @@ progress:
     the second parent of this branch reconciliation; its canonical receipt is
     /home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json and exact
     hosted CI 40202604218 passed the required jobs, including Exhaustive Integration Gate. This is
-    the accepted ETF FQ1-FQ8 source checkpoint, not source-combined deployment or target acceptance.
-    Root's independent master CI 40210522503 remains in progress; the private target remains on a6b9.
-    SEC acquisition and actual target acceptance remain Root-owned and pending; the historical
-    119-request consumption is preserved. The Provider P2 selected/default-series behavior from
-    5b remains present in direct single and bounded batch Research reads. Preserve the source-83
-    qualification and all earlier red attempts as source-83 evidence only; no tests or runtime work
-    were repeated for this staging adoption. The genuine deployed Results-to-inspector
-    owner-positive/negative proof, authoritative SPY/RSP canonical listing-venue review and full
-    18-criterion roadmap remain open. Native/RC6, forward, broker, capital, provider/quota,
-    paid/trial, unknown and unsafe operations remain held or disabled.
-  updated_at: "2026-10-25T16:25:22Z"
+    the accepted ETF FQ1-FQ8 source checkpoint, not the deployed target source. Root's deployment
+    receipt `/home/m920q/charting-platform/.ai/deploy/first-human/deployment-5b296207-receipt-20261025.md`
+    confirms the private target runs backend image `d5dfc32b781b59a4382e9a6d3eab02f6ec9200885de4b1f1cab62fe704cb7977`,
+    revision 5b29620741fd82d27db45987afb927bf91396712, deployed 2026-10-25 07:44:57 UTC. On that
+    5b deployment, normal-user Study run 5/artifact 7 navigation, all ten immutable readback fields,
+    reload persistence, and a separate normal-owner 404 were verified. This is proof for deployed
+    5b only, not 3ff and not native Strategy execution. The 3ff target upgrade and accepted ETF sample
+    remain Root-owned and pending; master CI 40210522503 is still in progress. SEC acquisition and
+    final target acceptance remain Root-owned and pending; the historical 119-request consumption is
+    preserved. Provider P2 selected/default-series behavior from 5b remains in direct single and
+    bounded batch Research reads. Preserve source-83 qualification and earlier red attempts as
+    source-83 evidence only; no tests/runtime work was repeated for adoption. Authoritative SPY/RSP
+    canonical listing-venue review and the full 18-criterion roadmap remain open. The original native
+    worker goal remains historically blocked; this Root-supervised bounded record correction does
+    not resume or re-account it. Native/RC6, forward, broker, capital, provider/quota, paid/trial,
+    unknown and unsafe operations remain held or disabled.
+  updated_at: "2026-10-25T16:33:33Z"
   next_action: >-
     Next branch-owned roadmap item is AC-UPSTREAM combined-consumer qualification on the exact
     adopted source: stack-free review/regressions for ETF point-in-time membership, source identity,
     admission/budget/quota denial and interaction with the already accepted Provider local-series
     and coverage contracts, followed by TC immutable CodeVersion/Study-output qualification.
-    Preserve ETF's held SEC acquisition and 119-request history; Root owns actual SEC acquisition and
-    target acceptance. Do not start that development or any heavy/resource work in this adoption
-    checkpoint. Keep the private target a6b9 and all 18 criterion dispositions open; no deployment,
-    native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown or unsafe operation is
-    authorized here.
+    The normal-user deployed inspector proof is complete only for private deployment 5b; do not
+    relabel it as 3ff or native execution. Root owns the 3ff target upgrade, populated ETF sample and
+    SEC acquisition; wait for those releases before any dependent target claim or resource work.
+    Preserve ETF's held SEC acquisition and 119-request
+    history. Do not start that development in this narrow record-correction turn. Keep all 18
+    criterion dispositions open and native/RC6, forward, broker, capital, provider/quota, paid/trial,
+    unknown and unsafe operations held or disabled.
 
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
