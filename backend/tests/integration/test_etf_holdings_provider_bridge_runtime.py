@@ -3068,7 +3068,11 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
         async def tamper_selection_after_real_backfill(*args, **kwargs):
             summary = await original_backfill(*args, **kwargs)
             job = kwargs["qualification_job"]
+            # Isolate the selection mutation from the child's durable request IDs.
+            await args[0].refresh(job, attribute_names=["extra_data"])
             extra_data = dict(job.extra_data or {})
+            linked_request_ids = list(extra_data.get("provider_request_log_ids") or [])
+            assert linked_request_ids
             selection = dict(extra_data["qualification_filing_selection"])
             reference = dict(selection["reference"])
             reference["accession_number"] = wrong_accession
@@ -3076,6 +3080,8 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
             extra_data["qualification_filing_selection"] = selection
             job.extra_data = extra_data
             await args[0].flush()
+            await args[0].refresh(job, attribute_names=["extra_data"])
+            assert job.extra_data["provider_request_log_ids"] == linked_request_ids
             return summary
 
         monkeypatch.setattr(edgar, "_backfill_sec_holdings", tamper_selection_after_real_backfill)

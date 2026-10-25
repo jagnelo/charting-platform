@@ -1,5 +1,38 @@
 # feat/etf-holdings-constituents
 
+## Audit-link correction — 2026-10-25
+
+At frozen baseline `54081f43892f80c43efcc46f40a8a55b94ec1c92`, Root-reviewed
+CI40187575496 is preserved as RED (543 integration passed, 2 failed, 2 skipped).
+The raw-artifact request-ID assertion passed; failure was the qualification
+job's missing `provider_request_log_ids`. A partial wrong-body result bypassed
+the success-evidence refresh, then the parent finalizer overwrote the child's
+durable ID link with stale JSON. The tamper test hook also needed a refresh
+before editing selection so its deliberate mutation would preserve the linked
+IDs and exercise the existing selection guard. Applied the reviewed narrow
+production refresh in the not-qualified finalizer and the test-hook refresh plus
+before/after ID assertions. Production audit checks/order and the raw-artifact
+assertion are unchanged.
+
+Focused offline qualification/EDGAR SQLite unit modules: 44 passed. Ruff check,
+Ruff format check, AST parse, and the exact narrative-count sentinel passed.
+The earlier complete local unit run timed out in shard56 after 47 tests. Root's
+separate diagnostic-only rerun used a noncanonical `routing=false` environment
+and crashed with signal11/exit2; it is not product evidence and was not rerun
+here. The required diagnostic artifact exists. No
+PostgreSQL fixture, Docker/browser/full suite, provider/SEC request, quota or
+target action was run by this owner. Root owns corrected PostgreSQL validation,
+complete new-source profiles and exact-tip CI. FQ remains in_progress/not
+accepted; preserve all FQ1-FQ8, AC1-AC14, 15 Tier-0 and 156 Tier-1, prior red/
+partial history, holds, raw/PIT lineage, the 119-request history and 30-day
+observation.
+
+Files in this correction changeset: `backend/app/services/etf_holdings_edgar.py`,
+`backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`, this
+handoff, `session.json`, and the appended `validation.jsonl` receipt. FQ/AC
+criterion text in `plan.yaml` is unchanged. The complete new-source gates are
+still pending; this focused evidence is not checkpoint acceptance.
+
 # Green staging adoption and first SEC qualification plan — 2026-10-25
 
 ## Adopted source baseline

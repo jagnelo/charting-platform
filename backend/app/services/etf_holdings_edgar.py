@@ -1846,6 +1846,11 @@ async def qualify_sec_nport_fund(
                 change_reason=f"sec_initial_qualification:{attempt.id}",
             )
         else:
+            # Child Provider sessions durably append request IDs. Partial
+            # backfills can bypass _qualification_success_evidence's refresh;
+            # reload before merging the final outcome into this job JSON.
+            await operation_db.refresh(attempt, attribute_names=["extra_data"])
+            extra_data = dict(attempt.extra_data or {})
             attempt.status = "failed" if summary.get("status") != "partial" else "partial"
             attempt.failure_reason = qualification_reason
             extra_data["qualification_outcome"] = {

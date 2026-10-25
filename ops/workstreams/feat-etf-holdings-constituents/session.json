@@ -34,9 +34,9 @@
     }
   ],
   "active_changeset": {
-    "baseline": "38d96e1e2f77c54feba21c7fdc3ceaccaf297c65",
+    "baseline": "54081f43892f80c43efcc46f40a8a55b94ec1c92",
     "contract": "/home/m920q/charting-platform/.ai/staging-attempts/etf-fqc-committed-filing-reference-38d-r5-20261025.patch",
-    "current_delta": "Applied Root-approved r5 committed-filing-reference correction to the dedicated SEC qualification path. Preserved default discovery operation subset semantics and shared admission/accounting. Focused offline unit modules passed 89 tests; narrative sentinel passed; integration collect-only found 8 FQ cases with 35 deselected; Ruff check/format pass. Root-owned real-PostgreSQL and complete exact-source gates remain pending; no live or database action by this owner.",
+    "current_delta": "Applied Root-reviewed audit-link fix: refresh child-session request IDs before not-qualified finalization merges outcome JSON, and refresh/assert the tamper test's parent JSON before/after selection mutation. Preserved raw-artifact/job audit equality, tamper rejection, production validation order, bounds, quotas and holds. Focused qualification/EDGAR SQLite unit modules passed 44 tests; Ruff check/format, AST parse and exact narrative-count sentinel passed. Hosted CI40187575496 on baseline54081 remains historically RED with543 integration passed,2failed,2skipped; Root-owned PostgreSQL regression, complete new-source profiles and exact-tip CI remain pending. No Docker/database/live request or target action by this owner.",
     "intent": "Resolve the not_run first-request cycle through one admin-only, exact-scope qualification context while preserving every shared Provider admission/accounting guard and leaving ordinary policy disabled.",
     "name": "etf-sec-first-qualification-1 admin-only initial SEC qualification",
     "owned_paths": [
@@ -52,7 +52,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Implementation in progress and not accepted. Root-approved r5 is applied; focused offline tests and syntax/style/collection checks pass. Preserve original CI/red/partial history and all FHSC/FQ/roadmap contracts. Real PostgreSQL, complete new-source local profiles and exact-tip CI remain Root-owned and pending; no live SEC request, quota use, target mutation or checkpoint acceptance is claimed."
+    "state": "Implementation in progress and not accepted. Root-reviewed audit-link correction is applied and focused SQLite/static checks pass. Preserve original CI/red/partial history and all FHSC/FQ/roadmap contracts. Real PostgreSQL, complete new-source local profiles and exact-tip CI remain Root-owned and pending; no live SEC request, quota use, target mutation or checkpoint acceptance is claimed."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -103,15 +103,13 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "Root-owned PostgreSQL MockTransport validation and complete new-source profiles/exact-tip CI remain pending. FQ checkpoint stays in_progress/not accepted; SEC/live and route-policy holds remain. Preserve 15 Tier-0 and 156 Tier-1.",
+  "current_blocker_latest": "Hosted CI40187575496 on baseline54081 is preserved RED (543 integration passed,2 failed,2 skipped); the reviewed child-session audit-link correction now passes focused SQLite/static checks. Root-owned PostgreSQL regression and complete new-source profiles/exact-tip CI remain pending. FQ checkpoint stays in_progress/not accepted; SEC/live and route-policy holds remain. Preserve 15 Tier-0 and 156 Tier-1.",
   "current_checkpoint_objective": "Implement etf-sec-first-qualification-1 under Root-accepted Producer contract: add one separate administrator-only one-fund SEC qualification operation and narrowly scoped shared-runtime hook without bypassing normal admission, identity, account, hold, budget, settlement, provenance or bounded-transport controls. Keep ordinary routes denied and policy disabled until Root accepts real qualifying evidence; preserve FHSC1-FHSC7 acceptance and the complete AC1-AC14 roadmap.",
-  "current_local_delta": "Applied Root-approved r5 committed-filing-reference correction to the dedicated SEC qualification path. Preserved default discovery operation subset semantics and shared admission/accounting. Focused offline unit modules passed 89 tests; narrative sentinel passed; integration collect-only found 8 FQ cases with 35 deselected; Ruff check/format pass. Root-owned real-PostgreSQL and complete exact-source gates remain pending; no live or database action by this owner.",
+  "current_local_delta": "Applied Root-reviewed audit-link fix: refresh child-session request IDs before not-qualified finalization merges outcome JSON, and refresh/assert the tamper test's parent JSON before/after selection mutation. Preserved raw-artifact/job audit equality, tamper rejection, production validation order, bounds, quotas and holds. Focused qualification/EDGAR SQLite unit modules passed 44 tests; Ruff check/format, AST parse and exact narrative-count sentinel passed. Hosted CI40187575496 on baseline54081 remains historically RED with543 integration passed,2failed,2skipped; Root-owned PostgreSQL regression, complete new-source profiles and exact-tip CI remain pending. No Docker/database/live request or target action by this owner.",
   "dirty_paths": [
     "backend/app/services/etf_holdings_edgar.py",
     "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "backend/tests/unit/services/test_etf_holdings_initial_qualification.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
@@ -139,7 +137,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "38d96e1e2f77c54feba21c7fdc3ceaccaf297c65",
+  "head": "54081f43892f80c43efcc46f40a8a55b94ec1c92",
   "implementation_sha": "5b29620741fd82d27db45987afb927bf91396712",
   "integration_checkpoint": {
     "acceptance_authorization": "pending_root_review_and_future_checkpoint_acceptance",
@@ -431,7 +429,7 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish this coherent r5 implementation and record set; Root runs the assigned real-PostgreSQL cases and complete new-source gates. Preserve all live, quota, target and roadmap holds.",
+  "next_action": "Root runs the corrected PostgreSQL regression and complete new-source profiles/exact-tip CI; keep FQ in_progress/not accepted and preserve all live, quota, target and roadmap holds.",
   "plan_hash": "f304ab81370a866868b11623c228f6bccb3f5fdb97728484fffec2b62bf35ed2",
   "planning_required": false,
   "planning_state": "ready",
@@ -656,11 +654,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root-owned real PostgreSQL and complete new-source validation remain pending; preserve 15 Tier-0 and 156 Tier-1.",
-    "current_phase": "committed_filing_reference_r5_focused_checks_passed_pending_root_db_and_full_validation",
-    "next_action": "Root runs assigned PostgreSQL MockTransport cases and complete source gates; keep checkpoint in_progress and all live holds",
+    "current_blocker": "Hosted CI40187575496 on baseline54081 remains historically RED (543 integration passed,2 failed,2 skipped); Root-owned corrected PostgreSQL MockTransport validation, complete new-source profiles and exact-tip CI remain pending. FQ stays in_progress/not accepted; preserve SEC/live holds and 15 Tier-0 and 156 Tier-1.",
+    "current_phase": "audit_link_correction_focused_sqlite_checks_passed_pending_root_postgresql_and_full_validation",
+    "next_action": "Root runs the corrected PostgreSQL case and complete source gates on the published exact tip. Keep checkpoint in_progress and all live holds.",
     "total": 8,
-    "updated_at": "2026-10-25T11:05:28Z"
+    "updated_at": "2026-10-25T11:52:16Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -682,9 +680,9 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "38d96e1e2f77c54feba21c7fdc3ceaccaf297c65",
-  "remote_observation": "At this coherent test-and-record correction boundary, local HEAD and origin/feat/etf-holdings-constituents both resolve to f164db5807e746bbb0a5d57f16030ac10f07ee61. This pending records commit will be validated and pushed once; do not create a self-hash metadata loop.",
-  "remote_sha": "38d96e1e2f77c54feba21c7fdc3ceaccaf297c65",
+  "remote": "54081f43892f80c43efcc46f40a8a55b94ec1c92",
+  "remote_observation": "Prepublication boundary check for the audit-link correction: local HEAD and origin/feat/etf-holdings-constituents both resolved to 54081f43892f80c43efcc46f40a8a55b94ec1c92. This remains the exact baseline for the current coherent source-and-record correction; the final published tip is reported in the owner response.",
+  "remote_sha": "54081f43892f80c43efcc46f40a8a55b94ec1c92",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
